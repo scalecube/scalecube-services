@@ -5,7 +5,7 @@
     <parent>
 		<groupId>io.servicefabric</groupId>
         <artifactId>servicefabric-parent</artifactId>
-        <version>0.0.3-SNAPSHOT</version>
+        <version>0.0.3</version>
     </parent>
 
 	<artifactId>servicefabric-cluster</artifactId>
