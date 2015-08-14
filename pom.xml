@@ -4,7 +4,7 @@
 
     <groupId>io.servicefabric</groupId>
     <artifactId>servicefabric-parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <packaging>pom</packaging>
 
     <name>ServiceFabric</name>
@@ -25,7 +25,7 @@
 		<url>https://github.com/servicefabric/servicefabric</url>
         <connection>scm:git:git@github.com:servicefabric/servicefabric.git</connection>
         <developerConnection>scm:git:git@github.com:servicefabric/servicefabric.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>v0.0.1</tag>
 	</scm>
 
     <developers>
