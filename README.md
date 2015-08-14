@@ -5,3 +5,21 @@ ServiceFabric is a framework that enables quick and easy development of modern d
 ## Links
 
 * [Web Site](http://servicefabric.io/)
+
+## Maven
+
+``` maven
+<dependency>
+	<groupId>io.servicefabric</groupId>
+	<artifactId>servicefabric-transport</artifactId>
+	<version>0.0.3</version>
+</dependency>
+```
+
+``` maven
+<dependency>
+	<groupId>io.servicefabric</groupId>
+	<artifactId>servicefabric-cluster</artifactId>
+	<version>0.0.3</version>
+</dependency>
+```
