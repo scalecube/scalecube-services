@@ -1,7 +1,7 @@
 package io.servicefabric.cluster.fdetector;
 
-import io.servicefabric.cluster.ClusterEndpoint;
 import io.protostuff.Tag;
+import io.servicefabric.cluster.ClusterEndpoint;
 
 /** DTO class. Supports FailureDetector messages (Ping, Ack, PingReq). */
 public final class FailureDetectorData {

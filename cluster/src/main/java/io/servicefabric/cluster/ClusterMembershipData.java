@@ -1,11 +1,12 @@
 package io.servicefabric.cluster;
 
+import io.protostuff.Tag;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import com.google.common.base.Objects;
-import io.protostuff.Tag;
 
 /** DTO class. Contains a snapshot of cluster members and cluster identifier. */
 public final class ClusterMembershipData {

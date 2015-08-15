@@ -1,10 +1,6 @@
 package io.servicefabric.cluster.gossip;
 
-import java.util.Collection;
-
 import rx.Observable;
-
-import io.servicefabric.cluster.ClusterEndpoint;
 
 /**
  * Gossip Protocol component provides generic solution for spreading information (gossips) over the cluster

@@ -1,9 +1,8 @@
 package io.servicefabric.cluster;
 
-import rx.functions.Func1;
-
 import io.servicefabric.cluster.gossip.Gossip;
 import io.servicefabric.transport.TransportMessage;
+import rx.functions.Func1;
 
 public final class ClusterMembershipQualifiers {
 	public static final String SYNC = "pt.openapi.core.cluster/membership/sync";

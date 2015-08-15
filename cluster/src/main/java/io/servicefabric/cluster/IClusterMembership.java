@@ -1,8 +1,8 @@
 package io.servicefabric.cluster;
 
-import rx.Observable;
-
 import java.util.List;
+
+import rx.Observable;
 
 public interface IClusterMembership {
 

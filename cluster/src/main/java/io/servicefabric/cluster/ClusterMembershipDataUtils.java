@@ -1,13 +1,12 @@
 package io.servicefabric.cluster;
 
 import static com.google.common.collect.Collections2.filter;
-
+import io.servicefabric.cluster.gossip.Gossip;
+import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
 import rx.functions.Func1;
 
 import com.google.common.base.Predicate;
-import io.servicefabric.cluster.gossip.Gossip;
-import io.servicefabric.transport.TransportMessage;
 
 final class ClusterMembershipDataUtils {
 

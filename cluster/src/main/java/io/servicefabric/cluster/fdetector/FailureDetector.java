@@ -4,16 +4,30 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.servicefabric.cluster.fdetector.FailureDetectorEvent.SUSPECTED;
 import static io.servicefabric.cluster.fdetector.FailureDetectorEvent.TRUSTED;
-import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.*;
+import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.ACK;
+import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.PING;
+import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.PING_REQ;
+import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.ackFilter;
+import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.pingFilter;
+import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.pingReqFilter;
+import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.targetFilter;
 import static java.lang.Math.min;
+import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.ITransport;
+import io.servicefabric.transport.TransportMessage;
+import io.servicefabric.transport.TransportTypeRegistry;
+import io.servicefabric.transport.protocol.Message;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.TransportTypeRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,9 +44,6 @@ import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import com.google.common.collect.Sets;
-import io.servicefabric.cluster.ClusterEndpoint;
-import io.servicefabric.transport.ITransport;
-import io.servicefabric.transport.TransportMessage;
 
 public final class FailureDetector implements IFailureDetector {
 	private static final Logger LOGGER = LoggerFactory.getLogger(FailureDetector.class);

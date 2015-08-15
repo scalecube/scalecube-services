@@ -2,10 +2,10 @@ package io.servicefabric.cluster.fdetector;
 
 import static io.servicefabric.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
-
-import com.google.common.base.Objects;
 import io.servicefabric.cluster.ClusterEndpoint;
 import io.servicefabric.cluster.ClusterMemberStatus;
+
+import com.google.common.base.Objects;
 
 /** Tuple class. Contains cluster endpoint and its status. */
 public final class FailureDetectorEvent {

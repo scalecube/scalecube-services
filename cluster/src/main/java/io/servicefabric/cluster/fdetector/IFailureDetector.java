@@ -1,10 +1,10 @@
 package io.servicefabric.cluster.fdetector;
 
+import io.servicefabric.cluster.ClusterEndpoint;
+
 import java.util.Collection;
 
 import rx.Observable;
-
-import io.servicefabric.cluster.ClusterEndpoint;
 
 public interface IFailureDetector {
 

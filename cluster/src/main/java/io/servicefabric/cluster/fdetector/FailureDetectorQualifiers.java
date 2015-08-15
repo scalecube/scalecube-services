@@ -1,9 +1,8 @@
 package io.servicefabric.cluster.fdetector;
 
-import rx.functions.Func1;
-
 import io.servicefabric.cluster.ClusterEndpoint;
 import io.servicefabric.transport.TransportMessage;
+import rx.functions.Func1;
 
 public final class FailureDetectorQualifiers {
 	public static final String PING = "pt.openapi.core.cluster/fdetector/ping";

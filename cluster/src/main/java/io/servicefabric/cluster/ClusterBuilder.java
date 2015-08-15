@@ -1,16 +1,15 @@
 package io.servicefabric.cluster;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import io.servicefabric.cluster.fdetector.FailureDetector;
 import io.servicefabric.cluster.gossip.GossipProtocol;
-import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.Transport;
 import io.servicefabric.transport.TransportBuilder;
-import rx.schedulers.Schedulers;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import rx.schedulers.Schedulers;
 
 /**
  * @author Anton Kharenko

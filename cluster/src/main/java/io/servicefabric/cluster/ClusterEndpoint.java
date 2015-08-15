@@ -1,13 +1,12 @@
 package io.servicefabric.cluster;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import io.servicefabric.transport.TransportEndpoint;
 
 import java.net.URI;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.concurrent.Immutable;
-
-import io.servicefabric.transport.TransportEndpoint;
 
 @Immutable
 public final class ClusterEndpoint {
