@@ -1,11 +1,10 @@
 package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import io.servicefabric.transport.protocol.Message;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.concurrent.Immutable;
-
-import io.servicefabric.transport.protocol.Message;
 
 @Immutable
 public final class TransportMessage {

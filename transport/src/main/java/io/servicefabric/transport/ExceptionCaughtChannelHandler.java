@@ -1,14 +1,14 @@
 package io.servicefabric.transport;
 
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
 
 /**
  * Catching generic exceptions along with {@link TransportBrokenException}. Catching 'channel inactive' events.

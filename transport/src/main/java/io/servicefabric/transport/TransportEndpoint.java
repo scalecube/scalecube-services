@@ -2,13 +2,13 @@ package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Throwables.propagate;
+import io.servicefabric.transport.utils.IpAddressResolver;
 
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.List;
 
 import com.google.common.base.Splitter;
-import io.servicefabric.transport.utils.IpAddressResolver;
 
 public final class TransportEndpoint {
 	private String scheme;

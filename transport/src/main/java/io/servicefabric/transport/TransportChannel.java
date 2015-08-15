@@ -2,8 +2,18 @@ package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.transform;
+import static io.servicefabric.transport.TransportChannel.Status.CLOSED;
+import static io.servicefabric.transport.TransportChannel.Status.CONNECTED;
+import static io.servicefabric.transport.TransportChannel.Status.CONNECT_FAILED;
+import static io.servicefabric.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
+import static io.servicefabric.transport.TransportChannel.Status.HANDSHAKE_FAILED;
+import static io.servicefabric.transport.TransportChannel.Status.HANDSHAKE_IN_PROGRESS;
+import static io.servicefabric.transport.TransportChannel.Status.HANDSHAKE_PASSED;
+import static io.servicefabric.transport.TransportChannel.Status.NEW;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
-import static io.servicefabric.transport.TransportChannel.Status.*;
+import io.netty.channel.Channel;
+import io.netty.util.AttributeKey;
+import io.servicefabric.transport.protocol.Message;
 
 import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -14,15 +24,12 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.functions.Func1;
+
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.util.concurrent.SettableFuture;
-import io.servicefabric.transport.protocol.Message;
-
-import io.netty.channel.Channel;
-import io.netty.util.AttributeKey;
-import rx.functions.Func1;
 
 final class TransportChannel implements ITransportChannel {
 	static final Logger LOGGER = LoggerFactory.getLogger(TransportChannel.class);

@@ -1,10 +1,10 @@
 package io.servicefabric.transport;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransportTypeRegistry implements ITransportTypeRegistry {
 

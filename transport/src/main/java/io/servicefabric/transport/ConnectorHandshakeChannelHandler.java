@@ -3,6 +3,13 @@ package io.servicefabric.transport;
 import static com.google.common.base.Throwables.propagate;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
 import static java.lang.Thread.interrupted;
+import io.netty.channel.ChannelDuplexHandler;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.netty.util.concurrent.ScheduledFuture;
+import io.servicefabric.transport.protocol.Message;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -11,11 +18,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.servicefabric.transport.protocol.Message;
-
-import io.netty.channel.*;
-import io.netty.util.concurrent.ScheduledFuture;
 
 /**
  * Duplex handler.

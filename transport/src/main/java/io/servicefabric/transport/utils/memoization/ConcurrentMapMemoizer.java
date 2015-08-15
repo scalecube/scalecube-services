@@ -1,9 +1,15 @@
 package io.servicefabric.transport.utils.memoization;
 
-import java.util.Set;
-import java.util.concurrent.*;
-
 import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 
 /**
  * The ConcurrentMapMemoizer.

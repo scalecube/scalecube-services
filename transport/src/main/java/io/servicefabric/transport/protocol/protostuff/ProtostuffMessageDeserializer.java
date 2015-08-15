@@ -1,15 +1,14 @@
 package io.servicefabric.transport.protocol.protostuff;
 
-import io.servicefabric.transport.ITransportTypeRegistry;
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.MessageDeserializer;
-import io.servicefabric.transport.protocol.SchemaCache;
+import static io.protostuff.ProtostuffIOUtil.mergeFrom;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.handler.codec.DecoderException;
 import io.protostuff.Schema;
-
-import static io.protostuff.ProtostuffIOUtil.mergeFrom;
+import io.servicefabric.transport.ITransportTypeRegistry;
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.protocol.MessageDeserializer;
+import io.servicefabric.transport.protocol.SchemaCache;
 
 public final class ProtostuffMessageDeserializer implements MessageDeserializer {
 

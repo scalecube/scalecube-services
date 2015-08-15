@@ -1,15 +1,14 @@
 package io.servicefabric.transport;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import io.netty.channel.EventLoopGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
 import io.servicefabric.transport.protocol.protostuff.ProtostuffFrameHandlerFactory;
 import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageDeserializer;
 import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageSerializer;
-import io.netty.channel.EventLoopGroup;
-import io.netty.util.concurrent.EventExecutorGroup;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * @author Anton Kharenko
