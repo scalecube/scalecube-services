@@ -13,6 +13,7 @@ import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.pingR
 import static io.servicefabric.cluster.fdetector.FailureDetectorQualifiers.targetFilter;
 import static java.lang.Math.min;
 import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.cluster.fdetector.api.IFailureDetector;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.TransportTypeRegistry;

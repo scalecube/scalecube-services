@@ -1,6 +1,7 @@
-package io.servicefabric.cluster.fdetector;
+package io.servicefabric.cluster.fdetector.api;
 
 import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
 
 import java.util.Collection;
 

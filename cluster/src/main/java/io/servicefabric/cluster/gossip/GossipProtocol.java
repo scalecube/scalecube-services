@@ -11,10 +11,12 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import io.servicefabric.transport.ITransportTypeRegistry;
 import io.servicefabric.transport.protocol.Message;
 import io.servicefabric.transport.protocol.SchemaCache;
 import io.servicefabric.transport.TransportTypeRegistry;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +32,10 @@ import rx.subjects.Subject;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
+
 import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.cluster.gossip.api.IGossipProtocol;
+import io.servicefabric.cluster.gossip.api.IGossipProtocolSpi;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportMessage;
 
