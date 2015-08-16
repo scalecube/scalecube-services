@@ -1,16 +1,15 @@
 package io.servicefabric.transport.protocol.protostuff;
 
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.MessageSerializer;
-import io.servicefabric.transport.protocol.SchemaCache;
-import io.servicefabric.transport.utils.RecycleableLinkedBuffer;
+import static io.protostuff.ProtostuffIOUtil.toByteArray;
+import static io.protostuff.ProtostuffIOUtil.writeTo;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.EncoderException;
 import io.protostuff.Schema;
-
-import static io.protostuff.ProtostuffIOUtil.toByteArray;
-import static io.protostuff.ProtostuffIOUtil.writeTo;
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.protocol.MessageSerializer;
+import io.servicefabric.transport.protocol.SchemaCache;
+import io.servicefabric.transport.utils.RecycleableLinkedBuffer;
 
 public final class ProtostuffMessageSerializer implements MessageSerializer {
 

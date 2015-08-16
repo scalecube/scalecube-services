@@ -2,7 +2,10 @@ package io.servicefabric.cluster;
 
 import static com.google.common.collect.Maps.filterValues;
 import static com.google.common.collect.Maps.newHashMap;
-import static io.servicefabric.cluster.ClusterMemberStatus.*;
+import static io.servicefabric.cluster.ClusterMemberStatus.REMOVED;
+import static io.servicefabric.cluster.ClusterMemberStatus.SUSPECTED;
+import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
+import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.base.Predicate;
-import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
 
 final class ClusterMembershipTable {
 	private final ConcurrentMap<ClusterEndpoint, ClusterMember> membership = new ConcurrentHashMap<>();

@@ -1,13 +1,17 @@
 package io.servicefabric.transport;
 
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.utils.ChannelFutureUtils;
+
 import java.util.Map;
 
-import io.servicefabric.transport.utils.ChannelFutureUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.servicefabric.transport.protocol.Message;
-import io.netty.channel.*;
 
 /**
  * Inbound handler.

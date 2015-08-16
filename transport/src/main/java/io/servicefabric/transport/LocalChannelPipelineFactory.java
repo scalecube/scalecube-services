@@ -1,15 +1,15 @@
 package io.servicefabric.transport;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelPipeline;
+import io.netty.handler.logging.LoggingHandler;
+import io.netty.util.concurrent.EventExecutorGroup;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelPipeline;
-import io.netty.handler.logging.LoggingHandler;
-import io.netty.util.concurrent.EventExecutorGroup;
 
 public final class LocalChannelPipelineFactory implements PipelineFactory {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LocalChannelPipelineFactory.class);

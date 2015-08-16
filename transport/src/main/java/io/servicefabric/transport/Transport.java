@@ -3,14 +3,39 @@ package io.servicefabric.transport;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
+import static io.servicefabric.transport.TransportChannel.ATTR_TRANSPORT;
+import static io.servicefabric.transport.TransportChannel.Builder.ACCEPTOR;
+import static io.servicefabric.transport.TransportChannel.Builder.CONNECTOR;
+import static io.servicefabric.transport.TransportChannel.Status.CONNECT_FAILED;
+import static io.servicefabric.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
+import static io.servicefabric.transport.TransportChannel.Status.NEW;
 import static io.servicefabric.transport.TransportData.Q_TRANSPORT_HANDSHAKE_SYNC;
 import static io.servicefabric.transport.TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
-import static io.servicefabric.transport.TransportChannel.ATTR_TRANSPORT;
-import static io.servicefabric.transport.TransportChannel.Builder.ACCEPTOR;
-import static io.servicefabric.transport.TransportChannel.Builder.CONNECTOR;
-import static io.servicefabric.transport.TransportChannel.Status.*;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelException;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPromise;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.ServerChannel;
+import io.netty.channel.local.LocalAddress;
+import io.netty.channel.local.LocalChannel;
+import io.netty.channel.local.LocalEventLoopGroup;
+import io.netty.channel.local.LocalServerChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
+import io.servicefabric.transport.utils.memoization.Computable;
+import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -24,7 +49,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,22 +59,7 @@ import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.servicefabric.transport.utils.memoization.Computable;
-import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
-
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.*;
-import io.netty.channel.local.LocalAddress;
-import io.netty.channel.local.LocalChannel;
-import io.netty.channel.local.LocalEventLoopGroup;
-import io.netty.channel.local.LocalServerChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
-import io.netty.util.concurrent.EventExecutorGroup;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 public final class Transport implements ITransportSpi, ITransport {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);

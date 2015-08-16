@@ -1,12 +1,12 @@
 package io.servicefabric.transport;
 
-import java.util.Map;
-
-import rx.subjects.Subject;
-
 import io.netty.channel.Channel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.util.concurrent.EventExecutorGroup;
+
+import java.util.Map;
+
+import rx.subjects.Subject;
 
 /** Transport SPI interface. Exposes some properties and functions which aren't part of the public API. */
 interface ITransportSpi {

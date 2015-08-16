@@ -1,12 +1,5 @@
 package io.servicefabric.transport;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import io.servicefabric.transport.protocol.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
@@ -14,6 +7,18 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.servicefabric.transport.protocol.FrameHandlerFactory;
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.protocol.MessageDeserializer;
+import io.servicefabric.transport.protocol.MessageSerializer;
+import io.servicefabric.transport.protocol.SharableDeserializerHandler;
+import io.servicefabric.transport.protocol.SharableSerializerHandler;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class SocketChannelPipelineFactory implements PipelineFactory {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocketChannelPipelineFactory.class);

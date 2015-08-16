@@ -1,9 +1,8 @@
 package io.servicefabric.transport.utils;
 
+import static com.google.common.base.Preconditions.checkState;
 import io.netty.util.Recycler;
 import io.protostuff.LinkedBuffer;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Facility class for {@link io.protostuff.LinkedBuffer}. Based on idea of object pooling (done vian {@link io.netty.util.Recycler}).

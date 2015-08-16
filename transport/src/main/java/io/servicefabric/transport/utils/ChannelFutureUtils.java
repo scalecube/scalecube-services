@@ -1,9 +1,9 @@
 package io.servicefabric.transport.utils;
 
-import com.google.common.util.concurrent.SettableFuture;
-
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+
+import com.google.common.util.concurrent.SettableFuture;
 
 public class ChannelFutureUtils {
 

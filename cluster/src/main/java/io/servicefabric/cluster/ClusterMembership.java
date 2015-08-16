@@ -2,19 +2,39 @@ package io.servicefabric.cluster;
 
 import static io.servicefabric.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
-import static io.servicefabric.cluster.ClusterMembershipDataUtils.*;
-import static io.servicefabric.cluster.ClusterMembershipQualifiers.*;
+import static io.servicefabric.cluster.ClusterMembershipDataUtils.filterData;
+import static io.servicefabric.cluster.ClusterMembershipDataUtils.gossipFilterData;
+import static io.servicefabric.cluster.ClusterMembershipDataUtils.syncGroupFilter;
+import static io.servicefabric.cluster.ClusterMembershipQualifiers.GOSSIP_MEMBERSHIP;
+import static io.servicefabric.cluster.ClusterMembershipQualifiers.SYNC;
+import static io.servicefabric.cluster.ClusterMembershipQualifiers.SYNC_ACK;
+import static io.servicefabric.cluster.ClusterMembershipQualifiers.gossipMembershipFilter;
+import static io.servicefabric.cluster.ClusterMembershipQualifiers.syncAckFilter;
+import static io.servicefabric.cluster.ClusterMembershipQualifiers.syncFilter;
 import static io.servicefabric.transport.TransportEndpoint.tcp;
+import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
+import io.servicefabric.cluster.fdetector.IFailureDetector;
+import io.servicefabric.cluster.gossip.IGossipProtocolSpi;
+import io.servicefabric.transport.ITransport;
+import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.TransportMessage;
+import io.servicefabric.transport.TransportTypeRegistry;
+import io.servicefabric.transport.protocol.Message;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import io.servicefabric.cluster.gossip.IGossipProtocolSpi;
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.TransportTypeRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,12 +51,6 @@ import rx.subjects.Subject;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
-import io.servicefabric.cluster.fdetector.IFailureDetector;
-import io.servicefabric.cluster.gossip.IGossipProtocol;
-import io.servicefabric.transport.ITransport;
-import io.servicefabric.transport.TransportEndpoint;
-import io.servicefabric.transport.TransportMessage;
 
 public final class ClusterMembership implements IClusterMembership {
 	private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMembership.class);

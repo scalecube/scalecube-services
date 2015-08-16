@@ -1,12 +1,11 @@
 package io.servicefabric.transport.protocol;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * The Class SchemaCache.

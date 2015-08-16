@@ -2,7 +2,11 @@ package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Strings.isNullOrEmpty;
-import static io.servicefabric.transport.TransportData.Status.*;
+import static io.servicefabric.transport.TransportData.Status.NEW;
+import static io.servicefabric.transport.TransportData.Status.RESOLVED_ERR;
+import static io.servicefabric.transport.TransportData.Status.RESOLVED_OK;
+import io.protostuff.Tag;
+import io.servicefabric.transport.utils.KVPair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,9 +14,6 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import io.servicefabric.transport.utils.KVPair;
-import io.protostuff.Tag;
 
 /** DTO class. Used for transport handshake mechanism. */
 public class TransportData {

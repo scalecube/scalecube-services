@@ -1,6 +1,5 @@
 package io.servicefabric.cluster;
 
-import io.servicefabric.cluster.fdetector.IFailureDetector;
 import io.servicefabric.cluster.gossip.IGossipProtocol;
 import io.servicefabric.transport.ITransport;
 

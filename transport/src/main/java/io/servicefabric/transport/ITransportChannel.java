@@ -1,10 +1,11 @@
 package io.servicefabric.transport;
 
+import io.servicefabric.transport.protocol.Message;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.servicefabric.transport.protocol.Message;
 
 /**
  * Represent abstraction over p2p duplex connection between two transport endpoints. Allows sending
