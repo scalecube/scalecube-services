@@ -1,6 +1,7 @@
-package io.servicefabric.cluster;
+package io.servicefabric.cluster.api;
 
-import io.servicefabric.cluster.gossip.IGossipProtocol;
+import io.servicefabric.cluster.ClusterMember;
+import io.servicefabric.cluster.gossip.api.IGossipProtocol;
 import io.servicefabric.transport.ITransport;
 
 import java.util.List;

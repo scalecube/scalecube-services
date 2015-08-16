@@ -12,9 +12,10 @@ import static io.servicefabric.cluster.ClusterMembershipQualifiers.gossipMembers
 import static io.servicefabric.cluster.ClusterMembershipQualifiers.syncAckFilter;
 import static io.servicefabric.cluster.ClusterMembershipQualifiers.syncFilter;
 import static io.servicefabric.transport.TransportEndpoint.tcp;
+import io.servicefabric.cluster.api.IClusterMembership;
 import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
-import io.servicefabric.cluster.fdetector.IFailureDetector;
-import io.servicefabric.cluster.gossip.IGossipProtocolSpi;
+import io.servicefabric.cluster.fdetector.api.IFailureDetector;
+import io.servicefabric.cluster.gossip.api.IGossipProtocolSpi;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportMessage;

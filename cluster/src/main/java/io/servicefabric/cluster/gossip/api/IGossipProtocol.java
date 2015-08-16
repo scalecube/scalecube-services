@@ -1,5 +1,6 @@
-package io.servicefabric.cluster.gossip;
+package io.servicefabric.cluster.gossip.api;
 
+import io.servicefabric.cluster.gossip.Gossip;
 import rx.Observable;
 
 /**

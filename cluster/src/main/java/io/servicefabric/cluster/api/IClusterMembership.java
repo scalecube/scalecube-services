@@ -1,4 +1,6 @@
-package io.servicefabric.cluster;
+package io.servicefabric.cluster.api;
+
+import io.servicefabric.cluster.ClusterMember;
 
 import java.util.List;
 
