@@ -305,7 +305,7 @@ public final class FailureDetector implements IFailureDetector {
 	}
 
 	private void send(ClusterEndpoint endpoint, Message message) {
-		transport.to(endpoint.endpoint()).send(message, null);
+		transport.to(endpoint.endpoint()).send(message);
 	}
 
 	private ClusterEndpoint selectPingMember(List<ClusterEndpoint> members) {

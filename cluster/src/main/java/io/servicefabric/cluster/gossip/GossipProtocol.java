@@ -185,7 +185,7 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 				//Transform to actual gossip with incrementing sent count
 				List<Gossip> gossipToSend = newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
 				transport.to(clusterEndpoint.endpoint())
-						.send(new Message(GossipQualifiers.QUALIFIER, new GossipRequest(gossipToSend)), null);
+						.send(new Message(GossipQualifiers.QUALIFIER, new GossipRequest(gossipToSend)));
 			}
 		}
 	}

@@ -89,7 +89,7 @@ public final class ClusterMembership implements IClusterMembership {
 			String correlationId = transportMessage.message().correlationId();
 			ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
 			Message message = new Message(SYNC_ACK, syncAckData, correlationId);
-			send(endpoint, message);
+			transport.to(endpoint).send(message);
 		}
 	});
 
@@ -319,7 +319,7 @@ public final class ClusterMembership implements IClusterMembership {
 		ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
 		Message message = new Message(SYNC, syncData, period/*correlationId*/);
 		for (TransportEndpoint endpoint : members) {
-			send(endpoint, message);
+			transport.to(endpoint).send(message);
 		}
 	}
 
@@ -333,10 +333,6 @@ public final class ClusterMembership implements IClusterMembership {
 		} else {
 			LOGGER.debug("Received SyncAck from {}, no updates", endpoint);
 		}
-	}
-
-	private void send(TransportEndpoint endpoint, Message message) {
-		transport.to(endpoint).send(message, null);
 	}
 
 	private List<TransportEndpoint> selectRandomMembers(List<TransportEndpoint> members) {

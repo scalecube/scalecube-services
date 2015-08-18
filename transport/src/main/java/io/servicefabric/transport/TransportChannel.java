@@ -94,6 +94,11 @@ final class TransportChannel implements ITransportChannel {
 	}
 
 	@Override
+	public void send(@CheckForNull Message message) {
+		send(message, null);
+	}
+
+	@Override
 	public void send(@CheckForNull Message message, @Nullable SettableFuture<Void> promise) {
 		checkArgument(message != null);
 		if (shouldFailSend()) {

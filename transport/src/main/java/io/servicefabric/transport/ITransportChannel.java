@@ -14,6 +14,14 @@ import com.google.common.util.concurrent.SettableFuture;
 public interface ITransportChannel {
 
 	/**
+	 * Sends message to remote endpoint. Send is async operation.
+	 *
+	 * @param message message to send
+	 * @throws IllegalArgumentException if {@code message} is null
+	 */
+	void send(@CheckForNull Message message);
+
+	/**
 	 * Sends message to remote endpoint. Send is async operation, if result of operation is not needed leave second parameter null,
 	 * otherwise pass {@link SettableFuture}. If transport channel is already closed - {@code promise} will be failed
 	 * with {@link TransportClosedException}.
