@@ -9,8 +9,8 @@ import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import java.io.IOException;
 import java.util.Map;
 
+import io.protostuff.runtime.RuntimeSchema;
 import io.servicefabric.transport.ITransportTypeRegistry;
-import io.servicefabric.transport.protocol.SchemaCache;
 import io.servicefabric.transport.utils.RecycleableLinkedBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,7 +109,7 @@ final class GossipSchema implements Schema<Gossip> {
 			if (dataClazz == null) {
 				gossip.setData(originalData);
 			} else {
-				Schema dataSchema = SchemaCache.getSchema(dataClazz);
+				Schema dataSchema = RuntimeSchema.getSchema(dataClazz);
 				Object data = dataSchema.newMessage();
 				try {
 					ProtostuffIOUtil.mergeFrom(originalData, data, dataSchema);
@@ -139,7 +139,7 @@ final class GossipSchema implements Schema<Gossip> {
 				if (dataClazz == null) {
 					throw new RuntimeException("Can't serialize data for qualifier " + gossip.getQualifier());
 				}
-				Schema dataSchema = SchemaCache.getSchema(dataClazz);
+				Schema dataSchema = RuntimeSchema.getSchema(dataClazz);
 
 				try (RecycleableLinkedBuffer rlb = recycleableLinkedBuffer.get()) {
 					byte[] array = ProtostuffIOUtil.toByteArray(originalData, dataSchema, rlb.buffer());

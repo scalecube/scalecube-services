@@ -11,9 +11,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import io.protostuff.runtime.RuntimeSchema;
 import io.servicefabric.transport.ITransportTypeRegistry;
 import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.SchemaCache;
 import io.servicefabric.transport.TransportTypeRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +118,7 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 		// Register data types
 		ITransportTypeRegistry typeRegistry = TransportTypeRegistry.getInstance();
 		typeRegistry.registerType(GossipQualifiers.QUALIFIER, GossipRequest.class);
-		SchemaCache.registerCustomSchema(Gossip.class, new GossipSchema(typeRegistry));
+		RuntimeSchema.register(Gossip.class, new GossipSchema(typeRegistry));
 
 		onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
 		transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
