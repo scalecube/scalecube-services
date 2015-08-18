@@ -64,9 +64,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 public final class Transport implements ITransportSpi, ITransport {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
-	static final String DECORATION_START = "\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n+\n+\n+ ";
-	static final String DECORATION_END = "\n+\n+\n++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
-
 	private final TransportEndpoint localEndpoint;
 	private final EventLoopGroup eventLoop;
 	private final EventExecutorGroup eventExecutor;
@@ -187,9 +184,7 @@ public final class Transport implements ITransportSpi, ITransport {
 		});
 		try {
 			serverChannel = (ServerChannel) server.bind(bindAddress).syncUninterruptibly().channel();
-			String message = "Netty TransportFactory - bound to: " + bindAddress;
-			System.out.println(DECORATION_START + message + DECORATION_END);
-			LOGGER.info(message);
+			LOGGER.info("Netty TransportFactory - bound to: {}", bindAddress);
 		} catch (Exception e) {
 			LOGGER.error("Failed to bind to: " + bindAddress + ", caught " + e, e);
 			propagate(e);
