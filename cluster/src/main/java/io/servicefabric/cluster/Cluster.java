@@ -9,14 +9,24 @@ import java.util.List;
 /**
  * @author Anton Kharenko
  */
-class Cluster implements ICluster {
+public class Cluster implements ICluster {
 
 	private final ITransport transport;
 	private final IFailureDetector failureDetector;
 	private final IGossipProtocol gossipProtocol;
 	private final IClusterMembership clusterMembership;
 
-	Cluster(ITransport transport, IFailureDetector failureDetector, IGossipProtocol gossipProtocol,
+	public static ICluster newInstance(String memberId, int port, String seedMembers){
+		String uri = "tcp://"+memberId+"@localhost:"+port;
+		return ClusterBuilder.newInstance(ClusterEndpoint.from(uri), seedMembers).build();
+	}
+	
+	public static ICluster newInstance(String memberId, int port){
+		String uri = "tcp://"+memberId+"@localhost:"+port;
+		return ClusterBuilder.newInstance(ClusterEndpoint.from(uri), "").build();
+	}
+	
+	protected Cluster(ITransport transport, IFailureDetector failureDetector, IGossipProtocol gossipProtocol,
 			IClusterMembership clusterMembership) {
 		this.transport = transport;
 		this.failureDetector = failureDetector;
