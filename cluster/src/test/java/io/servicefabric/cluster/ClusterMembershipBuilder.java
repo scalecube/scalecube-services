@@ -48,7 +48,7 @@ public class ClusterMembershipBuilder {
 				put("key", "val");
 			}
 		});
-		target.setWellknownMemberList(members);
+		target.setSeedMembers(members);
 		target.setSyncTime(1000);
 		target.setSyncTimeout(100);
 	}

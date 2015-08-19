@@ -62,7 +62,7 @@ public final class ClusterMembership implements IClusterMembership {
 	private int maxSuspectTime = 60 * 1000;
 	private int maxShutdownTime = 60 * 1000;
 	private String syncGroup = "default";
-	private List<TransportEndpoint> wellknownMembers = new ArrayList<>();
+	private List<TransportEndpoint> seedMembers = new ArrayList<>();
 	private ITransport transport;
 	private final ClusterEndpoint localEndpoint;
 	private final Scheduler scheduler;
@@ -150,10 +150,10 @@ public final class ClusterMembership implements IClusterMembership {
 		this.syncGroup = syncGroup;
 	}
 
-	public void setWellknownMemberList(Collection<TransportEndpoint> wellknownMemberList) {
-		Set<TransportEndpoint> set = new HashSet<>(wellknownMemberList);
+	public void setSeedMembers(Collection<TransportEndpoint> seedMembers) {
+		Set<TransportEndpoint> set = new HashSet<>(seedMembers);
 		set.remove(localEndpoint.endpoint());
-		this.wellknownMembers = new ArrayList<>(set);
+		this.seedMembers = new ArrayList<>(set);
 	}
 
 	public void setSeedMembers(String seedMembers) {
@@ -177,7 +177,7 @@ public final class ClusterMembership implements IClusterMembership {
 				i.remove();
 			}
 		}
-		setWellknownMemberList(set);
+		setSeedMembers(set);
 	}
 
 	public void setTransport(ITransport transport) {
@@ -188,8 +188,8 @@ public final class ClusterMembership implements IClusterMembership {
 		this.localMetadata = localMetadata;
 	}
 
-	public List<TransportEndpoint> getWellknownMembers() {
-		return new ArrayList<>(wellknownMembers);
+	public List<TransportEndpoint> getSeedMembers() {
+		return new ArrayList<>(seedMembers);
 	}
 
 	@Override
@@ -239,18 +239,18 @@ public final class ClusterMembership implements IClusterMembership {
 				.subscribe(onGossipSubscriber);
 
 		// Conduct 'initialization phase': take wellknown addresses, send SYNC to all and get at least one SYNC_ACK from any of them
-		if (!wellknownMembers.isEmpty()) {
-			LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", wellknownMembers);
-			doBlockingSync(wellknownMembers);
+		if (!seedMembers.isEmpty()) {
+			LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", seedMembers);
+			doBlockingSync(seedMembers);
 		}
 
 		// Schedule 'running phase': select randomly single wellknown address, send SYNC and get SYNC_ACK
-		if (!wellknownMembers.isEmpty()) {
+		if (!seedMembers.isEmpty()) {
 			cmTask = scheduler.createWorker().schedulePeriodically(new Action0() {
 				@Override
 				public void call() {
 					try {
-						List<TransportEndpoint> members = selectRandomMembers(wellknownMembers);
+						List<TransportEndpoint> members = selectRandomMembers(seedMembers);
 						LOGGER.debug("Running phase: making Sync (selected_members={}))", members);
 						doSync(members, scheduler);
 					} catch (Exception e) {
