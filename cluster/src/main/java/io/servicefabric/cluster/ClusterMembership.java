@@ -156,9 +156,9 @@ public final class ClusterMembership implements IClusterMembership {
 		this.wellknownMembers = new ArrayList<>(set);
 	}
 
-	public void setWellknownMembers(String wellknownMembers) {
+	public void setSeedMembers(String seedMembers) {
 		List<TransportEndpoint> memberList = new ArrayList<>();
-		for (String token : new HashSet<>(Splitter.on(',').splitToList(wellknownMembers))) {
+		for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
 			if (token.length() != 0) {
 				try {
 					memberList.add(tcp(token));
@@ -167,7 +167,7 @@ public final class ClusterMembership implements IClusterMembership {
 				}
 			}
 		}
-		// filter accidental dublicates/locals
+		// filter accidental duplicates/locals
 		Set<TransportEndpoint> set = new HashSet<>(memberList);
 		for (Iterator<TransportEndpoint> i = set.iterator(); i.hasNext();) {
 			TransportEndpoint endpoint = i.next();
@@ -409,7 +409,7 @@ public final class ClusterMembership implements IClusterMembership {
 	}
 
 	@Override
-	public void publishShutdown() {
+	public void leave() {
 		ClusterMember r1 = new ClusterMember(localEndpoint, SHUTDOWN, localMetadata);
 		gossipProtocol.spread(GOSSIP_MEMBERSHIP, new ClusterMembershipData(ImmutableList.of(r1), syncGroup));
 	}

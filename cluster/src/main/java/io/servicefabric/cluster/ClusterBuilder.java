@@ -8,7 +8,9 @@ import io.servicefabric.transport.TransportBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
+import io.servicefabric.transport.TransportEndpoint;
 import rx.schedulers.Schedulers;
 
 /**
@@ -18,7 +20,7 @@ public class ClusterBuilder {
 
 	// Mandatory parameters
 	private final ClusterEndpoint localClusterEndpoint;
-	private final String wellknownMembers;
+	private final String seedMembers;
 
 	// Optional parameters
 	private Map<String, String> metadata = new HashMap<>();
@@ -27,15 +29,23 @@ public class ClusterBuilder {
 	private FailureDetectorSettings failureDetectorSettings = null;
 	private GossipProtocolSettings gossipProtocolSettings = null;
 
-	private ClusterBuilder(ClusterEndpoint localClusterEndpoint, String wellknownMembers) {
+	private ClusterBuilder(ClusterEndpoint localClusterEndpoint, String seedMembers) {
 		checkArgument(localClusterEndpoint != null);
-		checkArgument(wellknownMembers != null);
+		checkArgument(seedMembers != null);
 		this.localClusterEndpoint = localClusterEndpoint;
-		this.wellknownMembers = wellknownMembers;
+		this.seedMembers = seedMembers;
 	}
 
-	public static ClusterBuilder newInstance(ClusterEndpoint localClusterEndpoint, String wellknownMembers) {
-		return new ClusterBuilder(localClusterEndpoint, wellknownMembers);
+	public static ClusterBuilder newInstance(int port, String seedMembers) {
+		return newInstance(UUID.randomUUID().toString(), port, seedMembers);
+	}
+
+	public static ClusterBuilder newInstance(String memberId, int port, String seedMembers) {
+		return newInstance(ClusterEndpoint.from(memberId, TransportEndpoint.localTcp(port, 0)), seedMembers);
+	}
+
+	public static ClusterBuilder newInstance(ClusterEndpoint localClusterEndpoint, String seedMembers) {
+		return new ClusterBuilder(localClusterEndpoint, seedMembers);
 	}
 
 	public void setMetadata(Map<String, String> metadata) {
@@ -123,7 +133,7 @@ public class ClusterBuilder {
 		clusterMembership.setGossipProtocol(gossipProtocol);
 		clusterMembership.setTransport(transport);
 		clusterMembership.setLocalMetadata(metadata);
-		clusterMembership.setWellknownMembers(wellknownMembers);
+		clusterMembership.setSeedMembers(seedMembers);
 		if (clusterMembershipSettings != null) {
 			clusterMembership.setSyncTime(clusterMembershipSettings.getSyncTime());
 			clusterMembership.setSyncTimeout(clusterMembershipSettings.getSyncTimeout());
