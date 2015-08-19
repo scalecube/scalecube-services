@@ -34,6 +34,16 @@ public class ClusterBuilder {
 		this.wellknownMembers = wellknownMembers;
 	}
 
+	public static ICluster newInstance(String memberId, int port, String seedMembers){
+		String uri = "tcp://"+memberId+"@localhost:"+port;
+		return ClusterBuilder.newInstance(ClusterEndpoint.from(uri), seedMembers).build();
+	}
+	
+	public static ICluster newInstance(String memberId, int port){
+		String uri = "tcp://"+memberId+"@localhost:"+port;
+		return ClusterBuilder.newInstance(ClusterEndpoint.from(uri), "").build();
+	}
+	
 	public static ClusterBuilder newInstance(ClusterEndpoint localClusterEndpoint, String wellknownMembers) {
 		return new ClusterBuilder(localClusterEndpoint, wellknownMembers);
 	}
