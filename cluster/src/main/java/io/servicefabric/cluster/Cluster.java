@@ -109,8 +109,8 @@ public class Cluster implements ICluster {
 		ICluster cluster = new Cluster(transport, failureDetector, gossipProtocol, clusterMembership);
 
 		// Auto start
-		if (config.autoStart) {
-			cluster.start();
+		if (config.autoJoin) {
+			cluster.join();
 		}
 
 		return cluster;
@@ -142,7 +142,7 @@ public class Cluster implements ICluster {
 	}
 
 	@Override
-	public ICluster start() {
+	public ICluster join() {
 		transport.start();
 		failureDetector.start();
 		gossipProtocol.start();
@@ -151,7 +151,11 @@ public class Cluster implements ICluster {
 	}
 
 	@Override
-	public void stop() {
+	public void leave() {
+
+		// TODO: Call membership leave to notify other members about graceful shutdown!
+		// TODO: Do I need to wait before stopping components?
+
 		clusterMembership.stop();
 		gossipProtocol.stop();
 		failureDetector.stop();

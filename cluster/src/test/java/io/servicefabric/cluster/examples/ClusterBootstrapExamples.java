@@ -14,16 +14,16 @@ public class ClusterBootstrapExamples {
 
 	public static void main(String[] args) throws InterruptedException {
 		// Start seed members
-		ICluster cluster1 = Cluster.newInstance().start();
-		ICluster cluster2 = Cluster.newInstance(4001).start();
+		ICluster cluster1 = Cluster.newInstance().join();
+		ICluster cluster2 = Cluster.newInstance(4001).join();
 
 		String seedMembers = "localhost:" + ClusterConfiguration.DEFAULT_PORT + ", localhost:4001";
 
 		// Start another member
-		ICluster cluster3 = Cluster.newInstance(4002, seedMembers).start();
+		ICluster cluster3 = Cluster.newInstance(4002, seedMembers).join();
 
 		// Start cool member
-		ICluster cluster4 = Cluster.newInstance("Cool member", 4003, seedMembers).start();
+		ICluster cluster4 = Cluster.newInstance("Cool member", 4003, seedMembers).join();
 
 		// Start another cool member with some metadata
 		Map<String, String> metadata = new HashMap<>();
@@ -34,13 +34,13 @@ public class ClusterBootstrapExamples {
 				.seedMembers(seedMembers)
 				.memberId("Another cool member")
 				.metadata(metadata);
-		ICluster cluster5 = Cluster.newInstance(config5).start();
+		ICluster cluster5 = Cluster.newInstance(config5).join();
 
-		// If you don't want to call start
+		// If you don't want to call join
 		ClusterConfiguration config6 = ClusterConfiguration.newInstance()
 				.port(4005)
 				.seedMembers(seedMembers)
-				.autoStart(true);
+				.autoJoin(true);
 		ICluster cluster6 = Cluster.newInstance(config6);
 	}
 

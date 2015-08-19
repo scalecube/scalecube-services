@@ -20,8 +20,8 @@ public interface ICluster {
 
 	ClusterMember localMember();
 
-	ICluster start();
+	ICluster join();
 
-	void stop();
+	void leave();
 
 }

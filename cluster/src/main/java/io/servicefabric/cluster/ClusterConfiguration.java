@@ -19,7 +19,7 @@ public class ClusterConfiguration {
 	public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
 	public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
 
-	boolean autoStart = false;
+	boolean autoJoin = false;
 	String memberId = null;
 	String seedMembers = "";
 	int port = DEFAULT_PORT;
@@ -48,8 +48,8 @@ public class ClusterConfiguration {
 		this.port = port;
 	}
 
-	public void setAutoStart(boolean autoStart) {
-		this.autoStart = autoStart;
+	public void setAutoJoin(boolean autoJoin) {
+		this.autoJoin = autoJoin;
 	}
 
 	public void setMetadata(Map<String, String> metadata) {
@@ -92,8 +92,8 @@ public class ClusterConfiguration {
 		return this;
 	}
 
-	public ClusterConfiguration autoStart(boolean autoStart) {
-		setAutoStart(autoStart);
+	public ClusterConfiguration autoJoin(boolean autoJoin) {
+		setAutoJoin(autoJoin);
 		return this;
 	}
 
