@@ -16,7 +16,7 @@ class Cluster implements ICluster {
 	private final IGossipProtocol gossipProtocol;
 	private final IClusterMembership clusterMembership;
 
-	Cluster(ITransport transport, IFailureDetector failureDetector, IGossipProtocol gossipProtocol,
+	protected Cluster(ITransport transport, IFailureDetector failureDetector, IGossipProtocol gossipProtocol,
 			IClusterMembership clusterMembership) {
 		this.transport = transport;
 		this.failureDetector = failureDetector;
