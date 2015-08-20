@@ -5,10 +5,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.handler.codec.DecoderException;
 import io.protostuff.Schema;
+import io.protostuff.runtime.RuntimeSchema;
 import io.servicefabric.transport.ITransportTypeRegistry;
 import io.servicefabric.transport.protocol.Message;
 import io.servicefabric.transport.protocol.MessageDeserializer;
-import io.servicefabric.transport.protocol.SchemaCache;
 
 public final class ProtostuffMessageDeserializer implements MessageDeserializer {
 
@@ -20,7 +20,7 @@ public final class ProtostuffMessageDeserializer implements MessageDeserializer 
 
 	@Override
 	public Message deserialize(ByteBuf bb) {
-		Schema<BinaryMessage> schema = SchemaCache.getSchema(BinaryMessage.class);
+		Schema<BinaryMessage> schema = RuntimeSchema.getSchema(BinaryMessage.class);
 		BinaryMessage binaryMessage = schema.newMessage();
 		try {
 			mergeFrom(new ByteBufInputStream(bb), binaryMessage, schema);
@@ -39,7 +39,7 @@ public final class ProtostuffMessageDeserializer implements MessageDeserializer 
 		}
 		Class<?> clazz = typeRegistry.resolveType(message.getQualifier());
 		if (clazz != null) {
-			Schema schema = SchemaCache.getSchema(clazz);
+			Schema schema = RuntimeSchema.getSchema(clazz);
 			Object data = schema.newMessage();
 			mergeFrom(message.getData(), data, schema);
 			return data;

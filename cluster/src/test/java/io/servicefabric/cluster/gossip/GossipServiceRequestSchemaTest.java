@@ -1,5 +1,6 @@
 package io.servicefabric.cluster.gossip;
 
+import io.protostuff.runtime.RuntimeSchema;
 import io.servicefabric.transport.ITransportTypeRegistry;
 import io.servicefabric.transport.TransportTypeRegistry;
 import io.servicefabric.transport.protocol.*;
@@ -35,7 +36,7 @@ public class GossipServiceRequestSchemaTest {
 		typeRegistry.registerType(gossipQualifier, GossipRequest.class);
 		typeRegistry.registerType(testDataQualifier, TestData.class);
 
-		SchemaCache.registerCustomSchema(Gossip.class, new GossipSchema(typeRegistry));
+		RuntimeSchema.register(Gossip.class, new GossipSchema(typeRegistry));
 		List<KVPair<String, String>> properties = new ArrayList<>();
 		properties.add(new KVPair<>("casino", "123"));
 

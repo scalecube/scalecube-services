@@ -20,5 +20,5 @@ public interface IClusterMembership {
 	Observable<ClusterMember> listenUpdates();
 
 	/** Denoting fact that local member is getting gracefully shutdown. */
-	void publishShutdown();
+	void leave();
 }

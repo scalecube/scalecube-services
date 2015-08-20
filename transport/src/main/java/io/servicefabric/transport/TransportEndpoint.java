@@ -26,7 +26,7 @@ public final class TransportEndpoint {
 	 */
 	public static TransportEndpoint localTcp(int basePort, int portShift) throws IllegalArgumentException {
 		checkArgument(basePort > 0);
-		checkArgument(portShift > 0);
+		checkArgument(portShift >= 0);
 		TransportEndpoint endpoint = new TransportEndpoint();
 		endpoint.scheme = "tcp";
 		endpoint.hostAddress = resolveIp();

@@ -62,7 +62,7 @@ public final class ClusterMembership implements IClusterMembership {
 	private int maxSuspectTime = 60 * 1000;
 	private int maxShutdownTime = 60 * 1000;
 	private String syncGroup = "default";
-	private List<TransportEndpoint> wellknownMembers = new ArrayList<>();
+	private List<TransportEndpoint> seedMembers = new ArrayList<>();
 	private ITransport transport;
 	private final ClusterEndpoint localEndpoint;
 	private final Scheduler scheduler;
@@ -89,7 +89,7 @@ public final class ClusterMembership implements IClusterMembership {
 			String correlationId = transportMessage.message().correlationId();
 			ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
 			Message message = new Message(SYNC_ACK, syncAckData, correlationId);
-			send(endpoint, message);
+			transport.to(endpoint).send(message);
 		}
 	});
 
@@ -150,15 +150,15 @@ public final class ClusterMembership implements IClusterMembership {
 		this.syncGroup = syncGroup;
 	}
 
-	public void setWellknownMemberList(Collection<TransportEndpoint> wellknownMemberList) {
-		Set<TransportEndpoint> set = new HashSet<>(wellknownMemberList);
+	public void setSeedMembers(Collection<TransportEndpoint> seedMembers) {
+		Set<TransportEndpoint> set = new HashSet<>(seedMembers);
 		set.remove(localEndpoint.endpoint());
-		this.wellknownMembers = new ArrayList<>(set);
+		this.seedMembers = new ArrayList<>(set);
 	}
 
-	public void setWellknownMembers(String wellknownMembers) {
+	public void setSeedMembers(String seedMembers) {
 		List<TransportEndpoint> memberList = new ArrayList<>();
-		for (String token : new HashSet<>(Splitter.on(',').splitToList(wellknownMembers))) {
+		for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
 			if (token.length() != 0) {
 				try {
 					memberList.add(tcp(token));
@@ -167,7 +167,7 @@ public final class ClusterMembership implements IClusterMembership {
 				}
 			}
 		}
-		// filter accidental dublicates/locals
+		// filter accidental duplicates/locals
 		Set<TransportEndpoint> set = new HashSet<>(memberList);
 		for (Iterator<TransportEndpoint> i = set.iterator(); i.hasNext();) {
 			TransportEndpoint endpoint = i.next();
@@ -177,7 +177,7 @@ public final class ClusterMembership implements IClusterMembership {
 				i.remove();
 			}
 		}
-		setWellknownMemberList(set);
+		setSeedMembers(set);
 	}
 
 	public void setTransport(ITransport transport) {
@@ -188,8 +188,8 @@ public final class ClusterMembership implements IClusterMembership {
 		this.localMetadata = localMetadata;
 	}
 
-	public List<TransportEndpoint> getWellknownMembers() {
-		return new ArrayList<>(wellknownMembers);
+	public List<TransportEndpoint> getSeedMembers() {
+		return new ArrayList<>(seedMembers);
 	}
 
 	@Override
@@ -239,18 +239,18 @@ public final class ClusterMembership implements IClusterMembership {
 				.subscribe(onGossipSubscriber);
 
 		// Conduct 'initialization phase': take wellknown addresses, send SYNC to all and get at least one SYNC_ACK from any of them
-		if (!wellknownMembers.isEmpty()) {
-			LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", wellknownMembers);
-			doBlockingSync(wellknownMembers);
+		if (!seedMembers.isEmpty()) {
+			LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", seedMembers);
+			doBlockingSync(seedMembers);
 		}
 
 		// Schedule 'running phase': select randomly single wellknown address, send SYNC and get SYNC_ACK
-		if (!wellknownMembers.isEmpty()) {
+		if (!seedMembers.isEmpty()) {
 			cmTask = scheduler.createWorker().schedulePeriodically(new Action0() {
 				@Override
 				public void call() {
 					try {
-						List<TransportEndpoint> members = selectRandomMembers(wellknownMembers);
+						List<TransportEndpoint> members = selectRandomMembers(seedMembers);
 						LOGGER.debug("Running phase: making Sync (selected_members={}))", members);
 						doSync(members, scheduler);
 					} catch (Exception e) {
@@ -319,7 +319,7 @@ public final class ClusterMembership implements IClusterMembership {
 		ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
 		Message message = new Message(SYNC, syncData, period/*correlationId*/);
 		for (TransportEndpoint endpoint : members) {
-			send(endpoint, message);
+			transport.to(endpoint).send(message);
 		}
 	}
 
@@ -333,10 +333,6 @@ public final class ClusterMembership implements IClusterMembership {
 		} else {
 			LOGGER.debug("Received SyncAck from {}, no updates", endpoint);
 		}
-	}
-
-	private void send(TransportEndpoint endpoint, Message message) {
-		transport.to(endpoint).send(message, null);
 	}
 
 	private List<TransportEndpoint> selectRandomMembers(List<TransportEndpoint> members) {
@@ -413,7 +409,7 @@ public final class ClusterMembership implements IClusterMembership {
 	}
 
 	@Override
-	public void publishShutdown() {
+	public void leave() {
 		ClusterMember r1 = new ClusterMember(localEndpoint, SHUTDOWN, localMetadata);
 		gossipProtocol.spread(GOSSIP_MEMBERSHIP, new ClusterMembershipData(ImmutableList.of(r1), syncGroup));
 	}

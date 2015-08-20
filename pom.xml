@@ -51,6 +51,7 @@
 	
 	<properties>
 		<version.junit>4.11</version.junit>
+        <logback.version>1.0.13</logback.version>
 	</properties>
 	
 	<modules>
@@ -65,6 +66,12 @@
 			<version>${version.junit}</version>
 			<scope>test</scope>
 		</dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

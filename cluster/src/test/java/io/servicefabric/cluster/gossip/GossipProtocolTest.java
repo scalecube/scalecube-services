@@ -126,8 +126,7 @@ public class GossipProtocolTest {
 			{
 				exactly(maxEndpointsToSelect).of(transport).to(with(any(TransportEndpoint.class)));
 				will(returnValue(transportChannel));
-				exactly(maxEndpointsToSelect).of(transportChannel).send(with(any(Message.class)),
-						(SettableFuture<Void>) with(CoreMatchers.nullValue()));
+				exactly(maxEndpointsToSelect).of(transportChannel).send(with(any(Message.class)));
 			}
 		});
 		sendGossips.invoke(protocol, members, list, 42);

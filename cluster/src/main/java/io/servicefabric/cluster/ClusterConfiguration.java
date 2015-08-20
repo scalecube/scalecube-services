@@ -1,41 +1,55 @@
 package io.servicefabric.cluster;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import io.servicefabric.cluster.fdetector.FailureDetector;
-import io.servicefabric.cluster.gossip.GossipProtocol;
-import io.servicefabric.transport.Transport;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.servicefabric.transport.TransportBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import rx.schedulers.Schedulers;
-
 /**
  * @author Anton Kharenko
  */
-public class ClusterBuilder {
+public class ClusterConfiguration {
 
-	// Mandatory parameters
-	private final ClusterEndpoint localClusterEndpoint;
-	private final String wellknownMembers;
+	public static final int DEFAULT_PORT = 29001;
+	public static final TransportBuilder.TransportSettings DEFAULT_TRANSPORT_SETTINGS = new TransportBuilder.TransportSettings();
+	public static final ClusterMembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new ClusterMembershipSettings();
+	public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
+	public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
 
-	// Optional parameters
-	private Map<String, String> metadata = new HashMap<>();
-	private TransportBuilder.TransportSettings transportSettings = null;
-	private ClusterMembershipSettings clusterMembershipSettings = null;
-	private FailureDetectorSettings failureDetectorSettings = null;
-	private GossipProtocolSettings gossipProtocolSettings = null;
+	boolean autoJoin = false;
+	String memberId = null;
+	String seedMembers = "";
+	int port = DEFAULT_PORT;
+	Map<String, String> metadata = new HashMap<>();
+	TransportBuilder.TransportSettings transportSettings = DEFAULT_TRANSPORT_SETTINGS;
+	ClusterMembershipSettings clusterMembershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
+	FailureDetectorSettings failureDetectorSettings = DEFAULT_FAILURE_DETECTOR_SETTINGS;
+	GossipProtocolSettings gossipProtocolSettings = DEFAULT_GOSSIP_PROTOCOL_SETTINGS;
 
-	private ClusterBuilder(ClusterEndpoint localClusterEndpoint, String wellknownMembers) {
-		checkArgument(localClusterEndpoint != null);
-		checkArgument(wellknownMembers != null);
-		this.localClusterEndpoint = localClusterEndpoint;
-		this.wellknownMembers = wellknownMembers;
+	private ClusterConfiguration() {
 	}
 
-	public static ClusterBuilder newInstance(ClusterEndpoint localClusterEndpoint, String wellknownMembers) {
-		return new ClusterBuilder(localClusterEndpoint, wellknownMembers);
+	public static ClusterConfiguration newInstance() {
+		return new ClusterConfiguration();
+	}
+
+	public void setMemberId(String memberId) {
+		this.memberId = memberId;
+	}
+
+	public void setSeedMembers(String seedMembers) {
+		this.seedMembers = seedMembers;
+	}
+
+	public void setPort(int port) {
+		this.port = port;
+	}
+
+	public void setAutoJoin(boolean autoJoin) {
+		this.autoJoin = autoJoin;
 	}
 
 	public void setMetadata(Map<String, String> metadata) {
@@ -58,88 +72,49 @@ public class ClusterBuilder {
 		this.transportSettings = transportSettings;
 	}
 
-	public ClusterBuilder metadata(Map<String, String> metadata) {
+	public ClusterConfiguration metadata(Map<String, String> metadata) {
 		setMetadata(metadata);
 		return this;
 	}
 
-	public ClusterBuilder clusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
+	public ClusterConfiguration memberId(String memberId) {
+		setMemberId(memberId);
+		return this;
+	}
+
+	public ClusterConfiguration seedMembers(String seedMembers) {
+		setSeedMembers(seedMembers);
+		return this;
+	}
+
+	public ClusterConfiguration port(int port) {
+		setPort(port);
+		return this;
+	}
+
+	public ClusterConfiguration autoJoin(boolean autoJoin) {
+		setAutoJoin(autoJoin);
+		return this;
+	}
+
+	public ClusterConfiguration clusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
 		setClusterMembershipSettings(clusterMembershipSettings);
 		return this;
 	}
 
-	public ClusterBuilder failureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
+	public ClusterConfiguration failureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
 		setFailureDetectorSettings(failureDetectorSettings);
 		return this;
 	}
 
-	public ClusterBuilder gossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
+	public ClusterConfiguration gossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
 		setGossipProtocolSettings(gossipProtocolSettings);
 		return this;
 	}
 
-	public ClusterBuilder transportSettings(TransportBuilder.TransportSettings transportSetting) {
+	public ClusterConfiguration transportSettings(TransportBuilder.TransportSettings transportSetting) {
 		setTransportSettings(transportSetting);
 		return this;
-	}
-
-	public ICluster build() {
-		// Build transport
-		TransportBuilder transportBuilder = TransportBuilder.newInstance(localClusterEndpoint.endpoint(), localClusterEndpoint.endpointId());
-		if (transportSettings != null) {
-			transportBuilder.setTransportSettings(transportSettings);
-		}
-		Transport transport = (Transport) transportBuilder.build();
-
-		// Build gossip protocol component
-		GossipProtocol gossipProtocol = new GossipProtocol(localClusterEndpoint);
-		gossipProtocol.setTransport(transport);
-		if (gossipProtocolSettings != null) {
-			gossipProtocol.setMaxGossipSent(gossipProtocolSettings.getMaxGossipSent());
-			gossipProtocol.setGossipTime(gossipProtocolSettings.getGossipTime());
-			gossipProtocol.setMaxEndpointsToSelect(gossipProtocolSettings.getMaxEndpointsToSelect());
-		} else {
-			gossipProtocol.setMaxGossipSent(GossipProtocolSettings.DEFAULT_MAX_GOSSIP_SENT);
-			gossipProtocol.setGossipTime(GossipProtocolSettings.DEFAULT_GOSSIP_TIME);
-			gossipProtocol.setMaxEndpointsToSelect(GossipProtocolSettings.DEFAULT_MAX_ENDPOINTS_TO_SELECT);
-		}
-
-		// Build failure detector component
-		FailureDetector failureDetector = new FailureDetector(localClusterEndpoint, Schedulers.from(transport.getEventExecutor()));
-		failureDetector.setTransport(transport);
-		if (failureDetectorSettings != null) {
-			failureDetector.setPingTime(failureDetectorSettings.getPingTime());
-			failureDetector.setPingTimeout(failureDetectorSettings.getPingTimeout());
-			failureDetector.setMaxEndpointsToSelect(failureDetectorSettings.getMaxEndpointsToSelect());
-		} else {
-			failureDetector.setPingTime(FailureDetectorSettings.DEFAULT_PING_TIME);
-			failureDetector.setPingTimeout(FailureDetectorSettings.DEFAULT_PING_TIMEOUT);
-			failureDetector.setMaxEndpointsToSelect(FailureDetectorSettings.DEFAULT_MAX_ENDPOINTS_TO_SELECT);
-		}
-
-		// Build cluster membership component
-		ClusterMembership clusterMembership = new ClusterMembership(localClusterEndpoint, Schedulers.from(transport.getEventExecutor()));
-		clusterMembership.setFailureDetector(failureDetector);
-		clusterMembership.setGossipProtocol(gossipProtocol);
-		clusterMembership.setTransport(transport);
-		clusterMembership.setLocalMetadata(metadata);
-		clusterMembership.setWellknownMembers(wellknownMembers);
-		if (clusterMembershipSettings != null) {
-			clusterMembership.setSyncTime(clusterMembershipSettings.getSyncTime());
-			clusterMembership.setSyncTimeout(clusterMembershipSettings.getSyncTimeout());
-			clusterMembership.setMaxSuspectTime(clusterMembershipSettings.getMaxSuspectTime());
-			clusterMembership.setMaxShutdownTime(clusterMembershipSettings.getMaxShutdownTime());
-			clusterMembership.setSyncGroup(clusterMembershipSettings.getSyncGroup());
-		} else {
-			clusterMembership.setSyncTime(ClusterMembershipSettings.DEFAULT_SYNC_TIME);
-			clusterMembership.setSyncTimeout(ClusterMembershipSettings.DEFAULT_SYNC_TIMEOUT);
-			clusterMembership.setMaxSuspectTime(ClusterMembershipSettings.DEFAULT_MAX_SUSPECT_TIME);
-			clusterMembership.setMaxShutdownTime(ClusterMembershipSettings.DEFAULT_MAX_SHUTDOWN_TIME);
-			clusterMembership.setSyncGroup(ClusterMembershipSettings.DEFAULT_SYNC_GROUP);
-		}
-
-		// Build cluster component
-		return new Cluster(transport, failureDetector, gossipProtocol, clusterMembership);
 	}
 
 	public static class ClusterMembershipSettings {
@@ -324,5 +299,4 @@ public class ClusterBuilder {
 					'}';
 		}
 	}
-
 }

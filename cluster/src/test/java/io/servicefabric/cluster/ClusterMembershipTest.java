@@ -23,21 +23,21 @@ public class ClusterMembershipTest {
 	@Test
 	public void testSetWellknownMembers() {
 		ClusterMembership target0 = new ClusterMembership(ClusterEndpoint.from("tcp://yadayada@5810"), null);
-		target0.setWellknownMembers("localhost:5810, 127.0.0.1:5810, 10.10.10.10:5810, watwat:1234");
-		List<TransportEndpoint> list0 = target0.getWellknownMembers();
+		target0.setSeedMembers("localhost:5810, 127.0.0.1:5810, 10.10.10.10:5810, watwat:1234");
+		List<TransportEndpoint> list0 = target0.getSeedMembers();
 		assertEquals("" + list0, 2, list0.size());
 		assertTrue(list0.contains(TransportEndpoint.from("tcp://watwat:1234")));
 		assertTrue(list0.contains(TransportEndpoint.from("tcp://10.10.10.10:5810")));
 
 		ClusterMembership target1 = new ClusterMembership(ClusterEndpoint.from("tcp://yadayada@5810"), null);
-		target1.setWellknownMembers(ipAddress + ":5810, localhost:5810, 127.0.0.1:5810, some:crap, watwat:1234");
-		List<TransportEndpoint> list1 = target1.getWellknownMembers();
+		target1.setSeedMembers(ipAddress + ":5810, localhost:5810, 127.0.0.1:5810, some:crap, watwat:1234");
+		List<TransportEndpoint> list1 = target1.getSeedMembers();
 		assertEquals("" + list1, 1, list1.size());
 		assertTrue(list1.contains(TransportEndpoint.from("tcp://watwat:1234")));
 
 		ClusterMembership target2 = new ClusterMembership(ClusterEndpoint.from("tcp://yadayada@5810"), null);
-		target2.setWellknownMembers(ipAddress + ":6810, 127.0.0.1:7810, 10.10.10.10:5810");
-		List<TransportEndpoint> list2 = target2.getWellknownMembers();
+		target2.setSeedMembers(ipAddress + ":6810, 127.0.0.1:7810, 10.10.10.10:5810");
+		List<TransportEndpoint> list2 = target2.getSeedMembers();
 		assertEquals("" + list2, 3, list2.size());
 		assertTrue(list2.contains(TransportEndpoint.from("tcp://6810")));
 		assertTrue(list2.contains(TransportEndpoint.from("tcp://7810")));
