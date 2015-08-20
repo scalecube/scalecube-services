@@ -12,7 +12,7 @@
         <Logger name="io.servicefabric.cluster" level="debug"/>
         <Logger name="io.servicefabric.cluster.gossip" level="debug"/>
         <Logger name="io.servicefabric.cluster.fdetector" level="debug"/>
-        <Logger name="io.servicefabric.transport" level="debug"/>
+        <Logger name="io.servicefabric.transport" level="info"/>
         <Root level="DEBUG">
             <AppenderRef ref="console"/>
         </Root>
