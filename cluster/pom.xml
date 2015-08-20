@@ -1,22 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    
-	<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
     <parent>
-		<groupId>io.servicefabric</groupId>
+        <groupId>io.servicefabric</groupId>
         <artifactId>servicefabric-parent</artifactId>
         <version>0.0.4-SNAPSHOT</version>
     </parent>
-
-	<artifactId>servicefabric-cluster</artifactId>
-    <packaging>jar</packaging>
-	
-	<name>ServiceFabric/Cluster</name>
-	
-	<properties>
-		<jmock.version>2.6.0</jmock.version>
-	</properties>
-	
+    <artifactId>servicefabric-cluster</artifactId>
+    <name>ServiceFabric/Cluster</name>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -24,11 +15,11 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.jmock</groupId>
-            <artifactId>jmock-junit4</artifactId>
-			<version>${jmock.version}</version>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>servicefabric-testlib</artifactId>
+            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- Other dependencies -->
     </dependencies>
-
 </project>
