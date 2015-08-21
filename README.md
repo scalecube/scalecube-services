@@ -4,7 +4,8 @@ ServiceFabric is a framework that enables quick and easy development of modern d
 
 ## Links
 
-* [Web Site](http://servicefabric.io/)
+* [Service Fabric - Overview](http://servicefabric.io/)
+* [Service Fabric - Cluster](http://servicefabric.io/Cluster.html)
 
 ## Maven
 
