@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/servicefabric/servicefabric.svg?branch=master)](https://travis-ci.org/servicefabric/servicefabric)
 # ServiceFabric Project
 
 ServiceFabric is a framework that enables quick and easy development of modern distributed, resilient, scalable reactive applications such as on-line gaming, eTrading and Social.
@@ -24,3 +25,4 @@ ServiceFabric is a framework that enables quick and easy development of modern d
 	<version>0.0.3</version>
 </dependency>
 ```
+
