@@ -1,5 +1,7 @@
 package servicefabric.cluster.transport;
 
+import com.google.common.util.concurrent.SettableFuture;
+
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.transport.TransportEndpoint;
@@ -14,7 +16,8 @@ public class ClusterNodeB {
 		
 		// spread gossip
 		TransportEndpoint endpoint = TransportEndpoint.from("tcp://A@localhost:3000");
-		clusterB.transport().to(endpoint).send(new Message("hello/world"));
+		SettableFuture<Void> promis = SettableFuture.create();
+		clusterB.transport().to(endpoint).send(new Message("hello/world"),promis);
 		
 	}
 
