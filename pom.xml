@@ -72,6 +72,7 @@
         <module>cluster</module>
         <module>testlib</module>
         <module>benchmark</module>
+        <module>examples</module>
     </modules>
 
     <dependencyManagement>

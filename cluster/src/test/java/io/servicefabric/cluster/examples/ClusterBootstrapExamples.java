@@ -2,9 +2,11 @@ package io.servicefabric.cluster.examples;
 
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ClusterConfiguration;
+import io.servicefabric.cluster.ClusterMember;
 import io.servicefabric.cluster.ICluster;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,6 +27,7 @@ public class ClusterBootstrapExamples {
 		// Start cool member
 		ICluster cluster4 = Cluster.newInstance("Cool member", 4003, seedMembers).join();
 
+		List<ClusterMember> m = cluster4.members();
 		// Start another cool member with some metadata
 		Map<String, String> metadata = new HashMap<>();
 		metadata.put("key1", "value1");
