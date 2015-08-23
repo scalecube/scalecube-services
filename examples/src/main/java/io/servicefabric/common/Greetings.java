@@ -1,4 +1,4 @@
-package servicefabric.common;
+package io.servicefabric.common;
 
 import io.protostuff.Tag;
 

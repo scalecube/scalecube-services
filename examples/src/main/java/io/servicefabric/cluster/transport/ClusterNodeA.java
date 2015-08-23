@@ -1,18 +1,18 @@
-package servicefabric.cluster.transport;
+package io.servicefabric.cluster.transport;
 
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ICluster;
+import io.servicefabric.common.Greetings;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.TransportTypeRegistry;
 import rx.functions.Action1;
 import rx.functions.Func1;
-import servicefabric.common.Greetings;
 
 public class ClusterNodeA {
 
 	public static void main(String[] args) {
 	
-		// Register data types
+		// Register data types (used for serialization)
 		TransportTypeRegistry.getInstance().registerType("hello/world", Greetings.class);
 				
 		// start cluster node that listen on port 3000

@@ -1,11 +1,10 @@
-package servicefabric.cluster.transport;
-
-import servicefabric.common.Greetings;
+package io.servicefabric.cluster.transport;
 
 import com.google.common.util.concurrent.SettableFuture;
 
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ICluster;
+import io.servicefabric.common.Greetings;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportTypeRegistry;
 import io.servicefabric.transport.protocol.Message;
@@ -13,7 +12,7 @@ import io.servicefabric.transport.protocol.Message;
 public class ClusterNodeB {
 
 	public static void main(String[] args) {
-		// Register data types
+		// Register data types (used for serialization)
 		TransportTypeRegistry.getInstance().registerType("hello/world", Greetings.class);
 
 
