@@ -13,7 +13,7 @@ public class ClusterNodeA {
 		// start cluster node that listen on port 3000
 		ICluster clusterA = Cluster.newInstance(3000).join();
 		
-		// subscribe to all gossip messages:
+		// Filter and subscribe to hello/world message:
 		clusterA.transport().listen().filter(new Func1<TransportMessage, Boolean>() {
 			@Override
 			public Boolean call(TransportMessage t1) {
