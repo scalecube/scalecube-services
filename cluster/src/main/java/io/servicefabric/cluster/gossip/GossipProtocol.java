@@ -137,6 +137,10 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 	}
 
 	@Override
+	public void spread(String qualifier){
+		spread(qualifier,null);
+	}
+	@Override
 	public void spread(String qualifier, Object data) {
 		String id = generateId();
 		Gossip gossip = new Gossip(id, qualifier, data);
