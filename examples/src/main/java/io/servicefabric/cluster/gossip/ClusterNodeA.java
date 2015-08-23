@@ -14,6 +14,8 @@ public class ClusterNodeA {
 		// Register data types (used for serialization)
 		TransportTypeRegistry.getInstance().registerType("hello/world", Greetings.class);
 
+		
+		
 		// start cluster node that listen on port 3000
 		ICluster clusterA = Cluster.newInstance(3000).join();
 
@@ -27,4 +29,7 @@ public class ClusterNodeA {
 		});
 	}
 
+	
+	
+	
 }
