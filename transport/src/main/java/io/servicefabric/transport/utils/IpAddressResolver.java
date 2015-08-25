@@ -43,7 +43,7 @@ public class IpAddressResolver {
 			Enumeration<InetAddress> address = ni.getInetAddresses();
 			while (address.hasMoreElements()) {
 				InetAddress addr = address.nextElement();
-				LOGGER.debug("Found network interface: {}, {}", addr.getHostAddress(), addr.getHostName());
+				LOGGER.debug("Found network interface: {}", addr.getHostAddress());
 				if (!addr.isLoopbackAddress() && addr.getAddress().length == 4 // for IP4 addresses
 				) {
 					return addr;

@@ -17,10 +17,13 @@ public final class ProtostuffMessageSerializer implements MessageSerializer {
 
 	@Override
 	public void serialize(Message message, ByteBuf bb) {
+		// Convert Message to BinaryMessage
 		BinaryMessage binaryMessage = new BinaryMessage();
 		binaryMessage.setQualifier(message.qualifier());
 		binaryMessage.setCorrelationId(message.correlationId());
-		binaryMessage.setData(serializeData(message.data()));
+		serializeData(binaryMessage, message.data());
+
+		// Serialize BinaryMessage
 		Schema<BinaryMessage> schema = RuntimeSchema.getSchema(BinaryMessage.class);
 		try (RecycleableLinkedBuffer rlb = recycleableLinkedBuffer.get()) {
 			try {
@@ -31,15 +34,24 @@ public final class ProtostuffMessageSerializer implements MessageSerializer {
 		}
 	}
 
-	private byte[] serializeData(Object data) {
+	private void serializeData(BinaryMessage binaryMessage, Object data) {
+		// Handle null data
 		if (data == null) {
-			return null;
-		} else if (data instanceof byte[]) {
-			return (byte[]) data;
+			return;
 		}
+
+		// Handle binary data
+		if (data instanceof byte[]) {
+			binaryMessage.setData((byte[]) data);
+			return;
+		}
+
+		// Handle object data
 		Schema schema = RuntimeSchema.getSchema(data.getClass());
 		try (RecycleableLinkedBuffer rlb = recycleableLinkedBuffer.get()) {
-			return toByteArray(data, schema, rlb.buffer());
+			byte[] dataAsBytes = toByteArray(data, schema, rlb.buffer());
+			binaryMessage.setData(dataAsBytes);
+			binaryMessage.setDataClass(data.getClass().getName());
 		}
 	}
 }

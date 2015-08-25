@@ -1,8 +1,6 @@
 package io.servicefabric.cluster.gossip;
 
 import io.protostuff.runtime.RuntimeSchema;
-import io.servicefabric.transport.ITransportTypeRegistry;
-import io.servicefabric.transport.TransportTypeRegistry;
 import io.servicefabric.transport.protocol.*;
 import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageDeserializer;
 import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageSerializer;
@@ -25,18 +23,11 @@ public class GossipServiceRequestSchemaTest {
 	private static final String gossipQualifier = GossipQualifiers.QUALIFIER;
 	private static final String testDataQualifier = "servicefabric/testData";
 
-	private ITransportTypeRegistry typeRegistry;
 	private TestData testData;
 
 	@Before
 	public void init() throws Throwable {
-
-		typeRegistry = TransportTypeRegistry.getInstance();
-
-		typeRegistry.registerType(gossipQualifier, GossipRequest.class);
-		typeRegistry.registerType(testDataQualifier, TestData.class);
-
-		RuntimeSchema.register(Gossip.class, new GossipSchema(typeRegistry));
+		RuntimeSchema.register(Gossip.class, new GossipSchema());
 		List<KVPair<String, String>> properties = new ArrayList<>();
 		properties.add(new KVPair<>("casino", "123"));
 
@@ -46,7 +37,7 @@ public class GossipServiceRequestSchemaTest {
 
 	@Test
 	public void testProtostuff() throws Exception {
-		ProtostuffMessageDeserializer deserializer = new ProtostuffMessageDeserializer(typeRegistry);
+		ProtostuffMessageDeserializer deserializer = new ProtostuffMessageDeserializer();
 
 		ProtostuffMessageSerializer serializer = new ProtostuffMessageSerializer();
 

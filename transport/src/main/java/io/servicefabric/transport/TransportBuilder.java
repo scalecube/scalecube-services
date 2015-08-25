@@ -105,7 +105,7 @@ public class TransportBuilder {
 			SocketChannelPipelineFactory.Builder pipelineFactoryBuilder = SocketChannelPipelineFactory.builder()
 					.set(new ProtostuffFrameHandlerFactory())
 					.set(new ProtostuffMessageSerializer())
-					.set(new ProtostuffMessageDeserializer(TransportTypeRegistry.getInstance()));
+					.set(new ProtostuffMessageDeserializer());
 
 			if (useNetworkEmulator) {
 				pipelineFactoryBuilder.useNetworkEmulator();

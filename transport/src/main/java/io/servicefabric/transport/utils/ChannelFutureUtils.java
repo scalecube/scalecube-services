@@ -18,10 +18,10 @@ public class ChannelFutureUtils {
 			channelFuture.addListener(new ChannelFutureListener() {
 				@Override
 				public void operationComplete(ChannelFuture future) throws Exception {
-					if (!future.isSuccess()) {
-						promise.setException(future.cause());
-					} else {
+					if (future.isSuccess()) {
 						promise.set(future.get());
+					} else {
+						promise.setException(future.cause());
 					}
 				}
 			});

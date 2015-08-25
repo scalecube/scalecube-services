@@ -18,7 +18,6 @@ import io.servicefabric.cluster.gossip.IGossipProtocolSpi;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.TransportTypeRegistry;
 import io.servicefabric.transport.protocol.Message;
 
 import java.util.ArrayList;
@@ -67,7 +66,7 @@ public final class ClusterMembership implements IClusterMembership {
 	private final ClusterEndpoint localEndpoint;
 	private final Scheduler scheduler;
 	private volatile Subscription cmTask;
-	private Timer timer;
+	private TickingTimer timer;
 	private AtomicInteger periodNbr = new AtomicInteger();
 	private ClusterMembershipTable membership = new ClusterMembershipTable();
 	private Subject<ClusterMember, ClusterMember> subject = new SerializedSubject(PublishSubject.create());
@@ -210,13 +209,8 @@ public final class ClusterMembership implements IClusterMembership {
 	@Override
 	public void start() {
 		// Start timer
-		timer = new Timer();
+		timer = new TickingTimer();
 		timer.start();
-
-		// Register data types
-		TransportTypeRegistry.getInstance().registerType(SYNC, ClusterMembershipData.class);
-		TransportTypeRegistry.getInstance().registerType(SYNC_ACK, ClusterMembershipData.class);
-		TransportTypeRegistry.getInstance().registerType(GOSSIP_MEMBERSHIP, ClusterMembershipData.class);
 
 		// Register itself initially before SYNC/SYNC_ACK
 		List<ClusterMember> updates = membership.merge(new ClusterMember(localEndpoint, TRUSTED, localMetadata));

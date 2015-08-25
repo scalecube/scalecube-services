@@ -1,6 +1,3 @@
-/**
- * 
- */
 package io.servicefabric.cluster.gossip;
 
 import static io.servicefabric.transport.utils.RecycleableLinkedBuffer.DEFAULT_MAX_CAPACITY;
@@ -8,9 +5,13 @@ import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Optional;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.protostuff.runtime.RuntimeSchema;
-import io.servicefabric.transport.ITransportTypeRegistry;
 import io.servicefabric.transport.utils.RecycleableLinkedBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 
 import io.protostuff.*;
+
+import javax.annotation.Nonnull;
 
 final class GossipSchema implements Schema<Gossip> {
 	private static final Logger LOGGER = LoggerFactory.getLogger(GossipSchema.class);
@@ -28,13 +31,22 @@ final class GossipSchema implements Schema<Gossip> {
 	private static final Map<String, Integer> fieldMap = ImmutableMap.of(
 			"gossipId", 1,
 			"qualifier", 2,
-			"data", 3);
+			"data", 3,
+			"dataClass", 4);
 
-	private final ITransportTypeRegistry typeRegistry;
-
-	GossipSchema(ITransportTypeRegistry typeRegistry) {
-		this.typeRegistry = typeRegistry;
-	}
+	private final LoadingCache<String, Optional<Class>> classCache = CacheBuilder.newBuilder()
+			.expireAfterAccess(1, TimeUnit.HOURS)
+			.build(new CacheLoader<String, Optional<Class>>() {
+				@Override
+				public Optional<Class> load(@Nonnull String className) throws Exception {
+					try {
+						Class dataClass = Class.forName(className);
+						return Optional.of(dataClass);
+					} catch (ClassNotFoundException e) {
+						return Optional.absent();
+					}
+				}
+			});
 
 	@Override
 	public String getFieldName(int number) {
@@ -45,6 +57,8 @@ final class GossipSchema implements Schema<Gossip> {
 			return "qualifier";
 		case 3:
 			return "data";
+		case 4:
+			return "dataClass";
 		default:
 			return null;
 		}
@@ -85,6 +99,7 @@ final class GossipSchema implements Schema<Gossip> {
 	public void mergeFrom(Input input, Gossip gossip) throws IOException {
 		boolean iterate = true;
 		byte[] originalData = null;
+		String dataClassName = null;
 		while (iterate) {
 			int number = input.readFieldNumber(this);
 			switch (number) {
@@ -100,24 +115,32 @@ final class GossipSchema implements Schema<Gossip> {
 			case 3:
 				originalData = input.readByteArray();
 				break;
+			case 4:
+				dataClassName = input.readString();
+				break;
 			default:
 				input.handleUnknownField(number, this);
 			}
 		}
 		if (originalData != null) {
-			Class<?> dataClazz = typeRegistry.resolveType(gossip.getQualifier());
-			if (dataClazz == null) {
+			if (dataClassName == null) {
 				gossip.setData(originalData);
 			} else {
-				Schema dataSchema = RuntimeSchema.getSchema(dataClazz);
-				Object data = dataSchema.newMessage();
-				try {
-					ProtostuffIOUtil.mergeFrom(originalData, data, dataSchema);
-				} catch (Throwable e) {
-					LOGGER.error("Failed to deserialize : {}", gossip);
-					throw e;
+				Optional<Class> optionalDataClass = classCache.getUnchecked(dataClassName);
+				if (optionalDataClass.isPresent()) {
+					Class<?> dataClass = optionalDataClass.get();
+					Schema dataSchema = RuntimeSchema.getSchema(dataClass);
+					Object data = dataSchema.newMessage();
+					try {
+						ProtostuffIOUtil.mergeFrom(originalData, data, dataSchema);
+					} catch (Throwable e) {
+						LOGGER.error("Failed to deserialize : {}", gossip);
+						throw e;
+					}
+					gossip.setData(data);
+				} else {
+					gossip.setData(originalData);
 				}
-				gossip.setData(data);
 			}
 		}
 	}
@@ -135,16 +158,15 @@ final class GossipSchema implements Schema<Gossip> {
 			if (originalData instanceof byte[]) {
 				output.writeByteArray(3, (byte[]) originalData, false);
 			} else {
-				Class<?> dataClazz = typeRegistry.resolveType(gossip.getQualifier());
-				if (dataClazz == null) {
-					throw new RuntimeException("Can't serialize data for qualifier " + gossip.getQualifier());
-				}
-				Schema dataSchema = RuntimeSchema.getSchema(dataClazz);
+				Class<?> dataClass = gossip.getData().getClass();
+				Schema dataSchema = RuntimeSchema.getSchema(dataClass);
 
 				try (RecycleableLinkedBuffer rlb = recycleableLinkedBuffer.get()) {
 					byte[] array = ProtostuffIOUtil.toByteArray(originalData, dataSchema, rlb.buffer());
 					output.writeByteArray(3, array, false);
 				}
+
+				output.writeString(4, dataClass.getName(), false);
 			}
 		}
 	}

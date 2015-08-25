@@ -152,10 +152,6 @@ public final class Transport implements ITransportSpi, ITransport {
 	public final void start() {
 		checkNotNull(pipelineFactory); // don't forget to set upfront
 
-		// register data types
-		TransportTypeRegistry.getInstance().registerType(Q_TRANSPORT_HANDSHAKE_SYNC, TransportData.class);
-		TransportTypeRegistry.getInstance().registerType(Q_TRANSPORT_HANDSHAKE_SYNC_ACK, TransportData.class);
-
 		subject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
 
 		Class<? extends ServerChannel> serverChannelClass;

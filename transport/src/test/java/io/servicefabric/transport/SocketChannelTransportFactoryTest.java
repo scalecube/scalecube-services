@@ -478,7 +478,7 @@ public class SocketChannelTransportFactoryTest {
 		tf.setLocalMetadata(localMetadata);
 		tf.setSendHwm(sendHwm);
 		tf.setPipelineFactory(SocketChannelPipelineFactory.builder()
-				.set(new ProtostuffMessageDeserializer(TransportTypeRegistry.getInstance()))
+				.set(new ProtostuffMessageDeserializer())
 				.set(new ProtostuffMessageSerializer())
 				.set(new ProtostuffFrameHandlerFactory())
 				.useNetworkEmulator()

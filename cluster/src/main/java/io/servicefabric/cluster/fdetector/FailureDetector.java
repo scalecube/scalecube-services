@@ -15,7 +15,6 @@ import static java.lang.Math.min;
 import io.servicefabric.cluster.ClusterEndpoint;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.TransportTypeRegistry;
 import io.servicefabric.transport.protocol.Message;
 
 import java.util.ArrayList;
@@ -160,11 +159,6 @@ public final class FailureDetector implements IFailureDetector {
 
 	@Override
 	public void start() {
-		// Register data types
-		TransportTypeRegistry.getInstance().registerType(PING, FailureDetectorData.class);
-		TransportTypeRegistry.getInstance().registerType(PING_REQ, FailureDetectorData.class);
-		TransportTypeRegistry.getInstance().registerType(ACK, FailureDetectorData.class);
-
 		transport.listen().filter(pingFilter()).filter(targetFilter(localEndpoint)).subscribe(onPingSubscriber);
 		transport.listen().filter(pingReqFilter()).subscribe(onPingReqSubscriber);
 		transport.listen().filter(ackFilter()).filter(new Func1<TransportMessage, Boolean>() {
