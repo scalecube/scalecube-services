@@ -10,7 +10,7 @@ import io.servicefabric.transport.TransportTypeRegistry;
  * to run the example Start ClusterNodeA and cluster ClusterNodeB
  * A listen on gossip
  * B spread gossip  
- * @author ronen_h
+ * @author ronen hamias
  *
  */
 public class ClusterNodeB {

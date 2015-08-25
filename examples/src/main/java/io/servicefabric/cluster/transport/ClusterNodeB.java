@@ -14,7 +14,7 @@ import io.servicefabric.transport.protocol.Message;
  * to run the example Start ClusterNodeA and cluster ClusterNodeB
  * A listen on transport messages
  * B send message to member A 
- * @author ronen_h
+ * @author ronen hamias
  *
  */
 public class ClusterNodeB {
