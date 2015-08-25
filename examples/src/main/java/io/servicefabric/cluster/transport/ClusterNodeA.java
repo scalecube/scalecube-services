@@ -8,8 +8,17 @@ import io.servicefabric.transport.TransportTypeRegistry;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
+/**
+ * Basic example for member transport between cluster members
+ * to run the example Start ClusterNodeA and cluster ClusterNodeB
+ * A listen on transport messages
+ * B send message to member A 
+ * @author ronen_h
+ *
+ */
 public class ClusterNodeA {
 
+	
 	public static void main(String[] args) {
 	
 		// Register data types (used for serialization)
