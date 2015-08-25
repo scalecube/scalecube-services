@@ -63,8 +63,9 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
 			@Override
 			public void run() {
 				LOGGER.debug("HANDSHAKE_SYNC({}) timeout, connector: {}", handshake, transport);
-				transport.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_FAILED);
-				transport.close(new TransportHandshakeException(transport, handshake, new TimeoutException()));
+				transport.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_FAILED,
+						new TransportHandshakeException(transport, handshake, new TimeoutException()));
+				transport.close();
 			}
 		}, handshakeTimeout, TimeUnit.MILLISECONDS);
 
@@ -77,8 +78,9 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
 				if (!future.isSuccess()) {
 					LOGGER.debug("HANDSHAKE_SYNC({}) not sent, connector: {}", handshake, transport);
 					cancelHandshakeTimer();
-					transport.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_FAILED);
-					transport.close(new TransportHandshakeException(transport, handshake, future.cause()));
+					transport.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_FAILED,
+							new TransportHandshakeException(transport, handshake, future.cause()));
+					transport.close();
 				}
 			}
 		}));
@@ -123,8 +125,9 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
 		} else {
 			LOGGER.debug("HANDSHAKE({}) not passed, connector: {}", handshake, transport);
 			cancelHandshakeTimer();
-			transport.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_FAILED);
-			transport.close(new TransportHandshakeException(transport, handshake));
+			transport.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_FAILED,
+					new TransportHandshakeException(transport, handshake));
+			transport.close();
 		}
 	}
 

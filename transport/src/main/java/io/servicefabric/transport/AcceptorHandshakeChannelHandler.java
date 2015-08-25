@@ -51,8 +51,9 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
 			public void operationComplete(ChannelFuture future) {
 				if (!resolved.isResolvedOk()) {
 					LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", resolved, transport);
-					transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_FAILED);
-					transport.close(new TransportHandshakeException(transport, resolved));
+					transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_FAILED,
+							new TransportHandshakeException(transport, resolved));
+					transport.close();
 				}
 			}
 		}));

@@ -196,10 +196,6 @@ public final class Transport implements ITransportSpi, ITransport {
 		return eventExecutor;
 	}
 
-	public final void destroy() {
-		stop(null);
-	}
-
 	@Nonnull
 	@Override
 	public final ITransportChannel to(@CheckForNull final TransportEndpoint endpoint) {
@@ -273,14 +269,14 @@ public final class Transport implements ITransportSpi, ITransport {
 		for (TransportEndpoint endpoint : accepted.keySet()) {
 			TransportChannel transport = accepted.remove(endpoint);
 			if (transport != null) {
-				transport.close(null, null);
+				transport.close();
 			}
 		}
 		// cleanup connected
 		for (TransportEndpoint endpoint : connected.keySet()) {
 			TransportChannel transport = connected.remove(endpoint);
 			if (transport != null) {
-				transport.close(null, null);
+				transport.close();
 			}
 		}
 		if (serverChannel != null) {
@@ -398,8 +394,8 @@ public final class Transport implements ITransportSpi, ITransport {
 						@Override
 						public void operationComplete(ChannelFuture future) {
 							if (!future.isSuccess()) {
-								transport.flip(CONNECT_IN_PROGRESS, CONNECT_FAILED);
-								transport.close(future.cause());
+								transport.flip(CONNECT_IN_PROGRESS, CONNECT_FAILED, future.cause());
+								transport.close();
 							}
 						}
 					}));
