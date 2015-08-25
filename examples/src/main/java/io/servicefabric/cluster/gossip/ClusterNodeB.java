@@ -15,7 +15,6 @@ import io.servicefabric.transport.TransportTypeRegistry;
  */
 public class ClusterNodeB {
 
-	
 	public static void main(String[] args) {
 		// Register data types (used for serialization)
 		TransportTypeRegistry.getInstance().registerType("hello/world", Greetings.class);
