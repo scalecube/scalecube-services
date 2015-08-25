@@ -5,6 +5,14 @@ import io.servicefabric.cluster.ICluster;
 import io.servicefabric.common.Greetings;
 import io.servicefabric.transport.TransportTypeRegistry;
 
+/**
+ * Basic example for member gossiping between cluster members
+ * to run the example Start ClusterNodeA and cluster ClusterNodeB
+ * A listen on gossip
+ * B spread gossip  
+ * @author ronen_h
+ *
+ */
 public class ClusterNodeB {
 
 	

@@ -7,6 +7,14 @@ import io.servicefabric.common.Greetings;
 import io.servicefabric.transport.TransportTypeRegistry;
 import rx.functions.Action1;
 
+/**
+ * Basic example for member gossiping between cluster members
+ * to run the example Start ClusterNodeA and cluster ClusterNodeB
+ * A listen on gossip
+ * B spread gossip  
+ * @author ronen_h
+ *
+ */
 public class ClusterNodeA {
 
 
@@ -14,8 +22,6 @@ public class ClusterNodeA {
 		// Register data types (used for serialization)
 		TransportTypeRegistry.getInstance().registerType("hello/world", Greetings.class);
 
-		
-		
 		// start cluster node that listen on port 3000
 		ICluster clusterA = Cluster.newInstance(3000).join();
 
@@ -27,9 +33,5 @@ public class ClusterNodeA {
 				System.out.println("Gossip message:"  + gossip.getData());
 			}
 		});
-	}
-
-	
-	
-	
+	}	
 }
