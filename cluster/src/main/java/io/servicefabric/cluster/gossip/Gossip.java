@@ -1,54 +1,37 @@
 package io.servicefabric.cluster.gossip;
 
-import com.google.common.base.Preconditions;
 import io.protostuff.Tag;
+import io.servicefabric.transport.protocol.Message;
+
+import java.util.Objects;
+
+import static com.google.common.base.Preconditions.*;
 
 /**
  * Data model for gossip, include gossip id, qualifier and object need to disseminate
  */
-public final class Gossip {
-	/** The id gossip. */
+final class Gossip {
+	/** The gossip id. */
 	@Tag(1)
 	private String gossipId;
-	/** The qualifier gossip data. */
+
+	/** The gossip message. */
 	@Tag(2)
-	private String qualifier;
-	/** The data. */
-	@Tag(3)
-	private Object data;
+	private Message message;
 
-	public Gossip() {
-	}
-
-	public Gossip(String gossipId, String qualifier, Object data) {
-		Preconditions.checkArgument(gossipId != null);
-		this.qualifier = qualifier;
+	public Gossip(String gossipId, Message message) {
+		checkArgument(gossipId != null);
+		checkArgument(message != null);
 		this.gossipId = gossipId;
-		this.data = data;
-	}
-
-	public String getQualifier() {
-		return qualifier;
-	}
-
-	void setQualifier(String qualifier) {
-		this.qualifier = qualifier;
+		this.message = message;
 	}
 
 	public String getGossipId() {
 		return gossipId;
 	}
 
-	void setGossipId(String gossipId) {
-		this.gossipId = gossipId;
-	}
-
-	public Object getData() {
-		return data;
-	}
-
-	void setData(Object data) {
-		this.data = data;
+	public Message getMessage() {
+		return message;
 	}
 
 	@Override
@@ -57,30 +40,20 @@ public final class Gossip {
 			return true;
 		if (o == null || getClass() != o.getClass())
 			return false;
-
 		Gossip gossip = (Gossip) o;
-
-		if (!gossipId.equals(gossip.gossipId))
-			return false;
-
-		return true;
+		return Objects.equals(gossipId, gossip.gossipId);
 	}
 
 	@Override
 	public int hashCode() {
-		return gossipId.hashCode();
+		return Objects.hash(gossipId);
 	}
 
 	@Override
 	public String toString() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Gossip [qualifier=");
-		builder.append(qualifier);
-		builder.append(", gossipId=");
-		builder.append(gossipId);
-		builder.append(", data=");
-		builder.append("***");
-		builder.append("]");
-		return builder.toString();
+		return "Gossip{" +
+				"gossipId='" + gossipId + '\'' +
+				", message=" + message +
+				'}';
 	}
 }

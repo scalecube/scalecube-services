@@ -7,6 +7,7 @@
 		<version>0.0.4-SNAPSHOT</version>
 	</parent>
 	<artifactId>servicefabric-examples</artifactId>
+	<name>ServiceFabric/Examples</name>
 
 	<dependencies>
 		<dependency>

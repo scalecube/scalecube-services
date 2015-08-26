@@ -29,7 +29,8 @@ final class NetworkEmulatorChannelHandler extends ChannelOutboundHandlerAdapter 
 	@Override
 	public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
 		Message message = (Message) msg;
-		if (TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(message.qualifier()) || TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.qualifier())) {
+		String qualifier = message.header(TransportHeaders.QUALIFIER);
+		if (TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(qualifier) || TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(qualifier)) {
 			super.write(ctx, msg, promise);
 			return;
 		}

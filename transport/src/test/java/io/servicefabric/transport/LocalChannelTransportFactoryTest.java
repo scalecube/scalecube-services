@@ -236,7 +236,7 @@ public class LocalChannelTransportFactoryTest {
 			public void call(TransportMessage transportMessage) {
 				TransportEndpoint endpoint = transportMessage.originEndpoint();
 				assertEquals("Expected clientEndpoint", clientEndpoint, endpoint);
-				send(server, endpoint, new Message("hi client"));
+				send(server, endpoint, new Message(null, TransportHeaders.QUALIFIER, "hi client"));
 			}
 		});
 
@@ -253,7 +253,7 @@ public class LocalChannelTransportFactoryTest {
 		TransportMessage transportMessage = transportMessageFuture.get(3, TimeUnit.SECONDS);
 		Message result = transportMessage.message();
 		assertNotNull("No response from serverEndpoint", result);
-		assertEquals("hi client", result.qualifier());
+		assertEquals("hi client", result.header(TransportHeaders.QUALIFIER));
 	}
 
 	@Test
@@ -284,7 +284,7 @@ public class LocalChannelTransportFactoryTest {
 
 			for (int j = 0; j < total; j++) {
 				SettableFuture<Void> send = SettableFuture.create();
-				transport1.send(new Message("q" + j), send);
+				transport1.send(new Message(null, TransportHeaders.QUALIFIER, "q" + j), send);
 				try {
 					send.get(3, TimeUnit.SECONDS);
 				} catch (Exception e) {
@@ -366,7 +366,7 @@ public class LocalChannelTransportFactoryTest {
 			@Override
 			public void call(List<TransportMessage> messages) {
 				for (TransportMessage message : messages) {
-					Message echo = new Message("echo/" + message.message().qualifier());
+					Message echo = new Message("echo/" + message.message().header(TransportHeaders.QUALIFIER));
 					message.originChannel().send(echo, null);
 				}
 			}
@@ -402,7 +402,7 @@ public class LocalChannelTransportFactoryTest {
 			@Override
 			public void call(List<TransportMessage> messages) {
 				for (TransportMessage message : messages) {
-					Message echo = new Message("echo/" + message.message().qualifier());
+					Message echo = new Message("echo/" + message.message().header(TransportHeaders.QUALIFIER));
 					server.to(message.originEndpoint()).send(echo, null);
 				}
 			}
@@ -511,12 +511,12 @@ public class LocalChannelTransportFactoryTest {
 		server.listen().subscribe(new Action1<TransportMessage>() {
 			@Override
 			public void call(TransportMessage transportMessage) {
-				String qualifier = transportMessage.message().qualifier();
+				String qualifier = transportMessage.message().header(TransportHeaders.QUALIFIER);
 				if (qualifier.startsWith("throw")) {
 					throw new RuntimeException("" + transportMessage);
 				}
 				if (qualifier.startsWith("q")) {
-					Message echo = new Message("echo/" + transportMessage.message().qualifier());
+					Message echo = new Message("echo/" + transportMessage.message().header(TransportHeaders.QUALIFIER));
 					transportMessage.originChannel().send(echo, null);
 				}
 			}
@@ -586,16 +586,16 @@ public class LocalChannelTransportFactoryTest {
 		});
 
 		// test at unblocked transport
-		send(client, serverEndpoint, new Message("q/unblocked"));
+		send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "q/unblocked"));
 
 		// then block client->server messages
 		pause(1000);
 		client.<LocalChannelPipelineFactory> getPipelineFactory().blockMessagesTo(serverEndpoint);
-		send(client, serverEndpoint, new Message("q/blocked"));
+		send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "q/blocked"));
 
 		pause(1000);
 		assertEquals(1, resp.size());
-		assertEquals("q/unblocked", resp.get(0).qualifier());
+		assertEquals("q/unblocked", resp.get(0).header(TransportHeaders.QUALIFIER));
 	}
 
 	private TransportEndpoint serverEndpoint() {
@@ -614,7 +614,7 @@ public class LocalChannelTransportFactoryTest {
 		ArrayList<Message> messages = new ArrayList<>(received);
 		assertEquals(total, messages.size());
 		for (int k = 0; k < total; k++) {
-			assertEquals("q" + k, messages.get(k).qualifier());
+			assertEquals("q" + k, messages.get(k).header(TransportHeaders.QUALIFIER));
 		}
 	}
 
@@ -624,7 +624,7 @@ public class LocalChannelTransportFactoryTest {
 				for (int j = 0; j < total; j++) {
 					String correlationId = id + "/" + j;
 					SettableFuture<Void> send = SettableFuture.create();
-					client.to(endpoint).send(new Message("q", null, correlationId), send);
+					client.to(endpoint).send(new Message(null, TransportHeaders.QUALIFIER, "q", TransportHeaders.CORRELATION_ID, correlationId), send);
 					try {
 						send.get(3, TimeUnit.SECONDS);
 					} catch (Exception e) {
@@ -642,11 +642,11 @@ public class LocalChannelTransportFactoryTest {
 		ArrayListMultimap<Integer, Message> group = ArrayListMultimap.create();
 		for (Message message : messages) {
 
-			group.put(Integer.valueOf(message.correlationId().split("/")[0]), message);
+			group.put(Integer.valueOf(message.header(TransportHeaders.CORRELATION_ID).split("/")[0]), message);
 		}
 		assertEquals(total, group.get(id).size());
 		for (int k = 0; k < total; k++) {
-			assertEquals(id + "/" + k, group.get(id).get(k).correlationId());
+			assertEquals(id + "/" + k, group.get(id).get(k).header(TransportHeaders.CORRELATION_ID));
 		}
 	}
 

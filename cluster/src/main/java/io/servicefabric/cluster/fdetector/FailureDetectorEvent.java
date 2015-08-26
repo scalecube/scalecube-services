@@ -35,9 +35,9 @@ public final class FailureDetectorEvent {
 
 	@Override
 	public String toString() {
-		return Objects.toStringHelper(this)
-				.add("endpoint", endpoint)
-				.add("status", status)
-				.toString();
+		return "FailureDetectorEvent{" +
+				"endpoint=" + endpoint +
+				", status=" + status +
+				'}';
 	}
 }

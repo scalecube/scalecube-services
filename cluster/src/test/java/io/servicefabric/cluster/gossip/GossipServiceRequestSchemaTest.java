@@ -1,9 +1,9 @@
 package io.servicefabric.cluster.gossip;
 
-import io.protostuff.runtime.RuntimeSchema;
+import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.protocol.*;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageDeserializer;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageSerializer;
+import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
+import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
 import io.servicefabric.transport.utils.KVPair;
 import io.netty.buffer.ByteBuf;
 import org.junit.Assert;
@@ -20,14 +20,12 @@ import static org.junit.Assert.assertTrue;
 
 public class GossipServiceRequestSchemaTest {
 
-	private static final String gossipQualifier = GossipQualifiers.QUALIFIER;
 	private static final String testDataQualifier = "servicefabric/testData";
 
 	private TestData testData;
 
 	@Before
 	public void init() throws Throwable {
-		RuntimeSchema.register(Gossip.class, new GossipSchema());
 		List<KVPair<String, String>> properties = new ArrayList<>();
 		properties.add(new KVPair<>("casino", "123"));
 
@@ -43,7 +41,7 @@ public class GossipServiceRequestSchemaTest {
 
 		List<Gossip> gossips = getGossips();
 
-		Message message = new Message(gossipQualifier, new GossipRequest(gossips), "CORR_ID");
+		Message message = new Message(new GossipRequest(gossips), TransportHeaders.CORRELATION_ID, "CORR_ID");
 
 		ByteBuf bb = buffer();
 		serializer.serialize(message, bb);
@@ -52,31 +50,25 @@ public class GossipServiceRequestSchemaTest {
 
 		ByteBuf input = copiedBuffer(bb);
 
-		Message deserialized = deserializer.deserialize(input);
+		Message deserializedMessage = deserializer.deserialize(input);
 
-		assertNotNull(deserialized);
-		Assert.assertEquals(gossipQualifier, deserialized.qualifier());
-		Assert.assertEquals("CORR_ID", deserialized.correlationId());
+		assertNotNull(deserializedMessage);
+		Assert.assertEquals(deserializedMessage.data().getClass(), GossipRequest.class);
+		Assert.assertEquals("CORR_ID", deserializedMessage.header(TransportHeaders.CORRELATION_ID));
 
-		GossipRequest gossip = (GossipRequest) deserialized.data();
-		assertNotNull(gossip);
-		assertNotNull(gossip.getGossipList());
-		assertNotNull(gossip.getGossipList().get(0));
+		GossipRequest gossipRequest = (GossipRequest) deserializedMessage.data();
+		assertNotNull(gossipRequest);
+		assertNotNull(gossipRequest.getGossipList());
+		assertNotNull(gossipRequest.getGossipList().get(0));
 
-		Object msg = gossip.getGossipList().get(0).getData();
+		Object msg = gossipRequest.getGossipList().get(0).getMessage().data();
 		assertNotNull(msg);
 		assertTrue(msg.toString(), msg instanceof TestData);
 	}
 
 	private List<Gossip> getGossips() {
-		Gossip request = new Gossip();
-		request.setQualifier(testDataQualifier);
-		request.setGossipId("idGossip");
-		request.setData(testData);
-		Gossip request2 = new Gossip();
-		request2.setQualifier(testDataQualifier);
-		request2.setGossipId("idGossip2");
-		request2.setData(testData);
+		Gossip request = new Gossip("idGossip", new Message(testData, TransportHeaders.QUALIFIER, testDataQualifier));
+		Gossip request2 = new Gossip("idGossip2", new Message(testData, TransportHeaders.QUALIFIER, testDataQualifier));
 		List<Gossip> gossips = new ArrayList<>(2);
 		gossips.add(request);
 		gossips.add(request2);

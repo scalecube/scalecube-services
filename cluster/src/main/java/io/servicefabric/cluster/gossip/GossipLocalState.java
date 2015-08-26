@@ -59,12 +59,11 @@ final class GossipLocalState {
 
 	@Override
 	public String toString() {
-		final StringBuilder sb = new StringBuilder("GossipLocalState{");
-		sb.append("gossip=").append(gossip);
-		sb.append(", sent=").append(sent);
-		sb.append(", period=").append(period);
-		sb.append(", members=").append(members);
-		sb.append('}');
-		return sb.toString();
+		return "GossipLocalState{" +
+				"gossip=" + gossip +
+				", sent=" + sent +
+				", period=" + period +
+				", members=" + members +
+				'}';
 	}
 }

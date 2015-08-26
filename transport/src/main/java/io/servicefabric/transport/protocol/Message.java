@@ -1,53 +1,91 @@
 package io.servicefabric.transport.protocol;
 
+import com.google.common.base.Preconditions;
+
 import javax.annotation.concurrent.Immutable;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
- * The Class Message introduce common protocol for transport to transport communication.
+ * The Class Message introduces generic protocol used for point to point communication by transport.
  */
-@Immutable
 public final class Message {
 
-	private final String qualifier;
+	private Map<String, String> headers = Collections.emptyMap();
 
-	private final String correlationId;
-
-	private final Object data;
+	private Object data;
 
 	/**
-	 * Instantiates a new message with given qualifier. All other parameters set to null.
+	 * Instantiates empty message for deserialization purpose.
 	 */
-	public Message(String qualifier) {
-		this(qualifier, null);
+	Message() {
 	}
 
 	/**
-	 * Instantiates new messages with given qualifier and data.
+	 * Instantiates a new message with the given data and without headers.
 	 */
-	public Message(String qualifier, Object data) {
-		this(qualifier, data, null);
+	public Message(Object data) {
+		setData(data);
+	}
+
+	/**
+	 * Instantiates a new message with the given headers and with empty data.
+	 */
+	public Message(Map<String, String> headers) {
+		setHeaders(headers);
 	}
 
 	/**
 	 * Instantiates new messages with given qualifier, data and correlationId.
 	 */
-	public Message(String qualifier, Object data, String correlationId) {
-		this.qualifier = qualifier;
-		this.data = data;
-		this.correlationId = correlationId;
+	public Message(Object data, Map<String, String> headers) {
+		setData(data);
+		setHeaders(headers);
 	}
 
 	/**
-	 * Returns the message qualifier. Qualifier is used to determine the message destination and payload type.
-	 *
-	 * @return message qualifier
+	 * Instantiates new message with given qualifier and headers. Headers passed a sequence of key-value pairs.
 	 */
-	public String qualifier() {
-		return qualifier;
+	public Message(Object data, String... headers) {
+		Preconditions.checkArgument(headers.length % 2 == 0, "");
+		Map<String, String> headersMap = new HashMap<>(headers.length / 2);
+		for (int i = 0; i < headers.length; i += 2) {
+			headersMap.put(headers[i], headers[i + 1]);
+		}
+		this.headers = Collections.unmodifiableMap(headersMap);
+		setData(data);
+	}
+
+	void setData(Object data) {
+		this.data = data;
+	}
+
+	void setHeaders(Map<String, String> headers) {
+		if (headers != null) {
+			this.headers = Collections.unmodifiableMap(headers);
+		}
 	}
 
 	/**
-	 * Return the message payload, which can be byte array, string or any type
+	 * Returns the message headers.
+	 *
+	 * @return message headers
+	 */
+	public Map<String, String> headers() {
+		return headers;
+	}
+
+	/**
+	 * Returns the message header by given header name.
+	 */
+	public String header(String headerName) {
+		return headers.get(headerName);
+	}
+
+	/**
+	 * Return the message data, which can be byte array, string or any type
 	 * 
 	 * @return payload of the message or null if message is without any payload
 	 */
@@ -55,46 +93,28 @@ public final class Message {
 		return data;
 	}
 
-	/**
-	 * Returns correlation id which can be used to match request and response. The receiver is responsible to respond
-	 * with the corresponding to request correlationId.
-	 *
-	 * @return message correlation id or null if not specified
-	 */
-	public String correlationId() {
-		return correlationId;
-	}
-
 	@Override
 	public boolean equals(Object o) {
 		if (this == o)
 			return true;
-		if (!(o instanceof Message))
+		if (o == null || getClass() != o.getClass())
 			return false;
-
-		Message message = (Message) o;
-
-		if (correlationId != null ? !correlationId.equals(message.correlationId) : message.correlationId != null)
-			return false;
-		if (data != null ? !data.equals(message.data) : message.data != null)
-			return false;
-		if (qualifier != null ? !qualifier.equals(message.qualifier) : message.qualifier != null)
-			return false;
-
-		return true;
+		Message that = (Message) o;
+		return Objects.equals(headers, that.headers) &&
+				Objects.equals(data, that.data);
 	}
 
 	@Override
 	public int hashCode() {
-		int result = qualifier != null ? qualifier.hashCode() : 0;
-		result = 31 * result + (correlationId != null ? correlationId.hashCode() : 0);
-		result = 31 * result + (data != null ? data.hashCode() : 0);
-		return result;
+		return Objects.hash(headers, data);
 	}
 
 	@Override
 	public String toString() {
-		return "Message [qualifier=" + qualifier + ", correlationId=" + correlationId + "]";
+		return "Message{" +
+				"headers=" + headers +
+				", data=" + (data == null ? "null" : data.getClass().getSimpleName()) +
+				'}';
 	}
 
 }

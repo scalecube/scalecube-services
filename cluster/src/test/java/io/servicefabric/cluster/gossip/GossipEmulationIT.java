@@ -9,6 +9,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import io.servicefabric.transport.*;
+import io.servicefabric.transport.protocol.Message;
 import org.junit.*;
 
 import rx.functions.Action1;
@@ -110,16 +111,16 @@ public class GossipEmulationIT {
 
 		final CountDownLatch latch = new CountDownLatch(members - 1);
 		for (final GossipProtocol protocol : protocols) {
-			protocol.listen().subscribe(new Action1<Gossip>() {
+			protocol.listen().subscribe(new Action1<Message>() {
 				@Override
-				public void call(Gossip gossip) {
+				public void call(Message gossip) {
 					latch.countDown();
 				}
 			});
 		}
 
 		long start = System.currentTimeMillis();
-		protocols.get(0).spread("qualifier1", null);
+		protocols.get(0).spread(new Message("data"));
 		latch.await(20, TimeUnit.SECONDS);
 		long time = System.currentTimeMillis() - start;
 		Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -140,16 +141,16 @@ public class GossipEmulationIT {
 
 		final CountDownLatch latch = new CountDownLatch(members - 1);
 		for (final GossipProtocol protocol : protocols) {
-			protocol.listen().subscribe(new Action1<Gossip>() {
+			protocol.listen().subscribe(new Action1<Message>() {
 				@Override
-				public void call(Gossip gossip) {
+				public void call(Message gossip) {
 					latch.countDown();
 				}
 			});
 		}
 
 		long start = System.currentTimeMillis();
-		protocols.get(0).spread("qualifier1", null);
+		protocols.get(0).spread(new Message("data"));
 		latch.await(20, TimeUnit.SECONDS);
 		long time = System.currentTimeMillis() - start;
 		Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -170,16 +171,16 @@ public class GossipEmulationIT {
 
 		final CountDownLatch latch = new CountDownLatch(members - 1);
 		for (final GossipProtocol protocol : protocols) {
-			protocol.listen().subscribe(new Action1<Gossip>() {
+			protocol.listen().subscribe(new Action1<Message>() {
 				@Override
-				public void call(Gossip gossip) {
+				public void call(Message gossip) {
 					latch.countDown();
 				}
 			});
 		}
 
 		long start = System.currentTimeMillis();
-		protocols.get(0).spread("qualifier1", null);
+		protocols.get(0).spread(new Message("data"));
 		latch.await(20, TimeUnit.SECONDS);
 		long time = System.currentTimeMillis() - start;
 		Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -200,16 +201,16 @@ public class GossipEmulationIT {
 
 		final CountDownLatch latch = new CountDownLatch(members - 1);
 		for (final GossipProtocol protocol : protocols) {
-			protocol.listen().subscribe(new Action1<Gossip>() {
+			protocol.listen().subscribe(new Action1<Message>() {
 				@Override
-				public void call(Gossip gossip) {
+				public void call(Message gossip) {
 					latch.countDown();
 				}
 			});
 		}
 
 		long start = System.currentTimeMillis();
-		protocols.get(0).spread("qualifier1", null);
+		protocols.get(0).spread(new Message("data"));
 		latch.await(20, TimeUnit.SECONDS);
 		long time = System.currentTimeMillis() - start;
 		Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -231,16 +232,16 @@ public class GossipEmulationIT {
 
 		final CountDownLatch latch = new CountDownLatch(members - 1);
 		for (final GossipProtocol protocol : protocols) {
-			protocol.listen().subscribe(new Action1<Gossip>() {
+			protocol.listen().subscribe(new Action1<Message>() {
 				@Override
-				public void call(Gossip gossip) {
+				public void call(Message gossip) {
 					latch.countDown();
 				}
 			});
 		}
 
 		long start = System.currentTimeMillis();
-		protocols.get(0).spread("qualifier1", null);
+		protocols.get(0).spread(new Message("data"));
 		latch.await(20, TimeUnit.SECONDS);
 		long time = System.currentTimeMillis() - start;
 		Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -262,16 +263,16 @@ public class GossipEmulationIT {
 
 		final CountDownLatch latch = new CountDownLatch(members - 1);
 		for (final GossipProtocol protocol : protocols) {
-			protocol.listen().subscribe(new Action1<Gossip>() {
+			protocol.listen().subscribe(new Action1<Message>() {
 				@Override
-				public void call(Gossip gossip) {
+				public void call(Message gossip) {
 					latch.countDown();
 				}
 			});
 		}
 
 		long start = System.currentTimeMillis();
-		protocols.get(0).spread("qualifier1", null);
+		protocols.get(0).spread(new Message("data"));
 		latch.await(30, TimeUnit.SECONDS);
 		long time = System.currentTimeMillis() - start;
 		Assert.assertTrue("Time: " + time + "count: " + latch.getCount(), time < 30000);
@@ -293,16 +294,16 @@ public class GossipEmulationIT {
 
 		final CountDownLatch latch = new CountDownLatch(members - 1);
 		for (final GossipProtocol protocol : protocols) {
-			protocol.listen().subscribe(new Action1<Gossip>() {
+			protocol.listen().subscribe(new Action1<Message>() {
 				@Override
-				public void call(Gossip gossip) {
+				public void call(Message gossip) {
 					latch.countDown();
 				}
 			});
 		}
 
 		long start = System.currentTimeMillis();
-		protocols.get(0).spread("qualifier1", null);
+		protocols.get(0).spread(new Message("data"));
 		latch.await(20, TimeUnit.SECONDS);
 		long time = System.currentTimeMillis() - start;
 		Assert.assertTrue("Time: " + time, time < 20000 + lambda);

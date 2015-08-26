@@ -1,7 +1,6 @@
 package io.servicefabric.cluster;
 
 import static com.google.common.collect.Collections2.filter;
-import io.servicefabric.cluster.gossip.Gossip;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
 import rx.functions.Func1;
@@ -23,7 +22,7 @@ final class ClusterMembershipDataUtils {
 			public TransportMessage call(TransportMessage transportMessage) {
 				Message message = transportMessage.message();
 				ClusterMembershipData filteredData = filterData(localEndpoint, (ClusterMembershipData) message.data());
-				Message filteredMessage = new Message(message.qualifier(), filteredData, message.correlationId());
+				Message filteredMessage = new Message(filteredData, message.headers());
 				return new TransportMessage(transportMessage.originChannel(),
 						filteredMessage,
 						transportMessage.originEndpoint(),
@@ -36,11 +35,11 @@ final class ClusterMembershipDataUtils {
 	 * In the incoming {@code transportMessage} filters {@link ClusterMembershipData}
 	 * by excluding record with {@code localEndpoint}.
 	 */
-	static Func1<Gossip, ClusterMembershipData> gossipFilterData(final ClusterEndpoint localEndpoint) {
-		return new Func1<Gossip, ClusterMembershipData>() {
+	static Func1<Message, ClusterMembershipData> gossipFilterData(final ClusterEndpoint localEndpoint) {
+		return new Func1<Message, ClusterMembershipData>() {
 			@Override
-			public ClusterMembershipData call(Gossip gossip) {
-				return filterData(localEndpoint, (ClusterMembershipData) gossip.getData());
+			public ClusterMembershipData call(Message gossip) {
+				return filterData(localEndpoint, (ClusterMembershipData) gossip.data());
 			}
 		};
 	}

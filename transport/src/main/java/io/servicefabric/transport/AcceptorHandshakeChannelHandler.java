@@ -32,27 +32,27 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		Message message = (Message) msg;
-		if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(message.qualifier()))
+		if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(message.header(TransportHeaders.QUALIFIER)))
 			throw new TransportBrokenException("Received unsupported " + msg + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC)");
 
 		final TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
-		final TransportData handshake = (TransportData) message.data();
-		final TransportData resolved = resolve(handshake, transportSpi.getLocalMetadata());
-		if (resolved.isResolvedOk()) {
-			transport.setRemoteHandshake(handshake);
+		final TransportData handshakeData = (TransportData) message.data();
+		final TransportData resolvedData = resolve(handshakeData, transportSpi.getLocalMetadata());
+		if (resolvedData.isResolvedOk()) {
+			transport.setRemoteHandshake(handshakeData);
 			transport.transportSpi.accept(transport);
 			transport.transportSpi.resetDueHandshake(transport.channel);
 			transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.READY);
 			LOGGER.debug("Set READY on acceptor: {}", transport);
 		}
-		ChannelFuture channelFuture = ctx.writeAndFlush(new Message(TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK, resolved));
+		ChannelFuture channelFuture = ctx.writeAndFlush(new Message(resolvedData, TransportHeaders.QUALIFIER, TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK));
 		channelFuture.addListener(ChannelFutureUtils.wrap(new ChannelFutureListener() {
 			@Override
 			public void operationComplete(ChannelFuture future) {
-				if (!resolved.isResolvedOk()) {
-					LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", resolved, transport);
+				if (!resolvedData.isResolvedOk()) {
+					LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", resolvedData, transport);
 					transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_FAILED,
-							new TransportHandshakeException(transport, resolved));
+							new TransportHandshakeException(transport, resolvedData));
 					transport.close();
 				}
 			}
