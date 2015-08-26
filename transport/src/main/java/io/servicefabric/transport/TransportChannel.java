@@ -126,9 +126,13 @@ final class TransportChannel implements ITransportChannel {
 		close(cause, null/*promise*/);
 	}
 
+	void close() {
+		close(null/*cause*/, null/*promise*/);
+	}
+
 	void close(Throwable cause, SettableFuture<Void> promise) {
-		status.set(CLOSED);
 		this.cause.compareAndSet(null, cause != null ? cause : new TransportClosedException(this));
+		status.set(CLOSED);
 		whenClose.call(this);
 		setPromise(channel.close(), promise);
 		LOGGER.debug("Closed {}", this);
@@ -140,6 +144,19 @@ final class TransportChannel implements ITransportChannel {
 	 * @throws TransportBrokenException in case {@code expect} not actual
 	 */
 	void flip(Status expect, Status update) throws TransportBrokenException {
+		flip(expect, update, null);
+	}
+
+	/**
+	 * Flips the {@link #status}. This method is used for transition to failed state and
+	 * provides possibility to provide cause.
+	 *
+	 * @throws TransportBrokenException in case {@code expect} not actual
+	 */
+	void flip(Status expect, Status update, Throwable cause) throws TransportBrokenException {
+		if (cause != null) {
+			this.cause.compareAndSet(null, cause);
+		}
 		if (!status.compareAndSet(expect, update)) {
 			String err = "Can't set status " + update + " (expect=" + expect + ", actual=" + status + ")";
 			throw new TransportBrokenException(this, err);

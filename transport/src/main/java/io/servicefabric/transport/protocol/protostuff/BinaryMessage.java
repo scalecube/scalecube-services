@@ -2,6 +2,8 @@ package io.servicefabric.transport.protocol.protostuff;
 
 import io.protostuff.Tag;
 
+import java.util.Arrays;
+
 /**
  * Message wrapper class which used for serialization and deserialization of message in two steps.
  * First, for headers and second, for data. This class represents payload as a byte array.
@@ -18,6 +20,9 @@ class BinaryMessage {
 
 	@Tag(3)
 	private byte[] data;
+
+	@Tag(4)
+	private String dataClass;
 
 	/**
 	 * Instantiates a new binary message wrapper.
@@ -69,8 +74,31 @@ class BinaryMessage {
 		this.data = data;
 	}
 
+	/**
+	 * Gets the data class. It internal field used for deserialization of data.
+	 *
+	 * @return the data class
+	 */
+	public String getDataClass() {
+		return dataClass;
+	}
+
+	/**
+	 * Sets the data class. It is internal field used for deserialization of data.
+	 *
+	 * @param dataClass the data class
+	 */
+	public void setDataClass(String dataClass) {
+		this.dataClass = dataClass;
+	}
+
 	@Override
 	public String toString() {
-		return "BinaryMessageWrapper [qualifier=" + qualifier + ", correlationId=" + correlationId + ", data=***" + "]";
+		return "BinaryMessage{" +
+				"qualifier='" + qualifier + '\'' +
+				", correlationId='" + correlationId + '\'' +
+				", data=***" +
+				", dataClass='" + dataClass + '\'' +
+				'}';
 	}
 }

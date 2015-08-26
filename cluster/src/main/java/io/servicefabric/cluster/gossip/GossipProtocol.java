@@ -12,9 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.protostuff.runtime.RuntimeSchema;
-import io.servicefabric.transport.ITransportTypeRegistry;
 import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.TransportTypeRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,10 +113,8 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 
 	@Override
 	public void start() {
-		// Register data types
-		ITransportTypeRegistry typeRegistry = TransportTypeRegistry.getInstance();
-		typeRegistry.registerType(GossipQualifiers.QUALIFIER, GossipRequest.class);
-		RuntimeSchema.register(Gossip.class, new GossipSchema(typeRegistry));
+		// Register Gossip schema
+		RuntimeSchema.register(Gossip.class, new GossipSchema());
 
 		onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
 		transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);

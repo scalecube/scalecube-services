@@ -152,10 +152,6 @@ public final class Transport implements ITransportSpi, ITransport {
 	public final void start() {
 		checkNotNull(pipelineFactory); // don't forget to set upfront
 
-		// register data types
-		TransportTypeRegistry.getInstance().registerType(Q_TRANSPORT_HANDSHAKE_SYNC, TransportData.class);
-		TransportTypeRegistry.getInstance().registerType(Q_TRANSPORT_HANDSHAKE_SYNC_ACK, TransportData.class);
-
 		subject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
 
 		Class<? extends ServerChannel> serverChannelClass;
@@ -198,10 +194,6 @@ public final class Transport implements ITransportSpi, ITransport {
 	@Override
 	public EventExecutorGroup getEventExecutor() {
 		return eventExecutor;
-	}
-
-	public final void destroy() {
-		stop(null);
 	}
 
 	@Nonnull
@@ -277,14 +269,14 @@ public final class Transport implements ITransportSpi, ITransport {
 		for (TransportEndpoint endpoint : accepted.keySet()) {
 			TransportChannel transport = accepted.remove(endpoint);
 			if (transport != null) {
-				transport.close(null, null);
+				transport.close();
 			}
 		}
 		// cleanup connected
 		for (TransportEndpoint endpoint : connected.keySet()) {
 			TransportChannel transport = connected.remove(endpoint);
 			if (transport != null) {
-				transport.close(null, null);
+				transport.close();
 			}
 		}
 		if (serverChannel != null) {
@@ -402,8 +394,8 @@ public final class Transport implements ITransportSpi, ITransport {
 						@Override
 						public void operationComplete(ChannelFuture future) {
 							if (!future.isSuccess()) {
-								transport.flip(CONNECT_IN_PROGRESS, CONNECT_FAILED);
-								transport.close(future.cause());
+								transport.flip(CONNECT_IN_PROGRESS, CONNECT_FAILED, future.cause());
+								transport.close();
 							}
 						}
 					}));

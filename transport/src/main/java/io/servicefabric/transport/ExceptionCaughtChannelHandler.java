@@ -44,7 +44,7 @@ final class ExceptionCaughtChannelHandler extends ChannelDuplexHandler {
 	public void channelInactive(ChannelHandlerContext ctx) throws Exception {
 		TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
 		LOGGER.debug("Transport inactive: {}", transport);
-		transport.close(null/*cause*/, null/*promise*/);
+		transport.close();
 		super.channelInactive(ctx);
 	}
 }

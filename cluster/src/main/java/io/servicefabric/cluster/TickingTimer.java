@@ -13,20 +13,49 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-class Timer {
+/**
+ * It is an utility wrapper class around {@code io.netty.util.HashedWheelTimer} which simplify its usage.
+ * This timer doesn't execute scheduled job on time, but provide approximate execution and on each tick
+ * checks either there are any jobs behind the timer and execute them. In most network applications,
+ * I/O timeout does not need to be accurate. The default tick duration is 100 milliseconds.
+ *
+ * @see io.netty.util.HashedWheelTimer
+ */
+class TickingTimer {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(Timer.class);
+	private static final Logger LOGGER = LoggerFactory.getLogger(TickingTimer.class);
 
-	private HashedWheelTimer hashedWheelTimer = new HashedWheelTimer();
-	private ConcurrentMap<String, Timeout> timeoutMap = new ConcurrentHashMap<>();
+	private final HashedWheelTimer hashedWheelTimer;
+	private final ConcurrentMap<String, Timeout> tasks = new ConcurrentHashMap<>();
 
+	/**
+	 * Creates instance of timer with default tick duration.
+	 */
+	public TickingTimer() {
+		hashedWheelTimer = new HashedWheelTimer();
+	}
+
+	/**
+	 * Creates instance of timer with th given tick duration.
+	 */
+	public TickingTimer(Long tickDuration, TimeUnit timeUnit) {
+		hashedWheelTimer = new HashedWheelTimer(tickDuration, timeUnit);
+	}
+
+	/**
+	 * Starts background timer's thread explicitly.
+	 */
 	public void start() {
 		hashedWheelTimer.start();
 	}
 
+	/**
+	 * Releases all resources acquired by this timer and cancels all jobs which were scheduled,
+	 * but not executed yet.
+	 */
 	public void stop() {
 		hashedWheelTimer.stop();
-		timeoutMap.clear();
+		tasks.clear();
 	}
 
 	/**
@@ -59,7 +88,7 @@ class Timer {
 		Preconditions.checkArgument(id != null && !id.isEmpty());
 		Preconditions.checkNotNull(runnable);
 		Preconditions.checkArgument(delay > 0);
-		final Timeout oldTask = timeoutMap.remove(id);
+		final Timeout oldTask = tasks.remove(id);
 		if(oldTask != null) {
 			LOGGER.warn("Replacing previously scheduled task for id {} with new one.", id);
 			oldTask.cancel();
@@ -70,17 +99,17 @@ class Timer {
 				if (!timeout.isCancelled()) {
 					runnable.run();
 				}
-				timeoutMap.remove(id);
+				tasks.remove(id);
 			}
 		}, delay, timeUnit);
-		timeoutMap.put(id, timeout);
+		tasks.put(id, timeout);
 	}
 
 	/**
 	 * Cancel timer task with specific id
 	 */
 	public void cancel(String id) {
-		Timeout timeout = timeoutMap.remove(id);
+		Timeout timeout = tasks.remove(id);
 		if (timeout != null) {
 			timeout.cancel();
 		}

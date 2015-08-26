@@ -59,10 +59,9 @@ public class KVPair<K, V> {
 
 	@Override
 	public String toString() {
-		final StringBuilder sb = new StringBuilder("Pair{");
-		sb.append("first=").append(key);
-		sb.append(", second=").append(value);
-		sb.append('}');
-		return sb.toString();
+		return "KVPair{" +
+				"key=" + key +
+				", value=" + value +
+				'}';
 	}
 }
