@@ -14,8 +14,10 @@ public interface IGossipProtocol {
 
 	/** Spreads given gossip through the cluster. */
 	void spread(String qualifier, Object data);
-
+		
 	/** Listens for all gossips inside the cluster. */
 	Observable<Gossip> listen();
+
+	
 
 }

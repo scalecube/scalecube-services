@@ -1,8 +1,7 @@
 [![Build Status](https://travis-ci.org/servicefabric/servicefabric.svg?branch=master)](https://travis-ci.org/servicefabric/servicefabric)
 # ServiceFabric Project
 
-ServiceFabric is a framework that enables quick and easy development of modern distributed, resilient, scalable reactive applications such as on-line gaming, eTrading and Social.
-
+Service Fabric I/O is a framework through which a set of distributed microservices are connected in such as way that they resemble a fabric when viewed collectively. The service fabric enables microservice Developers Rapidly develop Distributed, Resilient, Reactive, High-End Modern applications that scales. It greatly simplifies and streamlines asynchronous programming and provides a tool-set for managing microservices architecture. Service Fabric has been designed carefully with the experiences earned over the years from the implementation of many Online Services and platforms. As a result, Service Fabric I/O has succeeded to find a way to achieve ease of development, performance, stability, and flexibility without a compromise.
 ## Links
 
 * [Service Fabric - Overview](http://servicefabric.io/)
