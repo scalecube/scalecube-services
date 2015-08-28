@@ -12,8 +12,6 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
-import com.google.common.base.Objects;
-
 /**
  * DTO class.
  * Hosting cluster endpoint, status, metadata and update timestamp.
