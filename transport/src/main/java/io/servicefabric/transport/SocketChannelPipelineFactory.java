@@ -1,5 +1,11 @@
 package io.servicefabric.transport;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
@@ -7,18 +13,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.servicefabric.transport.protocol.FrameHandlerFactory;
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.MessageDeserializer;
-import io.servicefabric.transport.protocol.MessageSerializer;
-import io.servicefabric.transport.protocol.SharableDeserializerHandler;
-import io.servicefabric.transport.protocol.SharableSerializerHandler;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.servicefabric.transport.protocol.*;
 
 public final class SocketChannelPipelineFactory implements PipelineFactory {
 	private static final Logger LOGGER = LoggerFactory.getLogger(SocketChannelPipelineFactory.class);
@@ -56,7 +51,7 @@ public final class SocketChannelPipelineFactory implements PipelineFactory {
 			pipeline.addLast("loggingHandler", new LoggingHandler(transportSpi.getLogLevel()));
 		}
 		pipeline.addLast("acceptorRegistrator", new AcceptorRegistratorChannelHandler(transportSpi));
-		pipeline.addLast(transportSpi.getEventExecutor(), "handshakeHandler", new AcceptorHandshakeChannelHandler(transportSpi));
+		pipeline.addLast("handshakeHandler", new AcceptorHandshakeChannelHandler(transportSpi));
 		pipeline.addLast("exceptionHandler", new ExceptionCaughtChannelHandler(transportSpi));
 	}
 
@@ -67,7 +62,7 @@ public final class SocketChannelPipelineFactory implements PipelineFactory {
 		if (transportSpi.getLogLevel() != null) {
 			pipeline.addLast("loggingHandler", new LoggingHandler(transportSpi.getLogLevel()));
 		}
-		pipeline.addLast(transportSpi.getEventExecutor(), "handshakeHandler", new ConnectorHandshakeChannelHandler(transportSpi));
+		pipeline.addLast("handshakeHandler", new ConnectorHandshakeChannelHandler(transportSpi));
 		pipeline.addLast("exceptionHandler", new ExceptionCaughtChannelHandler(transportSpi));
 	}
 

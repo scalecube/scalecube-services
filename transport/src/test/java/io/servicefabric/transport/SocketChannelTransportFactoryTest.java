@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,32 +218,40 @@ public class SocketChannelTransportFactoryTest {
 		}
 	}
 
-	// FIXME: Ignored unstable test which is a known issue (https://github.com/servicefabric/servicefabric/issues/10) and should be fixed separately
-	@Ignore
 	@Test
 	public void testInteractWithNoConnectionFast() throws Exception {
-		client = TF(clientEndpoint());
+        for (int i = 0; i < 10; i++) {
+            System.err.println("### iter=" + i);
+            client = TF(clientEndpoint());
 
-		// create transport and don't wait just send message
-		ITransportChannel transport = client.to(serverEndpoint());
-		SettableFuture<Void> send0 = SettableFuture.create();
-		transport.send(new Message("q"), send0);
-		try {
-			send0.get(3, TimeUnit.SECONDS);
-			fail();
-		} catch (ExecutionException e) {
-			ConnectException cause = (ConnectException) e.getCause();
-		}
-		// send second message: no connection yet and it's clear that there's no connection
-		SettableFuture<Void> send1 = SettableFuture.create();
-		transport.send(new Message("q"), send1);
-		try {
-			send1.get(1, TimeUnit.SECONDS);
-			fail();
-		} catch (ExecutionException e) {
-			ConnectException cause = (ConnectException) e.getCause();
-		}
-	}
+            // create transport and don't wait just send message
+            ITransportChannel transport = client.to(serverEndpoint());
+            SettableFuture<Void> send0 = SettableFuture.create();
+            transport.send(new Message("q"), send0);
+            try {
+                send0.get(3, TimeUnit.SECONDS);
+                fail();
+            } catch (ExecutionException e) {
+                ConnectException cause = (ConnectException) e.getCause();
+            }
+            // send second message: no connection yet and it's clear that there's no connection
+            SettableFuture<Void> send1 = SettableFuture.create();
+            transport.send(new Message("q"), send1);
+            try {
+                send1.get(3, TimeUnit.SECONDS);
+                fail();
+            } catch (ExecutionException e) {
+                ConnectException cause = (ConnectException) e.getCause();
+            }
+
+            if (client != null) {
+                SettableFuture<Void> close = SettableFuture.create();
+                client.stop(close);
+                close.get(1, TimeUnit.SECONDS);
+                pause(100);
+            }
+        }
+    }
 
 	@Test
 	public void testPingPongClientTFListenAndServerTFListen() throws Exception {
@@ -621,6 +628,25 @@ public class SocketChannelTransportFactoryTest {
         pause(1000);
         assertEquals(1, resp.size());
         assertEquals("q/unblocked", resp.get(0).header(TransportHeaders.QUALIFIER));
+    }
+
+    @Test
+    public void testSendMailboxBecomingFull() throws Exception {
+        TransportEndpoint clientEndpoint = clientEndpoint();
+        TransportEndpoint serverEndpoint = serverEndpoint();
+
+        client = TF(clientEndpoint, 1);
+        server = TF(serverEndpoint, 1);
+
+        client.to(serverEndpoint).send(new Message(null, TransportHeaders.QUALIFIER, "ping0"), null);
+
+        SettableFuture<Void> send1 = SettableFuture.create();
+        client.to(serverEndpoint).send(new Message(null, TransportHeaders.QUALIFIER, "ping1"), send1);
+        try {
+            send1.get(1, TimeUnit.SECONDS);
+        } catch (ExecutionException e) {
+            TransportMessageException cause = (TransportMessageException) e.getCause();
+        }
     }
 
 	private TransportEndpoint serverEndpoint() {

@@ -6,7 +6,6 @@ import static com.google.common.base.Throwables.propagate;
 import static io.servicefabric.transport.TransportChannel.ATTR_TRANSPORT;
 import static io.servicefabric.transport.TransportChannel.Builder.ACCEPTOR;
 import static io.servicefabric.transport.TransportChannel.Builder.CONNECTOR;
-import static io.servicefabric.transport.TransportChannel.Status.*;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
 
@@ -205,18 +204,13 @@ public final class Transport implements ITransportSpi, ITransport {
 					throw new IllegalArgumentException(endpoint.toString());
 				}
 
-				final ChannelPromise promise = channel.newPromise();
-				if (regFuture.isDone()) {
-					connect(regFuture, channel, connectAddress, promise, transport);
-				} else {
-					regFuture.addListener(new ChannelFutureListener() {
-						@Override
-						public void operationComplete(ChannelFuture future) throws Exception {
-							connect(regFuture, channel, connectAddress, promise, transport);
-						}
-					});
-				}
-				return transport;
+                regFuture.addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        connect(regFuture, channel, connectAddress, transport);
+                    }
+                });
+                return transport;
 			}
 		});
 	}
@@ -354,27 +348,26 @@ public final class Transport implements ITransportSpi, ITransport {
 	}
 
 	private void connect(final ChannelFuture regFuture,
-			final Channel channel,
-			final SocketAddress remoteAddress,
-			final ChannelPromise promise,
-			final TransportChannel transport) {
-		eventLoop.execute(new Runnable() {
+                         final Channel channel,
+                         final SocketAddress remoteAddress,
+                         final TransportChannel transport) {
+		channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
                 if (regFuture.isSuccess()) {
-                    transport.flip(NEW, CONNECT_IN_PROGRESS);
+                    ChannelPromise promise = channel.newPromise();
                     channel.connect(remoteAddress, promise);
                     promise.addListener(wrap(new ChannelFutureListener() {
                         @Override
                         public void operationComplete(ChannelFuture future) {
                             if (!future.isSuccess()) {
-                                transport.flip(CONNECT_IN_PROGRESS, CONNECT_FAILED, future.cause());
-                                transport.close();
+                                transport.close(future.cause());
                             }
                         }
                     }));
                 } else {
                     channel.unsafe().closeForcibly();
+                    transport.close();
                 }
             }
         });

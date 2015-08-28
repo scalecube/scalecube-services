@@ -2,20 +2,9 @@ package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.transform;
-import static io.servicefabric.transport.TransportChannel.Status.CLOSED;
-import static io.servicefabric.transport.TransportChannel.Status.CONNECTED;
-import static io.servicefabric.transport.TransportChannel.Status.CONNECT_FAILED;
-import static io.servicefabric.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
-import static io.servicefabric.transport.TransportChannel.Status.HANDSHAKE_FAILED;
-import static io.servicefabric.transport.TransportChannel.Status.HANDSHAKE_IN_PROGRESS;
-import static io.servicefabric.transport.TransportChannel.Status.HANDSHAKE_PASSED;
-import static io.servicefabric.transport.TransportChannel.Status.NEW;
+import static io.servicefabric.transport.TransportChannel.Status.*;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
-import io.netty.channel.Channel;
-import io.netty.util.AttributeKey;
-import io.servicefabric.transport.protocol.Message;
 
-import java.util.EnumSet;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -31,25 +20,23 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.util.concurrent.SettableFuture;
 
+import io.netty.channel.Channel;
+import io.netty.util.AttributeKey;
+import io.servicefabric.transport.protocol.Message;
+
 final class TransportChannel implements ITransportChannel {
 	static final Logger LOGGER = LoggerFactory.getLogger(TransportChannel.class);
 
 	static final AttributeKey<TransportChannel> ATTR_TRANSPORT = AttributeKey.valueOf("transport");
 
 	enum Status {
-		NEW,
 		CONNECT_IN_PROGRESS,
 		CONNECTED,
-		CONNECT_FAILED,
 		HANDSHAKE_IN_PROGRESS,
 		HANDSHAKE_PASSED,
-		HANDSHAKE_FAILED,
 		READY,
 		CLOSED
 	}
-
-	static final EnumSet<Status> failSend = EnumSet.of(CONNECT_FAILED, HANDSHAKE_FAILED, CLOSED);
-	static final EnumSet<Status> enqueueSend = EnumSet.of(NEW, CONNECT_IN_PROGRESS, CONNECTED, HANDSHAKE_IN_PROGRESS, HANDSHAKE_PASSED);
 
 	final Channel channel;
 	final ITransportSpi transportSpi;
@@ -101,20 +88,11 @@ final class TransportChannel implements ITransportChannel {
 	@Override
 	public void send(@CheckForNull Message message, @Nullable SettableFuture<Void> promise) {
 		checkArgument(message != null);
-		if (shouldFailSend()) {
-			if (promise != null)
-				promise.setException(cause.get());
-		} else {
-			setPromise(channel.writeAndFlush(message), promise);
+		if (promise != null && getCause() != null) {
+			promise.setException(getCause());
+            return;
 		}
-	}
-
-	boolean shouldFailSend() {
-		return failSend.contains(status.get());
-	}
-
-	boolean shouldEnqueueSend() {
-		return enqueueSend.contains(status.get());
+		setPromise(channel.writeAndFlush(message), promise);
 	}
 
 	@Override
@@ -144,23 +122,10 @@ final class TransportChannel implements ITransportChannel {
 	 * @throws TransportBrokenException in case {@code expect} not actual
 	 */
 	void flip(Status expect, Status update) throws TransportBrokenException {
-		flip(expect, update, null);
-	}
-
-	/**
-	 * Flips the {@link #status}. This method is used for transition to failed state and
-	 * provides possibility to provide cause.
-	 *
-	 * @throws TransportBrokenException in case {@code expect} not actual
-	 */
-	void flip(Status expect, Status update, Throwable cause) throws TransportBrokenException {
-		if (cause != null) {
-			this.cause.compareAndSet(null, cause);
-		}
-		if (!status.compareAndSet(expect, update)) {
-			String err = "Can't set status " + update + " (expect=" + expect + ", actual=" + status + ")";
-			throw new TransportBrokenException(this, err);
-		}
+        if (!status.compareAndSet(expect, update)) {
+            String err = "Can't set status " + update + " (expect=" + expect + ", actual=" + status + ")";
+            throw new TransportBrokenException(this, err);
+        }
 	}
 
 	Throwable getCause() {
@@ -197,7 +162,7 @@ final class TransportChannel implements ITransportChannel {
 		static Builder CONNECTOR(Channel channel, ITransportSpi transportSpi) {
 			Builder builder = new Builder();
 			builder.target = new TransportChannel(channel, transportSpi);
-			builder.target.status.set(NEW);
+			builder.target.status.set(CONNECT_IN_PROGRESS);
 			return builder;
 		}
 
