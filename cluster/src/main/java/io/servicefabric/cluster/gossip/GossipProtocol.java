@@ -11,7 +11,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.protostuff.runtime.RuntimeSchema;
 import io.servicefabric.transport.protocol.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,11 +31,11 @@ import io.servicefabric.cluster.ClusterEndpoint;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportMessage;
 
-public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi {
+public final class GossipProtocol implements IGossipProtocol, IManagedGossipProtocol {
 	private final static Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
 	private ITransport transport;
-	private Subject<Gossip, Gossip> subject = new SerializedSubject(PublishSubject.create());
+	private Subject<Message, Message> subject = new SerializedSubject(PublishSubject.create());
 	private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
 	private volatile List<ClusterEndpoint> members = new ArrayList<>();
 	private final ClusterEndpoint localEndpoint;
@@ -84,6 +83,10 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 		this.gossipTime = gossipTime;
 	}
 
+	public int getGossipTime() {
+		return gossipTime;
+	}
+
 	public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
 		this.maxEndpointsToSelect = maxEndpointsToSelect;
 	}
@@ -113,9 +116,6 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 
 	@Override
 	public void start() {
-		// Register Gossip schema
-		RuntimeSchema.register(Gossip.class, new GossipSchema());
-
 		onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
 		transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
 		executorTask = executor.scheduleWithFixedDelay(new GossipProtocolRunnable(), gossipTime, gossipTime, TimeUnit.MILLISECONDS);
@@ -132,15 +132,19 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 		}
 	}
 
+	public void spread(Object data) {
+		spread(new Message(data));
+	}
+
 	@Override
-	public void spread(String qualifier, Object data) {
-		String id = generateId();
-		Gossip gossip = new Gossip(id, qualifier, data);
+	public void spread(Message message) {
+		String id = generateGossipId();
+		Gossip gossip = new Gossip(id, message);
 		gossipsQueue.offer(new GossipTask(gossip, localEndpoint));
 	}
 
 	@Override
-	public Observable<Gossip> listen() {
+	public Observable<Message> listen() {
 		return subject;
 	}
 
@@ -156,7 +160,7 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 				gossipLocalState = GossipLocalState.create(gossip, endpoint, period);
 				gossipsMap.put(gossip.getGossipId(), gossipLocalState);
 				if (isEndpointRemote) {
-					subject.onNext(gossip);
+					subject.onNext(gossip.getMessage());
 				}
 			} else {
 				gossipLocalState.addMember(endpoint);
@@ -181,7 +185,7 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 				//Transform to actual gossip with incrementing sent count
 				List<Gossip> gossipToSend = newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
 				transport.to(clusterEndpoint.endpoint())
-						.send(new Message(GossipQualifiers.QUALIFIER, new GossipRequest(gossipToSend)));
+						.send(new Message(new GossipRequest(gossipToSend)));
 			}
 		}
 	}
@@ -195,7 +199,7 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 		}
 	}
 
-	private String generateId() {
+	private String generateGossipId() {
 		return localEndpoint.endpointId() + "_" + counter.getAndIncrement();
 	}
 
@@ -208,7 +212,8 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 	static class GossipMessageFilter implements Func1<TransportMessage, Boolean> {
 		@Override
 		public Boolean call(TransportMessage transportMessage) {
-			return transportMessage.message().qualifier().equalsIgnoreCase(GossipQualifiers.QUALIFIER);
+			Object data = transportMessage.message().data();
+			return data != null && GossipRequest.class.equals(data.getClass());
 		}
 	}
 
@@ -288,30 +293,18 @@ public final class GossipProtocol implements IGossipProtocol, IGossipProtocolSpi
 
 		@Override
 		public boolean equals(Object o) {
-			if (this == o) {
+			if (this == o)
 				return true;
-			}
-			if (o == null || getClass() != o.getClass()) {
+			if (o == null || getClass() != o.getClass())
 				return false;
-			}
-
 			GossipTask that = (GossipTask) o;
-
-			if (origin != null ? !origin.equals(that.origin) : that.origin != null) {
-				return false;
-			}
-			if (gossip != null ? !gossip.equals(that.gossip) : that.gossip != null) {
-				return false;
-			}
-
-			return true;
+			return Objects.equals(gossip, that.gossip) &&
+					Objects.equals(origin, that.origin);
 		}
 
 		@Override
 		public int hashCode() {
-			int result = gossip != null ? gossip.hashCode() : 0;
-			result = 31 * result + (origin != null ? origin.hashCode() : 0);
-			return result;
+			return Objects.hash(gossip, origin);
 		}
 
 		@Override

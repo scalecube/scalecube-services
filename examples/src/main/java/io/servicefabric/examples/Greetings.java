@@ -1,10 +1,9 @@
-package io.servicefabric.common;
+package io.servicefabric.examples;
 
 import io.protostuff.Tag;
 
 public final class Greetings {
 
-	
 
 	@Tag(1)
 	String quote;

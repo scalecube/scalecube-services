@@ -1,23 +1,21 @@
 package io.servicefabric.cluster.gossip;
 
+import io.servicefabric.transport.protocol.Message;
 import rx.Observable;
 
 /**
- * Gossip Protocol component provides generic solution for spreading information (gossips) over the cluster
- * members endpoints using infection-style information dissemination algorithms.
+ * Gossip Protocol component responsible for spreading information (gossips) over the cluster
+ * members using infection-style dissemination algorithms. It provides reliable cross-cluster
+ * broadcast.
+ *
+ * @author Anton Kharenko
  */
 public interface IGossipProtocol {
 
-	void start();
+	/** Spreads given message between cluster members. */
+	void spread(Message message);
 
-	void stop();
-
-	/** Spreads given gossip through the cluster. */
-	void spread(String qualifier, Object data);
-		
-	/** Listens for all gossips inside the cluster. */
-	Observable<Gossip> listen();
-
-	
+	/** Listens for gossips from other cluster members. */
+	Observable<Message> listen();
 
 }

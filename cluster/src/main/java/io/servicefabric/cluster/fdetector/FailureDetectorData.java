@@ -4,7 +4,7 @@ import io.protostuff.Tag;
 import io.servicefabric.cluster.ClusterEndpoint;
 
 /** DTO class. Supports FailureDetector messages (Ping, Ack, PingReq). */
-public final class FailureDetectorData {
+final class FailureDetectorData {
 	/** Message's source endpoint */
 	@Tag(1)
 	private ClusterEndpoint from;

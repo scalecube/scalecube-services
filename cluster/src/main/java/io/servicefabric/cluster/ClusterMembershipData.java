@@ -9,7 +9,7 @@ import java.util.List;
 import com.google.common.base.Objects;
 
 /** DTO class. Contains a snapshot of cluster members and cluster identifier. */
-public final class ClusterMembershipData {
+final class ClusterMembershipData {
 	/** A 'snapshot' of cluster members. */
 	@Tag(1)
 	private List<ClusterMember> membership = new ArrayList<>();
@@ -32,9 +32,9 @@ public final class ClusterMembershipData {
 
 	@Override
 	public String toString() {
-		return Objects.toStringHelper(this)
-				.add("membership", membership)
-				.add("syncGroup", syncGroup)
-				.toString();
+		return "ClusterMembershipData{" +
+				"membership=" + membership +
+				", syncGroup='" + syncGroup + '\'' +
+				'}';
 	}
 }

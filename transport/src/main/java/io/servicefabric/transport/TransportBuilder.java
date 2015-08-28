@@ -3,9 +3,9 @@ package io.servicefabric.transport;
 import static com.google.common.base.Preconditions.checkArgument;
 import io.netty.channel.EventLoopGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffFrameHandlerFactory;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageDeserializer;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageSerializer;
+import io.servicefabric.transport.protocol.ProtostuffFrameHandlerFactory;
+import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
+import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
 
 import java.util.HashMap;
 import java.util.Map;

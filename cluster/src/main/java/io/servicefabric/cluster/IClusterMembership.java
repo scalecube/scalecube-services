@@ -4,11 +4,12 @@ import java.util.List;
 
 import rx.Observable;
 
+/**
+ * Cluster Membership Protocol component responsible for managing information about existing members of the cluster.
+ *
+ * @author Anton Kharenko
+ */
 public interface IClusterMembership {
-
-	void start();
-
-	void stop();
 
 	/** Returns current cluster members list. */
 	List<ClusterMember> members();
@@ -19,6 +20,4 @@ public interface IClusterMembership {
 	/** Listen status updates on registered cluster members (except local one). */
 	Observable<ClusterMember> listenUpdates();
 
-	/** Denoting fact that local member is getting gracefully shutdown. */
-	void leave();
 }

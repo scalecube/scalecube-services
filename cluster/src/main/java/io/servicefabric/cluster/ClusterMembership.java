@@ -5,18 +5,13 @@ import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.filterData;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.gossipFilterData;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.syncGroupFilter;
-import static io.servicefabric.cluster.ClusterMembershipQualifiers.GOSSIP_MEMBERSHIP;
-import static io.servicefabric.cluster.ClusterMembershipQualifiers.SYNC;
-import static io.servicefabric.cluster.ClusterMembershipQualifiers.SYNC_ACK;
-import static io.servicefabric.cluster.ClusterMembershipQualifiers.gossipMembershipFilter;
-import static io.servicefabric.cluster.ClusterMembershipQualifiers.syncAckFilter;
-import static io.servicefabric.cluster.ClusterMembershipQualifiers.syncFilter;
 import static io.servicefabric.transport.TransportEndpoint.tcp;
 import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
 import io.servicefabric.cluster.fdetector.IFailureDetector;
-import io.servicefabric.cluster.gossip.IGossipProtocolSpi;
+import io.servicefabric.cluster.gossip.IManagedGossipProtocol;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
 
@@ -43,6 +38,7 @@ import rx.Subscriber;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
+import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
@@ -51,11 +47,25 @@ import rx.subjects.Subject;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 
-public final class ClusterMembership implements IClusterMembership {
+public final class ClusterMembership implements IManagedClusterMembership, IClusterMembership {
+
 	private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMembership.class);
 
+	// qualifiers
+	private static final String SYNC = "io.servicefabric.cluster/membership/sync";
+	private static final String SYNC_ACK = "io.servicefabric.cluster/membership/syncAck";
+
+	// filters
+	private static final TransportHeaders.Filter SYNC_FILTER = new TransportHeaders.Filter(SYNC);
+	private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER = new Func1<Message, Boolean>() {
+		@Override
+		public Boolean call(Message message) {
+			return message.data() != null && ClusterMembershipData.class.equals(message.data().getClass());
+		}
+	};
+
 	private IFailureDetector failureDetector;
-	private IGossipProtocolSpi gossipProtocol;
+	private IManagedGossipProtocol gossipProtocol;
 	private int syncTime = 10 * 1000;
 	private int syncTimeout = 3 * 1000;
 	private int maxSuspectTime = 60 * 1000;
@@ -85,9 +95,9 @@ public final class ClusterMembership implements IClusterMembership {
 			} else {
 				LOGGER.debug("Received Sync from {}, no updates", endpoint);
 			}
-			String correlationId = transportMessage.message().correlationId();
+			String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
 			ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
-			Message message = new Message(SYNC_ACK, syncAckData, correlationId);
+			Message message = new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK, TransportHeaders.CORRELATION_ID, correlationId);
 			transport.to(endpoint).send(message);
 		}
 	});
@@ -125,7 +135,7 @@ public final class ClusterMembership implements IClusterMembership {
 		this.failureDetector = failureDetector;
 	}
 
-	public void setGossipProtocol(IGossipProtocolSpi gossipProtocol) {
+	public void setGossipProtocol(IManagedGossipProtocol gossipProtocol) {
 		this.gossipProtocol = gossipProtocol;
 	}
 
@@ -228,7 +238,7 @@ public final class ClusterMembership implements IClusterMembership {
 
 		// Listen to 'membership' message from GossipProtocol
 		gossipProtocol.listen()
-				.filter(gossipMembershipFilter())
+				.filter(GOSSIP_MEMBERSHIP_FILTER)
 				.map(gossipFilterData(localEndpoint))
 				.subscribe(onGossipSubscriber);
 
@@ -311,7 +321,7 @@ public final class ClusterMembership implements IClusterMembership {
 
 	private void sendSync(List<TransportEndpoint> members, String period) {
 		ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
-		Message message = new Message(SYNC, syncData, period/*correlationId*/);
+		Message message = new Message(syncData, TransportHeaders.QUALIFIER, SYNC, TransportHeaders.CORRELATION_ID, period/*correlationId*/);
 		for (TransportEndpoint endpoint : members) {
 			transport.to(endpoint).send(message);
 		}
@@ -364,7 +374,7 @@ public final class ClusterMembership implements IClusterMembership {
 
 		// Publish updates to cluster
 		if (spreadGossip) {
-			gossipProtocol.spread(GOSSIP_MEMBERSHIP, new ClusterMembershipData(updates, syncGroup));
+			gossipProtocol.spread(new Message(new ClusterMembershipData(updates, syncGroup)));
 		}
 		// Publish updates locally
 		for (ClusterMember update : updates) {
@@ -405,6 +415,14 @@ public final class ClusterMembership implements IClusterMembership {
 	@Override
 	public void leave() {
 		ClusterMember r1 = new ClusterMember(localEndpoint, SHUTDOWN, localMetadata);
-		gossipProtocol.spread(GOSSIP_MEMBERSHIP, new ClusterMembershipData(ImmutableList.of(r1), syncGroup));
+		gossipProtocol.spread(new Message(new ClusterMembershipData(ImmutableList.of(r1), syncGroup)));
+	}
+
+	private TransportHeaders.Filter syncFilter() {
+		return SYNC_FILTER;
+	}
+
+	private TransportHeaders.Filter syncAckFilter(String correlationId) {
+		return new TransportHeaders.Filter(SYNC_ACK, correlationId);
 	}
 }

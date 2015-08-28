@@ -15,15 +15,15 @@ import io.protostuff.LinkedBuffer;
  *     rlb.release();
  * </pre>
  */
-public final class RecycleableLinkedBuffer implements AutoCloseable {
+public final class RecyclableLinkedBuffer implements AutoCloseable {
 	public static final int DEFAULT_BUFFER_SIZE = 512;
 	public static final int DEFAULT_MAX_CAPACITY = 256;
 
 	private LinkedBuffer buffer;
 	private Recycler.Handle handle;
-	private final Recycler<RecycleableLinkedBuffer> recycler;
+	private final Recycler<RecyclableLinkedBuffer> recycler;
 
-	public RecycleableLinkedBuffer() {
+	public RecyclableLinkedBuffer() {
 		this(DEFAULT_BUFFER_SIZE, DEFAULT_MAX_CAPACITY);
 	}
 
@@ -31,11 +31,11 @@ public final class RecycleableLinkedBuffer implements AutoCloseable {
 	 * @param bufferSize {@link io.protostuff.LinkedBuffer}'s buffer size.
 	 * @param maxCapacity {@link io.netty.util.Recycler}'s.
 	 */
-	public RecycleableLinkedBuffer(final int bufferSize, int maxCapacity) {
-		this.recycler = new Recycler<RecycleableLinkedBuffer>(maxCapacity) {
+	public RecyclableLinkedBuffer(final int bufferSize, int maxCapacity) {
+		this.recycler = new Recycler<RecyclableLinkedBuffer>(maxCapacity) {
 			@Override
-			protected RecycleableLinkedBuffer newObject(Handle handle) {
-				RecycleableLinkedBuffer wrapper = new RecycleableLinkedBuffer();
+			protected RecyclableLinkedBuffer newObject(Handle handle) {
+				RecyclableLinkedBuffer wrapper = new RecyclableLinkedBuffer();
 				wrapper.buffer = LinkedBuffer.allocate(bufferSize);
 				wrapper.handle = handle;
 				return wrapper;
@@ -48,7 +48,7 @@ public final class RecycleableLinkedBuffer implements AutoCloseable {
 		return buffer;
 	}
 
-	public RecycleableLinkedBuffer get() {
+	public RecyclableLinkedBuffer get() {
 		return recycler.get();
 	}
 

@@ -3,10 +3,7 @@ package io.servicefabric.cluster.gossip;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 
 import io.servicefabric.transport.protocol.Message;
 import org.jmock.Mockery;
@@ -36,7 +33,7 @@ public class GossipProtocolFunctionTest {
 	@Test
 	public void testGossipMessageFilter() {
 		GossipProtocol.GossipMessageFilter filter = new GossipProtocol.GossipMessageFilter();
-		Message message = new Message(GossipQualifiers.QUALIFIER, null);
+		Message message = new Message(new GossipRequest(Collections.<Gossip>emptyList()));
 		TransportEndpoint endpoint = TransportEndpoint.from("local://1");
 		assertTrue(filter.call(new TransportMessage(transportChannel, message, endpoint, "1")));
 		assertFalse(filter.call(new TransportMessage(transportChannel, new Message("com.pt.openapi.hello/"), endpoint, "2")));
@@ -49,10 +46,10 @@ public class GossipProtocolFunctionTest {
 		TransportEndpoint endpoint = TransportEndpoint.from("local://1");
 		List<Gossip> gossips = new ArrayList<>(20);
 		for (int i = 0; i < 20; i++) {
-			Gossip gossip = new Gossip("" + i, "123", null);
+			Gossip gossip = new Gossip("" + i, new Message("123"));
 			gossips.add(gossip);
 		}
-		Message message = new Message(GossipQualifiers.QUALIFIER, new GossipRequest(gossips));
+		Message message = new Message(new GossipRequest(gossips));
 
 		action.call(new TransportMessage(transportChannel, message, endpoint, "1"));
 		assertTrue(gossipQueue.size() == 20);
@@ -60,7 +57,7 @@ public class GossipProtocolFunctionTest {
 
 	@Test
 	public void testGossipDataToGossip() {
-		Gossip gossip = new Gossip("1", "123", "123");
+		Gossip gossip = new Gossip("1", new Message("123"));
 		GossipLocalState info = GossipLocalState.create(gossip, null, 0);
 		GossipProtocol.GossipDataToGossipWithIncrement transform = new GossipProtocol.GossipDataToGossipWithIncrement();
 		Gossip apply = transform.apply(info);
@@ -71,11 +68,11 @@ public class GossipProtocolFunctionTest {
 	@Test
 	public void testGossipSendPredicate() {
 		GossipProtocol.GossipSendPredicate predicate = new GossipProtocol.GossipSendPredicate(remote, 3);
-		GossipLocalState info = GossipLocalState.create(new Gossip("1", null, null), local, 0);
+		GossipLocalState info = GossipLocalState.create(new Gossip("1", new Message(null)), local, 0);
 		assertTrue(predicate.apply(info));
 		info.addMember(remote);
 		assertFalse(predicate.apply(info));
-		GossipLocalState anotherInfo = GossipLocalState.create(new Gossip("2", null, null), local, 0);
+		GossipLocalState anotherInfo = GossipLocalState.create(new Gossip("2", new Message(null)), local, 0);
 		anotherInfo.incrementSend();
 		anotherInfo.incrementSend();
 		anotherInfo.incrementSend();
@@ -86,9 +83,9 @@ public class GossipProtocolFunctionTest {
 	@Test
 	public void testGossipSweepPredicate() {
 		GossipProtocol.GossipSweepPredicate predicate = new GossipProtocol.GossipSweepPredicate(100, 10);
-		GossipLocalState info = GossipLocalState.create(new Gossip("1", null, null), local, 50);
+		GossipLocalState info = GossipLocalState.create(new Gossip("1", new Message(null)), local, 50);
 		assertTrue(predicate.apply(info));
-		assertFalse(predicate.apply(GossipLocalState.create(new Gossip("1", null, null), local, 95)));
-		assertFalse(predicate.apply(GossipLocalState.create(new Gossip("1", null, null), local, 90)));
+		assertFalse(predicate.apply(GossipLocalState.create(new Gossip("1", new Message(null)), local, 95)));
+		assertFalse(predicate.apply(GossipLocalState.create(new Gossip("1", new Message(null)), local, 90)));
 	}
 }

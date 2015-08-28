@@ -1,4 +1,4 @@
-package io.servicefabric.transport.protocol.protostuff;
+package io.servicefabric.transport.protocol;
 
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.MessageToByteEncoder;

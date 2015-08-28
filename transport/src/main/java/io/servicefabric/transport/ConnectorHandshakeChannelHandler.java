@@ -71,7 +71,7 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
 
 		transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_IN_PROGRESS);
 
-		ChannelFuture channelFuture = ctx.writeAndFlush(new Message(TransportData.Q_TRANSPORT_HANDSHAKE_SYNC, handshake));
+		ChannelFuture channelFuture = ctx.writeAndFlush(new Message(handshake, TransportHeaders.QUALIFIER, TransportData.Q_TRANSPORT_HANDSHAKE_SYNC));
 		channelFuture.addListener(wrap(new ChannelFutureListener() {
 			@Override
 			public void operationComplete(ChannelFuture future) {
@@ -108,7 +108,7 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) {
 		Message message = (Message) msg;
-		if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.qualifier()))
+		if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.header(TransportHeaders.QUALIFIER)))
 			throw new TransportBrokenException("Received unsupported " + msg + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC_ACK)");
 
 		TransportData handshake = (TransportData) message.data();

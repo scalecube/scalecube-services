@@ -21,7 +21,7 @@ import com.google.common.base.Preconditions;
  *
  * @see io.netty.util.HashedWheelTimer
  */
-class TickingTimer {
+final class TickingTimer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(TickingTimer.class);
 

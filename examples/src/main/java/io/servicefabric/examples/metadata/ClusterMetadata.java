@@ -1,4 +1,4 @@
-package io.servicefabric.cluster.metadata;
+package io.servicefabric.examples.metadata;
 
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ClusterConfiguration;
@@ -24,6 +24,8 @@ import rx.functions.Func1;
  */
 public class ClusterMetadata {
 
+	private final static String MESSAGE_DATA = "hello/Joe";
+
 	public static void main(String[] args) {
 		
 		ICluster seedCluster = Cluster.newInstance(3000).join();
@@ -41,10 +43,10 @@ public class ClusterMetadata {
 		ICluster joeCluster = Cluster.newInstance(config).join();
 		
 		// filter and subscribe on hello/joe and print the welcome message. 
-		joeCluster.transport().listen().filter(new Func1<TransportMessage, Boolean>() {
+		joeCluster.listen().filter(new Func1<TransportMessage, Boolean>() {
 			@Override
 			public Boolean call(TransportMessage t1) {	
-				return t1.message().qualifier().equals("hello/Joe");
+				return MESSAGE_DATA.equals(t1.message().data());
 			}	
 		}).subscribe(new Action1<TransportMessage>() {
 			@Override
@@ -54,11 +56,11 @@ public class ClusterMetadata {
 		});
 		
 		// get the list of members in the cluster and locate Joe tell Hello/Joe
-		List<ClusterMember> members = seedCluster.members();
+		List<ClusterMember> members = seedCluster.membership().members();
 		for(ClusterMember m: members){
 			if(m.metadata().containsKey("alias")){
 				if( m.metadata().get("alias").equals("Joe")){
-					seedCluster.transport().to(m.endpoint().endpoint()).send(new Message("hello/Joe"));
+					seedCluster.to(m).send(new Message(MESSAGE_DATA));
 				}
 			}
 		}

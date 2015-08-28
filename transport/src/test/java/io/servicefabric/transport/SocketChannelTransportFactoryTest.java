@@ -5,10 +5,11 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.servicefabric.transport.protocol.*;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffFrameHandlerFactory;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageDeserializer;
-import io.servicefabric.transport.protocol.protostuff.ProtostuffMessageSerializer;
+import io.servicefabric.transport.protocol.ProtostuffFrameHandlerFactory;
+import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
+import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -213,6 +214,8 @@ public class SocketChannelTransportFactoryTest {
 		}
 	}
 
+	// FIXME: Ignored unstable test which is a known issue (https://github.com/servicefabric/servicefabric/issues/10) and should be fixed separately
+	@Ignore
 	@Test
 	public void testInteractWithNoConnectionFast() throws Exception {
 		client = TF(clientEndpoint());
@@ -251,7 +254,7 @@ public class SocketChannelTransportFactoryTest {
 			public void call(TransportMessage transportMessage) {
 				TransportEndpoint endpoint = transportMessage.originEndpoint();
 				assertEquals("Expected clientEndpoint", clientEndpoint, endpoint);
-				send(server, endpoint, new Message("hi client"));
+				send(server, endpoint, new Message(null, TransportHeaders.QUALIFIER, "hi client"));
 			}
 		});
 
@@ -264,12 +267,12 @@ public class SocketChannelTransportFactoryTest {
 			}
 		});
 
-		send(client, serverEndpoint, new Message("hello server"));
+		send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "hello server"));
 
 		TransportMessage transportMessage = transportMessageFuture.get(3, TimeUnit.SECONDS);
 		Message result = transportMessage.message();
 		assertNotNull("No response from serverEndpoint", result);
-		assertEquals("hi client", result.qualifier());
+		assertEquals("hi client", result.header(TransportHeaders.QUALIFIER));
 	}
 
 	@Test
@@ -300,7 +303,7 @@ public class SocketChannelTransportFactoryTest {
 
 			for (int j = 0; j < total; j++) {
 				SettableFuture<Void> send = SettableFuture.create();
-				transport1.send(new Message("q" + j), send);
+				transport1.send(new Message(null, TransportHeaders.QUALIFIER, "q" + j), send);
 				try {
 					send.get(3, TimeUnit.SECONDS);
 				} catch (Exception e) {
@@ -419,7 +422,7 @@ public class SocketChannelTransportFactoryTest {
 		ArrayList<Message> messages = new ArrayList<>(received);
 		assertEquals(total, messages.size());
 		for (int k = 0; k < total; k++) {
-			assertEquals("q" + k, messages.get(k).qualifier());
+			assertEquals("q" + k, messages.get(k).header(TransportHeaders.QUALIFIER));
 		}
 	}
 
@@ -429,7 +432,7 @@ public class SocketChannelTransportFactoryTest {
 				for (int j = 0; j < total; j++) {
 					String correlationId = id + "/" + j;
 					SettableFuture<Void> send = SettableFuture.create();
-					client.to(endpoint).send(new Message("q", null, correlationId), send);
+					client.to(endpoint).send(new Message(null, TransportHeaders.QUALIFIER, "q", TransportHeaders.CORRELATION_ID, correlationId), send);
 					try {
 						send.get(3, TimeUnit.SECONDS);
 					} catch (Exception e) {
@@ -446,11 +449,11 @@ public class SocketChannelTransportFactoryTest {
 		ArrayList<Message> messages = new ArrayList<>(received);
 		ArrayListMultimap<Integer, Message> group = ArrayListMultimap.create();
 		for (Message message : messages) {
-			group.put(Integer.valueOf(message.correlationId().split("/")[0]), message);
+			group.put(Integer.valueOf(message.header(TransportHeaders.CORRELATION_ID).split("/")[0]), message);
 		}
 		assertEquals(total, group.get(id).size());
 		for (int k = 0; k < total; k++) {
-			assertEquals(id + "/" + k, group.get(id).get(k).correlationId());
+			assertEquals(id + "/" + k, group.get(id).get(k).header(TransportHeaders.CORRELATION_ID));
 		}
 	}
 
