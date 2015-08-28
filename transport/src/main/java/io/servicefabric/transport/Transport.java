@@ -6,38 +6,9 @@ import static com.google.common.base.Throwables.propagate;
 import static io.servicefabric.transport.TransportChannel.ATTR_TRANSPORT;
 import static io.servicefabric.transport.TransportChannel.Builder.ACCEPTOR;
 import static io.servicefabric.transport.TransportChannel.Builder.CONNECTOR;
-import static io.servicefabric.transport.TransportChannel.Status.CONNECT_FAILED;
-import static io.servicefabric.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
-import static io.servicefabric.transport.TransportChannel.Status.NEW;
-import static io.servicefabric.transport.TransportData.Q_TRANSPORT_HANDSHAKE_SYNC;
-import static io.servicefabric.transport.TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK;
+import static io.servicefabric.transport.TransportChannel.Status.*;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelException;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.ServerChannel;
-import io.netty.channel.local.LocalAddress;
-import io.netty.channel.local.LocalChannel;
-import io.netty.channel.local.LocalEventLoopGroup;
-import io.netty.channel.local.LocalServerChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.logging.LogLevel;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
-import io.netty.util.concurrent.EventExecutorGroup;
-import io.protostuff.runtime.RuntimeSchema;
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.utils.memoization.Computable;
-import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -63,6 +34,18 @@ import rx.subjects.Subject;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.util.concurrent.EventExecutorGroup;
+import io.servicefabric.transport.utils.memoization.Computable;
+import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
+
 public final class Transport implements ITransportSpi, ITransport {
 	private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
@@ -86,9 +69,6 @@ public final class Transport implements ITransportSpi, ITransport {
 		this.localEndpoint = localEndpoint;
 		ThreadFactory eventLoopThreadFactory = createThreadFactory("servicefabric-transport-io-%s@" + localEndpoint);
 		switch (localEndpoint.getScheme()) {
-		case "local":
-			eventLoop = new LocalEventLoopGroup(1, eventLoopThreadFactory);
-			break;
 		case "tcp":
 			eventLoop = new NioEventLoopGroup(1, eventLoopThreadFactory);
 			break;
@@ -159,11 +139,6 @@ public final class Transport implements ITransportSpi, ITransport {
 		Class<? extends ServerChannel> serverChannelClass;
 		SocketAddress bindAddress;
 		switch (localEndpoint.getScheme()) {
-		case "local":
-			clientChannelClass = LocalChannel.class;
-			serverChannelClass = LocalServerChannel.class;
-			bindAddress = new LocalAddress(localEndpoint.getHostAddress());
-			break;
 		case "tcp":
 			clientChannelClass = NioSocketChannel.class;
 			serverChannelClass = NioServerSocketChannel.class;
@@ -223,9 +198,6 @@ public final class Transport implements ITransportSpi, ITransport {
 
 				final SocketAddress connectAddress;
 				switch (endpoint.getScheme()) {
-				case "local":
-					connectAddress = new LocalAddress(endpoint.getHostAddress());
-					break;
 				case "tcp":
 					connectAddress = new InetSocketAddress(endpoint.getHostAddress(), endpoint.getPort());
 					break;
@@ -387,24 +359,24 @@ public final class Transport implements ITransportSpi, ITransport {
 			final ChannelPromise promise,
 			final TransportChannel transport) {
 		eventLoop.execute(new Runnable() {
-			@Override
-			public void run() {
-				if (regFuture.isSuccess()) {
-					transport.flip(NEW, CONNECT_IN_PROGRESS);
-					channel.connect(remoteAddress, promise);
-					promise.addListener(wrap(new ChannelFutureListener() {
-						@Override
-						public void operationComplete(ChannelFuture future) {
-							if (!future.isSuccess()) {
-								transport.flip(CONNECT_IN_PROGRESS, CONNECT_FAILED, future.cause());
-								transport.close();
-							}
-						}
-					}));
-				} else {
-					channel.unsafe().closeForcibly();
-				}
-			}
-		});
+            @Override
+            public void run() {
+                if (regFuture.isSuccess()) {
+                    transport.flip(NEW, CONNECT_IN_PROGRESS);
+                    channel.connect(remoteAddress, promise);
+                    promise.addListener(wrap(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture future) {
+                            if (!future.isSuccess()) {
+                                transport.flip(CONNECT_IN_PROGRESS, CONNECT_FAILED, future.cause());
+                                transport.close();
+                            }
+                        }
+                    }));
+                } else {
+                    channel.unsafe().closeForcibly();
+                }
+            }
+        });
 	}
 }

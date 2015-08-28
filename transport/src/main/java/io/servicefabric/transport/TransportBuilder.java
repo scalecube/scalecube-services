@@ -1,14 +1,15 @@
 package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import io.netty.channel.EventLoopGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import io.servicefabric.transport.protocol.ProtostuffFrameHandlerFactory;
 import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
 import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Anton Kharenko
@@ -22,9 +23,8 @@ public class TransportBuilder {
 
 	private TransportSettings transportSettings;
 	private boolean useNetworkEmulator = false;
-	private boolean useLocalChannel = false;
 
-	private TransportBuilder(TransportEndpoint localEndpoint, String localEndpointIncarnationId) {
+    private TransportBuilder(TransportEndpoint localEndpoint, String localEndpointIncarnationId) {
 		checkArgument(localEndpoint != null);
 		checkArgument(localEndpointIncarnationId != null);
 		this.localEndpoint = localEndpoint;
@@ -61,11 +61,7 @@ public class TransportBuilder {
 		this.useNetworkEmulator = useNetworkEmulator;
 	}
 
-	public void setUseLocalChannel(boolean useLocalChannel) {
-		this.useLocalChannel = useLocalChannel;
-	}
-
-	public TransportBuilder transportSettings(TransportSettings transportSettings) {
+    public TransportBuilder transportSettings(TransportSettings transportSettings) {
 		this.transportSettings = transportSettings;
 		return this;
 	}
@@ -75,12 +71,7 @@ public class TransportBuilder {
 		return this;
 	}
 
-	public TransportBuilder useLocalChannel() {
-		setUseLocalChannel(true);
-		return this;
-	}
-
-	public ITransport build() {
+    public ITransport build() {
 		// Create transport
 		Transport transport = (eventLoop == null) ? new Transport(localEndpoint) :
 				new Transport(localEndpoint, eventLoop, eventExecutor);
@@ -99,22 +90,18 @@ public class TransportBuilder {
 		}
 
 		// Set pipeline
-		if (useLocalChannel) {
-			transport.setPipelineFactory(new LocalChannelPipelineFactory());
-		} else {
-			SocketChannelPipelineFactory.Builder pipelineFactoryBuilder = SocketChannelPipelineFactory.builder()
-					.set(new ProtostuffFrameHandlerFactory())
-					.set(new ProtostuffMessageSerializer())
-					.set(new ProtostuffMessageDeserializer());
+        SocketChannelPipelineFactory.Builder pipelineFactoryBuilder = SocketChannelPipelineFactory.builder()
+                .set(new ProtostuffFrameHandlerFactory())
+                .set(new ProtostuffMessageSerializer())
+                .set(new ProtostuffMessageDeserializer());
 
-			if (useNetworkEmulator) {
-				pipelineFactoryBuilder.useNetworkEmulator();
-			}
+        if (useNetworkEmulator) {
+            pipelineFactoryBuilder.useNetworkEmulator();
+        }
 
-			transport.setPipelineFactory(pipelineFactoryBuilder.build());
-		}
+        transport.setPipelineFactory(pipelineFactoryBuilder.build());
 
-		// Set metadata
+        // Set metadata
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put(TransportData.META_ORIGIN_ENDPOINT, localEndpoint);
 		metadata.put(TransportData.META_ORIGIN_ENDPOINT_ID, localEndpointIncarnationId);

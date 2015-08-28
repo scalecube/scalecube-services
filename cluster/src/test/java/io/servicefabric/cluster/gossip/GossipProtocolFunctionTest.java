@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.*;
 
-import io.servicefabric.transport.protocol.Message;
 import org.jmock.Mockery;
 import org.junit.Assert;
 import org.junit.Before;
@@ -15,6 +14,7 @@ import io.servicefabric.cluster.ClusterEndpoint;
 import io.servicefabric.transport.ITransportChannel;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportMessage;
+import io.servicefabric.transport.protocol.Message;
 
 public class GossipProtocolFunctionTest {
 
@@ -24,8 +24,8 @@ public class GossipProtocolFunctionTest {
 
 	@Before
 	public void setup() {
-		remote = ClusterEndpoint.from("local://id1@peer/remote");
-		local = ClusterEndpoint.from("local://id2@peer/local");
+		remote = ClusterEndpoint.from("tcp://id1@host:1");
+		local = ClusterEndpoint.from("tcp://id2@host:2");
 		Mockery jmockContext = new Mockery();
 		transportChannel = jmockContext.mock(ITransportChannel.class);
 	}
@@ -34,7 +34,7 @@ public class GossipProtocolFunctionTest {
 	public void testGossipMessageFilter() {
 		GossipProtocol.GossipMessageFilter filter = new GossipProtocol.GossipMessageFilter();
 		Message message = new Message(new GossipRequest(Collections.<Gossip>emptyList()));
-		TransportEndpoint endpoint = TransportEndpoint.from("local://1");
+		TransportEndpoint endpoint = TransportEndpoint.from("tcp://host:123");
 		assertTrue(filter.call(new TransportMessage(transportChannel, message, endpoint, "1")));
 		assertFalse(filter.call(new TransportMessage(transportChannel, new Message("com.pt.openapi.hello/"), endpoint, "2")));
 	}
@@ -43,7 +43,7 @@ public class GossipProtocolFunctionTest {
 	public void testOnGossipAction() {
 		Queue<GossipProtocol.GossipTask> gossipQueue = new LinkedList<>();
 		GossipProtocol.OnGossipRequestAction action = new GossipProtocol.OnGossipRequestAction(gossipQueue);
-		TransportEndpoint endpoint = TransportEndpoint.from("local://1");
+		TransportEndpoint endpoint = TransportEndpoint.from("tcp://host:456");
 		List<Gossip> gossips = new ArrayList<>(20);
 		for (int i = 0; i < 20; i++) {
 			Gossip gossip = new Gossip("" + i, new Message("123"));

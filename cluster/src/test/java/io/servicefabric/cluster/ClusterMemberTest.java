@@ -42,18 +42,18 @@ public class ClusterMemberTest {
 	}
 
 	private ClusterMember r0(ClusterMemberStatus status) {
-		return new ClusterMember(from("local://id0@aaa"), status, new HashMap<String, String>());
+		return new ClusterMember(from("tcp://id0@host:0"), status, new HashMap<String, String>());
 	}
 
 	private ClusterMember r1(ClusterMemberStatus status) {
-		return new ClusterMember(from("local://id0@bbb"), status, new HashMap<String, String>());
+		return new ClusterMember(from("tcp://id1@host:1"), status, new HashMap<String, String>());
 	}
 
 	private ClusterMember r0(ClusterMemberStatus status, long timestamp) {
-		return new ClusterMember(from("local://id0@aaa"), status, new HashMap<String, String>(), timestamp);
+		return new ClusterMember(from("tcp://id0@host:0"), status, new HashMap<String, String>(), timestamp);
 	}
 
 	private ClusterMember r1(ClusterMemberStatus status, long timestamp) {
-		return new ClusterMember(from("local://id0@bbb"), status, new HashMap<String, String>(), timestamp);
+		return new ClusterMember(from("tcp://id1@host:1"), status, new HashMap<String, String>(), timestamp);
 	}
 }

@@ -32,18 +32,6 @@ public class TransportEndpointTest {
 		assertEquals(5810, endpoint2.getPort());
 		assertEquals("hostname", endpoint2.getHostAddress());
 		assertEquals("tcp://hostname:5810", endpoint2.toString());
-
-		TransportEndpoint endpoint3 = from("local://hostname:5810");
-		assertEquals("local", endpoint3.getScheme());
-		assertEquals(-1, endpoint3.getPort());
-		assertEquals("hostname:5810", endpoint3.getHostAddress());
-		assertEquals("local://hostname:5810", endpoint3.toString());
-
-		TransportEndpoint endpoint4 = from("local://hostname/5/8/1/0");
-		assertEquals("local", endpoint4.getScheme());
-		assertEquals(-1, endpoint4.getPort());
-		assertEquals("hostname/5/8/1/0", endpoint4.getHostAddress());
-		assertEquals("local://hostname/5/8/1/0", endpoint4.toString());
 	}
 
 	@Test

@@ -2,13 +2,13 @@ package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Throwables.propagate;
-import io.servicefabric.transport.utils.IpAddressResolver;
 
 import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.List;
 
 import com.google.common.base.Splitter;
+import io.servicefabric.transport.utils.IpAddressResolver;
 
 public final class TransportEndpoint {
 	private String scheme;
@@ -21,7 +21,7 @@ public final class TransportEndpoint {
 	/**
 	 * @param basePort base port
 	 * @param portShift port shift
-	 * @return new local (in terms of tcp) TransportEndpoint object; resolves real ip. 
+	 * @return new local (in terms of tcp) TransportEndpoint object; resolves real ip.
 	 * @throws IllegalArgumentException if {@code basePort} is invalid / or {@code portShift} is invalid
 	 */
 	public static TransportEndpoint localTcp(int basePort, int portShift) throws IllegalArgumentException {
@@ -35,7 +35,7 @@ public final class TransportEndpoint {
 	}
 
 	/**
-	 * @param uri must come in form {@code {tcp|local}://[host:]port}
+	 * @param uri must come in form {@code {tcp}://[host:]port}
 	 * @return TransportEndpoint object
 	 * @throws IllegalArgumentException if scheme is wrong / or port is invalid
 	 */
@@ -58,9 +58,6 @@ public final class TransportEndpoint {
 				String host = uri1.getHost();
 				target.hostAddress = isLocal(host) ? resolveIp() : uri1.getHost();
 			}
-			break;
-		case "local":
-			target.hostAddress = uri1.getAuthority() + uri1.getPath();
 			break;
 		default:
 			throw new IllegalArgumentException(uri);
