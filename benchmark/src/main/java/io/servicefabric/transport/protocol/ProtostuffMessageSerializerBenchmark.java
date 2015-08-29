@@ -45,15 +45,15 @@ public class ProtostuffMessageSerializerBenchmark {
 
 	Message msg;
 	ByteBuf bb_msg_ser;
-	ByteBuf bb_msg_deser;
+	ByteBuf bb_msg;
 
 	Message msg1k;
 	ByteBuf bb_msg1k_ser;
-	ByteBuf bb_msg1k_deser;
+	ByteBuf bb_msg1k;
 
 	Message gossipReq;
 	ByteBuf bb_gossipReq_ser;
-	ByteBuf bb_gossipReq_deser;
+	ByteBuf bb_gossipReq;
 
 	@Setup
 	public void setup() {
@@ -62,11 +62,11 @@ public class ProtostuffMessageSerializerBenchmark {
 
 		msg = new Message(GENERIC_DATA, GENERIC_HEADERS);
 		ser.serialize(msg, bb_msg_ser = Unpooled.buffer());
-		bb_msg_deser = Unpooled.buffer();
+		bb_msg = Unpooled.buffer(GENERIC_DATA.length);
 
 		msg1k = new Message(DATA_1K, GENERIC_HEADERS);
 		ser.serialize(msg1k, bb_msg1k_ser = Unpooled.buffer());
-		bb_msg1k_deser = Unpooled.buffer();
+		bb_msg1k = Unpooled.buffer(DATA_1K.length);
 
 		List<Gossip> list = new ArrayList<>();
 		for (int i = 0; i < 42; i++) {
@@ -74,12 +74,12 @@ public class ProtostuffMessageSerializerBenchmark {
 		}
 		gossipReq = new Message(new GossipRequest(list));
 		ser.serialize(gossipReq, bb_gossipReq_ser = Unpooled.buffer());
-		bb_gossipReq_deser = Unpooled.buffer();
+		bb_gossipReq = Unpooled.buffer(1024);
 	}
 
 	@Benchmark
 	public void ser() {
-		ser.serialize(msg, bb_msg_deser.resetWriterIndex());
+		ser.serialize(msg, bb_msg.resetWriterIndex());
 	}
 
 	@Benchmark
@@ -89,7 +89,7 @@ public class ProtostuffMessageSerializerBenchmark {
 
 	@Benchmark
 	public void ser1k() {
-		ser.serialize(msg1k, bb_msg1k_deser.resetWriterIndex());
+		ser.serialize(msg1k, bb_msg1k.resetWriterIndex());
 	}
 
 	@Benchmark
@@ -99,7 +99,7 @@ public class ProtostuffMessageSerializerBenchmark {
 
 	@Benchmark
 	public void serGossipReq() {
-		ser.serialize(msg, bb_gossipReq_deser.resetWriterIndex());
+		ser.serialize(msg, bb_gossipReq.resetWriterIndex());
 	}
 
 	@Benchmark
