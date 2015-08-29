@@ -217,4 +217,5 @@ public final class Cluster implements ICluster {
 		boolean stateUpdated = state.compareAndSet(expected, update);
 		checkState(stateUpdated, "Illegal state transition from %s to %s cluster state. Expected state %s.", state.get(), update, expected);
 	}
+
 }

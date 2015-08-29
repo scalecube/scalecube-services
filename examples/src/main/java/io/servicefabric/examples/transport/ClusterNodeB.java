@@ -29,9 +29,9 @@ public class ClusterNodeB {
 
 		// Send greeting message to other cluster members
 		List<ClusterMember> members = clusterB.membership().members();
-		ClusterMember localMember = clusterB.membership().localMember();
+
 		for (ClusterMember member : members) {
-			if (!localMember.endpoint().equals(member.endpoint())) {
+			if (!clusterB.membership().isLocalMember(member)) {
 				SettableFuture<Void> promise = SettableFuture.create();
 				clusterB.to(member).send(new Message(new Greetings("Greetings from ClusterMember B")), promise);
 			}
