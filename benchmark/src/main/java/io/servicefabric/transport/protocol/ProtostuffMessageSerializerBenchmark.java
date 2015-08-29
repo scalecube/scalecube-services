@@ -69,7 +69,7 @@ public class ProtostuffMessageSerializerBenchmark {
 		bb_msg1k = Unpooled.buffer(DATA_1K.length);
 
 		List<Gossip> list = new ArrayList<>();
-		for (int i = 0; i < 42; i++) {
+		for (int i = 0; i < 5; i++) {
 			list.add(new Gossip("ABCDEFGH_" + i, msg));
 		}
 		gossipReq = new Message(new GossipRequest(list));
