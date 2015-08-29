@@ -1,11 +1,11 @@
 package io.servicefabric.cluster.gossip;
 
-import io.protostuff.Tag;
-import io.servicefabric.transport.protocol.Message;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Objects;
 
-import static com.google.common.base.Preconditions.*;
+import io.protostuff.Tag;
+import io.servicefabric.transport.protocol.Message;
 
 /**
  * Data model for gossip, include gossip id, qualifier and object need to disseminate

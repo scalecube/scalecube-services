@@ -1,32 +1,30 @@
 package io.servicefabric.transport.protocol;
 
+import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
+import static io.servicefabric.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
+
+import java.io.IOException;
+import java.util.*;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Optional;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+
 import io.protostuff.Input;
 import io.protostuff.Output;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 import io.servicefabric.transport.utils.RecyclableLinkedBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-
-import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
-import static io.servicefabric.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
+import io.servicefabric.transport.utils.memoization.Computable;
+import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
 
 /**
  * @author Anton Kharenko
  */
 final class MessageSchema  implements Schema<Message> {
-
 	private static final Logger LOGGER = LoggerFactory.getLogger(MessageSchema.class);
 
 	private static final int HEADER_KEYS_FIELD_NUMBER = 1;
@@ -43,11 +41,10 @@ final class MessageSchema  implements Schema<Message> {
 			"dataPayload", DATA_PAYLOAD_FIELD_NUMBER,
 			"dataType", DATA_TYPE_FIELD_NUMBER);
 
-	private final LoadingCache<String, Optional<Class>> classCache = CacheBuilder.newBuilder()
-			.expireAfterAccess(1, TimeUnit.HOURS)
-			.build(new CacheLoader<String, Optional<Class>>() {
+	private final ConcurrentMapMemoizer<String, Optional<Class>> classCache = new ConcurrentMapMemoizer<>(
+			new Computable<String, Optional<Class>>() {
 				@Override
-				public Optional<Class> load(@Nonnull String className) throws Exception {
+				public Optional<Class> compute(String className) {
 					try {
 						Class dataClass = Class.forName(className);
 						return Optional.of(dataClass);
@@ -107,8 +104,8 @@ final class MessageSchema  implements Schema<Message> {
 	public void mergeFrom(Input input, Message message) throws IOException {
 		// Read input data
 		boolean iterate = true;
-		LinkedList<String> headerKeys = new LinkedList<>();
-		LinkedList<String> headerValues = new LinkedList<>();
+		List<String> headerKeys = new ArrayList<>();
+		List<String> headerValues = new ArrayList<>();
 		byte[] dataPayload = null;
 		String dataType = null;
 		while (iterate) {
@@ -118,10 +115,10 @@ final class MessageSchema  implements Schema<Message> {
 				iterate = false;
 				break;
 			case HEADER_KEYS_FIELD_NUMBER:
-				headerKeys.addLast(input.readString());
+				headerKeys.add(input.readString());
 				break;
 			case HEADER_VALUES_FIELD_NUMBER:
-				headerValues.addLast(input.readString());
+				headerValues.add(input.readString());
 				break;
 			case DATA_PAYLOAD_FIELD_NUMBER:
 				dataPayload = input.readByteArray();
@@ -135,20 +132,22 @@ final class MessageSchema  implements Schema<Message> {
 		}
 
 		// Deserialize headers
-		Map<String, String> headers = new HashMap<>(headerKeys.size());
-		ListIterator<String> headerValuesIterator = headerValues.listIterator();
-		for (String key : headerKeys) {
-			String value = headerValuesIterator.next();
-			headers.put(key, value);
-		}
-		message.setHeaders(headers);
+        if (!headerKeys.isEmpty()) {
+            Map<String, String> headers = new HashMap<>(headerKeys.size());
+            ListIterator<String> headerValuesIterator = headerValues.listIterator();
+            for (String key : headerKeys) {
+                String value = headerValuesIterator.next();
+                headers.put(key, value);
+            }
+            message.setHeaders(headers);
+        }
 
-		// Deserialize data
+        // Deserialize data
 		if (dataPayload != null) {
 			if (dataType == null) {
 				message.setData(dataPayload);
 			} else {
-				Optional<Class> optionalDataClass = classCache.getUnchecked(dataType);
+				Optional<Class> optionalDataClass = classCache.get(dataType);
 				if (optionalDataClass.isPresent()) {
 					Class<?> dataClass = optionalDataClass.get();
 					Schema dataSchema = RuntimeSchema.getSchema(dataClass);
@@ -170,7 +169,7 @@ final class MessageSchema  implements Schema<Message> {
 	@Override
 	public void writeTo(Output output, Message message) throws IOException {
 		// Write headers
-		if (message.headers() != null) {
+		if (!message.headers().isEmpty()) {
 			for (Map.Entry<String, String> headerEntry : message.headers().entrySet()) {
 				output.writeString(HEADER_KEYS_FIELD_NUMBER, headerEntry.getKey(), true);
 				output.writeString(HEADER_VALUES_FIELD_NUMBER, headerEntry.getValue(), true);
