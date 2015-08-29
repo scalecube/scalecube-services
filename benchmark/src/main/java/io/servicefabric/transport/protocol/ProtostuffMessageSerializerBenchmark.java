@@ -25,9 +25,14 @@ import io.servicefabric.transport.TransportHeaders;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class ProtostuffMessageSerializerBenchmark {
 
-	static final byte[] GENERIC_DATA = new byte[256];
+	static final byte[] GENERIC_DATA = new byte[128];
 	static {
 		ThreadLocalRandom.current().nextBytes(GENERIC_DATA);
+	}
+
+	static final byte[] SMALL_DATA = new byte[64];
+	static {
+		ThreadLocalRandom.current().nextBytes(SMALL_DATA);
 	}
 
 	static final byte[] DATA_1K = new byte[1024];
@@ -55,6 +60,10 @@ public class ProtostuffMessageSerializerBenchmark {
 	ByteBuf bb_gossipReq_ser;
 	ByteBuf bb_gossipReq;
 
+	Message gossipReqSmallData;
+	ByteBuf bb_gossipReqSmallData_ser;
+	ByteBuf bb_gossipReqSmallData;
+
 	@Setup
 	public void setup() {
 		ser = new ProtostuffMessageSerializer();
@@ -68,13 +77,21 @@ public class ProtostuffMessageSerializerBenchmark {
 		ser.serialize(msg1k, bb_msg1k_ser = Unpooled.buffer());
 		bb_msg1k = Unpooled.buffer(DATA_1K.length);
 
-		List<Gossip> list = new ArrayList<>();
-		for (int i = 0; i < 5; i++) {
-			list.add(new Gossip("ABCDEFGH_" + i, msg));
+		List<Gossip> list10 = new ArrayList<>();
+		for (int i = 0; i < 10; i++) {
+			list10.add(new Gossip("ABCDEFGH_" + i, new Message(GENERIC_DATA, GENERIC_HEADERS)));
 		}
-		gossipReq = new Message(new GossipRequest(list));
+		gossipReq = new Message(new GossipRequest(list10));
 		ser.serialize(gossipReq, bb_gossipReq_ser = Unpooled.buffer());
 		bb_gossipReq = Unpooled.buffer(1024);
+
+		List<Gossip> list100 = new ArrayList<>();
+		for (int i = 0; i < 100; i++) {
+			list100.add(new Gossip("ABCDEFGH_" + i, new Message(SMALL_DATA, GENERIC_HEADERS)));
+		}
+		gossipReqSmallData = new Message(new GossipRequest(list100));
+		ser.serialize(gossipReqSmallData, bb_gossipReqSmallData_ser = Unpooled.buffer());
+		bb_gossipReqSmallData = Unpooled.buffer(1024);
 	}
 
 	@Benchmark
@@ -99,11 +116,21 @@ public class ProtostuffMessageSerializerBenchmark {
 
 	@Benchmark
 	public void serGossipReq() {
-		ser.serialize(msg, bb_gossipReq.resetWriterIndex());
+		ser.serialize(gossipReq, bb_gossipReq.resetWriterIndex());
 	}
 
 	@Benchmark
 	public void deserGossipReq() {
 		deser.deserialize(bb_gossipReq_ser.resetReaderIndex());
+	}
+
+	@Benchmark
+	public void serGossipReqSmallData() {
+		ser.serialize(gossipReqSmallData, bb_gossipReqSmallData.resetWriterIndex());
+	}
+
+	@Benchmark
+	public void deserGossipReqSmallData() {
+		deser.deserialize(bb_gossipReqSmallData_ser.resetReaderIndex());
 	}
 }
