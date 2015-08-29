@@ -16,6 +16,12 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>servicefabric-cluster</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Other dependencies -->
+        <dependency>
             <groupId>org.openjdk.jmh</groupId>
             <artifactId>jmh-core</artifactId>
             <version>${jmh.version}</version>
