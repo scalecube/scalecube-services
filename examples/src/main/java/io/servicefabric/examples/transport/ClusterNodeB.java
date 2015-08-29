@@ -31,7 +31,7 @@ public class ClusterNodeB {
 		List<ClusterMember> members = clusterB.membership().members();
 
 		for (ClusterMember member : members) {
-			if (!clusterB.isLocalMember(member)) {
+			if (!clusterB.membership().isLocalMember(member)) {
 				SettableFuture<Void> promise = SettableFuture.create();
 				clusterB.to(member).send(new Message(new Greetings("Greetings from ClusterMember B")), promise);
 			}

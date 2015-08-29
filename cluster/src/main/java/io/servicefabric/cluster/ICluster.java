@@ -23,6 +23,4 @@ public interface ICluster {
 
 	ListenableFuture<Void> leave();
 
-	boolean isLocalMember(ClusterMember member);
-
 }

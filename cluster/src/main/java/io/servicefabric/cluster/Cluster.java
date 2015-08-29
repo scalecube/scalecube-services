@@ -218,14 +218,4 @@ public final class Cluster implements ICluster {
 		checkState(stateUpdated, "Illegal state transition from %s to %s cluster state. Expected state %s.", state.get(), update, expected);
 	}
 
-	/**
-	 * check if a given member is a local member return true in case the ClusterMember is local to the cluster instance
-	 * @param ClusterMember
-	 * @return true if this cluster memeber is a local cluster memeber
-	 * @author ronen hamias
-	 */
-	@Override
-	public boolean isLocalMember(ClusterMember member) {
-		return membership().localMember().endpoint().equals(member.endpoint());
-	}
 }

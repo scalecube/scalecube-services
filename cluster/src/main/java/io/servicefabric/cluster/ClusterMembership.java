@@ -418,6 +418,11 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
 		gossipProtocol.spread(new Message(new ClusterMembershipData(ImmutableList.of(r1), syncGroup)));
 	}
 
+	@Override
+	public boolean isLocalMember(ClusterMember member) {
+		return this.localMember().endpoint().equals(member.endpoint());
+	}
+	
 	private TransportHeaders.Filter syncFilter() {
 		return SYNC_FILTER;
 	}
