@@ -1,17 +1,13 @@
 package io.servicefabric.transport;
 
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.utils.ChannelFutureUtils;
-
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.netty.channel.*;
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.utils.ChannelFutureUtils;
 
 /**
  * Inbound handler.
@@ -51,9 +47,7 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
 			public void operationComplete(ChannelFuture future) {
 				if (!resolvedData.isResolvedOk()) {
 					LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", resolvedData, transport);
-					transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_FAILED,
-							new TransportHandshakeException(transport, resolvedData));
-					transport.close();
+					transport.close(new TransportHandshakeException(transport, resolvedData));
 				}
 			}
 		}));
