@@ -1,28 +1,33 @@
 package io.servicefabric.transport;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import io.servicefabric.transport.protocol.*;
-import io.servicefabric.transport.protocol.ProtostuffFrameHandlerFactory;
-import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
-import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
-import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import rx.functions.Action1;
+import static com.google.common.base.Throwables.propagate;
+import static io.servicefabric.transport.TransportData.META_ORIGIN_ENDPOINT;
+import static io.servicefabric.transport.TransportData.META_ORIGIN_ENDPOINT_ID;
+import static io.servicefabric.transport.TransportEndpoint.from;
+import static org.junit.Assert.*;
 
 import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static com.google.common.base.Throwables.propagate;
-import static io.servicefabric.transport.TransportEndpoint.from;
-import static io.servicefabric.transport.TransportData.*;
-import static org.junit.Assert.*;
+import org.junit.After;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import rx.Subscriber;
+import rx.functions.Action1;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.protocol.ProtostuffFrameHandlerFactory;
+import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
+import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
 
 @SuppressWarnings("unchecked")
 public class SocketChannelTransportFactoryTest {
@@ -405,6 +410,218 @@ public class SocketChannelTransportFactoryTest {
 		int size = serverMessageList.size();
 		assertTrue("expectedMax=" + expectedMax + ", actual size=" + size, size < expectedMax);
 	}
+
+    @Test
+    public void testPingPongOnSingleChannel() throws Exception {
+        TransportEndpoint clientEndpoint = clientEndpoint();
+        TransportEndpoint serverEndpoint = serverEndpoint();
+
+        server = TF(serverEndpoint);
+        client = TF(clientEndpoint);
+
+        server.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+            @Override
+            public void call(List<TransportMessage> messages) {
+                for (TransportMessage message : messages) {
+                    Message echo = new Message("echo/" + message.message().header(TransportHeaders.QUALIFIER));
+                    message.originChannel().send(echo, null);
+                }
+            }
+        });
+
+        final SettableFuture<List<TransportMessage>> targetFuture = SettableFuture.create();
+        client.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+            @Override
+            public void call(List<TransportMessage> messages) {
+                targetFuture.set(messages);
+            }
+        });
+
+        ITransportChannel transport = client.to(serverEndpoint);
+        transport.send(new Message("q1"), null);
+        transport.send(new Message("q2"), null);
+
+        List<TransportMessage> target = targetFuture.get(1, TimeUnit.SECONDS);
+        assertNotNull(target);
+        assertEquals(2, target.size());
+    }
+
+    @Test
+    public void testPingPongOnSeparateChannel() throws Exception {
+        TransportEndpoint clientEndpoint = clientEndpoint();
+        TransportEndpoint serverEndpoint = serverEndpoint();
+
+        server = TF(serverEndpoint);
+        client = TF(clientEndpoint);
+
+
+        server.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+            @Override
+            public void call(List<TransportMessage> messages) {
+                for (TransportMessage message : messages) {
+                    Message echo = new Message("echo/" + message.message().header(TransportHeaders.QUALIFIER));
+                    server.to(message.originEndpoint()).send(echo, null);
+                }
+            }
+        });
+
+        final SettableFuture<List<TransportMessage>> targetFuture = SettableFuture.create();
+        client.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+            @Override
+            public void call(List<TransportMessage> messages) {
+                targetFuture.set(messages);
+            }
+        });
+
+        ITransportChannel transport = client.to(serverEndpoint);
+        transport.send(new Message("q1"), null);
+        transport.send(new Message("q2"), null);
+
+        List<TransportMessage> target = targetFuture.get(1, TimeUnit.SECONDS);
+        assertNotNull(target);
+        assertEquals(2, target.size());
+    }
+
+    @Test
+    public void testCompleteObserver() throws Exception {
+        TransportEndpoint clientEndpoint = clientEndpoint();
+        TransportEndpoint serverEndpoint = serverEndpoint();
+
+        server = TF(serverEndpoint);
+        client = TF(clientEndpoint);
+
+        final ITransportChannel transport = client.to(serverEndpoint);
+        final SettableFuture<Boolean> completeLatch = SettableFuture.create();
+        final SettableFuture<Message> messageLatch = SettableFuture.create();
+
+        server.listen().subscribe(new Subscriber<TransportMessage>() {
+            @Override
+            public void onCompleted() {
+                completeLatch.set(true);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+            }
+
+            @Override
+            public void onNext(TransportMessage transportMessage) {
+                messageLatch.set(transportMessage.message());
+            }
+        });
+
+        SettableFuture<Void> send = SettableFuture.create();
+        transport.send(new Message("q"), send);
+        send.get(1, TimeUnit.SECONDS);
+
+        assertNotNull(messageLatch.get(1, TimeUnit.SECONDS));
+
+        SettableFuture<Void> close = SettableFuture.create();
+        server.stop(close);
+        close.get();
+
+        assertTrue(completeLatch.get(1, TimeUnit.SECONDS));
+    }
+
+    @Test
+    public void testObserverThrowsException() throws Exception {
+        TransportEndpoint clientEndpoint = clientEndpoint();
+        TransportEndpoint serverEndpoint = serverEndpoint();
+
+        server = TF(serverEndpoint);
+        client = TF(clientEndpoint);
+
+        final ITransportChannel transport = client.to(serverEndpoint);
+
+        server.listen().subscribe(new Action1<TransportMessage>() {
+            @Override
+            public void call(TransportMessage transportMessage) {
+                String qualifier = transportMessage.message().header(TransportHeaders.QUALIFIER);
+                if (qualifier.startsWith("throw")) {
+                    throw new RuntimeException("" + transportMessage);
+                }
+                if (qualifier.startsWith("q")) {
+                    Message echo = new Message("echo/" + transportMessage.message().header(TransportHeaders.QUALIFIER));
+                    transportMessage.originChannel().send(echo, null);
+                }
+            }
+        }, new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                throwable.printStackTrace();
+            }
+        });
+
+        // send "throw" and raise exception on server subscriber
+        final SettableFuture<TransportMessage> transportMessageFuture0 = SettableFuture.create();
+        client.listen().subscribe(new Action1<TransportMessage>() {
+            @Override
+            public void call(TransportMessage transportMessage) {
+                transportMessageFuture0.set(transportMessage);
+            }
+        });
+        transport.send(new Message("throw"), null);
+        TransportMessage transportMessage0 = null;
+        try {
+            transportMessage0 = transportMessageFuture0.get(1, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            // ignore since expected behavior
+        }
+        assertNull(transportMessage0);
+
+        // send normal message and check whether server subscriber is broken (no response)
+        final SettableFuture<TransportMessage> transportMessageFuture1 = SettableFuture.create();
+        client.listen().subscribe(new Action1<TransportMessage>() {
+            @Override
+            public void call(TransportMessage transportMessage) {
+                transportMessageFuture1.set(transportMessage);
+            }
+        });
+        transport.send(new Message("q"), null);
+        TransportMessage transportMessage1 = null;
+        try {
+            transportMessage1 = transportMessageFuture1.get(1, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            // ignore since expected behavior
+        }
+        assertNull(transportMessage1);
+    }
+
+    @Test
+    public void testBlockAndUnblockTraffic() throws Exception {
+        TransportEndpoint clientEndpoint = clientEndpoint();
+        TransportEndpoint serverEndpoint = serverEndpoint();
+
+        client = TF(clientEndpoint);
+        server = TF(serverEndpoint);
+
+        server.listen().subscribe(new Action1<TransportMessage>() {
+            @Override
+            public void call(TransportMessage transportMessage) {
+                transportMessage.originChannel().send(transportMessage.message(), null);
+            }
+        });
+
+        final List<Message> resp = new ArrayList<>();
+        client.listen().subscribe(new Action1<TransportMessage>() {
+            @Override
+            public void call(TransportMessage transportMessage) {
+                resp.add(transportMessage.message());
+            }
+        });
+
+        // test at unblocked transport
+        send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "q/unblocked"));
+
+        // then block client->server messages
+        pause(1000);
+        client.<SocketChannelPipelineFactory> getPipelineFactory().blockMessagesTo(serverEndpoint);
+        send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "q/blocked"));
+
+        pause(1000);
+        assertEquals(1, resp.size());
+        assertEquals("q/unblocked", resp.get(0).header(TransportHeaders.QUALIFIER));
+    }
 
 	private TransportEndpoint serverEndpoint() {
 		return from("tcp://localhost:49255");

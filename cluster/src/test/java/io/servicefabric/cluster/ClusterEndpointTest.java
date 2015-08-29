@@ -5,10 +5,10 @@ import static org.junit.Assert.assertEquals;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
-import io.servicefabric.transport.utils.IpAddressResolver;
 import org.junit.Test;
 
 import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.utils.IpAddressResolver;
 
 public class ClusterEndpointTest {
 
@@ -24,10 +24,10 @@ public class ClusterEndpointTest {
 		assertEquals(TransportEndpoint.from("tcp://hostname:5810"), ce1.endpoint());
 		assertEquals("tcp://0A1B2C3@hostname:5810", ce1.toString());
 
-		ClusterEndpoint ce2 = ClusterEndpoint.from("local://0A1B2C3@yada/y/a/d/a");
+		ClusterEndpoint ce2 = ClusterEndpoint.from("tcp://0A1B2C3@host:1");
 		assertEquals("0A1B2C3", ce2.endpointId());
-		assertEquals(TransportEndpoint.from("local://yada/y/a/d/a"), ce2.endpoint());
-		assertEquals("local://0A1B2C3@yada/y/a/d/a", ce2.toString());
+		assertEquals(TransportEndpoint.from("tcp://0A1B2C3@host:1"), ce2.endpoint());
+		assertEquals("tcp://0A1B2C3@host:1", ce2.toString());
 
 		ClusterEndpoint ce3 = ClusterEndpoint.from("tcp://0A1B2C3@10.10.10.10:5810");
 		assertEquals("0A1B2C3", ce3.endpointId());

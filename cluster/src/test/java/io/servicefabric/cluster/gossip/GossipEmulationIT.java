@@ -8,8 +8,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import io.servicefabric.transport.*;
-import io.servicefabric.transport.protocol.Message;
 import org.junit.*;
 
 import rx.functions.Action1;
@@ -18,17 +16,22 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
-import io.servicefabric.cluster.ClusterEndpoint;
 
-import io.netty.channel.local.LocalEventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.NetworkEmulatorSettings;
+import io.servicefabric.transport.Transport;
+import io.servicefabric.transport.TransportBuilder;
+import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.protocol.Message;
 
 public class GossipEmulationIT {
 	private ScheduledExecutorService[] executors = new ScheduledExecutorService[16];
 
 	private int counter = 0;
 	private List<GossipProtocol> protocols;
-	private LocalEventLoopGroup eventLoop;
+	private NioEventLoopGroup eventLoop;
 	private DefaultEventExecutorGroup eventExecutor;
 
 	private int lambda = 50; // milliseconds lambda to get valid time on slow computer
@@ -45,7 +48,6 @@ public class GossipEmulationIT {
 		gossipProtocol.setClusterMembers(members);
 
 		Transport transport = (Transport) TransportBuilder.newInstance(endpoint, UUID.randomUUID().toString(), eventLoop, eventExecutor)
-				.useLocalChannel()
 				.useNetworkEmulator()
 				.build();
 		gossipProtocol.setTransport(transport);
@@ -59,7 +61,7 @@ public class GossipEmulationIT {
 	private static List<ClusterEndpoint> initMembers(int num) {
 		List<ClusterEndpoint> result = new ArrayList<>(num);
 		for (int i = 0; i < num; i++) {
-			result.add(ClusterEndpoint.from("local://" + i + "@endpoint/" + i));
+			result.add(ClusterEndpoint.from("tcp://" + i + "@localhost:" + (i + 20000)));
 		}
 		return result;
 	}
@@ -69,7 +71,7 @@ public class GossipEmulationIT {
 		for (int i = 0; i < executors.length; i++) {
 			executors[i] = Executors.newSingleThreadScheduledExecutor();
 		}
-		eventLoop = new LocalEventLoopGroup(4);
+		eventLoop = new NioEventLoopGroup(4);
 		eventExecutor = new DefaultEventExecutorGroup(4);
 	}
 
