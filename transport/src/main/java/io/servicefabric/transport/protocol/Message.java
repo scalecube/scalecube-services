@@ -1,8 +1,7 @@
 package io.servicefabric.transport.protocol;
 
-import com.google.common.base.Preconditions;
+import static com.google.common.base.Preconditions.checkArgument;
 
-import javax.annotation.concurrent.Immutable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,9 +11,7 @@ import java.util.Objects;
  * The Class Message introduces generic protocol used for point to point communication by transport.
  */
 public final class Message {
-
 	private Map<String, String> headers = Collections.emptyMap();
-
 	private Object data;
 
 	/**
@@ -49,7 +46,8 @@ public final class Message {
 	 * Instantiates new message with given qualifier and headers. Headers passed a sequence of key-value pairs.
 	 */
 	public Message(Object data, String... headers) {
-		Preconditions.checkArgument(headers.length % 2 == 0, "");
+        checkArgument(headers != null);
+		checkArgument(headers.length % 2 == 0, "");
 		Map<String, String> headersMap = new HashMap<>(headers.length / 2);
 		for (int i = 0; i < headers.length; i += 2) {
 			headersMap.put(headers[i], headers[i + 1]);
@@ -63,10 +61,9 @@ public final class Message {
 	}
 
 	void setHeaders(Map<String, String> headers) {
-		if (headers != null) {
-			this.headers = Collections.unmodifiableMap(headers);
-		}
-	}
+        checkArgument(headers != null);
+        this.headers = Collections.unmodifiableMap(headers);
+    }
 
 	/**
 	 * Returns the message headers.

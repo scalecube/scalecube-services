@@ -178,6 +178,7 @@
                     <source>1.7</source>
                     <target>1.7</target>
                     <compilerArgs>
+                        <arg>-proc:none</arg>
                         <arg>-Xlint:unchecked</arg>
                     </compilerArgs>
                 </configuration>
