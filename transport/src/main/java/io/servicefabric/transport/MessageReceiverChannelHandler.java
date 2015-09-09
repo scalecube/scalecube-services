@@ -24,7 +24,9 @@ final class MessageReceiverChannelHandler extends ChannelInboundHandlerAdapter {
     this.transportSpi = transportSpi;
   }
 
-  /** Publish {@code msg} on the TransportFactory subject. */
+  /**
+   * Publish {@code msg} on the TransportFactory subject.
+   */
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) {
     TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());

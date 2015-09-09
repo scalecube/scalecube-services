@@ -17,8 +17,9 @@ public final class ProtostuffMessageSerializer implements MessageSerializer {
   // TODO [Anton Kharenko]: Move to more appropriate place
   static {
     // Register message schema
-    if (!RuntimeSchema.isRegistered(Message.class))
+    if (!RuntimeSchema.isRegistered(Message.class)) {
       RuntimeSchema.register(Message.class, new MessageSchema());
+    }
   }
 
   @Override

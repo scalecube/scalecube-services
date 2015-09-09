@@ -41,10 +41,6 @@ public class ConcurrentMapMemoizer<A, V> {
     return get(arg, defaultComputable);
   }
 
-  public boolean isEmpty() {
-    return cache.isEmpty();
-  }
-
   public V get(final A arg, final Computable<A, V> computable) throws MemoizerExecutionException {
     checkArgument(computable != null, "the computable can't be null");
     while (true) {
@@ -73,12 +69,17 @@ public class ConcurrentMapMemoizer<A, V> {
     }
   }
 
+  public boolean isEmpty() {
+    return cache.isEmpty();
+  }
+
   public V getIfExists(final A arg) {
     Future<V> future = cache.get(arg);
     if (future != null) {
       try {
         return future.get();
       } catch (InterruptedException | ExecutionException ignore) {
+        //ignore
       }
     }
     return null;
@@ -91,6 +92,7 @@ public class ConcurrentMapMemoizer<A, V> {
       try {
         res = future.get();
       } catch (InterruptedException | ExecutionException ignore) {
+        //ignore
       }
     }
     return res;

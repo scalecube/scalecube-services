@@ -1,6 +1,8 @@
 package io.servicefabric.transport;
 
-/** Thrown to indicate that something happened with application message(in class -- {@code msg}) at the given transport. */
+/**
+ * Thrown to indicate that something happened with application message(in class -- {@code msg}) at the given transport.
+ */
 public class TransportMessageException extends TransportException {
   private static final long serialVersionUID = 1L;
 

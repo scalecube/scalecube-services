@@ -2,8 +2,8 @@ package io.servicefabric.cluster.fdetector;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static io.servicefabric.cluster.fdetector.FailureDetectorEvent.SUSPECTED;
-import static io.servicefabric.cluster.fdetector.FailureDetectorEvent.TRUSTED;
+import static io.servicefabric.cluster.fdetector.FailureDetectorEvent.suspected;
+import static io.servicefabric.cluster.fdetector.FailureDetectorEvent.trusted;
 import static java.lang.Math.min;
 
 import io.servicefabric.cluster.ClusterEndpoint;
@@ -150,14 +150,14 @@ public final class FailureDetector implements IFailureDetector {
     return new ArrayList<>(suspectedMembers);
   }
 
-  /** <b>NOTE:</b> this method is for test purpose only */
+  /** <b>NOTE:</b> this method is for test purpose only. */
   void setPingMember(ClusterEndpoint member) {
     checkNotNull(member);
     checkArgument(member != localEndpoint);
     this.pingMember = member;
   }
 
-  /** <b>NOTE:</b> this method is for test purpose only */
+  /** <b>NOTE:</b> this method is for test purpose only. */
   void setRandomMembers(List<ClusterEndpoint> randomMembers) {
     checkNotNull(randomMembers);
     this.randomMembers = randomMembers;
@@ -165,7 +165,8 @@ public final class FailureDetector implements IFailureDetector {
 
   @Override
   public void start() {
-    transport.listen().filter(PING_FILTER).filter(targetFilter(localEndpoint)).subscribe(onPingSubscriber);
+    transport.listen().filter(PING_FILTER).filter(targetFilter(localEndpoint)).subscribe(
+        onPingSubscriber);
     transport.listen().filter(PING_REQ_FILTER).subscribe(onPingReqSubscriber);
     transport.listen().filter(ACK_FILTER).filter(new Func1<TransportMessage, Boolean>() {
       @Override
@@ -216,8 +217,9 @@ public final class FailureDetector implements IFailureDetector {
 
   private void doPing(final List<ClusterEndpoint> members) {
     final ClusterEndpoint pingMember = selectPingMember(members);
-    if (pingMember == null)
+    if (pingMember == null) {
       return;
+    }
 
     final String period = "" + periodNbr.incrementAndGet();
     FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
@@ -288,19 +290,23 @@ public final class FailureDetector implements IFailureDetector {
     }
   }
 
-  /** Adds given member to {@link #suspectedMembers} and emitting state {@code SUSPECTED}. */
+  /**
+   *  Adds given member to {@link #suspectedMembers} and emitting state {@code SUSPECTED}.
+   */
   private void declareSuspected(ClusterEndpoint member) {
     if (suspectedMembers.add(member)) {
       LOGGER.debug("Member {} became SUSPECTED", member);
-      subject.onNext(SUSPECTED(member));
+      subject.onNext(suspected(member));
     }
   }
 
-  /** Removes given member from {@link #suspectedMembers} and emitting state {@code TRUSTED}. */
+  /**
+   * Removes given member from {@link #suspectedMembers} and emitting state {@code TRUSTED}.
+   */
   private void declareTrusted(ClusterEndpoint member) {
     if (suspectedMembers.remove(member)) {
       LOGGER.debug("Member {} became TRUSTED", member);
-      subject.onNext(TRUSTED(member));
+      subject.onNext(trusted(member));
     }
   }
 
@@ -309,23 +315,25 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private ClusterEndpoint selectPingMember(List<ClusterEndpoint> members) {
-    if (pingMember != null)
+    if (pingMember != null) {
       return pingMember;
+    }
     return members.isEmpty() ? null : selectRandomMembers(members, 1, null).get(0);
   }
 
-  private List<ClusterEndpoint> selectRandomMembers(List<ClusterEndpoint> members, int k, ClusterEndpoint memberToExclude) {
-    if (randomMembers != null)
+  private List<ClusterEndpoint> selectRandomMembers(List<ClusterEndpoint> members, int count, ClusterEndpoint memberToExclude) {
+    if (randomMembers != null) {
       return randomMembers;
+    }
 
-    checkArgument(k > 0, "FailureDetector: k is required!");
-    k = min(k, 5);
+    checkArgument(count > 0, "FailureDetector: k is required!");
+    count = min(count, 5);
 
     List<ClusterEndpoint> list = new ArrayList<>(members);
     list.remove(memberToExclude);
 
-    List<ClusterEndpoint> target = new ArrayList<>(k);
-    for (; !list.isEmpty() && k != 0; k--) {
+    List<ClusterEndpoint> target = new ArrayList<>(count);
+    for (; !list.isEmpty() && count != 0; count--) {
       ClusterEndpoint member = list.get(ThreadLocalRandom.current().nextInt(list.size()));
       target.add(member);
       list.remove(member);

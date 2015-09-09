@@ -35,6 +35,7 @@ public final class TransportEndpoint {
   }
 
   /**
+   * Creates new transport endpoint from uri.
    * @param uri must come in form {@code tcp}://[host:]port}
    * @return TransportEndpoint object
    * @throws IllegalArgumentException if scheme is wrong / or port is invalid
@@ -107,20 +108,25 @@ public final class TransportEndpoint {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o)
+  public boolean equals(Object other) {
+    if (this == other) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (other == null || getClass() != other.getClass()) {
       return false;
+    }
 
-    TransportEndpoint endpoint = (TransportEndpoint) o;
+    TransportEndpoint endpoint = (TransportEndpoint) other;
 
-    if (port != endpoint.port)
+    if (port != endpoint.port) {
       return false;
-    if (hostAddress != null ? !hostAddress.equals(endpoint.hostAddress) : endpoint.hostAddress != null)
+    }
+    if (hostAddress != null ? !hostAddress.equals(endpoint.hostAddress) : endpoint.hostAddress != null) {
       return false;
-    if (scheme != null ? !scheme.equals(endpoint.scheme) : endpoint.scheme != null)
+    }
+    if (scheme != null ? !scheme.equals(endpoint.scheme) : endpoint.scheme != null) {
       return false;
+    }
 
     return true;
   }

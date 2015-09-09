@@ -7,9 +7,9 @@ import rx.functions.Func1;
  */
 public final class TransportHeaders {
 
-  public final static String QUALIFIER = "q";
+  public static final String QUALIFIER = "q";
 
-  public final static String CORRELATION_ID = "cid";
+  public static final String CORRELATION_ID = "cid";
 
   private TransportHeaders() {
     // Do not instantiate

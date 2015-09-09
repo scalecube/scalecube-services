@@ -18,13 +18,19 @@ import java.util.Map;
  * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach additional business
  * information and identifications to cluster memebers.
  * 
- * in this example we see how to attach logical alias name to a cluster member we nick name Joe
+ * <p>in this example we see how to attach logical alias name to a cluster member we nick name Joe
  * 
  * @author ronen_h
  */
 public class ClusterMetadata {
 
-  private final static String MESSAGE_DATA = "hello/Joe";
+  private static final  String MESSAGE_DATA = "hello/Joe";
+  public static final Func1<TransportMessage, Boolean> MESSAGE_PREDICATE = new Func1<TransportMessage, Boolean>() {
+    @Override
+    public Boolean call(TransportMessage t1) {
+      return MESSAGE_DATA.equals(t1.message().data());
+    }
+  };
 
   public static void main(String[] args) {
 
@@ -41,12 +47,7 @@ public class ClusterMetadata {
     ICluster joeCluster = Cluster.newInstance(config).join();
 
     // filter and subscribe on hello/joe and print the welcome message.
-    joeCluster.listen().filter(new Func1<TransportMessage, Boolean>() {
-      @Override
-      public Boolean call(TransportMessage t1) {
-        return MESSAGE_DATA.equals(t1.message().data());
-      }
-    }).subscribe(new Action1<TransportMessage>() {
+    joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<TransportMessage>() {
       @Override
       public void call(TransportMessage t1) {
         System.out.println("Hello Joe");

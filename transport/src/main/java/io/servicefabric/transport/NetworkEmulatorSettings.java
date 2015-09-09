@@ -59,9 +59,9 @@ public class NetworkEmulatorSettings {
     if (mean > 0) {
       // Network delays (network delays). Delays should be emulated using exponential distribution of probabilities.
       // log(1-x)/(1/mean)
-      Double x = ThreadLocalRandom.current().nextDouble();
-      Double y = -Math.log(1 - x) * mean;
-      return y.longValue();
+      Double x0  = ThreadLocalRandom.current().nextDouble();
+      Double y0 = -Math.log(1 - x0) * mean;
+      return y0.longValue();
     }
     return 0;
   }

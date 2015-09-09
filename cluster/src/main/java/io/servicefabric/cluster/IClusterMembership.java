@@ -21,10 +21,11 @@ public interface IClusterMembership {
   Observable<ClusterMember> listenUpdates();
 
   /**
-   * check if a given member is a local member return true in case the ClusterMember is local to the cluster instance
+   * Check if a given member is a local member return true in case the ClusterMember is local to the cluster instance.
+   *
    * 
-   * @param ClusterMember
-   * @return true if this cluster memeber is a local cluster memeber
+   * @param member checks if member is local
+   * @return true if this cluster member is a local cluster member
    * @author ronen hamias
    */
   boolean isLocalMember(ClusterMember member);

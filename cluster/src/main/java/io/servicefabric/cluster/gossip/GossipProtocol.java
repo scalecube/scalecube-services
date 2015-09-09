@@ -47,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class GossipProtocol implements IGossipProtocol, IManagedGossipProtocol {
-  private final static Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
   private ITransport transport;
   private Subject<Message, Message> subject = new SerializedSubject(PublishSubject.create());
@@ -83,8 +83,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     return new ThreadFactoryBuilder().setNameFormat(namingFormat).setUncaughtExceptionHandler(
         new Thread.UncaughtExceptionHandler() {
           @Override
-          public void uncaughtException(Thread t, Throwable e) {
-            LOGGER.error("Unhandled exception: {}", e, e);
+          public void uncaughtException(Thread thread, Throwable ex) {
+            LOGGER.error("Unhandled exception: {}", ex, ex);
           }
         }).setDaemon(true).build();
   }
@@ -184,12 +184,15 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   private void sendGossips(List<ClusterEndpoint> members, Collection<GossipLocalState> gossips, Integer factor) {
-    if (gossips.isEmpty())
+    if (gossips.isEmpty()) {
       return;
-    if (members.isEmpty())
+    }
+    if (members.isEmpty()) {
       return;
-    if (period % members.size() == 0)
+    }
+    if (period % members.size() == 0) {
       Collections.shuffle(members, ThreadLocalRandom.current());
+    }
     for (int i = 0; i < Math.min(maxEndpointsToSelect, members.size()); i++) {
       ClusterEndpoint clusterEndpoint = getNextRandom(members, maxEndpointsToSelect, i);
       // Filter only gossips which should be sent to chosen clusterEndpoint
@@ -216,8 +219,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     return localEndpoint.endpointId() + "_" + counter.getAndIncrement();
   }
 
-  private ClusterEndpoint getNextRandom(List<ClusterEndpoint> members, int endpointCount, int i) {
-    return members.get((int) (((period * endpointCount + i) & Integer.MAX_VALUE) % members.size()));
+  private ClusterEndpoint getNextRandom(List<ClusterEndpoint> members, int endpointCount, int count) {
+    return members.get((int) (((period * endpointCount + count) & Integer.MAX_VALUE) % members.size()));
 
   }
 
@@ -305,12 +308,14 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     }
 
     @Override
-    public boolean equals(Object o) {
-      if (this == o)
+    public boolean equals(Object other) {
+      if (this == other) {
         return true;
-      if (o == null || getClass() != o.getClass())
+      }
+      if (other == null || getClass() != other.getClass()) {
         return false;
-      GossipTask that = (GossipTask) o;
+      }
+      GossipTask that = (GossipTask) other;
       return Objects.equals(gossip, that.gossip) && Objects.equals(origin, that.origin);
     }
 

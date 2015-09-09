@@ -7,45 +7,43 @@ package io.servicefabric.transport.utils;
  * @param <K> type of key
  * @param <V> type of value
  */
-public class KVPair<K, V> {
+public class KvPair<K, V> {
 
   private final K key;
   private final V value;
 
-  public KVPair(K key, V value) {
+  public KvPair(K key, V value) {
     this.key = key;
     this.value = value;
   }
 
-  /**
-   *
-   * @return first value
-   */
+
   public K getKey() {
     return key;
   }
 
-  /**
-   *
-   * @return second value
-   */
+
   public V getValue() {
     return value;
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o)
+  public boolean equals(Object other) {
+    if (this == other) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (other == null || getClass() != other.getClass()) {
       return false;
+    }
 
-    KVPair pair = (KVPair) o;
+    KvPair pair = (KvPair) other;
 
-    if (key != null ? !key.equals(pair.key) : pair.key != null)
+    if (key != null ? !key.equals(pair.key) : pair.key != null) {
       return false;
-    if (value != null ? !value.equals(pair.value) : pair.value != null)
+    }
+    if (value != null ? !value.equals(pair.value) : pair.value != null) {
       return false;
+    }
 
     return true;
   }

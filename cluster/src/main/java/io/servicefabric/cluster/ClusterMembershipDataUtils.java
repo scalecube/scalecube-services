@@ -29,6 +29,15 @@ final class ClusterMembershipDataUtils {
     };
   }
 
+  private static ClusterMembershipData filterData(final ClusterEndpoint localEndpoint, ClusterMembershipData data) {
+    return new ClusterMembershipData(filter(data.getMembership(), new Predicate<ClusterMember>() {
+      @Override
+      public boolean apply(ClusterMember input) {
+        return !localEndpoint.equals(input.endpoint());
+      }
+    }), data.getSyncGroup());
+  }
+
   /**
    * In the incoming {@code transportMessage} filters {@link ClusterMembershipData} by excluding record with {@code localEndpoint}.
    */
@@ -41,7 +50,9 @@ final class ClusterMembershipDataUtils {
     };
   }
 
-  /** Filter function. Checking cluster identifier. See {@link ClusterMembershipData#syncGroup}. */
+  /**
+   * Filter function. Checking cluster identifier. See {@link ClusterMembershipData#syncGroup}.
+   */
   static Func1<TransportMessage, Boolean> syncGroupFilter(final String syncGroup) {
     return new Func1<TransportMessage, Boolean>() {
       @Override
@@ -52,12 +63,4 @@ final class ClusterMembershipDataUtils {
     };
   }
 
-  private static ClusterMembershipData filterData(final ClusterEndpoint localEndpoint, ClusterMembershipData data) {
-    return new ClusterMembershipData(filter(data.getMembership(), new Predicate<ClusterMember>() {
-      @Override
-      public boolean apply(ClusterMember input) {
-        return !localEndpoint.equals(input.endpoint());
-      }
-    }), data.getSyncGroup());
-  }
 }

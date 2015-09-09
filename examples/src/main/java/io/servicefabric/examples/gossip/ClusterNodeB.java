@@ -7,7 +7,7 @@ import io.servicefabric.transport.protocol.Message;
 
 /**
  * Basic example for member gossiping between cluster members to run the example Start ClusterNodeA and cluster ClusterNodeB A listen on
- * gossip B spread gossip
+ * gossip B spread gossip.
  * 
  * @author ronen hamias
  *

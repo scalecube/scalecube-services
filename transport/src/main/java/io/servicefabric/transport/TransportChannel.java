@@ -147,25 +147,25 @@ final class TransportChannel implements ITransportChannel {
         + channel + '}';
   }
 
-  final static class Builder {
+  static final class Builder {
     private TransportChannel target;
 
-    static Builder CONNECTOR(Channel channel, ITransportSpi transportSpi) {
+    static Builder connector(Channel channel, ITransportSpi transportSpi) {
       Builder builder = new Builder();
       builder.target = new TransportChannel(channel, transportSpi);
       builder.target.status.set(CONNECT_IN_PROGRESS);
       return builder;
     }
 
-    static Builder ACCEPTOR(Channel channel, ITransportSpi transportSpi) {
+    static Builder acceptor(Channel channel, ITransportSpi transportSpi) {
       Builder builder = new Builder();
       builder.target = new TransportChannel(channel, transportSpi);
       builder.target.status.set(CONNECTED);
       return builder;
     }
 
-    Builder set(Func1<TransportChannel, Void> f) {
-      target.whenClose = f;
+    Builder set(Func1<TransportChannel, Void> func) {
+      target.whenClose = func;
       return this;
     }
 

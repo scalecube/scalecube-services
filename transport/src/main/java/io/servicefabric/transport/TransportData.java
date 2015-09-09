@@ -6,7 +6,7 @@ import static io.servicefabric.transport.TransportData.Status.NEW;
 import static io.servicefabric.transport.TransportData.Status.RESOLVED_ERR;
 import static io.servicefabric.transport.TransportData.Status.RESOLVED_OK;
 
-import io.servicefabric.transport.utils.KVPair;
+import io.servicefabric.transport.utils.KvPair;
 
 import io.protostuff.Tag;
 
@@ -56,7 +56,7 @@ public class TransportData {
    * one). Otherwise -- local metadata shall return unchanged.
    */
   @Tag(1)
-  private List<KVPair<String, Object>> metadata = new ArrayList<>();
+  private List<KvPair<String, Object>> metadata = new ArrayList<>();
   /**
    * Status of resolution. When set to RESOLVED_OK this should mean connection is good and we can proceed further with transport. Otherwise
    * -- transport should be treated as invalid and purged from system.
@@ -69,23 +69,23 @@ public class TransportData {
 
   private TransportData() {}
 
-  static Builder NEW(Map<String, Object> metadata) {
+  static Builder newData(Map<String, Object> metadata) {
     Builder builder = new Builder(NEW);
     populate(builder, metadata);
     return builder;
   }
 
-  static Builder OK(Map<String, Object> metadata) {
+  static Builder ok(Map<String, Object> metadata) {
     Builder builder = new Builder(RESOLVED_OK);
     populate(builder, metadata);
     return builder;
   }
 
-  static Builder ERR(TransportData remote) {
-    return ERR(remote, RESOLVED_ERR);
+  static Builder err(TransportData remote) {
+    return err(remote, RESOLVED_ERR);
   }
 
-  static Builder ERR(TransportData remote, Status status) {
+  static Builder err(TransportData remote, Status status) {
     checkArgument(status.ordinal() >= RESOLVED_ERR.ordinal());
     Builder builder = new Builder(status);
     builder.target.metadata = remote.metadata;
@@ -108,9 +108,10 @@ public class TransportData {
 
   @Nullable
   <T> T get(String key) {
-    for (KVPair<String, Object> pair : metadata) {
-      if (pair.getKey().equals(key))
+    for (KvPair<String, Object> pair : metadata) {
+      if (pair.getKey().equals(key)) {
         return (T) pair.getValue();
+      }
     }
     return null;
   }
@@ -123,7 +124,7 @@ public class TransportData {
       checkArgument(!isNullOrEmpty(key), "key must not be null or empty");
       Object value = entry.getValue();
       checkArgument(value != null, "value must not be null, key=" + key);
-      builder.target.metadata.add(new KVPair<>(key, value));
+      builder.target.metadata.add(new KvPair<>(key, value));
     }
   }
 }

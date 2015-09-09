@@ -9,7 +9,7 @@ import io.protostuff.Tag;
 import java.util.Objects;
 
 /**
- * Data model for gossip, include gossip id, qualifier and object need to disseminate
+ * Data model for gossip, include gossip id, qualifier and object need to disseminate.
  */
 final class Gossip {
   /** The gossip id. */
@@ -36,12 +36,14 @@ final class Gossip {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o)
+  public boolean equals(Object other) {
+    if (this == other) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (other == null || getClass() != other.getClass()) {
       return false;
-    Gossip gossip = (Gossip) o;
+    }
+    Gossip gossip = (Gossip) other;
     return Objects.equals(gossipId, gossip.gossipId);
   }
 

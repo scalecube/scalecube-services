@@ -47,7 +47,8 @@ public final class Cluster implements ICluster {
   // Cluster state
   private final AtomicReference<State> state;
 
-  private Cluster(Transport transport, FailureDetector failureDetector, GossipProtocol gossipProtocol, ClusterMembership clusterMembership) {
+  private Cluster(Transport transport, FailureDetector failureDetector, GossipProtocol gossipProtocol,
+                  ClusterMembership clusterMembership) {
     this.transport = transport;
     this.failureDetector = failureDetector;
     this.gossipProtocol = gossipProtocol;
@@ -70,8 +71,7 @@ public final class Cluster implements ICluster {
   }
 
   public static ICluster newInstance(String memberId, int port, String seedMembers) {
-    return newInstance(ClusterConfiguration.newInstance().memberId(memberId).port(port).seedMembers(
-        seedMembers));
+    return newInstance(ClusterConfiguration.newInstance().memberId(memberId).port(port).seedMembers(seedMembers));
   }
 
   public static ICluster newInstance(ClusterConfiguration config) {

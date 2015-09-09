@@ -41,8 +41,9 @@ final class NetworkEmulatorChannelHandler extends ChannelOutboundHandlerAdapter 
       networkSettings = NetworkEmulatorSettings.defaultSettings();
     }
     if (networkSettings.breakDueToNetwork()) {
-      if (promise != null)
+      if (promise != null) {
         promise.setFailure(new RuntimeException("NETWORK_BREAK detected, not sent " + msg));
+      }
       return;
     }
     int timeToSleep = (int) networkSettings.evaluateTimeToSleep();

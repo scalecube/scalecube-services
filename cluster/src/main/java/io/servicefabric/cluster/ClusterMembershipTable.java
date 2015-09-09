@@ -43,6 +43,15 @@ final class ClusterMembershipTable {
     return updates;
   }
 
+  List<ClusterMember> merge(FailureDetectorEvent event) {
+    ClusterMember r0 = membership.get(event.endpoint());
+    if (r0 != null) {
+      return merge(new ClusterMember(event.endpoint(), event.status(), r0.metadata()));
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
   ClusterMember get(ClusterEndpoint member) {
     return membership.get(member);
   }
@@ -56,20 +65,14 @@ final class ClusterMembershipTable {
     return updates;
   }
 
-  List<ClusterMember> merge(FailureDetectorEvent event) {
-    ClusterMember r0 = membership.get(event.endpoint());
-    if (r0 != null) {
-      return merge(new ClusterMember(event.endpoint(), event.status(), r0.metadata()));
-    } else {
-      return Collections.emptyList();
-    }
-  }
 
   List<ClusterMember> asList() {
     return new ArrayList<>(membership.values());
   }
 
-  /** Getting {@code TRUSTED} or {@code SUSPECTED} snapshot of {@link #membership}. */
+  /**
+   * Getting {@code TRUSTED} or {@code SUSPECTED} snapshot of {@link #membership}.
+   */
   Map<ClusterEndpoint, ClusterMember> getTrustedOrSuspected() {
     return newHashMap(filterValues(membership, new Predicate<ClusterMember>() {
       @Override

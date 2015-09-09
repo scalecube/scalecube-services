@@ -9,7 +9,7 @@ import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.protocol.Message;
 import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
 import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
-import io.servicefabric.transport.utils.KVPair;
+import io.servicefabric.transport.utils.KvPair;
 
 import io.netty.buffer.ByteBuf;
 
@@ -28,8 +28,8 @@ public class GossipServiceRequestSchemaTest {
 
   @Before
   public void init() throws Throwable {
-    List<KVPair<String, String>> properties = new ArrayList<>();
-    properties.add(new KVPair<>("casino", "123"));
+    List<KvPair<String, String>> properties = new ArrayList<>();
+    properties.add(new KvPair<>("casino", "123"));
 
     testData = new TestData();
     testData.setProperties(properties);
@@ -79,15 +79,15 @@ public class GossipServiceRequestSchemaTest {
 
   private static class TestData {
 
-    private List<KVPair<String, String>> properties;
+    private List<KvPair<String, String>> properties;
 
     TestData() {}
 
-    public List<KVPair<String, String>> getProperties() {
+    public List<KvPair<String, String>> getProperties() {
       return properties;
     }
 
-    public void setProperties(List<KVPair<String, String>> properties) {
+    public void setProperties(List<KvPair<String, String>> properties) {
       this.properties = properties;
     }
   }

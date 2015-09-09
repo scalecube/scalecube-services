@@ -4,7 +4,7 @@ import static io.servicefabric.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.servicefabric.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
 
-import io.servicefabric.transport.utils.KVPair;
+import io.servicefabric.transport.utils.KvPair;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,7 +20,7 @@ import javax.annotation.Nonnull;
 public final class ClusterMember implements Comparable<ClusterMember> {
   private final ClusterEndpoint endpoint;
   private final ClusterMemberStatus status;
-  private final List<KVPair<String, String>> metadata = new ArrayList<>();
+  private final List<KvPair<String, String>> metadata = new ArrayList<>();
   private final long lastUpdateTimestamp;
 
   ClusterMember(ClusterEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
@@ -31,7 +31,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
     this.endpoint = endpoint;
     this.status = status;
     for (Map.Entry<String, String> entry : metadata.entrySet()) {
-      this.metadata.add(new KVPair<>(entry.getKey(), entry.getValue()));
+      this.metadata.add(new KvPair<>(entry.getKey(), entry.getValue()));
     }
     this.lastUpdateTimestamp = lastUpdateTimestamp;
   }
@@ -46,7 +46,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   public Map<String, String> metadata() {
     Map<String, String> map = new HashMap<>();
-    for (KVPair<String, String> pair : metadata) {
+    for (KvPair<String, String> pair : metadata) {
       map.put(pair.getKey(), pair.getValue());
     }
     return map;
@@ -58,18 +58,23 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   @Override
   public int compareTo(@Nonnull ClusterMember r1) {
-    if (status == r1.status)
+    if (status == r1.status) {
       return 0;
-    if (status == SHUTDOWN)
+    }
+    if (status == SHUTDOWN) {
       return 1;
-    if (r1.status == SHUTDOWN)
+    }
+    if (r1.status == SHUTDOWN) {
       return -1;
+    }
 
     int clockCompare = Long.compare(lastUpdateTimestamp, r1.lastUpdateTimestamp);
-    if (clockCompare < 0)
+    if (clockCompare < 0) {
       return -1;
-    if (clockCompare == 0 && (status == TRUSTED && r1.status == SUSPECTED))
+    }
+    if (clockCompare == 0 && (status == TRUSTED && r1.status == SUSPECTED)) {
       return -1;
+    }
 
     return 1;
   }

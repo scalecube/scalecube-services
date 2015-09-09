@@ -16,11 +16,11 @@ public final class FailureDetectorEvent {
     this.status = status;
   }
 
-  public static FailureDetectorEvent TRUSTED(ClusterEndpoint endpoint) {
+  public static FailureDetectorEvent trusted(ClusterEndpoint endpoint) {
     return new FailureDetectorEvent(endpoint, TRUSTED);
   }
 
-  public static FailureDetectorEvent SUSPECTED(ClusterEndpoint endpoint) {
+  public static FailureDetectorEvent suspected(ClusterEndpoint endpoint) {
     return new FailureDetectorEvent(endpoint, SUSPECTED);
   }
 

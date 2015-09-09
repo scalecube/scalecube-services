@@ -10,7 +10,7 @@ import rx.functions.Func1;
 
 /**
  * Basic example for member transport between cluster members to run the example Start ClusterNodeA and cluster ClusterNodeB A listen on
- * transport messages B send message to member A
+ * transport messages B send message to member A.
  * 
  * @author ronen hamias
  *
@@ -18,17 +18,19 @@ import rx.functions.Func1;
 public class ClusterNodeA {
 
 
+  public static final Func1<TransportMessage, Boolean> GREETINS_PREDICATE = new Func1<TransportMessage, Boolean>() {
+    @Override
+    public Boolean call(TransportMessage t1) {
+      return t1.message().data() != null && Greetings.class.equals(t1.message().data().getClass());
+    }
+  };
+
   public static void main(String[] args) {
     // start cluster node that listen on port 3000
     ICluster clusterA = Cluster.newInstance(3000).join();
 
     // Filter and subscribe to greetings messages:
-    clusterA.listen().filter(new Func1<TransportMessage, Boolean>() {
-      @Override
-      public Boolean call(TransportMessage t1) {
-        return t1.message().data() != null && Greetings.class.equals(t1.message().data().getClass());
-      }
-    }).subscribe(new Action1<TransportMessage>() {
+    clusterA.listen().filter(GREETINS_PREDICATE).subscribe(new Action1<TransportMessage>() {
       @Override
       public void call(TransportMessage t1) {
         System.out.println(t1.message().data());

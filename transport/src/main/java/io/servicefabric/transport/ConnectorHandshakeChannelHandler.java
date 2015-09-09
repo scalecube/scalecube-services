@@ -54,7 +54,7 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
     final TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
     transport.flip(TransportChannel.Status.CONNECT_IN_PROGRESS, TransportChannel.Status.CONNECTED);
 
-    final TransportData handshake = TransportData.NEW(transport.transportSpi.getLocalMetadata()).build();
+    final TransportData handshake = TransportData.newData(transport.transportSpi.getLocalMetadata()).build();
     int handshakeTimeout = transport.transportSpi.getHandshakeTimeout();
     handshakeTimer = transport.channel.eventLoop().schedule(new Runnable() {
       @Override
@@ -95,8 +95,10 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) {
     Message message = (Message) msg;
-    if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.header(TransportHeaders.QUALIFIER)))
-      throw new TransportBrokenException("Received unsupported " + msg + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC_ACK)");
+    if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.header(TransportHeaders.QUALIFIER))) {
+      throw new TransportBrokenException("Received unsupported " + msg
+                                         + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC_ACK)");
+    }
 
     TransportData handshake = (TransportData) message.data();
     final TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());

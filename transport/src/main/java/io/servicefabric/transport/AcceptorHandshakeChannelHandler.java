@@ -32,8 +32,11 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     Message message = (Message) msg;
-    if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(message.header(TransportHeaders.QUALIFIER)))
-      throw new TransportBrokenException("Received unsupported " + msg + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC)");
+    if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(message.header(
+        TransportHeaders.QUALIFIER))) {
+      throw new TransportBrokenException(
+          "Received unsupported " + msg + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC)");
+    }
 
     final TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
     final TransportData handshakeData = (TransportData) message.data();
@@ -68,16 +71,16 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
   private TransportData resolve(TransportData handshake, Map<String, Object> localMetadata) {
     TransportEndpoint originEndpoint = handshake.get(TransportData.META_ORIGIN_ENDPOINT);
     if (originEndpoint == null) {
-      return TransportData.ERR(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT + " not set").build();
+      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT + " not set").build();
     } else if (originEndpoint == localMetadata.get(TransportData.META_ORIGIN_ENDPOINT)) {
-      return TransportData.ERR(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT + " eq to local").build();
+      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT + " eq to local").build();
     }
     String originEndpointId = handshake.get(TransportData.META_ORIGIN_ENDPOINT_ID);
     if (originEndpointId == null) {
-      return TransportData.ERR(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT_ID + " not set").build();
+      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT_ID + " not set").build();
     } else if (originEndpointId == localMetadata.get(TransportData.META_ORIGIN_ENDPOINT_ID)) {
-      return TransportData.ERR(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT_ID + " eq to local").build();
+      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT_ID + " eq to local").build();
     }
-    return TransportData.OK(localMetadata).build();
+    return TransportData.ok(localMetadata).build();
   }
 }

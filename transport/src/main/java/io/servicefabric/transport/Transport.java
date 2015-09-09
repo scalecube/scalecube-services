@@ -4,8 +4,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
 import static io.servicefabric.transport.TransportChannel.ATTR_TRANSPORT;
-import static io.servicefabric.transport.TransportChannel.Builder.ACCEPTOR;
-import static io.servicefabric.transport.TransportChannel.Builder.CONNECTOR;
+import static io.servicefabric.transport.TransportChannel.Builder.acceptor;
+import static io.servicefabric.transport.TransportChannel.Builder.connector;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
 
@@ -100,8 +100,8 @@ public final class Transport implements ITransportSpi, ITransport {
     return new ThreadFactoryBuilder().setNameFormat(namingFormat).setUncaughtExceptionHandler(
         new Thread.UncaughtExceptionHandler() {
           @Override
-          public void uncaughtException(Thread t, Throwable e) {
-            LOGGER.error("Unhandled exception: {}", e, e);
+          public void uncaughtException(Thread thread, Throwable ex) {
+            LOGGER.error("Unhandled exception: {}", ex, ex);
           }
         }).setDaemon(true).build();
   }
@@ -240,6 +240,7 @@ public final class Transport implements ITransportSpi, ITransport {
     try {
       subject.onCompleted();
     } catch (Exception ignore) {
+      //ignore
     }
     // cleanup accepted
     for (TransportEndpoint endpoint : accepted.keySet()) {
@@ -261,7 +262,7 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   private TransportChannel createConnector(Channel channel, final TransportEndpoint endpoint) {
-    TransportChannel.Builder builder = CONNECTOR(channel, this);
+    TransportChannel.Builder builder = connector(channel, this);
     builder.set(new Func1<TransportChannel, Void>() {
       @Override
       public Void call(TransportChannel transport) {
@@ -274,7 +275,7 @@ public final class Transport implements ITransportSpi, ITransport {
 
   @Override
   public TransportChannel createAcceptor(Channel channel) {
-    TransportChannel.Builder builder = ACCEPTOR(channel, this);
+    TransportChannel.Builder builder = acceptor(channel, this);
     builder.set(new Func1<TransportChannel, Void>() {
       @Override
       public Void call(TransportChannel transport) {
@@ -334,8 +335,9 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public final TransportChannel getTransportChannel(Channel channel) {
     TransportChannel transport = channel.attr(ATTR_TRANSPORT).get();
-    if (transport == null)
+    if (transport == null) {
       throw new TransportBrokenException("transport attr not set");
+    }
     return transport;
   }
 

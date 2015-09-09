@@ -9,13 +9,13 @@ import java.util.Set;
 
 /** Data related to gossip, maintained locally on each node. */
 final class GossipLocalState {
-  /** Target gossip */
+  /** Target gossip. */
   private Gossip gossip;
-  /** How many times gossip was sent, increment before each send */
+  /** How many times gossip was sent, increment before each send. */
   private int sent;
-  /** Local time when gossip first period occur */
+  /** Local time when gossip first period occur. */
   private long period;
-  /** Set of endpoints this gossip was received from */
+  /** Set of endpoints this gossip was received from. */
   private Set<ClusterEndpoint> members;
 
   private GossipLocalState() {}
@@ -25,8 +25,9 @@ final class GossipLocalState {
     GossipLocalState data = new GossipLocalState();
     data.gossip = gossip;
     data.members = Sets.newHashSet();
-    if (member != null)
+    if (member != null) {
       data.members.add(member);
+    }
     data.period = period;
     data.sent = 0;
     return data;

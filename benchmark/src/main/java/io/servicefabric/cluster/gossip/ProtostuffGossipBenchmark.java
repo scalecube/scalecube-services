@@ -44,12 +44,12 @@ public class ProtostuffGossipBenchmark {
   ProtostuffMessageDeserializer deser;
 
   Message gossipReq;
-  ByteBuf gossipReq_ser;
-  ByteBuf bb_gossipReq;
+  ByteBuf gossipReqSer;
+  ByteBuf bbGossipReq;
 
-  Message gossipReq_x32;
-  ByteBuf gossipReq_x32_ser;
-  ByteBuf bb_gossipReq_x32;
+  Message gossipReqx32;
+  ByteBuf gossipReqx32Ser;
+  ByteBuf bbGossipReqx32;
 
   @Setup
   public void setup() {
@@ -57,37 +57,37 @@ public class ProtostuffGossipBenchmark {
     deser = new ProtostuffMessageDeserializer();
 
     gossipReq = new Message(new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", new Message(PAYLOAD_X32)))));
-    ser.serialize(gossipReq, gossipReq_ser = Unpooled.buffer(1024));
-    bb_gossipReq = Unpooled.buffer(1024);
-    System.err.println("### gossipReq_ser=" + gossipReq_ser);
+    ser.serialize(gossipReq, gossipReqSer = Unpooled.buffer(1024));
+    bbGossipReq = Unpooled.buffer(1024);
+    System.err.println("### gossipReqSer=" + gossipReqSer);
 
     List<Gossip> list32 = new ArrayList<>();
     for (int i = 0; i < 32; i++) {
       list32.add(new Gossip("ABCDEFGH_" + i, new Message(PAYLOAD)));
     }
-    gossipReq_x32 = new Message(new GossipRequest(list32));
-    ser.serialize(gossipReq_x32, gossipReq_x32_ser = Unpooled.buffer(1024));
-    bb_gossipReq_x32 = Unpooled.buffer(1024);
-    System.err.println("### gossipReq_x32_ser=" + gossipReq_x32_ser);
+    gossipReqx32 = new Message(new GossipRequest(list32));
+    ser.serialize(gossipReqx32, gossipReqx32Ser = Unpooled.buffer(1024));
+    bbGossipReqx32 = Unpooled.buffer(1024);
+    System.err.println("### gossipReqx32Ser=" + gossipReqx32Ser);
   }
 
   @Benchmark
   public void ser() {
-    ser.serialize(gossipReq, bb_gossipReq.resetWriterIndex());
+    ser.serialize(gossipReq, bbGossipReq.resetWriterIndex());
   }
 
   @Benchmark
   public void deser() {
-    deser.deserialize(gossipReq_ser.resetReaderIndex());
+    deser.deserialize(gossipReqSer.resetReaderIndex());
   }
 
   @Benchmark
   public void ser_x32() {
-    ser.serialize(gossipReq_x32, bb_gossipReq_x32.resetWriterIndex());
+    ser.serialize(gossipReqx32, bbGossipReqx32.resetWriterIndex());
   }
 
   @Benchmark
   public void deser_x32() {
-    deser.deserialize(gossipReq_x32_ser.resetReaderIndex());
+    deser.deserialize(gossipReqx32Ser.resetReaderIndex());
   }
 }

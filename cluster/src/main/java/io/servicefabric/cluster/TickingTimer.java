@@ -104,7 +104,7 @@ final class TickingTimer {
   }
 
   /**
-   * Cancel timer task with specific id
+   * Cancel timer task with specific id.
    */
   public void cancel(String id) {
     Timeout timeout = tasks.remove(id);

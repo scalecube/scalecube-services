@@ -6,13 +6,13 @@ import io.protostuff.Tag;
 
 /** DTO class. Supports FailureDetector messages (Ping, Ack, PingReq). */
 final class FailureDetectorData {
-  /** Message's source endpoint */
+  /** Message's source endpoint. */
   @Tag(1)
   private ClusterEndpoint from;
-  /** Message's destination endpoint */
+  /** Message's destination endpoint. */
   @Tag(2)
   private ClusterEndpoint to;
-  /** Endpoint, who originally initiated ping sequence */
+  /** Endpoint, who originally initiated ping sequence. */
   @Tag(3)
   private ClusterEndpoint originalIssuer;
 

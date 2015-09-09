@@ -8,7 +8,7 @@ public final class Greetings {
   @Tag(1)
   String quote;
 
-  public Greetings() {};
+  public Greetings() {}
 
   public Greetings(String quote) {
     this.quote = quote;

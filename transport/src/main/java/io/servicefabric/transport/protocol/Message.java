@@ -81,7 +81,7 @@ public final class Message {
   }
 
   /**
-   * Return the message data, which can be byte array, string or any type
+   * Return the message data, which can be byte array, string or any type.
    * 
    * @return payload of the message or null if message is without any payload
    */
@@ -90,12 +90,14 @@ public final class Message {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o)
+  public boolean equals(Object other) {
+    if (this == other) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (other == null || getClass() != other.getClass()) {
       return false;
-    Message that = (Message) o;
+    }
+    Message that = (Message) other;
     return Objects.equals(headers, that.headers) && Objects.equals(data, that.data);
   }
 

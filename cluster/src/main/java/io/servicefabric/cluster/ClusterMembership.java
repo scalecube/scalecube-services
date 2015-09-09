@@ -115,7 +115,9 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     }
   });
 
-  /** Merges gossip's {@link ClusterMembershipData} (not spreading gossip further). */
+  /**
+   * Merges gossip's {@link ClusterMembershipData} (not spreading gossip further).
+   */
   private Subscriber<ClusterMembershipData> onGossipSubscriber = Subscribers.create(new Action1<ClusterMembershipData>() {
     @Override
     public void call(ClusterMembershipData data) {
@@ -338,7 +340,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   }
 
   /**
-   * Takes {@code updates} and process them in next order:
+   * Takes {@code updates} and process them in next order.
    * <ul>
    * <li>recalculates 'cluster members' for {@link #gossipProtocol} and {@link #failureDetector} by filtering out {@code REMOVED/SHUTDOWN}
    * members</li>
@@ -355,8 +357,9 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
    * @param spreadGossip flag indicating should updates be gossiped to cluster
    */
   private void processUpdates(List<ClusterMember> updates, boolean spreadGossip) {
-    if (updates.isEmpty())
+    if (updates.isEmpty()) {
       return;
+    }
 
     // Reset cluster members on FailureDetector and Gossip
     Map<ClusterEndpoint, ClusterMember> members = membership.getTrustedOrSuspected();
@@ -399,6 +402,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
             }
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
           break;
+        default:
+          //ignore
       }
     }
   }

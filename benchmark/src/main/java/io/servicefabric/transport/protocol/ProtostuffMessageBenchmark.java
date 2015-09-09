@@ -34,12 +34,12 @@ public class ProtostuffMessageBenchmark {
   ProtostuffMessageDeserializer deser;
 
   Message msg;
-  ByteBuf msg_ser;
-  ByteBuf bb_msg;
+  ByteBuf msgSer;
+  ByteBuf bbMsg;
 
-  Message msg_x16;
-  ByteBuf msg_x16_ser;
-  ByteBuf bb_msg_x16;
+  Message msgx16;
+  ByteBuf msgx16Ser;
+  ByteBuf bbMsgx16;
 
   @Setup
   public void setup() {
@@ -47,33 +47,33 @@ public class ProtostuffMessageBenchmark {
     deser = new ProtostuffMessageDeserializer();
 
     msg = new Message(PAYLOAD);
-    ser.serialize(msg, msg_ser = Unpooled.buffer(1024));
-    bb_msg = Unpooled.buffer(1024);
-    System.err.println("### msg_ser=" + msg_ser);
+    ser.serialize(msg, msgSer = Unpooled.buffer(1024));
+    bbMsg = Unpooled.buffer(1024);
+    System.err.println("### msgSer=" + msgSer);
 
-    msg_x16 = new Message(PAYLOAD_X16);
-    ser.serialize(msg_x16, msg_x16_ser = Unpooled.buffer(1024));
-    bb_msg_x16 = Unpooled.buffer(1024);
-    System.err.println("### msg_x16_ser=" + msg_x16_ser);
+    msgx16 = new Message(PAYLOAD_X16);
+    ser.serialize(msgx16, msgx16Ser = Unpooled.buffer(1024));
+    bbMsgx16 = Unpooled.buffer(1024);
+    System.err.println("### msgx16Ser=" + msgx16Ser);
   }
 
   @Benchmark
   public void ser() {
-    ser.serialize(msg, bb_msg.resetWriterIndex());
+    ser.serialize(msg, bbMsg.resetWriterIndex());
   }
 
   @Benchmark
   public void deser() {
-    deser.deserialize(msg_ser.resetReaderIndex());
+    deser.deserialize(msgSer.resetReaderIndex());
   }
 
   @Benchmark
   public void ser_x16() {
-    ser.serialize(msg_x16, bb_msg_x16.resetWriterIndex());
+    ser.serialize(msgx16, bbMsgx16.resetWriterIndex());
   }
 
   @Benchmark
   public void deser_x16() {
-    deser.deserialize(msg_x16_ser.resetReaderIndex());
+    deser.deserialize(msgx16Ser.resetReaderIndex());
   }
 }

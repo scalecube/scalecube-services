@@ -45,16 +45,19 @@ public final class ClusterEndpoint {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o)
+  public boolean equals(Object other) {
+    if (this == other) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (other == null || getClass() != other.getClass()) {
       return false;
+    }
 
-    ClusterEndpoint that = (ClusterEndpoint) o;
+    ClusterEndpoint that = (ClusterEndpoint) other;
 
-    if (!endpointId.equals(that.endpointId))
+    if (!endpointId.equals(that.endpointId)) {
       return false;
+    }
 
     return true;
   }

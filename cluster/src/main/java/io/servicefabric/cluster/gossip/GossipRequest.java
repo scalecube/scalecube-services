@@ -5,7 +5,7 @@ import io.protostuff.Tag;
 import java.util.List;
 
 /**
- * Gossip request which be transmitted through the network, contains list of gossips
+ * Gossip request which be transmitted through the network, contains list of gossips.
  */
 final class GossipRequest {
   @Tag(1)
