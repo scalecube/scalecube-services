@@ -15,20 +15,20 @@ import org.slf4j.LoggerFactory;
  */
 @ChannelHandler.Sharable
 final class AcceptorRegistratorChannelHandler extends ChannelDuplexHandler {
-	static final Logger LOGGER = LoggerFactory.getLogger(AcceptorRegistratorChannelHandler.class);
+  static final Logger LOGGER = LoggerFactory.getLogger(AcceptorRegistratorChannelHandler.class);
 
-	final ITransportSpi transportSpi;
+  final ITransportSpi transportSpi;
 
-	AcceptorRegistratorChannelHandler(ITransportSpi transportSpi) {
-		this.transportSpi = transportSpi;
-	}
+  AcceptorRegistratorChannelHandler(ITransportSpi transportSpi) {
+    this.transportSpi = transportSpi;
+  }
 
-	@Override
-	public void channelActive(ChannelHandlerContext ctx) throws Exception {
-		Channel channel = ctx.channel();
-		TransportChannel transport = transportSpi.createAcceptor(channel);
-		channel.attr(TransportChannel.ATTR_TRANSPORT).set(transport);
-		LOGGER.debug("Registered acceptor: {}", transport);
-		super.channelActive(ctx);
-	}
+  @Override
+  public void channelActive(ChannelHandlerContext ctx) throws Exception {
+    Channel channel = ctx.channel();
+    TransportChannel transport = transportSpi.createAcceptor(channel);
+    channel.attr(TransportChannel.ATTR_TRANSPORT).set(transport);
+    LOGGER.debug("Registered acceptor: {}", transport);
+    super.channelActive(ctx);
+  }
 }

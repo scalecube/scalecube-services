@@ -10,15 +10,15 @@ import java.util.List;
 @ChannelHandler.Sharable
 public final class SharableDeserializerHandler extends MessageToMessageDecoder<ByteBuf> {
 
-	private final MessageDeserializer deserializer;
+  private final MessageDeserializer deserializer;
 
-	public SharableDeserializerHandler(MessageDeserializer deserializer) {
-		this.deserializer = deserializer;
-	}
+  public SharableDeserializerHandler(MessageDeserializer deserializer) {
+    this.deserializer = deserializer;
+  }
 
-	@Override
-	protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
-		Message message = deserializer.deserialize(msg);
-		out.add(message);
-	}
+  @Override
+  protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+    Message message = deserializer.deserialize(msg);
+    out.add(message);
+  }
 }

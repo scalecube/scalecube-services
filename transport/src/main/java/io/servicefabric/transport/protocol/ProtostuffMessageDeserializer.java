@@ -11,18 +11,18 @@ import io.protostuff.runtime.RuntimeSchema;
 
 public final class ProtostuffMessageDeserializer implements MessageDeserializer {
 
-	@Override
-	public Message deserialize(ByteBuf bb) {
-		// Deserialize BinaryMessage
-		Schema<Message> schema = RuntimeSchema.getSchema(Message.class);
-		Message message = schema.newMessage();
-		try {
-			mergeFrom(new ByteBufInputStream(bb), message, schema);
-		} catch (Exception e) {
-			throw new DecoderException(e.getMessage(), e);
-		}
+  @Override
+  public Message deserialize(ByteBuf bb) {
+    // Deserialize BinaryMessage
+    Schema<Message> schema = RuntimeSchema.getSchema(Message.class);
+    Message message = schema.newMessage();
+    try {
+      mergeFrom(new ByteBufInputStream(bb), message, schema);
+    } catch (Exception e) {
+      throw new DecoderException(e.getMessage(), e);
+    }
 
-		return message;
-	}
+    return message;
+  }
 
 }
