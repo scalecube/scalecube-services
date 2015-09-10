@@ -45,7 +45,8 @@ public class GossipEmulationIT {
     return executors[counter++ % executors.length];
   }
 
-  private GossipProtocol initComponent(ClusterEndpoint clusterEndpoint, List<ClusterEndpoint> members, int lostPercent, int delay) {
+  private GossipProtocol initComponent(ClusterEndpoint clusterEndpoint, List<ClusterEndpoint> members, int lostPercent,
+      int delay) {
     TransportEndpoint endpoint = clusterEndpoint.endpoint();
     NetworkEmulatorSettings.setDefaultSettings(lostPercent, delay);
 
@@ -53,8 +54,8 @@ public class GossipEmulationIT {
     gossipProtocol.setClusterMembers(members);
 
     Transport transport =
-        (Transport) TransportBuilder.newInstance(endpoint, UUID.randomUUID().toString(), eventLoop, eventExecutor).useNetworkEmulator()
-            .build();
+        (Transport) TransportBuilder.newInstance(endpoint, UUID.randomUUID().toString(), eventLoop, eventExecutor)
+            .useNetworkEmulator().build();
     gossipProtocol.setTransport(transport);
 
     transport.start();
@@ -225,12 +226,13 @@ public class GossipEmulationIT {
   public void test1000Lost10BigDelay() throws Exception {
     int members = 1000;
     final List<ClusterEndpoint> TransportEndpoints = initMembers(members);
-    protocols = Lists.newArrayList(Collections2.transform(TransportEndpoints, new Function<ClusterEndpoint, GossipProtocol>() {
-      @Override
-      public GossipProtocol apply(final ClusterEndpoint input) {
-        return initComponent(input, TransportEndpoints, 10, 1000);
-      }
-    }));
+    protocols =
+        Lists.newArrayList(Collections2.transform(TransportEndpoints, new Function<ClusterEndpoint, GossipProtocol>() {
+          @Override
+          public GossipProtocol apply(final ClusterEndpoint input) {
+            return initComponent(input, TransportEndpoints, 10, 1000);
+          }
+        }));
 
     final CountDownLatch latch = new CountDownLatch(members - 1);
     for (final GossipProtocol protocol : protocols) {

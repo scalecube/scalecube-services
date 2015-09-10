@@ -40,7 +40,8 @@ public class GossipProtocolFunctionTest {
     Message message = new Message(new GossipRequest(Collections.<Gossip>emptyList()));
     TransportEndpoint endpoint = TransportEndpoint.from("tcp://host:123");
     assertTrue(filter.call(new TransportMessage(transportChannel, message, endpoint, "1")));
-    assertFalse(filter.call(new TransportMessage(transportChannel, new Message("com.pt.openapi.hello/"), endpoint, "2")));
+    assertFalse(filter
+        .call(new TransportMessage(transportChannel, new Message("com.pt.openapi.hello/"), endpoint, "2")));
   }
 
   @Test
@@ -76,7 +77,8 @@ public class GossipProtocolFunctionTest {
     assertTrue(predicate.apply(info));
     info.addMember(remote);
     assertFalse(predicate.apply(info));
-    GossipLocalState anotherInfo = GossipLocalState.create(new Gossip("2", new Message(Collections.emptyMap())), local, 0);
+    GossipLocalState anotherInfo =
+        GossipLocalState.create(new Gossip("2", new Message(Collections.emptyMap())), local, 0);
     anotherInfo.incrementSend();
     anotherInfo.incrementSend();
     anotherInfo.incrementSend();
@@ -89,7 +91,9 @@ public class GossipProtocolFunctionTest {
     GossipProtocol.GossipSweepPredicate predicate = new GossipProtocol.GossipSweepPredicate(100, 10);
     GossipLocalState info = GossipLocalState.create(new Gossip("1", new Message(Collections.emptyMap())), local, 50);
     assertTrue(predicate.apply(info));
-    assertFalse(predicate.apply(GossipLocalState.create(new Gossip("1", new Message(Collections.emptyMap())), local, 95)));
-    assertFalse(predicate.apply(GossipLocalState.create(new Gossip("1", new Message(Collections.emptyMap())), local, 90)));
+    assertFalse(predicate
+        .apply(GossipLocalState.create(new Gossip("1", new Message(Collections.emptyMap())), local, 95)));
+    assertFalse(predicate
+        .apply(GossipLocalState.create(new Gossip("1", new Message(Collections.emptyMap())), local, 90)));
   }
 }

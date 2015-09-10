@@ -64,7 +64,8 @@ public class ConcurrentMapMemoizer<A, V> {
         cache.remove(arg, future);
       } catch (ExecutionException e) {
         cache.remove(arg, future);
-        throw new MemoizerExecutionException("Failed to compute value for key: " + arg + " with computable: " + computable, e.getCause());
+        throw new MemoizerExecutionException("Failed to compute value for key: " + arg + " with computable: "
+            + computable, e.getCause());
       }
     }
   }
@@ -79,7 +80,7 @@ public class ConcurrentMapMemoizer<A, V> {
       try {
         return future.get();
       } catch (InterruptedException | ExecutionException ignore) {
-        //ignore
+        // ignore
       }
     }
     return null;
@@ -92,7 +93,7 @@ public class ConcurrentMapMemoizer<A, V> {
       try {
         res = future.get();
       } catch (InterruptedException | ExecutionException ignore) {
-        //ignore
+        // ignore
       }
     }
     return res;
@@ -122,7 +123,8 @@ public class ConcurrentMapMemoizer<A, V> {
       cache.remove(arg, futureTask);
     } catch (ExecutionException e) {
       cache.remove(arg, futureTask);
-      throw new MemoizerExecutionException("Failed to compute value for key: " + arg + " with computable: " + computable, e.getCause());
+      throw new MemoizerExecutionException("Failed to compute value for key: " + arg + " with computable: "
+          + computable, e.getCause());
     }
     return null;
   }

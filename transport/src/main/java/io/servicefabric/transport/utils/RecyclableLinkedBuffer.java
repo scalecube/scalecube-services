@@ -6,7 +6,8 @@ import io.netty.util.Recycler;
 import io.protostuff.LinkedBuffer;
 
 /**
- * Facility class for {@link io.protostuff.LinkedBuffer}. Based on idea of object pooling (done vian {@link io.netty.util.Recycler}).
+ * Facility class for {@link io.protostuff.LinkedBuffer}. Based on idea of object pooling (done vian
+ * {@link io.netty.util.Recycler}).
  * <p/>
  * Typical usage:
  * 

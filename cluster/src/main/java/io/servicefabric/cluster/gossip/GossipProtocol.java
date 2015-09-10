@@ -80,8 +80,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   private ThreadFactory createThreadFactory(String namingFormat) {
-    return new ThreadFactoryBuilder().setNameFormat(namingFormat).setUncaughtExceptionHandler(
-        new Thread.UncaughtExceptionHandler() {
+    return new ThreadFactoryBuilder().setNameFormat(namingFormat)
+        .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
           @Override
           public void uncaughtException(Thread thread, Throwable ex) {
             LOGGER.error("Unhandled exception: {}", ex, ex);
@@ -132,7 +132,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   public void start() {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
     transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
-    executorTask = executor.scheduleWithFixedDelay(new GossipProtocolRunnable(), gossipTime, gossipTime, TimeUnit.MILLISECONDS);
+    executorTask =
+        executor.scheduleWithFixedDelay(new GossipProtocolRunnable(), gossipTime, gossipTime, TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -200,7 +201,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
       Collection<GossipLocalState> gossipLocalStateNeedSend = filter(gossips, predicate);
       if (!gossipLocalStateNeedSend.isEmpty()) {
         // Transform to actual gossip with incrementing sent count
-        List<Gossip> gossipToSend = newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
+        List<Gossip> gossipToSend =
+            newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
         transport.to(clusterEndpoint.endpoint()).send(new Message(new GossipRequest(gossipToSend)));
       }
     }
@@ -244,7 +246,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     @Override
     public void call(TransportMessage transportMessage) {
       GossipRequest gossipRequest = (GossipRequest) transportMessage.message().data();
-      ClusterEndpoint clusterEndpoint = ClusterEndpoint.from(transportMessage.originEndpointId(), transportMessage.originEndpoint());
+      ClusterEndpoint clusterEndpoint =
+          ClusterEndpoint.from(transportMessage.originEndpointId(), transportMessage.originEndpoint());
       for (Gossip gossip : gossipRequest.getGossipList()) {
         queue.offer(new GossipTask(gossip, clusterEndpoint));
       }

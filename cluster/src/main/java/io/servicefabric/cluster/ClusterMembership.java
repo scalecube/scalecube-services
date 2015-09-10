@@ -98,7 +98,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
       }
       String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
       ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
-      Message message = new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK, TransportHeaders.CORRELATION_ID, correlationId);
+      Message message =
+          new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK, TransportHeaders.CORRELATION_ID, correlationId);
       transport.to(endpoint).send(message);
     }
   });
@@ -118,16 +119,17 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   /**
    * Merges gossip's {@link ClusterMembershipData} (not spreading gossip further).
    */
-  private Subscriber<ClusterMembershipData> onGossipSubscriber = Subscribers.create(new Action1<ClusterMembershipData>() {
-    @Override
-    public void call(ClusterMembershipData data) {
-      List<ClusterMember> updates = membership.merge(data);
-      if (!updates.isEmpty()) {
-        LOGGER.debug("Received gossip, updates: {}", updates);
-        processUpdates(updates, false/* spread gossip */);
-      }
-    }
-  });
+  private Subscriber<ClusterMembershipData> onGossipSubscriber = Subscribers
+      .create(new Action1<ClusterMembershipData>() {
+        @Override
+        public void call(ClusterMembershipData data) {
+          List<ClusterMember> updates = membership.merge(data);
+          if (!updates.isEmpty()) {
+            LOGGER.debug("Received gossip, updates: {}", updates);
+            processUpdates(updates, false/* spread gossip */);
+          }
+        }
+      });
 
   ClusterMembership(ClusterEndpoint localEndpoint, Scheduler scheduler) {
     this.localEndpoint = localEndpoint;
@@ -230,17 +232,18 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     processUpdates(updates, false/* spread gossip */);
 
     // Listen to SYNC requests from joining/synchronizing members
-    transport.listen().filter(syncFilter()).filter(syncGroupFilter(syncGroup)).map(
-        filterData(localEndpoint)).subscribe(onSyncSubscriber);
+    transport.listen().filter(syncFilter()).filter(syncGroupFilter(syncGroup)).map(filterData(localEndpoint))
+        .subscribe(onSyncSubscriber);
 
     // Listen to 'suspected/trusted' events from FailureDetector
     failureDetector.listenStatus().subscribe(onFdSubscriber);
 
     // Listen to 'membership' message from GossipProtocol
-    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(
-        gossipFilterData(localEndpoint)).subscribe(onGossipSubscriber);
+    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(localEndpoint))
+        .subscribe(onGossipSubscriber);
 
-    // Conduct 'initialization phase': take wellknown addresses, send SYNC to all and get at least one SYNC_ACK from any of them
+    // Conduct 'initialization phase': take wellknown addresses, send SYNC to all and get at least one SYNC_ACK from any
+    // of them
     if (!seedMembers.isEmpty()) {
       LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", seedMembers);
       doBlockingSync(seedMembers);
@@ -280,9 +283,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     sendSync(members, period);
 
     Future<TransportMessage> future =
-        transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup)).map(
-            filterData(localEndpoint)).take(1)
-            .toBlocking().toFuture();
+        transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup))
+            .map(filterData(localEndpoint)).take(1).toBlocking().toFuture();
 
     TransportMessage message;
     try {
@@ -297,10 +299,9 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   private void doSync(final List<TransportEndpoint> members, Scheduler scheduler) {
     String period = "" + periodNbr.incrementAndGet();
     sendSync(members, period);
-    transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup)).map(
-        filterData(localEndpoint)).take(1)
-        .timeout(syncTimeout, TimeUnit.MILLISECONDS, scheduler).subscribe(
-        Subscribers.create(new Action1<TransportMessage>() {
+    transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup)).map(filterData(localEndpoint))
+        .take(1).timeout(syncTimeout, TimeUnit.MILLISECONDS, scheduler)
+        .subscribe(Subscribers.create(new Action1<TransportMessage>() {
           @Override
           public void call(TransportMessage transportMessage) {
             onSyncAck(transportMessage);
@@ -315,7 +316,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
 
   private void sendSync(List<TransportEndpoint> members, String period) {
     ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
-    Message message = new Message(syncData, TransportHeaders.QUALIFIER, SYNC, TransportHeaders.CORRELATION_ID, period/* correlationId */);
+    Message message =
+        new Message(syncData, TransportHeaders.QUALIFIER, SYNC, TransportHeaders.CORRELATION_ID, period/* correlationId */);
     for (TransportEndpoint endpoint : members) {
       transport.to(endpoint).send(message);
     }
@@ -342,15 +344,15 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   /**
    * Takes {@code updates} and process them in next order.
    * <ul>
-   * <li>recalculates 'cluster members' for {@link #gossipProtocol} and {@link #failureDetector} by filtering out {@code REMOVED/SHUTDOWN}
-   * members</li>
-   * <li>if {@code spreadGossip} was set {@code true} -- converts {@code updates} to {@link ClusterMembershipData} and send it to cluster
-   * via {@link #gossipProtocol}</li>
+   * <li>recalculates 'cluster members' for {@link #gossipProtocol} and {@link #failureDetector} by filtering out
+   * {@code REMOVED/SHUTDOWN} members</li>
+   * <li>if {@code spreadGossip} was set {@code true} -- converts {@code updates} to {@link ClusterMembershipData} and
+   * send it to cluster via {@link #gossipProtocol}</li>
    * <li>publishes updates locally (see {@link #listenUpdates()})</li>
-   * <li>iterates on {@code updates}, if {@code update} become {@code SUSPECTED} -- schedules a timer ({@link #maxSuspectTime}) to remove
-   * the member (on {@code TRUSTED} -- cancels the timer)</li>
-   * <li>iterates on {@code updates}, if {@code update} become {@code SHUTDOWN} -- schedules a timer ({@link #maxShutdownTime}) to remove
-   * the member</li>
+   * <li>iterates on {@code updates}, if {@code update} become {@code SUSPECTED} -- schedules a timer (
+   * {@link #maxSuspectTime}) to remove the member (on {@code TRUSTED} -- cancels the timer)</li>
+   * <li>iterates on {@code updates}, if {@code update} become {@code SHUTDOWN} -- schedules a timer (
+   * {@link #maxShutdownTime}) to remove the member</li>
    * </ul>
    * 
    * @param updates list of updates after merge
@@ -403,7 +405,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
           break;
         default:
-          //ignore
+          // ignore
       }
     }
   }

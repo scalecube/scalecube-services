@@ -36,7 +36,8 @@ public class ClusterMembershipBuilder {
 
   private ClusterMembershipBuilder(ClusterEndpoint clusterEndpoint, List<TransportEndpoint> members) {
     transport =
-        (Transport) TransportBuilder.newInstance(clusterEndpoint.endpoint(), clusterEndpoint.endpointId()).useNetworkEmulator().build();
+        (Transport) TransportBuilder.newInstance(clusterEndpoint.endpoint(), clusterEndpoint.endpointId())
+            .useNetworkEmulator().build();
 
     fdBuilder = FailureDetectorBuilder.FDBuilder(clusterEndpoint, transport).pingTime(100).pingTimeout(100);
 
@@ -123,7 +124,8 @@ public class ClusterMembershipBuilder {
   }
 
   public ClusterMembershipBuilder network(ClusterEndpoint member, int lostPercent, int mean) {
-    transport.<SocketChannelPipelineFactory>getPipelineFactory().setNetworkSettings(member.endpoint(), lostPercent, mean);
+    transport.<SocketChannelPipelineFactory>getPipelineFactory().setNetworkSettings(member.endpoint(), lostPercent,
+        mean);
     return this;
   }
 

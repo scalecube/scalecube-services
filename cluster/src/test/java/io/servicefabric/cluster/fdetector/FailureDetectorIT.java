@@ -179,7 +179,8 @@ public class FailureDetectorIT {
     members.add(d);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).pingTimeout(999).set(members).ping(b).block(b).noRandomMembers()); // a--X-->b and no neighbors
+    builders.add(FDBuilder(a).pingTimeout(999).set(members).ping(b).block(b).noRandomMembers()); // a--X-->b and no
+                                                                                                 // neighbors
     builders.add(FDBuilder(b).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
     builders.add(FDBuilder(c).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
     builders.add(FDBuilder(d).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
@@ -211,7 +212,9 @@ public class FailureDetectorIT {
     members.add(e);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).pingTimeout(499).set(members).ping(b).block(b).randomMembers(of(c)).block(c)); // a--X-->b then a--X-->c
+    builders.add(FDBuilder(a).pingTimeout(499).set(members).ping(b).block(b).randomMembers(of(c)).block(c)); // a--X-->b
+                                                                                                             // then
+                                                                                                             // a--X-->c
     builders.add(FDBuilder(b).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
     builders.add(FDBuilder(c).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
     builders.add(FDBuilder(d).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a

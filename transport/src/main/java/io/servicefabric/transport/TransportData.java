@@ -52,14 +52,14 @@ public class TransportData {
   }
 
   /**
-   * Metadata about the connection. If status set to RESOLVED_OK this map shall contain connection metadata from remote peer (i.e. not local
-   * one). Otherwise -- local metadata shall return unchanged.
+   * Metadata about the connection. If status set to RESOLVED_OK this map shall contain connection metadata from remote
+   * peer (i.e. not local one). Otherwise -- local metadata shall return unchanged.
    */
   @Tag(1)
   private List<KvPair<String, Object>> metadata = new ArrayList<>();
   /**
-   * Status of resolution. When set to RESOLVED_OK this should mean connection is good and we can proceed further with transport. Otherwise
-   * -- transport should be treated as invalid and purged from system.
+   * Status of resolution. When set to RESOLVED_OK this should mean connection is good and we can proceed further with
+   * transport. Otherwise -- transport should be treated as invalid and purged from system.
    */
   @Tag(2)
   private Status status;

@@ -93,7 +93,8 @@ public class FailureDetectorBuilder {
 
   public static FailureDetectorBuilder FDBuilder(ClusterEndpoint clusterEndpoint) {
     Transport transport =
-        (Transport) TransportBuilder.newInstance(clusterEndpoint.endpoint(), clusterEndpoint.endpointId()).useNetworkEmulator().build();
+        (Transport) TransportBuilder.newInstance(clusterEndpoint.endpoint(), clusterEndpoint.endpointId())
+            .useNetworkEmulator().build();
     return new FailureDetectorBuilder(clusterEndpoint, transport);
   }
 

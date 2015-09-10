@@ -37,10 +37,12 @@ final class MessageSchema implements Schema<Message> {
   private static final int DATA_PAYLOAD_FIELD_NUMBER = 3;
   private static final int DATA_TYPE_FIELD_NUMBER = 4;
 
-  private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer(MIN_BUFFER_SIZE, DEFAULT_MAX_CAPACITY);
+  private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer(MIN_BUFFER_SIZE,
+      DEFAULT_MAX_CAPACITY);
 
-  private static final Map<String, Integer> fieldMap = ImmutableMap.of("headerKeys", HEADER_KEYS_FIELD_NUMBER, "headerValues",
-      HEADER_VALUES_FIELD_NUMBER, "dataPayload", DATA_PAYLOAD_FIELD_NUMBER, "dataType", DATA_TYPE_FIELD_NUMBER);
+  private static final Map<String, Integer> fieldMap = ImmutableMap.of("headerKeys", HEADER_KEYS_FIELD_NUMBER,
+      "headerValues", HEADER_VALUES_FIELD_NUMBER, "dataPayload", DATA_PAYLOAD_FIELD_NUMBER, "dataType",
+      DATA_TYPE_FIELD_NUMBER);
 
   private final ConcurrentMapMemoizer<String, Optional<Class>> classCache = new ConcurrentMapMemoizer<>(
       new Computable<String, Optional<Class>>() {

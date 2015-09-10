@@ -11,7 +11,8 @@ import java.util.Map;
 public class ClusterConfiguration {
 
   public static final int DEFAULT_PORT = 29001;
-  public static final TransportBuilder.TransportSettings DEFAULT_TRANSPORT_SETTINGS = new TransportBuilder.TransportSettings();
+  public static final TransportBuilder.TransportSettings DEFAULT_TRANSPORT_SETTINGS =
+      new TransportBuilder.TransportSettings();
   public static final ClusterMembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new ClusterMembershipSettings();
   public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
   public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
@@ -129,7 +130,8 @@ public class ClusterConfiguration {
 
     public ClusterMembershipSettings() {}
 
-    public ClusterMembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime, String syncGroup) {
+    public ClusterMembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
+        String syncGroup) {
       this.syncTime = syncTime;
       this.syncTimeout = syncTimeout;
       this.maxSuspectTime = maxSuspectTime;
@@ -179,8 +181,9 @@ public class ClusterConfiguration {
 
     @Override
     public String toString() {
-      return "ClusterMembershipSettings{" + "syncTime=" + syncTime + ", syncTimeout=" + syncTimeout + ", maxSuspectTime=" + maxSuspectTime
-          + ", maxShutdownTime=" + maxShutdownTime + ", syncGroup='" + syncGroup + '\'' + '}';
+      return "ClusterMembershipSettings{" + "syncTime=" + syncTime + ", syncTimeout=" + syncTimeout
+          + ", maxSuspectTime=" + maxSuspectTime + ", maxShutdownTime=" + maxShutdownTime + ", syncGroup='" + syncGroup
+          + '\'' + '}';
     }
   }
 
@@ -228,8 +231,8 @@ public class ClusterConfiguration {
 
     @Override
     public String toString() {
-      return "GossipProtocolSettings{" + "maxGossipSent=" + maxGossipSent + ", gossipTime=" + gossipTime + ", maxEndpointsToSelect="
-          + maxEndpointsToSelect + '}';
+      return "GossipProtocolSettings{" + "maxGossipSent=" + maxGossipSent + ", gossipTime=" + gossipTime
+          + ", maxEndpointsToSelect=" + maxEndpointsToSelect + '}';
     }
   }
 
@@ -277,8 +280,8 @@ public class ClusterConfiguration {
 
     @Override
     public String toString() {
-      return "FailureDetectorSettings{" + "pingTime=" + pingTime + ", pingTimeout=" + pingTimeout + ", maxEndpointsToSelect="
-          + maxEndpointsToSelect + '}';
+      return "FailureDetectorSettings{" + "pingTime=" + pingTime + ", pingTimeout=" + pingTimeout
+          + ", maxEndpointsToSelect=" + maxEndpointsToSelect + '}';
     }
   }
 }

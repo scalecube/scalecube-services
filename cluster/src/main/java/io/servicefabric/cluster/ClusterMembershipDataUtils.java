@@ -14,7 +14,8 @@ final class ClusterMembershipDataUtils {
   private ClusterMembershipDataUtils() {}
 
   /**
-   * In the incoming {@code transportMessage} filters {@link ClusterMembershipData} by excluding record with {@code localEndpoint}.
+   * In the incoming {@code transportMessage} filters {@link ClusterMembershipData} by excluding record with
+   * {@code localEndpoint}.
    */
   static Func1<TransportMessage, TransportMessage> filterData(final ClusterEndpoint localEndpoint) {
     return new Func1<TransportMessage, TransportMessage>() {
@@ -23,8 +24,8 @@ final class ClusterMembershipDataUtils {
         Message message = transportMessage.message();
         ClusterMembershipData filteredData = filterData(localEndpoint, (ClusterMembershipData) message.data());
         Message filteredMessage = new Message(filteredData, message.headers());
-        return new TransportMessage(transportMessage.originChannel(), filteredMessage, transportMessage.originEndpoint(),
-            transportMessage.originEndpointId());
+        return new TransportMessage(transportMessage.originChannel(), filteredMessage,
+            transportMessage.originEndpoint(), transportMessage.originEndpointId());
       }
     };
   }
@@ -39,7 +40,8 @@ final class ClusterMembershipDataUtils {
   }
 
   /**
-   * In the incoming {@code transportMessage} filters {@link ClusterMembershipData} by excluding record with {@code localEndpoint}.
+   * In the incoming {@code transportMessage} filters {@link ClusterMembershipData} by excluding record with
+   * {@code localEndpoint}.
    */
   static Func1<Message, ClusterMembershipData> gossipFilterData(final ClusterEndpoint localEndpoint) {
     return new Func1<Message, ClusterMembershipData>() {

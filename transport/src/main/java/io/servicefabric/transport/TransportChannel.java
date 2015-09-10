@@ -61,7 +61,8 @@ final class TransportChannel implements ITransportChannel {
   /**
    * Origin/Destination of this transport.
    *
-   * @return TransportEndpoint object this transport is referencing to; or {@code null} if this transport isn't READY yet
+   * @return TransportEndpoint object this transport is referencing to; or {@code null} if this transport isn't READY
+   *         yet
    */
   @Nullable
   public TransportEndpoint getRemoteEndpoint() {
@@ -71,7 +72,8 @@ final class TransportChannel implements ITransportChannel {
   /**
    * Identity of the Origin/Destination of this transport.
    *
-   * @return TransportEndpoint object this transport is referencing to; or {@code null} if this transport isn't READY yet
+   * @return TransportEndpoint object this transport is referencing to; or {@code null} if this transport isn't READY
+   *         yet
    */
   @Nullable
   public String getRemoteEndpointId() {
@@ -137,14 +139,15 @@ final class TransportChannel implements ITransportChannel {
     }
     Class clazz = getCause().getClass();
     String packageName = clazz.getPackage().getName();
-    String dottedPackageName = Joiner.on('.').join(transform(Splitter.on('.').split(packageName), new Function<String, Character>() {
-      @Override
-      public Character apply(String input) {
-        return input.charAt(0);
-      }
-    }));
-    return "NettyTransport{" + "status=" + status + ", cause=[" + dottedPackageName + "." + clazz.getSimpleName() + "]" + ", channel="
-        + channel + '}';
+    String dottedPackageName =
+        Joiner.on('.').join(transform(Splitter.on('.').split(packageName), new Function<String, Character>() {
+          @Override
+          public Character apply(String input) {
+            return input.charAt(0);
+          }
+        }));
+    return "NettyTransport{" + "status=" + status + ", cause=[" + dottedPackageName + "." + clazz.getSimpleName() + "]"
+        + ", channel=" + channel + '}';
   }
 
   static final class Builder {

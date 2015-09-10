@@ -20,12 +20,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Duplex handler. On inbound recognizes only handshake message {@link TransportData#Q_TRANSPORT_HANDSHAKE_SYNC_ACK} (rest inbound messages
- * unsupported and results in {@link TransportBrokenException}). On outbound may enqueue messages. On 'channel active' starting handshake
- * process.
+ * Duplex handler. On inbound recognizes only handshake message {@link TransportData#Q_TRANSPORT_HANDSHAKE_SYNC_ACK}
+ * (rest inbound messages unsupported and results in {@link TransportBrokenException}). On outbound may enqueue
+ * messages. On 'channel active' starting handshake process.
  * <p/>
- * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimer}); and should always run in different
- * executor than io-thread.
+ * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimer}); and should always run
+ * in different executor than io-thread.
  */
 final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
   static final Logger LOGGER = LoggerFactory.getLogger(ConnectorHandshakeChannelHandler.class);
@@ -97,7 +97,7 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
     Message message = (Message) msg;
     if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.header(TransportHeaders.QUALIFIER))) {
       throw new TransportBrokenException("Received unsupported " + msg
-                                         + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC_ACK)");
+          + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC_ACK)");
     }
 
     TransportData handshake = (TransportData) message.data();

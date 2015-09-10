@@ -22,7 +22,8 @@ final class NetworkEmulatorChannelHandler extends ChannelOutboundHandlerAdapter 
   private final ITransportSpi transportSpi;
   private final Map<TransportEndpoint, NetworkEmulatorSettings> networkSettings;
 
-  NetworkEmulatorChannelHandler(ITransportSpi transportSpi, Map<TransportEndpoint, NetworkEmulatorSettings> networkSettings) {
+  NetworkEmulatorChannelHandler(ITransportSpi transportSpi,
+      Map<TransportEndpoint, NetworkEmulatorSettings> networkSettings) {
     this.transportSpi = transportSpi;
     this.networkSettings = networkSettings;
   }
@@ -31,7 +32,8 @@ final class NetworkEmulatorChannelHandler extends ChannelOutboundHandlerAdapter 
   public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
     Message message = (Message) msg;
     String qualifier = message.header(TransportHeaders.QUALIFIER);
-    if (TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(qualifier) || TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(qualifier)) {
+    if (TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(qualifier)
+        || TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(qualifier)) {
       super.write(ctx, msg, promise);
       return;
     }

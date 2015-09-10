@@ -60,6 +60,7 @@ final class GossipLocalState {
 
   @Override
   public String toString() {
-    return "GossipLocalState{" + "gossip=" + gossip + ", sent=" + sent + ", period=" + period + ", members=" + members + '}';
+    return "GossipLocalState{" + "gossip=" + gossip + ", sent=" + sent + ", period=" + period + ", members=" + members
+        + '}';
   }
 }

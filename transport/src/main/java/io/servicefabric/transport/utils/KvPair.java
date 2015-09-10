@@ -1,8 +1,8 @@
 package io.servicefabric.transport.utils;
 
 /**
- * Generic class that represent key-value pair of two different values. Two pair is equal when both its key and value are equal. It is
- * immutable.
+ * Generic class that represent key-value pair of two different values. Two pair is equal when both its key and value
+ * are equal. It is immutable.
  *
  * @param <K> type of key
  * @param <V> type of value

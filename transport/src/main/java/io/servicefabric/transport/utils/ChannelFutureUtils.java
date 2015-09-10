@@ -29,7 +29,8 @@ public class ChannelFutureUtils {
   }
 
   /**
-   * @return wrapped {@link ChannelFutureListener} that forwards the Throwable (if any) of given {@code cfl} into the ChannelPipeline.
+   * @return wrapped {@link ChannelFutureListener} that forwards the Throwable (if any) of given {@code cfl} into the
+   *         ChannelPipeline.
    */
   public static ChannelFutureListener wrap(final ChannelFutureListener cfl) {
     return new ChannelFutureListener() {

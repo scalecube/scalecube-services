@@ -32,8 +32,8 @@ import javax.annotation.Nonnull;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class CacheReadBenchmark {
 
-  static final String[] GENERIC_ARGS = new String[] {"java.lang.String", "java.lang.Long", "java.lang.Integer", "java.lang.Short",
-      "java.lang.Character", "java.lang.Byte", "io.servicefabric.transport.protocol.MessageSchema",};
+  static final String[] GENERIC_ARGS = new String[] {"java.lang.String", "java.lang.Long", "java.lang.Integer",
+      "java.lang.Short", "java.lang.Character", "java.lang.Byte", "io.servicefabric.transport.protocol.MessageSchema",};
 
   static final String[] GENERIC_ARGS_CACHE_MISS = new String[] {"java.lang.String", "xyz", "java.lang.Integer", "abc",
       "java.lang.Character", "qwerty", "io.servicefabric.transport.protocol.MessageSchema",};
@@ -51,17 +51,18 @@ public class CacheReadBenchmark {
         }
       });
 
-  ConcurrentMapMemoizer<String, Optional<Class>> memoizer = new ConcurrentMapMemoizer<>(new Computable<String, Optional<Class>>() {
-    @Override
-    public Optional<Class> compute(String className) {
-      try {
-        Class dataClass = Class.forName(className);
-        return Optional.of(dataClass);
-      } catch (ClassNotFoundException e) {
-        return Optional.absent();
-      }
-    }
-  });
+  ConcurrentMapMemoizer<String, Optional<Class>> memoizer = new ConcurrentMapMemoizer<>(
+      new Computable<String, Optional<Class>>() {
+        @Override
+        public Optional<Class> compute(String className) {
+          try {
+            Class dataClass = Class.forName(className);
+            return Optional.of(dataClass);
+          } catch (ClassNotFoundException e) {
+            return Optional.absent();
+          }
+        }
+      });
 
   @Benchmark
   public void readFromGuavaCache() {

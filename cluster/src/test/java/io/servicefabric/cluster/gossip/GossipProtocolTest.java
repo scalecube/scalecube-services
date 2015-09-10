@@ -55,7 +55,8 @@ public class GossipProtocolTest {
       {
         oneOf(transport).listen();
         will(returnValue(subject));
-        oneOf(executorService).scheduleWithFixedDelay(with(any(Runnable.class)), with(200l), with(200l), with(TimeUnit.MILLISECONDS));
+        oneOf(executorService).scheduleWithFixedDelay(with(any(Runnable.class)), with(200l), with(200l),
+            with(TimeUnit.MILLISECONDS));
       }
     });
     protocol = new GossipProtocol(ClusterEndpoint.from("tcp://id@host:1"), executorService);
@@ -101,8 +102,8 @@ public class GossipProtocolTest {
     TransportEndpoint endpoint1 = from("tcp://host:1");
 
     subject.onNext(new TransportMessage(transportChannel, new Message(gossipRequest), endpoint2, "2"));
-    subject.onNext(new TransportMessage(transportChannel, new Message(null, TransportHeaders.QUALIFIER, "com.pt.openapi.hello/"),
-        endpoint1, "1"));
+    subject.onNext(new TransportMessage(transportChannel, new Message(null, TransportHeaders.QUALIFIER,
+        "com.pt.openapi.hello/"), endpoint1, "1"));
     subject.onNext(new TransportMessage(transportChannel, new Message(gossipRequest), endpoint1, "1"));
     List<Gossip> second = new ArrayList<>();
     second.add(new Gossip("2", new Message("data")));
@@ -117,7 +118,8 @@ public class GossipProtocolTest {
 
   @Test
   public void testSendGossips() throws Exception {
-    Method sendGossips = GossipProtocol.class.getDeclaredMethod("sendGossips", List.class, Collection.class, Integer.class);
+    Method sendGossips =
+        GossipProtocol.class.getDeclaredMethod("sendGossips", List.class, Collection.class, Integer.class);
     sendGossips.setAccessible(true);
     List<GossipLocalState> list = new ArrayList<>();
 

@@ -36,6 +36,7 @@ public final class TransportEndpoint {
 
   /**
    * Creates new transport endpoint from uri.
+   * 
    * @param uri must come in form {@code tcp}://[host:]port}
    * @return TransportEndpoint object
    * @throws IllegalArgumentException if scheme is wrong / or port is invalid

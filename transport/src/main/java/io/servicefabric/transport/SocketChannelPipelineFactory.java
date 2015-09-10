@@ -80,7 +80,8 @@ public final class SocketChannelPipelineFactory implements PipelineFactory {
       pipeline.addBefore("handshakeHandler", "networkEmulator", networkEmulator);
     }
     pipeline.remove("handshakeHandler");
-    pipeline.addBefore(eventExecutor, "exceptionHandler", "messageReceiver", new MessageReceiverChannelHandler(transportSpi));
+    pipeline.addBefore(eventExecutor, "exceptionHandler", "messageReceiver", new MessageReceiverChannelHandler(
+        transportSpi));
   }
 
   private void prepareForGenericDataFormat(ChannelPipeline pipeline) {

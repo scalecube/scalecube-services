@@ -97,8 +97,8 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   public static ThreadFactory createThreadFactory(String namingFormat) {
-    return new ThreadFactoryBuilder().setNameFormat(namingFormat).setUncaughtExceptionHandler(
-        new Thread.UncaughtExceptionHandler() {
+    return new ThreadFactoryBuilder().setNameFormat(namingFormat)
+        .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
           @Override
           public void uncaughtException(Thread thread, Throwable ex) {
             LOGGER.error("Unhandled exception: {}", ex, ex);
@@ -240,7 +240,7 @@ public final class Transport implements ITransportSpi, ITransport {
     try {
       subject.onCompleted();
     } catch (Exception ignore) {
-      //ignore
+      // ignore
     }
     // cleanup accepted
     for (TransportEndpoint endpoint : accepted.keySet()) {
@@ -292,7 +292,8 @@ public final class Transport implements ITransportSpi, ITransport {
   public void accept(TransportChannel transport) throws TransportBrokenException {
     TransportChannel prev = accepted.putIfAbsent(transport.getRemoteEndpoint(), transport);
     if (prev != null) {
-      String err = String.format("Detected duplicate %s for key=%s in accepted_map", prev, transport.getRemoteEndpoint());
+      String err =
+          String.format("Detected duplicate %s for key=%s in accepted_map", prev, transport.getRemoteEndpoint());
       throw new TransportBrokenException(transport, err);
     }
   }

@@ -14,8 +14,8 @@ import java.util.Map;
 import javax.annotation.Nonnull;
 
 /**
- * DTO class. Hosting cluster endpoint, status, metadata and update timestamp. Most important, contains -- {@link #compareTo(ClusterMember)}
- * .
+ * DTO class. Hosting cluster endpoint, status, metadata and update timestamp. Most important, contains --
+ * {@link #compareTo(ClusterMember)} .
  */
 public final class ClusterMember implements Comparable<ClusterMember> {
   private final ClusterEndpoint endpoint;
@@ -27,7 +27,8 @@ public final class ClusterMember implements Comparable<ClusterMember> {
     this(endpoint, status, metadata, System.currentTimeMillis());
   }
 
-  ClusterMember(ClusterEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata, long lastUpdateTimestamp) {
+  ClusterMember(ClusterEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata,
+      long lastUpdateTimestamp) {
     this.endpoint = endpoint;
     this.status = status;
     for (Map.Entry<String, String> entry : metadata.entrySet()) {
@@ -81,7 +82,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   @Override
   public String toString() {
-    return "ClusterMember{" + "endpoint=" + endpoint + ", status=" + status + ", metadata=" + metadata + ", lastUpdateTimestamp="
-        + lastUpdateTimestamp + '}';
+    return "ClusterMember{" + "endpoint=" + endpoint + ", status=" + status + ", metadata=" + metadata
+        + ", lastUpdateTimestamp=" + lastUpdateTimestamp + '}';
   }
 }

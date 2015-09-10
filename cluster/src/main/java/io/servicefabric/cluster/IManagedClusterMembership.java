@@ -1,7 +1,8 @@
 package io.servicefabric.cluster;
 
 /**
- * Extends cluster membership protocol interface and provides management operations. This interface is supposed for internal use.
+ * Extends cluster membership protocol interface and provides management operations. This interface is supposed for
+ * internal use.
  *
  * @author Anton Kharenko
  */
@@ -16,9 +17,9 @@ public interface IManagedClusterMembership extends IClusterMembership {
   void stop();
 
   /**
-   * Denoting fact that local member is getting gracefully shutdown. It will notify other members that going to be stopped soon. After
-   * calling this method recommended to wait some reasonable amount of time to start spreading inforamtion about leave before stopping
-   * server.
+   * Denoting fact that local member is getting gracefully shutdown. It will notify other members that going to be
+   * stopped soon. After calling this method recommended to wait some reasonable amount of time to start spreading
+   * inforamtion about leave before stopping server.
    */
   void leave();
 

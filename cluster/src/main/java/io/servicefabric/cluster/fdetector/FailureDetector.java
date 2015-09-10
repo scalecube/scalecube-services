@@ -74,7 +74,8 @@ public final class FailureDetector implements IFailureDetector {
       LOGGER.debug("Received Ping from {}", transportMessage.originEndpoint());
       FailureDetectorData data = (FailureDetectorData) transportMessage.message().data();
       String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
-      send(data.getFrom(), new Message(data, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID, correlationId));
+      send(data.getFrom(), new Message(data, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
+          correlationId));
     }
   });
 
@@ -88,22 +89,29 @@ public final class FailureDetector implements IFailureDetector {
       ClusterEndpoint originalIssuer = data.getFrom();
       String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
       FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, target, originalIssuer);
-      send(target, new Message(pingReqData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID, correlationId));
+      send(target, new Message(pingReqData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID,
+          correlationId));
     }
   });
 
-  /** Listener to ACK with message containing ORIGINAL_ISSUER then convert message to plain ACK and send it to ORIGINAL_ISSUER. */
-  private Subscriber<TransportMessage> onAckToOriginalAckSubscriber = Subscribers.create(new Action1<TransportMessage>() {
-    @Override
-    public void call(TransportMessage transportMessage) {
-      FailureDetectorData data = (FailureDetectorData) transportMessage.message().data();
-      ClusterEndpoint target = data.getOriginalIssuer();
-      String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
-      FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
-      Message message = new Message(originalAckData, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID, correlationId);
-      send(target, message);
-    }
-  });
+  /**
+   * Listener to ACK with message containing ORIGINAL_ISSUER then convert message to plain ACK and send it to
+   * ORIGINAL_ISSUER.
+   */
+  private Subscriber<TransportMessage> onAckToOriginalAckSubscriber = Subscribers
+      .create(new Action1<TransportMessage>() {
+        @Override
+        public void call(TransportMessage transportMessage) {
+          FailureDetectorData data = (FailureDetectorData) transportMessage.message().data();
+          ClusterEndpoint target = data.getOriginalIssuer();
+          String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
+          FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
+          Message message =
+              new Message(originalAckData, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
+                          correlationId);
+          send(target, message);
+        }
+      });
 
   public FailureDetector(ClusterEndpoint localEndpoint, Scheduler scheduler) {
     checkArgument(localEndpoint != null);
@@ -165,8 +173,7 @@ public final class FailureDetector implements IFailureDetector {
 
   @Override
   public void start() {
-    transport.listen().filter(PING_FILTER).filter(targetFilter(localEndpoint)).subscribe(
-        onPingSubscriber);
+    transport.listen().filter(PING_FILTER).filter(targetFilter(localEndpoint)).subscribe(onPingSubscriber);
     transport.listen().filter(PING_REQ_FILTER).subscribe(onPingReqSubscriber);
     transport.listen().filter(ACK_FILTER).filter(new Func1<TransportMessage, Boolean>() {
       @Override
@@ -223,13 +230,13 @@ public final class FailureDetector implements IFailureDetector {
 
     final String period = "" + periodNbr.incrementAndGet();
     FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
-    Message message = new Message(pingData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID, period/* correlationId */);
+    Message message =
+        new Message(pingData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID, period/* correlationId */);
     LOGGER.debug("Send Ping from {} to {}", localEndpoint, pingMember);
 
-    transport.listen().filter(ackFilter(period)).filter(
-        new CorrelationFilter(localEndpoint, pingMember)).take(1)
-        .timeout(pingTimeout, TimeUnit.MILLISECONDS, scheduler).subscribe(
-        Subscribers.create(new Action1<TransportMessage>() {
+    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
+        .timeout(pingTimeout, TimeUnit.MILLISECONDS, scheduler)
+        .subscribe(Subscribers.create(new Action1<TransportMessage>() {
           @Override
           public void call(TransportMessage transportMessage) {
             LOGGER.debug("Received PingAck from {}", pingMember);
@@ -238,8 +245,7 @@ public final class FailureDetector implements IFailureDetector {
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.debug("No PingAck from {} within {}ms; about to make PingReq now", pingMember,
-                         pingTimeout);
+            LOGGER.debug("No PingAck from {} within {}ms; about to make PingReq now", pingMember, pingTimeout);
             doPingReq(members, pingMember, period);
           }
         }));
@@ -255,28 +261,27 @@ public final class FailureDetector implements IFailureDetector {
       return;
     }
 
-    final List<ClusterEndpoint> randomMembers = selectRandomMembers(members, maxEndpointsToSelect, targetMember/* exclude */);
+    final List<ClusterEndpoint> randomMembers =
+        selectRandomMembers(members, maxEndpointsToSelect, targetMember/* exclude */);
     if (randomMembers.isEmpty()) {
       LOGGER.debug("No PingReq occured, because member selection => []");
       declareSuspected(targetMember);
       return;
     }
 
-    transport.listen().filter(ackFilter(period)).filter(
-        new CorrelationFilter(localEndpoint, targetMember)).take(1)
-        .timeout(timeout, TimeUnit.MILLISECONDS, scheduler).subscribe(
-        Subscribers.create(new Action1<TransportMessage>() {
+    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, targetMember)).take(1)
+        .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
+        .subscribe(Subscribers.create(new Action1<TransportMessage>() {
           @Override
           public void call(TransportMessage transportMessage) {
-            LOGGER.debug("PingReq OK (pinger={}, target={})", transportMessage.originEndpoint(),
-                         targetMember);
+            LOGGER.debug("PingReq OK (pinger={}, target={})", transportMessage.originEndpoint(), targetMember);
             declareTrusted(targetMember);
           }
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.debug("No PingAck on PingReq within {}ms (pingers={}, target={})", randomMembers,
-                         targetMember, timeout);
+            LOGGER.debug("No PingAck on PingReq within {}ms (pingers={}, target={})", randomMembers, targetMember,
+                         timeout);
             declareSuspected(targetMember);
           }
         }));
@@ -291,7 +296,7 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   /**
-   *  Adds given member to {@link #suspectedMembers} and emitting state {@code SUSPECTED}.
+   * Adds given member to {@link #suspectedMembers} and emitting state {@code SUSPECTED}.
    */
   private void declareSuspected(ClusterEndpoint member) {
     if (suspectedMembers.add(member)) {
@@ -321,7 +326,8 @@ public final class FailureDetector implements IFailureDetector {
     return members.isEmpty() ? null : selectRandomMembers(members, 1, null).get(0);
   }
 
-  private List<ClusterEndpoint> selectRandomMembers(List<ClusterEndpoint> members, int count, ClusterEndpoint memberToExclude) {
+  private List<ClusterEndpoint> selectRandomMembers(List<ClusterEndpoint> members, int count,
+      ClusterEndpoint memberToExclude) {
     if (randomMembers != null) {
       return randomMembers;
     }

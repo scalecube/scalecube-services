@@ -31,7 +31,9 @@ public final class TransportHeaders {
     @Override
     public Boolean call(TransportMessage transportMessage) {
       boolean q0 = qualifier.equals(transportMessage.message().header(TransportHeaders.QUALIFIER));
-      boolean q1 = correlationId == null || correlationId.equals(transportMessage.message().header(TransportHeaders.CORRELATION_ID));
+      boolean q1 =
+          correlationId == null
+              || correlationId.equals(transportMessage.message().header(TransportHeaders.CORRELATION_ID));
       return q0 && q1;
     }
   }

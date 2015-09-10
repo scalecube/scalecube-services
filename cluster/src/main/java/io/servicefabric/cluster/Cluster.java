@@ -48,7 +48,7 @@ public final class Cluster implements ICluster {
   private final AtomicReference<State> state;
 
   private Cluster(Transport transport, FailureDetector failureDetector, GossipProtocol gossipProtocol,
-                  ClusterMembership clusterMembership) {
+      ClusterMembership clusterMembership) {
     this.transport = transport;
     this.failureDetector = failureDetector;
     this.gossipProtocol = gossipProtocol;
@@ -86,7 +86,8 @@ public final class Cluster implements ICluster {
     ClusterEndpoint localClusterEndpoint = ClusterEndpoint.from(memberId, TransportEndpoint.localTcp(config.port, 0));
 
     // Build transport
-    TransportBuilder transportBuilder = TransportBuilder.newInstance(localClusterEndpoint.endpoint(), localClusterEndpoint.endpointId());
+    TransportBuilder transportBuilder =
+        TransportBuilder.newInstance(localClusterEndpoint.endpoint(), localClusterEndpoint.endpointId());
     transportBuilder.setTransportSettings(config.transportSettings);
     Transport transport = (Transport) transportBuilder.build();
 
@@ -98,14 +99,16 @@ public final class Cluster implements ICluster {
     gossipProtocol.setMaxEndpointsToSelect(config.gossipProtocolSettings.getMaxEndpointsToSelect());
 
     // Build failure detector component
-    FailureDetector failureDetector = new FailureDetector(localClusterEndpoint, Schedulers.from(transport.getEventExecutor()));
+    FailureDetector failureDetector =
+        new FailureDetector(localClusterEndpoint, Schedulers.from(transport.getEventExecutor()));
     failureDetector.setTransport(transport);
     failureDetector.setPingTime(config.failureDetectorSettings.getPingTime());
     failureDetector.setPingTimeout(config.failureDetectorSettings.getPingTimeout());
     failureDetector.setMaxEndpointsToSelect(config.failureDetectorSettings.getMaxEndpointsToSelect());
 
     // Build cluster membership component
-    ClusterMembership clusterMembership = new ClusterMembership(localClusterEndpoint, Schedulers.from(transport.getEventExecutor()));
+    ClusterMembership clusterMembership =
+        new ClusterMembership(localClusterEndpoint, Schedulers.from(transport.getEventExecutor()));
     clusterMembership.setFailureDetector(failureDetector);
     clusterMembership.setGossipProtocol(gossipProtocol);
     clusterMembership.setTransport(transport);
@@ -198,7 +201,8 @@ public final class Cluster implements ICluster {
 
   private void checkJoinedState() {
     State currentState = state.get();
-    checkState(currentState == State.JOINED, "Illegal operation at state %s. Member should be joined to cluster.", state.get());
+    checkState(currentState == State.JOINED, "Illegal operation at state %s. Member should be joined to cluster.",
+        state.get());
   }
 
   private void updateClusterState(State expected, State update) {

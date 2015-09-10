@@ -690,9 +690,8 @@ public class SocketChannelTransportFactoryTest {
         for (int j = 0; j < total; j++) {
           String correlationId = id + "/" + j;
           SettableFuture<Void> send = SettableFuture.create();
-          client.to(endpoint)
-              .send(new Message(null, TransportHeaders.QUALIFIER, "q",
-                                TransportHeaders.CORRELATION_ID, correlationId), send);
+          client.to(endpoint).send(
+              new Message(null, TransportHeaders.QUALIFIER, "q", TransportHeaders.CORRELATION_ID, correlationId), send);
           try {
             send.get(3, TimeUnit.SECONDS);
           } catch (Exception e) {
@@ -740,10 +739,8 @@ public class SocketChannelTransportFactoryTest {
     tf.setConnectTimeout(1000);
     tf.setLocalMetadata(localMetadata);
     tf.setSendHwm(sendHwm);
-    tf.setPipelineFactory(SocketChannelPipelineFactory.builder().set(
-        new ProtostuffMessageDeserializer())
-        .set(new ProtostuffMessageSerializer()).set(
-            new ProtostuffFrameHandlerFactory()).useNetworkEmulator().build());
+    tf.setPipelineFactory(SocketChannelPipelineFactory.builder().set(new ProtostuffMessageDeserializer())
+        .set(new ProtostuffMessageSerializer()).set(new ProtostuffFrameHandlerFactory()).useNetworkEmulator().build());
     tf.start();
     return tf;
   }

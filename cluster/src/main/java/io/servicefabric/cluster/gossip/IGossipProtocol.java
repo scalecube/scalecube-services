@@ -5,8 +5,8 @@ import io.servicefabric.transport.protocol.Message;
 import rx.Observable;
 
 /**
- * Gossip Protocol component responsible for spreading information (gossips) over the cluster members using infection-style dissemination
- * algorithms. It provides reliable cross-cluster broadcast.
+ * Gossip Protocol component responsible for spreading information (gossips) over the cluster members using
+ * infection-style dissemination algorithms. It provides reliable cross-cluster broadcast.
  *
  * @author Anton Kharenko
  */

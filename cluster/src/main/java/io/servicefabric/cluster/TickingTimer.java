@@ -14,9 +14,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * It is an utility wrapper class around {@code io.netty.util.HashedWheelTimer} which simplify its usage. This timer doesn't execute
- * scheduled job on time, but provide approximate execution and on each tick checks either there are any jobs behind the timer and execute
- * them. In most network applications, I/O timeout does not need to be accurate. The default tick duration is 100 milliseconds.
+ * It is an utility wrapper class around {@code io.netty.util.HashedWheelTimer} which simplify its usage. This timer
+ * doesn't execute scheduled job on time, but provide approximate execution and on each tick checks either there are any
+ * jobs behind the timer and execute them. In most network applications, I/O timeout does not need to be accurate. The
+ * default tick duration is 100 milliseconds.
  *
  * @see io.netty.util.HashedWheelTimer
  */
@@ -78,9 +79,9 @@ final class TickingTimer {
   }
 
   /**
-   * Schedule runnable task to be executed after delay, store timeout internally and map it to id. If task with {@code id} has been
-   * previously scheduled, it would be cancelled and replaced with new one. Task can be canceled with id used
-   * com.playtech.openapi.core.expiration.ITimerService#cancel(java.lang.String) method
+   * Schedule runnable task to be executed after delay, store timeout internally and map it to id. If task with
+   * {@code id} has been previously scheduled, it would be cancelled and replaced with new one. Task can be canceled
+   * with id used com.playtech.openapi.core.expiration.ITimerService#cancel(java.lang.String) method
    */
   public void schedule(final String id, final Runnable runnable, int delay, TimeUnit timeUnit) {
     Preconditions.checkArgument(id != null && !id.isEmpty());

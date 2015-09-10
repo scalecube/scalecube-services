@@ -34,8 +34,8 @@ public class TransportBuilder {
     this.eventExecutor = null;
   }
 
-  private TransportBuilder(TransportEndpoint localEndpoint, String localEndpointIncarnationId, EventLoopGroup eventLoop,
-      EventExecutorGroup eventExecutor) {
+  private TransportBuilder(TransportEndpoint localEndpoint, String localEndpointIncarnationId,
+      EventLoopGroup eventLoop, EventExecutorGroup eventExecutor) {
     checkArgument(localEndpoint != null);
     checkArgument(localEndpointIncarnationId != null);
     checkArgument(eventLoop != null);
@@ -50,8 +50,8 @@ public class TransportBuilder {
     return new TransportBuilder(localEndpoint, endpointId);
   }
 
-  public static TransportBuilder newInstance(TransportEndpoint localEndpoint, String endpointId, EventLoopGroup eventLoop,
-      EventExecutorGroup eventExecutor) {
+  public static TransportBuilder newInstance(TransportEndpoint localEndpoint, String endpointId,
+      EventLoopGroup eventLoop, EventExecutorGroup eventExecutor) {
     return new TransportBuilder(localEndpoint, endpointId, eventLoop, eventExecutor);
   }
 
@@ -75,7 +75,8 @@ public class TransportBuilder {
 
   public ITransport build() {
     // Create transport
-    Transport transport = (eventLoop == null) ? new Transport(localEndpoint) : new Transport(localEndpoint, eventLoop, eventExecutor);
+    Transport transport =
+        (eventLoop == null) ? new Transport(localEndpoint) : new Transport(localEndpoint, eventLoop, eventExecutor);
 
     // Set parameters
     if (transportSettings != null) {
@@ -92,9 +93,8 @@ public class TransportBuilder {
 
     // Set pipeline
     SocketChannelPipelineFactory.Builder pipelineFactoryBuilder =
-        SocketChannelPipelineFactory.builder().set(new ProtostuffFrameHandlerFactory()).set(
-            new ProtostuffMessageSerializer())
-            .set(new ProtostuffMessageDeserializer());
+        SocketChannelPipelineFactory.builder().set(new ProtostuffFrameHandlerFactory())
+            .set(new ProtostuffMessageSerializer()).set(new ProtostuffMessageDeserializer());
 
     if (useNetworkEmulator) {
       pipelineFactoryBuilder.useNetworkEmulator();
@@ -166,8 +166,8 @@ public class TransportBuilder {
 
     @Override
     public String toString() {
-      return "TransportSettings{" + "connectTimeout=" + connectTimeout + ", handshakeTimeout=" + handshakeTimeout + ", sendHighWaterMark="
-          + sendHighWaterMark + ", logLevel='" + logLevel + '\'' + '}';
+      return "TransportSettings{" + "connectTimeout=" + connectTimeout + ", handshakeTimeout=" + handshakeTimeout
+          + ", sendHighWaterMark=" + sendHighWaterMark + ", logLevel='" + logLevel + '\'' + '}';
     }
   }
 }

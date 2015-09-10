@@ -15,16 +15,17 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach additional business
- * information and identifications to cluster memebers.
+ * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach
+ * additional business information and identifications to cluster memebers.
  * 
- * <p>in this example we see how to attach logical alias name to a cluster member we nick name Joe
+ * <p>
+ * in this example we see how to attach logical alias name to a cluster member we nick name Joe
  * 
  * @author ronen_h
  */
 public class ClusterMetadata {
 
-  private static final  String MESSAGE_DATA = "hello/Joe";
+  private static final String MESSAGE_DATA = "hello/Joe";
   public static final Func1<TransportMessage, Boolean> MESSAGE_PREDICATE = new Func1<TransportMessage, Boolean>() {
     @Override
     public Boolean call(TransportMessage t1) {
@@ -40,8 +41,8 @@ public class ClusterMetadata {
     Map<String, String> metadata = new HashMap<>();
     metadata.put("alias", "Joe");
     ClusterConfiguration config =
-        ClusterConfiguration.newInstance().port(4004).seedMembers(
-            "localhost" + ":" + "3000").memberId("my_member_id").metadata(metadata);
+        ClusterConfiguration.newInstance().port(4004).seedMembers("localhost" + ":" + "3000").memberId("my_member_id")
+            .metadata(metadata);
 
     // configure cluster 2 with the metadata and attach cluster 2 as Joe and join seed
     ICluster joeCluster = Cluster.newInstance(config).join();
