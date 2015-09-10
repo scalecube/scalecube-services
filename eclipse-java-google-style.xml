@@ -180,7 +180,7 @@
                  value="false"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_in_empty_type_declaration"
                  value="insert"/>
-        <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="140"/>
+        <setting id="org.eclipse.jdt.core.formatter.lineSplit" value="120"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_space_before_opening_paren_in_if"
                  value="insert"/>
         <setting
@@ -514,7 +514,7 @@
         <setting
                 id="org.eclipse.jdt.core.formatter.alignment_for_arguments_in_enum_constant.count_dependent"
                 value="16|-1|16"/>
-        <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="140"/>
+        <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="120"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_new_line_after_annotation_on_package"
                  value="insert"/>
         <setting id="org.eclipse.jdt.core.formatter.blank_lines_between_import_groups" value="1"/>
