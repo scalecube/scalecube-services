@@ -1,0 +1,11 @@
+#Organize Import Order
+#Tue Sep 08 18:55:14 EEST 2015
+7=javax
+6=java
+5=org
+4=io
+3=com
+2=io.servicefabric
+1=\#
+0=io.servicefabric#
+

@@ -5,7 +5,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
 
 public interface FrameHandlerFactory {
 
-	ByteToMessageDecoder getFrameDecoder();
+  ByteToMessageDecoder getFrameDecoder();
 
-	MessageToByteEncoder getFrameEncoder();
+  MessageToByteEncoder getFrameEncoder();
 }

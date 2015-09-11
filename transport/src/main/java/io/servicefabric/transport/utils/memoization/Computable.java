@@ -8,13 +8,13 @@ package io.servicefabric.transport.utils.memoization;
  */
 public interface Computable<A, V> {
 
-	/**
-	 * Compute.
-	 *
-	 * @param arg the arg
-	 * @return the v
-	 * @throws Exception the exception
-	 */
-	V compute(A arg) throws Exception;
+  /**
+   * Compute.
+   *
+   * @param arg the arg
+   * @return the v
+   * @throws Exception the exception
+   */
+  V compute(A arg) throws Exception;
 
 }

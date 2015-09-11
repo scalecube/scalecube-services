@@ -1,11 +1,21 @@
 package io.servicefabric.transport.protocol;
 
-import java.util.concurrent.TimeUnit;
-
-import org.openjdk.jmh.annotations.*;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
+import org.openjdk.jmh.annotations.Warmup;
+
+import java.util.concurrent.TimeUnit;
 
 @Fork(2)
 @State(Scope.Thread)
@@ -15,55 +25,55 @@ import io.netty.buffer.Unpooled;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class ProtostuffMessageBenchmark {
-    static final String PAYLOAD = "SgUKzpnrt8ArR9jz";
-    static final String PAYLOAD_X16 = "M82qEG06ucgawpZ89PgJcBhWiDIOZgEgz8o42ZuBrXVEXlUNmXfPdY1BOh4UbbwxTuTNAeyosxlZjDOf" +
-            "EfxPKPM2Al5CVkpg5175hzLBV5afcocm52JKwDvgSKVkoMzvnVWIQfjeAgGIERBgJ7a63mGygKDQS4moeHryedn68mmzNHGYbSqp7PIb6Rb" +
-            "n8SgT1hSOATWBReLA4ZPqfGUV0miIgOU90EYXffu9aT4cc9V8rsz3q4W8ibMsxq1JMsB6";
+  static final String PAYLOAD = "SgUKzpnrt8ArR9jz";
+  static final String PAYLOAD_X16 = "M82qEG06ucgawpZ89PgJcBhWiDIOZgEgz8o42ZuBrXVEXlUNmXfPdY1BOh4UbbwxTuTNAeyosxlZjDOf"
+      + "EfxPKPM2Al5CVkpg5175hzLBV5afcocm52JKwDvgSKVkoMzvnVWIQfjeAgGIERBgJ7a63mGygKDQS4moeHryedn68mmzNHGYbSqp7PIb6Rb"
+      + "n8SgT1hSOATWBReLA4ZPqfGUV0miIgOU90EYXffu9aT4cc9V8rsz3q4W8ibMsxq1JMsB6";
 
-    ProtostuffMessageSerializer ser;
-	ProtostuffMessageDeserializer deser;
+  ProtostuffMessageSerializer ser;
+  ProtostuffMessageDeserializer deser;
 
-	Message msg;
-	ByteBuf msg_ser;
-	ByteBuf bb_msg;
+  Message msg;
+  ByteBuf msgSer;
+  ByteBuf bbMsg;
 
-	Message msg_x16;
-	ByteBuf msg_x16_ser;
-	ByteBuf bb_msg_x16;
+  Message msgx16;
+  ByteBuf msgx16Ser;
+  ByteBuf bbMsgx16;
 
-	@Setup
-	public void setup() {
-		ser = new ProtostuffMessageSerializer();
-		deser = new ProtostuffMessageDeserializer();
+  @Setup
+  public void setup() {
+    ser = new ProtostuffMessageSerializer();
+    deser = new ProtostuffMessageDeserializer();
 
-		msg = new Message(PAYLOAD);
-		ser.serialize(msg, msg_ser = Unpooled.buffer(1024));
-		bb_msg = Unpooled.buffer(1024);
-        System.err.println("### msg_ser=" + msg_ser);
+    msg = new Message(PAYLOAD);
+    ser.serialize(msg, msgSer = Unpooled.buffer(1024));
+    bbMsg = Unpooled.buffer(1024);
+    System.err.println("### msgSer=" + msgSer);
 
-		msg_x16 = new Message(PAYLOAD_X16);
-		ser.serialize(msg_x16, msg_x16_ser = Unpooled.buffer(1024));
-		bb_msg_x16 = Unpooled.buffer(1024);
-        System.err.println("### msg_x16_ser=" + msg_x16_ser);
-	}
+    msgx16 = new Message(PAYLOAD_X16);
+    ser.serialize(msgx16, msgx16Ser = Unpooled.buffer(1024));
+    bbMsgx16 = Unpooled.buffer(1024);
+    System.err.println("### msgx16Ser=" + msgx16Ser);
+  }
 
-	@Benchmark
-	public void ser() {
-		ser.serialize(msg, bb_msg.resetWriterIndex());
-	}
+  @Benchmark
+  public void ser() {
+    ser.serialize(msg, bbMsg.resetWriterIndex());
+  }
 
-	@Benchmark
-	public void deser() {
-		deser.deserialize(msg_ser.resetReaderIndex());
-	}
+  @Benchmark
+  public void deser() {
+    deser.deserialize(msgSer.resetReaderIndex());
+  }
 
-	@Benchmark
-	public void ser_x16() {
-		ser.serialize(msg_x16, bb_msg_x16.resetWriterIndex());
-	}
+  @Benchmark
+  public void ser_x16() {
+    ser.serialize(msgx16, bbMsgx16.resetWriterIndex());
+  }
 
-	@Benchmark
-	public void deser_x16() {
-		deser.deserialize(msg_x16_ser.resetReaderIndex());
-	}
+  @Benchmark
+  public void deser_x16() {
+    deser.deserialize(msgx16Ser.resetReaderIndex());
+  }
 }

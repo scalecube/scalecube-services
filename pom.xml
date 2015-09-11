@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.servicefabric</groupId>
@@ -9,7 +11,8 @@
 
     <name>ServiceFabric</name>
     <description>
-        Service Fabric is a framework that enables easy development of modern distributed, resilient, scalable
+        Service Fabric is a framework that enables easy development of modern distributed,
+        resilient, scalable
         reactive applications such as on-line gaming and social.
     </description>
     <inceptionYear>2015</inceptionYear>
@@ -29,7 +32,8 @@
     <scm>
         <url>https://github.com/servicefabric/servicefabric</url>
         <connection>scm:git:git@github.com:servicefabric/servicefabric.git</connection>
-        <developerConnection>scm:git:git@github.com:servicefabric/servicefabric.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:servicefabric/servicefabric.git
+        </developerConnection>
         <tag>HEAD</tag>
     </scm>
 
@@ -187,8 +191,48 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.7.2</version>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>2.16</version>
+                <executions>
+                    <execution>
+                        <id>validate</id>
+                        <phase>validate</phase>
+                        <configuration>
+                            <configLocation>checkstyle.xml</configLocation>
+                            <encoding>UTF-8</encoding>
+                            <consoleOutput>true</consoleOutput>
+                            <failsOnError>true</failsOnError>
+                            <linkXRef>false</linkXRef>
+                        </configuration>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>2.16</version>
+                <configuration>
+                    <configLocation>${project.build.directory}/checkstyle.xml</configLocation>
+                </configuration>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>checkstyle</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+        </plugins>
+    </reporting>
 
     <profiles>
         <profile>

@@ -4,5 +4,5 @@ import io.netty.buffer.ByteBuf;
 
 public interface MessageSerializer {
 
-	void serialize(Message message, ByteBuf bb);
+  void serialize(Message message, ByteBuf bb);
 }
