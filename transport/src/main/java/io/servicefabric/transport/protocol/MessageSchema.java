@@ -3,6 +3,7 @@ package io.servicefabric.transport.protocol;
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.servicefabric.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
+import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.utils.RecyclableLinkedBuffer;
 import io.servicefabric.transport.utils.memoization.Computable;
 import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
@@ -34,15 +35,13 @@ final class MessageSchema implements Schema<Message> {
 
   private static final int HEADER_KEYS_FIELD_NUMBER = 1;
   private static final int HEADER_VALUES_FIELD_NUMBER = 2;
-  private static final int DATA_PAYLOAD_FIELD_NUMBER = 3;
-  private static final int DATA_TYPE_FIELD_NUMBER = 4;
+  private static final int DATA_FIELD_NUMBER = 3;
 
   private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer(MIN_BUFFER_SIZE,
       DEFAULT_MAX_CAPACITY);
 
   private static final Map<String, Integer> fieldMap = ImmutableMap.of("headerKeys", HEADER_KEYS_FIELD_NUMBER,
-      "headerValues", HEADER_VALUES_FIELD_NUMBER, "dataPayload", DATA_PAYLOAD_FIELD_NUMBER, "dataType",
-      DATA_TYPE_FIELD_NUMBER);
+      "headerValues", HEADER_VALUES_FIELD_NUMBER, "data", DATA_FIELD_NUMBER);
 
   private final ConcurrentMapMemoizer<String, Optional<Class>> classCache = new ConcurrentMapMemoizer<>(
       new Computable<String, Optional<Class>>() {
@@ -64,10 +63,8 @@ final class MessageSchema implements Schema<Message> {
         return "headerKeys";
       case HEADER_VALUES_FIELD_NUMBER:
         return "headerValues";
-      case DATA_PAYLOAD_FIELD_NUMBER:
-        return "dataPayload";
-      case DATA_TYPE_FIELD_NUMBER:
-        return "dataType";
+      case DATA_FIELD_NUMBER:
+        return "data";
       default:
         return null;
     }
@@ -109,8 +106,7 @@ final class MessageSchema implements Schema<Message> {
     boolean iterate = true;
     List<String> headerKeys = new ArrayList<>();
     List<String> headerValues = new ArrayList<>();
-    byte[] dataPayload = null;
-    String dataType = null;
+    byte[] dataBytes = null;
     while (iterate) {
       int number = input.readFieldNumber(this);
       switch (number) {
@@ -123,11 +119,8 @@ final class MessageSchema implements Schema<Message> {
         case HEADER_VALUES_FIELD_NUMBER:
           headerValues.add(input.readString());
           break;
-        case DATA_PAYLOAD_FIELD_NUMBER:
-          dataPayload = input.readByteArray();
-          break;
-        case DATA_TYPE_FIELD_NUMBER:
-          dataType = input.readString();
+        case DATA_FIELD_NUMBER:
+          dataBytes = input.readByteArray();
           break;
         default:
           input.handleUnknownField(number, this);
@@ -135,38 +128,43 @@ final class MessageSchema implements Schema<Message> {
     }
 
     // Deserialize headers
+    Map<String, String> headers = new HashMap<>(headerKeys.size());
     if (!headerKeys.isEmpty()) {
-      Map<String, String> headers = new HashMap<>(headerKeys.size());
       ListIterator<String> headerValuesIterator = headerValues.listIterator();
       for (String key : headerKeys) {
         String value = headerValuesIterator.next();
         headers.put(key, value);
       }
-      message.setHeaders(headers);
     }
 
     // Deserialize data
-    if (dataPayload != null) {
+    Object data = null;
+    if (dataBytes != null) {
+      String dataType = headers.get(TransportHeaders.DATA_TYPE);
       if (dataType == null) {
-        message.setData(dataPayload);
+        data = dataBytes;
       } else {
         Optional<Class> optionalDataClass = classCache.get(dataType);
         if (optionalDataClass.isPresent()) {
+          headers.remove(TransportHeaders.DATA_TYPE);
           Class<?> dataClass = optionalDataClass.get();
           Schema dataSchema = RuntimeSchema.getSchema(dataClass);
-          Object data = dataSchema.newMessage();
+          data = dataSchema.newMessage();
           try {
-            ProtostuffIOUtil.mergeFrom(dataPayload, data, dataSchema);
+            ProtostuffIOUtil.mergeFrom(dataBytes, data, dataSchema);
           } catch (Throwable e) {
             LOGGER.error("Failed to deserialize : {}", message);
             throw e;
           }
-          message.setData(data);
         } else {
-          message.setData(dataPayload);
+          data = dataBytes;
         }
       }
     }
+
+    // Set message
+    message.setHeaders(headers);
+    message.setData(data);
   }
 
   @Override
@@ -183,15 +181,20 @@ final class MessageSchema implements Schema<Message> {
     Object originalData = message.data();
     if (originalData != null) {
       if (originalData instanceof byte[]) {
-        output.writeByteArray(DATA_PAYLOAD_FIELD_NUMBER, (byte[]) originalData, false);
+        // Write data byte array as is
+        output.writeByteArray(DATA_FIELD_NUMBER, (byte[]) originalData, false);
       } else {
+        // Write data class as an additional header
         Class<?> dataClass = originalData.getClass();
+        output.writeString(HEADER_KEYS_FIELD_NUMBER, TransportHeaders.DATA_TYPE, true);
+        output.writeString(HEADER_VALUES_FIELD_NUMBER, dataClass.getName(), true);
+
+        // Write data as serialized byte array
         Schema dataSchema = RuntimeSchema.getSchema(dataClass);
         try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
           byte[] array = ProtostuffIOUtil.toByteArray(originalData, dataSchema, rlb.buffer());
-          output.writeByteArray(DATA_PAYLOAD_FIELD_NUMBER, array, false);
+          output.writeByteArray(DATA_FIELD_NUMBER, array, false);
         }
-        output.writeString(DATA_TYPE_FIELD_NUMBER, dataClass.getName(), false);
       }
     }
   }
