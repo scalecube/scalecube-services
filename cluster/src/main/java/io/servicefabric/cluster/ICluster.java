@@ -1,11 +1,12 @@
 package io.servicefabric.cluster;
 
 import io.servicefabric.cluster.gossip.IGossipProtocol;
-import io.servicefabric.transport.ITransportChannel;
 import io.servicefabric.transport.TransportMessage;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
+import io.servicefabric.transport.protocol.Message;
 import rx.Observable;
 
 /**
@@ -13,9 +14,11 @@ import rx.Observable;
  */
 public interface ICluster {
 
-  ITransportChannel to(ClusterMember member);
+  void send(ClusterMember member, Message message);
 
-  Observable<TransportMessage> listen();
+  void send(ClusterMember member, Message message, SettableFuture<Void> promise);
+
+  Observable<ClusterMessage> listen();
 
   IGossipProtocol gossip();
 

@@ -5,15 +5,15 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 
-public final class ProtostuffFrameHandlerFactory implements FrameHandlerFactory {
+final class ProtostuffFrameHandlerFactory implements FrameHandlerFactory {
 
   @Override
-  public ByteToMessageDecoder getFrameDecoder() {
+  public ByteToMessageDecoder newFrameDecoder() {
     return new ProtobufVarint32FrameDecoder();
   }
 
   @Override
-  public MessageToByteEncoder getFrameEncoder() {
+  public MessageToByteEncoder newFrameEncoder() {
     return new ProtobufVarint32LengthFieldPrepender();
   }
 }

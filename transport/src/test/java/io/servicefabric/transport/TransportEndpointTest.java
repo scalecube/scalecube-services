@@ -1,68 +1,54 @@
 package io.servicefabric.transport;
 
-import static io.servicefabric.transport.TransportEndpoint.from;
-import static io.servicefabric.transport.TransportEndpoint.localTcp;
-import static io.servicefabric.transport.TransportEndpoint.tcp;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
+import io.servicefabric.transport.TransportAddress;
+import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.utils.IpAddressResolver;
 
 import org.junit.Test;
 
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 
 public class TransportEndpointTest {
 
   @Test
-  public void testUri() throws UnknownHostException {
-    TransportEndpoint endpoint0 = from("tcp://5810");
-    assertEquals("tcp", endpoint0.getScheme());
-    assertEquals(5810, endpoint0.getPort());
-    String hostAddress = IpAddressResolver.resolveIpAddress().getHostAddress();
-    assertEquals(hostAddress, endpoint0.getHostAddress());
-    assertEquals("tcp://" + hostAddress + ":5810", endpoint0.toString());
+  public void testUri() throws URISyntaxException, UnknownHostException {
+    TransportEndpoint ce0 = TransportEndpoint.from("tcp://0A1B2C3@5810");
+    assertEquals("0A1B2C3", ce0.id());
+    assertEquals(TransportAddress.from("tcp://5810"), ce0.address());
+    assertEquals("tcp://0A1B2C3@" + IpAddressResolver.resolveIpAddress().getHostAddress() + ":5810", ce0.toString());
 
-    TransportEndpoint endpoint1 = from("tcp://10.10.10.10:5810");
-    assertEquals("tcp", endpoint1.getScheme());
-    assertEquals(5810, endpoint1.getPort());
-    assertEquals("10.10.10.10", endpoint1.getHostAddress());
-    assertEquals("tcp://10.10.10.10:5810", endpoint1.toString());
+    TransportEndpoint ce1 = TransportEndpoint.from("tcp://0A1B2C3@hostname:5810");
+    assertEquals("0A1B2C3", ce1.id());
+    assertEquals(TransportAddress.from("tcp://hostname:5810"), ce1.address());
+    assertEquals("tcp://0A1B2C3@hostname:5810", ce1.toString());
 
-    TransportEndpoint endpoint2 = from("tcp://hostname:5810");
-    assertEquals("tcp", endpoint2.getScheme());
-    assertEquals(5810, endpoint2.getPort());
-    assertEquals("hostname", endpoint2.getHostAddress());
-    assertEquals("tcp://hostname:5810", endpoint2.toString());
+    TransportEndpoint ce2 = TransportEndpoint.from("tcp://0A1B2C3@host:1");
+    assertEquals("0A1B2C3", ce2.id());
+    assertEquals(TransportAddress.from("tcp://0A1B2C3@host:1"), ce2.address());
+    assertEquals("tcp://0A1B2C3@host:1", ce2.toString());
+
+    TransportEndpoint ce3 = TransportEndpoint.from("tcp://0A1B2C3@10.10.10.10:5810");
+    assertEquals("0A1B2C3", ce3.id());
+    assertEquals(TransportAddress.from("tcp://10.10.10.10:5810"), ce3.address());
+    assertEquals("tcp://0A1B2C3@10.10.10.10:5810", ce3.toString());
+
+    TransportEndpoint ce4 = TransportEndpoint.from("tcp://0A1B2C3@localhost:5810");
+    assertEquals("0A1B2C3", ce4.id());
+    assertEquals(TransportAddress.from("tcp://5810"), ce4.address());
+    assertEquals("tcp://0A1B2C3@" + IpAddressResolver.resolveIpAddress().getHostAddress() + ":5810", ce4.toString());
   }
 
   @Test
-  public void testLocalTcp() throws UnknownHostException {
-    TransportEndpoint endpoint0 = localTcp(4800, 30);
-    String hostAddress0 = endpoint0.getHostAddress();
-    assertTrue("" + hostAddress0, !hostAddress0.equals("localhost"));
-    assertTrue("" + hostAddress0, !hostAddress0.equals("127.0.0.1"));
-    assertEquals("tcp", endpoint0.getScheme());
-    assertEquals(4830, endpoint0.getPort());
+  public void testEq() {
+    TransportAddress te = TransportEndpoint.from("tcp://0A1B2C3@5810").address();
+    assertEquals(TransportAddress.from("tcp://5810"), te);
+    assertEquals(TransportAddress.from("tcp://localhost:5810"), te);
+    assertEquals(TransportAddress.from("tcp://127.0.0.1:5810"), te);
 
-    TransportEndpoint endpoint1 = tcp("localhost:8080");
-    String hostAddress1 = endpoint1.getHostAddress();
-    assertTrue("" + hostAddress1, !hostAddress1.equals("localhost"));
-    assertTrue("" + hostAddress1, !hostAddress1.equals("127.0.0.1"));
-    assertEquals("tcp", endpoint1.getScheme());
-    assertEquals(8080, endpoint1.getPort());
-  }
-
-  @Test
-  public void testEq() throws UnknownHostException {
-    assertEquals(localTcp(5800, 10), from("tcp://5810"));
-    assertEquals(localTcp(5800, 10), from("tcp://localhost:5810"));
-    assertEquals(localTcp(5800, 10), from("tcp://127.0.0.1:5810"));
-
-    assertEquals(from("tcp://localhost:5810"), from("tcp://5810"));
-    assertEquals(from("tcp://127.0.0.1:5810"), from("tcp://5810"));
-
-    assertEquals(tcp("localhost:8080"), from("tcp://8080"));
-    assertEquals(tcp("127.0.0.1:8080"), from("tcp://8080"));
+    assertEquals(TransportEndpoint.from("tcp://0A1B2C3@localhost:5810"), TransportEndpoint.from("tcp://0A1B2C3@5810"));
+    assertEquals(TransportEndpoint.from("tcp://0A1B2C3@127.0.0.1:5810"), TransportEndpoint.from("tcp://0A1B2C3@5810"));
   }
 }

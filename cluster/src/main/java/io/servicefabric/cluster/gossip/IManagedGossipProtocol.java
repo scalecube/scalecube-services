@@ -1,6 +1,6 @@
 package io.servicefabric.cluster.gossip;
 
-import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.TransportEndpoint;
 
 import java.util.Collection;
 
@@ -12,7 +12,7 @@ import java.util.Collection;
 public interface IManagedGossipProtocol extends IGossipProtocol {
 
   /** Updates list of cluster members among which should be spread gossips. */
-  void setClusterMembers(Collection<ClusterEndpoint> endpoints);
+  void setClusterEndpoints(Collection<TransportEndpoint> endpoints);
 
   /** Starts running gossip protocol. After started it begins to receive and send gossip messages */
   void start();

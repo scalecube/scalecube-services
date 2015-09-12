@@ -1,14 +1,16 @@
-package io.servicefabric.transport.protocol;
+package io.servicefabric.transport;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.protocol.MessageDeserializer;
 
 import java.util.List;
 
 @ChannelHandler.Sharable
-public final class SharableDeserializerHandler extends MessageToMessageDecoder<ByteBuf> {
+final class SharableDeserializerHandler extends MessageToMessageDecoder<ByteBuf> {
 
   private final MessageDeserializer deserializer;
 

@@ -1,6 +1,7 @@
 package io.servicefabric.examples.transport;
 
 import io.servicefabric.cluster.Cluster;
+import io.servicefabric.cluster.ClusterMessage;
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.examples.Greetings;
 import io.servicefabric.transport.TransportMessage;
@@ -18,9 +19,9 @@ import rx.functions.Func1;
 public class ClusterNodeA {
 
 
-  public static final Func1<TransportMessage, Boolean> GREETINS_PREDICATE = new Func1<TransportMessage, Boolean>() {
+  public static final Func1<ClusterMessage, Boolean> GREETINS_PREDICATE = new Func1<ClusterMessage, Boolean>() {
     @Override
-    public Boolean call(TransportMessage t1) {
+    public Boolean call(ClusterMessage t1) {
       return t1.message().data() != null && Greetings.class.equals(t1.message().data().getClass());
     }
   };
@@ -30,9 +31,9 @@ public class ClusterNodeA {
     ICluster clusterA = Cluster.newInstance(3000).join();
 
     // Filter and subscribe to greetings messages:
-    clusterA.listen().filter(GREETINS_PREDICATE).subscribe(new Action1<TransportMessage>() {
+    clusterA.listen().filter(GREETINS_PREDICATE).subscribe(new Action1<ClusterMessage>() {
       @Override
-      public void call(TransportMessage t1) {
+      public void call(ClusterMessage t1) {
         System.out.println(t1.message().data());
       }
     });

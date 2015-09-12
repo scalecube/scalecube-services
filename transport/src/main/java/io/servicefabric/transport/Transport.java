@@ -3,22 +3,23 @@ package io.servicefabric.transport;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Throwables.propagate;
-import static io.servicefabric.transport.TransportChannel.ATTR_TRANSPORT;
-import static io.servicefabric.transport.TransportChannel.Builder.acceptor;
-import static io.servicefabric.transport.TransportChannel.Builder.connector;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
 
+import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.protocol.ProtostuffProtocol;
 import io.servicefabric.transport.utils.memoization.Computable;
-import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
+import io.servicefabric.transport.utils.memoization.Memoizer;
 
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelException;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
@@ -44,8 +45,6 @@ import rx.subjects.Subject;
 
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
@@ -55,48 +54,58 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public final class Transport implements ITransportSpi, ITransport {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
+  private static final Function<TransportHandshakeData, TransportEndpoint> HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION =
+      new Function<TransportHandshakeData, TransportEndpoint>() {
+        @Override
+        public TransportEndpoint apply(TransportHandshakeData handshakeData) {
+          return handshakeData.endpoint();
+        }
+      };
+
   private final TransportEndpoint localEndpoint;
+  private final TransportSettings settings;
   private final EventLoopGroup eventLoop;
   private final EventExecutorGroup eventExecutor;
-  private Class<? extends Channel> clientChannelClass;
-  private ServerChannel serverChannel;
-  private int connectTimeout = 3000;
-  private int handshakeTimeout = 1000;
-  private int sendHwm = 1000;
-  private LogLevel logLevel;
-  private Map<String, Object> localMetadata = new HashMap<>();
+
+  private final Subject<TransportMessage, TransportMessage> incomingMessagesSubject = PublishSubject.create();
+  private final ConcurrentMap<TransportAddress, TransportChannel> acceptedChannels = new ConcurrentHashMap<>();
+  private final Memoizer<TransportAddress, TransportChannel> connectedChannels = new Memoizer<>();
+
   private PipelineFactory pipelineFactory;
-  private final Subject<TransportMessage, TransportMessage> subject = PublishSubject.create();
-  private final ConcurrentMap<TransportEndpoint, TransportChannel> accepted = new ConcurrentHashMap<>();
-  private final ConcurrentMapMemoizer<TransportEndpoint, TransportChannel> connected = new ConcurrentMapMemoizer<>();
+  private ServerChannel serverChannel;
 
-  Transport(TransportEndpoint localEndpoint) {
-    checkArgument(localEndpoint != null);
-    this.localEndpoint = localEndpoint;
+  public static Transport newInstance(TransportEndpoint localEndpoint) {
+    return newInstance(localEndpoint, TransportSettings.DEFAULT);
+  }
+
+  public static Transport newInstance(TransportEndpoint localEndpoint, TransportSettings settings) {
+    return newInstance(localEndpoint, settings, defaultEventLoop(localEndpoint), defaultEventExecutor(localEndpoint));
+  }
+
+  public static Transport newInstance(TransportEndpoint localEndpoint, EventLoopGroup eventLoop,
+      EventExecutorGroup eventExecutor) {
+    return newInstance(localEndpoint, TransportSettings.DEFAULT, eventLoop, eventExecutor);
+  }
+
+  public static Transport newInstance(TransportEndpoint localEndpoint, TransportSettings settings,
+      EventLoopGroup eventLoop, EventExecutorGroup eventExecutor) {
+    return new Transport(localEndpoint, settings, eventLoop, eventExecutor);
+  }
+
+  private static EventLoopGroup defaultEventLoop(TransportEndpoint localEndpoint) {
     ThreadFactory eventLoopThreadFactory = createThreadFactory("servicefabric-transport-io-%s@" + localEndpoint);
-    switch (localEndpoint.getScheme()) {
-      case "tcp":
-        eventLoop = new NioEventLoopGroup(1, eventLoopThreadFactory);
-        break;
-      default:
-        throw new IllegalArgumentException(localEndpoint.toString());
-    }
+    return new NioEventLoopGroup(1, eventLoopThreadFactory);
+  }
+
+  private static EventExecutorGroup defaultEventExecutor(TransportEndpoint localEndpoint) {
     ThreadFactory eventExecutorThreadFactory = createThreadFactory("servicefabric-transport-exec-%s@" + localEndpoint);
-    eventExecutor = new DefaultEventExecutorGroup(1, eventExecutorThreadFactory);
+    return new DefaultEventExecutorGroup(1, eventExecutorThreadFactory);
   }
 
-  Transport(TransportEndpoint localEndpoint, EventLoopGroup eventLoop, EventExecutorGroup eventExecutor) {
-    checkArgument(localEndpoint != null);
-    checkArgument(eventLoop != null);
-    checkArgument(eventExecutor != null);
-    this.localEndpoint = localEndpoint;
-    this.eventLoop = eventLoop;
-    this.eventExecutor = eventExecutor;
-  }
-
-  public static ThreadFactory createThreadFactory(String namingFormat) {
+  private static ThreadFactory createThreadFactory(String namingFormat) {
     return new ThreadFactoryBuilder().setNameFormat(namingFormat)
         .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
           @Override
@@ -106,69 +115,23 @@ public final class Transport implements ITransportSpi, ITransport {
         }).setDaemon(true).build();
   }
 
-  public void setConnectTimeout(int connectTimeout) {
-    this.connectTimeout = connectTimeout;
-  }
-
-  public void setHandshakeTimeout(int handshakeTimeout) {
-    this.handshakeTimeout = handshakeTimeout;
-  }
-
-  public void setSendHwm(int sendHwm) {
-    this.sendHwm = sendHwm;
-  }
-
-  public void setLogLevel(String logLevel) {
-    if (logLevel != null && !logLevel.equals("OFF")) {
-      this.logLevel = LogLevel.valueOf(logLevel);
-    }
-  }
-
-  public void setLocalMetadata(Map<String, Object> localMetadata) {
-    this.localMetadata = new HashMap<>(localMetadata);
-  }
-
-  public void setPipelineFactory(PipelineFactory pipelineFactory) {
-    this.pipelineFactory = pipelineFactory;
-  }
-
-  @SuppressWarnings("unchecked")
-  public <T extends PipelineFactory> T getPipelineFactory() {
-    return (T) pipelineFactory;
+  private Transport(TransportEndpoint localEndpoint, TransportSettings settings, EventLoopGroup eventLoop,
+      EventExecutorGroup eventExecutor) {
+    checkArgument(localEndpoint != null);
+    checkArgument(settings != null);
+    checkArgument(eventLoop != null);
+    checkArgument(eventExecutor != null);
+    this.localEndpoint = localEndpoint;
+    this.settings = settings;
+    this.eventLoop = eventLoop;
+    this.eventExecutor = eventExecutor;
+    this.pipelineFactory =
+        new TransportPipelineFactory(this, new ProtostuffProtocol(), settings.isUseNetworkEmulator());
   }
 
   @Override
-  public final void start() {
-    checkNotNull(pipelineFactory); // don't forget to set upfront
-
-    subject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
-
-    Class<? extends ServerChannel> serverChannelClass;
-    SocketAddress bindAddress;
-    switch (localEndpoint.getScheme()) {
-      case "tcp":
-        clientChannelClass = NioSocketChannel.class;
-        serverChannelClass = NioServerSocketChannel.class;
-        bindAddress = new InetSocketAddress(localEndpoint.getPort());
-        break;
-      default:
-        throw new IllegalArgumentException(localEndpoint.toString());
-    }
-
-    ServerBootstrap server = new ServerBootstrap();
-    server.group(eventLoop).channel(serverChannelClass).childHandler(new ChannelInitializer<Channel>() {
-      @Override
-      protected void initChannel(Channel channel) {
-        pipelineFactory.setAcceptorPipeline(channel, Transport.this);
-      }
-    });
-    try {
-      serverChannel = (ServerChannel) server.bind(bindAddress).syncUninterruptibly().channel();
-      LOGGER.info("Netty TransportFactory - bound to: {}", bindAddress);
-    } catch (Exception e) {
-      LOGGER.error("Failed to bind to: " + bindAddress + ", caught " + e, e);
-      propagate(e);
-    }
+  public TransportEndpoint getLocalEndpoint() {
+    return localEndpoint;
   }
 
   public EventLoopGroup getEventLoop() {
@@ -180,55 +143,94 @@ public final class Transport implements ITransportSpi, ITransport {
     return eventExecutor;
   }
 
-  @Nonnull
   @Override
-  public final ITransportChannel to(@CheckForNull final TransportEndpoint endpoint) {
-    checkArgument(endpoint != null);
-    return connected.get(endpoint, new Computable<TransportEndpoint, TransportChannel>() {
+  public final int getHandshakeTimeout() {
+    return settings.getHandshakeTimeout();
+  }
+
+  @Override
+  public int getSendHighWaterMark() {
+    return settings.getSendHighWaterMark();
+  }
+
+  @Override
+  public LogLevel getLogLevel() {
+    String logLevel = settings.getLogLevel();
+    if (logLevel != null && !logLevel.equals("OFF")) {
+      return LogLevel.valueOf(logLevel);
+    }
+    return null;
+  }
+
+  @SuppressWarnings("unchecked")
+  public <T extends PipelineFactory> T getPipelineFactory() {
+    return (T) pipelineFactory;
+  }
+
+  @Override
+  public final void start() {
+    incomingMessagesSubject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
+
+    Class<? extends ServerChannel> serverChannelClass = NioServerSocketChannel.class;
+    SocketAddress bindAddress = new InetSocketAddress(localEndpoint.address().port());
+
+    ServerBootstrap server = new ServerBootstrap();
+    server.group(eventLoop).channel(serverChannelClass).childHandler(new ChannelInitializer<Channel>() {
       @Override
-      public TransportChannel compute(TransportEndpoint arg) {
-        final Channel channel = createConnectorChannel();
-        final TransportChannel transport = createConnector(channel, endpoint);
-
-        channel.attr(ATTR_TRANSPORT).set(transport);
-        LOGGER.debug("Registered connector: {}", transport);
-
-        final ChannelFuture regFuture = eventLoop.register(channel);
-        if (regFuture.cause() != null) {
-          if (channel.isRegistered()) {
-            channel.close();
-          } else {
-            channel.unsafe().closeForcibly();
-          }
-          throw new TransportException(transport, regFuture.cause());
-        }
-
-        final SocketAddress connectAddress;
-        switch (endpoint.getScheme()) {
-          case "tcp":
-            connectAddress = new InetSocketAddress(endpoint.getHostAddress(), endpoint.getPort());
-            break;
-          default:
-            throw new IllegalArgumentException(endpoint.toString());
-        }
-
-        regFuture.addListener(new ChannelFutureListener() {
-          @Override
-          public void operationComplete(ChannelFuture future) throws Exception {
-            connect(regFuture, channel, connectAddress, transport);
-          }
-        });
-        return transport;
+      protected void initChannel(Channel channel) {
+        pipelineFactory.setAcceptorPipeline(channel, Transport.this);
       }
     });
+    try {
+      serverChannel = (ServerChannel) server.bind(bindAddress).syncUninterruptibly().channel();
+      LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.id(), bindAddress);
+    } catch (Exception e) {
+      LOGGER.error("Failed to bind to: " + bindAddress + ", caught " + e, e);
+      propagate(e);
+    }
+  }
+
+  @Override
+  public ListenableFuture<TransportEndpoint> connect(@CheckForNull final TransportAddress address) {
+    checkArgument(address != null);
+    final TransportChannel transportChannel = getOrConnect(address);
+    return Futures.transform(transportChannel.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
+  }
+
+  @Override
+  public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
+    checkArgument(endpoint != null);
+    ITransportChannel transportChannel = connectedChannels.getIfExists(endpoint.address());
+    // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
+    if (transportChannel == null) {
+      if (promise != null) {
+        promise.set(null);
+      }
+    } else {
+      transportChannel.close(promise);
+    }
+  }
+
+  @Override
+  public void send(@CheckForNull TransportEndpoint endpoint, @CheckForNull Message message) {
+    send(endpoint, message, null);
+  }
+
+  @Override
+  public void send(@CheckForNull TransportEndpoint endpoint, @CheckForNull Message message,
+      @Nullable SettableFuture<Void> promise) {
+    checkArgument(endpoint != null);
+    checkArgument(message != null);
+    ITransportChannel transportChannel = getOrConnect(endpoint.address());
+    // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
+    transportChannel.send(message, promise);
   }
 
   @Nonnull
   @Override
   public final Observable<TransportMessage> listen() {
-    return subject;
+    return incomingMessagesSubject;
   }
-
 
   @Override
   public final void stop() {
@@ -238,20 +240,20 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public final void stop(@Nullable SettableFuture<Void> promise) {
     try {
-      subject.onCompleted();
+      incomingMessagesSubject.onCompleted();
     } catch (Exception ignore) {
       // ignore
     }
     // cleanup accepted
-    for (TransportEndpoint endpoint : accepted.keySet()) {
-      TransportChannel transport = accepted.remove(endpoint);
+    for (TransportAddress address : acceptedChannels.keySet()) {
+      TransportChannel transport = acceptedChannels.remove(address);
       if (transport != null) {
         transport.close();
       }
     }
     // cleanup connected
-    for (TransportEndpoint endpoint : connected.keySet()) {
-      TransportChannel transport = connected.remove(endpoint);
+    for (TransportAddress address : connectedChannels.keySet()) {
+      TransportChannel transport = connectedChannels.remove(address);
       if (transport != null) {
         transport.close();
       }
@@ -261,40 +263,29 @@ public final class Transport implements ITransportSpi, ITransport {
     }
   }
 
-  private TransportChannel createConnector(Channel channel, final TransportEndpoint endpoint) {
-    TransportChannel.Builder builder = connector(channel, this);
-    builder.set(new Func1<TransportChannel, Void>() {
-      @Override
-      public Void call(TransportChannel transport) {
-        connected.remove(endpoint);
-        return null;
-      }
-    });
-    return builder.build();
-  }
-
   @Override
-  public TransportChannel createAcceptor(Channel channel) {
-    TransportChannel.Builder builder = acceptor(channel, this);
-    builder.set(new Func1<TransportChannel, Void>() {
+  public TransportChannel createAcceptorTransportChannel(Channel channel) {
+    return TransportChannel.newAcceptor(channel, new Func1<TransportChannel, Void>() {
       @Override
-      public Void call(TransportChannel transport) {
-        if (transport.getRemoteEndpoint() != null) {
-          accepted.remove(transport.getRemoteEndpoint());
+      public Void call(TransportChannel transportChannel) {
+        TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
+        if (remoteEndpoint != null) {
+          acceptedChannels.remove(remoteEndpoint.address());
         }
         return null;
       }
     });
-    return builder.build();
   }
 
   @Override
-  public void accept(TransportChannel transport) throws TransportBrokenException {
-    TransportChannel prev = accepted.putIfAbsent(transport.getRemoteEndpoint(), transport);
+  public void accept(TransportChannel transportChannel) throws TransportBrokenException {
+    TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
+    checkNotNull(remoteEndpoint);
+    checkNotNull(remoteEndpoint.address());
+    TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.address(), transportChannel);
     if (prev != null) {
-      String err =
-          String.format("Detected duplicate %s for key=%s in accepted_map", prev, transport.getRemoteEndpoint());
-      throw new TransportBrokenException(transport, err);
+      String err = String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint);
+      throw new TransportBrokenException(transportChannel, err);
     }
   }
 
@@ -304,53 +295,41 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public final Subject<TransportMessage, TransportMessage> getSubject() {
-    return subject;
+  public void onMessage(TransportMessage message) {
+    incomingMessagesSubject.onNext(message);
   }
 
-  @Override
-  public final TransportEndpoint getLocalEndpoint() {
-    return localEndpoint;
-  }
+  private TransportChannel getOrConnect(@CheckForNull final TransportAddress address) {
+    checkArgument(address != null);
+    return connectedChannels.get(address, new Computable<TransportAddress, TransportChannel>() {
+      @Override
+      public TransportChannel compute(final TransportAddress address) {
+        final Channel channel = createConnectorChannel();
+        final TransportChannel transportChannel = createConnectorTransportChannel(channel, address);
 
-  @Override
-  public final Map<String, Object> getLocalMetadata() {
-    return new HashMap<>(localMetadata);
-  }
+        LOGGER.info("Registered connector: {}", transportChannel);
 
-  @Override
-  public final int getHandshakeTimeout() {
-    return handshakeTimeout;
-  }
-
-  @Override
-  public int getSendHwm() {
-    return sendHwm;
-  }
-
-  @Override
-  public LogLevel getLogLevel() {
-    return logLevel;
-  }
-
-  @Override
-  public final TransportChannel getTransportChannel(Channel channel) {
-    TransportChannel transport = channel.attr(ATTR_TRANSPORT).get();
-    if (transport == null) {
-      throw new TransportBrokenException("transport attr not set");
-    }
-    return transport;
+        final ChannelFuture registerChannelFuture = eventLoop.register(channel);
+        registerChannelFuture.addListener(new ChannelFutureListener() {
+          @Override
+          public void operationComplete(ChannelFuture future) throws Exception {
+            if (future.isSuccess()) {
+              connect(channel, address, transportChannel);
+            } else {
+              channel.unsafe().closeForcibly();
+              transportChannel.close();
+            }
+          }
+        });
+        return transportChannel;
+      }
+    });
   }
 
   private Channel createConnectorChannel() {
-    Channel channel;
-    try {
-      channel = clientChannelClass.newInstance();
-    } catch (Throwable t) {
-      throw new ChannelException("Unable to create Channel from class " + clientChannelClass, t);
-    }
+    Channel channel = new NioSocketChannel();
     pipelineFactory.setConnectorPipeline(channel, this);
-    channel.config().setOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeout);
+    channel.config().setOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, settings.getConnectTimeout());
     channel.config().setOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
     channel.config().setOption(ChannelOption.TCP_NODELAY, true);
     channel.config().setOption(ChannelOption.SO_KEEPALIVE, true);
@@ -358,26 +337,31 @@ public final class Transport implements ITransportSpi, ITransport {
     return channel;
   }
 
-  private void connect(final ChannelFuture regFuture, final Channel channel, final SocketAddress remoteAddress,
-      final TransportChannel transport) {
+  private TransportChannel createConnectorTransportChannel(Channel channel, final TransportAddress endpoint) {
+    return TransportChannel.newConnector(channel, new Func1<TransportChannel, Void>() {
+      @Override
+      public Void call(TransportChannel transport) {
+        connectedChannels.remove(endpoint);
+        return null;
+      }
+    });
+  }
+
+  private void connect(final Channel channel, final TransportAddress address, final TransportChannel transport) {
     channel.eventLoop().execute(new Runnable() {
       @Override
       public void run() {
-        if (regFuture.isSuccess()) {
-          ChannelPromise promise = channel.newPromise();
-          channel.connect(remoteAddress, promise);
-          promise.addListener(wrap(new ChannelFutureListener() {
-            @Override
-            public void operationComplete(ChannelFuture future) {
-              if (!future.isSuccess()) {
-                transport.close(future.cause());
-              }
+        SocketAddress socketAddress = new InetSocketAddress(address.hostAddress(), address.port());
+        ChannelPromise promise = channel.newPromise();
+        channel.connect(socketAddress, promise);
+        promise.addListener(wrap(new ChannelFutureListener() {
+          @Override
+          public void operationComplete(ChannelFuture future) {
+            if (!future.isSuccess()) {
+              transport.close(future.cause());
             }
-          }));
-        } else {
-          channel.unsafe().closeForcibly();
-          transport.close();
-        }
+          }
+        }));
       }
     });
   }

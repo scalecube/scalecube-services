@@ -6,7 +6,7 @@ import static com.google.common.collect.Collections2.transform;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Sets.newHashSet;
 
-import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
@@ -50,10 +50,11 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
   private ITransport transport;
+  @SuppressWarnings("unchecked")
   private Subject<Message, Message> subject = new SerializedSubject(PublishSubject.create());
   private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
-  private volatile List<ClusterEndpoint> members = new ArrayList<>();
-  private final ClusterEndpoint localEndpoint;
+  private volatile List<TransportEndpoint> members = new ArrayList<>();
+  private final TransportEndpoint localEndpoint;
   private final ScheduledExecutorService executor;
   private AtomicLong counter = new AtomicLong(0);
   private Queue<GossipTask> gossipsQueue = new ConcurrentLinkedQueue<>();
@@ -65,12 +66,12 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   private Subscriber<TransportMessage> onGossipRequestSubscriber;
   private ScheduledFuture<?> executorTask;
 
-  public GossipProtocol(ClusterEndpoint localEndpoint) {
+  public GossipProtocol(TransportEndpoint localEndpoint) {
     this.localEndpoint = localEndpoint;
     this.executor = createDedicatedScheduledExecutor();
   }
 
-  public GossipProtocol(ClusterEndpoint localEndpoint, ScheduledExecutorService executor) {
+  public GossipProtocol(TransportEndpoint localEndpoint, ScheduledExecutorService executor) {
     this.localEndpoint = localEndpoint;
     this.executor = executor;
   }
@@ -106,10 +107,10 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   @Override
-  public void setClusterMembers(Collection<ClusterEndpoint> members) {
-    Set<ClusterEndpoint> set = new HashSet<>(members);
+  public void setClusterEndpoints(Collection<TransportEndpoint> members) {
+    Set<TransportEndpoint> set = new HashSet<>(members);
     set.remove(localEndpoint);
-    List<ClusterEndpoint> list = new ArrayList<>(set);
+    List<TransportEndpoint> list = new ArrayList<>(set);
     Collections.shuffle(list);
     this.members = list;
     this.factor = 32 - Integer.numberOfLeadingZeros(list.size() + 1);
@@ -120,7 +121,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     this.transport = transport;
   }
 
-  public ClusterEndpoint getLocalEndpoint() {
+  public TransportEndpoint getLocalEndpoint() {
     return localEndpoint;
   }
 
@@ -167,7 +168,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     while (!gossipsQueue.isEmpty()) {
       GossipTask gossipTask = gossipsQueue.poll();
       Gossip gossip = gossipTask.getGossip();
-      ClusterEndpoint endpoint = gossipTask.getOrigin();
+      TransportEndpoint endpoint = gossipTask.getOrigin();
       GossipLocalState gossipLocalState = gossipsMap.get(gossip.getGossipId());
       if (gossipLocalState == null) {
         boolean isEndpointRemote = !endpoint.equals(localEndpoint);
@@ -184,7 +185,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     return gossipsMap.values();
   }
 
-  private void sendGossips(List<ClusterEndpoint> members, Collection<GossipLocalState> gossips, Integer factor) {
+  private void sendGossips(List<TransportEndpoint> members, Collection<GossipLocalState> gossips, Integer factor) {
     if (gossips.isEmpty()) {
       return;
     }
@@ -195,15 +196,15 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
       Collections.shuffle(members, ThreadLocalRandom.current());
     }
     for (int i = 0; i < Math.min(maxEndpointsToSelect, members.size()); i++) {
-      ClusterEndpoint clusterEndpoint = getNextRandom(members, maxEndpointsToSelect, i);
+      TransportEndpoint transportEndpoint = getNextRandom(members, maxEndpointsToSelect, i);
       // Filter only gossips which should be sent to chosen clusterEndpoint
-      GossipSendPredicate predicate = new GossipSendPredicate(clusterEndpoint, maxGossipSent * factor);
+      GossipSendPredicate predicate = new GossipSendPredicate(transportEndpoint, maxGossipSent * factor);
       Collection<GossipLocalState> gossipLocalStateNeedSend = filter(gossips, predicate);
       if (!gossipLocalStateNeedSend.isEmpty()) {
         // Transform to actual gossip with incrementing sent count
         List<Gossip> gossipToSend =
             newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
-        transport.to(clusterEndpoint.endpoint()).send(new Message(new GossipRequest(gossipToSend)));
+        transport.send(transportEndpoint, new Message(new GossipRequest(gossipToSend)));
       }
     }
   }
@@ -218,10 +219,10 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   private String generateGossipId() {
-    return localEndpoint.endpointId() + "_" + counter.getAndIncrement();
+    return localEndpoint.id() + "_" + counter.getAndIncrement();
   }
 
-  private ClusterEndpoint getNextRandom(List<ClusterEndpoint> members, int endpointCount, int count) {
+  private TransportEndpoint getNextRandom(List<TransportEndpoint> members, int endpointCount, int count) {
     return members.get((int) (((period * endpointCount + count) & Integer.MAX_VALUE) % members.size()));
 
   }
@@ -246,10 +247,9 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     @Override
     public void call(TransportMessage transportMessage) {
       GossipRequest gossipRequest = (GossipRequest) transportMessage.message().data();
-      ClusterEndpoint clusterEndpoint =
-          ClusterEndpoint.from(transportMessage.originEndpointId(), transportMessage.originEndpoint());
+      TransportEndpoint transportEndpoint = transportMessage.endpoint();
       for (Gossip gossip : gossipRequest.getGossipList()) {
-        queue.offer(new GossipTask(gossip, clusterEndpoint));
+        queue.offer(new GossipTask(gossip, transportEndpoint));
       }
     }
   }
@@ -264,10 +264,10 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   static class GossipSendPredicate implements Predicate<GossipLocalState> {
-    private final ClusterEndpoint endpoint;
+    private final TransportEndpoint endpoint;
     private final int maxCounter;
 
-    GossipSendPredicate(ClusterEndpoint endpoint, int maxCounter) {
+    GossipSendPredicate(TransportEndpoint endpoint, int maxCounter) {
       this.endpoint = endpoint;
       this.maxCounter = maxCounter;
     }
@@ -295,9 +295,9 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
 
   static class GossipTask {
     private final Gossip gossip;
-    private final ClusterEndpoint origin;
+    private final TransportEndpoint origin;
 
-    GossipTask(Gossip gossip, ClusterEndpoint origin) {
+    GossipTask(Gossip gossip, TransportEndpoint origin) {
       this.gossip = gossip;
       this.origin = origin;
     }
@@ -306,7 +306,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
       return gossip;
     }
 
-    public ClusterEndpoint getOrigin() {
+    public TransportEndpoint getOrigin() {
       return origin;
     }
 
@@ -339,7 +339,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
       try {
         period++;
         Collection<GossipLocalState> gossips = processGossipQueue();
-        List<ClusterEndpoint> members = GossipProtocol.this.members;
+        List<TransportEndpoint> members = GossipProtocol.this.members;
         int factor = GossipProtocol.this.factor;
         sendGossips(members, gossips, factor);
         sweep(gossips, factor);

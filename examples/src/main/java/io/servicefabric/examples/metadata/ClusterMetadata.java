@@ -3,6 +3,7 @@ package io.servicefabric.examples.metadata;
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ClusterConfiguration;
 import io.servicefabric.cluster.ClusterMember;
+import io.servicefabric.cluster.ClusterMessage;
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
@@ -26,9 +27,9 @@ import java.util.Map;
 public class ClusterMetadata {
 
   private static final String MESSAGE_DATA = "hello/Joe";
-  public static final Func1<TransportMessage, Boolean> MESSAGE_PREDICATE = new Func1<TransportMessage, Boolean>() {
+  public static final Func1<ClusterMessage, Boolean> MESSAGE_PREDICATE = new Func1<ClusterMessage, Boolean>() {
     @Override
-    public Boolean call(TransportMessage t1) {
+    public Boolean call(ClusterMessage t1) {
       return MESSAGE_DATA.equals(t1.message().data());
     }
   };
@@ -48,9 +49,9 @@ public class ClusterMetadata {
     ICluster joeCluster = Cluster.newInstance(config).join();
 
     // filter and subscribe on hello/joe and print the welcome message.
-    joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<TransportMessage>() {
+    joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<ClusterMessage>() {
       @Override
-      public void call(TransportMessage t1) {
+      public void call(ClusterMessage t1) {
         System.out.println("Hello Joe");
       }
     });
@@ -60,7 +61,7 @@ public class ClusterMetadata {
     for (ClusterMember m : members) {
       if (m.metadata().containsKey("alias")) {
         if (m.metadata().get("alias").equals("Joe")) {
-          seedCluster.to(m).send(new Message(MESSAGE_DATA));
+          seedCluster.send(m, new Message(MESSAGE_DATA));
         }
       }
     }

@@ -19,16 +19,10 @@ import java.nio.channels.ClosedChannelException;
 final class ExceptionCaughtChannelHandler extends ChannelDuplexHandler {
   static final Logger LOGGER = LoggerFactory.getLogger(ExceptionCaughtChannelHandler.class);
 
-  final ITransportSpi transportSpi;
-
-  ExceptionCaughtChannelHandler(ITransportSpi transportSpi) {
-    this.transportSpi = transportSpi;
-  }
-
   @Override
   public final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
     if (cause instanceof TransportBrokenException) {
-      TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
+      TransportChannel transport = TransportChannel.from(ctx.channel());
       LOGGER.warn("Broken transport: {}, cause: {}", transport, cause);
       transport.close(cause);
     } else if (cause instanceof ClosedChannelException) {
@@ -42,7 +36,7 @@ final class ExceptionCaughtChannelHandler extends ChannelDuplexHandler {
 
   @Override
   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-    TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
+    TransportChannel transport = TransportChannel.from(ctx.channel());
     LOGGER.debug("Transport inactive: {}", transport);
     transport.close();
     super.channelInactive(ctx);

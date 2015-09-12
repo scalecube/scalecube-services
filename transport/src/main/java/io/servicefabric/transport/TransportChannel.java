@@ -12,6 +12,7 @@ import io.servicefabric.transport.protocol.Message;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import io.netty.channel.Channel;
@@ -22,40 +23,79 @@ import org.slf4j.LoggerFactory;
 
 import rx.functions.Func1;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 final class TransportChannel implements ITransportChannel {
-  static final Logger LOGGER = LoggerFactory.getLogger(TransportChannel.class);
 
-  static final AttributeKey<TransportChannel> ATTR_TRANSPORT = AttributeKey.valueOf("transport");
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransportChannel.class);
 
-  enum Status {
-    CONNECT_IN_PROGRESS, CONNECTED, HANDSHAKE_IN_PROGRESS, HANDSHAKE_PASSED, READY, CLOSED
+  private static final AttributeKey<TransportChannel> ATTR_TRANSPORT_CHANNEL = AttributeKey.valueOf("transport");
+
+  public enum Status {
+    CONNECT_IN_PROGRESS,
+    CONNECTED,
+    HANDSHAKE_IN_PROGRESS,
+    HANDSHAKE_PASSED,
+    READY,
+    CLOSED
   }
 
-  final Channel channel;
-  final ITransportSpi transportSpi;
-  private final AtomicReference<Status> status = new AtomicReference<>();
-  private final AtomicReference<Throwable> cause = new AtomicReference<>();
-  private Func1<TransportChannel, Void> whenClose;
-  private volatile TransportData remoteHandshake;
+  private final Channel channel;
+  private final AtomicReference<Status> status;
+  private final Func1<TransportChannel, Void> closeCallback;
 
-  private TransportChannel(Channel channel, ITransportSpi transportSpi) {
+  private final AtomicReference<Throwable> cause = new AtomicReference<>();
+  private final SettableFuture<TransportHandshakeData> handshakeFuture = SettableFuture.create();
+
+  private TransportChannel(Channel channel, Status initialStatus, Func1<TransportChannel, Void> closeCallback) {
+    checkArgument(channel != null);
+    checkArgument(initialStatus != null);
+    checkArgument(closeCallback != null);
     this.channel = channel;
-    this.transportSpi = transportSpi;
+    this.status = new AtomicReference<>(initialStatus);
+    this.closeCallback = closeCallback;
+  }
+
+  public static TransportChannel newConnector(Channel channel, Func1<TransportChannel, Void> closeCallback) {
+    TransportChannel target = new TransportChannel(channel, CONNECT_IN_PROGRESS, closeCallback);
+    channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(target);
+    return target;
+  }
+
+  public static TransportChannel newAcceptor(Channel channel, Func1<TransportChannel, Void> closeCallback) {
+    TransportChannel target = new TransportChannel(channel, CONNECTED, closeCallback);
+    channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(target);
+    return target;
+  }
+
+  public static TransportChannel from(Channel channel) {
+    TransportChannel transport = channel.attr(ATTR_TRANSPORT_CHANNEL).get();
+    if (transport == null) {
+      throw new TransportBrokenException("Transport not set for the given channel: " + channel);
+    }
+    return transport;
   }
 
   /**
-   * Setter for {@link #remoteHandshake}. Called when handshake passed successfully (RESOLVED_OK) on both sides.
+   * Setter for {@link #handshakeFuture}. Called when handshake passed successfully (RESOLVED_OK) on both sides.
    *
-   * @param remoteHandshake remote handshake (non null)
+   * @param handshakeData remote handshake (non null)
    */
-  void setRemoteHandshake(TransportData remoteHandshake) {
-    checkArgument(remoteHandshake != null);
-    this.remoteHandshake = remoteHandshake;
+  void setHandshakeData(TransportHandshakeData handshakeData) {
+    checkArgument(handshakeData != null);
+    handshakeFuture.set(handshakeData);
+  }
+
+  Channel channel() {
+    return channel;
+  }
+
+  ListenableFuture<TransportHandshakeData> handshakeFuture() {
+    return handshakeFuture;
   }
 
   /**
@@ -65,19 +105,15 @@ final class TransportChannel implements ITransportChannel {
    *         yet
    */
   @Nullable
-  public TransportEndpoint getRemoteEndpoint() {
-    return remoteHandshake != null ? (TransportEndpoint) remoteHandshake.get(TransportData.META_ORIGIN_ENDPOINT) : null;
-  }
-
-  /**
-   * Identity of the Origin/Destination of this transport.
-   *
-   * @return TransportEndpoint object this transport is referencing to; or {@code null} if this transport isn't READY
-   *         yet
-   */
-  @Nullable
-  public String getRemoteEndpointId() {
-    return remoteHandshake != null ? (String) remoteHandshake.get(TransportData.META_ORIGIN_ENDPOINT_ID) : null;
+  public TransportEndpoint remoteEndpoint() {
+    if (handshakeFuture.isDone()) {
+      try {
+        return handshakeFuture.get().endpoint();
+      } catch (InterruptedException | ExecutionException ex) {
+        LOGGER.error("Failed to get remote endpoint, ex");
+      }
+    }
+    return null;
   }
 
   @Override
@@ -90,9 +126,10 @@ final class TransportChannel implements ITransportChannel {
     checkArgument(message != null);
     if (promise != null && getCause() != null) {
       promise.setException(getCause());
-      return;
+    } else {
+      setPromise(channel.writeAndFlush(message), promise);
     }
-    setPromise(channel.writeAndFlush(message), promise);
+
   }
 
   @Override
@@ -111,9 +148,9 @@ final class TransportChannel implements ITransportChannel {
   void close(Throwable cause, SettableFuture<Void> promise) {
     this.cause.compareAndSet(null, cause != null ? cause : new TransportClosedException(this));
     status.set(CLOSED);
-    whenClose.call(this);
+    closeCallback.call(this);
     setPromise(channel.close(), promise);
-    LOGGER.debug("Closed {}", this);
+    LOGGER.info("Closed {}", this);
   }
 
   /**
@@ -135,7 +172,7 @@ final class TransportChannel implements ITransportChannel {
   @Override
   public String toString() {
     if (getCause() == null) {
-      return "NettyTransport{" + "status=" + status + ", channel=" + channel + '}';
+      return "TransportChannel{" + "status=" + status + ", channel=" + channel + '}';
     }
     Class clazz = getCause().getClass();
     String packageName = clazz.getPackage().getName();
@@ -146,34 +183,8 @@ final class TransportChannel implements ITransportChannel {
             return input.charAt(0);
           }
         }));
-    return "NettyTransport{" + "status=" + status + ", cause=[" + dottedPackageName + "." + clazz.getSimpleName() + "]"
+    return "TransportChannel{" + "status=" + status + ", cause=[" + dottedPackageName + "." + clazz.getSimpleName() + "]"
         + ", channel=" + channel + '}';
   }
 
-  static final class Builder {
-    private TransportChannel target;
-
-    static Builder connector(Channel channel, ITransportSpi transportSpi) {
-      Builder builder = new Builder();
-      builder.target = new TransportChannel(channel, transportSpi);
-      builder.target.status.set(CONNECT_IN_PROGRESS);
-      return builder;
-    }
-
-    static Builder acceptor(Channel channel, ITransportSpi transportSpi) {
-      Builder builder = new Builder();
-      builder.target = new TransportChannel(channel, transportSpi);
-      builder.target.status.set(CONNECTED);
-      return builder;
-    }
-
-    Builder set(Func1<TransportChannel, Void> func) {
-      target.whenClose = func;
-      return this;
-    }
-
-    TransportChannel build() {
-      return target;
-    }
-  }
 }

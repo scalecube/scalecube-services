@@ -9,15 +9,16 @@ import static org.junit.Assert.assertTrue;
 import io.servicefabric.cluster.fdetector.FailureDetectorBuilder;
 import io.servicefabric.cluster.gossip.GossipProtocol;
 import io.servicefabric.transport.ITransport;
-import io.servicefabric.transport.SocketChannelPipelineFactory;
+import io.servicefabric.transport.TransportPipelineFactory;
 import io.servicefabric.transport.Transport;
-import io.servicefabric.transport.TransportBuilder;
-import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.TransportAddress;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.SettableFuture;
 
+import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.TransportSettings;
 import rx.schedulers.Schedulers;
 
 import java.util.Arrays;
@@ -34,17 +35,15 @@ public class ClusterMembershipBuilder {
   final FailureDetectorBuilder fdBuilder;
   final Transport transport;
 
-  private ClusterMembershipBuilder(ClusterEndpoint clusterEndpoint, List<TransportEndpoint> members) {
-    transport =
-        (Transport) TransportBuilder.newInstance(clusterEndpoint.endpoint(), clusterEndpoint.endpointId())
-            .useNetworkEmulator().build();
+  private ClusterMembershipBuilder(TransportEndpoint transportEndpoint, List<TransportAddress> members) {
+    transport = Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR);
 
-    fdBuilder = FailureDetectorBuilder.FDBuilder(clusterEndpoint, transport).pingTime(100).pingTimeout(100);
+    fdBuilder = FailureDetectorBuilder.FDBuilder(transportEndpoint, transport).pingTime(100).pingTimeout(100);
 
-    gossipProtocol = new GossipProtocol(clusterEndpoint, Executors.newSingleThreadScheduledExecutor());
+    gossipProtocol = new GossipProtocol(transportEndpoint, Executors.newSingleThreadScheduledExecutor());
     gossipProtocol.setTransport(transport);
 
-    target = new ClusterMembership(clusterEndpoint, Schedulers.computation());
+    target = new ClusterMembership(transportEndpoint, Schedulers.computation());
     target.setTransport(transport);
     target.setFailureDetector(fdBuilder.target());
     target.setGossipProtocol(gossipProtocol);
@@ -58,12 +57,12 @@ public class ClusterMembershipBuilder {
     target.setSyncTimeout(100);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(ClusterEndpoint clusterEndpoint, List<TransportEndpoint> members) {
-    return new ClusterMembershipBuilder(clusterEndpoint, members);
+  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint, List<TransportAddress> members) {
+    return new ClusterMembershipBuilder(transportEndpoint, members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(ClusterEndpoint clusterEndpoint, TransportEndpoint... members) {
-    return new ClusterMembershipBuilder(clusterEndpoint, Arrays.asList(members));
+  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint, TransportAddress... members) {
+    return new ClusterMembershipBuilder(transportEndpoint, Arrays.asList(members));
   }
 
   public ClusterMembershipBuilder syncTime(int syncTime) {
@@ -96,7 +95,7 @@ public class ClusterMembershipBuilder {
     return this;
   }
 
-  public ClusterMembershipBuilder ping(ClusterEndpoint member) {
+  public ClusterMembershipBuilder ping(TransportEndpoint member) {
     fdBuilder.ping(member);
     return this;
   }
@@ -106,43 +105,30 @@ public class ClusterMembershipBuilder {
     return this;
   }
 
-  public ClusterMembershipBuilder randomMembers(List<ClusterEndpoint> members) {
+  public ClusterMembershipBuilder randomMembers(List<TransportEndpoint> members) {
     fdBuilder.randomMembers(members);
     return this;
   }
 
-  public ClusterMembershipBuilder block(ClusterEndpoint dest) {
-    transport.<SocketChannelPipelineFactory>getPipelineFactory().blockMessagesTo(dest.endpoint());
+  public ClusterMembershipBuilder block(TransportEndpoint dest) {
+    transport.<TransportPipelineFactory>getPipelineFactory().blockMessagesTo(dest);
     return this;
   }
 
-  public ClusterMembershipBuilder block(List<ClusterEndpoint> members) {
-    for (ClusterEndpoint dest : members) {
+  public ClusterMembershipBuilder block(List<TransportEndpoint> members) {
+    for (TransportEndpoint dest : members) {
       block(dest);
     }
     return this;
   }
 
-  public ClusterMembershipBuilder network(ClusterEndpoint member, int lostPercent, int mean) {
-    transport.<SocketChannelPipelineFactory>getPipelineFactory().setNetworkSettings(member.endpoint(), lostPercent,
-        mean);
-    return this;
-  }
-
-  public ClusterMembershipBuilder unblock(TransportEndpoint dest) {
-    transport.<SocketChannelPipelineFactory>getPipelineFactory().unblockMessagesTo(dest);
-    return this;
-  }
-
-  public ClusterMembershipBuilder unblock(List<TransportEndpoint> members) {
-    for (TransportEndpoint dest : members) {
-      unblock(dest);
-    }
+  public ClusterMembershipBuilder network(TransportEndpoint member, int lostPercent, int mean) {
+    transport.<TransportPipelineFactory>getPipelineFactory().setNetworkSettings(member, lostPercent, mean);
     return this;
   }
 
   public ClusterMembershipBuilder unblockAll() {
-    transport.<SocketChannelPipelineFactory>getPipelineFactory().unblockAll();
+    transport.<TransportPipelineFactory>getPipelineFactory().unblockAll();
     return this;
   }
 
@@ -174,37 +160,37 @@ public class ClusterMembershipBuilder {
     }
   }
 
-  public ClusterMembershipBuilder assertTrusted(ClusterEndpoint... members) {
+  public ClusterMembershipBuilder assertTrusted(TransportEndpoint... members) {
     assertStatus(ClusterMemberStatus.TRUSTED, members);
     return this;
   }
 
-  public ClusterMembershipBuilder assertSuspected(ClusterEndpoint... members) {
+  public ClusterMembershipBuilder assertSuspected(TransportEndpoint... members) {
     assertStatus(ClusterMemberStatus.SUSPECTED, members);
     return this;
   }
 
   public ClusterMembershipBuilder assertNoSuspected() {
-    assertStatus(ClusterMemberStatus.SUSPECTED, new ClusterEndpoint[0]);
+    assertStatus(ClusterMemberStatus.SUSPECTED, new TransportEndpoint[0]);
     return this;
   }
 
-  private void assertStatus(final ClusterMemberStatus s, ClusterEndpoint[] members) {
+  private void assertStatus(final ClusterMemberStatus s, TransportEndpoint[] members) {
     Predicate<ClusterMember> predicate = new Predicate<ClusterMember>() {
       @Override
       public boolean apply(@Nullable ClusterMember input) {
         return input.status() == s;
       }
     };
-    Function<ClusterMember, ClusterEndpoint> function = new Function<ClusterMember, ClusterEndpoint>() {
+    Function<ClusterMember, TransportEndpoint> function = new Function<ClusterMember, TransportEndpoint>() {
       @Override
-      public ClusterEndpoint apply(ClusterMember input) {
+      public TransportEndpoint apply(ClusterMember input) {
         return input.endpoint();
       }
     };
-    List<ClusterEndpoint> list = newArrayList(transform(filter(target.members(), predicate), function));
+    List<TransportEndpoint> list = newArrayList(transform(filter(target.members(), predicate), function));
     assertEquals("expect " + s + ": " + list, members.length, list.size());
-    for (ClusterEndpoint member : members) {
+    for (TransportEndpoint member : members) {
       assertTrue("expect " + s + ": " + member, list.contains(member));
     }
   }

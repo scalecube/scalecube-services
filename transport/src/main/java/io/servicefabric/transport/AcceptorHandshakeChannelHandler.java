@@ -1,5 +1,9 @@
 package io.servicefabric.transport;
 
+import static io.servicefabric.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC;
+import static io.servicefabric.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK;
+import static io.servicefabric.transport.TransportHeaders.QUALIFIER;
+
 import io.servicefabric.transport.protocol.Message;
 import io.servicefabric.transport.utils.ChannelFutureUtils;
 
@@ -12,12 +16,9 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
-
 /**
- * Inbound handler. Recognizes only handshake message ({@link TransportData#Q_TRANSPORT_HANDSHAKE_SYNC} (rest messages
- * unsupported and results in {@link TransportBrokenException}). Resolves incoming connection metadata with local one
- * (see {@link #resolve(TransportData, Map)}).
+ * Inbound handler. Recognizes only handshake message ({@link TransportHandshakeData#Q_TRANSPORT_HANDSHAKE_SYNC} (rest
+ * messages unsupported and results in {@link TransportBrokenException}).
  */
 @ChannelHandler.Sharable
 final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter {
@@ -32,30 +33,32 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
     Message message = (Message) msg;
-    if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(message.header(TransportHeaders.QUALIFIER))) {
+    if (!Q_TRANSPORT_HANDSHAKE_SYNC.equals(message.header(QUALIFIER))) {
       throw new TransportBrokenException("Received unsupported " + msg
           + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC)");
     }
 
-    final TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
-    final TransportData handshakeData = (TransportData) message.data();
-    final TransportData resolvedData = resolve(handshakeData, transportSpi.getLocalMetadata());
-    if (resolvedData.isResolvedOk()) {
-      transport.setRemoteHandshake(handshakeData);
-      transport.transportSpi.accept(transport);
-      transport.transportSpi.resetDueHandshake(transport.channel);
-      transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.READY);
-      LOGGER.debug("Set READY on acceptor: {}", transport);
+    final TransportChannel transportChannel = TransportChannel.from(ctx.channel());
+    final TransportHandshakeData handshakeRequest = (TransportHandshakeData) message.data();
+    final TransportHandshakeData handshakeResponse =
+        prepareHandshakeResponse(handshakeRequest, transportSpi.getLocalEndpoint());
+    if (handshakeResponse.isResolvedOk()) {
+      transportChannel.setHandshakeData(handshakeRequest);
+      transportSpi.accept(transportChannel);
+      transportSpi.resetDueHandshake(transportChannel.channel());
+      transportChannel.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.READY);
+      LOGGER.debug("Set READY on acceptor: {}", transportChannel);
     }
+
     ChannelFuture channelFuture =
-        ctx.writeAndFlush(new Message(resolvedData, TransportHeaders.QUALIFIER,
-            TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK));
+        ctx.writeAndFlush(new Message(handshakeResponse, QUALIFIER, Q_TRANSPORT_HANDSHAKE_SYNC_ACK));
+
     channelFuture.addListener(ChannelFutureUtils.wrap(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture future) {
-        if (!resolvedData.isResolvedOk()) {
-          LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", resolvedData, transport);
-          transport.close(new TransportHandshakeException(transport, resolvedData));
+        if (!handshakeResponse.isResolvedOk()) {
+          LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", handshakeResponse, transportChannel);
+          transportChannel.close(new TransportHandshakeException(transportChannel, handshakeResponse));
         }
       }
     }));
@@ -64,23 +67,22 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
   /**
    * Handshake validator method on 'acceptor' side.
    *
-   * @param handshake incoming (remote) handshake from 'connector'
-   * @param localMetadata local metadata
-   * @return {@link TransportData} object in status RESOLVED_OK or RESOLVED_ERR
+   * @param handshakeRequest incoming (remote) handshake from 'connector'
+   * @param localEndpoint local endpoint
+   * @return {@link TransportHandshakeData} object in status RESOLVED_OK or RESOLVED_ERR
    */
-  private TransportData resolve(TransportData handshake, Map<String, Object> localMetadata) {
-    TransportEndpoint originEndpoint = handshake.get(TransportData.META_ORIGIN_ENDPOINT);
-    if (originEndpoint == null) {
-      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT + " not set").build();
-    } else if (originEndpoint == localMetadata.get(TransportData.META_ORIGIN_ENDPOINT)) {
-      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT + " eq to local").build();
+  private TransportHandshakeData prepareHandshakeResponse(TransportHandshakeData handshakeRequest,
+      TransportEndpoint localEndpoint) {
+    TransportEndpoint remoteEndpoint = handshakeRequest.endpoint();
+    if (remoteEndpoint == null) {
+      return TransportHandshakeData.error("Remote endpoint not set");
+    } else if (remoteEndpoint.address() == null) {
+      return TransportHandshakeData.error("Remote endpoint address not set");
+    } else if (remoteEndpoint.id() == null) {
+      return TransportHandshakeData.error("Remote endpoint id not set");
+    } else if (remoteEndpoint.id().equals(localEndpoint.id())) {
+      return TransportHandshakeData.error("Remote endpoint equal to local");
     }
-    String originEndpointId = handshake.get(TransportData.META_ORIGIN_ENDPOINT_ID);
-    if (originEndpointId == null) {
-      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT_ID + " not set").build();
-    } else if (originEndpointId == localMetadata.get(TransportData.META_ORIGIN_ENDPOINT_ID)) {
-      return TransportData.err(handshake).setExplain(TransportData.META_ORIGIN_ENDPOINT_ID + " eq to local").build();
-    }
-    return TransportData.ok(localMetadata).build();
+    return TransportHandshakeData.ok(localEndpoint);
   }
 }

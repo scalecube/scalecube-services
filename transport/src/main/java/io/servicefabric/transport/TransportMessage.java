@@ -11,35 +11,28 @@ import javax.annotation.concurrent.Immutable;
 public final class TransportMessage {
 
   private final Message message;
-  private final ITransportChannel originChannel;
-  private final TransportEndpoint originEndpoint;
-  private final String originEndpointId;
+  private final TransportEndpoint endpoint;
 
-  public TransportMessage(@CheckForNull ITransportChannel originChannel, @CheckForNull Message message,
-      @CheckForNull TransportEndpoint originEndpoint, @CheckForNull String originEndpointId) {
-    checkArgument(originChannel != null);
+  public TransportMessage(@CheckForNull Message message, @CheckForNull TransportEndpoint endpoint) {
+    checkArgument(endpoint != null);
     checkArgument(message != null);
-    checkArgument(originEndpoint != null);
-    checkArgument(originEndpointId != null);
-    this.originChannel = originChannel;
     this.message = message;
-    this.originEndpoint = originEndpoint;
-    this.originEndpointId = originEndpointId;
+    this.endpoint = endpoint;
   }
 
   public Message message() {
     return message;
   }
 
-  public ITransportChannel originChannel() {
-    return originChannel;
+  public TransportEndpoint endpoint() {
+    return endpoint;
   }
 
-  public TransportEndpoint originEndpoint() {
-    return originEndpoint;
-  }
-
-  public String originEndpointId() {
-    return originEndpointId;
+  @Override
+  public String toString() {
+    return "TransportMessage{" +
+        "message=" + message +
+        ", endpoint=" + endpoint +
+        '}';
   }
 }

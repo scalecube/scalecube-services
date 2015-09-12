@@ -3,13 +3,10 @@ package io.servicefabric.cluster.gossip;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import io.servicefabric.cluster.ClusterEndpoint;
-import io.servicefabric.transport.ITransportChannel;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
 
-import org.jmock.Mockery;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,33 +19,29 @@ import java.util.Queue;
 
 public class GossipProtocolFunctionTest {
 
-  private ClusterEndpoint remote;
-  private ClusterEndpoint local;
-  private ITransportChannel transportChannel;
+  private TransportEndpoint remote;
+  private TransportEndpoint local;
 
   @Before
   public void setup() {
-    remote = ClusterEndpoint.from("tcp://id1@host:1");
-    local = ClusterEndpoint.from("tcp://id2@host:2");
-    Mockery jmockContext = new Mockery();
-    transportChannel = jmockContext.mock(ITransportChannel.class);
+    remote = TransportEndpoint.from("tcp://id1@host:1");
+    local = TransportEndpoint.from("tcp://id2@host:2");
   }
 
   @Test
   public void testGossipMessageFilter() {
     GossipProtocol.GossipMessageFilter filter = new GossipProtocol.GossipMessageFilter();
     Message message = new Message(new GossipRequest(Collections.<Gossip>emptyList()));
-    TransportEndpoint endpoint = TransportEndpoint.from("tcp://host:123");
-    assertTrue(filter.call(new TransportMessage(transportChannel, message, endpoint, "1")));
-    assertFalse(filter
-        .call(new TransportMessage(transportChannel, new Message("com.pt.openapi.hello/"), endpoint, "2")));
+    TransportEndpoint endpoint = TransportEndpoint.from("tcp://1@host:123");
+    assertTrue(filter.call(new TransportMessage(message, endpoint)));
+    assertFalse(filter.call(new TransportMessage(new Message("com.pt.openapi.hello/"), endpoint)));
   }
 
   @Test
   public void testOnGossipAction() {
     Queue<GossipProtocol.GossipTask> gossipQueue = new LinkedList<>();
     GossipProtocol.OnGossipRequestAction action = new GossipProtocol.OnGossipRequestAction(gossipQueue);
-    TransportEndpoint endpoint = TransportEndpoint.from("tcp://host:456");
+    TransportEndpoint endpoint = TransportEndpoint.from("tcp://1@host:456");
     List<Gossip> gossips = new ArrayList<>(20);
     for (int i = 0; i < 20; i++) {
       Gossip gossip = new Gossip("" + i, new Message("123"));
@@ -56,7 +49,7 @@ public class GossipProtocolFunctionTest {
     }
     Message message = new Message(new GossipRequest(gossips));
 
-    action.call(new TransportMessage(transportChannel, message, endpoint, "1"));
+    action.call(new TransportMessage(message, endpoint));
     assertTrue(gossipQueue.size() == 20);
   }
 

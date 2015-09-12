@@ -1,6 +1,6 @@
 package io.servicefabric.cluster;
 
-import io.servicefabric.transport.TransportBuilder;
+import io.servicefabric.transport.TransportSettings;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,18 +11,15 @@ import java.util.Map;
 public class ClusterConfiguration {
 
   public static final int DEFAULT_PORT = 29001;
-  public static final TransportBuilder.TransportSettings DEFAULT_TRANSPORT_SETTINGS =
-      new TransportBuilder.TransportSettings();
   public static final ClusterMembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new ClusterMembershipSettings();
   public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
   public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
 
-  boolean autoJoin = false;
   String memberId = null;
   String seedMembers = "";
   int port = DEFAULT_PORT;
   Map<String, String> metadata = new HashMap<>();
-  TransportBuilder.TransportSettings transportSettings = DEFAULT_TRANSPORT_SETTINGS;
+  TransportSettings transportSettings = TransportSettings.DEFAULT;
   ClusterMembershipSettings clusterMembershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
   FailureDetectorSettings failureDetectorSettings = DEFAULT_FAILURE_DETECTOR_SETTINGS;
   GossipProtocolSettings gossipProtocolSettings = DEFAULT_GOSSIP_PROTOCOL_SETTINGS;
@@ -45,10 +42,6 @@ public class ClusterConfiguration {
     this.port = port;
   }
 
-  public void setAutoJoin(boolean autoJoin) {
-    this.autoJoin = autoJoin;
-  }
-
   public void setMetadata(Map<String, String> metadata) {
     this.metadata = metadata;
   }
@@ -65,7 +58,7 @@ public class ClusterConfiguration {
     this.gossipProtocolSettings = gossipProtocolSettings;
   }
 
-  public void setTransportSettings(TransportBuilder.TransportSettings transportSettings) {
+  public void setTransportSettings(TransportSettings transportSettings) {
     this.transportSettings = transportSettings;
   }
 
@@ -89,11 +82,6 @@ public class ClusterConfiguration {
     return this;
   }
 
-  public ClusterConfiguration autoJoin(boolean autoJoin) {
-    setAutoJoin(autoJoin);
-    return this;
-  }
-
   public ClusterConfiguration clusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
     setClusterMembershipSettings(clusterMembershipSettings);
     return this;
@@ -109,7 +97,7 @@ public class ClusterConfiguration {
     return this;
   }
 
-  public ClusterConfiguration transportSettings(TransportBuilder.TransportSettings transportSetting) {
+  public ClusterConfiguration transportSettings(TransportSettings transportSetting) {
     setTransportSettings(transportSetting);
     return this;
   }

@@ -10,17 +10,9 @@ import io.netty.handler.codec.EncoderException;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 
-public final class ProtostuffMessageSerializer implements MessageSerializer {
+final class ProtostuffMessageSerializer implements MessageSerializer {
 
   private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer();
-
-  // TODO [Anton Kharenko]: Move to more appropriate place
-  static {
-    // Register message schema
-    if (!RuntimeSchema.isRegistered(Message.class)) {
-      RuntimeSchema.register(Message.class, new MessageSchema());
-    }
-  }
 
   @Override
   public void serialize(Message message, ByteBuf bb) {

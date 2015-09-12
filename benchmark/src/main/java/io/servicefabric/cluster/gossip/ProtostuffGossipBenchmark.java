@@ -1,13 +1,14 @@
 package io.servicefabric.cluster.gossip;
 
 import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
-import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
+import io.servicefabric.transport.protocol.MessageDeserializer;
+import io.servicefabric.transport.protocol.MessageSerializer;
 
 import com.google.common.collect.ImmutableList;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.servicefabric.transport.protocol.ProtostuffProtocol;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -41,8 +42,8 @@ public class ProtostuffGossipBenchmark {
           + "UXzVXrKw0mYcoB6Ye8mWuvVUFOO1Io6NJk0q2HHKST0FQVQo6mVEYKm8geTI6WphB4uRiQ6ksk6zOrJXmwQ6ssJIPYRRF2Mx9EDR9OMhYw6"
           + "hoijdfgd23EXz8WkTkYz42kQkK99rNxyIXVMVyRPzLHBclYaYKlcmoN8f7hq6aiv3VxlPPchZ6xWmjOlGJY9P7nINtChd2spMUkhAeznajS4VW";
 
-  ProtostuffMessageSerializer ser;
-  ProtostuffMessageDeserializer deser;
+  MessageSerializer ser;
+  MessageDeserializer deser;
 
   Message gossipReq;
   ByteBuf gossipReqSer;
@@ -54,8 +55,9 @@ public class ProtostuffGossipBenchmark {
 
   @Setup
   public void setup() {
-    ser = new ProtostuffMessageSerializer();
-    deser = new ProtostuffMessageDeserializer();
+    ProtostuffProtocol protocol = new ProtostuffProtocol();
+    ser = protocol.getMessageSerializer();
+    deser = protocol.getMessageDeserializer();
 
     gossipReq = new Message(new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", new Message(PAYLOAD_X32)))));
     ser.serialize(gossipReq, gossipReqSer = Unpooled.buffer(1024));

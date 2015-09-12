@@ -34,11 +34,6 @@ public class ClusterBootstrapExamples {
             .metadata(metadata);
     ICluster cluster5 = Cluster.newInstance(config5).join();
 
-    // If you don't want to call join
-    ClusterConfiguration config6 =
-        ClusterConfiguration.newInstance().port(4005).seedMembers(seedMembers).autoJoin(true);
-    ICluster cluster6 = Cluster.newInstance(config6);
-
     // Alone cluster member - trying to join, but always ignored :(
     ClusterConfiguration.ClusterMembershipSettings membershipSettings7 =
         new ClusterConfiguration.ClusterMembershipSettings();

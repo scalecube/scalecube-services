@@ -42,7 +42,7 @@ public final class Message {
   }
 
   /**
-   * Instantiates new message with given qualifier and headers. Headers passed a sequence of key-value pairs.
+   * Instantiates new message with the given data and headers. Headers passed a sequence of key-value pairs.
    */
   public Message(Object data, String... headers) {
     checkArgument(headers != null);

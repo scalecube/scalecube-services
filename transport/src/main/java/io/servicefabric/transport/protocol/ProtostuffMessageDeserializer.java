@@ -9,7 +9,7 @@ import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 
 
-public final class ProtostuffMessageDeserializer implements MessageDeserializer {
+final class ProtostuffMessageDeserializer implements MessageDeserializer {
 
   @Override
   public Message deserialize(ByteBuf bb) {

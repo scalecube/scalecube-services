@@ -1,12 +1,9 @@
 package io.servicefabric.cluster.gossip;
 
-import static io.servicefabric.transport.TransportEndpoint.from;
 import static org.junit.Assert.assertEquals;
 
-import io.servicefabric.cluster.ClusterEndpoint;
-import io.servicefabric.transport.ITransport;
-import io.servicefabric.transport.ITransportChannel;
 import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
@@ -41,15 +38,13 @@ public class GossipProtocolTest {
   private ITransport transport;
 
   private ScheduledExecutorService executorService;
-  private List<ClusterEndpoint> members;
-  private ITransportChannel transportChannel;
+  private List<TransportEndpoint> members;
 
   @Before
   public void init() {
     jmockContext = new Mockery();
     subject = PublishSubject.create();
     transport = jmockContext.mock(ITransport.class);
-    transportChannel = jmockContext.mock(ITransportChannel.class);
     executorService = jmockContext.mock(ScheduledExecutorService.class);
     jmockContext.checking(new Expectations() {
       {
@@ -59,18 +54,18 @@ public class GossipProtocolTest {
             with(TimeUnit.MILLISECONDS));
       }
     });
-    protocol = new GossipProtocol(ClusterEndpoint.from("tcp://id@host:1"), executorService);
+    protocol = new GossipProtocol(TransportEndpoint.from("tcp://id@host:1"), executorService);
     protocol.setMaxGossipSent(maxGossipSent);
     protocol.setGossipTime(gossipTime);
     protocol.setMaxEndpointsToSelect(maxEndpointsToSelect);
     protocol.setTransport(transport);
     members = Lists.newArrayList();
 
-    members.add(ClusterEndpoint.from("tcp://id1@host:11"));
-    members.add(ClusterEndpoint.from("tcp://id2@host:22"));
-    members.add(ClusterEndpoint.from("tcp://id3@host:33"));
+    members.add(TransportEndpoint.from("tcp://id1@host:11"));
+    members.add(TransportEndpoint.from("tcp://id2@host:22"));
+    members.add(TransportEndpoint.from("tcp://id3@host:33"));
 
-    protocol.setClusterMembers(this.members);
+    protocol.setClusterEndpoints(this.members);
     protocol.start();
   }
 
@@ -83,6 +78,7 @@ public class GossipProtocolTest {
     });
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void testListenGossips() throws Exception {
     final List<Message> res = Lists.newArrayList();
@@ -98,18 +94,17 @@ public class GossipProtocolTest {
     gossipList.add(new Gossip("3", new Message("data")));
     GossipRequest gossipRequest = new GossipRequest(gossipList);
 
-    TransportEndpoint endpoint2 = from("tcp://host:2");
-    TransportEndpoint endpoint1 = from("tcp://host:1");
+    TransportEndpoint endpoint2 = TransportEndpoint.from("tcp://2@host:2");
+    TransportEndpoint endpoint1 = TransportEndpoint.from("tcp://1@host:1");
 
-    subject.onNext(new TransportMessage(transportChannel, new Message(gossipRequest), endpoint2, "2"));
-    subject.onNext(new TransportMessage(transportChannel, new Message(null, TransportHeaders.QUALIFIER,
-        "com.pt.openapi.hello/"), endpoint1, "1"));
-    subject.onNext(new TransportMessage(transportChannel, new Message(gossipRequest), endpoint1, "1"));
+    subject.onNext(new TransportMessage(new Message(gossipRequest), endpoint2));
+    subject.onNext(new TransportMessage(new Message(null, TransportHeaders.QUALIFIER, "com.pt.openapi.hello/"), endpoint1));
+    subject.onNext(new TransportMessage(new Message(gossipRequest), endpoint1));
     List<Gossip> second = new ArrayList<>();
     second.add(new Gossip("2", new Message("data")));
     second.add(new Gossip("4", new Message("data")));
     second.add(new Gossip("5", new Message("data")));
-    subject.onNext(new TransportMessage(transportChannel, new Message(new GossipRequest(second)), endpoint1, "1"));
+    subject.onNext(new TransportMessage(new Message(new GossipRequest(second)), endpoint1));
     Method processGossipQueueMethod = GossipProtocol.class.getDeclaredMethod("processGossipQueue");
     processGossipQueueMethod.setAccessible(true);
     processGossipQueueMethod.invoke(protocol);
@@ -123,12 +118,10 @@ public class GossipProtocolTest {
     sendGossips.setAccessible(true);
     List<GossipLocalState> list = new ArrayList<>();
 
-    list.add(GossipLocalState.create(new Gossip("2", new Message("data")), ClusterEndpoint.from("tcp://id2@host:22"), 0));
+    list.add(GossipLocalState.create(new Gossip("2", new Message("data")), TransportEndpoint.from("tcp://id2@host:22"), 0));
     jmockContext.checking(new Expectations() {
       {
-        exactly(maxEndpointsToSelect).of(transport).to(with(any(TransportEndpoint.class)));
-        will(returnValue(transportChannel));
-        exactly(maxEndpointsToSelect).of(transportChannel).send(with(any(Message.class)));
+        exactly(maxEndpointsToSelect).of(transport).send(with(any(TransportEndpoint.class)), with(any(Message.class)));
       }
     });
     sendGossips.invoke(protocol, members, list, 42);

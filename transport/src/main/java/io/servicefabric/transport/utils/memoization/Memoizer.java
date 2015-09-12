@@ -11,29 +11,25 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-/**
- * The ConcurrentMapMemoizer.
- */
-public class ConcurrentMapMemoizer<A, V> {
-  /** The cache. */
+public class Memoizer<A, V> {
+
   private final ConcurrentMap<A, Future<V>> cache = new ConcurrentHashMap<>();
-  /** The default computable. */
+
   private final Computable<A, V> defaultComputable;
 
   /**
-   * Instantiates a new concurrent map memoizer.
+   * Instantiates a new memoizer without default computable.
    */
-  public ConcurrentMapMemoizer() {
+  public Memoizer() {
     this(null);
   }
 
   /**
-   * Instantiates a new concurrent map memoizer.
+   * Instantiates a new memoizer with the given default computable.
    *
-   * @param computable the computable
-   * @throws IllegalArgumentException is computable is null
+   * @param computable the default computable
    */
-  public ConcurrentMapMemoizer(Computable<A, V> computable) {
+  public Memoizer(Computable<A, V> computable) {
     this.defaultComputable = computable;
   }
 
@@ -105,27 +101,5 @@ public class ConcurrentMapMemoizer<A, V> {
 
   public Set<A> keySet() {
     return cache.keySet();
-  }
-
-  public V putWithReplace(final A arg, final Computable<A, V> computable) {
-    checkArgument(computable != null, "the computable can't be null");
-    Callable<V> eval = new Callable<V>() {
-      public V call() throws Exception {
-        return computable.compute(arg);
-      }
-    };
-    FutureTask<V> futureTask = new FutureTask<>(eval);
-    futureTask.run();
-    cache.put(arg, futureTask);
-    try {
-      return futureTask.get();
-    } catch (CancellationException | InterruptedException e) {
-      cache.remove(arg, futureTask);
-    } catch (ExecutionException e) {
-      cache.remove(arg, futureTask);
-      throw new MemoizerExecutionException("Failed to compute value for key: " + arg + " with computable: "
-          + computable, e.getCause());
-    }
-    return null;
   }
 }
