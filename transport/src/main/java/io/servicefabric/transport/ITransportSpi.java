@@ -12,19 +12,16 @@ import java.util.Map;
 interface ITransportSpi {
 
   /** SPI method. */
-  Subject<TransportMessage, TransportMessage> getSubject();
+  void onMessage(TransportMessage message);
 
   /** SPI method. */
   TransportEndpoint getLocalEndpoint();
 
   /** SPI method. */
-  Map<String, Object> getLocalMetadata();
-
-  /** SPI method. */
   int getHandshakeTimeout();
 
   /** SPI method. */
-  int getSendHwm();
+  int getSendHighWaterMark();
 
   /** SPI method. */
   LogLevel getLogLevel();
@@ -33,10 +30,7 @@ interface ITransportSpi {
   EventExecutorGroup getEventExecutor();
 
   /** SPI method. */
-  TransportChannel getTransportChannel(Channel channel);
-
-  /** SPI method. */
-  TransportChannel createAcceptor(Channel channel);
+  TransportChannel createAcceptorTransportChannel(Channel channel);
 
   /** SPI method. */
   void accept(TransportChannel transport);

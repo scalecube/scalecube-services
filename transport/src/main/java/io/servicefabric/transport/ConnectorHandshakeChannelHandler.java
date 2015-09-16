@@ -20,61 +20,51 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Duplex handler. On inbound recognizes only handshake message {@link TransportData#Q_TRANSPORT_HANDSHAKE_SYNC_ACK}
+ * Duplex handler. On inbound recognizes only handshake message {@link TransportHandshakeData#Q_TRANSPORT_HANDSHAKE_SYNC_ACK}
  * (rest inbound messages unsupported and results in {@link TransportBrokenException}). On outbound may enqueue
  * messages. On 'channel active' starting handshake process.
  * <p/>
- * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimer}); and should always run
+ * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimeout}); and should always run
  * in different executor than io-thread.
  */
 final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
   static final Logger LOGGER = LoggerFactory.getLogger(ConnectorHandshakeChannelHandler.class);
 
-  final ITransportSpi transportSpi;
-  Queue<WriteAndFlush> sendMailbox;
-  ScheduledFuture handshakeTimer;
-
-  static class WriteAndFlush {
-    final Object msg;
-    final ChannelPromise promise;
-
-    WriteAndFlush(Object msg, ChannelPromise promise) {
-      this.msg = msg;
-      this.promise = promise;
-    }
-  }
+  private final ITransportSpi transportSpi;
+  private final Queue<WriteAndFlush> sendMailbox;
+  private ScheduledFuture handshakeTimeout;
 
   ConnectorHandshakeChannelHandler(ITransportSpi transportSpi) {
     this.transportSpi = transportSpi;
-    this.sendMailbox = new ArrayBlockingQueue<>(transportSpi.getSendHwm(), true/* fair */);
+    this.sendMailbox = new ArrayBlockingQueue<>(transportSpi.getSendHighWaterMark(), true/* fair */);
   }
 
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
-    final TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
-    transport.flip(TransportChannel.Status.CONNECT_IN_PROGRESS, TransportChannel.Status.CONNECTED);
+    final TransportChannel transportChannel = TransportChannel.from(ctx.channel());
+    transportChannel.flip(TransportChannel.Status.CONNECT_IN_PROGRESS, TransportChannel.Status.CONNECTED);
 
-    final TransportData handshake = TransportData.newData(transport.transportSpi.getLocalMetadata()).build();
-    int handshakeTimeout = transport.transportSpi.getHandshakeTimeout();
-    handshakeTimer = transport.channel.eventLoop().schedule(new Runnable() {
+    final TransportHandshakeData handshake = TransportHandshakeData.create(transportSpi.getLocalEndpoint());
+    int handshakeTimeout = transportSpi.getHandshakeTimeout();
+    this.handshakeTimeout = transportChannel.channel().eventLoop().schedule(new Runnable() {
       @Override
       public void run() {
-        LOGGER.debug("HANDSHAKE_SYNC({}) timeout, connector: {}", handshake, transport);
-        transport.close(new TransportHandshakeException(transport, handshake, new TimeoutException()));
+        LOGGER.debug("HANDSHAKE_SYNC({}) timeout, connector: {}", handshake, transportChannel);
+        transportChannel.close(new TransportHandshakeException(transportChannel, handshake, new TimeoutException()));
       }
     }, handshakeTimeout, TimeUnit.MILLISECONDS);
 
-    transport.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_IN_PROGRESS);
+    transportChannel.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_IN_PROGRESS);
 
     ChannelFuture channelFuture =
-        ctx.writeAndFlush(new Message(handshake, TransportHeaders.QUALIFIER, TransportData.Q_TRANSPORT_HANDSHAKE_SYNC));
+        ctx.writeAndFlush(new Message(handshake, TransportHeaders.QUALIFIER, TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC));
     channelFuture.addListener(wrap(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture future) {
         if (!future.isSuccess()) {
-          LOGGER.debug("HANDSHAKE_SYNC({}) not sent, connector: {}", handshake, transport);
-          cancelHandshakeTimer();
-          transport.close(new TransportHandshakeException(transport, handshake, future.cause()));
+          LOGGER.debug("HANDSHAKE_SYNC({}) not sent, connector: {}", handshake, transportChannel);
+          cancelHandshakeTimeout();
+          transportChannel.close(new TransportHandshakeException(transportChannel, handshake, future.cause()));
         }
       }
     }));
@@ -84,10 +74,20 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
 
   @Override
   public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-    boolean offer = sendMailbox.offer(new WriteAndFlush(msg, promise));
-    if (!offer && promise != null) {
-      TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
-      String message = "sendMailbox full: capacity=" + transportSpi.getSendHwm() + ", size=" + sendMailbox.size();
+    TransportChannel transport = TransportChannel.from(ctx.channel());
+
+    // Check if transport wasn't closed already
+    if (transport.getCause() != null) {
+      promise.setFailure(transport.getCause());
+      return;
+    }
+
+    // Put to mailbox
+    boolean offeredSuccessfully = sendMailbox.offer(new WriteAndFlush(msg, promise));
+
+    // Check mailbox capacity wasn't exceeded
+    if (!offeredSuccessfully && promise != null) {
+      String message = "sendMailbox full: capacity=" + transportSpi.getSendHighWaterMark() + ", size=" + sendMailbox.size();
       promise.setFailure(new TransportMessageException(transport, message, msg));
     }
   }
@@ -95,39 +95,39 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) {
     Message message = (Message) msg;
-    if (!TransportData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.header(TransportHeaders.QUALIFIER))) {
+    if (!TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(message.header(TransportHeaders.QUALIFIER))) {
       throw new TransportBrokenException("Received unsupported " + msg
           + " (though expecting only Q_TRANSPORT_HANDSHAKE_SYNC_ACK)");
     }
 
-    TransportData handshake = (TransportData) message.data();
-    final TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
-    if (handshake.isResolvedOk()) {
-      cancelHandshakeTimer();
-      transport.setRemoteHandshake(handshake);
-      transport.transportSpi.resetDueHandshake(transport.channel);
-      transport.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_PASSED);
-      LOGGER.debug("HANDSHAKE passed on connector: {}", transport);
+    TransportHandshakeData handshakeResponse = (TransportHandshakeData) message.data();
+    final TransportChannel transportChannel = TransportChannel.from(ctx.channel());
+    if (handshakeResponse.isResolvedOk()) {
+      cancelHandshakeTimeout();
+      transportChannel.setHandshakeData(handshakeResponse);
+      transportSpi.resetDueHandshake(transportChannel.channel());
+      transportChannel.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_PASSED);
+      LOGGER.info("HANDSHAKE passed on connector: {}", transportChannel);
       writeAndFlushSendMailbox(ctx);
-      transport.flip(TransportChannel.Status.HANDSHAKE_PASSED, TransportChannel.Status.READY);
-      LOGGER.debug("Set READY on connector: {}", transport);
+      transportChannel.flip(TransportChannel.Status.HANDSHAKE_PASSED, TransportChannel.Status.READY);
+      LOGGER.info("Set READY on connector: {}", transportChannel);
     } else {
-      LOGGER.debug("HANDSHAKE({}) not passed, connector: {}", handshake, transport);
-      cancelHandshakeTimer();
-      transport.close(new TransportHandshakeException(transport, handshake));
+      LOGGER.info("HANDSHAKE({}) not passed, connector: {}", handshakeResponse, transportChannel);
+      cancelHandshakeTimeout();
+      transportChannel.close(new TransportHandshakeException(transportChannel, handshakeResponse));
     }
   }
 
   @Override
   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-    cancelHandshakeTimer();
+    cancelHandshakeTimeout();
     cleanupSendMailbox(ctx);
     super.channelInactive(ctx);
   }
 
   @Override
   public void close(ChannelHandlerContext ctx, ChannelPromise future) throws Exception {
-    cancelHandshakeTimer();
+    cancelHandshakeTimeout();
     cleanupSendMailbox(ctx);
     super.close(ctx, future);
   }
@@ -140,7 +140,7 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
   }
 
   private void cleanupSendMailbox(ChannelHandlerContext ctx) {
-    TransportChannel transport = transportSpi.getTransportChannel(ctx.channel());
+    TransportChannel transport = TransportChannel.from(ctx.channel());
     Throwable transportCause = transport.getCause();
     Throwable cause = transportCause != null ? transportCause : new TransportClosedException(transport);
     while (!sendMailbox.isEmpty()) {
@@ -151,9 +151,19 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
     }
   }
 
-  private void cancelHandshakeTimer() {
-    if (handshakeTimer != null) {
-      handshakeTimer.cancel(true);
+  private void cancelHandshakeTimeout() {
+    if (handshakeTimeout != null) {
+      handshakeTimeout.cancel(true);
+    }
+  }
+
+  private static class WriteAndFlush {
+    final Object msg;
+    final ChannelPromise promise;
+
+    WriteAndFlush(Object msg, ChannelPromise promise) {
+      this.msg = msg;
+      this.promise = promise;
     }
   }
 }

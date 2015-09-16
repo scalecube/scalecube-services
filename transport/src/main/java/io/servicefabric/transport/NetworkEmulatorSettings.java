@@ -12,36 +12,9 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author alexeyz
  */
 public class NetworkEmulatorSettings {
+
+  // TODO [AK]: Create class NetworkEmulator and move defauls and part of other logic there
   private static NetworkEmulatorSettings defaultSettings = new NetworkEmulatorSettings(0, 0);
-
-  /** Percent of losing messages. */
-  private final int lostPercent;
-  /** Network delays in milliseconds. Delays should be emulated using exponential distribution of probabilities. */
-  private final int mean;
-
-  public NetworkEmulatorSettings(int lostPercent, int mean) {
-    this.lostPercent = lostPercent;
-    this.mean = mean;
-  }
-
-  public int getLostPercent() {
-    return lostPercent;
-  }
-
-  public int getMean() {
-    return mean;
-  }
-
-  @Override
-  public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("NetworkSettings [lostPercent=");
-    builder.append(lostPercent);
-    builder.append(", mean=");
-    builder.append(mean);
-    builder.append("]");
-    return builder.toString();
-  }
 
   public static NetworkEmulatorSettings defaultSettings() {
     return defaultSettings;
@@ -51,11 +24,31 @@ public class NetworkEmulatorSettings {
     defaultSettings = new NetworkEmulatorSettings(lostPercent, delay);
   }
 
-  public boolean breakDueToNetwork() {
+  private final int lostPercent;
+
+  private final int mean;
+
+  public NetworkEmulatorSettings(int lostPercent, int mean) {
+    this.lostPercent = lostPercent;
+    this.mean = mean;
+  }
+
+  /** Probability of message loss in percents. */
+  public int getLostPercent() {
+    return lostPercent;
+  }
+
+  /** Mean network delay for message in milliseconds. */
+  public int getMean() {
+    return mean;
+  }
+
+  public boolean evaluateLost() {
     return lostPercent > 0 && (lostPercent >= 100 || ThreadLocalRandom.current().nextInt(100) < lostPercent);
   }
 
-  public long evaluateTimeToSleep() {
+  /** Delays are emulated using exponential distribution of probabilities. */
+  public long evaluateDelay() {
     if (mean > 0) {
       // Network delays (network delays). Delays should be emulated using exponential distribution of probabilities.
       // log(1-x)/(1/mean)
@@ -64,5 +57,10 @@ public class NetworkEmulatorSettings {
       return y0.longValue();
     }
     return 0;
+  }
+
+  @Override
+  public String toString() {
+    return "NetworkEmulatorSettings{" + "lostPercent=" + lostPercent + ", mean=" + mean + '}';
   }
 }

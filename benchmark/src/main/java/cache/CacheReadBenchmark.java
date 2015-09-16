@@ -1,7 +1,7 @@
 package cache;
 
 import io.servicefabric.transport.utils.memoization.Computable;
-import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
+import io.servicefabric.transport.utils.memoization.Memoizer;
 
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
@@ -51,7 +51,7 @@ public class CacheReadBenchmark {
         }
       });
 
-  ConcurrentMapMemoizer<String, Optional<Class>> memoizer = new ConcurrentMapMemoizer<>(
+  Memoizer<String, Optional<Class>> memoizer = new Memoizer<>(
       new Computable<String, Optional<Class>>() {
         @Override
         public Optional<Class> compute(String className) {

@@ -1,6 +1,6 @@
 package io.servicefabric.cluster.fdetector;
 
-import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.TransportEndpoint;
 
 import io.protostuff.Tag;
 
@@ -8,34 +8,34 @@ import io.protostuff.Tag;
 final class FailureDetectorData {
   /** Message's source endpoint. */
   @Tag(1)
-  private ClusterEndpoint from;
+  private TransportEndpoint from;
   /** Message's destination endpoint. */
   @Tag(2)
-  private ClusterEndpoint to;
+  private TransportEndpoint to;
   /** Endpoint, who originally initiated ping sequence. */
   @Tag(3)
-  private ClusterEndpoint originalIssuer;
+  private TransportEndpoint originalIssuer;
 
-  public FailureDetectorData(ClusterEndpoint from, ClusterEndpoint to) {
+  public FailureDetectorData(TransportEndpoint from, TransportEndpoint to) {
     this.from = from;
     this.to = to;
   }
 
-  public FailureDetectorData(ClusterEndpoint from, ClusterEndpoint to, ClusterEndpoint originalIssuer) {
+  public FailureDetectorData(TransportEndpoint from, TransportEndpoint to, TransportEndpoint originalIssuer) {
     this.from = from;
     this.to = to;
     this.originalIssuer = originalIssuer;
   }
 
-  public ClusterEndpoint getFrom() {
+  public TransportEndpoint getFrom() {
     return from;
   }
 
-  public ClusterEndpoint getTo() {
+  public TransportEndpoint getTo() {
     return to;
   }
 
-  public ClusterEndpoint getOriginalIssuer() {
+  public TransportEndpoint getOriginalIssuer() {
     return originalIssuer;
   }
 

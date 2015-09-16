@@ -1,56 +1,61 @@
 package io.servicefabric.cluster;
 
+import static com.google.common.base.Preconditions.*;
 import static io.servicefabric.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.servicefabric.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
 
-import io.servicefabric.transport.utils.KvPair;
+import io.servicefabric.transport.TransportEndpoint;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.annotation.concurrent.Immutable;
 
 /**
  * DTO class. Hosting cluster endpoint, status, metadata and update timestamp. Most important, contains --
  * {@link #compareTo(ClusterMember)} .
  */
+@Immutable
 public final class ClusterMember implements Comparable<ClusterMember> {
-  private final ClusterEndpoint endpoint;
+  private final TransportEndpoint endpoint;
   private final ClusterMemberStatus status;
-  private final List<KvPair<String, String>> metadata = new ArrayList<>();
+  private final Map<String, String> metadata;
   private final long lastUpdateTimestamp;
 
-  ClusterMember(ClusterEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
+  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
     this(endpoint, status, metadata, System.currentTimeMillis());
   }
 
-  ClusterMember(ClusterEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata,
+  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata,
       long lastUpdateTimestamp) {
+    checkArgument(endpoint != null);
+    checkArgument(status != null);
     this.endpoint = endpoint;
     this.status = status;
-    for (Map.Entry<String, String> entry : metadata.entrySet()) {
-      this.metadata.add(new KvPair<>(entry.getKey(), entry.getValue()));
-    }
+    this.metadata = metadata;
     this.lastUpdateTimestamp = lastUpdateTimestamp;
   }
 
-  public ClusterEndpoint endpoint() {
+  @Nonnull
+  public String id() {
+    return endpoint.id();
+  }
+
+  @Nonnull
+  public TransportEndpoint endpoint() {
     return endpoint;
   }
 
+  @Nonnull
   public ClusterMemberStatus status() {
     return status;
   }
 
   public Map<String, String> metadata() {
-    Map<String, String> map = new HashMap<>();
-    for (KvPair<String, String> pair : metadata) {
-      map.put(pair.getKey(), pair.getValue());
-    }
-    return map;
+    return Collections.unmodifiableMap(metadata);
   }
 
   public long lastUpdateTimestamp() {

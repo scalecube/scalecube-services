@@ -6,7 +6,7 @@ import static io.servicefabric.transport.utils.RecyclableLinkedBuffer.DEFAULT_MA
 import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.utils.RecyclableLinkedBuffer;
 import io.servicefabric.transport.utils.memoization.Computable;
-import io.servicefabric.transport.utils.memoization.ConcurrentMapMemoizer;
+import io.servicefabric.transport.utils.memoization.Memoizer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -43,7 +43,7 @@ final class MessageSchema implements Schema<Message> {
   private static final Map<String, Integer> fieldMap = ImmutableMap.of("headerKeys", HEADER_KEYS_FIELD_NUMBER,
       "headerValues", HEADER_VALUES_FIELD_NUMBER, "data", DATA_FIELD_NUMBER);
 
-  private final ConcurrentMapMemoizer<String, Optional<Class>> classCache = new ConcurrentMapMemoizer<>(
+  private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>(
       new Computable<String, Optional<Class>>() {
         @Override
         public Optional<Class> compute(String className) {

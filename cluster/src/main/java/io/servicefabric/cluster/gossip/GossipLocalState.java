@@ -1,6 +1,6 @@
 package io.servicefabric.cluster.gossip;
 
-import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.TransportEndpoint;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
@@ -16,11 +16,11 @@ final class GossipLocalState {
   /** Local time when gossip first period occur. */
   private long period;
   /** Set of endpoints this gossip was received from. */
-  private Set<ClusterEndpoint> members;
+  private Set<TransportEndpoint> members;
 
   private GossipLocalState() {}
 
-  public static GossipLocalState create(Gossip gossip, ClusterEndpoint member, long period) {
+  public static GossipLocalState create(Gossip gossip, TransportEndpoint member, long period) {
     Preconditions.checkNotNull(gossip);
     GossipLocalState data = new GossipLocalState();
     data.gossip = gossip;
@@ -34,11 +34,11 @@ final class GossipLocalState {
 
   }
 
-  public void addMember(ClusterEndpoint source) {
+  public void addMember(TransportEndpoint source) {
     members.add(source);
   }
 
-  public boolean containsMember(ClusterEndpoint endpoint) {
+  public boolean containsMember(TransportEndpoint endpoint) {
     return members.contains(endpoint);
   }
 

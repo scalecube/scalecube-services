@@ -1,23 +1,29 @@
 package io.servicefabric.cluster;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static io.servicefabric.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.filterData;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.gossipFilterData;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.syncGroupFilter;
-import static io.servicefabric.transport.TransportEndpoint.tcp;
+import static io.servicefabric.transport.TransportAddress.tcp;
 
 import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
 import io.servicefabric.cluster.fdetector.IFailureDetector;
 import io.servicefabric.cluster.gossip.IManagedGossipProtocol;
 import io.servicefabric.transport.ITransport;
+import io.servicefabric.transport.TransportAddress;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.TransportMessage;
 import io.servicefabric.transport.protocol.Message;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +54,8 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
+
 public final class ClusterMembership implements IManagedClusterMembership, IClusterMembership {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMembership.class);
@@ -72,14 +80,15 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   private int maxSuspectTime = 60 * 1000;
   private int maxShutdownTime = 60 * 1000;
   private String syncGroup = "default";
-  private List<TransportEndpoint> seedMembers = new ArrayList<>();
+  private List<TransportAddress> seedMembers = new ArrayList<>();
   private ITransport transport;
-  private final ClusterEndpoint localEndpoint;
+  private final TransportEndpoint localEndpoint;
   private final Scheduler scheduler;
   private volatile Subscription cmTask;
   private TickingTimer timer;
   private AtomicInteger periodNbr = new AtomicInteger();
   private ClusterMembershipTable membership = new ClusterMembershipTable();
+  @SuppressWarnings("unchecked")
   private Subject<ClusterMember, ClusterMember> subject = new SerializedSubject(PublishSubject.create());
   private Map<String, String> localMetadata = new HashMap<>();
 
@@ -89,7 +98,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     public void call(TransportMessage transportMessage) {
       ClusterMembershipData data = (ClusterMembershipData) transportMessage.message().data();
       List<ClusterMember> updates = membership.merge(data);
-      TransportEndpoint endpoint = transportMessage.originEndpoint();
+      TransportEndpoint endpoint = transportMessage.endpoint();
       if (!updates.isEmpty()) {
         LOGGER.debug("Received Sync from {}, updates: {}", endpoint, updates);
         processUpdates(updates, true/* spread gossip */);
@@ -100,7 +109,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
       ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
       Message message =
           new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK, TransportHeaders.CORRELATION_ID, correlationId);
-      transport.to(endpoint).send(message);
+      transport.send(endpoint, message);
     }
   });
 
@@ -131,7 +140,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
         }
       });
 
-  ClusterMembership(ClusterEndpoint localEndpoint, Scheduler scheduler) {
+  ClusterMembership(TransportEndpoint localEndpoint, Scheduler scheduler) {
     this.localEndpoint = localEndpoint;
     this.scheduler = scheduler;
   }
@@ -164,14 +173,14 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     this.syncGroup = syncGroup;
   }
 
-  public void setSeedMembers(Collection<TransportEndpoint> seedMembers) {
-    Set<TransportEndpoint> set = new HashSet<>(seedMembers);
-    set.remove(localEndpoint.endpoint());
+  public void setSeedMembers(Collection<TransportAddress> seedMembers) {
+    Set<TransportAddress> set = new HashSet<>(seedMembers);
+    set.remove(localEndpoint.address());
     this.seedMembers = new ArrayList<>(set);
   }
 
   public void setSeedMembers(String seedMembers) {
-    List<TransportEndpoint> memberList = new ArrayList<>();
+    List<TransportAddress> memberList = new ArrayList<>();
     for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
       if (token.length() != 0) {
         try {
@@ -182,12 +191,12 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
       }
     }
     // filter accidental duplicates/locals
-    Set<TransportEndpoint> set = new HashSet<>(memberList);
-    for (Iterator<TransportEndpoint> i = set.iterator(); i.hasNext();) {
-      TransportEndpoint endpoint = i.next();
-      String hostAddress = localEndpoint.endpoint().getHostAddress();
-      int port = localEndpoint.endpoint().getPort();
-      if (endpoint.getPort() == port && endpoint.getHostAddress().equals(hostAddress)) {
+    Set<TransportAddress> set = new HashSet<>(memberList);
+    for (Iterator<TransportAddress> i = set.iterator(); i.hasNext();) {
+      TransportAddress endpoint = i.next();
+      String hostAddress = localEndpoint.address().hostAddress();
+      int port = localEndpoint.address().port();
+      if (endpoint.port() == port && endpoint.hostAddress().equals(hostAddress)) {
         i.remove();
       }
     }
@@ -202,7 +211,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     this.localMetadata = localMetadata;
   }
 
-  public List<TransportEndpoint> getSeedMembers() {
+  public List<TransportAddress> getSeedMembers() {
     return new ArrayList<>(seedMembers);
   }
 
@@ -214,6 +223,12 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   @Override
   public List<ClusterMember> members() {
     return membership.asList();
+  }
+
+  @Override
+  public ClusterMember member(String id) {
+    checkArgument(!Strings.isNullOrEmpty(id), "Member id can't be null or empty");
+    return membership.get(id);
   }
 
   @Override
@@ -232,7 +247,10 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     processUpdates(updates, false/* spread gossip */);
 
     // Listen to SYNC requests from joining/synchronizing members
-    transport.listen().filter(syncFilter()).filter(syncGroupFilter(syncGroup)).map(filterData(localEndpoint))
+    transport.listen()
+        .filter(syncFilter())
+        .filter(syncGroupFilter(syncGroup))
+        .map(filterData(localEndpoint))
         .subscribe(onSyncSubscriber);
 
     // Listen to 'suspected/trusted' events from FailureDetector
@@ -242,20 +260,21 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(localEndpoint))
         .subscribe(onGossipSubscriber);
 
-    // Conduct 'initialization phase': take wellknown addresses, send SYNC to all and get at least one SYNC_ACK from any
+    // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
     // of them
     if (!seedMembers.isEmpty()) {
       LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", seedMembers);
-      doBlockingSync(seedMembers);
+      doInitialSync(seedMembers);
     }
 
-    // Schedule 'running phase': select randomly single wellknown address, send SYNC and get SYNC_ACK
+    // Schedule 'running phase': select randomly single seed address, send SYNC and get SYNC_ACK
     if (!seedMembers.isEmpty()) {
       cmTask = scheduler.createWorker().schedulePeriodically(new Action0() {
         @Override
         public void call() {
           try {
-            List<TransportEndpoint> members = selectRandomMembers(seedMembers);
+            // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
+            List<TransportAddress> members = selectRandomMembers(seedMembers);
             LOGGER.debug("Running phase: making Sync (selected_members={}))", members);
             doSync(members, scheduler);
           } catch (Exception e) {
@@ -278,26 +297,31 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     timer.stop();
   }
 
-  private void doBlockingSync(List<TransportEndpoint> members) {
-    String period = "" + periodNbr.incrementAndGet();
-    sendSync(members, period);
+  private void doInitialSync(List<TransportAddress> seedMembers) {
+    String period = Integer.toString(periodNbr.incrementAndGet());
+    sendSync(seedMembers, period);
 
     Future<TransportMessage> future =
-        transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup))
-            .map(filterData(localEndpoint)).take(1).toBlocking().toFuture();
+        transport.listen()
+            .filter(syncAckFilter(period))
+            .filter(syncGroupFilter(syncGroup))
+            .map(filterData(localEndpoint))
+            .take(1)
+            .toBlocking()
+            .toFuture();
 
     TransportMessage message;
     try {
       message = future.get(syncTimeout, TimeUnit.MILLISECONDS);
     } catch (Exception e) {
-      LOGGER.info("Timeout getting SyncAck from {}", members);
+      LOGGER.info("Timeout getting SyncAck from {}", seedMembers);
       return;
     }
     onSyncAck(message);
   }
 
-  private void doSync(final List<TransportEndpoint> members, Scheduler scheduler) {
-    String period = "" + periodNbr.incrementAndGet();
+  private void doSync(final List<TransportAddress> members, Scheduler scheduler) {
+    String period = Integer.toString(periodNbr.incrementAndGet());
     sendSync(members, period);
     transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup)).map(filterData(localEndpoint))
         .take(1).timeout(syncTimeout, TimeUnit.MILLISECONDS, scheduler)
@@ -314,18 +338,28 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
         }));
   }
 
-  private void sendSync(List<TransportEndpoint> members, String period) {
+  private void sendSync(List<TransportAddress> members, String period) {
     ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
-    Message message =
-        new Message(syncData, TransportHeaders.QUALIFIER, SYNC, TransportHeaders.CORRELATION_ID, period/* correlationId */);
-    for (TransportEndpoint endpoint : members) {
-      transport.to(endpoint).send(message);
+    final Message message =
+        new Message(syncData, TransportHeaders.QUALIFIER, SYNC, TransportHeaders.CORRELATION_ID, period);
+    for (TransportAddress memberAddress : members) {
+      Futures.addCallback(transport.connect(memberAddress), new FutureCallback<TransportEndpoint>() {
+        @Override
+        public void onSuccess(TransportEndpoint endpoint) {
+          transport.send(endpoint, message);
+        }
+
+        @Override
+        public void onFailure(@Nonnull Throwable t) {
+          LOGGER.error("Failed to send sync", t);
+        }
+      });
     }
   }
 
   private void onSyncAck(TransportMessage transportMessage) {
     ClusterMembershipData data = (ClusterMembershipData) transportMessage.message().data();
-    TransportEndpoint endpoint = transportMessage.originEndpoint();
+    TransportEndpoint endpoint = transportMessage.endpoint();
     List<ClusterMember> updates = membership.merge(data);
     if (!updates.isEmpty()) {
       LOGGER.debug("Received SyncAck from {}, updates: {}", endpoint, updates);
@@ -335,8 +369,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     }
   }
 
-  private List<TransportEndpoint> selectRandomMembers(List<TransportEndpoint> members) {
-    List<TransportEndpoint> list = new ArrayList<>(members);
+  private List<TransportAddress> selectRandomMembers(List<TransportAddress> members) {
+    List<TransportAddress> list = new ArrayList<>(members);
     Collections.shuffle(list, ThreadLocalRandom.current());
     return ImmutableList.of(list.get(ThreadLocalRandom.current().nextInt(list.size())));
   }
@@ -364,9 +398,9 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     }
 
     // Reset cluster members on FailureDetector and Gossip
-    Map<ClusterEndpoint, ClusterMember> members = membership.getTrustedOrSuspected();
-    failureDetector.setClusterMembers(members.keySet());
-    gossipProtocol.setClusterMembers(members.keySet());
+    Collection<TransportEndpoint> endpoints = membership.getTrustedOrSuspectedEndpoints();
+    failureDetector.setClusterEndpoints(endpoints);
+    gossipProtocol.setClusterEndpoints(endpoints);
 
     // Publish updates to cluster
     if (spreadGossip) {
@@ -383,7 +417,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
       switch (member.status()) {
         case SUSPECTED:
           failureDetector.suspect(member.endpoint());
-          timer.schedule(member.endpoint().endpointId(), new Runnable() {
+          timer.schedule(member.id(), new Runnable() {
             @Override
             public void run() {
               LOGGER.debug("Time to remove SUSPECTED member={} from membership", member.endpoint());
@@ -393,7 +427,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
           break;
         case TRUSTED:
           failureDetector.trust(member.endpoint());
-          timer.cancel(member.endpoint().endpointId());
+          timer.cancel(member.id());
           break;
         case SHUTDOWN:
           timer.schedule(new Runnable() {
@@ -418,6 +452,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
 
   @Override
   public boolean isLocalMember(ClusterMember member) {
+    checkArgument(member != null);
     return this.localMember().endpoint().equals(member.endpoint());
   }
 

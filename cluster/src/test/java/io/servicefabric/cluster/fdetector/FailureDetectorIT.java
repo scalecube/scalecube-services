@@ -1,11 +1,11 @@
 package io.servicefabric.cluster.fdetector;
 
 import static com.google.common.collect.ImmutableList.of;
-import static io.servicefabric.cluster.ClusterEndpoint.from;
+import static io.servicefabric.transport.TransportEndpoint.from;
 import static io.servicefabric.cluster.fdetector.FailureDetectorBuilder.FDBuilder;
 import static org.junit.Assert.assertEquals;
 
-import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.ITransport;
 
 import com.google.common.util.concurrent.SettableFuture;
@@ -22,10 +22,10 @@ public class FailureDetectorIT {
 
   @Test
   public void testAllTrusted() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint c = from("tcp://c@localhost:20125");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint c = from("tcp://c@localhost:20125");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -38,7 +38,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("No suspected members is expected: " + target, 0, target.size());
     } finally {
       destroy(builders);
@@ -47,9 +47,9 @@ public class FailureDetectorIT {
 
   @Test
   public void testBasicTrusted() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
     members.add(a);
     members.add(b);
 
@@ -60,7 +60,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("No suspected members is expected: " + target, 0, target.size());
     } finally {
       destroy(builders);
@@ -69,9 +69,9 @@ public class FailureDetectorIT {
 
   @Test
   public void testTrustedDifferentPingTiming() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
     members.add(a);
     members.add(b);
 
@@ -82,7 +82,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("No suspected members is expected: " + target, 0, target.size());
     } finally {
       destroy(builders);
@@ -91,10 +91,10 @@ public class FailureDetectorIT {
 
   @Test
   public void testAllSuspected() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint c = from("tcp://c@localhost:20125");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint c = from("tcp://c@localhost:20125");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -107,7 +107,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("Expected 3 suspected members: " + target, 3, target.size());
       assertEquals(b, target.get(a));
       assertEquals(c, target.get(b));
@@ -119,9 +119,9 @@ public class FailureDetectorIT {
 
   @Test
   public void testBasicSuspected() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
     members.add(a);
     members.add(b);
 
@@ -132,7 +132,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("Expected 2 suspected members: " + target, 2, target.size());
       assertEquals(b, target.get(a));
       assertEquals(a, target.get(b));
@@ -143,10 +143,10 @@ public class FailureDetectorIT {
 
   @Test
   public void testAllTrustedDespiteTrafficIssue() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint c = from("tcp://c@localhost:20125");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint c = from("tcp://c@localhost:20125");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -159,7 +159,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("No suspected members is expected: " + target, 0, target.size());
     } finally {
       destroy(builders);
@@ -168,11 +168,11 @@ public class FailureDetectorIT {
 
   @Test
   public void testSingleSuspectedNotAffectOthers() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint c = from("tcp://c@localhost:20125");
-    ClusterEndpoint d = from("tcp://d@localhost:20126");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint c = from("tcp://c@localhost:20125");
+    TransportEndpoint d = from("tcp://d@localhost:20126");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -188,7 +188,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("Expected 2 suspected members: " + target, 2, target.size());
       assertEquals(b, target.get(a));
       assertEquals(a, target.get(b));
@@ -199,12 +199,12 @@ public class FailureDetectorIT {
 
   @Test
   public void testTwoSuspectedNotAffectOthers() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint c = from("tcp://c@localhost:20125");
-    ClusterEndpoint d = from("tcp://d@localhost:20126");
-    ClusterEndpoint e = from("tcp://e@localhost:20127");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint c = from("tcp://c@localhost:20125");
+    TransportEndpoint d = from("tcp://d@localhost:20126");
+    TransportEndpoint e = from("tcp://e@localhost:20127");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -223,7 +223,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("Expected 3 suspected members: " + target, 3, target.size());
       assertEquals(b, target.get(a));
       assertEquals(a, target.get(b));
@@ -235,11 +235,11 @@ public class FailureDetectorIT {
 
   @Test
   public void testSuspectedNetworkPartition() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint c = from("tcp://c@localhost:20125");
-    ClusterEndpoint x = from("tcp://x@localhost:20126");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint c = from("tcp://c@localhost:20125");
+    TransportEndpoint x = from("tcp://x@localhost:20126");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -254,7 +254,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("Expected 4 suspected members: " + target, 4, target.size());
       assertEquals(x, target.get(a));
       assertEquals(x, target.get(b));
@@ -267,11 +267,11 @@ public class FailureDetectorIT {
 
   @Test
   public void testSuspectedNeighborsHasTrafficIssue() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint d = from("tcp://d@localhost:20125");
-    ClusterEndpoint x = from("tcp://x@localhost:20126");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint d = from("tcp://d@localhost:20125");
+    TransportEndpoint x = from("tcp://x@localhost:20126");
     members.add(a);
     members.add(b);
     members.add(d);
@@ -286,7 +286,7 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> target = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> target = getSuspected(builders);
       assertEquals("Expected 1 suspected members: " + target, 1, target.size());
       assertEquals(x, target.get(a));
     } finally {
@@ -296,9 +296,9 @@ public class FailureDetectorIT {
 
   @Test
   public void testMemberBecomeTrusted() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
     members.add(a);
     members.add(b);
 
@@ -309,14 +309,14 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> targetSuspect0 = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> targetSuspect0 = getSuspected(builders);
       assertEquals("Expected 2 suspected members: " + targetSuspect0, 2, targetSuspect0.size());
       assertEquals(b, targetSuspect0.get(a));
       assertEquals(a, targetSuspect0.get(b));
 
       unblock(builders); // unblock all traffic
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> targetSuspect1 = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> targetSuspect1 = getSuspected(builders);
       assertEquals("No suspected members is expected: " + targetSuspect1, 0, targetSuspect1.size());
     } finally {
       destroy(builders);
@@ -325,11 +325,11 @@ public class FailureDetectorIT {
 
   @Test
   public void testMemberBecomeSuspected() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint x = from("tcp://x@localhost:20125");
-    ClusterEndpoint y = from("tcp://y@localhost:20126");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint x = from("tcp://x@localhost:20125");
+    TransportEndpoint y = from("tcp://y@localhost:20126");
     members.add(a);
     members.add(b);
     members.add(x);
@@ -344,13 +344,13 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> targetSuspect0 = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> targetSuspect0 = getSuspected(builders);
       assertEquals("No suspected members is expected: " + targetSuspect0, 0, targetSuspect0.size());
 
       destroy(x, builders);
       destroy(y, builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> targetSuspect1 = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> targetSuspect1 = getSuspected(builders);
       assertEquals("Expected 2 suspected members: " + targetSuspect1, 2, targetSuspect1.size());
       assertEquals(x, targetSuspect1.get(a));
       assertEquals(y, targetSuspect1.get(b));
@@ -361,10 +361,10 @@ public class FailureDetectorIT {
 
   @Test
   public void testMemberBecomeSuspectedIncarnationRespected() throws Exception {
-    List<ClusterEndpoint> members = new ArrayList<>();
-    ClusterEndpoint a = from("tcp://a@localhost:20123");
-    ClusterEndpoint b = from("tcp://b@localhost:20124");
-    ClusterEndpoint x = from("tcp://x@localhost:20125");
+    List<TransportEndpoint> members = new ArrayList<>();
+    TransportEndpoint a = from("tcp://a@localhost:20123");
+    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint x = from("tcp://x@localhost:20125");
     members.add(a);
     members.add(b);
     members.add(x);
@@ -377,17 +377,17 @@ public class FailureDetectorIT {
     try {
       create(builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> targetSuspect0 = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> targetSuspect0 = getSuspected(builders);
       assertEquals("No suspected members is expected: " + targetSuspect0, 0, targetSuspect0.size());
 
       destroy(x, builders);
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> targetSuspect1 = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> targetSuspect1 = getSuspected(builders);
       assertEquals("Expected 2 suspected members: " + targetSuspect1, 2, targetSuspect1.size());
       assertEquals(x, targetSuspect1.get(a));
       assertEquals(x, targetSuspect1.get(b));
 
-      ClusterEndpoint xx = from("tcp://xx@localhost:20125");
+      TransportEndpoint xx = from("tcp://xx@localhost:20125");
       members.add(xx);
       FailureDetectorBuilder xxBuilder = FDBuilder(xx).set(members).pingTime(100).ping(x);
       builders.add(xxBuilder);
@@ -398,7 +398,7 @@ public class FailureDetectorIT {
         xxBuilder.init();
       }
       TimeUnit.SECONDS.sleep(4);
-      Map<ClusterEndpoint, ClusterEndpoint> targetSuspect2 = getSuspected(builders);
+      Map<TransportEndpoint, TransportEndpoint> targetSuspect2 = getSuspected(builders);
       assertEquals("Expected 3 suspected members: " + targetSuspect2, 3, targetSuspect2.size());
       assertEquals(x, targetSuspect2.get(a));
       assertEquals(x, targetSuspect2.get(b));
@@ -408,12 +408,12 @@ public class FailureDetectorIT {
     }
   }
 
-  private Map<ClusterEndpoint, ClusterEndpoint> getSuspected(Iterable<FailureDetectorBuilder> builders) {
-    Map<ClusterEndpoint, ClusterEndpoint> target = new HashMap<>();
+  private Map<TransportEndpoint, TransportEndpoint> getSuspected(Iterable<FailureDetectorBuilder> builders) {
+    Map<TransportEndpoint, TransportEndpoint> target = new HashMap<>();
     for (FailureDetectorBuilder builder : builders) {
-      List<ClusterEndpoint> suspectedMembers = builder.target.getSuspectedMembers();
+      List<TransportEndpoint> suspectedMembers = builder.target.getSuspectedMembers();
       if (!suspectedMembers.isEmpty()) {
-        ClusterEndpoint localEndpoint = builder.target.getLocalEndpoint();
+        TransportEndpoint localEndpoint = builder.target.getLocalEndpoint();
         assertEquals(localEndpoint + ": " + suspectedMembers, 1, suspectedMembers.size());
         target.put(localEndpoint, suspectedMembers.get(0));
       }
@@ -428,7 +428,7 @@ public class FailureDetectorIT {
     }
   }
 
-  private void destroy(ClusterEndpoint endpoint, Iterable<FailureDetectorBuilder> builders) {
+  private void destroy(TransportEndpoint endpoint, Iterable<FailureDetectorBuilder> builders) {
     for (FailureDetectorBuilder builder : builders) {
       if (builder.target.getLocalEndpoint() == endpoint) {
         builder.target.stop();

@@ -1,11 +1,10 @@
 package io.servicefabric.cluster.fdetector;
 
-import io.servicefabric.cluster.ClusterEndpoint;
-import io.servicefabric.transport.SocketChannelPipelineFactory;
-import io.servicefabric.transport.Transport;
-import io.servicefabric.transport.TransportBuilder;
 import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.TransportPipelineFactory;
+import io.servicefabric.transport.Transport;
 
+import io.servicefabric.transport.TransportSettings;
 import rx.schedulers.Schedulers;
 
 import java.util.Arrays;
@@ -14,13 +13,13 @@ import java.util.List;
 public class FailureDetectorBuilder {
   final FailureDetector target;
 
-  FailureDetectorBuilder(ClusterEndpoint clusterEndpoint, Transport tf) {
-    target = new FailureDetector(clusterEndpoint, Schedulers.from(tf.getEventExecutor()));
+  FailureDetectorBuilder(TransportEndpoint transportEndpoint, Transport tf) {
+    target = new FailureDetector(transportEndpoint, Schedulers.from(tf.getEventExecutor()));
     target.setTransport(tf);
   }
 
-  public FailureDetectorBuilder set(List<ClusterEndpoint> members) {
-    target.setClusterMembers(members);
+  public FailureDetectorBuilder set(List<TransportEndpoint> members) {
+    target.setClusterEndpoints(members);
     return this;
   }
 
@@ -34,72 +33,56 @@ public class FailureDetectorBuilder {
     return this;
   }
 
-  public FailureDetectorBuilder ping(ClusterEndpoint member) {
+  public FailureDetectorBuilder ping(TransportEndpoint member) {
     target.setPingMember(member);
     return this;
   }
 
   public FailureDetectorBuilder noRandomMembers() {
-    target.setRandomMembers(Arrays.asList(new ClusterEndpoint[0]));
+    target.setRandomMembers(Arrays.asList(new TransportEndpoint[0]));
     return this;
   }
 
-  public FailureDetectorBuilder randomMembers(List<ClusterEndpoint> members) {
+  public FailureDetectorBuilder randomMembers(List<TransportEndpoint> members) {
     target.setRandomMembers(members);
     return this;
   }
 
-  public FailureDetectorBuilder block(ClusterEndpoint dest) {
+  public FailureDetectorBuilder block(TransportEndpoint dest) {
     Transport tf = (Transport) target.getTransport();
-    SocketChannelPipelineFactory pf = tf.getPipelineFactory();
-    pf.blockMessagesTo(dest.endpoint());
+    TransportPipelineFactory pf = tf.getPipelineFactory();
+    pf.blockMessagesTo(dest);
     return this;
   }
 
-  public FailureDetectorBuilder block(List<ClusterEndpoint> members) {
-    for (ClusterEndpoint dest : members) {
+  public FailureDetectorBuilder block(List<TransportEndpoint> members) {
+    for (TransportEndpoint dest : members) {
       block(dest);
     }
     return this;
   }
 
-  public FailureDetectorBuilder network(ClusterEndpoint member, int lostPercent, int mean) {
+  public FailureDetectorBuilder network(TransportEndpoint member, int lostPercent, int mean) {
     Transport tf = (Transport) target.getTransport();
-    SocketChannelPipelineFactory pf = tf.getPipelineFactory();
-    pf.setNetworkSettings(member.endpoint(), lostPercent, mean);
-    return this;
-  }
-
-  public FailureDetectorBuilder unblock(TransportEndpoint dest) {
-    Transport tf = (Transport) target.getTransport();
-    SocketChannelPipelineFactory pf = tf.getPipelineFactory();
-    pf.unblockMessagesTo(dest);
-    return this;
-  }
-
-  public FailureDetectorBuilder unblock(List<TransportEndpoint> members) {
-    for (TransportEndpoint dest : members) {
-      unblock(dest);
-    }
+    TransportPipelineFactory pf = tf.getPipelineFactory();
+    pf.setNetworkSettings(member, lostPercent, mean);
     return this;
   }
 
   public FailureDetectorBuilder unblockAll() {
     Transport tf = (Transport) target.getTransport();
-    SocketChannelPipelineFactory pf = tf.getPipelineFactory();
+    TransportPipelineFactory pf = tf.getPipelineFactory();
     pf.unblockAll();
     return this;
   }
 
-  public static FailureDetectorBuilder FDBuilder(ClusterEndpoint clusterEndpoint) {
-    Transport transport =
-        (Transport) TransportBuilder.newInstance(clusterEndpoint.endpoint(), clusterEndpoint.endpointId())
-            .useNetworkEmulator().build();
-    return new FailureDetectorBuilder(clusterEndpoint, transport);
+  public static FailureDetectorBuilder FDBuilder(TransportEndpoint transportEndpoint) {
+    Transport transport = Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR);
+    return new FailureDetectorBuilder(transportEndpoint, transport);
   }
 
-  public static FailureDetectorBuilder FDBuilder(ClusterEndpoint clusterEndpoint, Transport tf) {
-    return new FailureDetectorBuilder(clusterEndpoint, tf);
+  public static FailureDetectorBuilder FDBuilder(TransportEndpoint transportEndpoint, Transport tf) {
+    return new FailureDetectorBuilder(transportEndpoint, tf);
   }
 
   public FailureDetector target() {

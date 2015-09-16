@@ -7,18 +7,18 @@ import static org.junit.Assert.assertTrue;
 
 import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.ProtostuffMessageDeserializer;
-import io.servicefabric.transport.protocol.ProtostuffMessageSerializer;
-import io.servicefabric.transport.utils.KvPair;
 
 import io.netty.buffer.ByteBuf;
+import io.servicefabric.transport.protocol.ProtostuffProtocol;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GossipServiceRequestSchemaTest {
 
@@ -28,8 +28,8 @@ public class GossipServiceRequestSchemaTest {
 
   @Before
   public void init() throws Throwable {
-    List<KvPair<String, String>> properties = new ArrayList<>();
-    properties.add(new KvPair<>("casino", "123"));
+    Map<String, String> properties = new HashMap<>();
+    properties.put("key", "123");
 
     testData = new TestData();
     testData.setProperties(properties);
@@ -37,22 +37,20 @@ public class GossipServiceRequestSchemaTest {
 
   @Test
   public void testProtostuff() throws Exception {
-    ProtostuffMessageDeserializer deserializer = new ProtostuffMessageDeserializer();
-
-    ProtostuffMessageSerializer serializer = new ProtostuffMessageSerializer();
+    ProtostuffProtocol protocol = new ProtostuffProtocol();
 
     List<Gossip> gossips = getGossips();
 
     Message message = new Message(new GossipRequest(gossips), TransportHeaders.CORRELATION_ID, "CORR_ID");
 
     ByteBuf bb = buffer();
-    serializer.serialize(message, bb);
+    protocol.getMessageSerializer().serialize(message, bb);
 
     assertTrue(bb.readableBytes() > 0);
 
     ByteBuf input = copiedBuffer(bb);
 
-    Message deserializedMessage = deserializer.deserialize(input);
+    Message deserializedMessage = protocol.getMessageDeserializer().deserialize(input);
 
     assertNotNull(deserializedMessage);
     Assert.assertEquals(deserializedMessage.data().getClass(), GossipRequest.class);
@@ -79,15 +77,15 @@ public class GossipServiceRequestSchemaTest {
 
   private static class TestData {
 
-    private List<KvPair<String, String>> properties;
+    private Map<String, String> properties;
 
     TestData() {}
 
-    public List<KvPair<String, String>> getProperties() {
+    public Map<String, String> getProperties() {
       return properties;
     }
 
-    public void setProperties(List<KvPair<String, String>> properties) {
+    public void setProperties(Map<String, String> properties) {
       this.properties = properties;
     }
   }

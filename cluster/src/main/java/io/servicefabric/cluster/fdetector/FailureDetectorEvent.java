@@ -1,30 +1,34 @@
 package io.servicefabric.cluster.fdetector;
 
+import javax.annotation.concurrent.Immutable;
+
 import static io.servicefabric.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
 
-import io.servicefabric.cluster.ClusterEndpoint;
+import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.cluster.ClusterMemberStatus;
 
-/** Tuple class. Contains cluster endpoint and its status. */
+/** Tuple class. Contains transport endpoint and its status. */
+@Immutable
 public final class FailureDetectorEvent {
-  private final ClusterEndpoint endpoint;
+
+  private final TransportEndpoint endpoint;
   private final ClusterMemberStatus status;
 
-  private FailureDetectorEvent(ClusterEndpoint endpoint, ClusterMemberStatus status) {
+  private FailureDetectorEvent(TransportEndpoint endpoint, ClusterMemberStatus status) {
     this.endpoint = endpoint;
     this.status = status;
   }
 
-  public static FailureDetectorEvent trusted(ClusterEndpoint endpoint) {
+  public static FailureDetectorEvent trusted(TransportEndpoint endpoint) {
     return new FailureDetectorEvent(endpoint, TRUSTED);
   }
 
-  public static FailureDetectorEvent suspected(ClusterEndpoint endpoint) {
+  public static FailureDetectorEvent suspected(TransportEndpoint endpoint) {
     return new FailureDetectorEvent(endpoint, SUSPECTED);
   }
 
-  public ClusterEndpoint endpoint() {
+  public TransportEndpoint endpoint() {
     return endpoint;
   }
 

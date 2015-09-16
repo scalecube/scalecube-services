@@ -8,10 +8,9 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
 
 /**
- * Represent abstraction over p2p duplex connection between two transport endpoints. Allows sending messages and listen
- * incoming messages.
+ * Represent p2p connection between two transport endpoints.
  */
-public interface ITransportChannel {
+interface ITransportChannel {
 
   /**
    * Sends message to remote endpoint. Send is async operation.
