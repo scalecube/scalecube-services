@@ -61,7 +61,7 @@ public class TransportTest extends BaseTest {
       SettableFuture<Void> sendPromise0 = SettableFuture.create();
       client.send(serverEndpoint, new Message("q"), sendPromise0);
       try {
-        sendPromise0.get(1, TimeUnit.SECONDS);
+        sendPromise0.get(3, TimeUnit.SECONDS);
         fail();
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
@@ -77,7 +77,7 @@ public class TransportTest extends BaseTest {
       SettableFuture<Void> sendPromise1 = SettableFuture.create();
       client.send(serverEndpoint, new Message("q"), sendPromise1);
       try {
-        sendPromise1.get(1, TimeUnit.SECONDS);
+        sendPromise1.get(3, TimeUnit.SECONDS);
         fail();
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
