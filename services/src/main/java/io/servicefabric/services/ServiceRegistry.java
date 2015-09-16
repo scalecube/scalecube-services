@@ -1,7 +1,6 @@
 package io.servicefabric.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -14,6 +13,7 @@ import java.util.Collections;
 
 import io.servicefabric.cluster.ClusterMember;
 import io.servicefabric.cluster.ICluster;
+import io.servicefabric.services.annotations.ServiceAnnotationsProcessor;
 
 public class ServiceRegistry implements IServiceRegistry {
 
@@ -39,8 +39,12 @@ public class ServiceRegistry implements IServiceRegistry {
     ServiceReference serviceReference = resolveReference(serviceName);
     // Register service locally
     localServices.put(serviceName, serviceReference);
-    // TODO: send gossip about service registartion
+    // TODO: send gossip about service registration
     serviceRegistryCache.put(serviceReference.name(), serviceReference);
+  }
+
+  public void registerService(Object serviceInstance) {
+    new ServiceAnnotationsProcessor().registerService(serviceInstance);
   }
 
   @Override
