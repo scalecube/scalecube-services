@@ -54,7 +54,7 @@ public class ServiceRegistry implements IServiceRegistry {
   private ServiceReference resolveReference(String serviceName) {
     checkArgument(serviceName != null, "Service namespace should not be null");
     ClusterMember localMember = cluster.membership().localMember();
-    return new ServiceReference(serviceName, localMember.endpoint().endpointId());
+    return new ServiceReference(serviceName, localMember.id());
   }
 
 }
