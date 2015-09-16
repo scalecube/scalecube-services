@@ -1,7 +1,5 @@
 package io.servicefabric.transport;
 
-import io.servicefabric.transport.protocol.Message;
-
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelOutboundHandlerAdapter;

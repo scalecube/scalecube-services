@@ -9,8 +9,7 @@ import static java.lang.Math.min;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportHeaders;
-import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import com.google.common.collect.Sets;
 
@@ -44,9 +43,9 @@ public final class FailureDetector implements IFailureDetector {
   private static final Logger LOGGER = LoggerFactory.getLogger(FailureDetector.class);
 
   // qualifiers
-  private static final String PING = "pt.openapi.core.cluster/fdetector/ping";
-  private static final String PING_REQ = "pt.openapi.core.cluster/fdetector/pingReq";
-  private static final String ACK = "pt.openapi.core.cluster/fdetector/ack";
+  private static final String PING = "io.servicefabric.cluster/fdetector/ping";
+  private static final String PING_REQ = "io.servicefabric.cluster/fdetector/pingReq";
+  private static final String ACK = "io.servicefabric.cluster/fdetector/ack";
 
   // filters
   private static final TransportHeaders.Filter ACK_FILTER = new TransportHeaders.Filter(ACK);
@@ -69,26 +68,26 @@ public final class FailureDetector implements IFailureDetector {
   private volatile Subscription fdTask;
 
   /** Listener to PING message and answer with ACK. */
-  private Subscriber<TransportMessage> onPingSubscriber = Subscribers.create(new Action1<TransportMessage>() {
+  private Subscriber<Message> onPingSubscriber = Subscribers.create(new Action1<Message>() {
     @Override
-    public void call(TransportMessage transportMessage) {
-      LOGGER.debug("Received Ping from {}", transportMessage.endpoint());
-      FailureDetectorData data = (FailureDetectorData) transportMessage.message().data();
-      String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
+    public void call(Message message) {
+      LOGGER.trace("Received Ping: {}", message);
+      FailureDetectorData data = message.data();
+      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
       send(data.getFrom(), new Message(data, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
           correlationId));
     }
   });
 
   /** Listener to PING_REQ message and send PING to requested cluster member. */
-  private Subscriber<TransportMessage> onPingReqSubscriber = Subscribers.create(new Action1<TransportMessage>() {
+  private Subscriber<Message> onPingReqSubscriber = Subscribers.create(new Action1<Message>() {
     @Override
-    public void call(TransportMessage transportMessage) {
-      LOGGER.debug("Received Ping from {}", transportMessage.endpoint());
-      FailureDetectorData data = (FailureDetectorData) transportMessage.message().data();
+    public void call(Message message) {
+      LOGGER.trace("Received PingReq: {}", message);
+      FailureDetectorData data = message.data();
       TransportEndpoint target = data.getTo();
       TransportEndpoint originalIssuer = data.getFrom();
-      String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
+      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
       FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, target, originalIssuer);
       send(target, new Message(pingReqData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID,
           correlationId));
@@ -99,18 +98,18 @@ public final class FailureDetector implements IFailureDetector {
    * Listener to ACK with message containing ORIGINAL_ISSUER then convert message to plain ACK and send it to
    * ORIGINAL_ISSUER.
    */
-  private Subscriber<TransportMessage> onAckToOriginalAckSubscriber = Subscribers
-      .create(new Action1<TransportMessage>() {
+  private Subscriber<Message> onAckToOriginalAckSubscriber = Subscribers
+      .create(new Action1<Message>() {
         @Override
-        public void call(TransportMessage transportMessage) {
-          FailureDetectorData data = (FailureDetectorData) transportMessage.message().data();
+        public void call(Message message) {
+          FailureDetectorData data = message.data();
           TransportEndpoint target = data.getOriginalIssuer();
-          String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
+          String correlationId = message.header(TransportHeaders.CORRELATION_ID);
           FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
-          Message message =
+          Message originalAckMessage =
               new Message(originalAckData, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
                           correlationId);
-          send(target, message);
+          send(target, originalAckMessage);
         }
       });
 
@@ -176,10 +175,11 @@ public final class FailureDetector implements IFailureDetector {
   public void start() {
     transport.listen().filter(PING_FILTER).filter(targetFilter(localEndpoint)).subscribe(onPingSubscriber);
     transport.listen().filter(PING_REQ_FILTER).subscribe(onPingReqSubscriber);
-    transport.listen().filter(ACK_FILTER).filter(new Func1<TransportMessage, Boolean>() {
+    transport.listen().filter(ACK_FILTER).filter(new Func1<Message, Boolean>() {
       @Override
-      public Boolean call(TransportMessage transportMessage) {
-        return ((FailureDetectorData) transportMessage.message().data()).getOriginalIssuer() != null;
+      public Boolean call(Message message) {
+        FailureDetectorData data = message.data();
+        return data.getOriginalIssuer() != null;
       }
     }).subscribe(onAckToOriginalAckSubscriber);
 
@@ -233,20 +233,20 @@ public final class FailureDetector implements IFailureDetector {
     FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
     Message message =
         new Message(pingData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID, period/* correlationId */);
-    LOGGER.debug("Send Ping from {} to {}", localEndpoint, pingMember);
+    LOGGER.trace("Send Ping from {} to {}", localEndpoint, pingMember);
 
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
         .timeout(pingTimeout, TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(Subscribers.create(new Action1<TransportMessage>() {
+        .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
-          public void call(TransportMessage transportMessage) {
-            LOGGER.debug("Received PingAck from {}", pingMember);
+          public void call(Message transportMessage) {
+            LOGGER.trace("Received PingAck from {}", pingMember);
             declareTrusted(pingMember);
           }
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.debug("No PingAck from {} within {}ms; about to make PingReq now", pingMember, pingTimeout);
+            LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now", pingMember, pingTimeout);
             doPingReq(members, pingMember, period);
           }
         }));
@@ -257,7 +257,7 @@ public final class FailureDetector implements IFailureDetector {
   private void doPingReq(List<TransportEndpoint> members, final TransportEndpoint targetMember, String period) {
     final int timeout = pingTime - pingTimeout;
     if (timeout <= 0) {
-      LOGGER.debug("No PingReq occured, because not time left (pingTime={}, pingTimeout={})", pingTime, pingTimeout);
+      LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})", pingTime, pingTimeout);
       declareSuspected(targetMember);
       return;
     }
@@ -265,24 +265,24 @@ public final class FailureDetector implements IFailureDetector {
     final List<TransportEndpoint> randomMembers =
         selectRandomMembers(members, maxEndpointsToSelect, targetMember/* exclude */);
     if (randomMembers.isEmpty()) {
-      LOGGER.debug("No PingReq occured, because member selection => []");
+      LOGGER.trace("No PingReq occurred, because member selection is empty");
       declareSuspected(targetMember);
       return;
     }
 
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, targetMember)).take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(Subscribers.create(new Action1<TransportMessage>() {
+        .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
-          public void call(TransportMessage transportMessage) {
-            LOGGER.debug("PingReq OK (pinger={}, target={})", transportMessage.endpoint(), targetMember);
+          public void call(Message message) {
+            LOGGER.trace("PingReq OK (pinger={}, target={})", message.sender(), targetMember);
             declareTrusted(targetMember);
           }
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.debug("No PingAck on PingReq within {}ms (pingers={}, target={})", randomMembers, targetMember,
-                         timeout);
+            LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})", randomMembers, targetMember,
+                timeout);
             declareSuspected(targetMember);
           }
         }));
@@ -291,7 +291,7 @@ public final class FailureDetector implements IFailureDetector {
     Message message =
         new Message(pingReqData, TransportHeaders.QUALIFIER, PING_REQ, TransportHeaders.CORRELATION_ID, period/* correlationId */);
     for (TransportEndpoint randomMember : randomMembers) {
-      LOGGER.debug("Send PingReq from {} to {}", localEndpoint, randomMember);
+      LOGGER.trace("Send PingReq from {} to {}", localEndpoint, randomMember);
       send(randomMember, message);
     }
   }
@@ -348,20 +348,21 @@ public final class FailureDetector implements IFailureDetector {
     return target;
   }
 
-  private Func1<TransportMessage, Boolean> ackFilter(String correlationId) {
+  private Func1<Message, Boolean> ackFilter(String correlationId) {
     return new TransportHeaders.Filter(ACK, correlationId);
   }
 
-  private Func1<TransportMessage, Boolean> targetFilter(final TransportEndpoint endpoint) {
-    return new Func1<TransportMessage, Boolean>() {
+  private Func1<Message, Boolean> targetFilter(final TransportEndpoint endpoint) {
+    return new Func1<Message, Boolean>() {
       @Override
-      public Boolean call(TransportMessage transportMessage) {
-        return ((FailureDetectorData) transportMessage.message().data()).getTo().equals(endpoint);
+      public Boolean call(Message message) {
+        FailureDetectorData data = message.data();
+        return data.getTo().equals(endpoint);
       }
     };
   }
 
-  private static class CorrelationFilter implements Func1<TransportMessage, Boolean> {
+  private static class CorrelationFilter implements Func1<Message, Boolean> {
     final TransportEndpoint from;
     final TransportEndpoint target;
 
@@ -371,8 +372,8 @@ public final class FailureDetector implements IFailureDetector {
     }
 
     @Override
-    public Boolean call(TransportMessage transportMessage) {
-      FailureDetectorData data = (FailureDetectorData) transportMessage.message().data();
+    public Boolean call(Message message) {
+      FailureDetectorData data = message.data();
       return from.equals(data.getFrom()) && target.equals(data.getTo()) && data.getOriginalIssuer() == null;
     }
   }

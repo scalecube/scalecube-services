@@ -15,10 +15,8 @@ import io.servicefabric.transport.ITransport;
 import io.servicefabric.transport.TransportAddress;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportHeaders;
-import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -69,7 +67,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER = new Func1<Message, Boolean>() {
     @Override
     public Boolean call(Message message) {
-      return message.data() != null && ClusterMembershipData.class.equals(message.data().getClass());
+      Object data = message.data();
+      return data != null && ClusterMembershipData.class.equals(data.getClass());
     }
   };
 
@@ -93,23 +92,24 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   private Map<String, String> localMetadata = new HashMap<>();
 
   /** Merges incoming SYNC data, merges it and sending back merged data with SYNC_ACK. */
-  private Subscriber<TransportMessage> onSyncSubscriber = Subscribers.create(new Action1<TransportMessage>() {
+  private Subscriber<Message> onSyncSubscriber = Subscribers.create(new Action1<Message>() {
     @Override
-    public void call(TransportMessage transportMessage) {
-      ClusterMembershipData data = (ClusterMembershipData) transportMessage.message().data();
-      List<ClusterMember> updates = membership.merge(data);
-      TransportEndpoint endpoint = transportMessage.endpoint();
+    public void call(Message message) {
+      ClusterMembershipData data = message.data();
+      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localEndpoint, data);
+      List<ClusterMember> updates = membership.merge(filteredData);
+      TransportEndpoint endpoint = message.sender();
       if (!updates.isEmpty()) {
         LOGGER.debug("Received Sync from {}, updates: {}", endpoint, updates);
         processUpdates(updates, true/* spread gossip */);
       } else {
         LOGGER.debug("Received Sync from {}, no updates", endpoint);
       }
-      String correlationId = transportMessage.message().header(TransportHeaders.CORRELATION_ID);
+      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
       ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
-      Message message =
+      Message syncAckMessage =
           new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK, TransportHeaders.CORRELATION_ID, correlationId);
-      transport.send(endpoint, message);
+      transport.send(endpoint, syncAckMessage);
     }
   });
 
@@ -250,7 +250,6 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     transport.listen()
         .filter(syncFilter())
         .filter(syncGroupFilter(syncGroup))
-        .map(filterData(localEndpoint))
         .subscribe(onSyncSubscriber);
 
     // Listen to 'suspected/trusted' events from FailureDetector
@@ -301,16 +300,15 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     String period = Integer.toString(periodNbr.incrementAndGet());
     sendSync(seedMembers, period);
 
-    Future<TransportMessage> future =
+    Future<Message> future =
         transport.listen()
             .filter(syncAckFilter(period))
             .filter(syncGroupFilter(syncGroup))
-            .map(filterData(localEndpoint))
             .take(1)
             .toBlocking()
             .toFuture();
 
-    TransportMessage message;
+    Message message;
     try {
       message = future.get(syncTimeout, TimeUnit.MILLISECONDS);
     } catch (Exception e) {
@@ -323,12 +321,12 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   private void doSync(final List<TransportAddress> members, Scheduler scheduler) {
     String period = Integer.toString(periodNbr.incrementAndGet());
     sendSync(members, period);
-    transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup)).map(filterData(localEndpoint))
+    transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup))
         .take(1).timeout(syncTimeout, TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(Subscribers.create(new Action1<TransportMessage>() {
+        .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
-          public void call(TransportMessage transportMessage) {
-            onSyncAck(transportMessage);
+          public void call(Message message) {
+            onSyncAck(message);
           }
         }, new Action1<Throwable>() {
           @Override
@@ -357,10 +355,11 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     }
   }
 
-  private void onSyncAck(TransportMessage transportMessage) {
-    ClusterMembershipData data = (ClusterMembershipData) transportMessage.message().data();
-    TransportEndpoint endpoint = transportMessage.endpoint();
-    List<ClusterMember> updates = membership.merge(data);
+  private void onSyncAck(Message message) {
+    ClusterMembershipData data = message.data();
+    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localEndpoint, data);
+    TransportEndpoint endpoint = message.sender();
+    List<ClusterMember> updates = membership.merge(filteredData);
     if (!updates.isEmpty()) {
       LOGGER.debug("Received SyncAck from {}, updates: {}", endpoint, updates);
       processUpdates(updates, true/* spread gossip */);

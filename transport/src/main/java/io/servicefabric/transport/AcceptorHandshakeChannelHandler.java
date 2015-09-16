@@ -4,7 +4,6 @@ import static io.servicefabric.transport.TransportHandshakeData.Q_TRANSPORT_HAND
 import static io.servicefabric.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK;
 import static io.servicefabric.transport.TransportHeaders.QUALIFIER;
 
-import io.servicefabric.transport.protocol.Message;
 import io.servicefabric.transport.utils.ChannelFutureUtils;
 
 import io.netty.channel.ChannelFuture;
@@ -39,9 +38,9 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
     }
 
     final TransportChannel transportChannel = TransportChannel.from(ctx.channel());
-    final TransportHandshakeData handshakeRequest = (TransportHandshakeData) message.data();
+    final TransportHandshakeData handshakeRequest = message.data();
     final TransportHandshakeData handshakeResponse =
-        prepareHandshakeResponse(handshakeRequest, transportSpi.getLocalEndpoint());
+        prepareHandshakeResponse(handshakeRequest, transportSpi.localEndpoint());
     if (handshakeResponse.isResolvedOk()) {
       transportChannel.setHandshakeData(handshakeRequest);
       transportSpi.accept(transportChannel);
@@ -58,7 +57,7 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
       public void operationComplete(ChannelFuture future) {
         if (!handshakeResponse.isResolvedOk()) {
           LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", handshakeResponse, transportChannel);
-          transportChannel.close(new TransportHandshakeException(transportChannel, handshakeResponse));
+          transportChannel.close(new TransportHandshakeException(handshakeResponse.explain()));
         }
       }
     }));

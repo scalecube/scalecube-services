@@ -28,7 +28,7 @@ public final class TransportHeaders {
     // Do not instantiate
   }
 
-  public static class Filter implements Func1<TransportMessage, Boolean> {
+  public static class Filter implements Func1<Message, Boolean> {
     final String qualifier;
     final String correlationId;
 
@@ -42,11 +42,9 @@ public final class TransportHeaders {
     }
 
     @Override
-    public Boolean call(TransportMessage transportMessage) {
-      boolean q0 = qualifier.equals(transportMessage.message().header(TransportHeaders.QUALIFIER));
-      boolean q1 =
-          correlationId == null
-              || correlationId.equals(transportMessage.message().header(TransportHeaders.CORRELATION_ID));
+    public Boolean call(Message message) {
+      boolean q0 = qualifier.equals(message.header(TransportHeaders.QUALIFIER));
+      boolean q1 = correlationId == null || correlationId.equals(message.header(TransportHeaders.CORRELATION_ID));
       return q0 && q1;
     }
   }

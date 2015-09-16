@@ -4,8 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import io.servicefabric.transport.TransportEndpoint;
-import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,16 +31,14 @@ public class GossipProtocolFunctionTest {
   public void testGossipMessageFilter() {
     GossipProtocol.GossipMessageFilter filter = new GossipProtocol.GossipMessageFilter();
     Message message = new Message(new GossipRequest(Collections.<Gossip>emptyList()));
-    TransportEndpoint endpoint = TransportEndpoint.from("tcp://1@host:123");
-    assertTrue(filter.call(new TransportMessage(message, endpoint)));
-    assertFalse(filter.call(new TransportMessage(new Message("com.pt.openapi.hello/"), endpoint)));
+    assertTrue(filter.call(message));
+    assertFalse(filter.call(new Message("com.pt.openapi.hello/")));
   }
 
   @Test
   public void testOnGossipAction() {
     Queue<GossipProtocol.GossipTask> gossipQueue = new LinkedList<>();
     GossipProtocol.OnGossipRequestAction action = new GossipProtocol.OnGossipRequestAction(gossipQueue);
-    TransportEndpoint endpoint = TransportEndpoint.from("tcp://1@host:456");
     List<Gossip> gossips = new ArrayList<>(20);
     for (int i = 0; i < 20; i++) {
       Gossip gossip = new Gossip("" + i, new Message("123"));
@@ -49,7 +46,7 @@ public class GossipProtocolFunctionTest {
     }
     Message message = new Message(new GossipRequest(gossips));
 
-    action.call(new TransportMessage(message, endpoint));
+    action.call(message);
     assertTrue(gossipQueue.size() == 20);
   }
 

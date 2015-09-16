@@ -179,7 +179,7 @@ public class ClusterMembershipBuilder {
     Predicate<ClusterMember> predicate = new Predicate<ClusterMember>() {
       @Override
       public boolean apply(@Nullable ClusterMember input) {
-        return input.status() == s;
+        return input != null && input.status() == s;
       }
     };
     Function<ClusterMember, TransportEndpoint> function = new Function<ClusterMember, TransportEndpoint>() {

@@ -2,7 +2,7 @@ package io.servicefabric.examples.gossip;
 
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ICluster;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import rx.functions.Action1;
 

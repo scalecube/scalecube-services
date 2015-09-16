@@ -1,4 +1,4 @@
-package io.servicefabric.transport.protocol;
+package io.servicefabric.transport;
 
 import static io.protostuff.ProtostuffIOUtil.writeTo;
 

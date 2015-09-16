@@ -2,14 +2,15 @@ package io.servicefabric.cluster.gossip;
 
 import static io.netty.buffer.Unpooled.buffer;
 import static io.netty.buffer.Unpooled.copiedBuffer;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import io.servicefabric.transport.TransportHeaders;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import io.netty.buffer.ByteBuf;
-import io.servicefabric.transport.protocol.ProtostuffProtocol;
+import io.servicefabric.transport.ProtostuffProtocol;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,14 +57,15 @@ public class GossipServiceRequestSchemaTest {
     Assert.assertEquals(deserializedMessage.data().getClass(), GossipRequest.class);
     Assert.assertEquals("CORR_ID", deserializedMessage.header(TransportHeaders.CORRELATION_ID));
 
-    GossipRequest gossipRequest = (GossipRequest) deserializedMessage.data();
+    GossipRequest gossipRequest = deserializedMessage.data();
     assertNotNull(gossipRequest);
     assertNotNull(gossipRequest.getGossipList());
     assertNotNull(gossipRequest.getGossipList().get(0));
 
-    Object msg = gossipRequest.getGossipList().get(0).getMessage().data();
-    assertNotNull(msg);
-    assertTrue(msg.toString(), msg instanceof TestData);
+    Object msgData = gossipRequest.getGossipList().get(0).getMessage().data();
+    assertNotNull(msgData);
+    assertTrue(msgData.toString(), msgData instanceof TestData);
+    assertEquals(testData.getProperties(), ((TestData) msgData).getProperties());
   }
 
   private List<Gossip> getGossips() {

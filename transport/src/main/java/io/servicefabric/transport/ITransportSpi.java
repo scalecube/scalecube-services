@@ -9,13 +9,10 @@ import rx.subjects.Subject;
 import java.util.Map;
 
 /** Transport SPI interface. Exposes some properties and functions which aren't part of the public API. */
-interface ITransportSpi {
+interface ITransportSpi extends ITransport {
 
   /** SPI method. */
-  void onMessage(TransportMessage message);
-
-  /** SPI method. */
-  TransportEndpoint getLocalEndpoint();
+  void onMessage(Message message);
 
   /** SPI method. */
   int getHandshakeTimeout();

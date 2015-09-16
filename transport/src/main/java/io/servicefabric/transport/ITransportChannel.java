@@ -1,7 +1,5 @@
 package io.servicefabric.transport;
 
-import io.servicefabric.transport.protocol.Message;
-
 import com.google.common.util.concurrent.SettableFuture;
 
 import javax.annotation.CheckForNull;

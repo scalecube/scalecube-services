@@ -102,9 +102,23 @@ public class ClusterConfiguration {
     return this;
   }
 
+  @Override
+  public String toString() {
+    return "ClusterConfiguration{" +
+        "memberId='" + memberId + '\'' +
+        ", seedMembers='" + seedMembers + '\'' +
+        ", port=" + port +
+        ", metadata=" + metadata +
+        ", transportSettings=" + transportSettings +
+        ", clusterMembershipSettings=" + clusterMembershipSettings +
+        ", failureDetectorSettings=" + failureDetectorSettings +
+        ", gossipProtocolSettings=" + gossipProtocolSettings +
+        '}';
+  }
+
   public static class ClusterMembershipSettings {
 
-    public static final int DEFAULT_SYNC_TIME = 10 * 1000;
+    public static final int DEFAULT_SYNC_TIME = 30 * 1000;
     public static final int DEFAULT_SYNC_TIMEOUT = 3 * 1000;
     public static final int DEFAULT_MAX_SUSPECT_TIME = 60 * 1000;
     public static final int DEFAULT_MAX_SHUTDOWN_TIME = 60 * 1000;
