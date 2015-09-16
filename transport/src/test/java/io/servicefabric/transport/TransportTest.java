@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.netty.channel.ConnectTimeoutException;
 import io.servicefabric.testlib.BaseTest;
 import io.servicefabric.transport.protocol.Message;
 
@@ -66,11 +67,8 @@ public class TransportTest extends BaseTest {
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
         assertNotNull(cause);
-        boolean expectedException =
-            ConnectException.class.equals(cause.getClass()) || ClosedChannelException.class.equals(cause.getClass());
-        if (!expectedException) {
-          fail("Expected ConnectException or ClosedChannelException, but actual: " + cause);
-        }
+        assertAmongExpectedClasses(cause.getClass(),
+            ClosedChannelException.class, ConnectException.class, ConnectTimeoutException.class);
       }
 
       // send second message: no connection yet and it's clear that there's no connection
@@ -82,11 +80,8 @@ public class TransportTest extends BaseTest {
       } catch (ExecutionException e) {
         Throwable cause = e.getCause();
         assertNotNull(cause);
-        boolean expectedException =
-            ConnectException.class.equals(cause.getClass()) || ClosedChannelException.class.equals(cause.getClass());
-        if (!expectedException) {
-          fail("Expected ConnectException or ClosedChannelException, but actual: " + cause);
-        }
+        assertAmongExpectedClasses(cause.getClass(),
+            ClosedChannelException.class, ConnectException.class, ConnectTimeoutException.class);
       }
 
       destroyTransport(client);
