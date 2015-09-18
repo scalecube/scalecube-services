@@ -11,19 +11,19 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.Collections;
 
-import io.servicefabric.cluster.ClusterMember;
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.services.annotations.ServiceAnnotationsProcessor;
+import io.servicefabric.services.annotations.ServiceInstance;
 
 public class ServiceRegistry implements IServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
 
-  private MultimapCache<String, ServiceReference> serviceRegistryCache = new MultimapCache<>();
-  private final Multimap<String, ServiceReference> localServices = HashMultimap.create();
+  private MultimapCache<String, ServiceInstance> serviceRegistryCache = new MultimapCache<>();
+  private final Multimap<String, ServiceInstance> localServices = HashMultimap.create();
 
   private final ICluster cluster;
-
+Add
   public ServiceRegistry(ICluster cluster) {
     this.cluster = cluster;
   }
@@ -34,31 +34,27 @@ public class ServiceRegistry implements IServiceRegistry {
     // TODO : send sync events
   }
 
-  @Override
-  public void registerService(String serviceName) {
-    ServiceReference serviceReference = resolveReference(serviceName);
-    // Register service locally
-    localServices.put(serviceName, serviceReference);
+  public void registerService(Object serviceObject) {
+    Collection<ServiceInstance> serviceInstances = ServiceAnnotationsProcessor.processService(serviceObject);
+    for (ServiceInstance serviceInstance : serviceInstances) {
+      registerService(serviceInstance);
+    }
+  }
+
+  public void registerService(ServiceInstance serviceInstance) {
+    localServices.put(serviceInstance.getServiceName(), serviceInstance);
     // TODO: send gossip about service registration
-    serviceRegistryCache.put(serviceReference.name(), serviceReference);
-  }
-
-  public void registerService(Object serviceInstance) {
-    new ServiceAnnotationsProcessor().registerService(serviceInstance);
+    serviceRegistryCache.put(serviceInstance.getServiceName(), serviceInstance);
   }
 
   @Override
-  public Collection<ServiceReference> serviceLookup(final String serviceName) {
+  public Collection<ServiceInstance> serviceLookup(final String serviceName) {
     checkArgument(serviceName != null, "Service name can't be null");
-    Collection<ServiceReference> serviceReferences;
+    Collection<ServiceInstance> serviceReferences;
     serviceReferences = serviceRegistryCache.get(serviceName);
-    return serviceReferences == null ? Collections.<ServiceReference>emptySet() : serviceReferences;
+    return serviceReferences == null ? Collections.<ServiceInstance>emptySet() : serviceReferences;
   }
 
-  private ServiceReference resolveReference(String serviceName) {
-    checkArgument(serviceName != null, "Service namespace should not be null");
-    ClusterMember localMember = cluster.membership().localMember();
-    return new ServiceReference(serviceName, localMember.id());
-  }
+
 
 }
