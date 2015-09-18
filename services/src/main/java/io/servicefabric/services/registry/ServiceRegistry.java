@@ -8,8 +8,11 @@ import com.google.common.collect.Multimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.geom.CubicCurve2D;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.services.MultimapCache;
@@ -19,8 +22,9 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
 
-  private MultimapCache<String, ServiceInstance> serviceRegistryCache = new MultimapCache<>();
-  private final Multimap<String, ServiceInstance> localServices = HashMultimap.create();
+  private MultimapCache<String, ServiceReference> serviceRegistryCache = new MultimapCache<>();
+
+  private final ConcurrentMap<String, ServiceInstance> localServices = new ConcurrentHashMap();
 
   private final ICluster cluster;
 
@@ -29,7 +33,15 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   public void start() {
-    // TODO : do I need to clean registration of services for removed members or just clean up them periodically?
+   
+	String localMemberId = cluster.membership().localMember().id();
+	for(ServiceInstance serviceInstance : localServices.values()){
+	   ServiceReference serviceReference  = new ServiceReference(serviceInstance.getServiceName() , localMemberId);	 
+	   serviceRegistryCache.put(serviceInstance.getServiceName(), serviceReference);
+	   // TODO: send gossip about service registration
+	}
+	
+	// TODO : do I need to clean registration of services for removed members or just clean up them periodically?
     // TODO : listen for gossips of service registration
     // TODO : send sync events
   }
@@ -43,18 +55,17 @@ public class ServiceRegistry implements IServiceRegistry {
 
   public void registerService(ServiceInstance serviceInstance) {
     localServices.put(serviceInstance.getServiceName(), serviceInstance);
-    // TODO: send gossip about service registration
-    serviceRegistryCache.put(serviceInstance.getServiceName(), serviceInstance);
   }
-
+  
   @Override
-  public Collection<ServiceInstance> serviceLookup(final String serviceName) {
+  public Collection<ServiceReference> serviceLookup(final String serviceName) {
     checkArgument(serviceName != null, "Service name can't be null");
-    Collection<ServiceInstance> serviceReferences;
+    Collection<ServiceReference> serviceReferences;
     serviceReferences = serviceRegistryCache.get(serviceName);
-    return serviceReferences == null ? Collections.<ServiceInstance>emptySet() : serviceReferences;
+    return serviceReferences == null ? Collections.<ServiceReference>emptySet() : serviceReferences;
   }
-
-
-
+  
+  public ServiceInstance getServiceInstance(String serviceName){
+	  return localServices.get(serviceName);
+  }
 }

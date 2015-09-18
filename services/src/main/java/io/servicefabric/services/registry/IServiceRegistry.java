@@ -30,6 +30,6 @@ public interface IServiceRegistry {
    * @return Collection of service references, related to namespace, if not found return empty collection.
    * @throws IllegalArgumentException if namespace parameter is null
    */
-  Collection<ServiceInstance> serviceLookup(String namespace);
+  Collection<ServiceReference> serviceLookup(String namespace);
 
 }

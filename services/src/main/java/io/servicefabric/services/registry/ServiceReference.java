@@ -10,19 +10,19 @@ public class ServiceReference {
   private final String name;
 
   @Tag(2)
-  private final String id; // TODO: member id
+  private final String memberId;
 
-  public ServiceReference(String name, String id) {
+  public ServiceReference(String name, String memberId) {
     this.name = name;
-    this.id = id;
+    this.memberId = memberId;
   }
 
   public String name() {
     return name;
   }
 
-  public String id() {
-    return id;
+  public String memberId() {
+    return memberId;
   }
 
   @Override
@@ -31,16 +31,16 @@ public class ServiceReference {
     if (o == null || getClass() != o.getClass()) return false;
     ServiceReference that = (ServiceReference) o;
     return Objects.equals(name, that.name) &&
-        Objects.equals(id, that.id);
+        Objects.equals(memberId, that.memberId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, id);
+    return Objects.hash(name, memberId);
   }
 
   @Override
   public String toString() {
-    return name + ':' + id;
+    return name + ':' + memberId;
   }
 }
