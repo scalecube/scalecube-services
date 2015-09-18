@@ -1,12 +1,10 @@
-package io.servicefabric.services;
+package io.servicefabric.services.registry;
 
 import com.google.common.base.Predicate;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-
-import io.servicefabric.services.annotations.ServiceInstance;
 
 /**
  * The Interface IServiceRegistry. provides possibility to register/unregister services in the system and make services

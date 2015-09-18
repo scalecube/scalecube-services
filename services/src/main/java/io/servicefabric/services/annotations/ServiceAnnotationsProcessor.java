@@ -5,6 +5,8 @@ import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.servicefabric.services.registry.ServiceInstance;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;

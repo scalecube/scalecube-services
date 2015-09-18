@@ -1,4 +1,4 @@
-package io.servicefabric.services;
+package io.servicefabric.services.registry;
 
 import io.protostuff.Tag;
 

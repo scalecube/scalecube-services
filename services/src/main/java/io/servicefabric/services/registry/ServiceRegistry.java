@@ -1,4 +1,4 @@
-package io.servicefabric.services;
+package io.servicefabric.services.registry;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -12,8 +12,8 @@ import java.util.Collection;
 import java.util.Collections;
 
 import io.servicefabric.cluster.ICluster;
+import io.servicefabric.services.MultimapCache;
 import io.servicefabric.services.annotations.ServiceAnnotationsProcessor;
-import io.servicefabric.services.annotations.ServiceInstance;
 
 public class ServiceRegistry implements IServiceRegistry {
 
@@ -23,7 +23,7 @@ public class ServiceRegistry implements IServiceRegistry {
   private final Multimap<String, ServiceInstance> localServices = HashMultimap.create();
 
   private final ICluster cluster;
-Add
+
   public ServiceRegistry(ICluster cluster) {
     this.cluster = cluster;
   }

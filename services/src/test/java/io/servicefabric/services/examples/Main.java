@@ -1,6 +1,6 @@
 package io.servicefabric.services.examples;
 
-import io.servicefabric.services.ServiceRegistry;
+import io.servicefabric.services.registry.ServiceRegistry;
 
 /**
  * @author Anton Kharenko
