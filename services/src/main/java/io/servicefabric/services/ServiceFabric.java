@@ -1,18 +1,12 @@
 package io.servicefabric.services;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-
 import io.servicefabric.cluster.Cluster;
-import io.servicefabric.cluster.ClusterMember;
 import io.servicefabric.cluster.ICluster;
-import io.servicefabric.services.registry.ServiceInstance;
-import io.servicefabric.services.registry.ServiceReference;
 import io.servicefabric.services.registry.ServiceRegistry;
 import io.servicefabric.services.router.Router;
 import io.servicefabric.transport.protocol.Message;
+
+import java.lang.reflect.InvocationTargetException;
 
 public class ServiceFabric {
 
@@ -29,6 +23,12 @@ public class ServiceFabric {
 		router = new Router(cluster,serviceRegistry);
 	}
 
+	public ServiceFabric(int port, String seeds) {
+		cluster = Cluster.newInstance(port,seeds);
+		serviceRegistry  = new ServiceRegistry(cluster);
+		router = new Router(cluster,serviceRegistry);
+	}
+
 	public void registerService(Object serviceObject){
 		serviceRegistry.registerService(serviceObject);
 	}
@@ -36,12 +36,11 @@ public class ServiceFabric {
 	public void start() {
 		cluster.join();
 		serviceRegistry.start();
+		router.listen();
 	}
 
-	public void call(Message message) throws InvocationTargetException, IllegalAccessException{
-		String serviceName = message.header("serviceName");
-		Collection<ServiceReference> serviceReferences = serviceRegistry.serviceLookup(serviceName);
-		router.route(message,serviceReferences);
+	public void invoke(Message message) throws InvocationTargetException, IllegalAccessException, ServiceNotfoundException{	
+		router.route(message);
 	}
 
 }
