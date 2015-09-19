@@ -1,4 +1,4 @@
-package io.servicefabric.services.annotations;
+package io.servicefabric.services.registry;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

@@ -10,6 +10,7 @@ public class ExampleServiceImpl implements ExampleService {
 
   @Override
   public ListenableFuture<HelloResponse> sayHello(HelloRequest request) {
+	System.out.println("Hello" + request );
     return Futures.immediateFuture(new HelloResponse());
   }
 }
