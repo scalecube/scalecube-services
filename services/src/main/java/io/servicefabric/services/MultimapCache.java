@@ -5,6 +5,8 @@ import com.google.common.collect.Sets;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 public class MultimapCache<K, V> {
@@ -27,6 +29,7 @@ public class MultimapCache<K, V> {
       }
     }
     return services.add(value);
+    
   }
 
   public boolean remove(K key, V value) {
@@ -37,5 +40,16 @@ public class MultimapCache<K, V> {
   public void clear() {
     cache.clear();
   }
+  
+  public Set<Entry<K, Collection<V>>> entrySet(){
+	  return cache.entrySet();
+  }
+  
+  public Set<K> keySet(){
+	  return cache.keySet();
+  }
 
+  public Collection<Collection<V>> values(){
+	  return cache.values();
+  }
 }

@@ -8,6 +8,7 @@ import io.servicefabric.services.registry.ServiceInstance;
 import io.servicefabric.services.registry.ServiceReference;
 import io.servicefabric.services.registry.ServiceRegistry;
 import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.protocol.MessageHeaders;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
@@ -20,8 +21,6 @@ public class Router {
 
 	private final ICluster cluster;
 	private final ServiceRegistry serviceRegistry;
-
-
 
 	public Router(ICluster cluster, ServiceRegistry serviceRegistry) {
 		this.cluster = cluster;
@@ -36,7 +35,7 @@ public class Router {
 	}
 
 	public void route(Message message) throws InvocationTargetException, IllegalAccessException {
-		String serviceName = message.header("serviceName");
+		String serviceName = (String) message.header(MessageHeaders.SERVICE_HEADER);
 
 		Collection<ServiceReference> serviceReferences = serviceRegistry.serviceLookup(serviceName);
 
@@ -52,7 +51,7 @@ public class Router {
 	public static final Func1<ClusterMessage, Boolean> MESSAGE_PREDICATE = new Func1<ClusterMessage, Boolean>() {
 		@Override
 		public Boolean call(ClusterMessage t1) {
-			return t1.message().data() != null && t1.message().header("serviceName")!=null;
+			return t1.message() != null && t1.message().header(MessageHeaders.SERVICE_HEADER)!=null;
 		}
 	};
 
@@ -61,7 +60,7 @@ public class Router {
 			@Override
 			public void call(ClusterMessage t1) {
 				try {
-					Router.this.route((Message)t1.message());
+					Router.this.route(t1.message());
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -77,9 +76,10 @@ public class Router {
 			cluster.send(member, message);
 	}
 
+	
 	private void invokeServiceMethod(Message message) throws InvocationTargetException, IllegalAccessException {
-		ServiceInstance instance = serviceRegistry.getServiceInstance(message.header("serviceName"));
-		instance.invoke(message.header("methodName"), message.data());
+		ServiceInstance instance = serviceRegistry.getServiceInstance((String)message.header(MessageHeaders.SERVICE_HEADER));
+		instance.invoke((String)message.header(MessageHeaders.METHOD_HEADER), message.data());
 	}
 
 	private boolean isLocalService(ServiceReference sr) {
