@@ -3,10 +3,8 @@ package io.servicefabric.examples.metadata;
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ClusterConfiguration;
 import io.servicefabric.cluster.ClusterMember;
-import io.servicefabric.cluster.ClusterMessage;
 import io.servicefabric.cluster.ICluster;
-import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import rx.functions.Action1;
 import rx.functions.Func1;
@@ -27,10 +25,10 @@ import java.util.Map;
 public class ClusterMetadata {
 
   private static final String MESSAGE_DATA = "hello/Joe";
-  public static final Func1<ClusterMessage, Boolean> MESSAGE_PREDICATE = new Func1<ClusterMessage, Boolean>() {
+  public static final Func1<Message, Boolean> MESSAGE_PREDICATE = new Func1<Message, Boolean>() {
     @Override
-    public Boolean call(ClusterMessage t1) {
-      return MESSAGE_DATA.equals(t1.message().data());
+    public Boolean call(Message message) {
+      return MESSAGE_DATA.equals(message.data());
     }
   };
 
@@ -49,9 +47,9 @@ public class ClusterMetadata {
     ICluster joeCluster = Cluster.newInstance(config).join();
 
     // filter and subscribe on hello/joe and print the welcome message.
-    joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<ClusterMessage>() {
+    joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<Message>() {
       @Override
-      public void call(ClusterMessage t1) {
+      public void call(Message message) {
         System.out.println("Hello Joe");
       }
     });

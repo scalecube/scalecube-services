@@ -1,4 +1,4 @@
-package io.servicefabric.cluster.examples;
+package io.servicefabric.examples;
 
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ClusterConfiguration;

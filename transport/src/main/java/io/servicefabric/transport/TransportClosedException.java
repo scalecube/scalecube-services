@@ -4,11 +4,18 @@ package io.servicefabric.transport;
 public final class TransportClosedException extends TransportException {
   private static final long serialVersionUID = 1L;
 
-  public TransportClosedException(ITransportChannel transport) {
-    super(transport);
+  public TransportClosedException() {
   }
 
-  public TransportClosedException(ITransportChannel transport, Throwable cause) {
-    super(transport, cause);
+  public TransportClosedException(String message) {
+    super(message);
+  }
+
+  public TransportClosedException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public TransportClosedException(Throwable cause) {
+    super(cause);
   }
 }

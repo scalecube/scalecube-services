@@ -87,7 +87,6 @@ final class ClusterMembershipTable {
     return updates;
   }
 
-
   public List<ClusterMember> asList() {
     return new ArrayList<>(membership.values());
   }

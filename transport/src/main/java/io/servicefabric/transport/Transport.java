@@ -6,8 +6,6 @@ import static com.google.common.base.Throwables.propagate;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
 
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.ProtostuffProtocol;
 import io.servicefabric.transport.utils.memoization.Computable;
 import io.servicefabric.transport.utils.memoization.Memoizer;
 
@@ -70,7 +68,7 @@ public final class Transport implements ITransportSpi, ITransport {
   private final EventLoopGroup eventLoop;
   private final EventExecutorGroup eventExecutor;
 
-  private final Subject<TransportMessage, TransportMessage> incomingMessagesSubject = PublishSubject.create();
+  private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
   private final ConcurrentMap<TransportAddress, TransportChannel> acceptedChannels = new ConcurrentHashMap<>();
   private final Memoizer<TransportAddress, TransportChannel> connectedChannels = new Memoizer<>();
 
@@ -130,7 +128,7 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public TransportEndpoint getLocalEndpoint() {
+  public TransportEndpoint localEndpoint() {
     return localEndpoint;
   }
 
@@ -200,7 +198,7 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
-    ITransportChannel transportChannel = connectedChannels.getIfExists(endpoint.address());
+    TransportChannel transportChannel = connectedChannels.getIfExists(endpoint.address());
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     if (transportChannel == null) {
       if (promise != null) {
@@ -221,14 +219,14 @@ public final class Transport implements ITransportSpi, ITransport {
       @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
-    ITransportChannel transportChannel = getOrConnect(endpoint.address());
+    TransportChannel transportChannel = getOrConnect(endpoint.address());
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     transportChannel.send(message, promise);
   }
 
   @Nonnull
   @Override
-  public final Observable<TransportMessage> listen() {
+  public final Observable<Message> listen() {
     return incomingMessagesSubject;
   }
 
@@ -265,7 +263,7 @@ public final class Transport implements ITransportSpi, ITransport {
 
   @Override
   public TransportChannel createAcceptorTransportChannel(Channel channel) {
-    return TransportChannel.newAcceptor(channel, new Func1<TransportChannel, Void>() {
+    return TransportChannel.newAcceptorChannel(channel, new Func1<TransportChannel, Void>() {
       @Override
       public Void call(TransportChannel transportChannel) {
         TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
@@ -285,7 +283,7 @@ public final class Transport implements ITransportSpi, ITransport {
     TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.address(), transportChannel);
     if (prev != null) {
       String err = String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint);
-      throw new TransportBrokenException(transportChannel, err);
+      throw new TransportBrokenException(err);
     }
   }
 
@@ -295,7 +293,7 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public void onMessage(TransportMessage message) {
+  public void onMessage(Message message) {
     incomingMessagesSubject.onNext(message);
   }
 
@@ -338,7 +336,7 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   private TransportChannel createConnectorTransportChannel(Channel channel, final TransportAddress endpoint) {
-    return TransportChannel.newConnector(channel, new Func1<TransportChannel, Void>() {
+    return TransportChannel.newConnectorChannel(channel, new Func1<TransportChannel, Void>() {
       @Override
       public Void call(TransportChannel transport) {
         connectedChannels.remove(endpoint);

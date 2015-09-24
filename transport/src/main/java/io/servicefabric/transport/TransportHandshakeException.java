@@ -4,19 +4,18 @@ package io.servicefabric.transport;
 public final class TransportHandshakeException extends TransportException {
   private static final long serialVersionUID = 1L;
 
-  private final TransportHandshakeData handshake;
-
-  public TransportHandshakeException(ITransportChannel transport, TransportHandshakeData handshake) {
-    super(transport);
-    this.handshake = handshake;
+  public TransportHandshakeException() {
   }
 
-  public TransportHandshakeException(ITransportChannel transport, TransportHandshakeData handshake, Throwable cause) {
-    super(transport, cause);
-    this.handshake = handshake;
+  public TransportHandshakeException(String message) {
+    super(message);
   }
 
-  public TransportHandshakeData getHandshake() {
-    return handshake;
+  public TransportHandshakeException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public TransportHandshakeException(Throwable cause) {
+    super(cause);
   }
 }

@@ -7,8 +7,6 @@ import static io.servicefabric.transport.TransportChannel.Status.CONNECTED;
 import static io.servicefabric.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 
-import io.servicefabric.transport.protocol.Message;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
@@ -60,18 +58,22 @@ final class TransportChannel implements ITransportChannel {
     this.closeCallback = closeCallback;
   }
 
-  public static TransportChannel newConnector(Channel channel, Func1<TransportChannel, Void> closeCallback) {
+  public static TransportChannel newConnectorChannel(Channel channel, Func1<TransportChannel, Void> closeCallback) {
     TransportChannel target = new TransportChannel(channel, CONNECT_IN_PROGRESS, closeCallback);
     channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(target);
     return target;
   }
 
-  public static TransportChannel newAcceptor(Channel channel, Func1<TransportChannel, Void> closeCallback) {
+  public static TransportChannel newAcceptorChannel(Channel channel, Func1<TransportChannel, Void> closeCallback) {
     TransportChannel target = new TransportChannel(channel, CONNECTED, closeCallback);
     channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(target);
     return target;
   }
 
+  /**
+   * Resolve TransportChannel by given Netty channel. It doesn't create new instance of TransportChannel.
+   * @throws TransportBrokenException if given Netty channel not associated with any transport channel.
+   */
   public static TransportChannel from(Channel channel) {
     TransportChannel transport = channel.attr(ATTR_TRANSPORT_CHANNEL).get();
     if (transport == null) {
@@ -129,7 +131,6 @@ final class TransportChannel implements ITransportChannel {
     } else {
       setPromise(channel.writeAndFlush(message), promise);
     }
-
   }
 
   @Override
@@ -146,7 +147,7 @@ final class TransportChannel implements ITransportChannel {
   }
 
   void close(Throwable cause, SettableFuture<Void> promise) {
-    this.cause.compareAndSet(null, cause != null ? cause : new TransportClosedException(this));
+    this.cause.compareAndSet(null, cause != null ? cause : new TransportClosedException());
     status.set(CLOSED);
     closeCallback.call(this);
     setPromise(channel.close(), promise);
@@ -160,8 +161,8 @@ final class TransportChannel implements ITransportChannel {
    */
   void flip(Status expect, Status update) throws TransportBrokenException {
     if (!status.compareAndSet(expect, update)) {
-      String err = "Can't set status " + update + " (expect=" + expect + ", actual=" + status + ")";
-      throw new TransportBrokenException(this, err);
+      String err = "Can't set status " + update + " (expect=" + expect + ", actual=" + status + ") on channel: " + this;
+      throw new TransportBrokenException(err);
     }
   }
 

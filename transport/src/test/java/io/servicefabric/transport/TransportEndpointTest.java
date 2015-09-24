@@ -2,8 +2,6 @@ package io.servicefabric.transport;
 
 import static org.junit.Assert.assertEquals;
 
-import io.servicefabric.transport.TransportAddress;
-import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.utils.IpAddressResolver;
 
 import org.junit.Test;

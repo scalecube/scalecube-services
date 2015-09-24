@@ -1,14 +1,14 @@
 package io.servicefabric.cluster.gossip;
 
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.MessageDeserializer;
-import io.servicefabric.transport.protocol.MessageSerializer;
+import io.servicefabric.transport.Message;
+import io.servicefabric.transport.MessageDeserializer;
+import io.servicefabric.transport.MessageSerializer;
 
 import com.google.common.collect.ImmutableList;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.servicefabric.transport.protocol.ProtostuffProtocol;
+import io.servicefabric.transport.ProtostuffProtocol;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;

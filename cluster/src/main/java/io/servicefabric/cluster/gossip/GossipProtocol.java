@@ -8,8 +8,7 @@ import static com.google.common.collect.Sets.newHashSet;
 
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.ITransport;
-import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -63,7 +62,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   private int maxEndpointsToSelect = 3;
   private long period = 0;
   private volatile int factor = 1;
-  private Subscriber<TransportMessage> onGossipRequestSubscriber;
+  private Subscriber<Message> onGossipRequestSubscriber;
   private ScheduledFuture<?> executorTask;
 
   public GossipProtocol(TransportEndpoint localEndpoint) {
@@ -121,10 +120,6 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     this.transport = transport;
   }
 
-  public TransportEndpoint getLocalEndpoint() {
-    return localEndpoint;
-  }
-
   public ITransport getTransport() {
     return transport;
   }
@@ -146,10 +141,6 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     if (onGossipRequestSubscriber != null) {
       onGossipRequestSubscriber.unsubscribe();
     }
-  }
-
-  public void spread(Object data) {
-    spread(new Message(data));
   }
 
   @Override
@@ -228,15 +219,15 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   // gossip functions.
-  static class GossipMessageFilter implements Func1<TransportMessage, Boolean> {
+  static class GossipMessageFilter implements Func1<Message, Boolean> {
     @Override
-    public Boolean call(TransportMessage transportMessage) {
-      Object data = transportMessage.message().data();
+    public Boolean call(Message message) {
+      Object data = message.data();
       return data != null && GossipRequest.class.equals(data.getClass());
     }
   }
 
-  static class OnGossipRequestAction implements Action1<TransportMessage> {
+  static class OnGossipRequestAction implements Action1<Message> {
     private Queue<GossipTask> queue;
 
     OnGossipRequestAction(Queue<GossipTask> queue) {
@@ -245,9 +236,9 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     }
 
     @Override
-    public void call(TransportMessage transportMessage) {
-      GossipRequest gossipRequest = (GossipRequest) transportMessage.message().data();
-      TransportEndpoint transportEndpoint = transportMessage.endpoint();
+    public void call(Message message) {
+      GossipRequest gossipRequest = message.data();
+      TransportEndpoint transportEndpoint = message.sender();
       for (Gossip gossip : gossipRequest.getGossipList()) {
         queue.offer(new GossipTask(gossip, transportEndpoint));
       }

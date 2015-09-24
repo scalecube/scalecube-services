@@ -1,7 +1,5 @@
 package io.servicefabric.transport;
 
-import io.servicefabric.transport.protocol.Message;
-
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -30,10 +28,11 @@ final class MessageReceiverChannelHandler extends ChannelInboundHandlerAdapter {
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) {
     TransportChannel transportChannel = TransportChannel.from(ctx.channel());
-    TransportMessage transportMessage = new TransportMessage((Message) msg, transportChannel.remoteEndpoint());
+    Message message = (Message) msg;
+    message.setSender(transportChannel.remoteEndpoint());
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Received {}", transportMessage);
+      LOGGER.debug("Received {}", message);
     }
-    transportSpi.onMessage(transportMessage);
+    transportSpi.onMessage(message);
   }
 }

@@ -3,8 +3,7 @@ package io.servicefabric.cluster;
 import static com.google.common.collect.Collections2.filter;
 
 import io.servicefabric.transport.TransportEndpoint;
-import io.servicefabric.transport.TransportMessage;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import com.google.common.base.Predicate;
 
@@ -15,22 +14,10 @@ final class ClusterMembershipDataUtils {
   private ClusterMembershipDataUtils() {}
 
   /**
-   * In the incoming {@code transportMessage} filters {@link ClusterMembershipData} by excluding record with
+   * Creates new {@link ClusterMembershipData} based on given {@code data} with excluding record corresponding to given
    * {@code localEndpoint}.
    */
-  static Func1<TransportMessage, TransportMessage> filterData(final TransportEndpoint localEndpoint) {
-    return new Func1<TransportMessage, TransportMessage>() {
-      @Override
-      public TransportMessage call(TransportMessage transportMessage) {
-        Message message = transportMessage.message();
-        ClusterMembershipData filteredData = filterData(localEndpoint, (ClusterMembershipData) message.data());
-        Message filteredMessage = new Message(filteredData, message.headers());
-        return new TransportMessage(filteredMessage, transportMessage.endpoint());
-      }
-    };
-  }
-
-  private static ClusterMembershipData filterData(final TransportEndpoint localEndpoint, ClusterMembershipData data) {
+  public static ClusterMembershipData filterData(final TransportEndpoint localEndpoint, ClusterMembershipData data) {
     return new ClusterMembershipData(filter(data.getMembership(), new Predicate<ClusterMember>() {
       @Override
       public boolean apply(ClusterMember input) {
@@ -47,7 +34,8 @@ final class ClusterMembershipDataUtils {
     return new Func1<Message, ClusterMembershipData>() {
       @Override
       public ClusterMembershipData call(Message gossip) {
-        return filterData(localEndpoint, (ClusterMembershipData) gossip.data());
+        ClusterMembershipData data = gossip.data();
+        return filterData(localEndpoint, data);
       }
     };
   }
@@ -55,11 +43,11 @@ final class ClusterMembershipDataUtils {
   /**
    * Filter function. Checking cluster identifier. See {@link ClusterMembershipData#syncGroup}.
    */
-  static Func1<TransportMessage, Boolean> syncGroupFilter(final String syncGroup) {
-    return new Func1<TransportMessage, Boolean>() {
+  static Func1<Message, Boolean> syncGroupFilter(final String syncGroup) {
+    return new Func1<Message, Boolean>() {
       @Override
-      public Boolean call(TransportMessage transportMessage) {
-        ClusterMembershipData data = (ClusterMembershipData) transportMessage.message().data();
+      public Boolean call(Message message) {
+        ClusterMembershipData data = message.data();
         return syncGroup.equals(data.getSyncGroup());
       }
     };

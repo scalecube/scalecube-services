@@ -3,7 +3,7 @@ package io.servicefabric.examples.gossip;
 import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.examples.Greetings;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 /**
  * Basic example for member gossiping between cluster members to run the example Start ClusterNodeA and cluster

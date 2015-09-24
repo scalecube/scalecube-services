@@ -178,7 +178,7 @@ public class ClusterMembershipBuilder {
   private void assertStatus(final ClusterMemberStatus s, TransportEndpoint[] members) {
     Predicate<ClusterMember> predicate = new Predicate<ClusterMember>() {
       @Override
-      public boolean apply(@Nullable ClusterMember input) {
+      public boolean apply(ClusterMember input) {
         return input.status() == s;
       }
     };

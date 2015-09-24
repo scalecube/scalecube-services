@@ -1,6 +1,6 @@
 package io.servicefabric.cluster.gossip;
 
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import rx.Observable;
 

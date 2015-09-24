@@ -1,8 +1,5 @@
 package io.servicefabric.transport;
 
-import io.servicefabric.transport.protocol.Message;
-import io.servicefabric.transport.protocol.Protocol;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;

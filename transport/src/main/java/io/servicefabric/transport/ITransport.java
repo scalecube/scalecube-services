@@ -1,7 +1,5 @@
 package io.servicefabric.transport;
 
-import io.servicefabric.transport.protocol.Message;
-
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -16,6 +14,9 @@ import javax.annotation.Nullable;
  * messages and listen incoming messages.
  */
 public interface ITransport {
+
+  /** Returns {@link TransportEndpoint} corresponding to this instance of transport. */
+  TransportEndpoint localEndpoint();
 
   /**
    * Starts transport on the given endpoint so it is started to accept connection and can connect to other endpoint.
@@ -100,6 +101,6 @@ public interface ITransport {
    * @return Observable which emit messages from remote endpoint or complete event when transport is closed
    */
   @Nonnull
-  Observable<TransportMessage> listen();
+  Observable<Message> listen();
 
 }

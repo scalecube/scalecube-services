@@ -4,7 +4,7 @@ import io.servicefabric.transport.NetworkEmulatorSettings;
 import io.servicefabric.transport.Transport;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportSettings;
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;

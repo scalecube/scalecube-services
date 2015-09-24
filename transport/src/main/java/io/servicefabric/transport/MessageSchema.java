@@ -1,9 +1,8 @@
-package io.servicefabric.transport.protocol;
+package io.servicefabric.transport;
 
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.servicefabric.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
-import io.servicefabric.transport.TransportHeaders;
 import io.servicefabric.transport.utils.RecyclableLinkedBuffer;
 import io.servicefabric.transport.utils.memoization.Computable;
 import io.servicefabric.transport.utils.memoization.Memoizer;

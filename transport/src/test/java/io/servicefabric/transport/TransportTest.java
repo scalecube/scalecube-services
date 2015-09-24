@@ -9,7 +9,6 @@ import static org.junit.Assert.fail;
 
 import io.netty.channel.ConnectTimeoutException;
 import io.servicefabric.testlib.BaseTest;
-import io.servicefabric.transport.protocol.Message;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -160,28 +159,27 @@ public class TransportTest extends BaseTest {
     client = createTransport(clientEndpoint);
     server = createTransport(serverEndpoint);
 
-    server.listen().subscribe(new Action1<TransportMessage>() {
+    server.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        TransportEndpoint endpoint = transportMessage.endpoint();
+      public void call(Message message) {
+        TransportEndpoint endpoint = message.sender();
         assertEquals("Expected clientEndpoint", clientEndpoint, endpoint);
         send(server, endpoint, new Message(null, TransportHeaders.QUALIFIER, "hi client"));
       }
     });
 
     // final ValueLatch<Message> latch = new ValueLatch<>();
-    final SettableFuture<TransportMessage> transportMessageFuture = SettableFuture.create();
-    client.listen().subscribe(new Action1<TransportMessage>() {
+    final SettableFuture<Message> messageFuture = SettableFuture.create();
+    client.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        transportMessageFuture.set(transportMessage);
+      public void call(Message message) {
+        messageFuture.set(message);
       }
     });
 
     send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "hello server"));
 
-    TransportMessage transportMessage = transportMessageFuture.get(3, TimeUnit.SECONDS);
-    Message result = transportMessage.message();
+    Message result = messageFuture.get(3, TimeUnit.SECONDS);
     assertNotNull("No response from serverEndpoint", result);
     assertEquals("hi client", result.header(TransportHeaders.QUALIFIER));
   }
@@ -200,10 +198,10 @@ public class TransportTest extends BaseTest {
 
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(total);
-      server.listen().subscribe(new Action1<TransportMessage>() {
+      server.listen().subscribe(new Action1<Message>() {
         @Override
-        public void call(TransportMessage transportMessage) {
-          received.add(transportMessage.message());
+        public void call(Message message) {
+          received.add(message);
           latch.countDown();
         }
       });
@@ -246,10 +244,10 @@ public class TransportTest extends BaseTest {
 
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(4 * total);
-      server.listen().subscribe(new Action1<TransportMessage>() {
+      server.listen().subscribe(new Action1<Message>() {
         @Override
-        public void call(TransportMessage transportMessage) {
-          received.add(transportMessage.message());
+        public void call(Message message) {
+          received.add(message);
           latch.countDown();
         }
       });
@@ -297,10 +295,10 @@ public class TransportTest extends BaseTest {
     client.<TransportPipelineFactory>getPipelineFactory().setNetworkSettings(serverEndpoint, lostPercent, mean);
 
     final List<Message> serverMessageList = new ArrayList<>();
-    server.listen().subscribe(new Action1<TransportMessage>() {
+    server.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        serverMessageList.add(transportMessage.message());
+      public void call(Message message) {
+        serverMessageList.add(message);
       }
     });
 
@@ -324,20 +322,20 @@ public class TransportTest extends BaseTest {
     server = createTransport(serverEndpoint);
     client = createTransport(clientEndpoint);
 
-    server.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+    server.listen().buffer(2).subscribe(new Action1<List<Message>>() {
       @Override
-      public void call(List<TransportMessage> messages) {
-        for (TransportMessage message : messages) {
-          Message echo = new Message("echo/" + message.message().header(TransportHeaders.QUALIFIER));
-          server.send(message.endpoint(), echo, null);
+      public void call(List<Message> messages) {
+        for (Message message : messages) {
+          Message echo = new Message("echo/" + message.header(TransportHeaders.QUALIFIER));
+          server.send(message.sender(), echo, null);
         }
       }
     });
 
-    final SettableFuture<List<TransportMessage>> targetFuture = SettableFuture.create();
-    client.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+    final SettableFuture<List<Message>> targetFuture = SettableFuture.create();
+    client.listen().buffer(2).subscribe(new Action1<List<Message>>() {
       @Override
-      public void call(List<TransportMessage> messages) {
+      public void call(List<Message> messages) {
         targetFuture.set(messages);
       }
     });
@@ -345,7 +343,7 @@ public class TransportTest extends BaseTest {
     client.send(serverEndpoint, new Message("q1"), null);
     client.send(serverEndpoint, new Message("q2"), null);
 
-    List<TransportMessage> target = targetFuture.get(1, TimeUnit.SECONDS);
+    List<Message> target = targetFuture.get(1, TimeUnit.SECONDS);
     assertNotNull(target);
     assertEquals(2, target.size());
   }
@@ -358,21 +356,20 @@ public class TransportTest extends BaseTest {
     server = createTransport(serverEndpoint);
     client = createTransport(clientEndpoint);
 
-
-    server.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+    server.listen().buffer(2).subscribe(new Action1<List<Message>>() {
       @Override
-      public void call(List<TransportMessage> messages) {
-        for (TransportMessage message : messages) {
-          Message echo = new Message("echo/" + message.message().header(TransportHeaders.QUALIFIER));
-          server.send(message.endpoint(), echo, null);
+      public void call(List<Message> messages) {
+        for (Message message : messages) {
+          Message echo = new Message("echo/" + message.header(TransportHeaders.QUALIFIER));
+          server.send(message.sender(), echo, null);
         }
       }
     });
 
-    final SettableFuture<List<TransportMessage>> targetFuture = SettableFuture.create();
-    client.listen().buffer(2).subscribe(new Action1<List<TransportMessage>>() {
+    final SettableFuture<List<Message>> targetFuture = SettableFuture.create();
+    client.listen().buffer(2).subscribe(new Action1<List<Message>>() {
       @Override
-      public void call(List<TransportMessage> messages) {
+      public void call(List<Message> messages) {
         targetFuture.set(messages);
       }
     });
@@ -380,7 +377,7 @@ public class TransportTest extends BaseTest {
     client.send(serverEndpoint, new Message("q1"), null);
     client.send(serverEndpoint, new Message("q2"), null);
 
-    List<TransportMessage> target = targetFuture.get(1, TimeUnit.SECONDS);
+    List<Message> target = targetFuture.get(1, TimeUnit.SECONDS);
     assertNotNull(target);
     assertEquals(2, target.size());
   }
@@ -396,7 +393,7 @@ public class TransportTest extends BaseTest {
     final SettableFuture<Boolean> completeLatch = SettableFuture.create();
     final SettableFuture<Message> messageLatch = SettableFuture.create();
 
-    server.listen().subscribe(new Subscriber<TransportMessage>() {
+    server.listen().subscribe(new Subscriber<Message>() {
       @Override
       public void onCompleted() {
         completeLatch.set(true);
@@ -406,8 +403,8 @@ public class TransportTest extends BaseTest {
       public void onError(Throwable e) {}
 
       @Override
-      public void onNext(TransportMessage transportMessage) {
-        messageLatch.set(transportMessage.message());
+      public void onNext(Message message) {
+        messageLatch.set(message);
       }
     });
 
@@ -432,16 +429,16 @@ public class TransportTest extends BaseTest {
     server = createTransport(serverEndpoint);
     client = createTransport(clientEndpoint);
 
-    server.listen().subscribe(new Action1<TransportMessage>() {
+    server.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        String qualifier = (String) transportMessage.message().data();
+      public void call(Message message) {
+        String qualifier = message.data();
         if (qualifier.startsWith("throw")) {
-          throw new RuntimeException("" + transportMessage);
+          throw new RuntimeException("" + message);
         }
         if (qualifier.startsWith("q")) {
-          Message echo = new Message("echo/" + transportMessage.message().header(TransportHeaders.QUALIFIER));
-          server.send(transportMessage.endpoint(), echo);
+          Message echo = new Message("echo/" + message.header(TransportHeaders.QUALIFIER));
+          server.send(message.sender(), echo);
         }
       }
     }, new Action1<Throwable>() {
@@ -452,34 +449,34 @@ public class TransportTest extends BaseTest {
     });
 
     // send "throw" and raise exception on server subscriber
-    final SettableFuture<TransportMessage> transportMessageFuture0 = SettableFuture.create();
-    client.listen().subscribe(new Action1<TransportMessage>() {
+    final SettableFuture<Message> messageFuture0 = SettableFuture.create();
+    client.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        transportMessageFuture0.set(transportMessage);
+      public void call(Message message) {
+        messageFuture0.set(message);
       }
     });
     client.send(serverEndpoint, new Message("throw"), null);
-    TransportMessage transportMessage0 = null;
+    Message message0 = null;
     try {
-      transportMessage0 = transportMessageFuture0.get(1, TimeUnit.SECONDS);
+      message0 = messageFuture0.get(1, TimeUnit.SECONDS);
     } catch (TimeoutException e) {
       // ignore since expected behavior
     }
-    assertNull(transportMessage0);
+    assertNull(message0);
 
     // send normal message and check whether server subscriber is broken (no response)
-    final SettableFuture<TransportMessage> transportMessageFuture1 = SettableFuture.create();
-    client.listen().subscribe(new Action1<TransportMessage>() {
+    final SettableFuture<Message> messageFuture1 = SettableFuture.create();
+    client.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        transportMessageFuture1.set(transportMessage);
+      public void call(Message message) {
+        messageFuture1.set(message);
       }
     });
     client.send(serverEndpoint, new Message("q"), null);
-    TransportMessage transportMessage1 = null;
+    Message transportMessage1 = null;
     try {
-      transportMessage1 = transportMessageFuture1.get(1, TimeUnit.SECONDS);
+      transportMessage1 = messageFuture1.get(1, TimeUnit.SECONDS);
     } catch (TimeoutException e) {
       // ignore since expected behavior
     }
@@ -494,18 +491,18 @@ public class TransportTest extends BaseTest {
     client = createTransport(clientEndpoint);
     server = createTransport(serverEndpoint);
 
-    server.listen().subscribe(new Action1<TransportMessage>() {
+    server.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        server.send(transportMessage.endpoint(), transportMessage.message());
+      public void call(Message message) {
+        server.send(message.sender(), message);
       }
     });
 
     final List<Message> resp = new ArrayList<>();
-    client.listen().subscribe(new Action1<TransportMessage>() {
+    client.listen().subscribe(new Action1<Message>() {
       @Override
-      public void call(TransportMessage transportMessage) {
-        resp.add(transportMessage.message());
+      public void call(Message message) {
+        resp.add(message);
       }
     });
 
@@ -538,6 +535,7 @@ public class TransportTest extends BaseTest {
       send1.get(1, TimeUnit.SECONDS);
     } catch (ExecutionException e) {
       TransportMessageException cause = (TransportMessageException) e.getCause();
+      assertNotNull(cause);
     }
   }
 

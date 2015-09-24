@@ -2,7 +2,7 @@ package io.servicefabric.cluster.gossip;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.servicefabric.transport.protocol.Message;
+import io.servicefabric.transport.Message;
 
 import io.protostuff.Tag;
 

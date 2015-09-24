@@ -6,15 +6,18 @@ package io.servicefabric.transport;
 public final class TransportNotFoundException extends TransportException {
   private static final long serialVersionUID = 1L;
 
+  public TransportNotFoundException() {
+  }
+
   public TransportNotFoundException(String message) {
-    super(null, message);
+    super(message);
   }
 
   public TransportNotFoundException(String message, Throwable cause) {
-    super(null, message, cause);
+    super(message, cause);
   }
 
   public TransportNotFoundException(Throwable cause) {
-    super(null, cause);
+    super(cause);
   }
 }
