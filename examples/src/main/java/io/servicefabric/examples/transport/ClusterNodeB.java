@@ -5,9 +5,8 @@ import io.servicefabric.cluster.ClusterMember;
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.examples.Greetings;
 import io.servicefabric.transport.Message;
-import rx.functions.Action1;
 
-import com.google.common.util.concurrent.SettableFuture;
+import rx.functions.Action1;
 
 import java.util.List;
 
@@ -20,6 +19,9 @@ import java.util.List;
  */
 public class ClusterNodeB {
 
+  /**
+   * Main method.
+   */
   public static void main(String[] args) throws InterruptedException {
     // Start cluster node that listen on port 3001 and point to node A as seed node
     ICluster clusterB = Cluster.newInstance(3001, "localhost:3000").join();

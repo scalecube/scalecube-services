@@ -1,12 +1,12 @@
 package io.servicefabric.cluster.fdetector;
 
-import javax.annotation.concurrent.Immutable;
-
 import static io.servicefabric.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
 
-import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.cluster.ClusterMemberStatus;
+import io.servicefabric.transport.TransportEndpoint;
+
+import javax.annotation.concurrent.Immutable;
 
 /** Tuple class. Contains transport endpoint and its status. */
 @Immutable

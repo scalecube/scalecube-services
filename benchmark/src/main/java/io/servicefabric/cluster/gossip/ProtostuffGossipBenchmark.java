@@ -3,12 +3,12 @@ package io.servicefabric.cluster.gossip;
 import io.servicefabric.transport.Message;
 import io.servicefabric.transport.MessageDeserializer;
 import io.servicefabric.transport.MessageSerializer;
+import io.servicefabric.transport.ProtostuffProtocol;
 
 import com.google.common.collect.ImmutableList;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.servicefabric.transport.ProtostuffProtocol;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -37,10 +37,11 @@ public class ProtostuffGossipBenchmark {
   static final String PAYLOAD = "Tl4KqQXZ5aMiIw29";
   static final String PAYLOAD_X32 =
       "tI8Ppp8ShAp7IEDSFV1IgZCDKH2WyLI0NeSNc9oQOhQZXcHOzktuQBQmT5EGNitohtS1LShvdHgtAtWRz"
-          + "e03rXCPM1dhAGOgPjIFBFA2fQGTOlh8icxKVx8jwyFEqqehmIubcvfEFYmsb1QZgTgu2wdB4XxpTsspxUq4pc0O124AsU61W9tw7LZWlhij"
-          + "1EA44sPrfjgW9kIZCEf8HL2zOXMUyNqRdzXD2VlxerrW7X8jcbYSCn5jkkXsc0E5Hf7P5DcuEcASrGH3ZhaGv94pnSneX9BJrRIQxtmAdPP"
-          + "UXzVXrKw0mYcoB6Ye8mWuvVUFOO1Io6NJk0q2HHKST0FQVQo6mVEYKm8geTI6WphB4uRiQ6ksk6zOrJXmwQ6ssJIPYRRF2Mx9EDR9OMhYw6"
-          + "hoijdfgd23EXz8WkTkYz42kQkK99rNxyIXVMVyRPzLHBclYaYKlcmoN8f7hq6aiv3VxlPPchZ6xWmjOlGJY9P7nINtChd2spMUkhAeznajS4VW";
+          + "e03rXCPM1dhAGOgPjIFBFA2fQGTOlh8icxKVx8jwyFEqqehmIubcvfEFYmsb1QZgTgu2wdB4XxpTsspxUq4pc0O124AsU61W9tw7L"
+          + "ZWlhij1EA44sPrfjgW9kIZCEf8HL2zOXMUyNqRdzXD2VlxerrW7X8jcbYSCn5jkkXsc0E5Hf7P5DcuEcASrGH3ZhaGv94pnSneX9BJ"
+          + "rRIQxtmAdPPUXzVXrKw0mYcoB6Ye8mWuvVUFOO1Io6NJk0q2HHKST0FQVQo6mVEYKm8geTI6WphB4uRiQ6ksk6zOrJXmwQ6ssJIPYR"
+          + "RF2Mx9EDR9OMhYw6hoijdfgd23EXz8WkTkYz42kQkK99rNxyIXVMVyRPzLHBclYaYKlcmoN8f7hq6aiv3VxlPPchZ6xWmjOlGJY9P7"
+          + "nINtChd2spMUkhAeznajS4VW";
 
   MessageSerializer ser;
   MessageDeserializer deser;
@@ -53,6 +54,9 @@ public class ProtostuffGossipBenchmark {
   ByteBuf gossipReqx32Ser;
   ByteBuf bbGossipReqx32;
 
+  /**
+   * Setup benchmark.
+   */
   @Setup
   public void setup() {
     ProtostuffProtocol protocol = new ProtostuffProtocol();

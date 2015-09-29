@@ -75,6 +75,20 @@ public final class Transport implements ITransportSpi, ITransport {
   private PipelineFactory pipelineFactory;
   private ServerChannel serverChannel;
 
+  private Transport(TransportEndpoint localEndpoint, TransportSettings settings, EventLoopGroup eventLoop,
+      EventExecutorGroup eventExecutor) {
+    checkArgument(localEndpoint != null);
+    checkArgument(settings != null);
+    checkArgument(eventLoop != null);
+    checkArgument(eventExecutor != null);
+    this.localEndpoint = localEndpoint;
+    this.settings = settings;
+    this.eventLoop = eventLoop;
+    this.eventExecutor = eventExecutor;
+    this.pipelineFactory =
+        new TransportPipelineFactory(this, new ProtostuffProtocol(), settings.isUseNetworkEmulator());
+  }
+
   public static Transport newInstance(TransportEndpoint localEndpoint) {
     return newInstance(localEndpoint, TransportSettings.DEFAULT);
   }
@@ -111,20 +125,6 @@ public final class Transport implements ITransportSpi, ITransport {
             LOGGER.error("Unhandled exception: {}", ex, ex);
           }
         }).setDaemon(true).build();
-  }
-
-  private Transport(TransportEndpoint localEndpoint, TransportSettings settings, EventLoopGroup eventLoop,
-      EventExecutorGroup eventExecutor) {
-    checkArgument(localEndpoint != null);
-    checkArgument(settings != null);
-    checkArgument(eventLoop != null);
-    checkArgument(eventExecutor != null);
-    this.localEndpoint = localEndpoint;
-    this.settings = settings;
-    this.eventLoop = eventLoop;
-    this.eventExecutor = eventExecutor;
-    this.pipelineFactory =
-        new TransportPipelineFactory(this, new ProtostuffProtocol(), settings.isUseNetworkEmulator());
   }
 
   @Override
@@ -193,6 +193,25 @@ public final class Transport implements ITransportSpi, ITransport {
     checkArgument(address != null);
     final TransportChannel transportChannel = getOrConnect(address);
     return Futures.transform(transportChannel.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
+  }
+
+  private void connect(final Channel channel, final TransportAddress address, final TransportChannel transport) {
+    channel.eventLoop().execute(new Runnable() {
+      @Override
+      public void run() {
+        SocketAddress socketAddress = new InetSocketAddress(address.hostAddress(), address.port());
+        ChannelPromise promise = channel.newPromise();
+        channel.connect(socketAddress, promise);
+        promise.addListener(wrap(new ChannelFutureListener() {
+          @Override
+          public void operationComplete(ChannelFuture future) {
+            if (!future.isSuccess()) {
+              transport.close(future.cause());
+            }
+          }
+        }));
+      }
+    });
   }
 
   @Override
@@ -345,22 +364,5 @@ public final class Transport implements ITransportSpi, ITransport {
     });
   }
 
-  private void connect(final Channel channel, final TransportAddress address, final TransportChannel transport) {
-    channel.eventLoop().execute(new Runnable() {
-      @Override
-      public void run() {
-        SocketAddress socketAddress = new InetSocketAddress(address.hostAddress(), address.port());
-        ChannelPromise promise = channel.newPromise();
-        channel.connect(socketAddress, promise);
-        promise.addListener(wrap(new ChannelFutureListener() {
-          @Override
-          public void operationComplete(ChannelFuture future) {
-            if (!future.isSuccess()) {
-              transport.close(future.cause());
-            }
-          }
-        }));
-      }
-    });
-  }
+
 }

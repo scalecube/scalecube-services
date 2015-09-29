@@ -17,6 +17,9 @@ import rx.functions.Action1;
  */
 public class ClusterNodeA {
 
+  /**
+   * Main method.
+   */
   public static void main(String[] args) {
     // Start cluster node that listen on port 3000
     final ICluster clusterA = Cluster.newInstance(3000).join();

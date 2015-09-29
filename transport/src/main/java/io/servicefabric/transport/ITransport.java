@@ -15,7 +15,9 @@ import javax.annotation.Nullable;
  */
 public interface ITransport {
 
-  /** Returns {@link TransportEndpoint} corresponding to this instance of transport. */
+  /**
+   * Returns {@link TransportEndpoint} corresponding to this instance of transport.
+   */
   TransportEndpoint localEndpoint();
 
   /**
@@ -92,12 +94,12 @@ public interface ITransport {
    * Returns stream of messages received from any remote endpoint regardless direction of connection. For each observers
    * subscribed to the returned observable:
    * <ul>
-   * <li>{@link rx.Observer#onNext(Object)} will be invoked when some message arrived to current endpoint</li>
-   * <li>{@link rx.Observer#onCompleted()} will be invoked when there is no possibility that server will receive new
+   * <li>{@code rx.Observer#onNext(Object)} will be invoked when some message arrived to current endpoint</li>
+   * <li>{@code rx.Observer#onCompleted()} will be invoked when there is no possibility that server will receive new
    * message observable for already closed transport</li>
-   * <li>{@link rx.Observer#onError(Throwable)} will not be invoked</li>
+   * <li>{@code rx.Observer#onError(Throwable)} will not be invoked</li>
    * </ul>
-   * 
+   *
    * @return Observable which emit messages from remote endpoint or complete event when transport is closed
    */
   @Nonnull

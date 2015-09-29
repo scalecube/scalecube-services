@@ -2,9 +2,6 @@ package io.servicefabric.transport;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.servicefabric.transport.Message;
-import io.servicefabric.transport.ProtostuffMessageDeserializer;
-import io.servicefabric.transport.ProtostuffMessageSerializer;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -44,6 +41,9 @@ public class ProtostuffMessageBenchmark {
   ByteBuf msgx16Ser;
   ByteBuf bbMsgx16;
 
+  /**
+   * Setup benchmark.
+   */
   @Setup
   public void setup() {
     ser = new ProtostuffMessageSerializer();

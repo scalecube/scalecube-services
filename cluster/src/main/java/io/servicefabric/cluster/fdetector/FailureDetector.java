@@ -231,8 +231,8 @@ public final class FailureDetector implements IFailureDetector {
 
     final String period = "" + periodNbr.incrementAndGet();
     FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
-    Message message =
-        new Message(pingData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID, period/* correlationId */);
+    Message message = new Message(pingData, TransportHeaders.QUALIFIER, PING,
+                                  TransportHeaders.CORRELATION_ID, period/* correlationId */);
     LOGGER.trace("Send Ping from {} to {}", localEndpoint, pingMember);
 
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
@@ -288,8 +288,8 @@ public final class FailureDetector implements IFailureDetector {
         }));
 
     FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, targetMember);
-    Message message =
-        new Message(pingReqData, TransportHeaders.QUALIFIER, PING_REQ, TransportHeaders.CORRELATION_ID, period/* correlationId */);
+    Message message = new Message(pingReqData, TransportHeaders.QUALIFIER, PING_REQ,
+                                  TransportHeaders.CORRELATION_ID, period/* correlationId */);
     for (TransportEndpoint randomMember : randomMembers) {
       LOGGER.trace("Send PingReq from {} to {}", localEndpoint, randomMember);
       send(randomMember, message);

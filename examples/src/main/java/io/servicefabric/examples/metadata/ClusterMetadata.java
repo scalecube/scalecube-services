@@ -32,6 +32,9 @@ public class ClusterMetadata {
     }
   };
 
+  /**
+   * Main method.
+   */
   public static void main(String[] args) {
 
     ICluster seedCluster = Cluster.newInstance(3000).join();

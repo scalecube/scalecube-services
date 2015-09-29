@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
 
 /**
+ * Main ICluster implementation.
  * @author Anton Kharenko
  */
 public final class Cluster implements ICluster {
