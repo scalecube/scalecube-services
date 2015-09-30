@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.servicefabric</groupId>
         <artifactId>servicefabric-parent</artifactId>
-        <version>0.0.4</version>
+        <version>0.0.5-SNAPSHOT</version>
     </parent>
     <artifactId>servicefabric-transport</artifactId>
     <name>ServiceFabric/Transport</name>

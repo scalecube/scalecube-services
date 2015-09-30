@@ -3,7 +3,7 @@
     <parent>
         <groupId>io.servicefabric</groupId>
         <artifactId>servicefabric-parent</artifactId>
-        <version>0.0.4</version>
+        <version>0.0.5-SNAPSHOT</version>
     </parent>
     <artifactId>servicefabric-examples</artifactId>
     <name>ServiceFabric/Examples</name>
