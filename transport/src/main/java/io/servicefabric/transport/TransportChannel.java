@@ -45,7 +45,6 @@ final class TransportChannel implements ITransportChannel {
   private final Channel channel;
   private final AtomicReference<Status> status;
   private final Func1<TransportChannel, Void> closeCallback;
-
   private final AtomicReference<Throwable> cause = new AtomicReference<>();
   private final SettableFuture<TransportHandshakeData> handshakeFuture = SettableFuture.create();
 
@@ -72,6 +71,7 @@ final class TransportChannel implements ITransportChannel {
 
   /**
    * Resolve TransportChannel by given Netty channel. It doesn't create new instance of TransportChannel.
+   * 
    * @throws TransportBrokenException if given Netty channel not associated with any transport channel.
    */
   public static TransportChannel from(Channel channel) {
@@ -184,7 +184,9 @@ final class TransportChannel implements ITransportChannel {
             return input.charAt(0);
           }
         }));
-    return "TransportChannel{" + "status=" + status + ", cause=[" + dottedPackageName + "." + clazz.getSimpleName() + "]"
+    return "TransportChannel{"
+        + "status=" + status
+        + ", cause=[" + dottedPackageName + "." + clazz.getSimpleName() + "]"
         + ", channel=" + channel + '}';
   }
 

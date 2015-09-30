@@ -1,14 +1,10 @@
 package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
-
-import io.servicefabric.transport.TransportEndpoint;
 
 /**
  * The Class Message introduces generic protocol used for point to point communication by transport.
@@ -61,7 +57,8 @@ public final class Message {
   }
 
   /**
-   * Sets data for deserialization purpose
+   * Sets data for deserialization purpose.
+   * 
    * @param data data to set
    */
   void setData(Object data) {
@@ -69,7 +66,8 @@ public final class Message {
   }
 
   /**
-   * Sets headers for deserialization purpose
+   * Sets headers for deserialization purpose.
+   * 
    * @param headers headers to set
    */
   void setHeaders(Map<String, String> headers) {
@@ -80,6 +78,7 @@ public final class Message {
   /**
    * Sets sender and used by transport pipeline. Actual sender not passed via network in the message, but resolved on
    * the receiveing side.
+   * 
    * @param sender endpoint from where message was received
    */
   void setSender(TransportEndpoint sender) {
@@ -119,9 +118,9 @@ public final class Message {
 
   @Override
   public String toString() {
-    return "Message{" +
-        "headers=" + headers +
-        ", data=" + (data == null ? "null" : data.getClass().getSimpleName()) +
-        '}';
+    return "Message{"
+        + "headers=" + headers
+        + ", data=" + (data == null ? "null" : data.getClass().getSimpleName())
+        + '}';
   }
 }

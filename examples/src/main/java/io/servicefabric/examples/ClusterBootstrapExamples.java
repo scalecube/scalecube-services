@@ -8,10 +8,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Example how to create {@link io.servicefabric.cluster.ICluster} instance and use it.
  * @author Anton Kharenko
  */
 public class ClusterBootstrapExamples {
 
+  /**
+   * Main method.
+   */
   public static void main(String[] args) throws InterruptedException {
     // Start seed members
     ICluster cluster1 = Cluster.newInstance().join();
