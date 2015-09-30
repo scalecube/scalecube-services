@@ -3,6 +3,7 @@ package io.servicefabric.transport;
 import io.protostuff.runtime.RuntimeSchema;
 
 /**
+ * Protostuff implementation for protocol.
  * @author Anton Kharenko
  */
 public class ProtostuffProtocol implements Protocol {
@@ -11,6 +12,9 @@ public class ProtostuffProtocol implements Protocol {
   private final ProtostuffMessageDeserializer messageDeserializer;
   private final ProtostuffMessageSerializer messageSerializer;
 
+  /**
+   * Creates new protostuff protocol, registers protostuff runtime schema for {@link io.servicefabric.transport.Message}
+   */
   public ProtostuffProtocol() {
     frameHandlerFactory = new ProtostuffFrameHandlerFactory();
     messageDeserializer = new ProtostuffMessageDeserializer();

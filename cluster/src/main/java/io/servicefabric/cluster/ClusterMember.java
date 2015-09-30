@@ -1,6 +1,6 @@
 package io.servicefabric.cluster;
 
-import static com.google.common.base.Preconditions.*;
+import static com.google.common.base.Preconditions.checkArgument;
 import static io.servicefabric.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.servicefabric.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;

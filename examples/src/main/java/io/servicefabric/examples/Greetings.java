@@ -1,7 +1,9 @@
 package io.servicefabric.examples;
 
-import io.protostuff.Tag;
 import io.servicefabric.transport.Message;
+
+import io.protostuff.Tag;
+
 import rx.functions.Func1;
 
 public final class Greetings {

@@ -30,10 +30,8 @@ final class TransportHandshakeData {
 
   @Tag(1)
   private final TransportEndpoint endpoint;
-
   @Tag(2)
   private final Status status;
-
   @Tag(3)
   private final String explain;
 
@@ -88,10 +86,11 @@ final class TransportHandshakeData {
 
   @Override
   public String toString() {
-    return "TransportHandshakeData{" +
-        "endpoint=" + endpoint +
-        ", status=" + status +
-        ", explain='" + explain + '\'' +
-        '}';
+    return "TransportHandshakeData{"
+        + "endpoint=" + endpoint
+        + ", status=" + status
+        + ", explain='" + explain + '\''
+        + '}';
   }
+
 }

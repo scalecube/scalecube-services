@@ -107,8 +107,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
       }
       String correlationId = message.header(TransportHeaders.CORRELATION_ID);
       ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
-      Message syncAckMessage =
-          new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK, TransportHeaders.CORRELATION_ID, correlationId);
+      Message syncAckMessage = new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK,
+                                           TransportHeaders.CORRELATION_ID, correlationId);
       transport.send(endpoint, syncAckMessage);
     }
   });
@@ -179,6 +179,11 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     this.seedMembers = new ArrayList<>(set);
   }
 
+  /**
+   * Sets seed members from the formatted string.
+   * Members are separated by comma and have next format {@code host:port}.
+   * If member format is incorrect it will be skipped.
+   */
   public void setSeedMembers(String seedMembers) {
     List<TransportAddress> memberList = new ArrayList<>();
     for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
@@ -348,8 +353,8 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
         }
 
         @Override
-        public void onFailure(@Nonnull Throwable t) {
-          LOGGER.error("Failed to send sync", t);
+        public void onFailure(@Nonnull Throwable throwable) {
+          LOGGER.error("Failed to send sync", throwable);
         }
       });
     }

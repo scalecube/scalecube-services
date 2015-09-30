@@ -6,6 +6,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * Cluster configuration encapsulate settings needed cluster to create and successfully join.
+ * @see io.servicefabric.cluster.ClusterConfiguration.ClusterMembershipSettings
+ * @see io.servicefabric.cluster.ClusterConfiguration.FailureDetectorSettings
+ * @see io.servicefabric.cluster.ClusterConfiguration.GossipProtocolSettings
  * @author Anton Kharenko
  */
 public class ClusterConfiguration {
@@ -104,16 +108,16 @@ public class ClusterConfiguration {
 
   @Override
   public String toString() {
-    return "ClusterConfiguration{" +
-        "memberId='" + memberId + '\'' +
-        ", seedMembers='" + seedMembers + '\'' +
-        ", port=" + port +
-        ", metadata=" + metadata +
-        ", transportSettings=" + transportSettings +
-        ", clusterMembershipSettings=" + clusterMembershipSettings +
-        ", failureDetectorSettings=" + failureDetectorSettings +
-        ", gossipProtocolSettings=" + gossipProtocolSettings +
-        '}';
+    return "ClusterConfiguration{"
+        + "memberId='" + memberId + '\''
+        + ", seedMembers='" + seedMembers + '\''
+        + ", port=" + port
+        + ", metadata=" + metadata
+        + ", transportSettings=" + transportSettings
+        + ", clusterMembershipSettings=" + clusterMembershipSettings
+        + ", failureDetectorSettings=" + failureDetectorSettings
+        + ", gossipProtocolSettings=" + gossipProtocolSettings
+        + '}';
   }
 
   public static class ClusterMembershipSettings {
@@ -132,6 +136,14 @@ public class ClusterConfiguration {
 
     public ClusterMembershipSettings() {}
 
+    /**
+     * Creates new cluster membership settings
+     * @param syncTime time interval in milliseconds between two sync messages.
+     * @param syncTimeout waiting time in milliseconds for the response to sync message.
+     * @param maxSuspectTime  waiting time interval in milliseconds after suspected event when node will not be removed
+     * @param maxShutdownTime  waiting time interval in milliseconds after shutdown event when node will not be removed
+     * @param syncGroup cluster's sync group. Members with different groups will form different clusters.
+     */
     public ClusterMembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
         String syncGroup) {
       this.syncTime = syncTime;

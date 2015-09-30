@@ -53,24 +53,4 @@ public class IpAddressResolver {
     return InetAddress.getLocalHost();
   }
 
-  public static NetworkInterface getIp4NetworkInterface() {
-    Enumeration<NetworkInterface> netInterfaces = null;
-    try {
-      netInterfaces = NetworkInterface.getNetworkInterfaces();
-    } catch (SocketException e) {
-      LOGGER.error("Socket error during resolving IP address", e);
-    }
-    while (netInterfaces.hasMoreElements()) {
-      NetworkInterface ni = netInterfaces.nextElement();
-      Enumeration<InetAddress> address = ni.getInetAddresses();
-      while (address.hasMoreElements()) {
-        InetAddress addr = address.nextElement();
-        LOGGER.debug("Found network interface: {}, {}", addr.getHostAddress(), addr.getHostName());
-        if (!addr.isLoopbackAddress() && addr.getAddress().length == 4) { // for IP4 addresses
-          return ni;
-        }
-      }
-    }
-    return null;
-  }
 }

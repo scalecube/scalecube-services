@@ -74,6 +74,10 @@ public final class TransportAddress {
     return new TransportAddress(scheme, hostAddress, port);
   }
 
+  /**
+   * Creates new {@code TransportAddress} from string {@code host:port}.
+   * @throws java.lang.IllegalArgumentException if parameter has incorrect format
+   */
   public static TransportAddress tcp(String hostnameAndPort) {
     List<String> addressAndPort = Splitter.on(':').splitToList(hostnameAndPort);
     int port;
@@ -116,12 +120,14 @@ public final class TransportAddress {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o)
+  public boolean equals(Object other) {
+    if (this == other) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }
+    if (other == null || getClass() != other.getClass()) {
       return false;
-    TransportAddress that = (TransportAddress) o;
+    }
+    TransportAddress that = (TransportAddress) other;
     return Objects.equals(port, that.port) && Objects.equals(scheme, that.scheme)
         && Objects.equals(hostAddress, that.hostAddress);
   }

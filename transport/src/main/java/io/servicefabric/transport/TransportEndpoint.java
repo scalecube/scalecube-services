@@ -23,6 +23,9 @@ public final class TransportEndpoint {
     this.address = address;
   }
 
+  /**
+   * Creates transport endpoint from uri string.
+   */
   public static TransportEndpoint from(String uri) {
     URI uri1 = URI.create(uri);
     TransportEndpoint target = new TransportEndpoint();
@@ -45,12 +48,16 @@ public final class TransportEndpoint {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
-    TransportEndpoint that = (TransportEndpoint) o;
-    return Objects.equals(id, that.id) &&
-        Objects.equals(address, that.address);
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other == null || getClass() != other.getClass()) {
+      return false;
+    }
+    TransportEndpoint that = (TransportEndpoint) other;
+    return Objects.equals(id, that.id)
+        && Objects.equals(address, that.address);
   }
 
   @Override

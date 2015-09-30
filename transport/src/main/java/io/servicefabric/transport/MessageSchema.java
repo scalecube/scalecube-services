@@ -27,6 +27,7 @@ import java.util.ListIterator;
 import java.util.Map;
 
 /**
+ * Protostuff schema for {@link io.servicefabric.transport.Message}.
  * @author Anton Kharenko
  */
 final class MessageSchema implements Schema<Message> {

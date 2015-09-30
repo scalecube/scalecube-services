@@ -31,7 +31,7 @@ interface ITransportChannel {
 
   /**
    * Close transport channel, disconnect all available connections which belong to this transport channel. <br/>
-   * After transport is closed it can't be opened again. New transport channel to the same endpoint can be created. <br/>
+   * After transport is closed it can't be opened again. New transport channel to the same endpoint can be created.<br/>
    * Close is async operation, if result of operation is not needed leave second parameter null, otherwise pass
    * {@link SettableFuture}.
    * 

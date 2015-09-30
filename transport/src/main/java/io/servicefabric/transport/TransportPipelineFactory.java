@@ -1,5 +1,7 @@
 package io.servicefabric.transport;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
@@ -12,8 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public final class TransportPipelineFactory implements PipelineFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransportPipelineFactory.class);
@@ -31,6 +31,9 @@ public final class TransportPipelineFactory implements PipelineFactory {
   private final NetworkEmulatorChannelHandler networkEmulatorHandler;
   private final MessageReceiverChannelHandler messageHandler;
 
+  /**
+   * Creates new TransportPipelineFactory with concrete transport and protocol.
+   */
   public TransportPipelineFactory(ITransportSpi transportSpi, Protocol protocol, boolean useNetworkEmulator) {
     checkArgument(transportSpi != null);
     checkArgument(protocol != null);

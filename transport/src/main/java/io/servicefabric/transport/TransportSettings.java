@@ -3,6 +3,8 @@ package io.servicefabric.transport;
 import javax.annotation.concurrent.Immutable;
 
 /**
+ * Encapsulate transport settings.
+ * 
  * @author Anton Kharenko
  */
 @Immutable
@@ -57,29 +59,28 @@ public final class TransportSettings {
 
   @Override
   public String toString() {
-    return "TransportSettings{" +
-        "connectTimeout=" + connectTimeout +
-        ", handshakeTimeout=" + handshakeTimeout +
-        ", sendHighWaterMark=" + sendHighWaterMark +
-        ", logLevel='" + logLevel + '\'' +
-        ", useNetworkEmulator=" + useNetworkEmulator +
-        '}';
+    return "TransportSettings{"
+        + "connectTimeout=" + connectTimeout
+        + ", handshakeTimeout=" + handshakeTimeout
+        + ", sendHighWaterMark=" + sendHighWaterMark
+        + ", logLevel='" + logLevel + '\''
+        + ", useNetworkEmulator=" + useNetworkEmulator
+        + '}';
   }
 
   public static final class Builder {
-    private int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
-    private int handshakeTimeout = DEFAULT_HANDSHAKE_TIMEOUT;
-    private int sendHighWaterMark = DEFAULT_SEND_HIGH_WATER_MARK;
+
     private String logLevel = DEFAULT_LOG_LEVEL;
     private boolean useNetworkEmulator = DEFAULT_USE_NETWORK_EMULATOR;
 
-    private Builder() {
-    }
+    private Builder() {}
 
     public Builder connectTimeout(int connectTimeout) {
       this.connectTimeout = connectTimeout;
       return this;
     }
+
+    private int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
 
     public Builder handshakeTimeout(int handshakeTimeout) {
       this.handshakeTimeout = handshakeTimeout;
@@ -91,6 +92,8 @@ public final class TransportSettings {
       return this;
     }
 
+    private int handshakeTimeout = DEFAULT_HANDSHAKE_TIMEOUT;
+
     public Builder setLogLevel(String logLevel) {
       this.logLevel = logLevel;
       return this;
@@ -100,6 +103,8 @@ public final class TransportSettings {
       this.useNetworkEmulator = useNetworkEmulator;
       return this;
     }
+
+    private int sendHighWaterMark = DEFAULT_SEND_HIGH_WATER_MARK;
 
     public TransportSettings build() {
       return new TransportSettings(this);

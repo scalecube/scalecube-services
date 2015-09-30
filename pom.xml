@@ -198,13 +198,17 @@
                 <version>2.16</version>
                 <executions>
                     <execution>
-                        <id>validate</id>
-                        <phase>validate</phase>
+                        <id>checkstyle</id>
+                        <phase>verify</phase>
                         <configuration>
                             <configLocation>checkstyle.xml</configLocation>
                             <encoding>UTF-8</encoding>
                             <consoleOutput>true</consoleOutput>
+                            <violationSeverity>warning</violationSeverity>
                             <failsOnError>true</failsOnError>
+                            <maxAllowedViolations>0</maxAllowedViolations>
+                            <suppressionsLocation>checkstyle-suppression.xml</suppressionsLocation>
+                            <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
                         </configuration>
                         <goals>
                             <goal>check</goal>
@@ -214,25 +218,7 @@
             </plugin>
         </plugins>
     </build>
-    <reporting>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.16</version>
-                <configuration>
-                    <configLocation>${project.build.directory}/checkstyle.xml</configLocation>
-                </configuration>
-                <reportSets>
-                    <reportSet>
-                        <reports>
-                            <report>checkstyle</report>
-                        </reports>
-                    </reportSet>
-                </reportSets>
-            </plugin>
-        </plugins>
-    </reporting>
+
 
     <profiles>
         <profile>
