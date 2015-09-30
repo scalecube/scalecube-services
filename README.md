@@ -17,22 +17,14 @@ carefully with the experiences earned over the years from the implementation of 
 As a result, Service Fabric I/O has succeeded to find a way to achieve ease of development, performance, stability, 
 and flexibility without a compromise.
 
-## Links
+The latest preview release of Transport and Cluster modules are available on Maven Central as
 
-* [Service Fabric - Overview](http://servicefabric.io/)
-* [Service Fabric - Cluster](http://servicefabric.io/Cluster.html)
-
-## Maven
-
-``` maven
+``` xml
 <dependency>
 	<groupId>io.servicefabric</groupId>
 	<artifactId>servicefabric-transport</artifactId>
 	<version>0.0.3</version>
 </dependency>
-```
-
-``` maven
 <dependency>
 	<groupId>io.servicefabric</groupId>
 	<artifactId>servicefabric-cluster</artifactId>
@@ -40,3 +32,10 @@ and flexibility without a compromise.
 </dependency>
 ```
 
+## Links
+
+* [Web Site](http://servicefabric.io/)
+
+## Bugs and Feedback
+
+For bugs, questions and discussions please use the [GitHub Issues](https://github.com/servicefabric/servicefabric/issues).
