@@ -9,7 +9,7 @@ roll-out on a per module basis at early stage of completion in order to get
 
 [![Build Status](https://travis-ci.org/servicefabric/servicefabric.svg?branch=master)](https://travis-ci.org/servicefabric/servicefabric)
 
-Service Fabric I/O is a microservices framework for a rapid development of a distributed, resilient, reactive 
+Service Fabric I/O is a microservices framework for the rapid development of distributed, resilient, reactive
 applications that scales. It allows a set of distributed microservices to be connected in a way that resemble a fabric 
 when viewed collectively. It greatly simplifies and streamlines asynchronous programming and provides a tool-set for 
 managing [microservices architecture](http://microservices.io/patterns/index.html). Service Fabric has been designed 
@@ -23,14 +23,89 @@ The latest preview release of Transport and Cluster modules are available on Mav
 <dependency>
 	<groupId>io.servicefabric</groupId>
 	<artifactId>servicefabric-transport</artifactId>
-	<version>0.0.3</version>
+	<version>0.0.4</version>
 </dependency>
 <dependency>
 	<groupId>io.servicefabric</groupId>
 	<artifactId>servicefabric-cluster</artifactId>
-	<version>0.0.3</version>
+	<version>0.0.4</version>
 </dependency>
 ```
+
+## Modules
+
+TBD: Description
+
+### Transport ([Code](https://github.com/servicefabric/servicefabric/blob/v0.0.4/transport/src/main/java/io/servicefabric/transport/ITransport.java))
+
+``` java
+public interface ITransport {
+  TransportEndpoint localEndpoint();
+  void start();
+  void stop();
+  void stop(SettableFuture<Void> promise);
+  ListenableFuture<TransportEndpoint> connect(TransportAddress address);
+  void disconnect(TransportEndpoint endpoint, SettableFuture<Void> promise);
+  void send(TransportEndpoint endpoint, Message message);
+  void send(TransportEndpoint endpoint, Message message, SettableFuture<Void> promise);
+  Observable<Message> listen();
+}
+```
+
+TBD: Description
+
+### Cluster ([Code](https://github.com/servicefabric/servicefabric/blob/v0.0.4/cluster/src/main/java/io/servicefabric/cluster/ICluster.java))
+
+``` java
+public interface ICluster {
+  void send(ClusterMember member, Message message);
+  void send(ClusterMember member, Message message, SettableFuture<Void> promise);
+  Observable<Message> listen();
+  IGossipProtocol gossip();
+  IClusterMembership membership();
+  ICluster join();
+  ListenableFuture<Void> leave();
+}
+```
+
+TBD: Description
+
+#### Membership ([Code](https://github.com/servicefabric/servicefabric/blob/v0.0.4/cluster/src/main/java/io/servicefabric/cluster/IClusterMembership.java))
+
+``` java
+public interface IClusterMembership {
+  List<ClusterMember> members();
+  ClusterMember member(String id);
+  ClusterMember localMember();
+  boolean isLocalMember(ClusterMember member);
+  Observable<ClusterMember> listenUpdates();
+}
+```
+
+TBD: Description
+
+#### Failure Detector
+
+TBD: Description
+
+#### Gossip ([Code](https://github.com/servicefabric/servicefabric/blob/v0.0.4/cluster/src/main/java/io/servicefabric/cluster/gossip/IGossipProtocol.java))
+
+``` java
+public interface IGossipProtocol {
+  void spread(Message message);
+  Observable<Message> listen();
+}
+```
+
+TBD: Description
+
+### Services (Coming soon...) 
+
+TBD: Description
+
+### Gateway (Planned)
+
+TBD: Description
 
 ## Links
 

@@ -7,11 +7,10 @@
     <version>0.0.5-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>ServiceFabric</name>
+    <name>Service Fabric I/O</name>
     <description>
-        Service Fabric is a framework that enables easy development of modern distributed,
-        resilient, scalable
-        reactive applications such as on-line gaming and social.
+        Service Fabric I/O is a microservices framework for the rapid development of distributed, resilient, reactive
+        applications that scales.
     </description>
     <inceptionYear>2015</inceptionYear>
     <url>http://servicefabric.io</url>
