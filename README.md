@@ -15,6 +15,11 @@ carefully with the experiences earned over the years from the implementation of 
 As a result, Service Fabric I/O has succeeded to find a way to achieve ease of development, performance, stability, 
 and flexibility without a compromise.
 
+# Explore
+Service Fabric I/O contains several different components designed to make it easier for you to write reactive applications in java. it is highly modular and you just use the bits that you need and nothing more.
+
+Service Fabric I/O is a library not a restrictive container so you don't have to only use components provided by Service Fabric I/O. You can also use Service Fabric I/O with all the usual libraries that you like.
+
 The latest preview release of Transport and Cluster modules are available on Maven Central as
 
 ``` xml
