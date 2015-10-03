@@ -1,9 +1,7 @@
 # Project Status
 
-This is an alpha version of the project and it is **not** stable or production ready as for now. The project is based on 
-the experience gained from the development of similar systems over the years. The decision was made to make a graceful 
-roll-out on a per module basis at early stage of completion in order to get 
-[feedback](https://github.com/servicefabric/servicefabric/issues) as soon as possible.    
+This is an alpha version of the project and it is **not** stable or production ready as for now. 
+Your [feedback](https://github.com/servicefabric/servicefabric/issues) is welcome.    
 
 # Service Fabric I/O
 
