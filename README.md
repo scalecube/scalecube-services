@@ -1,7 +1,7 @@
 # Project Status
 
 This is an alpha version of the project and it is **not** stable or production ready as for now. 
-Your [feedback](https://github.com/servicefabric/servicefabric/issues) is welcome.    
+Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.    
 
 # ScaleCube
 
@@ -37,9 +37,9 @@ The latest preview release of Transport and Cluster modules are available on Mav
 
 ## Links
 
-* [Web Site](http://servicefabric.io/)
-* [Wiki](https://github.com/servicefabric/servicefabric/wiki/Cluster)
+* [Web Site](http://scalecube.io/)
+* [Wiki](https://github.com/scalecube/scalecube/wiki/Cluster)
 
 ## Bugs and Feedback
 
-For bugs, questions and discussions please use the [GitHub Issues](https://github.com/servicefabric/servicefabric/issues).
+For bugs, questions and discussions please use the [GitHub Issues](https://github.com/scalecube/scalecube/issues).
