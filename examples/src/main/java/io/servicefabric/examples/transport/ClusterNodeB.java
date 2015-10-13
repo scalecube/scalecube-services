@@ -22,9 +22,9 @@ public class ClusterNodeB {
   /**
    * Main method.
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) throws Exception {
     // Start cluster node that listen on port 3001 and point to node A as seed node
-    ICluster clusterB = Cluster.newInstance(3001, "localhost:3000").join();
+    ICluster clusterB = Cluster.newInstance(3001, "localhost:3000").joinAwait();
 
     // Listen for incoming greeting messages
     clusterB.listen().filter(Greetings.MSG_FILTER).subscribe(new Action1<Message>() {

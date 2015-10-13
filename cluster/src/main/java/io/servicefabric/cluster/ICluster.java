@@ -10,6 +10,7 @@ import rx.Observable;
 
 /**
  * Basic cluster interface which allows to join cluster, send message to other member, listen messages, gossip messages.
+ * 
  * @author Anton Kharenko
  */
 public interface ICluster {
@@ -24,7 +25,9 @@ public interface ICluster {
 
   IClusterMembership membership();
 
-  ICluster join();
+  ListenableFuture<ICluster> join();
+
+  ICluster joinAwait();
 
   ListenableFuture<Void> leave();
 

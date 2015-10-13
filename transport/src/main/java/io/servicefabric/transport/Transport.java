@@ -2,7 +2,6 @@ package io.servicefabric.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Throwables.propagate;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.setPromise;
 import static io.servicefabric.transport.utils.ChannelFutureUtils.wrap;
 
@@ -166,11 +165,11 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public final void start() {
+  public final ListenableFuture<Void> start() {
     incomingMessagesSubject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
 
     Class<? extends ServerChannel> serverChannelClass = NioServerSocketChannel.class;
-    SocketAddress bindAddress = new InetSocketAddress(localEndpoint.address().port());
+    final SocketAddress bindAddress = new InetSocketAddress(localEndpoint.address().port());
 
     ServerBootstrap server = new ServerBootstrap();
     server.group(eventLoop).channel(serverChannelClass).childHandler(new ChannelInitializer<Channel>() {
@@ -179,13 +178,24 @@ public final class Transport implements ITransportSpi, ITransport {
         pipelineFactory.setAcceptorPipeline(channel, Transport.this);
       }
     });
-    try {
-      serverChannel = (ServerChannel) server.bind(bindAddress).syncUninterruptibly().channel();
-      LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.id(), bindAddress);
-    } catch (Exception e) {
-      LOGGER.error("Failed to bind to: " + bindAddress + ", caught " + e, e);
-      propagate(e);
-    }
+
+    ChannelFuture bindFuture = server.bind(bindAddress);
+    final SettableFuture<Void> result = SettableFuture.create();
+    bindFuture.addListener(new ChannelFutureListener() {
+      @Override
+      public void operationComplete(ChannelFuture channelFuture) throws Exception {
+        if (channelFuture.isSuccess()) {
+          serverChannel = (ServerChannel) channelFuture.channel();
+          LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.id(), bindAddress);
+          result.set(null);
+        } else {
+          Throwable ex = channelFuture.cause();
+          result.setException(ex);
+          LOGGER.error("Failed to bind to: " + bindAddress + ", caught " + ex, ex);
+        }
+      }
+    });
+    return result;
   }
 
   @Override

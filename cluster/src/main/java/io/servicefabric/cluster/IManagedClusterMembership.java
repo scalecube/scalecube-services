@@ -1,5 +1,7 @@
 package io.servicefabric.cluster;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 /**
  * Extends cluster membership protocol interface and provides management operations. This interface is supposed for
  * internal use.
@@ -11,7 +13,7 @@ public interface IManagedClusterMembership extends IClusterMembership {
   /**
    * Starts running cluster membership protocol. After started it begins to receive and send cluster membership messages
    */
-  void start();
+  ListenableFuture<Void> start();
 
   /** Stops running cluster membership protocol and releases occupied resources. */
   void stop();

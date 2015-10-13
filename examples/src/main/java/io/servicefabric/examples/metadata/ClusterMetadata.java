@@ -19,7 +19,7 @@ import java.util.Map;
  * 
  * <p>
  * in this example we see how to attach logical alias name to a cluster member we nick name Joe
- * 
+ * </p>
  * @author ronen_h
  */
 public class ClusterMetadata {
@@ -35,9 +35,9 @@ public class ClusterMetadata {
   /**
    * Main method.
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
 
-    ICluster seedCluster = Cluster.newInstance(3000).join();
+    ICluster seedCluster = Cluster.newInstance(3000).joinAwait();
 
     // define the custom configuration meta data. and we add alias field.
     Map<String, String> metadata = new HashMap<>();
@@ -47,7 +47,7 @@ public class ClusterMetadata {
             .metadata(metadata);
 
     // configure cluster 2 with the metadata and attach cluster 2 as Joe and join seed
-    ICluster joeCluster = Cluster.newInstance(config).join();
+    ICluster joeCluster = Cluster.newInstance(config).joinAwait();
 
     // filter and subscribe on hello/joe and print the welcome message.
     joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<Message>() {

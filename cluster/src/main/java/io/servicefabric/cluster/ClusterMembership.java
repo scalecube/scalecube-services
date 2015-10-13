@@ -3,7 +3,6 @@ package io.servicefabric.cluster;
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.servicefabric.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.servicefabric.cluster.ClusterMemberStatus.TRUSTED;
-import static io.servicefabric.cluster.ClusterMembershipDataUtils.filterData;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.gossipFilterData;
 import static io.servicefabric.cluster.ClusterMembershipDataUtils.syncGroupFilter;
 import static io.servicefabric.transport.TransportAddress.tcp;
@@ -12,16 +11,19 @@ import io.servicefabric.cluster.fdetector.FailureDetectorEvent;
 import io.servicefabric.cluster.fdetector.IFailureDetector;
 import io.servicefabric.cluster.gossip.IManagedGossipProtocol;
 import io.servicefabric.transport.ITransport;
+import io.servicefabric.transport.Message;
 import io.servicefabric.transport.TransportAddress;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportHeaders;
-import io.servicefabric.transport.Message;
 
+import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +35,7 @@ import rx.Subscription;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.observable.ListenableFutureObservable;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
@@ -47,12 +50,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public final class ClusterMembership implements IManagedClusterMembership, IClusterMembership {
 
@@ -108,7 +111,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
       String correlationId = message.header(TransportHeaders.CORRELATION_ID);
       ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
       Message syncAckMessage = new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK,
-                                           TransportHeaders.CORRELATION_ID, correlationId);
+          TransportHeaders.CORRELATION_ID, correlationId);
       transport.send(endpoint, syncAckMessage);
     }
   });
@@ -139,6 +142,14 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
           }
         }
       });
+  private Function<Message, Void> onSyncAckFunction = new Function<Message, Void>() {
+    @Nullable
+    @Override
+    public Void apply(@Nullable Message message) {
+      onSyncAck(message);
+      return null;
+    }
+  };
 
   ClusterMembership(TransportEndpoint localEndpoint, Scheduler scheduler) {
     this.localEndpoint = localEndpoint;
@@ -180,8 +191,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   }
 
   /**
-   * Sets seed members from the formatted string.
-   * Members are separated by comma and have next format {@code host:port}.
+   * Sets seed members from the formatted string. Members are separated by comma and have next format {@code host:port}.
    * If member format is incorrect it will be skipped.
    */
   public void setSeedMembers(String seedMembers) {
@@ -242,7 +252,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
   }
 
   @Override
-  public void start() {
+  public ListenableFuture<Void> start() {
     // Start timer
     timer = new TickingTimer();
     timer.start();
@@ -266,9 +276,12 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
     // of them
+    ListenableFuture<Void> startFuture;
     if (!seedMembers.isEmpty()) {
       LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", seedMembers);
-      doInitialSync(seedMembers);
+      startFuture = doInitialSync(seedMembers);
+    } else {
+      startFuture = Futures.immediateFuture(null);
     }
 
     // Schedule 'running phase': select randomly single seed address, send SYNC and get SYNC_ACK
@@ -287,6 +300,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
         }
       }, syncTime, syncTime, TimeUnit.MILLISECONDS);
     }
+    return startFuture;
   }
 
   @Override
@@ -301,26 +315,22 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     timer.stop();
   }
 
-  private void doInitialSync(List<TransportAddress> seedMembers) {
+  private ListenableFuture<Void> doInitialSync(final List<TransportAddress> seedMembers) {
     String period = Integer.toString(periodNbr.incrementAndGet());
     sendSync(seedMembers, period);
-
-    Future<Message> future =
-        transport.listen()
+    ListenableFuture<Message> future =
+        ListenableFutureObservable.to(transport.listen()
             .filter(syncAckFilter(period))
             .filter(syncGroupFilter(syncGroup))
-            .take(1)
-            .toBlocking()
-            .toFuture();
+            .take(1));
 
-    Message message;
-    try {
-      message = future.get(syncTimeout, TimeUnit.MILLISECONDS);
-    } catch (Exception e) {
-      LOGGER.info("Timeout getting SyncAck from {}", seedMembers);
-      return;
-    }
-    onSyncAck(message);
+    return Futures.withFallback(Futures.transform(future, onSyncAckFunction), new FutureFallback<Void>() {
+      @Override
+      public ListenableFuture<Void> create(Throwable throwable) throws Exception {
+        LOGGER.info("Timeout getting SyncAck from {}", seedMembers);
+        return Futures.immediateFailedFuture(throwable);
+      }
+    });
   }
 
   private void doSync(final List<TransportAddress> members, Scheduler scheduler) {

@@ -7,13 +7,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import io.netty.channel.ConnectTimeoutException;
 import io.servicefabric.testlib.BaseTest;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
+import io.netty.channel.ConnectTimeoutException;
 
 import org.junit.After;
 import org.junit.Test;
@@ -624,7 +625,11 @@ public class TransportTest extends BaseTest {
     Transport transport =
         Transport.newInstance(endpoint, TransportSettings.builder().connectTimeout(1000).sendHighWaterMark(sendHwm)
             .useNetworkEmulator(true).build());
-    transport.start();
+    try {
+      transport.start().get();
+    } catch (Exception e) {
+      LOGGER.error("Failed to start transport ", e);
+    }
 
     return transport;
   }

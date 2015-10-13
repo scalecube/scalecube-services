@@ -6,6 +6,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.google.common.base.Throwables;
 import io.servicefabric.cluster.fdetector.FailureDetectorBuilder;
 import io.servicefabric.cluster.gossip.GossipProtocol;
 import io.servicefabric.transport.ITransport;
@@ -24,6 +25,7 @@ import rx.schedulers.Schedulers;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -133,10 +135,14 @@ public class ClusterMembershipBuilder {
   }
 
   ClusterMembershipBuilder init() {
-    transport.start();
-    fdBuilder.target().start();
-    gossipProtocol.start();
-    target.start();
+      try {
+          transport.start().get();
+          fdBuilder.target().start();
+          gossipProtocol.start();
+          target.start().get();
+      } catch (Exception ex) {
+          Throwables.propagate(ex);
+      }
     return this;
   }
 

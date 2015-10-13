@@ -1,5 +1,6 @@
 package io.servicefabric.cluster.fdetector;
 
+import com.google.common.base.Throwables;
 import io.servicefabric.transport.TransportEndpoint;
 import io.servicefabric.transport.TransportPipelineFactory;
 import io.servicefabric.transport.Transport;
@@ -9,6 +10,7 @@ import rx.schedulers.Schedulers;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class FailureDetectorBuilder {
   final FailureDetector target;
@@ -90,8 +92,12 @@ public class FailureDetectorBuilder {
   }
 
   public FailureDetectorBuilder init() {
-    target.getTransport().start();
-    target.start();
+      try {
+          target.getTransport().start().get();
+      } catch (Exception ex) {
+          Throwables.propagate(ex);
+      }
+      target.start();
     return this;
   }
 }

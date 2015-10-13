@@ -4,6 +4,9 @@ import io.servicefabric.cluster.Cluster;
 import io.servicefabric.cluster.ICluster;
 import io.servicefabric.transport.Message;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+
 import rx.functions.Action1;
 
 /**
@@ -20,15 +23,23 @@ public class ClusterNodeA {
    */
   public static void main(String[] args) {
     // start cluster node that listen on port 3000
-    ICluster clusterA = Cluster.newInstance(3000).join();
-
-    // subscribe to all gossip messages:
-    clusterA.gossip().listen().subscribe(new Action1<Message>() {
+    Futures.addCallback(Cluster.newInstance(3000).join(), new FutureCallback<ICluster>() {
       @Override
-      public void call(Message gossip) {
-        // print out the gossip message
-        System.out.println("Gossip message:" + gossip);
+      public void onSuccess(ICluster cluster) {
+        cluster.gossip().listen().subscribe(new Action1<Message>() {
+          @Override
+          public void call(Message gossip) {
+            // print out the gossip message
+            System.out.println("Gossip message:" + gossip);
+          }
+        });
+      }
+
+      @Override
+      public void onFailure(Throwable throwable) {
+        // do nothing
       }
     });
+
   }
 }

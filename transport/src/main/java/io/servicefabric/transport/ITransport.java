@@ -23,7 +23,7 @@ public interface ITransport {
   /**
    * Starts transport on the given endpoint so it is started to accept connection and can connect to other endpoint.
    */
-  void start();
+  ListenableFuture<Void> start();
 
   /**
    * Stop transport, disconnect all available connections which belong to this transport. <br/>
@@ -57,10 +57,10 @@ public interface ITransport {
    * set provided promise. Close is an async operation it may cause to fail send operations either called before
    * disconnect (if their promise not set yet) or the following after disconnect since they may be assigned to existing
    * disconnecting channel instead of creating new channel.
-   * 
+   *
    * <p>
    * If result of operation is not needed leave second parameter null, otherwise pass {@link SettableFuture}.
-   *
+   * </p>
    * @param endpoint endpoint to disconnect
    * @param promise promise will be completed with result of closing (void or exception)
    * @throws IllegalArgumentException if {@code endpoint} is null
