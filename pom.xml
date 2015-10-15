@@ -61,6 +61,7 @@
 
         <slf4j.version>1.7.7</slf4j.version>
         <rxjava.version>1.0.6</rxjava.version>
+        <rxjava-guava.version>1.0.3</rxjava-guava.version>
         <guava.version>18.0</guava.version>
         <findbugs.version>2.0.3</findbugs.version>
         <netty.version>4.0.28.Final</netty.version>
@@ -92,6 +93,11 @@
                 <groupId>io.reactivex</groupId>
                 <artifactId>rxjava</artifactId>
                 <version>${rxjava.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex</groupId>
+                <artifactId>rxjava-guava</artifactId>
+                <version>${rxjava-guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>

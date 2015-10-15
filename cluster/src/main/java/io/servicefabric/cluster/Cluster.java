@@ -6,12 +6,14 @@ import static com.google.common.base.Preconditions.checkState;
 import io.servicefabric.cluster.fdetector.FailureDetector;
 import io.servicefabric.cluster.gossip.GossipProtocol;
 import io.servicefabric.cluster.gossip.IGossipProtocol;
+import io.servicefabric.transport.Message;
 import io.servicefabric.transport.Transport;
 import io.servicefabric.transport.TransportAddress;
 import io.servicefabric.transport.TransportEndpoint;
-import io.servicefabric.transport.Message;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -32,6 +34,7 @@ import javax.annotation.Nullable;
 
 /**
  * Main ICluster implementation.
+ * 
  * @author Anton Kharenko
  */
 public final class Cluster implements ICluster {
@@ -153,16 +156,37 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public ICluster join() {
+  public ListenableFuture<ICluster> join() {
     updateClusterState(State.INSTANTIATED, State.JOINING);
     LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.seedMembers);
-    transport.start();
-    failureDetector.start();
-    gossipProtocol.start();
-    clusterMembership.start();
-    updateClusterState(State.JOINING, State.JOINED);
-    LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, membership().members());
-    return this;
+    ListenableFuture<Void> transportFuture = transport.start();
+    ListenableFuture<Void> clusterFuture = Futures.transform(transportFuture, new AsyncFunction<Void, Void>() {
+      @Override
+      public ListenableFuture<Void> apply(@Nullable Void param) throws Exception {
+        failureDetector.start();
+        gossipProtocol.start();
+        return clusterMembership.start();
+      }
+    });
+    return Futures.transform(clusterFuture, new Function<Void, ICluster>() {
+      @Override
+      public ICluster apply(@Nullable Void param) {
+        updateClusterState(State.JOINING, State.JOINED);
+        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, membership().members());
+        return Cluster.this;
+      }
+    });
+
+
+  }
+
+  @Override
+  public ICluster joinAwait() {
+    try {
+      return join().get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
   }
 
   @Override

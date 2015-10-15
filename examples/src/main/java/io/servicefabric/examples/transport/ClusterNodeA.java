@@ -20,9 +20,9 @@ public class ClusterNodeA {
   /**
    * Main method.
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws Exception {
     // Start cluster node that listen on port 3000
-    final ICluster clusterA = Cluster.newInstance(3000).join();
+    final ICluster clusterA = Cluster.newInstance(3000).joinAwait();
 
     // Listen to greetings messages and respond to them
     clusterA.listen().filter(Greetings.MSG_FILTER).subscribe(new Action1<Message>() {

@@ -1,5 +1,6 @@
 package io.servicefabric.cluster.gossip;
 
+import com.google.common.base.Throwables;
 import io.servicefabric.transport.NetworkEmulatorSettings;
 import io.servicefabric.transport.Transport;
 import io.servicefabric.transport.TransportEndpoint;
@@ -25,6 +26,7 @@ import rx.functions.Action1;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -54,8 +56,12 @@ public class GossipEmulationIT {
         Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR, eventLoop, eventExecutor);
     gossipProtocol.setTransport(transport);
 
-    transport.start();
-    gossipProtocol.start();
+      try {
+          transport.start().get();
+      } catch (Exception ex) {
+          Throwables.propagate(ex);
+      }
+      gossipProtocol.start();
 
     return gossipProtocol;
   }
