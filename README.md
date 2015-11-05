@@ -8,11 +8,9 @@ Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
 
 **ScaleCube** is **embeddable** microservices framework for the rapid development of distributed, resilient, reactive
-applications that scales. It allows a set of distributed microservices to be connected in a way that resemble a fabric 
+applications that scales. It connectes distributed microservices in a way that resembles a fabric 
 when viewed collectively. It greatly simplifies and streamlines asynchronous programming and provides a tool-set for 
-managing [microservices architecture](http://microservices.io/patterns/index.html). ScaleCube has been designed 
-carefully with the experiences earned over the years from the implementation of many online services and platforms. 
-As a result, ScaleCube has succeeded to find a way to achieve ease of development, performance, stability, 
+managing [microservices architecture](http://microservices.io/patterns/index.html). ScaleCube has succeeded to find a way to achieve ease of development, performance, stability, 
 and flexibility without a compromise.
 
 # Explore
