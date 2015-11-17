@@ -317,27 +317,37 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
 
   private ListenableFuture<Void> doInitialSync(final List<TransportAddress> seedMembers) {
     String period = Integer.toString(periodNbr.incrementAndGet());
-    sendSync(seedMembers, period);
-    ListenableFuture<Message> future =
-        ListenableFutureObservable.to(transport.listen()
+    ListenableFuture<Message> future = ListenableFutureObservable.to(
+        transport.listen()
             .filter(syncAckFilter(period))
             .filter(syncGroupFilter(syncGroup))
-            .take(1));
+            .take(1)
+            .timeout(syncTimeout, TimeUnit.MILLISECONDS));
 
-    return Futures.withFallback(Futures.transform(future, onSyncAckFunction), new FutureFallback<Void>() {
-      @Override
-      public ListenableFuture<Void> create(Throwable throwable) throws Exception {
-        LOGGER.info("Timeout getting SyncAck from {}", seedMembers);
-        return Futures.immediateFailedFuture(throwable);
-      }
-    });
+    sendSync(seedMembers, period);
+
+    return Futures.withFallback(
+        Futures.transform(future, onSyncAckFunction),
+        new FutureFallback<Void>() {
+          @Override
+          public ListenableFuture<Void> create(@Nonnull Throwable throwable) throws Exception {
+            LOGGER
+                .info(
+                    "Timeout getting initial SyncAck from seed members: {}. Current node is the first member of the cluster.",
+                    seedMembers);
+            return Futures.immediateFuture(null);
+          }
+        }
+        );
   }
 
   private void doSync(final List<TransportAddress> members, Scheduler scheduler) {
     String period = Integer.toString(periodNbr.incrementAndGet());
-    sendSync(members, period);
-    transport.listen().filter(syncAckFilter(period)).filter(syncGroupFilter(syncGroup))
-        .take(1).timeout(syncTimeout, TimeUnit.MILLISECONDS, scheduler)
+    transport.listen()
+        .filter(syncAckFilter(period))
+        .filter(syncGroupFilter(syncGroup))
+        .take(1)
+        .timeout(syncTimeout, TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
           public void call(Message message) {
@@ -346,9 +356,11 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.info("Timeout getting SyncAck from {}", members);
+            LOGGER.info("Timeout getting SyncAck from members: {}", members);
           }
         }));
+
+    sendSync(members, period);
   }
 
   private void sendSync(List<TransportAddress> members, String period) {

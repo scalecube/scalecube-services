@@ -6,30 +6,27 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import com.google.common.base.Throwables;
 import io.servicefabric.cluster.fdetector.FailureDetectorBuilder;
 import io.servicefabric.cluster.gossip.GossipProtocol;
 import io.servicefabric.transport.ITransport;
-import io.servicefabric.transport.TransportPipelineFactory;
 import io.servicefabric.transport.Transport;
 import io.servicefabric.transport.TransportAddress;
+import io.servicefabric.transport.TransportEndpoint;
+import io.servicefabric.transport.TransportPipelineFactory;
+import io.servicefabric.transport.TransportSettings;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 
-import io.servicefabric.transport.TransportEndpoint;
-import io.servicefabric.transport.TransportSettings;
 import rx.schedulers.Schedulers;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
 
 public class ClusterMembershipBuilder {
   final ClusterMembership target;
