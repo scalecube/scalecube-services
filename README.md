@@ -8,7 +8,7 @@ Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
 
 **ScaleCube** is **embeddable** microservices framework for the rapid development of distributed, resilient, reactive
-applications that scales. It connectes distributed microservices in a way that resembles a fabric 
+applications that scales. It connects distributed microservices in a way that resembles a fabric 
 when viewed collectively. It greatly simplifies and streamlines asynchronous programming and provides a tool-set for 
 managing [microservices architecture](http://microservices.io/patterns/index.html). ScaleCube has succeeded to find a way to achieve ease of development, performance, stability, 
 and flexibility without a compromise.
@@ -22,14 +22,14 @@ The latest preview release of Transport and Cluster modules are available on Mav
 
 ``` xml
 <dependency>
-	<groupId>io.servicefabric</groupId>
-	<artifactId>servicefabric-transport</artifactId>
-	<version>0.0.4</version>
+	<groupId>io.scalecube</groupId>
+	<artifactId>scalecube-transport</artifactId>
+	<version>0.0.5</version>
 </dependency>
 <dependency>
-	<groupId>io.servicefabric</groupId>
-	<artifactId>servicefabric-cluster</artifactId>
-	<version>0.0.4</version>
+	<groupId>io.scalecube</groupId>
+	<artifactId>scalecube-cluster</artifactId>
+	<version>0.0.5</version>
 </dependency>
 ```
 
