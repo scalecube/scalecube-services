@@ -331,10 +331,7 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
         new FutureFallback<Void>() {
           @Override
           public ListenableFuture<Void> create(@Nonnull Throwable throwable) throws Exception {
-            LOGGER
-                .info(
-                    "Timeout getting initial SyncAck from seed members: {}. Current node is the first member of the cluster.",
-                    seedMembers);
+            LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
             return Futures.immediateFuture(null);
           }
         }
