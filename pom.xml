@@ -2,18 +2,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.servicefabric</groupId>
-    <artifactId>servicefabric-parent</artifactId>
+    <groupId>io.scalecube</groupId>
+    <artifactId>scalecube-parent</artifactId>
     <version>0.0.5-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Service Fabric I/O</name>
+    <name>ScaleCube</name>
     <description>
-        Service Fabric I/O is a microservices framework for the rapid development of distributed, resilient, reactive
+        ScaleCube is a microservices framework for the rapid development of distributed, resilient, reactive
         applications that scales.
     </description>
     <inceptionYear>2015</inceptionYear>
-    <url>http://servicefabric.io</url>
+    <url>http://scalecube.io</url>
 
     <licenses>
         <license>
@@ -27,20 +27,20 @@
     </prerequisites>
 
     <scm>
-        <url>https://github.com/servicefabric/servicefabric</url>
-        <connection>scm:git:git@github.com:servicefabric/servicefabric.git</connection>
-        <developerConnection>scm:git:git@github.com:servicefabric/servicefabric.git
+        <url>https://github.com/scalecube/scalecube</url>
+        <connection>scm:git:git@github.com:scalecube/scalecube.git</connection>
+        <developerConnection>scm:git:git@github.com:scalecube/scalecube.git
         </developerConnection>
         <tag>HEAD</tag>
     </scm>
 
     <developers>
         <developer>
-            <id>servicefabric.io</id>
-            <name>The ServiceFabric Project Contributors</name>
+            <id>scalecube.io</id>
+            <name>The ScaleCube Project Contributors</name>
             <email>a.kharenko@gmail.com</email>
-            <organization>The ServiceFabric Project</organization>
-            <organizationUrl>http://servicefabric.io/</organizationUrl>
+            <organization>The ScaleCube Project</organization>
+            <organizationUrl>http://scalecube.io/</organizationUrl>
         </developer>
     </developers>
 

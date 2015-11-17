@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <logger name="io.servicefabric.transport" level="info"/>
+    <logger name="io.scalecube.transport" level="info"/>
 
     <root level="debug">
         <appender-ref ref="console"/>

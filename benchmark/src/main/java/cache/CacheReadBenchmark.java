@@ -1,7 +1,7 @@
 package cache;
 
-import io.servicefabric.transport.utils.memoization.Computable;
-import io.servicefabric.transport.utils.memoization.Memoizer;
+import io.scalecube.transport.utils.memoization.Computable;
+import io.scalecube.transport.utils.memoization.Memoizer;
 
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
@@ -33,10 +33,10 @@ import javax.annotation.Nonnull;
 public class CacheReadBenchmark {
 
   static final String[] GENERIC_ARGS = new String[] {"java.lang.String", "java.lang.Long", "java.lang.Integer",
-      "java.lang.Short", "java.lang.Character", "java.lang.Byte", "io.servicefabric.transport.protocol.MessageSchema",};
+      "java.lang.Short", "java.lang.Character", "java.lang.Byte", "io.scalecube.transport.protocol.MessageSchema",};
 
   static final String[] GENERIC_ARGS_CACHE_MISS = new String[] {"java.lang.String", "xyz", "java.lang.Integer", "abc",
-      "java.lang.Character", "qwerty", "io.servicefabric.transport.protocol.MessageSchema",};
+      "java.lang.Character", "qwerty", "io.scalecube.transport.protocol.MessageSchema",};
 
   LoadingCache<String, Optional<Class>> guavaCache = CacheBuilder.newBuilder().build(
       new CacheLoader<String, Optional<Class>>() {

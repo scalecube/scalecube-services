@@ -2,22 +2,22 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.servicefabric</groupId>
-        <artifactId>servicefabric-parent</artifactId>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-parent</artifactId>
         <version>0.0.5-SNAPSHOT</version>
     </parent>
-    <artifactId>servicefabric-benchmark</artifactId>
-    <name>ServiceFabric/Benchmark</name>
+    <artifactId>scalecube-benchmark</artifactId>
+    <name>ScaleCube/Benchmark</name>
 
     <properties>
-        <uberjar.name>servicefabric-benchmark</uberjar.name>
+        <uberjar.name>scalecube-benchmark</uberjar.name>
         <jmh.version>1.4.1</jmh.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>servicefabric-cluster</artifactId>
+            <artifactId>scalecube-cluster</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- Other dependencies -->

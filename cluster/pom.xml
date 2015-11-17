@@ -2,16 +2,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>io.servicefabric</groupId>
-        <artifactId>servicefabric-parent</artifactId>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-parent</artifactId>
         <version>0.0.5-SNAPSHOT</version>
     </parent>
-    <artifactId>servicefabric-cluster</artifactId>
-    <name>ServiceFabric/Cluster</name>
+    <artifactId>scalecube-cluster</artifactId>
+    <name>ScaleCube/Cluster</name>
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>servicefabric-transport</artifactId>
+            <artifactId>scalecube-transport</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -20,7 +20,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>servicefabric-testlib</artifactId>
+            <artifactId>scalecube-testlib</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
