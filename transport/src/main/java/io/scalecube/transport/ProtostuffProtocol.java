@@ -13,7 +13,7 @@ public class ProtostuffProtocol implements Protocol {
   private final ProtostuffMessageSerializer messageSerializer;
 
   /**
-   * Creates new protostuff protocol, registers protostuff runtime schema for {@link Message}
+   * Creates new protostuff protocol, registers protostuff runtime schema for {@link Message}.
    */
   public ProtostuffProtocol() {
     frameHandlerFactory = new ProtostuffFrameHandlerFactory();
