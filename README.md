@@ -36,7 +36,7 @@ The latest preview release of Transport and Cluster modules are available on Mav
 ## Links
 
 * [Web Site](http://scalecube.io/)
-* [Wiki](https://github.com/scalecube/scalecube/wiki/Cluster)
+* [Wiki](https://github.com/scalecube/scalecube/wiki)
 
 ## Bugs and Feedback
 
