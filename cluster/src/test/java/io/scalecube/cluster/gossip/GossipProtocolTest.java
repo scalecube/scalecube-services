@@ -1,12 +1,5 @@
 package io.scalecube.cluster.gossip;
 
-import static org.junit.Assert.assertEquals;
-
-import io.scalecube.transport.ITransport;
-import io.scalecube.transport.Message;
-import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportHeaders;
-
 import com.google.common.collect.Lists;
 
 import org.jmock.Expectations;
@@ -15,15 +8,21 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import rx.functions.Action1;
-import rx.subjects.PublishSubject;
-
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Message;
+import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.TransportHeaders;
+import rx.functions.Action1;
+import rx.subjects.PublishSubject;
+
+import static org.junit.Assert.assertEquals;
 
 public class GossipProtocolTest {
   private static final int maxGossipSent = 2;
@@ -49,7 +48,7 @@ public class GossipProtocolTest {
       {
         oneOf(transport).listen();
         will(returnValue(subject));
-        oneOf(executorService).scheduleWithFixedDelay(with(any(Runnable.class)), with(200l), with(200l),
+        oneOf(executorService).scheduleWithFixedDelay(with(any(Runnable.class)), with(200L), with(200L),
             with(TimeUnit.MILLISECONDS));
       }
     });
@@ -97,7 +96,8 @@ public class GossipProtocolTest {
     TransportEndpoint endpoint1 = TransportEndpoint.from("tcp://1@host:1");
 
     subject.onNext(messageWithSender(new Message(gossipRequest), endpoint2));
-    subject.onNext(messageWithSender(new Message(null, TransportHeaders.QUALIFIER, "com.pt.openapi.hello/"), endpoint1));
+    subject
+        .onNext(messageWithSender(new Message(null, TransportHeaders.QUALIFIER, "com.pt.openapi.hello/"), endpoint1));
     subject.onNext(messageWithSender(new Message(gossipRequest), endpoint1));
     List<Gossip> second = new ArrayList<>();
     second.add(new Gossip("2", new Message("data")));
@@ -124,7 +124,8 @@ public class GossipProtocolTest {
     sendGossips.setAccessible(true);
     List<GossipLocalState> list = new ArrayList<>();
 
-    list.add(GossipLocalState.create(new Gossip("2", new Message("data")), TransportEndpoint.from("tcp://id2@host:22"), 0));
+    list.add(GossipLocalState.create(new Gossip("2", new Message("data")), TransportEndpoint.from("tcp://id2@host:22"),
+        0));
     jmockContext.checking(new Expectations() {
       {
         exactly(maxEndpointsToSelect).of(transport).send(with(any(TransportEndpoint.class)), with(any(Message.class)));

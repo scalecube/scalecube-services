@@ -1,13 +1,13 @@
 package io.scalecube.cluster.gossip;
 
-import com.google.common.base.Throwables;
+import io.scalecube.transport.Message;
 import io.scalecube.transport.NetworkEmulatorSettings;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.TransportSettings;
-import io.scalecube.transport.Message;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
@@ -21,14 +21,14 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import rx.functions.Action1;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import rx.functions.Action1;
 
 public class GossipEmulationIT {
   private ScheduledExecutorService[] executors = new ScheduledExecutorService[16];
@@ -52,15 +52,16 @@ public class GossipEmulationIT {
     gossipProtocol.setClusterEndpoints(members);
 
     Transport transport =
-        Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR, eventLoop, eventExecutor);
+        Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR, eventLoop,
+            eventExecutor);
     gossipProtocol.setTransport(transport);
 
-      try {
-          transport.start().get();
-      } catch (Exception ex) {
-          Throwables.propagate(ex);
-      }
-      gossipProtocol.start();
+    try {
+      transport.start().get();
+    } catch (Exception ex) {
+      Throwables.propagate(ex);
+    }
+    gossipProtocol.start();
 
     return gossipProtocol;
   }

@@ -1,31 +1,30 @@
 package io.scalecube.transport;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Iterables.transform;
-import static io.scalecube.transport.TransportChannel.Status.CLOSED;
-import static io.scalecube.transport.TransportChannel.Status.CONNECTED;
-import static io.scalecube.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
-import static io.scalecube.transport.utils.ChannelFutureUtils.setPromise;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
-import io.netty.channel.Channel;
-import io.netty.util.AttributeKey;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.functions.Func1;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
+
+import io.netty.channel.Channel;
+import io.netty.util.AttributeKey;
+import rx.functions.Func1;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.collect.Iterables.transform;
+import static io.scalecube.transport.TransportChannel.Status.CLOSED;
+import static io.scalecube.transport.TransportChannel.Status.CONNECTED;
+import static io.scalecube.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
+import static io.scalecube.transport.utils.ChannelFutureUtils.setPromise;
 
 final class TransportChannel implements ITransportChannel {
 

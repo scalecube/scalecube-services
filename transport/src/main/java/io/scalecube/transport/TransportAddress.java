@@ -76,6 +76,7 @@ public final class TransportAddress {
 
   /**
    * Creates new {@code TransportAddress} from string {@code host:port}.
+   * 
    * @throws java.lang.IllegalArgumentException if parameter has incorrect format
    */
   public static TransportAddress tcp(String hostnameAndPort) {

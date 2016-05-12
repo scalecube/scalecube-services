@@ -21,9 +21,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import rx.Subscriber;
-import rx.functions.Action1;
-
 import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
@@ -36,6 +33,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import rx.Subscriber;
+import rx.functions.Action1;
 
 @SuppressWarnings("unchecked")
 public class TransportTest extends BaseTest {

@@ -1,21 +1,5 @@
 package io.scalecube.cluster;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static io.scalecube.cluster.ClusterMemberStatus.SHUTDOWN;
-import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
-import static io.scalecube.cluster.ClusterMembershipDataUtils.gossipFilterData;
-import static io.scalecube.cluster.ClusterMembershipDataUtils.syncGroupFilter;
-import static io.scalecube.transport.TransportAddress.tcp;
-
-import io.scalecube.cluster.fdetector.FailureDetectorEvent;
-import io.scalecube.cluster.fdetector.IFailureDetector;
-import io.scalecube.cluster.gossip.IManagedGossipProtocol;
-import io.scalecube.transport.ITransport;
-import io.scalecube.transport.Message;
-import io.scalecube.transport.TransportAddress;
-import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportHeaders;
-
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
@@ -27,19 +11,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.observable.ListenableFutureObservable;
-import rx.observers.Subscribers;
-import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
-import rx.subjects.Subject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,6 +27,34 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import io.scalecube.cluster.fdetector.FailureDetectorEvent;
+import io.scalecube.cluster.fdetector.IFailureDetector;
+import io.scalecube.cluster.gossip.IManagedGossipProtocol;
+import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Message;
+import io.scalecube.transport.TransportAddress;
+import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.TransportHeaders;
+import rx.Observable;
+import rx.Scheduler;
+import rx.Subscriber;
+import rx.Subscription;
+import rx.functions.Action0;
+import rx.functions.Action1;
+import rx.functions.Func1;
+import rx.observable.ListenableFutureObservable;
+import rx.observers.Subscribers;
+import rx.subjects.PublishSubject;
+import rx.subjects.SerializedSubject;
+import rx.subjects.Subject;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.cluster.ClusterMemberStatus.SHUTDOWN;
+import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
+import static io.scalecube.cluster.ClusterMembershipDataUtils.gossipFilterData;
+import static io.scalecube.cluster.ClusterMembershipDataUtils.syncGroupFilter;
+import static io.scalecube.transport.TransportAddress.tcp;
 
 public final class ClusterMembership implements IManagedClusterMembership, IClusterMembership {
 

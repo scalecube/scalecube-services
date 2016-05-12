@@ -8,13 +8,23 @@ import static java.lang.Math.min;
 
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.TransportHeaders;
 import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.TransportHeaders;
 
 import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import rx.Observable;
 import rx.Scheduler;
@@ -27,16 +37,6 @@ import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class FailureDetector implements IFailureDetector {
 
@@ -108,7 +108,7 @@ public final class FailureDetector implements IFailureDetector {
           FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
           Message originalAckMessage =
               new Message(originalAckData, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
-                          correlationId);
+                  correlationId);
           send(target, originalAckMessage);
         }
       });
@@ -232,7 +232,7 @@ public final class FailureDetector implements IFailureDetector {
     final String period = "" + periodNbr.incrementAndGet();
     FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
     Message message = new Message(pingData, TransportHeaders.QUALIFIER, PING,
-                                  TransportHeaders.CORRELATION_ID, period/* correlationId */);
+        TransportHeaders.CORRELATION_ID, period/* correlationId */);
     LOGGER.trace("Send Ping from {} to {}", localEndpoint, pingMember);
 
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
@@ -289,7 +289,7 @@ public final class FailureDetector implements IFailureDetector {
 
     FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, targetMember);
     Message message = new Message(pingReqData, TransportHeaders.QUALIFIER, PING_REQ,
-                                  TransportHeaders.CORRELATION_ID, period/* correlationId */);
+        TransportHeaders.CORRELATION_ID, period/* correlationId */);
     for (TransportEndpoint randomMember : randomMembers) {
       LOGGER.trace("Send PingReq from {} to {}", localEndpoint, randomMember);
       send(randomMember, message);

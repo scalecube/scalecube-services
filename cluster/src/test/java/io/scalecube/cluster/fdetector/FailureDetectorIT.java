@@ -1,12 +1,12 @@
 package io.scalecube.cluster.fdetector;
 
 import static com.google.common.collect.ImmutableList.of;
-import static io.scalecube.transport.TransportEndpoint.from;
 import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilder;
+import static io.scalecube.transport.TransportEndpoint.from;
 import static org.junit.Assert.assertEquals;
 
-import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.ITransport;
+import io.scalecube.transport.TransportEndpoint;
 
 import com.google.common.util.concurrent.SettableFuture;
 

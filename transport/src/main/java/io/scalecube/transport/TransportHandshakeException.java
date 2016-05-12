@@ -4,8 +4,7 @@ package io.scalecube.transport;
 public final class TransportHandshakeException extends TransportException {
   private static final long serialVersionUID = 1L;
 
-  public TransportHandshakeException() {
-  }
+  public TransportHandshakeException() {}
 
   public TransportHandshakeException(String message) {
     super(message);

@@ -2,8 +2,8 @@ package io.scalecube.cluster;
 
 import static com.google.common.collect.Collections2.filter;
 
-import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.TransportEndpoint;
 
 import com.google.common.base.Predicate;
 

@@ -4,8 +4,7 @@ package io.scalecube.transport;
 public final class TransportClosedException extends TransportException {
   private static final long serialVersionUID = 1L;
 
-  public TransportClosedException() {
-  }
+  public TransportClosedException() {}
 
   public TransportClosedException(String message) {
     super(message);

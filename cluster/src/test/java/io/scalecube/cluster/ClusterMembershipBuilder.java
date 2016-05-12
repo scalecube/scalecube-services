@@ -20,13 +20,13 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 
-import rx.schedulers.Schedulers;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import rx.schedulers.Schedulers;
 
 public class ClusterMembershipBuilder {
   final ClusterMembership target;
@@ -132,14 +132,14 @@ public class ClusterMembershipBuilder {
   }
 
   ClusterMembershipBuilder init() {
-      try {
-          transport.start().get();
-          fdBuilder.target().start();
-          gossipProtocol.start();
-          target.start().get();
-      } catch (Exception ex) {
-          Throwables.propagate(ex);
-      }
+    try {
+      transport.start().get();
+      fdBuilder.target().start();
+      gossipProtocol.start();
+      target.start().get();
+    } catch (Exception ex) {
+      Throwables.propagate(ex);
+    }
     return this;
   }
 

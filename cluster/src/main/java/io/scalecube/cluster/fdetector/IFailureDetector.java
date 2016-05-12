@@ -2,9 +2,9 @@ package io.scalecube.cluster.fdetector;
 
 import io.scalecube.transport.TransportEndpoint;
 
-import rx.Observable;
-
 import java.util.Collection;
+
+import rx.Observable;
 
 /**
  * Failure Detector component responsible for monitoring availability of other members in the cluster. This interface is
@@ -16,8 +16,8 @@ import java.util.Collection;
  */
 public interface IFailureDetector {
 
-  /** Starts running failure detection algorithm.
-   * After started it begins to receive and send failure detection messages
+  /**
+   * Starts running failure detection algorithm. After started it begins to receive and send failure detection messages
    */
   void start();
 

@@ -9,6 +9,7 @@ import java.util.Map;
 
 /**
  * Example how to create {@link ICluster} instance and use it.
+ * 
  * @author Anton Kharenko
  */
 public class ClusterBootstrapExamples {

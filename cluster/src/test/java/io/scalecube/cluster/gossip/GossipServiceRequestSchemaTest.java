@@ -7,10 +7,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Message;
+import io.scalecube.transport.ProtostuffProtocol;
 import io.scalecube.transport.TransportHeaders;
 
 import io.netty.buffer.ByteBuf;
-import io.scalecube.transport.ProtostuffProtocol;
 
 import org.junit.Assert;
 import org.junit.Before;

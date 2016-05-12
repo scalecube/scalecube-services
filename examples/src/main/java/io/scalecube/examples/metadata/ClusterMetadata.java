@@ -2,16 +2,16 @@ package io.scalecube.examples.metadata;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfiguration;
+import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
-import io.scalecube.cluster.ClusterMember;
-
-import rx.functions.Action1;
-import rx.functions.Func1;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import rx.functions.Action1;
+import rx.functions.Func1;
 
 /**
  * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach
@@ -20,6 +20,7 @@ import java.util.Map;
  * <p>
  * in this example we see how to attach logical alias name to a cluster member we nick name Joe
  * </p>
+ * 
  * @author ronen_h
  */
 public class ClusterMetadata {

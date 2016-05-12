@@ -28,6 +28,7 @@ import java.util.Map;
 
 /**
  * Protostuff schema for {@link Message}.
+ * 
  * @author Anton Kharenko
  */
 final class MessageSchema implements Schema<Message> {

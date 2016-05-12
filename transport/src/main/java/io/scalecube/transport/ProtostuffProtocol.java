@@ -4,6 +4,7 @@ import io.protostuff.runtime.RuntimeSchema;
 
 /**
  * Protostuff implementation for protocol.
+ * 
  * @author Anton Kharenko
  */
 public class ProtostuffProtocol implements Protocol {

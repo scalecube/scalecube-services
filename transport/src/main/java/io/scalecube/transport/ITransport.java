@@ -3,11 +3,11 @@ package io.scalecube.transport;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
-import rx.Observable;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+
+import rx.Observable;
 
 /**
  * Transport is responsible for maintaining existing p2p connections to/from other transport endpoints. Allows sending
@@ -61,6 +61,7 @@ public interface ITransport {
    * <p>
    * If result of operation is not needed leave second parameter null, otherwise pass {@link SettableFuture}.
    * </p>
+   * 
    * @param endpoint endpoint to disconnect
    * @param promise promise will be completed with result of closing (void or exception)
    * @throws IllegalArgumentException if {@code endpoint} is null

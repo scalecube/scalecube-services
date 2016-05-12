@@ -7,6 +7,7 @@ import java.util.Map;
 
 /**
  * Cluster configuration encapsulate settings needed cluster to create and successfully join.
+ * 
  * @see ClusterConfiguration.ClusterMembershipSettings
  * @see ClusterConfiguration.FailureDetectorSettings
  * @see ClusterConfiguration.GossipProtocolSettings
@@ -138,10 +139,11 @@ public class ClusterConfiguration {
 
     /**
      * Creates new cluster membership settings
+     * 
      * @param syncTime time interval in milliseconds between two sync messages.
      * @param syncTimeout waiting time in milliseconds for the response to sync message.
-     * @param maxSuspectTime  waiting time interval in milliseconds after suspected event when node will not be removed
-     * @param maxShutdownTime  waiting time interval in milliseconds after shutdown event when node will not be removed
+     * @param maxSuspectTime waiting time interval in milliseconds after suspected event when node will not be removed
+     * @param maxShutdownTime waiting time interval in milliseconds after shutdown event when node will not be removed
      * @param syncGroup cluster's sync group. Members with different groups will form different clusters.
      */
     public ClusterMembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,

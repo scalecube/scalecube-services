@@ -38,9 +38,8 @@ public class Memoizer<A, V> {
   }
 
   /**
-   * Returns the value to which the specified key is mapped,
-   * or run computable to compute the value if absent.
-   * NOTE: This is blocking call
+   * Returns the value to which the specified key is mapped, or run computable to compute the value if absent. NOTE:
+   * This is blocking call
    */
   public V get(final A arg, final Computable<A, V> computable) throws MemoizerExecutionException {
     checkArgument(computable != null, "the computable can't be null");
@@ -76,9 +75,7 @@ public class Memoizer<A, V> {
   }
 
   /**
-   * Returns the value to which the specified key is mapped,
-   * or null otherwise.
-   * NOTE: This is blocking call
+   * Returns the value to which the specified key is mapped, or null otherwise. NOTE: This is blocking call
    */
   public V getIfExists(final A arg) {
     Future<V> future = cache.get(arg);
@@ -91,10 +88,10 @@ public class Memoizer<A, V> {
     }
     return null;
   }
+
   /**
-   * Removes the value to which the specified key is mapped,
-   * or null otherwise.
-   * NOTE: This is blocking call
+   * Removes the value to which the specified key is mapped, or null otherwise. NOTE: This is blocking call
+   * 
    * @return removed value if present, null otherwise
    */
   public V remove(A arg) {

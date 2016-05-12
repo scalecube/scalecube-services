@@ -1,16 +1,16 @@
 package io.scalecube.cluster.fdetector;
 
-import com.google.common.base.Throwables;
-
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportSettings;
 import io.scalecube.transport.TransportPipelineFactory;
+import io.scalecube.transport.TransportSettings;
 
-import rx.schedulers.Schedulers;
+import com.google.common.base.Throwables;
 
 import java.util.Arrays;
 import java.util.List;
+
+import rx.schedulers.Schedulers;
 
 public class FailureDetectorBuilder {
   final FailureDetector target;
@@ -92,12 +92,12 @@ public class FailureDetectorBuilder {
   }
 
   public FailureDetectorBuilder init() {
-      try {
-          target.getTransport().start().get();
-      } catch (Exception ex) {
-          Throwables.propagate(ex);
-      }
-      target.start();
+    try {
+      target.getTransport().start().get();
+    } catch (Exception ex) {
+      Throwables.propagate(ex);
+    }
+    target.start();
     return this;
   }
 }

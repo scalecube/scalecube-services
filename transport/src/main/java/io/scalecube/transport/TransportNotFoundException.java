@@ -6,8 +6,7 @@ package io.scalecube.transport;
 public final class TransportNotFoundException extends TransportException {
   private static final long serialVersionUID = 1L;
 
-  public TransportNotFoundException() {
-  }
+  public TransportNotFoundException() {}
 
   public TransportNotFoundException(String message) {
     super(message);

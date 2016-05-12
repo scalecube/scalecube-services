@@ -4,6 +4,7 @@ import rx.functions.Func1;
 
 /**
  * Static constants for message headers.
+ * 
  * @author Anton Kharenko
  */
 public final class TransportHeaders {

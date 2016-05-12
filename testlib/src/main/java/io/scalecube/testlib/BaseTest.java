@@ -13,6 +13,7 @@ import java.util.Arrays;
 
 /**
  * Base test class.
+ * 
  * @author Anton Kharenko
  */
 public class BaseTest {
