@@ -1,5 +1,12 @@
 package io.scalecube.cluster.gossip;
 
+import static org.junit.Assert.assertEquals;
+
+import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Message;
+import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.TransportHeaders;
+
 import com.google.common.collect.Lists;
 
 import org.jmock.Expectations;
@@ -8,21 +15,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import rx.functions.Action1;
+import rx.subjects.PublishSubject;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import io.scalecube.transport.ITransport;
-import io.scalecube.transport.Message;
-import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportHeaders;
-import rx.functions.Action1;
-import rx.subjects.PublishSubject;
-
-import static org.junit.Assert.assertEquals;
 
 public class GossipProtocolTest {
   private static final int maxGossipSent = 2;

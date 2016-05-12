@@ -6,12 +6,12 @@ import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
+import rx.functions.Action1;
+import rx.functions.Func1;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import rx.functions.Action1;
-import rx.functions.Func1;
 
 /**
  * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach

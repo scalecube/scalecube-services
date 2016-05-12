@@ -34,6 +34,12 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Observable;
+import rx.functions.Func1;
+import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,12 +49,6 @@ import java.util.concurrent.ThreadFactory;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import rx.Observable;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 public final class Transport implements ITransportSpi, ITransport {
 

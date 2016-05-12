@@ -7,10 +7,10 @@ import io.scalecube.transport.TransportSettings;
 
 import com.google.common.base.Throwables;
 
+import rx.schedulers.Schedulers;
+
 import java.util.Arrays;
 import java.util.List;
-
-import rx.schedulers.Schedulers;
 
 public class FailureDetectorBuilder {
   final FailureDetector target;

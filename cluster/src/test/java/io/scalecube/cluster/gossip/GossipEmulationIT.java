@@ -21,14 +21,14 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import rx.functions.Action1;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import rx.functions.Action1;
 
 public class GossipEmulationIT {
   private ScheduledExecutorService[] executors = new ScheduledExecutorService[16];

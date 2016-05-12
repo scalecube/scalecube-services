@@ -3,11 +3,11 @@ package io.scalecube.transport;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
+import rx.Observable;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-
-import rx.Observable;
 
 /**
  * Transport is responsible for maintaining existing p2p connections to/from other transport endpoints. Allows sending

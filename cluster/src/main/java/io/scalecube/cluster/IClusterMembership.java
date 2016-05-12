@@ -1,8 +1,8 @@
 package io.scalecube.cluster;
 
-import java.util.List;
-
 import rx.Observable;
+
+import java.util.List;
 
 /**
  * Cluster Membership Protocol component responsible for managing information about existing members of the cluster.

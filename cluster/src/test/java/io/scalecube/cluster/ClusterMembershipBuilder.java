@@ -20,13 +20,13 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 
+import rx.schedulers.Schedulers;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import rx.schedulers.Schedulers;
 
 public class ClusterMembershipBuilder {
   final ClusterMembership target;
