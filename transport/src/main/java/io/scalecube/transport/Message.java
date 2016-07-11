@@ -20,6 +20,10 @@ public final class Message {
    */
   Message() {}
 
+  private Message(Builder builder) {
+    this(builder.data, builder.headers);
+  }
+
   /**
    * Instantiates a new message with the given data and without headers.
    */
@@ -40,6 +44,10 @@ public final class Message {
   public Message(Object data, Map<String, String> headers) {
     setData(data);
     setHeaders(headers);
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   /**
@@ -102,6 +110,14 @@ public final class Message {
     return headers.get(headerName);
   }
 
+  public String qualifier() {
+    return header(TransportHeaders.QUALIFIER);
+  }
+
+  public String correlationId() {
+    return header(TransportHeaders.CORRELATION_ID);
+  }
+
   /**
    * Return the message data, which can be byte array, string or any type.
    * 
@@ -122,5 +138,42 @@ public final class Message {
         + "headers=" + headers
         + ", data=" + (data == null ? "null" : data.getClass().getSimpleName())
         + '}';
+  }
+
+  public static class Builder {
+
+    private Map<String, String> headers = new HashMap<>();
+    private Object data;
+
+    private Builder() {
+    }
+
+    public Builder fillWith(Message message) {
+      this.data = message.data;
+      this.headers.putAll(message.headers);
+      return this;
+    }
+
+    public Builder data(Object data) {
+      this.data = data;
+      return this;
+    }
+
+    public Builder header(String key, String value) {
+      headers.put(key, value);
+      return this;
+    }
+
+    public Builder qualifier(String qualifier) {
+      return header(TransportHeaders.QUALIFIER, qualifier);
+    }
+
+    public Builder correlationId(String correlationId) {
+      return header(TransportHeaders.CORRELATION_ID, correlationId);
+    }
+
+    public Message build() {
+      return new Message(this);
+    }
   }
 }
