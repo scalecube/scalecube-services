@@ -1,14 +1,13 @@
 package io.scalecube.examples;
 
-import java.util.List;
-
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
-import io.scalecube.examples.Greetings;
 import io.scalecube.transport.Message;
 
 import rx.functions.Action1;
+
+import java.util.List;
 
 /**
  * Basic example for member transport between cluster members to run the example Start ClusterNodeA and cluster

@@ -1,18 +1,17 @@
 package io.scalecube.examples;
 
-import com.google.common.collect.ImmutableMap;
-
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
+import com.google.common.collect.ImmutableMap;
+
 import rx.functions.Action1;
 import rx.functions.Func1;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach

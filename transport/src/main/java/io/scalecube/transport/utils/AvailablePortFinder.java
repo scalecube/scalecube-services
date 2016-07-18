@@ -23,6 +23,14 @@ public class AvailablePortFinder {
    */
   public static final int MAX_PORT_NUMBER = 49151;
 
+  /**
+   * Finds next available port starting from given port and incrementing port for port count iterations.
+   *
+   * @param fromPort starting port
+   * @param portCount number of ports to check
+   * @return Next available port
+   * @throws NoSuchElementException if port wasn't found in the given interval
+   */
   public static int getNextAvailable(int fromPort, int portCount) {
     int toPort = Math.min(MAX_PORT_NUMBER, fromPort + portCount) - 1;
     for (int port = fromPort; port <= toPort; port++) {

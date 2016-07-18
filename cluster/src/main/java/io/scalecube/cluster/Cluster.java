@@ -2,7 +2,7 @@ package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.util.concurrent.Futures.*;
+import static com.google.common.util.concurrent.Futures.transform;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
@@ -11,6 +11,7 @@ import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.utils.AvailablePortFinder;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -21,7 +22,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.scalecube.transport.utils.AvailablePortFinder;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
@@ -117,6 +117,7 @@ public final class Cluster implements ICluster {
   public static ICluster joinAwait(int port, String seedMembers) {
     return joinAwait(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
   }
+
   public static ICluster joinAwait(String seedMembers) {
     return joinAwait(ClusterConfig.newInstance().seedMembers(seedMembers));
   }
@@ -128,6 +129,9 @@ public final class Cluster implements ICluster {
         .seedMembers(seedMembers));
   }
 
+  /**
+   * Init cluster instance with the given configuration and join cluster synchronously.
+   */
   public static ICluster joinAwait(ClusterConfig config) {
     try {
       return join(config).get();
@@ -147,6 +151,7 @@ public final class Cluster implements ICluster {
   public static ListenableFuture<ICluster> join(int port, String seedMembers) {
     return join(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
   }
+
   public static ListenableFuture<ICluster> join(String seedMembers) {
     return join(ClusterConfig.newInstance().seedMembers(seedMembers));
   }
