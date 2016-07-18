@@ -25,10 +25,6 @@ public interface ICluster {
 
   IClusterMembership membership();
 
-  ListenableFuture<ICluster> join();
-
-  ICluster joinAwait();
-
   ListenableFuture<Void> leave();
 
 }

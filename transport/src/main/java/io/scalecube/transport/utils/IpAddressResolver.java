@@ -3,10 +3,8 @@ package io.scalecube.transport.utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetAddress;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.io.IOException;
+import java.net.*;
 import java.util.Enumeration;
 
 /**
@@ -14,7 +12,6 @@ import java.util.Enumeration;
  */
 public class IpAddressResolver {
 
-  /** The Constant LOGGER. */
   private static final Logger LOGGER = LoggerFactory.getLogger(IpAddressResolver.class);
 
   /**
@@ -38,7 +35,7 @@ public class IpAddressResolver {
       LOGGER.error("Socket error during resolving IP address", e);
     }
 
-    while (netInterfaces.hasMoreElements()) {
+    while (netInterfaces != null && netInterfaces.hasMoreElements()) {
       NetworkInterface ni = netInterfaces.nextElement();
       Enumeration<InetAddress> address = ni.getInetAddresses();
       while (address.hasMoreElements()) {

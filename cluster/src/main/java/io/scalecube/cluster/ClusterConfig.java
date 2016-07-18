@@ -8,14 +8,16 @@ import java.util.Map;
 /**
  * Cluster configuration encapsulate settings needed cluster to create and successfully join.
  * 
- * @see ClusterConfiguration.ClusterMembershipSettings
- * @see ClusterConfiguration.FailureDetectorSettings
- * @see ClusterConfiguration.GossipProtocolSettings
+ * @see ClusterConfig.ClusterMembershipSettings
+ * @see ClusterConfig.FailureDetectorSettings
+ * @see ClusterConfig.GossipProtocolSettings
  * @author Anton Kharenko
  */
-public class ClusterConfiguration {
+public class ClusterConfig {
 
-  public static final int DEFAULT_PORT = 29001;
+  public static final int DEFAULT_PORT = 4801;
+  public static final int DEFAULT_PORT_COUNT = 100;
+  public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
   public static final ClusterMembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new ClusterMembershipSettings();
   public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
   public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
@@ -23,16 +25,18 @@ public class ClusterConfiguration {
   String memberId = null;
   String seedMembers = "";
   int port = DEFAULT_PORT;
+  int portCount = DEFAULT_PORT_COUNT;
+  boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
   Map<String, String> metadata = new HashMap<>();
   TransportSettings transportSettings = TransportSettings.DEFAULT;
   ClusterMembershipSettings clusterMembershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
   FailureDetectorSettings failureDetectorSettings = DEFAULT_FAILURE_DETECTOR_SETTINGS;
   GossipProtocolSettings gossipProtocolSettings = DEFAULT_GOSSIP_PROTOCOL_SETTINGS;
 
-  private ClusterConfiguration() {}
+  private ClusterConfig() {}
 
-  public static ClusterConfiguration newInstance() {
-    return new ClusterConfiguration();
+  public static ClusterConfig newInstance() {
+    return new ClusterConfig();
   }
 
   public void setMemberId(String memberId) {
@@ -45,6 +49,14 @@ public class ClusterConfiguration {
 
   public void setPort(int port) {
     this.port = port;
+  }
+
+  public void setPortCount(int portCount) {
+    this.portCount = portCount;
+  }
+
+  public void setPortAutoIncrement(boolean portAutoIncrement) {
+    this.portAutoIncrement = portAutoIncrement;
   }
 
   public void setMetadata(Map<String, String> metadata) {
@@ -67,42 +79,52 @@ public class ClusterConfiguration {
     this.transportSettings = transportSettings;
   }
 
-  public ClusterConfiguration metadata(Map<String, String> metadata) {
+  public ClusterConfig metadata(Map<String, String> metadata) {
     setMetadata(metadata);
     return this;
   }
 
-  public ClusterConfiguration memberId(String memberId) {
+  public ClusterConfig memberId(String memberId) {
     setMemberId(memberId);
     return this;
   }
 
-  public ClusterConfiguration seedMembers(String seedMembers) {
+  public ClusterConfig seedMembers(String seedMembers) {
     setSeedMembers(seedMembers);
     return this;
   }
 
-  public ClusterConfiguration port(int port) {
+  public ClusterConfig port(int port) {
     setPort(port);
     return this;
   }
 
-  public ClusterConfiguration clusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
+  public ClusterConfig portCount(int portCount) {
+    setPortCount(portCount);
+    return this;
+  }
+
+  public ClusterConfig portAutoIncrement(boolean portAutoIncrement) {
+    setPortAutoIncrement(portAutoIncrement);
+    return this;
+  }
+
+  public ClusterConfig clusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
     setClusterMembershipSettings(clusterMembershipSettings);
     return this;
   }
 
-  public ClusterConfiguration failureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
+  public ClusterConfig failureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
     setFailureDetectorSettings(failureDetectorSettings);
     return this;
   }
 
-  public ClusterConfiguration gossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
+  public ClusterConfig gossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
     setGossipProtocolSettings(gossipProtocolSettings);
     return this;
   }
 
-  public ClusterConfiguration transportSettings(TransportSettings transportSetting) {
+  public ClusterConfig transportSettings(TransportSettings transportSetting) {
     setTransportSettings(transportSetting);
     return this;
   }
@@ -113,6 +135,8 @@ public class ClusterConfiguration {
         + "memberId='" + memberId + '\''
         + ", seedMembers='" + seedMembers + '\''
         + ", port=" + port
+        + ", portCount=" + portCount
+        + ", portAutoIncrement=" + portAutoIncrement
         + ", metadata=" + metadata
         + ", transportSettings=" + transportSettings
         + ", clusterMembershipSettings=" + clusterMembershipSettings
@@ -197,9 +221,12 @@ public class ClusterConfiguration {
 
     @Override
     public String toString() {
-      return "ClusterMembershipSettings{" + "syncTime=" + syncTime + ", syncTimeout=" + syncTimeout
-          + ", maxSuspectTime=" + maxSuspectTime + ", maxShutdownTime=" + maxShutdownTime + ", syncGroup='" + syncGroup
-          + '\'' + '}';
+      return "ClusterMembershipSettings{syncTime=" + syncTime
+          + ", syncTimeout=" + syncTimeout
+          + ", maxSuspectTime=" + maxSuspectTime
+          + ", maxShutdownTime=" + maxShutdownTime
+          + ", syncGroup='" + syncGroup + '\''
+          + '}';
     }
   }
 
@@ -247,8 +274,10 @@ public class ClusterConfiguration {
 
     @Override
     public String toString() {
-      return "GossipProtocolSettings{" + "maxGossipSent=" + maxGossipSent + ", gossipTime=" + gossipTime
-          + ", maxEndpointsToSelect=" + maxEndpointsToSelect + '}';
+      return "GossipProtocolSettings{maxGossipSent=" + maxGossipSent
+          + ", gossipTime=" + gossipTime
+          + ", maxEndpointsToSelect=" + maxEndpointsToSelect
+          + '}';
     }
   }
 
@@ -296,8 +325,10 @@ public class ClusterConfiguration {
 
     @Override
     public String toString() {
-      return "FailureDetectorSettings{" + "pingTime=" + pingTime + ", pingTimeout=" + pingTimeout
-          + ", maxEndpointsToSelect=" + maxEndpointsToSelect + '}';
+      return "FailureDetectorSettings{pingTime=" + pingTime
+          + ", pingTimeout=" + pingTimeout
+          + ", maxEndpointsToSelect=" + maxEndpointsToSelect
+          + '}';
     }
   }
 }

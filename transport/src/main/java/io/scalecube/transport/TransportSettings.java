@@ -72,6 +72,9 @@ public final class TransportSettings {
 
     private String logLevel = DEFAULT_LOG_LEVEL;
     private boolean useNetworkEmulator = DEFAULT_USE_NETWORK_EMULATOR;
+    private int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
+    private int handshakeTimeout = DEFAULT_HANDSHAKE_TIMEOUT;
+    private int sendHighWaterMark = DEFAULT_SEND_HIGH_WATER_MARK;
 
     private Builder() {}
 
@@ -79,8 +82,6 @@ public final class TransportSettings {
       this.connectTimeout = connectTimeout;
       return this;
     }
-
-    private int connectTimeout = DEFAULT_CONNECT_TIMEOUT;
 
     public Builder handshakeTimeout(int handshakeTimeout) {
       this.handshakeTimeout = handshakeTimeout;
@@ -92,8 +93,6 @@ public final class TransportSettings {
       return this;
     }
 
-    private int handshakeTimeout = DEFAULT_HANDSHAKE_TIMEOUT;
-
     public Builder setLogLevel(String logLevel) {
       this.logLevel = logLevel;
       return this;
@@ -103,8 +102,6 @@ public final class TransportSettings {
       this.useNetworkEmulator = useNetworkEmulator;
       return this;
     }
-
-    private int sendHighWaterMark = DEFAULT_SEND_HIGH_WATER_MARK;
 
     public TransportSettings build() {
       return new TransportSettings(this);
