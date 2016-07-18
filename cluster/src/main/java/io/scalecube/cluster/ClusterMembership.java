@@ -57,7 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public final class ClusterMembership implements IManagedClusterMembership, IClusterMembership {
+public final class ClusterMembership implements IClusterMembership {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMembership.class);
 
@@ -251,7 +251,9 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     return membership.get(localEndpoint);
   }
 
-  @Override
+  /**
+   * Starts running cluster membership protocol. After started it begins to receive and send cluster membership messages
+   */
   public ListenableFuture<Void> start() {
     // Start timer
     timer = new TickingTimer();
@@ -303,7 +305,9 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     return startFuture;
   }
 
-  @Override
+  /**
+   * Stops running cluster membership protocol and releases occupied resources.
+   */
   public void stop() {
     if (cmTask != null) {
       cmTask.unsubscribe();
@@ -467,7 +471,11 @@ public final class ClusterMembership implements IManagedClusterMembership, IClus
     }
   }
 
-  @Override
+  /**
+   * Denoting fact that local member is getting gracefully shutdown. It will notify other members that going to be
+   * stopped soon. After calling this method recommended to wait some reasonable amount of time to start spreading
+   * information about leave before stopping server.
+   */
   public void leave() {
     ClusterMember r1 = new ClusterMember(localEndpoint, SHUTDOWN, localMetadata);
     gossipProtocol.spread(new Message(new ClusterMembershipData(ImmutableList.of(r1), syncGroup)));

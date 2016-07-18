@@ -83,7 +83,10 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   @Override
   public String toString() {
-    return "ClusterMember{" + "endpoint=" + endpoint + ", status=" + status + ", metadata=" + metadata
-        + ", lastUpdateTimestamp=" + lastUpdateTimestamp + '}';
+    return "ClusterMember{endpoint=" + endpoint
+        + ", status=" + status
+        + ", metadata=" + metadata
+        + ", lastUpdateTimestamp=" + lastUpdateTimestamp
+        + '}';
   }
 }

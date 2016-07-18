@@ -1,17 +1,17 @@
-package io.scalecube.examples.metadata;
+package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ClusterConfiguration;
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
+import com.google.common.collect.ImmutableMap;
+
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach
@@ -23,7 +23,7 @@ import java.util.Map;
  * 
  * @author ronen_h
  */
-public class ClusterMetadata {
+public class ClusterMetadataExample {
 
   private static final String MESSAGE_DATA = "hello/Joe";
   public static final Func1<Message, Boolean> MESSAGE_PREDICATE = new Func1<Message, Boolean>() {
@@ -38,17 +38,17 @@ public class ClusterMetadata {
    */
   public static void main(String[] args) throws Exception {
 
-    ICluster seedCluster = Cluster.newInstance(3000).joinAwait();
+    ICluster seedCluster = Cluster.joinAwait(3000);
 
     // define the custom configuration meta data. and we add alias field.
-    Map<String, String> metadata = new HashMap<>();
-    metadata.put("alias", "Joe");
-    ClusterConfiguration config =
-        ClusterConfiguration.newInstance().port(4004).seedMembers("localhost" + ":" + "3000").memberId("my_member_id")
-            .metadata(metadata);
+    ClusterConfig config = ClusterConfig.newInstance()
+        .port(4004)
+        .seedMembers("localhost:3000")
+        .memberId("my_member_id")
+        .metadata(ImmutableMap.of("alias", "Joe"));
 
     // configure cluster 2 with the metadata and attach cluster 2 as Joe and join seed
-    ICluster joeCluster = Cluster.newInstance(config).joinAwait();
+    ICluster joeCluster = Cluster.joinAwait(config);
 
     // filter and subscribe on hello/joe and print the welcome message.
     joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<Message>() {
