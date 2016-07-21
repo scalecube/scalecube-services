@@ -4,7 +4,7 @@ import static io.scalecube.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAK
 import static io.scalecube.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK;
 import static io.scalecube.transport.TransportHeaders.QUALIFIER;
 
-import io.scalecube.transport.utils.ChannelFutureUtils;
+import io.scalecube.transport.utils.FutureUtils;
 
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -52,7 +52,7 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
     ChannelFuture channelFuture =
         ctx.writeAndFlush(new Message(handshakeResponse, QUALIFIER, Q_TRANSPORT_HANDSHAKE_SYNC_ACK));
 
-    channelFuture.addListener(ChannelFutureUtils.wrap(new ChannelFutureListener() {
+    channelFuture.addListener(FutureUtils.wrap(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture future) {
         if (!handshakeResponse.isResolvedOk()) {

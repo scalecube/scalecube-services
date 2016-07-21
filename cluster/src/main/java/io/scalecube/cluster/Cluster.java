@@ -68,8 +68,7 @@ public final class Cluster implements ICluster {
 
     // Build local endpoint
     String memberId = Optional.fromNullable(config.memberId).or(UUID.randomUUID().toString());
-    TransportEndpoint localEndpoint =
-        TransportEndpoint.from(memberId, TransportEndpoint.localSocketAddress(config.port));
+    TransportEndpoint localEndpoint = TransportEndpoint.createLocal(memberId, config.port);
 
     // Build transport
     transport = Transport.newInstance(localEndpoint, config.transportSettings);

@@ -27,9 +27,9 @@ final class TransportHandshakeData {
   }
 
   /**
-   * Encoded transport endpoint {@code host:port:id}. <b>NOTE:</b> {@code host} isn't optinal here. This is DTO field
-   * purely for populating {@link #endpoint} property. By itself this is transport endpoint related to the opposite end
-   * of the corresponding connection; never null.
+   * Encoded transport endpoint {@code host:port:id}. This is DTO field purely for populating {@link #endpoint}
+   * property. By itself this is transport endpoint related to the opposite end of the corresponding connection; never
+   * null.
    */
   @Tag(1)
   private final String encodedEndpoint;

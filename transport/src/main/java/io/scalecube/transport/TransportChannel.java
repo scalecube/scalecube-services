@@ -5,7 +5,8 @@ import static com.google.common.collect.Iterables.transform;
 import static io.scalecube.transport.TransportChannel.Status.CLOSED;
 import static io.scalecube.transport.TransportChannel.Status.CONNECTED;
 import static io.scalecube.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
-import static io.scalecube.transport.utils.ChannelFutureUtils.setPromise;
+
+import io.scalecube.transport.utils.FutureUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -124,7 +125,7 @@ final class TransportChannel implements ITransportChannel {
     if (promise != null && getCause() != null) {
       promise.setException(getCause());
     } else {
-      setPromise(channel.writeAndFlush(message), promise);
+      FutureUtils.compose(channel.writeAndFlush(message), promise);
     }
   }
 
@@ -145,7 +146,7 @@ final class TransportChannel implements ITransportChannel {
     this.cause.compareAndSet(null, cause != null ? cause : new TransportClosedException());
     status.set(CLOSED);
     closeCallback.call(this);
-    setPromise(channel.close(), promise);
+    FutureUtils.compose(channel.close(), promise);
     LOGGER.info("Closed {}", this);
   }
 
