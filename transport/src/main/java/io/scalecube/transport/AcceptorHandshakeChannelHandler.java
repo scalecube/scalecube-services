@@ -75,8 +75,8 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
     TransportEndpoint remoteEndpoint = handshakeRequest.endpoint();
     if (remoteEndpoint == null) {
       return TransportHandshakeData.error("Remote endpoint not set");
-    } else if (remoteEndpoint.address() == null) {
-      return TransportHandshakeData.error("Remote endpoint address not set");
+    } else if (remoteEndpoint.getSocketAddress() == null) {
+      return TransportHandshakeData.error("Remote endpoint getSocketAddress not set");
     } else if (remoteEndpoint.id() == null) {
       return TransportHandshakeData.error("Remote endpoint id not set");
     } else if (remoteEndpoint.id().equals(localEndpoint.id())) {

@@ -3,7 +3,6 @@ package io.scalecube.cluster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.utils.IpAddressResolver;
 

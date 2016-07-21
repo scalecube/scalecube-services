@@ -10,7 +10,6 @@ import io.scalecube.cluster.fdetector.FailureDetectorBuilder;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.TransportPipelineFactory;
 import io.scalecube.transport.TransportSettings;

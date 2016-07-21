@@ -68,8 +68,8 @@ public final class Transport implements ITransportSpi, ITransport {
   private final EventExecutorGroup eventExecutor;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
-  private final ConcurrentMap<TransportAddress, TransportChannel> acceptedChannels = new ConcurrentHashMap<>();
-  private final Memoizer<TransportAddress, TransportChannel> connectedChannels = new Memoizer<>();
+  private final ConcurrentMap<InetSocketAddress, TransportChannel> acceptedChannels = new ConcurrentHashMap<>();
+  private final Memoizer<InetSocketAddress, TransportChannel> connectedChannels = new Memoizer<>();
 
   private PipelineFactory pipelineFactory;
   private ServerChannel serverChannel;
@@ -169,7 +169,7 @@ public final class Transport implements ITransportSpi, ITransport {
     incomingMessagesSubject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
 
     Class<? extends ServerChannel> serverChannelClass = NioServerSocketChannel.class;
-    final SocketAddress bindAddress = new InetSocketAddress(localEndpoint.address().port());
+    final SocketAddress bindAddress = new InetSocketAddress(localEndpoint.getSocketAddress().getPort());
 
     ServerBootstrap server = new ServerBootstrap();
     server.group(eventLoop).channel(serverChannelClass).childHandler(new ChannelInitializer<Channel>() {
@@ -199,19 +199,18 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public ListenableFuture<TransportEndpoint> connect(@CheckForNull final TransportAddress address) {
+  public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address) {
     checkArgument(address != null);
     final TransportChannel transportChannel = getOrConnect(address);
     return Futures.transform(transportChannel.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
   }
 
-  private void connect(final Channel channel, final TransportAddress address, final TransportChannel transport) {
+  private void connect(final Channel channel, final InetSocketAddress address, final TransportChannel transport) {
     channel.eventLoop().execute(new Runnable() {
       @Override
       public void run() {
-        SocketAddress socketAddress = new InetSocketAddress(address.hostAddress(), address.port());
         ChannelPromise promise = channel.newPromise();
-        channel.connect(socketAddress, promise);
+        channel.connect(address, promise);
         promise.addListener(wrap(new ChannelFutureListener() {
           @Override
           public void operationComplete(ChannelFuture future) {
@@ -227,7 +226,7 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
-    TransportChannel transportChannel = connectedChannels.getIfExists(endpoint.address());
+    TransportChannel transportChannel = connectedChannels.getIfExists(endpoint.getSocketAddress());
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     if (transportChannel == null) {
       if (promise != null) {
@@ -248,7 +247,7 @@ public final class Transport implements ITransportSpi, ITransport {
       @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
-    TransportChannel transportChannel = getOrConnect(endpoint.address());
+    TransportChannel transportChannel = getOrConnect(endpoint.getSocketAddress());
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     transportChannel.send(message, promise);
   }
@@ -272,14 +271,14 @@ public final class Transport implements ITransportSpi, ITransport {
       // ignore
     }
     // cleanup accepted
-    for (TransportAddress address : acceptedChannels.keySet()) {
+    for (InetSocketAddress address : acceptedChannels.keySet()) {
       TransportChannel transport = acceptedChannels.remove(address);
       if (transport != null) {
         transport.close();
       }
     }
     // cleanup connected
-    for (TransportAddress address : connectedChannels.keySet()) {
+    for (InetSocketAddress address : connectedChannels.keySet()) {
       TransportChannel transport = connectedChannels.remove(address);
       if (transport != null) {
         transport.close();
@@ -297,7 +296,7 @@ public final class Transport implements ITransportSpi, ITransport {
       public Void call(TransportChannel transportChannel) {
         TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
         if (remoteEndpoint != null) {
-          acceptedChannels.remove(remoteEndpoint.address());
+          acceptedChannels.remove(remoteEndpoint.getSocketAddress());
         }
         return null;
       }
@@ -308,8 +307,8 @@ public final class Transport implements ITransportSpi, ITransport {
   public void accept(TransportChannel transportChannel) throws TransportBrokenException {
     TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
     checkNotNull(remoteEndpoint);
-    checkNotNull(remoteEndpoint.address());
-    TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.address(), transportChannel);
+    checkNotNull(remoteEndpoint.getSocketAddress());
+    TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.getSocketAddress(), transportChannel);
     if (prev != null) {
       String err = String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint);
       throw new TransportBrokenException(err);
@@ -326,11 +325,11 @@ public final class Transport implements ITransportSpi, ITransport {
     incomingMessagesSubject.onNext(message);
   }
 
-  private TransportChannel getOrConnect(@CheckForNull final TransportAddress address) {
+  private TransportChannel getOrConnect(@CheckForNull InetSocketAddress address) {
     checkArgument(address != null);
-    return connectedChannels.get(address, new Computable<TransportAddress, TransportChannel>() {
+    return connectedChannels.get(address, new Computable<InetSocketAddress, TransportChannel>() {
       @Override
-      public TransportChannel compute(final TransportAddress address) {
+      public TransportChannel compute(final InetSocketAddress address) {
         final Channel channel = createConnectorChannel();
         final TransportChannel transportChannel = createConnectorTransportChannel(channel, address);
 
@@ -364,15 +363,13 @@ public final class Transport implements ITransportSpi, ITransport {
     return channel;
   }
 
-  private TransportChannel createConnectorTransportChannel(Channel channel, final TransportAddress endpoint) {
+  private TransportChannel createConnectorTransportChannel(Channel channel, final InetSocketAddress address) {
     return TransportChannel.newConnectorChannel(channel, new Func1<TransportChannel, Void>() {
       @Override
       public Void call(TransportChannel transport) {
-        connectedChannels.remove(endpoint);
+        connectedChannels.remove(address);
         return null;
       }
     });
   }
-
-
 }

@@ -9,7 +9,6 @@ import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.utils.AvailablePortFinder;
 

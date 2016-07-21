@@ -3,7 +3,6 @@ package io.scalecube.cluster;
 import static com.google.common.base.Throwables.propagate;
 import static io.scalecube.cluster.ClusterMembershipBuilder.CMBuilder;
 
-import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
 
 import com.google.common.collect.ImmutableList;
@@ -20,7 +19,7 @@ public class ClusterMembershipIT {
     TransportEndpoint a = TransportEndpoint.from("tcp://a@localhost:20123");
     TransportEndpoint b = TransportEndpoint.from("tcp://b@localhost:20124");
     TransportEndpoint c = TransportEndpoint.from("tcp://c@localhost:20125");
-    List<TransportAddress> members = ImmutableList.of(a.address(), b.address(), c.address());
+    List<TransportAddress> members = ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
@@ -44,7 +43,7 @@ public class ClusterMembershipIT {
     TransportEndpoint a = TransportEndpoint.from("tcp://a@localhost:20123");
     TransportEndpoint b = TransportEndpoint.from("tcp://b@localhost:20124");
     TransportEndpoint c = TransportEndpoint.from("tcp://c@localhost:20125");
-    List<TransportAddress> members = ImmutableList.of(a.address(), b.address(), c.address());
+    List<TransportAddress> members = ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).block(b).block(c).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).block(a).block(c).init();
@@ -78,7 +77,7 @@ public class ClusterMembershipIT {
     TransportEndpoint a = TransportEndpoint.from("tcp://a@localhost:20123");
     TransportEndpoint b = TransportEndpoint.from("tcp://b@localhost:20124");
     TransportEndpoint c = TransportEndpoint.from("tcp://c@localhost:20125");
-    List<TransportAddress> members = ImmutableList.of(a.address(), b.address(), c.address());
+    List<TransportAddress> members = ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
@@ -123,7 +122,7 @@ public class ClusterMembershipIT {
     TransportEndpoint b = TransportEndpoint.from("tcp://b@localhost:20124");
     TransportEndpoint c = TransportEndpoint.from("tcp://c@localhost:20125");
     TransportEndpoint d = TransportEndpoint.from("tcp://d@localhost:20126");
-    List<TransportAddress> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
+    List<TransportAddress> members = ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress(), d.getSocketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
@@ -171,7 +170,7 @@ public class ClusterMembershipIT {
     TransportEndpoint b = TransportEndpoint.from("tcp://b@localhost:20124");
     TransportEndpoint c = TransportEndpoint.from("tcp://c@localhost:20125");
     TransportEndpoint d = TransportEndpoint.from("tcp://d@localhost:20126");
-    List<TransportAddress> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
+    List<TransportAddress> members = ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress(), d.getSocketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
@@ -180,8 +179,8 @@ public class ClusterMembershipIT {
 
     TransportEndpoint rc = TransportEndpoint.from("tcp://restarted_c@localhost:20125");
     TransportEndpoint rd = TransportEndpoint.from("tcp://restarted_d@localhost:20126");
-    ClusterMembershipBuilder cm_rc = ClusterMembershipBuilder.CMBuilder(rc, a.address(), b.address());
-    ClusterMembershipBuilder cm_rd = ClusterMembershipBuilder.CMBuilder(rd, a.address(), b.address());
+    ClusterMembershipBuilder cm_rc = ClusterMembershipBuilder.CMBuilder(rc, a.getSocketAddress(), b.getSocketAddress());
+    ClusterMembershipBuilder cm_rd = ClusterMembershipBuilder.CMBuilder(rd, a.getSocketAddress(), b.getSocketAddress());
 
     try {
       pause(3);
@@ -231,10 +230,10 @@ public class ClusterMembershipIT {
     TransportEndpoint e = TransportEndpoint.from("tcp://e@localhost:20127");
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a).init();
-    ClusterMembershipBuilder cm_b = CMBuilder(b, a.address()).init();
-    ClusterMembershipBuilder cm_c = CMBuilder(c, a.address()).init();
-    ClusterMembershipBuilder cm_d = CMBuilder(d, b.address()).init();
-    ClusterMembershipBuilder cm_e = CMBuilder(e, b.address()).init();
+    ClusterMembershipBuilder cm_b = CMBuilder(b, a.getSocketAddress()).init();
+    ClusterMembershipBuilder cm_c = CMBuilder(c, a.getSocketAddress()).init();
+    ClusterMembershipBuilder cm_d = CMBuilder(d, b.getSocketAddress()).init();
+    ClusterMembershipBuilder cm_e = CMBuilder(e, b.getSocketAddress()).init();
 
     try {
       pause(3);

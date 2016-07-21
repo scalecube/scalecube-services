@@ -10,23 +10,23 @@ import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 /**
- * Utility class that defines node's IP address which is different from localhost.
+ * Utility class that defines node's IP getSocketAddress which is different from localhost.
  */
 public class IpAddressResolver {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(IpAddressResolver.class);
 
   /**
-   * Instantiates a new ip address resolver.
+   * Instantiates a new ip getSocketAddress resolver.
    */
   private IpAddressResolver() {
     /* Can't be instantiated */
   }
 
   /**
-   * Resolve ip address.
+   * Resolve ip getSocketAddress.
    *
-   * @return the inet address
+   * @return the inet getSocketAddress
    * @throws java.net.UnknownHostException the unknown host exception
    */
   public static InetAddress resolveIpAddress() throws UnknownHostException {
@@ -34,7 +34,7 @@ public class IpAddressResolver {
     try {
       netInterfaces = NetworkInterface.getNetworkInterfaces();
     } catch (SocketException e) {
-      LOGGER.error("Socket error during resolving IP address", e);
+      LOGGER.error("Socket error during resolving IP getSocketAddress", e);
     }
 
     while (netInterfaces != null && netInterfaces.hasMoreElements()) {
