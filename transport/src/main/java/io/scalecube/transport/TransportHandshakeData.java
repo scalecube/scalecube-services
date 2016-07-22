@@ -24,17 +24,32 @@ final class TransportHandshakeData {
     RESOLVED_ERROR
   }
 
-  /** Encoded transport endpoint {@code host:port:id} */
+  /**
+   * Encoded transport endpoint {@code host:port:id}. <b>NOTE:</b> {@code host} isn't optinal here. This is DTO field
+   * purely for populating {@link #endpoint} property. By itself this is transport endpoint related to the opposite end
+   * of the corresponding connection; never null.
+   */
   @Tag(1)
   private final String encodedEndpoint;
-  /** A {@link Status} field */
-  @Tag(3)
+
+  /**
+   * A status field. When set to {@link Status#RESOLVED_OK} this mean transport connection is good and we can proceed
+   * further with transport, otherwise -- transport should be treated as invalid and purged from system; never null.
+   */
+  @Tag(2)
   private final Status status;
-  /** Human redable explanation */
-  @Tag(4)
+
+  /**
+   * Human redable explanation of status field; never null.
+   */
+  @Tag(3)
   private final String explain;
-  /** Decoded transport endpoint. */
-  private transient TransportEndpoint endpoint;
+
+  /**
+   * Decoded transport endpoint. <b>NOTE:</b> this is calculated field from {@link #encodedEndpoint} property. By itself
+   * this is transport endpoint related to the opposite end of the corresponding connection; never null.
+   */
+  private transient volatile TransportEndpoint endpoint;
 
   private TransportHandshakeData(String encodedEndpoint, Status status, String explain) {
     this.encodedEndpoint = encodedEndpoint;
@@ -43,39 +58,33 @@ final class TransportHandshakeData {
     this.endpoint = TransportEndpoint.from(encodedEndpoint);
   }
 
-  /** Creates new instance with status {@link Status#CREATED} and given endpoint. */
-  public static TransportHandshakeData create(TransportEndpoint endpoint) {
-    return new TransportHandshakeData(endpoint.getString(), CREATED, null);
+  static TransportHandshakeData create(TransportEndpoint endpoint) {
+    return new TransportHandshakeData(endpoint.getString(), CREATED, CREATED.toString());
   }
 
-  /** Creates new instance with status {@link Status#RESOLVED_OK} and given endpoint. */
-  public static TransportHandshakeData ok(TransportEndpoint endpoint) {
-    return new TransportHandshakeData(endpoint.getString(), RESOLVED_OK, null);
+  static TransportHandshakeData ok(TransportEndpoint endpoint) {
+    return new TransportHandshakeData(endpoint.getString(), RESOLVED_OK, RESOLVED_OK.toString());
   }
 
-  /** Creates new instance with status {@link Status#RESOLVED_ERROR} and given error message explanation. */
-  public static TransportHandshakeData error(TransportEndpoint endpoint, String explain) {
+  static TransportHandshakeData error(TransportEndpoint endpoint, String explain) {
     return new TransportHandshakeData(endpoint.getString(), RESOLVED_ERROR, explain);
   }
 
-  /** Transport endpoint related to the opposite end of the corresponding connection; never null. */
+  /** See {@link #endpoint} */
   @Nonnull
-  public TransportEndpoint getEndpoint() {
+  TransportEndpoint getEndpoint() {
     return endpoint != null ? endpoint : (endpoint = TransportEndpoint.from(encodedEndpoint));
   }
 
-  /**
-   * Status of resolution. When set to {@link Status#RESOLVED_OK} this should mean connection is good and we can proceed
-   * further with transport. Otherwise -- transport should be treated as invalid and purged from system.
-   */
+  /** See {@link #status} */
   @Nonnull
-  public Status getStatus() {
+  Status getStatus() {
     return status;
   }
 
   /** String explanation of the status. Not set if {@link Status#RESOLVED_OK} (but set otherwise). */
   @Nullable
-  public String getExplain() {
+  String getExplain() {
     return explain;
   }
 

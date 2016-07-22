@@ -27,10 +27,25 @@ public final class TransportEndpoint {
 
   private static volatile InetSocketAddress localSocketAddress;
 
-  /** Endpoint identifier (or <i>incarnation id</i>). */
+  /**
+   * Endpoint identifier (or <i>incarnationId</i>). Either being set upfront or obtained at connection' handshake phase.
+   */
   private String id;
-  /** Socket address of the endpoint. */
-  private InetSocketAddress socketAddress;
+
+  /**
+   * Socket address of the endpoint. <b>NOTE:</b> this field isn't serializable.
+   */
+  private transient volatile InetSocketAddress socketAddress;
+
+  /**
+   * Host address. <b>NOTE:</b> {@link #socketAddress}'s host address is eq to value of this field.
+   */
+  private String hostAddress;
+
+  /**
+   * Port. <b>NOTE:</b> {@link #socketAddress}'s port is eq to value of this field.
+   */
+  private int port;
 
   private TransportEndpoint() {}
 
@@ -39,6 +54,8 @@ public final class TransportEndpoint {
     checkArgument(socketAddress != null);
     this.id = id;
     this.socketAddress = socketAddress;
+    this.hostAddress = socketAddress.getAddress().getHostAddress();
+    this.port = socketAddress.getPort();
   }
 
   /**
@@ -103,12 +120,12 @@ public final class TransportEndpoint {
 
   @Nonnull
   public InetSocketAddress getSocketAddress() {
-    return socketAddress;
+    return socketAddress != null ? socketAddress : (socketAddress = new InetSocketAddress(hostAddress, port));
   }
 
   @Nonnull
   public String getString() {
-    return socketAddress.getAddress().getHostAddress() + ":" + socketAddress.getPort() + ":" + id;
+    return hostAddress + ":" + port + ":" + id;
   }
 
   private static boolean isLocalhost(String host) {
@@ -132,12 +149,12 @@ public final class TransportEndpoint {
       return false;
     }
     TransportEndpoint that = (TransportEndpoint) other;
-    return Objects.equals(id, that.id) && Objects.equals(socketAddress, that.socketAddress);
+    return Objects.equals(id, that.id) && Objects.equals(getSocketAddress(), that.getSocketAddress());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, socketAddress);
+    return Objects.hash(id, getSocketAddress());
   }
 
   @Override
