@@ -37,7 +37,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   @Nonnull
   public String id() {
-    return endpoint.id();
+    return endpoint.getId();
   }
 
   @Nonnull

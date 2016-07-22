@@ -10,46 +10,44 @@ import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 /**
- * Utility class that defines node's IP getSocketAddress which is different from localhost.
+ * Utility class that defines node's IP4 socketAddress which is different from localhost. <br/>
+ * <b>NOTE:<b/> first found NIC with IP4 address would be considered.
  */
 public class IpAddressResolver {
-
   private static final Logger LOGGER = LoggerFactory.getLogger(IpAddressResolver.class);
 
-  /**
-   * Instantiates a new ip getSocketAddress resolver.
-   */
-  private IpAddressResolver() {
-    /* Can't be instantiated */
-  }
+  private static volatile InetAddress ipAddress;
+
+  private IpAddressResolver() {}
 
   /**
-   * Resolve ip getSocketAddress.
+   * Resolve ip socketAddress. Iterates on NICs and takes a first found IP4 address.
    *
-   * @return the inet getSocketAddress
-   * @throws java.net.UnknownHostException the unknown host exception
+   * @return the IP4 address
+   * @throws UnknownHostException the unknown host exception
    */
   public static InetAddress resolveIpAddress() throws UnknownHostException {
+    if (ipAddress != null) {
+      return ipAddress;
+    }
+
     Enumeration<NetworkInterface> netInterfaces = null;
     try {
       netInterfaces = NetworkInterface.getNetworkInterfaces();
     } catch (SocketException e) {
-      LOGGER.error("Socket error during resolving IP getSocketAddress", e);
+      LOGGER.error("Socket error during resolving IP socketAddress", e);
     }
-
     while (netInterfaces != null && netInterfaces.hasMoreElements()) {
       NetworkInterface ni = netInterfaces.nextElement();
       Enumeration<InetAddress> address = ni.getInetAddresses();
       while (address.hasMoreElements()) {
         InetAddress addr = address.nextElement();
-        LOGGER.debug("Found network interface: {}", addr.getHostAddress());
-        if (!addr.isLoopbackAddress() && addr.getAddress().length == 4 // for IP4 addresses
-        ) {
-          return addr;
+        if (!addr.isLoopbackAddress() && addr.getAddress().length == 4) {
+          return ipAddress = addr; // for IP4 addresses
         }
       }
     }
-    return InetAddress.getLocalHost();
-  }
 
+    throw new UnsupportedOperationException();
+  }
 }

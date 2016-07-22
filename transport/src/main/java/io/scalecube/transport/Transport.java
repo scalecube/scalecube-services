@@ -41,7 +41,6 @@ import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadFactory;
@@ -169,7 +168,6 @@ public final class Transport implements ITransportSpi, ITransport {
     incomingMessagesSubject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
 
     Class<? extends ServerChannel> serverChannelClass = NioServerSocketChannel.class;
-    final SocketAddress bindAddress = new InetSocketAddress(localEndpoint.getSocketAddress().getPort());
 
     ServerBootstrap server = new ServerBootstrap();
     server.group(eventLoop).channel(serverChannelClass).childHandler(new ChannelInitializer<Channel>() {
@@ -179,19 +177,19 @@ public final class Transport implements ITransportSpi, ITransport {
       }
     });
 
-    ChannelFuture bindFuture = server.bind(bindAddress);
+    ChannelFuture bindFuture = server.bind(localEndpoint.getSocketAddress());
     final SettableFuture<Void> result = SettableFuture.create();
     bindFuture.addListener(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.id(), bindAddress);
+          LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.getId(), localEndpoint.getSocketAddress());
           result.set(null);
         } else {
           Throwable ex = channelFuture.cause();
           result.setException(ex);
-          LOGGER.error("Failed to bind to: " + bindAddress + ", caught " + ex, ex);
+          LOGGER.error("Failed to bind to: " + localEndpoint.getSocketAddress() + ", caught " + ex, ex);
         }
       }
     });
@@ -199,9 +197,9 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address) {
-    checkArgument(address != null);
-    final TransportChannel transportChannel = getOrConnect(address);
+  public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress socketAddress) {
+    checkArgument(socketAddress != null);
+    final TransportChannel transportChannel = getOrConnect(socketAddress);
     return Futures.transform(transportChannel.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
   }
 

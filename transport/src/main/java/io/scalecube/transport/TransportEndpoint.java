@@ -4,20 +4,30 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.transport.utils.IpAddressResolver;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 
 import java.net.InetSocketAddress;
-import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class TransportEndpoint {
+  /** Regexp pattern for {@code [host:]port:id} */
+  private static final Pattern TRASNPORT_ENDPOINT_ADDRESS_FORMAT = Pattern.compile("(^.*(?=:))?:?(\\d+):(.*$)");
+  /** Regexp pattern for {@code host:port} */
+  private static final Pattern SOCKET_ADDRESS_FORMAT = Pattern.compile("(^.*):(\\d+$)");
 
+  private static volatile InetSocketAddress localSocketAddress;
+
+  /** Endpoint identifier (or <i>incarnation id</i>). */
   private String id;
+  /** Socket address of the endpoint. */
   private InetSocketAddress socketAddress;
 
   private TransportEndpoint() {}
@@ -30,56 +40,61 @@ public final class TransportEndpoint {
   }
 
   /**
-   * Creates transport endpoint from uri string.
+   * Creates transport endpoint from uri string. For localhost variant host may come in: {@code 127.0.0.1},
+   * {@code localhost}, {@code 0.0.0.0} or omitted et al; when localhost case detected then real local ip address would
+   * be resolved.
    *
-   * @param uri must come in form {@code tcp://id@[host:]port}
+   * @param input must come in form {@code [host:]port:id}
    */
-  public static TransportEndpoint from(String uri) {
-    URI uri1 = URI.create(uri);
-    if (uri1.getUserInfo() == null || uri1.getUserInfo().isEmpty()) {
-      throw new IllegalArgumentException(uri);
+  public static TransportEndpoint from(@CheckForNull String input) {
+    checkArgument(input != null);
+    checkArgument(!input.isEmpty());
+
+    Matcher matcher = TRASNPORT_ENDPOINT_ADDRESS_FORMAT.matcher(input);
+    if (!matcher.find()) {
+      throw new IllegalArgumentException();
     }
 
-    TransportEndpoint target = new TransportEndpoint();
-    target.id = uri1.getUserInfo(); // set transport endpoint id
-
-    String substring = uri1.getSchemeSpecificPart().substring(uri1.getSchemeSpecificPart().indexOf("@") + 1);
-    if (substring.isEmpty()) {
-      throw new IllegalArgumentException(uri);
+    String host = Optional.fromNullable(matcher.group(1)).or(resolveLocalIpAddress());
+    if (isLocalhost(host)) {
+      host = resolveLocalIpAddress();
     }
 
-    // assume given local getSocketAddress, w/o host; like tcp://id@port
-    try {
-      int port = Integer.valueOf(substring);
-      target.socketAddress = new InetSocketAddress(port);
-      return target;
-    } catch (NumberFormatException ignore) {
-    }
+    int port = Integer.parseInt(matcher.group(2));
+    String id = matcher.group(3);
 
-    // check that given host specific (non-local) getSocketAddress; like tcp://id@host:port
-    String[] hostAndPort = substring.split(":");
-    if (hostAndPort.length != 2) {
-      throw new IllegalArgumentException(uri);
-    }
-
-    int port;
-    try {
-      port = Integer.valueOf(hostAndPort[1].trim());
-    } catch (NumberFormatException e) {
-      throw new IllegalArgumentException(uri);
-    }
-    String address = hostAndPort[0].trim();
-    String hostAddress = isLocalhost(address) ? resolveIpAddress() : address;
-
-    target.socketAddress = new InetSocketAddress(hostAddress, port);
-    return target;
+    return new TransportEndpoint(id, new InetSocketAddress(host, port));
   }
 
   public static TransportEndpoint from(String id, InetSocketAddress address) {
     return new TransportEndpoint(id, address);
   }
 
-  public String id() {
+  public static InetSocketAddress localSocketAddress(int port) {
+    return localSocketAddress != null ? localSocketAddress
+        : (localSocketAddress = new InetSocketAddress(resolveLocalIpAddress(), port));
+  }
+
+  public static InetSocketAddress parseSocketAddress(@CheckForNull String input) {
+    checkArgument(input != null);
+    checkArgument(!input.isEmpty());
+
+    Matcher matcher = SOCKET_ADDRESS_FORMAT.matcher(input);
+    if (!matcher.find()) {
+      throw new IllegalArgumentException();
+    }
+
+    String host = Optional.fromNullable(matcher.group(1)).or(resolveLocalIpAddress());
+    if (isLocalhost(host)) {
+      host = resolveLocalIpAddress();
+    }
+
+    int port = Integer.parseInt(matcher.group(2));
+
+    return new InetSocketAddress(host, port);
+  }
+
+  public String getId() {
     return id;
   }
 
@@ -88,10 +103,10 @@ public final class TransportEndpoint {
   }
 
   private static boolean isLocalhost(String host) {
-    return "localhost".equals(host) || "127.0.0.1".equals(host);
+    return "localhost".equals(host) || "127.0.0.1".equals(host) || "0.0.0.0".equals(host);
   }
 
-  private static String resolveIpAddress() {
+  private static String resolveLocalIpAddress() {
     try {
       return IpAddressResolver.resolveIpAddress().getHostAddress();
     } catch (UnknownHostException e) {
@@ -118,6 +133,8 @@ public final class TransportEndpoint {
 
   @Override
   public String toString() {
-    return id + "@" + socketAddress.getAddress().getHostAddress() + ":" + socketAddress.getPort();
+    return "TransportEndpoint{" +
+        socketAddress.getAddress().getHostAddress() + ":" + socketAddress.getPort() + ":" + id
+        + "}";
   }
 }

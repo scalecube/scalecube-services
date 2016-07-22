@@ -1,8 +1,6 @@
 package io.scalecube.cluster;
 
-import static io.scalecube.cluster.ClusterMemberStatus.REMOVED;
-import static io.scalecube.cluster.ClusterMemberStatus.SUSPECTED;
-import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
+import static io.scalecube.cluster.ClusterMemberStatus.*;
 
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.transport.TransportEndpoint;
@@ -62,7 +60,7 @@ final class ClusterMembershipTable {
   }
 
   public List<ClusterMember> merge(FailureDetectorEvent event) {
-    ClusterMember r0 = membership.get(event.endpoint().id());
+    ClusterMember r0 = membership.get(event.endpoint().getId());
     if (r0 != null) {
       return merge(new ClusterMember(event.endpoint(), event.status(), r0.metadata()));
     } else {
@@ -71,7 +69,7 @@ final class ClusterMembershipTable {
   }
 
   public ClusterMember get(TransportEndpoint endpoint) {
-    return membership.get(endpoint.id());
+    return membership.get(endpoint.getId());
   }
 
   public ClusterMember get(String id) {
@@ -80,7 +78,7 @@ final class ClusterMembershipTable {
 
   public List<ClusterMember> remove(TransportEndpoint endpoint) {
     List<ClusterMember> updates = new ArrayList<>(1);
-    ClusterMember r0 = membership.remove(endpoint.id());
+    ClusterMember r0 = membership.remove(endpoint.getId());
     if (r0 != null) {
       updates.add(new ClusterMember(endpoint, REMOVED, r0.metadata()));
     }

@@ -34,7 +34,7 @@ public class MessagingExample {
         System.out.println(greetings);
 
         // Respond with greetings
-        ClusterMember senderMember = clusterA.membership().member(message.sender().id());
+        ClusterMember senderMember = clusterA.membership().member(message.sender().getId());
         clusterA.send(senderMember, new Message(new Greetings("Greetings from ClusterMember A")));
       }
     });

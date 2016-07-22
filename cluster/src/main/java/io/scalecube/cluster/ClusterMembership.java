@@ -198,7 +198,7 @@ public final class ClusterMembership implements IClusterMembership {
     for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
       if (token.length() != 0) {
         try {
-          memberList.add(tcp(token));
+          memberList.add(TransportEndpoint.parseSocketAddress(token));
         } catch (IllegalArgumentException e) {
           LOGGER.warn("Skipped setting wellknown_member, caught: " + e);
         }
@@ -208,9 +208,7 @@ public final class ClusterMembership implements IClusterMembership {
     Set<InetSocketAddress> set = new HashSet<>(memberList);
     for (Iterator<InetSocketAddress> i = set.iterator(); i.hasNext();) {
       InetSocketAddress endpoint = i.next();
-      String hostAddress = localEndpoint.getSocketAddress().getAddress().getHostAddress();
-      int port = localEndpoint.getSocketAddress().getPort();
-      if (endpoint.getPort() == port && endpoint.getAddress().getHostAddress().equals(hostAddress)) {
+      if (localEndpoint.getSocketAddress().equals(endpoint)) {
         i.remove();
       }
     }
@@ -285,7 +283,7 @@ public final class ClusterMembership implements IClusterMembership {
       startFuture = Futures.immediateFuture(null);
     }
 
-    // Schedule 'running phase': select randomly single seed getSocketAddress, send SYNC and get SYNC_ACK
+    // Schedule 'running phase': select randomly single seed socketAddress, send SYNC and get SYNC_ACK
     if (!seedMembers.isEmpty()) {
       cmTask = scheduler.createWorker().schedulePeriodically(new Action0() {
         @Override
@@ -337,8 +335,7 @@ public final class ClusterMembership implements IClusterMembership {
             LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
             return Futures.immediateFuture(null);
           }
-        }
-        );
+        });
   }
 
   private void doSync(final List<InetSocketAddress> members, Scheduler scheduler) {

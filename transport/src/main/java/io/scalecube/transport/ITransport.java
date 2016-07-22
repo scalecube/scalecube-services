@@ -46,13 +46,13 @@ public interface ITransport {
   void stop(@Nullable SettableFuture<Void> promise);
 
   /**
-   * Issues connect to the given transport getSocketAddress. This method may be used in case if specific incarnation id of remote
-   * endpoint is unknown to connect by getSocketAddress. So result endpoint then can be used for message sending.
+   * Issues connect to the given transport socketAddress. This method may be used in case if specific incarnation id of
+   * remote endpoint is unknown to connect by socketAddress. So result endpoint then can be used for message sending.
    *
-   * @param address getSocketAddress of transport endpoint to connect
+   * @param socketAddress socketAddress of transport endpoint to connect
    * @return Listenable future to remote transport endpoint, which is completed once the handshake is passed.
    */
-  ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address);
+  ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress socketAddress);
 
   /**
    * Disconnects existing transport channel to the given endpoint. If there is no connection do nothing and immediately
