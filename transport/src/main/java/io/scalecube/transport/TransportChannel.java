@@ -2,9 +2,7 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.transform;
-import static io.scalecube.transport.TransportChannel.Status.CLOSED;
-import static io.scalecube.transport.TransportChannel.Status.CONNECTED;
-import static io.scalecube.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
+import static io.scalecube.transport.TransportChannel.Status.*;
 import static io.scalecube.transport.utils.ChannelFutureUtils.setPromise;
 
 import com.google.common.base.Function;
@@ -110,7 +108,7 @@ final class TransportChannel implements ITransportChannel {
   public TransportEndpoint remoteEndpoint() {
     if (handshakeFuture.isDone()) {
       try {
-        return handshakeFuture.get().endpoint();
+        return handshakeFuture.get().getEndpoint();
       } catch (InterruptedException | ExecutionException ex) {
         LOGGER.error("Failed to get remote endpoint, ex");
       }

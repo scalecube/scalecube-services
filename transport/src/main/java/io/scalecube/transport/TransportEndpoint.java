@@ -14,10 +14,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class TransportEndpoint {
+
   /** Regexp pattern for {@code [host:]port:id} */
   private static final Pattern TRASNPORT_ENDPOINT_ADDRESS_FORMAT = Pattern.compile("(^.*(?=:))?:?(\\d+):(.*$)");
   /** Regexp pattern for {@code host:port} */
@@ -94,12 +96,19 @@ public final class TransportEndpoint {
     return new InetSocketAddress(host, port);
   }
 
+  @Nonnull
   public String getId() {
     return id;
   }
 
+  @Nonnull
   public InetSocketAddress getSocketAddress() {
     return socketAddress;
+  }
+
+  @Nonnull
+  public String getString() {
+    return socketAddress.getAddress().getHostAddress() + ":" + socketAddress.getPort() + ":" + id;
   }
 
   private static boolean isLocalhost(String host) {
@@ -133,8 +142,6 @@ public final class TransportEndpoint {
 
   @Override
   public String toString() {
-    return "TransportEndpoint{" +
-        socketAddress.getAddress().getHostAddress() + ":" + socketAddress.getPort() + ":" + id
-        + "}";
+    return "TransportEndpoint{" + getString() + "}";
   }
 }

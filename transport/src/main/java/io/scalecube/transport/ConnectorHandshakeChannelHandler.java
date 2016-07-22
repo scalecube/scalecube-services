@@ -117,7 +117,7 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
     } else {
       LOGGER.info("HANDSHAKE({}) not passed, connector: {}", handshakeResponse, transportChannel);
       cancelHandshakeTimeout();
-      transportChannel.close(new TransportHandshakeException(handshakeResponse.explain()));
+      transportChannel.close(new TransportHandshakeException(handshakeResponse.getExplain()));
     }
   }
 

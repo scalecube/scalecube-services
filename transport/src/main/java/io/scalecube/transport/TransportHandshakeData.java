@@ -1,8 +1,6 @@
 package io.scalecube.transport;
 
-import static io.scalecube.transport.TransportHandshakeData.Status.CREATED;
-import static io.scalecube.transport.TransportHandshakeData.Status.RESOLVED_ERROR;
-import static io.scalecube.transport.TransportHandshakeData.Status.RESOLVED_OK;
+import static io.scalecube.transport.TransportHandshakeData.Status.*;
 
 import io.protostuff.Tag;
 
@@ -20,77 +18,78 @@ final class TransportHandshakeData {
   public enum Status {
     /** Initial status. Means handshake just created. */
     CREATED,
-
     /** Handshake passed. Resolution is OK. */
     RESOLVED_OK,
-
     /** General handshake failure. Resolution is not OK. */
     RESOLVED_ERROR
   }
 
+  /** Encoded transport endpoint {@code host:port:id} */
   @Tag(1)
-  private final TransportEndpoint endpoint;
-  @Tag(2)
-  private final Status status;
+  private final String encodedEndpoint;
+  /** A {@link Status} field */
   @Tag(3)
+  private final Status status;
+  /** Human redable explanation */
+  @Tag(4)
   private final String explain;
+  /** Decoded transport endpoint. */
+  private transient TransportEndpoint endpoint;
 
-  private TransportHandshakeData(TransportEndpoint endpoint, Status status, String explain) {
-    this.endpoint = endpoint;
+  private TransportHandshakeData(String encodedEndpoint, Status status, String explain) {
+    this.encodedEndpoint = encodedEndpoint;
     this.status = status;
     this.explain = explain;
+    this.endpoint = TransportEndpoint.from(encodedEndpoint);
   }
 
-  /** Creates new instance with status CREATED and given endpoint. */
+  /** Creates new instance with status {@link Status#CREATED} and given endpoint. */
   public static TransportHandshakeData create(TransportEndpoint endpoint) {
-    return new TransportHandshakeData(endpoint, CREATED, null);
+    return new TransportHandshakeData(endpoint.getString(), CREATED, null);
   }
 
-  /** Creates new instance with status RESOLVED_OK and given endpoint. */
+  /** Creates new instance with status {@link Status#RESOLVED_OK} and given endpoint. */
   public static TransportHandshakeData ok(TransportEndpoint endpoint) {
-    return new TransportHandshakeData(endpoint, RESOLVED_OK, null);
+    return new TransportHandshakeData(endpoint.getString(), RESOLVED_OK, null);
   }
 
-  /** Creates new instance with status RESOLVED_ERROR and given error message explanation. */
-  public static TransportHandshakeData error(String explain) {
-    return new TransportHandshakeData(null, RESOLVED_ERROR, explain);
+  /** Creates new instance with status {@link Status#RESOLVED_ERROR} and given error message explanation. */
+  public static TransportHandshakeData error(TransportEndpoint endpoint, String explain) {
+    return new TransportHandshakeData(endpoint.getString(), RESOLVED_ERROR, explain);
+  }
+
+  /** Transport endpoint related to the opposite end of the corresponding connection; never null. */
+  @Nonnull
+  public TransportEndpoint getEndpoint() {
+    return endpoint != null ? endpoint : (endpoint = TransportEndpoint.from(encodedEndpoint));
   }
 
   /**
-   * Transport endpoint related to the opposite end of the corresponding connection. In case of error it will be null.
-   */
-  @Nullable
-  public TransportEndpoint endpoint() {
-    return endpoint;
-  }
-
-  /**
-   * Status of resolution. When set to RESOLVED_OK this should mean connection is good and we can proceed further with
-   * transport. Otherwise -- transport should be treated as invalid and purged from system.
+   * Status of resolution. When set to {@link Status#RESOLVED_OK} this should mean connection is good and we can proceed
+   * further with transport. Otherwise -- transport should be treated as invalid and purged from system.
    */
   @Nonnull
-  public Status status() {
+  public Status getStatus() {
     return status;
   }
 
-  /** String explanation of the status. Not set if RESOLVED_OK (but set otherwise). */
+  /** String explanation of the status. Not set if {@link Status#RESOLVED_OK} (but set otherwise). */
   @Nullable
-  public String explain() {
+  public String getExplain() {
     return explain;
   }
 
-  /** Returns true if status is RESOLVED_OK; false otherwise. */
+  /** Returns true if status is {@link Status#RESOLVED_OK}; false otherwise. */
   boolean isResolvedOk() {
-    return status() == RESOLVED_OK;
+    return getStatus() == RESOLVED_OK;
   }
 
   @Override
   public String toString() {
     return "TransportHandshakeData{"
-        + "endpoint=" + endpoint
-        + ", status=" + status
+        + "endpoint=" + getEndpoint()
+        + ", status=" + getStatus()
         + ", explain='" + explain + '\''
         + '}';
   }
-
 }

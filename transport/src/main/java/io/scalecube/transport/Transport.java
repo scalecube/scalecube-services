@@ -57,7 +57,7 @@ public final class Transport implements ITransportSpi, ITransport {
       new Function<TransportHandshakeData, TransportEndpoint>() {
         @Override
         public TransportEndpoint apply(TransportHandshakeData handshakeData) {
-          return handshakeData.endpoint();
+          return handshakeData.getEndpoint();
         }
       };
 

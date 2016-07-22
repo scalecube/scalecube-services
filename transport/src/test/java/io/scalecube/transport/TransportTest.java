@@ -545,11 +545,11 @@ public class TransportTest extends BaseTest {
   }
 
   private TransportEndpoint serverEndpoint(int port) {
-    return TransportEndpoint.from("localhost:" + port + ":" + server);
+    return TransportEndpoint.from("localhost:" + port + ":server");
   }
 
   private TransportEndpoint clientEndpoint(int port) {
-    return TransportEndpoint.from("localhost:" + port + ":" + client);
+    return TransportEndpoint.from("localhost:" + port + ":client");
   }
 
   private void pause(int millis) throws InterruptedException {
