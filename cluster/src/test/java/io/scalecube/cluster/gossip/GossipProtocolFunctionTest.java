@@ -23,8 +23,8 @@ public class GossipProtocolFunctionTest {
 
   @Before
   public void setup() {
-    remote = TransportEndpoint.from("tcp://id1@host:1");
-    local = TransportEndpoint.from("tcp://id2@host:2");
+    remote = TransportEndpoint.from("localhost:1:id1");
+    local = TransportEndpoint.from("localhost:2:id2");
   }
 
   @Test
