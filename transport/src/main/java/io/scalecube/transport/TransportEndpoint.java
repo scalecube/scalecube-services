@@ -49,7 +49,7 @@ public final class TransportEndpoint {
 
   private TransportEndpoint() {}
 
-  public TransportEndpoint(@CheckForNull String id, @CheckForNull InetSocketAddress socketAddress) {
+  private TransportEndpoint(@CheckForNull String id, @CheckForNull InetSocketAddress socketAddress) {
     checkArgument(id != null);
     checkArgument(socketAddress != null);
     this.id = id;
@@ -85,15 +85,32 @@ public final class TransportEndpoint {
     return new TransportEndpoint(id, new InetSocketAddress(host, port));
   }
 
+  /**
+   * Creates transport endpoint from socketAddress object and endpointId.
+   *
+   * @param id given endpoint id (or <i>incarnationId</i>)
+   * @param address a socketAddress
+   */
   public static TransportEndpoint from(String id, InetSocketAddress address) {
     return new TransportEndpoint(id, address);
   }
 
+  /**
+   * Utility method. Get or create local socketAddress by given port.
+   *
+   * @return local socketAddress by given port.
+   */
   public static InetSocketAddress localSocketAddress(int port) {
     return localSocketAddress != null ? localSocketAddress
         : (localSocketAddress = new InetSocketAddress(resolveLocalIpAddress(), port));
   }
 
+  /**
+   * Parses given string to get socketAddress. For localhost variant host may come in: {@code 127.0.0.1},
+   * {@code localhost} or {@code 0.0.0.0}; when localhost case detected then real local ip address would be resolved.
+   *
+   * @param input in a form {@code host:port}
+   */
   public static InetSocketAddress parseSocketAddress(@CheckForNull String input) {
     checkArgument(input != null);
     checkArgument(!input.isEmpty());
