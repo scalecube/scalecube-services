@@ -1,6 +1,8 @@
 package io.scalecube.cluster;
 
-import static io.scalecube.cluster.ClusterMemberStatus.*;
+import static io.scalecube.cluster.ClusterMemberStatus.REMOVED;
+import static io.scalecube.cluster.ClusterMemberStatus.SUSPECTED;
+import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
 
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.transport.TransportEndpoint;

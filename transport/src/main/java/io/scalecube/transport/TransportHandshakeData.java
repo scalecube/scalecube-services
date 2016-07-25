@@ -1,6 +1,8 @@
 package io.scalecube.transport;
 
-import static io.scalecube.transport.TransportHandshakeData.Status.*;
+import static io.scalecube.transport.TransportHandshakeData.Status.CREATED;
+import static io.scalecube.transport.TransportHandshakeData.Status.RESOLVED_ERROR;
+import static io.scalecube.transport.TransportHandshakeData.Status.RESOLVED_OK;
 
 import io.protostuff.Tag;
 
@@ -70,25 +72,33 @@ final class TransportHandshakeData {
     return new TransportHandshakeData(endpoint.getString(), RESOLVED_ERROR, explain);
   }
 
-  /** See {@link #endpoint} */
+  /**
+   * See {@link #endpoint}.
+   */
   @Nonnull
   TransportEndpoint getEndpoint() {
     return endpoint != null ? endpoint : (endpoint = TransportEndpoint.from(encodedEndpoint));
   }
 
-  /** See {@link #status} */
+  /**
+   * See {@link #status}.
+   */
   @Nonnull
   Status getStatus() {
     return status;
   }
 
-  /** String explanation of the status. Not set if {@link Status#RESOLVED_OK} (but set otherwise). */
+  /**
+   * String explanation of the status. Not set if {@link Status#RESOLVED_OK} (but set otherwise).
+   */
   @Nullable
   String getExplain() {
     return explain;
   }
 
-  /** Returns true if status is {@link Status#RESOLVED_OK}; false otherwise. */
+  /**
+   * Returns true if status is {@link Status#RESOLVED_OK}; false otherwise.
+   */
   boolean isResolvedOk() {
     return getStatus() == RESOLVED_OK;
   }

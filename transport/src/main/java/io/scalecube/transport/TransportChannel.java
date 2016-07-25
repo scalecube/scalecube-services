@@ -2,7 +2,9 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.transform;
-import static io.scalecube.transport.TransportChannel.Status.*;
+import static io.scalecube.transport.TransportChannel.Status.CLOSED;
+import static io.scalecube.transport.TransportChannel.Status.CONNECTED;
+import static io.scalecube.transport.TransportChannel.Status.CONNECT_IN_PROGRESS;
 import static io.scalecube.transport.utils.ChannelFutureUtils.setPromise;
 
 import com.google.common.base.Function;
@@ -32,12 +34,7 @@ final class TransportChannel implements ITransportChannel {
   private static final AttributeKey<TransportChannel> ATTR_TRANSPORT_CHANNEL = AttributeKey.valueOf("transport");
 
   public enum Status {
-    CONNECT_IN_PROGRESS,
-    CONNECTED,
-    HANDSHAKE_IN_PROGRESS,
-    HANDSHAKE_PASSED,
-    READY,
-    CLOSED
+    CONNECT_IN_PROGRESS, CONNECTED, HANDSHAKE_IN_PROGRESS, HANDSHAKE_PASSED, READY, CLOSED
   }
 
   private final Channel channel;

@@ -10,8 +10,8 @@ import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 /**
- * Utility class that defines node's IP4 socketAddress which is different from localhost. <br/>
- * <b>NOTE:<b/> first found NIC with IP4 address would be considered.
+ * Utility class that defines node's IP4 socketAddress which is different from localhost. <b>NOTE:</b> first found NIC
+ * with IP4 address would be considered.
  */
 public class IpAddressResolver {
   private static final Logger LOGGER = LoggerFactory.getLogger(IpAddressResolver.class);

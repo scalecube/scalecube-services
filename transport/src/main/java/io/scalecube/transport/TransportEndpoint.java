@@ -19,10 +19,13 @@ import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class TransportEndpoint {
-
-  /** Regexp pattern for {@code [host:]port:id} */
+  /**
+   * Regexp pattern for {@code [host:]port:id}.
+   */
   private static final Pattern TRASNPORT_ENDPOINT_ADDRESS_FORMAT = Pattern.compile("(^.*(?=:))?:?(\\d+):(.*$)");
-  /** Regexp pattern for {@code host:port} */
+  /**
+   * Regexp pattern for {@code host:port}.
+   */
   private static final Pattern SOCKET_ADDRESS_FORMAT = Pattern.compile("(^.*):(\\d+$)");
 
   /**
