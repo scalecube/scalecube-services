@@ -25,8 +25,6 @@ public final class TransportEndpoint {
   /** Regexp pattern for {@code host:port} */
   private static final Pattern SOCKET_ADDRESS_FORMAT = Pattern.compile("(^.*):(\\d+$)");
 
-  private static volatile InetSocketAddress localSocketAddress;
-
   /**
    * Endpoint identifier (or <i>incarnationId</i>). Either being set upfront or obtained at connection' handshake phase.
    */
@@ -96,13 +94,10 @@ public final class TransportEndpoint {
   }
 
   /**
-   * Utility method. Get or create local socketAddress by given port.
-   *
    * @return local socketAddress by given port.
    */
   public static InetSocketAddress localSocketAddress(int port) {
-    return localSocketAddress != null ? localSocketAddress
-        : (localSocketAddress = new InetSocketAddress(resolveLocalIpAddress(), port));
+    return new InetSocketAddress(resolveLocalIpAddress(), port);
   }
 
   /**
