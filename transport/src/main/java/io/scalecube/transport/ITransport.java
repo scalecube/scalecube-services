@@ -49,10 +49,10 @@ public interface ITransport {
    * Issues connect to the given transport address. This method may be used in case if specific incarnation id of remote
    * endpoint is unknown to connect by address. So result endpoint then can be used for message sending.
    *
-   * @param socketAddress address of transport endpoint to connect
+   * @param address address of transport endpoint to connect
    * @return Listenable future to remote transport endpoint, which is completed once the handshake is passed.
    */
-  ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress socketAddress);
+  ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address);
 
   /**
    * Disconnects existing transport channel to the given endpoint. If there is no connection do nothing and immediately

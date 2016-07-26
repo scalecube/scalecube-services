@@ -164,12 +164,12 @@ public final class TransportEndpoint {
       return false;
     }
     TransportEndpoint that = (TransportEndpoint) other;
-    return Objects.equals(id, that.id) && Objects.equals(socketAddress(), that.socketAddress());
+    return Objects.equals(id, that.id) && Objects.equals(host, that.host) && Objects.equals(port, that.port);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, socketAddress());
+    return Objects.hash(id, host, port);
   }
 
   @Override

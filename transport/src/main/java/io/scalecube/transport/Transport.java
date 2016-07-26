@@ -197,9 +197,9 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress socketAddress) {
-    checkArgument(socketAddress != null);
-    final TransportChannel transportChannel = getOrConnect(socketAddress);
+  public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address) {
+    checkArgument(address != null);
+    final TransportChannel transportChannel = getOrConnect(address);
     return Futures.transform(transportChannel.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
   }
 
