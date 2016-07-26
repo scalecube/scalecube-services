@@ -185,7 +185,7 @@ public final class ClusterMembership implements IClusterMembership {
 
   public void setSeedMembers(Collection<InetSocketAddress> seedMembers) {
     Set<InetSocketAddress> set = new HashSet<>(seedMembers);
-    set.remove(localEndpoint.getSocketAddress());
+    set.remove(localEndpoint.socketAddress());
     this.seedMembers = new ArrayList<>(set);
   }
 
@@ -208,7 +208,7 @@ public final class ClusterMembership implements IClusterMembership {
     Set<InetSocketAddress> set = new HashSet<>(memberList);
     for (Iterator<InetSocketAddress> i = set.iterator(); i.hasNext();) {
       InetSocketAddress endpoint = i.next();
-      if (localEndpoint.getSocketAddress().equals(endpoint)) {
+      if (localEndpoint.socketAddress().equals(endpoint)) {
         i.remove();
       }
     }

@@ -170,7 +170,7 @@ public final class Cluster implements ICluster {
 
   private ListenableFuture<ICluster> join0() {
     updateClusterState(State.INSTANTIATED, State.JOINING);
-    LOGGER.info("Cluster instance '{}' joining seed members: {}", transport.localEndpoint().getId(),
+    LOGGER.info("Cluster instance '{}' joining seed members: {}", transport.localEndpoint().id(),
         config.seedMembers);
     ListenableFuture<Void> transportFuture = transport.start();
     ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Void, Void>() {
@@ -185,7 +185,7 @@ public final class Cluster implements ICluster {
       @Override
       public ICluster apply(@Nullable Void param) {
         updateClusterState(State.JOINING, State.JOINED);
-        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", transport.localEndpoint().getId(),
+        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", transport.localEndpoint().id(),
             membership().members());
         return Cluster.this;
       }
@@ -225,7 +225,7 @@ public final class Cluster implements ICluster {
   @Override
   public ListenableFuture<Void> leave() {
     updateClusterState(State.JOINED, State.LEAVING);
-    LOGGER.info("Cluster instance '{}' leaving cluster", transport.localEndpoint().getId());
+    LOGGER.info("Cluster instance '{}' leaving cluster", transport.localEndpoint().id());
 
     // Notify cluster members about graceful shutdown of current member
     clusterMembership.leave();
@@ -251,7 +251,7 @@ public final class Cluster implements ICluster {
       public Void apply(Void input) {
         stopExecutor.shutdown();
         updateClusterState(State.LEAVING, State.STOPPED);
-        LOGGER.info("Cluster instance '{}' stopped", transport.localEndpoint().getId());
+        LOGGER.info("Cluster instance '{}' stopped", transport.localEndpoint().id());
         return input;
       }
     });

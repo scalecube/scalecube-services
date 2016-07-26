@@ -105,7 +105,7 @@ final class TransportChannel implements ITransportChannel {
   public TransportEndpoint remoteEndpoint() {
     if (handshakeFuture.isDone()) {
       try {
-        return handshakeFuture.get().getEndpoint();
+        return handshakeFuture.get().endpoint();
       } catch (InterruptedException | ExecutionException ex) {
         LOGGER.error("Failed to get remote endpoint, ex");
       }

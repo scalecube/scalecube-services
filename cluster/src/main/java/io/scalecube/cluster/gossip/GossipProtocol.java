@@ -210,7 +210,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   private String generateGossipId() {
-    return localEndpoint.getId() + "_" + counter.getAndIncrement();
+    return localEndpoint.id() + "_" + counter.getAndIncrement();
   }
 
   private TransportEndpoint getNextRandom(List<TransportEndpoint> members, int endpointCount, int count) {

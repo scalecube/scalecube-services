@@ -21,7 +21,7 @@ public class ClusterMembershipIT {
     TransportEndpoint b = TransportEndpoint.from("localhost:20124:b");
     TransportEndpoint c = TransportEndpoint.from("localhost:20125:c");
     List<InetSocketAddress> members =
-        ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress());
+        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
@@ -46,7 +46,7 @@ public class ClusterMembershipIT {
     TransportEndpoint b = TransportEndpoint.from("localhost:20124:b");
     TransportEndpoint c = TransportEndpoint.from("localhost:20125:c");
     List<InetSocketAddress> members =
-        ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress());
+        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).block(b).block(c).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).block(a).block(c).init();
@@ -81,7 +81,7 @@ public class ClusterMembershipIT {
     TransportEndpoint b = TransportEndpoint.from("localhost:20124:b");
     TransportEndpoint c = TransportEndpoint.from("localhost:20125:c");
     List<InetSocketAddress> members =
-        ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress());
+        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
@@ -127,7 +127,7 @@ public class ClusterMembershipIT {
     TransportEndpoint c = TransportEndpoint.from("localhost:20125:c");
     TransportEndpoint d = TransportEndpoint.from("localhost:20126:d");
     List<InetSocketAddress> members =
-        ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress(), d.getSocketAddress());
+        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress(), d.socketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
@@ -176,7 +176,7 @@ public class ClusterMembershipIT {
     TransportEndpoint c = TransportEndpoint.from("localhost:20125:c");
     TransportEndpoint d = TransportEndpoint.from("localhost:20126:d");
     List<InetSocketAddress> members =
-        ImmutableList.of(a.getSocketAddress(), b.getSocketAddress(), c.getSocketAddress(), d.getSocketAddress());
+        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress(), d.socketAddress());
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
@@ -185,8 +185,8 @@ public class ClusterMembershipIT {
 
     TransportEndpoint rc = TransportEndpoint.from("localhost:20125:restarted_c");
     TransportEndpoint rd = TransportEndpoint.from("localhost:20126:restarted_d");
-    ClusterMembershipBuilder cm_rc = ClusterMembershipBuilder.CMBuilder(rc, a.getSocketAddress(), b.getSocketAddress());
-    ClusterMembershipBuilder cm_rd = ClusterMembershipBuilder.CMBuilder(rd, a.getSocketAddress(), b.getSocketAddress());
+    ClusterMembershipBuilder cm_rc = ClusterMembershipBuilder.CMBuilder(rc, a.socketAddress(), b.socketAddress());
+    ClusterMembershipBuilder cm_rd = ClusterMembershipBuilder.CMBuilder(rd, a.socketAddress(), b.socketAddress());
 
     try {
       pause(3);
@@ -236,10 +236,10 @@ public class ClusterMembershipIT {
     TransportEndpoint e = TransportEndpoint.from("localhost:20127:e");
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a).init();
-    ClusterMembershipBuilder cm_b = CMBuilder(b, a.getSocketAddress()).init();
-    ClusterMembershipBuilder cm_c = CMBuilder(c, a.getSocketAddress()).init();
-    ClusterMembershipBuilder cm_d = CMBuilder(d, b.getSocketAddress()).init();
-    ClusterMembershipBuilder cm_e = CMBuilder(e, b.getSocketAddress()).init();
+    ClusterMembershipBuilder cm_b = CMBuilder(b, a.socketAddress()).init();
+    ClusterMembershipBuilder cm_c = CMBuilder(c, a.socketAddress()).init();
+    ClusterMembershipBuilder cm_d = CMBuilder(d, b.socketAddress()).init();
+    ClusterMembershipBuilder cm_e = CMBuilder(e, b.socketAddress()).init();
 
     try {
       pause(3);

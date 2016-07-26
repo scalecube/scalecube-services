@@ -129,12 +129,12 @@ public final class TransportEndpoint {
   }
 
   @Nonnull
-  public String getId() {
+  public String id() {
     return id;
   }
 
   @Nonnull
-  public InetSocketAddress getSocketAddress() {
+  public InetSocketAddress socketAddress() {
     return socketAddress != null ? socketAddress : (socketAddress = new InetSocketAddress(hostAddress, port));
   }
 
@@ -144,7 +144,7 @@ public final class TransportEndpoint {
   }
 
   private static boolean isLocalhost(String host) {
-    return "localhost".equals(host) || "127.0.0.1".equals(host) || "0.0.0.0".equals(host);
+    return "localhost".equals(host) || "127.0.0.1".equals(host);
   }
 
   private static String resolveLocalIpAddress() {
@@ -164,12 +164,12 @@ public final class TransportEndpoint {
       return false;
     }
     TransportEndpoint that = (TransportEndpoint) other;
-    return Objects.equals(id, that.id) && Objects.equals(getSocketAddress(), that.getSocketAddress());
+    return Objects.equals(id, that.id) && Objects.equals(socketAddress(), that.socketAddress());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, getSocketAddress());
+    return Objects.hash(id, socketAddress());
   }
 
   @Override

@@ -57,7 +57,7 @@ public final class Transport implements ITransportSpi, ITransport {
       new Function<TransportHandshakeData, TransportEndpoint>() {
         @Override
         public TransportEndpoint apply(TransportHandshakeData handshakeData) {
-          return handshakeData.getEndpoint();
+          return handshakeData.endpoint();
         }
       };
 
@@ -177,19 +177,19 @@ public final class Transport implements ITransportSpi, ITransport {
       }
     });
 
-    ChannelFuture bindFuture = server.bind(localEndpoint.getSocketAddress());
+    ChannelFuture bindFuture = server.bind(localEndpoint.socketAddress());
     final SettableFuture<Void> result = SettableFuture.create();
     bindFuture.addListener(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.getId(), localEndpoint.getSocketAddress());
+          LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.id(), localEndpoint.socketAddress());
           result.set(null);
         } else {
           Throwable ex = channelFuture.cause();
           result.setException(ex);
-          LOGGER.error("Failed to bind to: " + localEndpoint.getSocketAddress() + ", caught " + ex, ex);
+          LOGGER.error("Failed to bind to: " + localEndpoint.socketAddress() + ", caught " + ex, ex);
         }
       }
     });
@@ -224,7 +224,7 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
-    TransportChannel transportChannel = connectedChannels.getIfExists(endpoint.getSocketAddress());
+    TransportChannel transportChannel = connectedChannels.getIfExists(endpoint.socketAddress());
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     if (transportChannel == null) {
       if (promise != null) {
@@ -245,7 +245,7 @@ public final class Transport implements ITransportSpi, ITransport {
       @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
-    TransportChannel transportChannel = getOrConnect(endpoint.getSocketAddress());
+    TransportChannel transportChannel = getOrConnect(endpoint.socketAddress());
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     transportChannel.send(message, promise);
   }
@@ -294,7 +294,7 @@ public final class Transport implements ITransportSpi, ITransport {
       public Void call(TransportChannel transportChannel) {
         TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
         if (remoteEndpoint != null) {
-          acceptedChannels.remove(remoteEndpoint.getSocketAddress());
+          acceptedChannels.remove(remoteEndpoint.socketAddress());
         }
         return null;
       }
@@ -305,8 +305,8 @@ public final class Transport implements ITransportSpi, ITransport {
   public void accept(TransportChannel transportChannel) throws TransportBrokenException {
     TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
     checkNotNull(remoteEndpoint);
-    checkNotNull(remoteEndpoint.getSocketAddress());
-    TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.getSocketAddress(), transportChannel);
+    checkNotNull(remoteEndpoint.socketAddress());
+    TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.socketAddress(), transportChannel);
     if (prev != null) {
       String err = String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint);
       throw new TransportBrokenException(err);

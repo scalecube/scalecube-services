@@ -48,6 +48,6 @@ public class IpAddressResolver {
       }
     }
 
-    throw new UnsupportedOperationException();
+    return InetAddress.getLocalHost();
   }
 }

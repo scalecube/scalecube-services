@@ -57,7 +57,7 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
       public void operationComplete(ChannelFuture future) {
         if (!handshakeResponse.isResolvedOk()) {
           LOGGER.debug("HANDSHAKE({}) not passed, acceptor: {}", handshakeResponse, transportChannel);
-          transportChannel.close(new TransportHandshakeException(handshakeResponse.getExplain()));
+          transportChannel.close(new TransportHandshakeException(handshakeResponse.explain()));
         }
       }
     }));
@@ -72,10 +72,10 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
    */
   private TransportHandshakeData prepareHandshakeResponse(TransportHandshakeData handshakeRequest,
       TransportEndpoint localEndpoint) {
-    TransportEndpoint remoteEndpoint = handshakeRequest.getEndpoint();
-    if (remoteEndpoint.getId().equals(localEndpoint.getId())) {
+    TransportEndpoint remoteEndpoint = handshakeRequest.endpoint();
+    if (remoteEndpoint.id().equals(localEndpoint.id())) {
       return TransportHandshakeData.error(localEndpoint,
-          String.format("Remote endpoint: %s is eq to local one: %s", handshakeRequest.getEndpoint(), localEndpoint));
+          String.format("Remote endpoint: %s is eq to local one: %s", handshakeRequest.endpoint(), localEndpoint));
     }
     return TransportHandshakeData.ok(localEndpoint);
   }

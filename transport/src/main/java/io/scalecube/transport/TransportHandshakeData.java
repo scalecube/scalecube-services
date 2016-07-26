@@ -76,7 +76,7 @@ final class TransportHandshakeData {
    * See {@link #endpoint}.
    */
   @Nonnull
-  TransportEndpoint getEndpoint() {
+  TransportEndpoint endpoint() {
     return endpoint != null ? endpoint : (endpoint = TransportEndpoint.from(encodedEndpoint));
   }
 
@@ -84,7 +84,7 @@ final class TransportHandshakeData {
    * See {@link #status}.
    */
   @Nonnull
-  Status getStatus() {
+  Status status() {
     return status;
   }
 
@@ -92,7 +92,7 @@ final class TransportHandshakeData {
    * String explanation of the status. Not set if {@link Status#RESOLVED_OK} (but set otherwise).
    */
   @Nullable
-  String getExplain() {
+  String explain() {
     return explain;
   }
 
@@ -100,14 +100,14 @@ final class TransportHandshakeData {
    * Returns true if status is {@link Status#RESOLVED_OK}; false otherwise.
    */
   boolean isResolvedOk() {
-    return getStatus() == RESOLVED_OK;
+    return status() == RESOLVED_OK;
   }
 
   @Override
   public String toString() {
     return "TransportHandshakeData{"
-        + "endpoint=" + getEndpoint()
-        + ", status=" + getStatus()
+        + "endpoint=" + endpoint()
+        + ", status=" + status()
         + ", explain='" + explain + '\''
         + '}';
   }
