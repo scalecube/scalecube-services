@@ -41,7 +41,7 @@ public final class TransportEndpoint {
   /**
    * Host address. <b>NOTE:</b> {@link #socketAddress}'s host address is eq to value of this field.
    */
-  private String hostAddress;
+  private String host;
 
   /**
    * Port. <b>NOTE:</b> {@link #socketAddress}'s port is eq to value of this field.
@@ -55,7 +55,7 @@ public final class TransportEndpoint {
     checkArgument(socketAddress != null);
     this.id = id;
     this.socketAddress = socketAddress;
-    this.hostAddress = socketAddress.getAddress().getHostAddress();
+    this.host = socketAddress.getAddress().getHostAddress();
     this.port = socketAddress.getPort();
   }
 
@@ -135,12 +135,12 @@ public final class TransportEndpoint {
 
   @Nonnull
   public InetSocketAddress socketAddress() {
-    return socketAddress != null ? socketAddress : (socketAddress = new InetSocketAddress(hostAddress, port));
+    return socketAddress != null ? socketAddress : (socketAddress = new InetSocketAddress(host, port));
   }
 
   @Nonnull
   public String getString() {
-    return hostAddress + ":" + port + ":" + id;
+    return host + ":" + port + ":" + id;
   }
 
   private static boolean isLocalhost(String host) {
