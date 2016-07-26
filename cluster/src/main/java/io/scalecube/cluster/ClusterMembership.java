@@ -283,7 +283,7 @@ public final class ClusterMembership implements IClusterMembership {
       startFuture = Futures.immediateFuture(null);
     }
 
-    // Schedule 'running phase': select randomly single seed socketAddress, send SYNC and get SYNC_ACK
+    // Schedule 'running phase': select randomly single seed address, send SYNC and get SYNC_ACK
     if (!seedMembers.isEmpty()) {
       cmTask = scheduler.createWorker().schedulePeriodically(new Action0() {
         @Override

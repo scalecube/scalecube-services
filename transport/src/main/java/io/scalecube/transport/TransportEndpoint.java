@@ -87,17 +87,17 @@ public final class TransportEndpoint {
   }
 
   /**
-   * Creates transport endpoint from socketAddress object and endpointId.
+   * Creates transport endpoint from endpoint id and address object.
    *
    * @param id given endpoint id (or <i>incarnationId</i>)
-   * @param address a socketAddress
+   * @param socketAddress a socket address
    */
-  public static TransportEndpoint from(String id, InetSocketAddress address) {
-    return new TransportEndpoint(id, address);
+  public static TransportEndpoint from(String id, InetSocketAddress socketAddress) {
+    return new TransportEndpoint(id, socketAddress);
   }
 
   /**
-   * @return local socketAddress by given port.
+   * @return local socket address by given port.
    */
   public static InetSocketAddress localSocketAddress(int port) {
     return new InetSocketAddress(resolveLocalIpAddress(), port);

@@ -10,8 +10,8 @@ import java.net.UnknownHostException;
 import java.util.Enumeration;
 
 /**
- * Utility class that defines node's IP4 socketAddress which is different from localhost. <b>NOTE:</b> first found NIC
- * with IP4 address would be considered.
+ * Utility class that defines node's IP4 address which is different from localhost. <b>NOTE:</b> first found NIC with
+ * IP4 address would be considered.
  */
 public class IpAddressResolver {
   private static final Logger LOGGER = LoggerFactory.getLogger(IpAddressResolver.class);
@@ -21,7 +21,7 @@ public class IpAddressResolver {
   private IpAddressResolver() {}
 
   /**
-   * Resolve ip socketAddress. Iterates on NICs and takes a first found IP4 address.
+   * Resolve ip address. Iterates on NICs and takes a first found IP4 address.
    *
    * @return the IP4 address
    * @throws UnknownHostException the unknown host exception
@@ -35,7 +35,7 @@ public class IpAddressResolver {
     try {
       netInterfaces = NetworkInterface.getNetworkInterfaces();
     } catch (SocketException e) {
-      LOGGER.error("Socket error during resolving IP socketAddress", e);
+      LOGGER.error("Socket error during resolving IP address", e);
     }
     while (netInterfaces != null && netInterfaces.hasMoreElements()) {
       NetworkInterface ni = netInterfaces.nextElement();
