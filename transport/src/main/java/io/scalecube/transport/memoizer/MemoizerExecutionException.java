@@ -1,4 +1,4 @@
-package io.scalecube.transport.utils.memoization;
+package io.scalecube.transport.memoizer;
 
 public class MemoizerExecutionException extends RuntimeException {
   private static final long serialVersionUID = 4326445289311278879L;

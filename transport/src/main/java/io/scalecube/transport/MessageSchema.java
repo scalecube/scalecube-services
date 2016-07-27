@@ -4,8 +4,8 @@ import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.scalecube.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
 import io.scalecube.transport.utils.RecyclableLinkedBuffer;
-import io.scalecube.transport.utils.memoization.Computable;
-import io.scalecube.transport.utils.memoization.Memoizer;
+import io.scalecube.transport.memoizer.Computable;
+import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
