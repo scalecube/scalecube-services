@@ -5,8 +5,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static io.scalecube.transport.utils.ChannelFutureUtils.setPromise;
 import static io.scalecube.transport.utils.ChannelFutureUtils.wrap;
 
-import io.scalecube.transport.utils.memoization.Computable;
-import io.scalecube.transport.utils.memoization.Memoizer;
+import io.scalecube.transport.memoizer.Computable;
+import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
