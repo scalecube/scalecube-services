@@ -53,16 +53,16 @@ public class GossipProtocolTest {
             with(TimeUnit.MILLISECONDS));
       }
     });
-    gossipProtocol = new GossipProtocol(TransportEndpoint.from("tcp://id@host:1"), executorService);
+    gossipProtocol = new GossipProtocol(TransportEndpoint.from("localhost:1:id"), executorService);
     gossipProtocol.setMaxGossipSent(maxGossipSent);
     gossipProtocol.setGossipTime(gossipTime);
     gossipProtocol.setMaxEndpointsToSelect(maxEndpointsToSelect);
     gossipProtocol.setTransport(transport);
     members = Lists.newArrayList();
 
-    members.add(TransportEndpoint.from("tcp://id1@host:11"));
-    members.add(TransportEndpoint.from("tcp://id2@host:22"));
-    members.add(TransportEndpoint.from("tcp://id3@host:33"));
+    members.add(TransportEndpoint.from("localhost:1010:id1"));
+    members.add(TransportEndpoint.from("localhost:2020:id2"));
+    members.add(TransportEndpoint.from("localhost:3030:id3"));
 
     gossipProtocol.setClusterEndpoints(this.members);
     gossipProtocol.start();
@@ -93,8 +93,8 @@ public class GossipProtocolTest {
     gossipList.add(new Gossip("3", new Message("data")));
     GossipRequest gossipRequest = new GossipRequest(gossipList);
 
-    TransportEndpoint endpoint2 = TransportEndpoint.from("tcp://2@host:2");
-    TransportEndpoint endpoint1 = TransportEndpoint.from("tcp://1@host:1");
+    TransportEndpoint endpoint2 = TransportEndpoint.from("localhost:2:2");
+    TransportEndpoint endpoint1 = TransportEndpoint.from("localhost:1:1");
 
     subject.onNext(messageWithSender(new Message(gossipRequest), endpoint2));
     subject
@@ -125,7 +125,7 @@ public class GossipProtocolTest {
     sendGossips.setAccessible(true);
     List<GossipLocalState> list = new ArrayList<>();
 
-    list.add(GossipLocalState.create(new Gossip("2", new Message("data")), TransportEndpoint.from("tcp://id2@host:22"),
+    list.add(GossipLocalState.create(new Gossip("2", new Message("data")), TransportEndpoint.from("localhost:2020:id2"),
         0));
     jmockContext.checking(new Expectations() {
       {

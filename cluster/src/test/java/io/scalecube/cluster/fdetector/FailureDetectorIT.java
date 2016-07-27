@@ -23,9 +23,9 @@ public class FailureDetectorIT {
   @Test
   public void testAllTrusted() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint c = from("tcp://c@localhost:20125");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint c = from("localhost:20125:c");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -48,8 +48,8 @@ public class FailureDetectorIT {
   @Test
   public void testBasicTrusted() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
     members.add(a);
     members.add(b);
 
@@ -70,8 +70,8 @@ public class FailureDetectorIT {
   @Test
   public void testTrustedDifferentPingTiming() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
     members.add(a);
     members.add(b);
 
@@ -92,9 +92,9 @@ public class FailureDetectorIT {
   @Test
   public void testAllSuspected() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint c = from("tcp://c@localhost:20125");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint c = from("localhost:20125:c");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -120,8 +120,8 @@ public class FailureDetectorIT {
   @Test
   public void testBasicSuspected() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
     members.add(a);
     members.add(b);
 
@@ -144,9 +144,9 @@ public class FailureDetectorIT {
   @Test
   public void testAllTrustedDespiteTrafficIssue() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint c = from("tcp://c@localhost:20125");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint c = from("localhost:20125:c");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -169,10 +169,10 @@ public class FailureDetectorIT {
   @Test
   public void testSingleSuspectedNotAffectOthers() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint c = from("tcp://c@localhost:20125");
-    TransportEndpoint d = from("tcp://d@localhost:20126");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint c = from("localhost:20125:c");
+    TransportEndpoint d = from("localhost:20126:d");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -200,11 +200,11 @@ public class FailureDetectorIT {
   @Test
   public void testTwoSuspectedNotAffectOthers() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint c = from("tcp://c@localhost:20125");
-    TransportEndpoint d = from("tcp://d@localhost:20126");
-    TransportEndpoint e = from("tcp://e@localhost:20127");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint c = from("localhost:20125:c");
+    TransportEndpoint d = from("localhost:20126:d");
+    TransportEndpoint e = from("localhost:20127:e");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -236,10 +236,10 @@ public class FailureDetectorIT {
   @Test
   public void testSuspectedNetworkPartition() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint c = from("tcp://c@localhost:20125");
-    TransportEndpoint x = from("tcp://x@localhost:20126");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint c = from("localhost:20125:c");
+    TransportEndpoint x = from("localhost:20126:x");
     members.add(a);
     members.add(b);
     members.add(c);
@@ -268,10 +268,10 @@ public class FailureDetectorIT {
   @Test
   public void testSuspectedNeighborsHasTrafficIssue() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint d = from("tcp://d@localhost:20125");
-    TransportEndpoint x = from("tcp://x@localhost:20126");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint d = from("localhost:20125:d");
+    TransportEndpoint x = from("localhost:20126:x");
     members.add(a);
     members.add(b);
     members.add(d);
@@ -297,8 +297,8 @@ public class FailureDetectorIT {
   @Test
   public void testMemberBecomeTrusted() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
     members.add(a);
     members.add(b);
 
@@ -326,10 +326,10 @@ public class FailureDetectorIT {
   @Test
   public void testMemberBecomeSuspected() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint x = from("tcp://x@localhost:20125");
-    TransportEndpoint y = from("tcp://y@localhost:20126");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint x = from("localhost:20125:x");
+    TransportEndpoint y = from("localhost:20126:y");
     members.add(a);
     members.add(b);
     members.add(x);
@@ -362,9 +362,9 @@ public class FailureDetectorIT {
   @Test
   public void testMemberBecomeSuspectedIncarnationRespected() throws Exception {
     List<TransportEndpoint> members = new ArrayList<>();
-    TransportEndpoint a = from("tcp://a@localhost:20123");
-    TransportEndpoint b = from("tcp://b@localhost:20124");
-    TransportEndpoint x = from("tcp://x@localhost:20125");
+    TransportEndpoint a = from("localhost:20123:a");
+    TransportEndpoint b = from("localhost:20124:b");
+    TransportEndpoint x = from("localhost:20125:x");
     members.add(a);
     members.add(b);
     members.add(x);
@@ -387,7 +387,7 @@ public class FailureDetectorIT {
       assertEquals(x, targetSuspect1.get(a));
       assertEquals(x, targetSuspect1.get(b));
 
-      TransportEndpoint xx = from("tcp://xx@localhost:20125");
+      TransportEndpoint xx = from("localhost:20125:xx");
       members.add(xx);
       FailureDetectorBuilder xxBuilder = FDBuilder(xx).set(members).pingTime(100).ping(x);
       builders.add(xxBuilder);

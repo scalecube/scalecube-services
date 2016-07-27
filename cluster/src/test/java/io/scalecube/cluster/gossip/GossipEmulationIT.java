@@ -69,7 +69,7 @@ public class GossipEmulationIT {
   private static List<TransportEndpoint> initMembers(int num) {
     List<TransportEndpoint> result = new ArrayList<>(num);
     for (int i = 0; i < num; i++) {
-      result.add(TransportEndpoint.from("tcp://" + i + "@localhost:" + (i + 20000)));
+      result.add(TransportEndpoint.from("localhost:" + (i + 20000) + ":" + i));
     }
     return result;
   }

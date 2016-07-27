@@ -10,7 +10,6 @@ import io.scalecube.cluster.fdetector.FailureDetectorBuilder;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.TransportPipelineFactory;
 import io.scalecube.transport.TransportSettings;
@@ -22,6 +21,7 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import rx.schedulers.Schedulers;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +34,7 @@ public class ClusterMembershipBuilder {
   final FailureDetectorBuilder fdBuilder;
   final Transport transport;
 
-  private ClusterMembershipBuilder(TransportEndpoint transportEndpoint, List<TransportAddress> members) {
+  private ClusterMembershipBuilder(TransportEndpoint transportEndpoint, List<InetSocketAddress> members) {
     transport = Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR);
 
     fdBuilder = FailureDetectorBuilder.FDBuilder(transportEndpoint, transport).pingTime(100).pingTimeout(100);
@@ -56,11 +56,12 @@ public class ClusterMembershipBuilder {
     target.setSyncTimeout(100);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint, List<TransportAddress> members) {
+  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint,
+      List<InetSocketAddress> members) {
     return new ClusterMembershipBuilder(transportEndpoint, members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint, TransportAddress... members) {
+  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint, InetSocketAddress... members) {
     return new ClusterMembershipBuilder(transportEndpoint, Arrays.asList(members));
   }
 

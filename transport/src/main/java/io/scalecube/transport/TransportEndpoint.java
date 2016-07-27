@@ -2,49 +2,157 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.net.URI;
+import io.scalecube.transport.utils.IpAddressResolver;
+
+import com.google.common.base.Optional;
+import com.google.common.base.Throwables;
+
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class TransportEndpoint {
+  /**
+   * Regexp pattern for {@code [host:]port:id}.
+   */
+  private static final Pattern TRASNPORT_ENDPOINT_ADDRESS_FORMAT = Pattern.compile("(^.*(?=:))?:?(\\d+):(.*$)");
+  /**
+   * Regexp pattern for {@code host:port}.
+   */
+  private static final Pattern SOCKET_ADDRESS_FORMAT = Pattern.compile("(^.*):(\\d+$)");
 
+  /**
+   * Endpoint identifier (or <i>incarnationId</i>). Either being set upfront or obtained at connection' handshake phase.
+   */
   private String id;
-  private TransportAddress address;
+
+  /**
+   * Socket address of the endpoint. <b>NOTE:</b> this field isn't serializable.
+   */
+  private transient volatile InetSocketAddress socketAddress;
+
+  /**
+   * Host address. <b>NOTE:</b> {@link #socketAddress}'s host address is eq to value of this field.
+   */
+  private String host;
+
+  /**
+   * Port. <b>NOTE:</b> {@link #socketAddress}'s port is eq to value of this field.
+   */
+  private int port;
 
   private TransportEndpoint() {}
 
-  public TransportEndpoint(@CheckForNull String id, @CheckForNull TransportAddress address) {
+  private TransportEndpoint(@CheckForNull String id, @CheckForNull InetSocketAddress socketAddress) {
     checkArgument(id != null);
-    checkArgument(address != null);
+    checkArgument(socketAddress != null);
     this.id = id;
-    this.address = address;
+    this.socketAddress = socketAddress;
+    this.host = socketAddress.getAddress().getHostAddress();
+    this.port = socketAddress.getPort();
   }
 
   /**
-   * Creates transport endpoint from uri string.
+   * Creates transport endpoint from uri string. For localhost variant host may come in: {@code 127.0.0.1},
+   * {@code localhost}, {@code 0.0.0.0} or omitted et al; when localhost case detected then real local ip address would
+   * be resolved.
+   *
+   * @param input must come in form {@code [host:]port:id}
    */
-  public static TransportEndpoint from(String uri) {
-    URI uri1 = URI.create(uri);
-    TransportEndpoint target = new TransportEndpoint();
-    target.id = uri1.getUserInfo();
-    String substring = uri1.getSchemeSpecificPart().substring(uri1.getSchemeSpecificPart().indexOf("@") + 1);
-    target.address = TransportAddress.from(uri1.getScheme() + "://" + substring);
-    return target;
+  public static TransportEndpoint from(@CheckForNull String input) {
+    checkArgument(input != null);
+    checkArgument(!input.isEmpty());
+
+    Matcher matcher = TRASNPORT_ENDPOINT_ADDRESS_FORMAT.matcher(input);
+    if (!matcher.find()) {
+      throw new IllegalArgumentException();
+    }
+
+    String host = Optional.fromNullable(matcher.group(1)).or(resolveLocalIpAddress());
+    if (isLocalhost(host)) {
+      host = resolveLocalIpAddress();
+    }
+
+    int port = Integer.parseInt(matcher.group(2));
+    String id = matcher.group(3);
+
+    return new TransportEndpoint(id, new InetSocketAddress(host, port));
   }
 
-  public static TransportEndpoint from(String id, TransportAddress address) {
-    return new TransportEndpoint(id, address);
+  /**
+   * Creates transport endpoint from endpoint id and address object.
+   *
+   * @param id given endpoint id (or <i>incarnationId</i>)
+   * @param socketAddress a socket address
+   */
+  public static TransportEndpoint from(String id, InetSocketAddress socketAddress) {
+    return new TransportEndpoint(id, socketAddress);
   }
 
+  /**
+   * @return local socket address by given port.
+   */
+  public static InetSocketAddress localSocketAddress(int port) {
+    return new InetSocketAddress(resolveLocalIpAddress(), port);
+  }
+
+  /**
+   * Parses given string to get socketAddress. For localhost variant host may come in: {@code 127.0.0.1},
+   * {@code localhost} or {@code 0.0.0.0}; when localhost case detected then real local ip address would be resolved.
+   *
+   * @param input in a form {@code host:port}
+   */
+  public static InetSocketAddress parseSocketAddress(@CheckForNull String input) {
+    checkArgument(input != null);
+    checkArgument(!input.isEmpty());
+
+    Matcher matcher = SOCKET_ADDRESS_FORMAT.matcher(input);
+    if (!matcher.find()) {
+      throw new IllegalArgumentException();
+    }
+
+    String host = Optional.fromNullable(matcher.group(1)).or(resolveLocalIpAddress());
+    if (isLocalhost(host)) {
+      host = resolveLocalIpAddress();
+    }
+
+    int port = Integer.parseInt(matcher.group(2));
+
+    return new InetSocketAddress(host, port);
+  }
+
+  @Nonnull
   public String id() {
     return id;
   }
 
-  public TransportAddress address() {
-    return address;
+  @Nonnull
+  public InetSocketAddress socketAddress() {
+    return socketAddress != null ? socketAddress : (socketAddress = new InetSocketAddress(host, port));
+  }
+
+  @Nonnull
+  public String getString() {
+    return host + ":" + port + ":" + id;
+  }
+
+  private static boolean isLocalhost(String host) {
+    return "localhost".equals(host) || "127.0.0.1".equals(host);
+  }
+
+  private static String resolveLocalIpAddress() {
+    try {
+      return IpAddressResolver.resolveIpAddress().getHostAddress();
+    } catch (UnknownHostException e) {
+      throw Throwables.propagate(e);
+    }
   }
 
   @Override
@@ -56,31 +164,16 @@ public final class TransportEndpoint {
       return false;
     }
     TransportEndpoint that = (TransportEndpoint) other;
-    return Objects.equals(id, that.id)
-        && Objects.equals(address, that.address);
+    return Objects.equals(id, that.id) && Objects.equals(host, that.host) && Objects.equals(port, that.port);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, address);
+    return Objects.hash(id, host, port);
   }
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder(address.scheme());
-    sb.append("://").append(id);
-    sb.append("@");
-    String hostAddress = address.hostAddress();
-    int port = address.port();
-    if (hostAddress != null) {
-      sb.append(hostAddress);
-    }
-    if (port > 0) {
-      if (hostAddress != null) {
-        sb.append(":");
-      }
-      sb.append(port);
-    }
-    return sb.toString();
+    return "TransportEndpoint{" + getString() + "}";
   }
 }

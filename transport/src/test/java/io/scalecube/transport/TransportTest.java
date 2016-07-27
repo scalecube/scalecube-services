@@ -1,11 +1,7 @@
 package io.scalecube.transport;
 
 import static com.google.common.base.Throwables.propagate;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import io.scalecube.testlib.BaseTest;
 
@@ -541,19 +537,19 @@ public class TransportTest extends BaseTest {
   }
 
   private TransportEndpoint serverEndpoint() {
-    return TransportEndpoint.from("tcp://server@localhost:49255");
+    return TransportEndpoint.from("localhost:49255:server");
   }
 
   private TransportEndpoint clientEndpoint() {
-    return TransportEndpoint.from("tcp://client@localhost:49355");
+    return TransportEndpoint.from("localhost:49355:client");
   }
 
   private TransportEndpoint serverEndpoint(int port) {
-    return TransportEndpoint.from("tcp://server@localhost:" + port);
+    return TransportEndpoint.from("localhost:" + port + ":server");
   }
 
   private TransportEndpoint clientEndpoint(int port) {
-    return TransportEndpoint.from("tcp://client@localhost:" + port);
+    return TransportEndpoint.from("localhost:" + port + ":client");
   }
 
   private void pause(int millis) throws InterruptedException {

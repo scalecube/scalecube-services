@@ -5,14 +5,12 @@ import static io.scalecube.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
 import static io.scalecube.cluster.ClusterMembershipDataUtils.gossipFilterData;
 import static io.scalecube.cluster.ClusterMembershipDataUtils.syncGroupFilter;
-import static io.scalecube.transport.TransportAddress.tcp;
 
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IManagedGossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.TransportHeaders;
 
@@ -41,6 +39,7 @@ import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,7 +81,7 @@ public final class ClusterMembership implements IClusterMembership {
   private int maxSuspectTime = 60 * 1000;
   private int maxShutdownTime = 60 * 1000;
   private String syncGroup = "default";
-  private List<TransportAddress> seedMembers = new ArrayList<>();
+  private List<InetSocketAddress> seedMembers = new ArrayList<>();
   private ITransport transport;
   private final TransportEndpoint localEndpoint;
   private final Scheduler scheduler;
@@ -184,9 +183,9 @@ public final class ClusterMembership implements IClusterMembership {
     this.syncGroup = syncGroup;
   }
 
-  public void setSeedMembers(Collection<TransportAddress> seedMembers) {
-    Set<TransportAddress> set = new HashSet<>(seedMembers);
-    set.remove(localEndpoint.address());
+  public void setSeedMembers(Collection<InetSocketAddress> seedMembers) {
+    Set<InetSocketAddress> set = new HashSet<>(seedMembers);
+    set.remove(localEndpoint.socketAddress());
     this.seedMembers = new ArrayList<>(set);
   }
 
@@ -195,23 +194,21 @@ public final class ClusterMembership implements IClusterMembership {
    * If member format is incorrect it will be skipped.
    */
   public void setSeedMembers(String seedMembers) {
-    List<TransportAddress> memberList = new ArrayList<>();
+    List<InetSocketAddress> memberList = new ArrayList<>();
     for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
       if (token.length() != 0) {
         try {
-          memberList.add(tcp(token));
+          memberList.add(TransportEndpoint.parseSocketAddress(token));
         } catch (IllegalArgumentException e) {
           LOGGER.warn("Skipped setting wellknown_member, caught: " + e);
         }
       }
     }
     // filter accidental duplicates/locals
-    Set<TransportAddress> set = new HashSet<>(memberList);
-    for (Iterator<TransportAddress> i = set.iterator(); i.hasNext();) {
-      TransportAddress endpoint = i.next();
-      String hostAddress = localEndpoint.address().hostAddress();
-      int port = localEndpoint.address().port();
-      if (endpoint.port() == port && endpoint.hostAddress().equals(hostAddress)) {
+    Set<InetSocketAddress> set = new HashSet<>(memberList);
+    for (Iterator<InetSocketAddress> i = set.iterator(); i.hasNext();) {
+      InetSocketAddress socketAddress = i.next();
+      if (localEndpoint.socketAddress().equals(socketAddress)) {
         i.remove();
       }
     }
@@ -226,7 +223,7 @@ public final class ClusterMembership implements IClusterMembership {
     this.localMetadata = localMetadata;
   }
 
-  public List<TransportAddress> getSeedMembers() {
+  public List<InetSocketAddress> getSeedMembers() {
     return new ArrayList<>(seedMembers);
   }
 
@@ -293,7 +290,7 @@ public final class ClusterMembership implements IClusterMembership {
         public void call() {
           try {
             // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
-            List<TransportAddress> members = selectRandomMembers(seedMembers);
+            List<InetSocketAddress> members = selectRandomMembers(seedMembers);
             LOGGER.debug("Running phase: making Sync (selected_members={}))", members);
             doSync(members, scheduler);
           } catch (Exception e) {
@@ -319,7 +316,7 @@ public final class ClusterMembership implements IClusterMembership {
     timer.stop();
   }
 
-  private ListenableFuture<Void> doInitialSync(final List<TransportAddress> seedMembers) {
+  private ListenableFuture<Void> doInitialSync(final List<InetSocketAddress> seedMembers) {
     String period = Integer.toString(periodNbr.incrementAndGet());
     ListenableFuture<Message> future = ListenableFutureObservable.to(
         transport.listen()
@@ -338,11 +335,10 @@ public final class ClusterMembership implements IClusterMembership {
             LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
             return Futures.immediateFuture(null);
           }
-        }
-        );
+        });
   }
 
-  private void doSync(final List<TransportAddress> members, Scheduler scheduler) {
+  private void doSync(final List<InetSocketAddress> members, Scheduler scheduler) {
     String period = Integer.toString(periodNbr.incrementAndGet());
     transport.listen()
         .filter(syncAckFilter(period))
@@ -364,11 +360,11 @@ public final class ClusterMembership implements IClusterMembership {
     sendSync(members, period);
   }
 
-  private void sendSync(List<TransportAddress> members, String period) {
+  private void sendSync(List<InetSocketAddress> members, String period) {
     ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
     final Message message =
         new Message(syncData, TransportHeaders.QUALIFIER, SYNC, TransportHeaders.CORRELATION_ID, period);
-    for (TransportAddress memberAddress : members) {
+    for (InetSocketAddress memberAddress : members) {
       Futures.addCallback(transport.connect(memberAddress), new FutureCallback<TransportEndpoint>() {
         @Override
         public void onSuccess(TransportEndpoint endpoint) {
@@ -396,8 +392,8 @@ public final class ClusterMembership implements IClusterMembership {
     }
   }
 
-  private List<TransportAddress> selectRandomMembers(List<TransportAddress> members) {
-    List<TransportAddress> list = new ArrayList<>(members);
+  private List<InetSocketAddress> selectRandomMembers(List<InetSocketAddress> members) {
+    List<InetSocketAddress> list = new ArrayList<>(members);
     Collections.shuffle(list, ThreadLocalRandom.current());
     return ImmutableList.of(list.get(ThreadLocalRandom.current().nextInt(list.size())));
   }

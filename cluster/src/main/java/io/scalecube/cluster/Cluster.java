@@ -9,11 +9,11 @@ import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportAddress;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.utils.AvailablePortFinder;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -47,7 +47,6 @@ public final class Cluster implements ICluster {
   }
 
   // Cluster config
-  private final String memberId;
   private final ClusterConfig config;
 
   // Cluster components
@@ -68,8 +67,9 @@ public final class Cluster implements ICluster {
     this.config = config;
 
     // Build local endpoint
-    memberId = config.memberId != null ? config.memberId : UUID.randomUUID().toString();
-    TransportEndpoint localEndpoint = TransportEndpoint.from(memberId, TransportAddress.localTcp(config.port));
+    String memberId = Optional.fromNullable(config.memberId).or(UUID.randomUUID().toString());
+    TransportEndpoint localEndpoint =
+        TransportEndpoint.from(memberId, TransportEndpoint.localSocketAddress(config.port));
 
     // Build transport
     transport = Transport.newInstance(localEndpoint, config.transportSettings);
@@ -170,7 +170,8 @@ public final class Cluster implements ICluster {
 
   private ListenableFuture<ICluster> join0() {
     updateClusterState(State.INSTANTIATED, State.JOINING);
-    LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.seedMembers);
+    LOGGER.info("Cluster instance '{}' joining seed members: {}", transport.localEndpoint().id(),
+        config.seedMembers);
     ListenableFuture<Void> transportFuture = transport.start();
     ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Void, Void>() {
       @Override
@@ -184,7 +185,8 @@ public final class Cluster implements ICluster {
       @Override
       public ICluster apply(@Nullable Void param) {
         updateClusterState(State.JOINING, State.JOINED);
-        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, membership().members());
+        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", transport.localEndpoint().id(),
+            membership().members());
         return Cluster.this;
       }
     });
@@ -223,7 +225,7 @@ public final class Cluster implements ICluster {
   @Override
   public ListenableFuture<Void> leave() {
     updateClusterState(State.JOINED, State.LEAVING);
-    LOGGER.info("Cluster instance '{}' leaving cluster", memberId);
+    LOGGER.info("Cluster instance '{}' leaving cluster", transport.localEndpoint().id());
 
     // Notify cluster members about graceful shutdown of current member
     clusterMembership.leave();
@@ -249,7 +251,7 @@ public final class Cluster implements ICluster {
       public Void apply(Void input) {
         stopExecutor.shutdown();
         updateClusterState(State.LEAVING, State.STOPPED);
-        LOGGER.info("Cluster instance '{}' stopped", memberId);
+        LOGGER.info("Cluster instance '{}' stopped", transport.localEndpoint().id());
         return input;
       }
     });

@@ -5,6 +5,8 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import rx.Observable;
 
+import java.net.InetSocketAddress;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -50,7 +52,7 @@ public interface ITransport {
    * @param address address of transport endpoint to connect
    * @return Listenable future to remote transport endpoint, which is completed once the handshake is passed.
    */
-  ListenableFuture<TransportEndpoint> connect(@CheckForNull final TransportAddress address);
+  ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address);
 
   /**
    * Disconnects existing transport channel to the given endpoint. If there is no connection do nothing and immediately

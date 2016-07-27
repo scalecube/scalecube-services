@@ -34,12 +34,7 @@ final class TransportChannel implements ITransportChannel {
   private static final AttributeKey<TransportChannel> ATTR_TRANSPORT_CHANNEL = AttributeKey.valueOf("transport");
 
   public enum Status {
-    CONNECT_IN_PROGRESS,
-    CONNECTED,
-    HANDSHAKE_IN_PROGRESS,
-    HANDSHAKE_PASSED,
-    READY,
-    CLOSED
+    CONNECT_IN_PROGRESS, CONNECTED, HANDSHAKE_IN_PROGRESS, HANDSHAKE_PASSED, READY, CLOSED
   }
 
   private final Channel channel;
