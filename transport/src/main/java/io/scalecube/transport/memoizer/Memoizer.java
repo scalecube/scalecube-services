@@ -72,6 +72,10 @@ public class Memoizer<A, V> {
     return getAsync(arg, defaultComputable, executor);
   }
 
+  /**
+   * Returns the value's future for the the specified key. It will run computable to compute the value if absent
+   * asynchronously at the given executor.
+   */
   public ListenableFuture<V> getAsync(final A arg, final Computable<A, V> computable, final Executor executor) {
     ListenableFuture<V> future = cache.get(arg);
     if (future == null) {
