@@ -20,10 +20,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * Duplex handler. On inbound recognizes only handshake message
  * {@link TransportHandshakeData#Q_TRANSPORT_HANDSHAKE_SYNC_ACK} (rest inbound messages unsupported and results in
- * {@link TransportBrokenException}). On outbound may enqueue messages. On 'channel active' starting handshake process.
- * <p/>
- * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimeout}); and should always
- * run in different executor than io-thread.
+ * {@link TransportBrokenException}). On outbound may enqueue messages. On channelActive starting handshake process.
+ * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimeout}).
  */
 final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
   static final Logger LOGGER = LoggerFactory.getLogger(ConnectorHandshakeChannelHandler.class);

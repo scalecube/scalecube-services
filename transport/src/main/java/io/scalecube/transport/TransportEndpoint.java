@@ -33,8 +33,8 @@ public final class TransportEndpoint {
   private String id;
 
   /**
-   * Socket address of the endpoint ({@link InetSocketAddress#isUnresolved()} -> {@code true}, i.e. only
-   * {@link InetSocketAddress#getHostName()}, {@link InetSocketAddress#getPort()} will be accessible). <b>NOTE:</b> this
+   * Socket address of the endpoint. A call {@code socketAddress.isUnresolved()} would return {@code true}, i.e. only
+   * {@link InetSocketAddress#getHostName()}, {@link InetSocketAddress#getPort()} will be accessible. <b>NOTE:</b> this
    * field isn't serializable.
    */
   private transient volatile InetSocketAddress socketAddress;

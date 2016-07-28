@@ -151,9 +151,9 @@ final class TransportChannel implements ITransportChannel {
   }
 
   /**
-   * Flips the {@link #status}.
+   * Flips the transport channel {@link #status}.
    *
-   * @throws TransportBrokenException in case {@code expect} not actual
+   * @throws TransportBrokenException in case {@code expect} is not actual
    */
   void flip(Status expect, Status update) throws TransportBrokenException {
     if (!status.compareAndSet(expect, update)) {

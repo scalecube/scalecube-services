@@ -24,7 +24,6 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
-import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -205,8 +204,12 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address) {
     checkArgument(address != null);
-    final TransportChannel transportChannel = getOrConnect(address);
-    return Futures.transform(transportChannel.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
+    return Futures.transform(getOrConnect(address), new AsyncFunction<TransportChannel, TransportEndpoint>() {
+      @Override
+      public ListenableFuture<TransportEndpoint> apply(TransportChannel input) {
+        return Futures.transform(input.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
+      }
+    });
   }
 
   private void connect(final Channel channel, final InetSocketAddress address, final TransportChannel transport) {
@@ -230,7 +233,13 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
-    TransportChannel transportChannel = connectedChannels.getIfExists(endpoint.socketAddress());
+    TransportChannel transportChannel = null;
+    for (InetSocketAddress address : connectedChannels.keySet()) {
+      if (address.getAddress().getHostAddress().equals(endpoint.host()) && address.getPort() == endpoint.port()) {
+        transportChannel = connectedChannels.get(address);
+        break;
+      }
+    }
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     if (transportChannel == null) {
       if (promise != null) {
@@ -247,13 +256,25 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public void send(@CheckForNull TransportEndpoint endpoint, @CheckForNull Message message,
-      @Nullable SettableFuture<Void> promise) {
+  public void send(@CheckForNull final TransportEndpoint endpoint, @CheckForNull final Message message,
+      @Nullable final SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
-    TransportChannel transportChannel = getOrConnect(endpoint.socketAddress());
     // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
-    transportChannel.send(message, promise);
+    Futures.addCallback(getOrConnect(endpoint.socketAddress()), new FutureCallback<TransportChannel>() {
+      @Override
+      public void onSuccess(TransportChannel input) {
+        input.send(message, promise);
+      }
+
+      @Override
+      public void onFailure(Throwable cause) {
+        LOGGER.error("Failed to get transportChannel by socketAddress: {}, cause: {}", endpoint.socketAddress(), cause);
+        if (promise != null) {
+          promise.setException(cause);
+        }
+      }
+    });
   }
 
   @Nonnull
@@ -329,57 +350,33 @@ public final class Transport implements ITransportSpi, ITransport {
     incomingMessagesSubject.onNext(message);
   }
 
-  private TransportChannel getOrConnect(@CheckForNull InetSocketAddress socketAddress) {
-    checkArgument(socketAddress != null);
-    return connectedChannels.get(socketAddress, new Computable<InetSocketAddress, TransportChannel>() {
+  private ListenableFuture<TransportChannel> getOrConnect(@CheckForNull InetSocketAddress address) {
+    checkArgument(address != null);
+    return Futures.transform(resolveSocketAddress(address), new Function<InetSocketAddress, TransportChannel>() {
       @Override
-      public TransportChannel compute(final InetSocketAddress socketAddress) {
-        final Channel channel = createConnectorChannel();
-        final TransportChannel transportChannel = createConnectorTransportChannel(channel, socketAddress);
+      public TransportChannel apply(final InetSocketAddress resolvedAddress) {
+        return connectedChannels.get(resolvedAddress, new Computable<InetSocketAddress, TransportChannel>() {
+          @Override
+          public TransportChannel compute(final InetSocketAddress input) {
+            final Channel channel = createConnectorChannel();
+            final TransportChannel transportChannel = createConnectorTransportChannel(channel, input);
 
-        // register channel
-        final ListenableFuture<Void> registerFuture =
-            Futures.withFallback(FutureUtils.compose(eventLoop.register(channel)), new FutureFallback<Void>() {
+            Futures.addCallback(registerChannel(channel), new FutureCallback<Void>() {
               @Override
-              public ListenableFuture<Void> create(Throwable cause) {
-                LOGGER.error("Failed to register channel, cause: {}", new Object[] {cause});
-                return Futures.immediateFailedFuture(cause);
+              public void onSuccess(Void void0) {
+                connect(channel, input, transportChannel);
+              }
+
+              @Override
+              public void onFailure(Throwable throwable) {
+                channel.unsafe().closeForcibly();
+                transportChannel.close();
               }
             });
 
-        // resolve inet address from unresolved socketAddress
-        ListenableFuture<InetSocketAddress> resolveAddressFuture = Futures.withFallback(
-            Futures.transform(registerFuture, new AsyncFunction<Void, InetSocketAddress>() {
-              @Override
-              public ListenableFuture<InetSocketAddress> apply(Void input) {
-                LOGGER.info("Registered connector: {}", transportChannel);
-                return resolveAddress(socketAddress, channel.eventLoop());
-              }
-            }),
-            new FutureFallback<InetSocketAddress>() {
-              @Override
-              public ListenableFuture<InetSocketAddress> create(Throwable cause) throws Exception {
-                LOGGER.error("Failed to resolve inet address for host: {}, cause: {}",
-                    socketAddress.getHostName(), cause);
-                return Futures.immediateFailedFuture(cause);
-              }
-            });
-
-        // issue connect if previous two steps succeed
-        Futures.addCallback(resolveAddressFuture, new FutureCallback<InetSocketAddress>() {
-          @Override
-          public void onSuccess(InetSocketAddress address) {
-            LOGGER.info("Resolved inet address: {} -> {}", socketAddress.getHostName(), address.getAddress());
-            connect(channel, address, transportChannel);
-          }
-
-          @Override
-          public void onFailure(Throwable throwable) {
-            channel.unsafe().closeForcibly();
-            transportChannel.close();
+            return transportChannel;
           }
         });
-        return transportChannel;
       }
     });
   }
@@ -405,13 +402,37 @@ public final class Transport implements ITransportSpi, ITransport {
     });
   }
 
-  private ListenableFuture<InetSocketAddress> resolveAddress(final InetSocketAddress socketAddress,
-      EventLoop eventLoop) {
-    return FutureUtils.compose(eventLoop.submit(new Callable<InetSocketAddress>() {
+  /**
+   * Asynchronously registers channel in {@link #eventLoop}.
+   */
+  private ListenableFuture<Void> registerChannel(Channel channel) {
+    return Futures.withFallback(FutureUtils.compose(eventLoop.register(channel)), new FutureFallback<Void>() {
+      @Override
+      public ListenableFuture<Void> create(Throwable cause) {
+        LOGGER.error("Failed to register channel, cause: {}", new Object[] {cause});
+        return Futures.immediateFailedFuture(cause);
+      }
+    });
+  }
+
+  /**
+   * Asynchronously resolves inetAddress by hostname taken from socketAddress ({@link InetSocketAddress#getHostName()}).
+   * 
+   * @return new {@link InetSocketAddress} object with resolved {@link InetAddress}.
+   */
+  private ListenableFuture<InetSocketAddress> resolveSocketAddress(final InetSocketAddress address) {
+    return Futures.withFallback(FutureUtils.compose(eventLoop.submit(new Callable<InetSocketAddress>() {
       @Override
       public InetSocketAddress call() throws Exception {
-        return new InetSocketAddress(InetAddress.getByName(socketAddress.getHostName()), socketAddress.getPort());
+        InetAddress inetAddress = InetAddress.getByName(address.getHostName()); // issue reverse look up here
+        return new InetSocketAddress(inetAddress, address.getPort());
       }
-    }));
+    })), new FutureFallback<InetSocketAddress>() {
+      @Override
+      public ListenableFuture<InetSocketAddress> create(Throwable cause) throws Exception {
+        LOGGER.error("Failed to resolve inet address by hostname: {}, cause: {}", address.getHostName(), cause);
+        return Futures.immediateFailedFuture(cause);
+      }
+    });
   }
 }

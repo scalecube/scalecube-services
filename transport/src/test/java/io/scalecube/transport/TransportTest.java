@@ -30,6 +30,7 @@ import rx.functions.Action1;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +108,7 @@ public class TransportTest extends BaseTest {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       assertNotNull(cause);
-      assertAmongExpectedClasses(cause.getClass(), TransportClosedException.class);
+      assertAmongExpectedClasses(cause.getClass(), UnknownHostException.class);
     }
   }
 
