@@ -2,10 +2,9 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.transport.utils.IpAddressResolver;
-
 import com.google.common.base.Throwables;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
@@ -65,10 +64,9 @@ public final class TransportEndpoint {
 
   /**
    * Creates transport endpoint from uri string. For localhost variant host may come in: {@code 127.0.0.1},
-   * {@code localhost}, {@code 0.0.0.0} or omitted et al; when localhost case detected then real local ip address would
-   * be resolved.
+   * {@code localhost} or omitted et al; when localhost case detected then node's public IP4 address would be resolved.
    *
-   * @param input must come in form {@code host:port[:id]}
+   * @param input must come in form {@code host:port:id}
    */
   public static TransportEndpoint from(@CheckForNull String input) {
     checkArgument(input != null);
@@ -79,32 +77,27 @@ public final class TransportEndpoint {
       throw new IllegalArgumentException();
     }
 
-    String host = matcher.group(1);
-    if (isLocalhost(host)) {
-      host = resolveLocalIpAddress();
-    }
-
+    String host = parseHost(matcher.group(1));
     int port = Integer.parseInt(matcher.group(2));
     String id = matcher.group(3);
-
     return new TransportEndpoint(id, InetSocketAddress.createUnresolved(host, port));
   }
 
   /**
-   * Creates local transport endpoint from endpoint id and port. <b>NOTE:</b> hostname of a transport will be set to
-   * node's IP4 address.
+   * Creates local transport endpoint from endpoint id and port. <b>NOTE:</b> hostname of created transport will be set
+   * to node's public IP4 address.
    *
-   * @param id given endpoint id (or <i>incarnationId</i>)
+   * @param id endpoint id (or <i>incarnationId</i>)
    * @param port a port to bind to.
    */
   public static TransportEndpoint createLocal(String id, int port) {
-    return new TransportEndpoint(id, InetSocketAddress.createUnresolved(resolveLocalIpAddress(), port));
+    return new TransportEndpoint(id, InetSocketAddress.createUnresolved(getLocalIpAddress(), port));
   }
 
   /**
    * Parses given string to get socketAddress (<b>NOTE:</b> not attemp will be made to resolve
-   * {@link java.net.InetAddress}) object. For localhost variant host may come in: {@code 127.0.0.1}, {@code localhost}
-   * or {@code 0.0.0.0}; when localhost case detected then real local ip address would be resolved.
+   * {@link java.net.InetAddress}) object. For localhost variant host may come in: {@code 127.0.0.1} or
+   * {@code localhost}; when localhost case detected then node's public IP4 address would be resolved.
    *
    * @param input in a form {@code host:port}
    * @return unresolved socketAddress; only {@link InetSocketAddress#getHostName()}, {@link InetSocketAddress#getPort()}
@@ -119,14 +112,36 @@ public final class TransportEndpoint {
       throw new IllegalArgumentException();
     }
 
-    String host = matcher.group(1);
-    if (isLocalhost(host)) {
-      host = resolveLocalIpAddress();
-    }
-
+    String host = parseHost(matcher.group(1));
     int port = Integer.parseInt(matcher.group(2));
-
     return InetSocketAddress.createUnresolved(host, port);
+  }
+
+  private static String parseHost(@CheckForNull String host) {
+    checkArgument(host != null);
+    checkArgument(!host.isEmpty());
+    return "localhost".equals(host) || "127.0.0.1".equals(host) ? getLocalIpAddress() : host;
+  }
+
+  /**
+   * Getting local IP4 address by the address of local host. <b>NOTE:</b> that returned IP4 address is expected to be a
+   * publicly visible IP4 address.
+   *
+   * @throws RuntimeException wrapped {@link UnknownHostException} in case when local host name couldn't be resolved
+   *         into an address; or when returned IP4 address belongs to loopback address family.
+   */
+  public static String getLocalIpAddress() {
+    InetAddress inetAddress;
+    try {
+      inetAddress = InetAddress.getLocalHost();
+      if (inetAddress.getAddress()[0] == Byte.MAX_VALUE) {
+        throw new UnknownHostException(String.format("can't resolve non-loopback ip addr for %s, resolved to %s",
+            inetAddress.getHostName(), inetAddress.getHostAddress()));
+      }
+    } catch (UnknownHostException e) {
+      throw Throwables.propagate(e);
+    }
+    return inetAddress.getHostAddress();
   }
 
   /**
@@ -163,18 +178,6 @@ public final class TransportEndpoint {
   @Nonnull
   public String getString() {
     return host + ":" + port + ":" + id;
-  }
-
-  private static boolean isLocalhost(String host) {
-    return "localhost".equals(host) || "127.0.0.1".equals(host);
-  }
-
-  private static String resolveLocalIpAddress() {
-    try {
-      return IpAddressResolver.resolveIpAddress().getHostAddress();
-    } catch (UnknownHostException e) {
-      throw Throwables.propagate(e);
-    }
   }
 
   @Override

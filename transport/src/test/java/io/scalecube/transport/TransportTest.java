@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.utils.IpAddressResolver;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -68,7 +67,7 @@ public class TransportTest extends BaseTest {
     ListenableFuture<TransportEndpoint> connectByHostname = client.connect(new InetSocketAddress(hostName, 49255));
     TransportEndpoint transportEndpointByHostname = connectByHostname.get(3, TimeUnit.SECONDS);
 
-    String ipAddress = IpAddressResolver.resolveIpAddress().getHostAddress();
+    String ipAddress = InetAddress.getLocalHost().getHostAddress();
     ListenableFuture<TransportEndpoint> connectByIp = client.connect(new InetSocketAddress(ipAddress, 49255));
     TransportEndpoint transportEndpointByIp = connectByIp.get(3, TimeUnit.SECONDS);
 
@@ -88,7 +87,7 @@ public class TransportTest extends BaseTest {
         client.connect(InetSocketAddress.createUnresolved(hostName, 49255));
     TransportEndpoint transportEndpointByHostname = connectByHostname.get(3, TimeUnit.SECONDS);
 
-    String ipAddress = IpAddressResolver.resolveIpAddress().getHostAddress();
+    String ipAddress = InetAddress.getLocalHost().getHostAddress();
     ListenableFuture<TransportEndpoint> connectByIp =
         client.connect(InetSocketAddress.createUnresolved(ipAddress, 49255));
     TransportEndpoint transportEndpointByIp = connectByIp.get(3, TimeUnit.SECONDS);
