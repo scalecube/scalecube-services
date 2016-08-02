@@ -35,7 +35,7 @@ public class MessagingExample {
 
         // Respond with greetings
         ClusterMember senderMember = clusterA.membership().member(message.sender().id());
-        clusterA.send(senderMember, new Message(new Greetings("Greetings from ClusterMember A")));
+        clusterA.send(senderMember, Message.fromData(new Greetings("Greetings from ClusterMember A")));
       }
     });
 
@@ -56,7 +56,7 @@ public class MessagingExample {
     // Send greeting message to other cluster members
     List<ClusterMember> members = clusterB.membership().members();
     Greetings greetings = new Greetings("Greetings from ClusterMember B");
-    Message greetingsMessage = new Message(greetings);
+    Message greetingsMessage = Message.fromData(greetings);
     for (ClusterMember member : members) {
       if (!clusterB.membership().isLocalMember(member)) {
         clusterB.send(member, greetingsMessage);

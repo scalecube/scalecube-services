@@ -7,34 +7,14 @@ import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.transport.TransportEndpoint;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Maps;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 final class ClusterMembershipTable {
-
-  private static final Predicate<ClusterMember> TRUSTED_OR_SUSPECTED_PREDICATE = new Predicate<ClusterMember>() {
-    @Override
-    public boolean apply(ClusterMember input) {
-      return input.status() == TRUSTED || input.status() == SUSPECTED;
-    }
-  };
-
-  private static final Maps.EntryTransformer<String, ClusterMember, TransportEndpoint> MEMBER_TO_ENDPOINT_TRANSFORMER =
-      new Maps.EntryTransformer<String, ClusterMember, TransportEndpoint>() {
-        @Override
-        public TransportEndpoint transformEntry(String key, ClusterMember value) {
-          return value.endpoint();
-        }
-      };
-
 
   private final ConcurrentMap<String, ClusterMember> membership = new ConcurrentHashMap<>();
 
@@ -95,7 +75,12 @@ final class ClusterMembershipTable {
    * Getting {@code TRUSTED} or {@code SUSPECTED} member's endpoints.
    */
   public Collection<TransportEndpoint> getTrustedOrSuspectedEndpoints() {
-    Map<String, ClusterMember> suspectedOrTrusted = Maps.filterValues(membership, TRUSTED_OR_SUSPECTED_PREDICATE);
-    return Maps.transformEntries(suspectedOrTrusted, MEMBER_TO_ENDPOINT_TRANSFORMER).values();
+    Collection<TransportEndpoint> endpoints = new ArrayList<>();
+    for (ClusterMember member : membership.values()) {
+      if (member.status() == TRUSTED || member.status() == SUSPECTED) {
+        endpoints.add(member.endpoint());
+      }
+    }
+    return endpoints;
   }
 }

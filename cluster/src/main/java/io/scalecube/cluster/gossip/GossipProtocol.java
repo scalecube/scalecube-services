@@ -195,7 +195,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
         // Transform to actual gossip with incrementing sent count
         List<Gossip> gossipToSend =
             newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
-        transport.send(transportEndpoint, new Message(new GossipRequest(gossipToSend)));
+        transport.send(transportEndpoint, Message.fromData(new GossipRequest(gossipToSend)));
       }
     }
   }

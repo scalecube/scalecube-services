@@ -100,7 +100,7 @@ public class TransportTest extends BaseTest {
     client = createTransport(clientEndpoint());
     // create transport with wrong host
     SettableFuture<Void> sendPromise0 = SettableFuture.create();
-    client.send(TransportEndpoint.from("wronghost:49255:server"), new Message("q"), sendPromise0);
+    client.send(TransportEndpoint.from("wronghost:49255:server"), Message.fromData("q"), sendPromise0);
     try {
       sendPromise0.get(5, TimeUnit.SECONDS);
       fail();
@@ -121,7 +121,7 @@ public class TransportTest extends BaseTest {
 
       // create transport and don't wait just send message
       SettableFuture<Void> sendPromise0 = SettableFuture.create();
-      client.send(serverEndpoint, new Message("q"), sendPromise0);
+      client.send(serverEndpoint, Message.fromData("q"), sendPromise0);
       try {
         sendPromise0.get(3, TimeUnit.SECONDS);
         fail();
@@ -134,7 +134,7 @@ public class TransportTest extends BaseTest {
 
       // send second message: no connection yet and it's clear that there's no connection
       SettableFuture<Void> sendPromise1 = SettableFuture.create();
-      client.send(serverEndpoint, new Message("q"), sendPromise1);
+      client.send(serverEndpoint, Message.fromData("q"), sendPromise1);
       try {
         sendPromise1.get(3, TimeUnit.SECONDS);
         fail();
@@ -162,7 +162,7 @@ public class TransportTest extends BaseTest {
 
       // Send message
       SettableFuture<Void> sentPromise = SettableFuture.create();
-      client.send(serverEndpoint, new Message("Hello 0 at #" + i), sentPromise);
+      client.send(serverEndpoint, Message.fromData("Hello 0 at #" + i), sentPromise);
 
       // Disconnect without waiting for message sent
       SettableFuture<Void> disconnectedPromise = SettableFuture.create();
@@ -193,7 +193,7 @@ public class TransportTest extends BaseTest {
 
       // Connect and send
       SettableFuture<Void> sentPromise = SettableFuture.create();
-      client.send(serverEndpoint, new Message("Hello 0 at #" + i), sentPromise);
+      client.send(serverEndpoint, Message.fromData("Hello 0 at #" + i), sentPromise);
 
       // Wait that message was sent
       sentPromise.get(1, TimeUnit.SECONDS);
@@ -226,7 +226,7 @@ public class TransportTest extends BaseTest {
       public void call(Message message) {
         TransportEndpoint endpoint = message.sender();
         assertEquals("Expected clientEndpoint", clientEndpoint, endpoint);
-        send(server, endpoint, new Message(null, TransportHeaders.QUALIFIER, "hi client"));
+        send(server, endpoint, Message.fromQualifier("hi client"));
       }
     });
 
@@ -239,7 +239,7 @@ public class TransportTest extends BaseTest {
       }
     });
 
-    send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "hello server"));
+    send(client, serverEndpoint, Message.fromQualifier("hello server"));
 
     Message result = messageFuture.get(3, TimeUnit.SECONDS);
     assertNotNull("No response from serverEndpoint", result);
@@ -270,7 +270,7 @@ public class TransportTest extends BaseTest {
 
       for (int j = 0; j < total; j++) {
         SettableFuture<Void> send = SettableFuture.create();
-        client.send(serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "q" + j), send);
+        client.send(serverEndpoint, Message.fromQualifier("q" + j), send);
         try {
           send.get(3, TimeUnit.SECONDS);
         } catch (Exception e) {
@@ -366,7 +366,7 @@ public class TransportTest extends BaseTest {
 
     int total = 1000;
     for (int i = 0; i < total; i++) {
-      client.send(serverEndpoint, new Message("q" + i), null);
+      client.send(serverEndpoint, Message.fromData("q" + i));
     }
 
     pause(1000);
@@ -388,8 +388,8 @@ public class TransportTest extends BaseTest {
       @Override
       public void call(List<Message> messages) {
         for (Message message : messages) {
-          Message echo = new Message("echo/" + message.header(TransportHeaders.QUALIFIER));
-          server.send(message.sender(), echo, null);
+          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
+          server.send(message.sender(), echo);
         }
       }
     });
@@ -402,8 +402,8 @@ public class TransportTest extends BaseTest {
       }
     });
 
-    client.send(serverEndpoint, new Message("q1"), null);
-    client.send(serverEndpoint, new Message("q2"), null);
+    client.send(serverEndpoint, Message.fromData("q1"));
+    client.send(serverEndpoint, Message.fromData("q2"));
 
     List<Message> target = targetFuture.get(1, TimeUnit.SECONDS);
     assertNotNull(target);
@@ -422,7 +422,7 @@ public class TransportTest extends BaseTest {
       @Override
       public void call(List<Message> messages) {
         for (Message message : messages) {
-          Message echo = new Message("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
           server.send(message.sender(), echo, null);
         }
       }
@@ -436,8 +436,8 @@ public class TransportTest extends BaseTest {
       }
     });
 
-    client.send(serverEndpoint, new Message("q1"), null);
-    client.send(serverEndpoint, new Message("q2"), null);
+    client.send(serverEndpoint, Message.fromData("q1"));
+    client.send(serverEndpoint, Message.fromData("q2"));
 
     List<Message> target = targetFuture.get(1, TimeUnit.SECONDS);
     assertNotNull(target);
@@ -471,7 +471,7 @@ public class TransportTest extends BaseTest {
     });
 
     SettableFuture<Void> send = SettableFuture.create();
-    client.send(serverEndpoint, new Message("q"), send);
+    client.send(serverEndpoint, Message.fromData("q"), send);
     send.get(1, TimeUnit.SECONDS);
 
     assertNotNull(messageLatch.get(1, TimeUnit.SECONDS));
@@ -499,7 +499,7 @@ public class TransportTest extends BaseTest {
           throw new RuntimeException("" + message);
         }
         if (qualifier.startsWith("q")) {
-          Message echo = new Message("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
           server.send(message.sender(), echo);
         }
       }
@@ -518,7 +518,7 @@ public class TransportTest extends BaseTest {
         messageFuture0.set(message);
       }
     });
-    client.send(serverEndpoint, new Message("throw"), null);
+    client.send(serverEndpoint, Message.fromData("throw"));
     Message message0 = null;
     try {
       message0 = messageFuture0.get(1, TimeUnit.SECONDS);
@@ -535,7 +535,7 @@ public class TransportTest extends BaseTest {
         messageFuture1.set(message);
       }
     });
-    client.send(serverEndpoint, new Message("q"), null);
+    client.send(serverEndpoint, Message.fromData("q"));
     Message transportMessage1 = null;
     try {
       transportMessage1 = messageFuture1.get(1, TimeUnit.SECONDS);
@@ -569,12 +569,12 @@ public class TransportTest extends BaseTest {
     });
 
     // test at unblocked transport
-    send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "q/unblocked"));
+    send(client, serverEndpoint, Message.fromQualifier("q/unblocked"));
 
     // then block client->server messages
     pause(1000);
     client.<TransportPipelineFactory>getPipelineFactory().blockMessagesTo(serverEndpoint);
-    send(client, serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "q/blocked"));
+    send(client, serverEndpoint, Message.fromQualifier("q/blocked"));
 
     pause(1000);
     assertEquals(1, resp.size());
@@ -589,10 +589,10 @@ public class TransportTest extends BaseTest {
     client = createTransport(clientEndpoint, 1);
     server = createTransport(serverEndpoint, 1);
 
-    client.send(serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "ping0"), null);
+    client.send(serverEndpoint, Message.fromQualifier("ping0"));
 
     SettableFuture<Void> send1 = SettableFuture.create();
-    client.send(serverEndpoint, new Message(null, TransportHeaders.QUALIFIER, "ping1"), send1);
+    client.send(serverEndpoint, Message.fromQualifier("ping1"), send1);
     try {
       send1.get(1, TimeUnit.SECONDS);
     } catch (ExecutionException e) {
@@ -636,8 +636,7 @@ public class TransportTest extends BaseTest {
         for (int j = 0; j < total; j++) {
           String correlationId = id + "/" + j;
           SettableFuture<Void> sendPromise = SettableFuture.create();
-          client.send(endpoint, new Message(null, TransportHeaders.QUALIFIER, "q", TransportHeaders.CORRELATION_ID,
-              correlationId), sendPromise);
+          client.send(endpoint, Message.withQualifier("q").correlationId(correlationId).build(), sendPromise);
           try {
             sendPromise.get(3, TimeUnit.SECONDS);
           } catch (Exception e) {
@@ -654,11 +653,11 @@ public class TransportTest extends BaseTest {
     ArrayList<Message> messages = new ArrayList<>(received);
     ArrayListMultimap<Integer, Message> group = ArrayListMultimap.create();
     for (Message message : messages) {
-      group.put(Integer.valueOf(message.header(TransportHeaders.CORRELATION_ID).split("/")[0]), message);
+      group.put(Integer.valueOf(message.correlationId().split("/")[0]), message);
     }
     assertEquals(total, group.get(id).size());
     for (int k = 0; k < total; k++) {
-      assertEquals(id + "/" + k, group.get(id).get(k).header(TransportHeaders.CORRELATION_ID));
+      assertEquals(id + "/" + k, group.get(id).get(k).correlationId());
     }
   }
 

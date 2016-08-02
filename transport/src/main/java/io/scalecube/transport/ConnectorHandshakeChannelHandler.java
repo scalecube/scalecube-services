@@ -1,5 +1,7 @@
 package io.scalecube.transport;
 
+import static io.scalecube.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC;
+
 import io.scalecube.transport.utils.FutureUtils;
 
 import io.netty.channel.ChannelDuplexHandler;
@@ -53,9 +55,8 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
 
     transportChannel.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.HANDSHAKE_IN_PROGRESS);
 
-    ChannelFuture channelFuture =
-        ctx.writeAndFlush(new Message(handshake, TransportHeaders.QUALIFIER,
-            TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC));
+    Message handshakeMsg = Message.withData(handshake).qualifier(Q_TRANSPORT_HANDSHAKE_SYNC).build();
+    ChannelFuture channelFuture = ctx.writeAndFlush(handshakeMsg);
     channelFuture.addListener(FutureUtils.wrap(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture future) {

@@ -107,11 +107,10 @@ public final class ClusterMembership implements IClusterMembership {
       } else {
         LOGGER.debug("Received Sync from {}, no updates", endpoint);
       }
-      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
+      String correlationId = message.correlationId();
       ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
-      Message syncAckMessage = new Message(syncAckData, TransportHeaders.QUALIFIER, SYNC_ACK,
-          TransportHeaders.CORRELATION_ID, correlationId);
-      transport.send(endpoint, syncAckMessage);
+      Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
+      transport.send(endpoint, syncAckMsg);
     }
   });
 
@@ -362,13 +361,12 @@ public final class ClusterMembership implements IClusterMembership {
 
   private void sendSync(List<InetSocketAddress> members, String period) {
     ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
-    final Message message =
-        new Message(syncData, TransportHeaders.QUALIFIER, SYNC, TransportHeaders.CORRELATION_ID, period);
+    final Message syncMsg = Message.withData(syncData).qualifier(SYNC).correlationId(period).build();
     for (InetSocketAddress memberAddress : members) {
       Futures.addCallback(transport.connect(memberAddress), new FutureCallback<TransportEndpoint>() {
         @Override
         public void onSuccess(TransportEndpoint endpoint) {
-          transport.send(endpoint, message);
+          transport.send(endpoint, syncMsg);
         }
 
         @Override
@@ -427,7 +425,7 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Publish updates to cluster
     if (spreadGossip) {
-      gossipProtocol.spread(new Message(new ClusterMembershipData(updates, syncGroup)));
+      gossipProtocol.spread(Message.fromData(new ClusterMembershipData(updates, syncGroup)));
     }
     // Publish updates locally
     for (ClusterMember update : updates) {
@@ -474,7 +472,7 @@ public final class ClusterMembership implements IClusterMembership {
    */
   public void leave() {
     ClusterMember r1 = new ClusterMember(localEndpoint, SHUTDOWN, localMetadata);
-    gossipProtocol.spread(new Message(new ClusterMembershipData(ImmutableList.of(r1), syncGroup)));
+    gossipProtocol.spread(Message.fromData(new ClusterMembershipData(ImmutableList.of(r1), syncGroup)));
   }
 
   @Override

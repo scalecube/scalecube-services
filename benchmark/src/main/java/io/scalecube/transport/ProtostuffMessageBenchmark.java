@@ -49,12 +49,12 @@ public class ProtostuffMessageBenchmark {
     ser = new ProtostuffMessageSerializer();
     deser = new ProtostuffMessageDeserializer();
 
-    msg = new Message(PAYLOAD);
+    msg = Message.fromData(PAYLOAD);
     ser.serialize(msg, msgSer = Unpooled.buffer(1024));
     bbMsg = Unpooled.buffer(1024);
     System.err.println("### msgSer=" + msgSer);
 
-    msgx16 = new Message(PAYLOAD_X16);
+    msgx16 = Message.fromData(PAYLOAD_X16);
     ser.serialize(msgx16, msgx16Ser = Unpooled.buffer(1024));
     bbMsgx16 = Unpooled.buffer(1024);
     System.err.println("### msgx16Ser=" + msgx16Ser);

@@ -88,23 +88,22 @@ public class GossipProtocolTest {
       }
     });
     List<Gossip> gossipList = new ArrayList<>();
-    gossipList.add(new Gossip("1", new Message("data")));
-    gossipList.add(new Gossip("2", new Message("data")));
-    gossipList.add(new Gossip("3", new Message("data")));
+    gossipList.add(new Gossip("1", Message.fromData("data")));
+    gossipList.add(new Gossip("2", Message.fromData("data")));
+    gossipList.add(new Gossip("3", Message.fromData("data")));
     GossipRequest gossipRequest = new GossipRequest(gossipList);
 
     TransportEndpoint endpoint2 = TransportEndpoint.from("localhost:2:2");
     TransportEndpoint endpoint1 = TransportEndpoint.from("localhost:1:1");
 
-    subject.onNext(messageWithSender(new Message(gossipRequest), endpoint2));
-    subject
-        .onNext(messageWithSender(new Message(null, TransportHeaders.QUALIFIER, "com.pt.openapi.hello/"), endpoint1));
-    subject.onNext(messageWithSender(new Message(gossipRequest), endpoint1));
+    subject.onNext(messageWithSender(Message.fromData(gossipRequest), endpoint2));
+    subject.onNext(messageWithSender(Message.fromQualifier("io.scalecube.hello/"), endpoint1));
+    subject.onNext(messageWithSender(Message.fromData(gossipRequest), endpoint1));
     List<Gossip> second = new ArrayList<>();
-    second.add(new Gossip("2", new Message("data")));
-    second.add(new Gossip("4", new Message("data")));
-    second.add(new Gossip("5", new Message("data")));
-    subject.onNext(messageWithSender(new Message(new GossipRequest(second)), endpoint1));
+    second.add(new Gossip("2", Message.fromData("data")));
+    second.add(new Gossip("4", Message.fromData("data")));
+    second.add(new Gossip("5", Message.fromData("data")));
+    subject.onNext(messageWithSender(Message.fromData(new GossipRequest(second)), endpoint1));
     Method processGossipQueueMethod = GossipProtocol.class.getDeclaredMethod("processGossipQueue");
     processGossipQueueMethod.setAccessible(true);
     processGossipQueueMethod.invoke(gossipProtocol);
@@ -125,8 +124,8 @@ public class GossipProtocolTest {
     sendGossips.setAccessible(true);
     List<GossipLocalState> list = new ArrayList<>();
 
-    list.add(GossipLocalState.create(new Gossip("2", new Message("data")), TransportEndpoint.from("localhost:2020:id2"),
-        0));
+    list.add(GossipLocalState.create(
+        new Gossip("2", Message.fromData("data")), TransportEndpoint.from("localhost:2020:id2"), 0));
     jmockContext.checking(new Expectations() {
       {
         exactly(maxEndpointsToSelect).of(transport).send(with(any(TransportEndpoint.class)), with(any(Message.class)));
