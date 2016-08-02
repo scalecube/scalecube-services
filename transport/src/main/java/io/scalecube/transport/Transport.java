@@ -8,6 +8,7 @@ import io.scalecube.transport.memoizer.Memoizer;
 import io.scalecube.transport.utils.FutureUtils;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.FutureFallback;
@@ -46,8 +47,10 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadFactory;
 
 import javax.annotation.CheckForNull;
@@ -278,9 +281,12 @@ public final class Transport implements ITransportSpi, ITransport {
       TransportChannel transportChannel;
       try {
         transportChannel = future.get();
-      } catch (Throwable cause) {
-        setFailedGetOrConnect(promise, cause, endpoint.socketAddress());
+      } catch (CancellationException | ExecutionException cause) {
+        Throwable cause1 = cause instanceof ExecutionException ? cause.getCause() : cause;
+        setFailedGetOrConnect(promise, cause1, endpoint.socketAddress());
         return;
+      } catch (InterruptedException cause) {
+        throw Throwables.propagate(cause);
       }
       transportChannel.send(message, promise);
     }
