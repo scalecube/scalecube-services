@@ -44,6 +44,7 @@ import rx.subjects.Subject;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -259,20 +260,30 @@ public final class Transport implements ITransportSpi, ITransport {
       @Nullable final SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
-    Futures.addCallback(getOrConnect(endpoint.socketAddress()), new FutureCallback<TransportChannel>() {
-      @Override
-      public void onSuccess(TransportChannel input) {
-        input.send(message, promise);
-      }
 
-      @Override
-      public void onFailure(Throwable cause) {
-        LOGGER.error("Failed to get transportChannel by socketAddress: {}, cause: {}", endpoint.socketAddress(), cause);
-        if (promise != null) {
-          promise.setException(cause);
+    ListenableFuture<TransportChannel> future = getOrConnect(endpoint.socketAddress());
+    if (!future.isDone()) {
+      Futures.addCallback(future, new FutureCallback<TransportChannel>() {
+        @Override
+        public void onSuccess(TransportChannel input) {
+          input.send(message, promise);
         }
+
+        @Override
+        public void onFailure(Throwable cause) {
+          setFailedGetOrConnect(promise, cause, endpoint.socketAddress());
+        }
+      });
+    } else {
+      TransportChannel transportChannel;
+      try {
+        transportChannel = future.get();
+      } catch (Throwable cause) {
+        setFailedGetOrConnect(promise, cause, endpoint.socketAddress());
+        return;
       }
-    });
+      transportChannel.send(message, promise);
+    }
   }
 
   @Nonnull
@@ -409,7 +420,7 @@ public final class Transport implements ITransportSpi, ITransport {
     return Futures.withFallback(FutureUtils.compose(eventLoop.submit(new Callable<InetSocketAddress>() {
       @Override
       public InetSocketAddress call() throws Exception {
-        InetAddress inetAddress = InetAddress.getByName(address.getHostName()); // issue reverse look up here
+        InetAddress inetAddress = InetAddress.getByName(address.getHostName());
         return new InetSocketAddress(inetAddress, address.getPort());
       }
     })), new FutureFallback<InetSocketAddress>() {
@@ -419,5 +430,13 @@ public final class Transport implements ITransportSpi, ITransport {
         return Futures.immediateFailedFuture(cause);
       }
     });
+  }
+
+  private void setFailedGetOrConnect(@Nullable SettableFuture<Void> promise, Throwable cause,
+      SocketAddress socketAddress) {
+    LOGGER.error("Failed to get transportChannel by socketAddress: {}, cause: {}", socketAddress, cause);
+    if (promise != null) {
+      promise.setException(cause);
+    }
   }
 }
