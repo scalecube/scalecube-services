@@ -30,6 +30,6 @@ public class GossipExample {
 
     // start cluster node that listen on port 3001 and point to node A as seed node
     ICluster clusterB = Cluster.joinAwait(3001, "localhost:3000");
-    clusterB.gossip().spread(new Message(new Greetings("Greetings from ClusterMember B")));
+    clusterB.gossip().spread(Message.fromData(new Greetings("Greetings from ClusterMember B")));
   }
 }

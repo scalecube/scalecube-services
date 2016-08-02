@@ -129,7 +129,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(new Message("data"));
+    protocols.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -158,7 +158,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(new Message("data"));
+    protocols.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -187,7 +187,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(new Message("data"));
+    protocols.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -216,7 +216,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(new Message("data"));
+    protocols.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -248,7 +248,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(new Message("data"));
+    protocols.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time, time < 20000 + lambda);
@@ -278,7 +278,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(new Message("data"));
+    protocols.get(0).spread(Message.fromData("data"));
     latch.await(30, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time + "count: " + latch.getCount(), time < 30000);
@@ -308,7 +308,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(new Message("data"));
+    protocols.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time, time < 20000 + lambda);

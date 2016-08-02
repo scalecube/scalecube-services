@@ -63,7 +63,7 @@ public class ClusterMetadataExample {
     for (ClusterMember m : members) {
       if (m.metadata().containsKey("alias")) {
         if (m.metadata().get("alias").equals("Joe")) {
-          seedCluster.send(m, new Message(MESSAGE_DATA));
+          seedCluster.send(m, Message.fromData(MESSAGE_DATA));
         }
       }
     }

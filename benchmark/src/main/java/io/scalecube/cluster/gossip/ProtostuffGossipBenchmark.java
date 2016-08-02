@@ -63,16 +63,17 @@ public class ProtostuffGossipBenchmark {
     ser = protocol.getMessageSerializer();
     deser = protocol.getMessageDeserializer();
 
-    gossipReq = new Message(new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", new Message(PAYLOAD_X32)))));
+    gossipReq = Message.fromData(
+        new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", Message.fromData(PAYLOAD_X32)))));
     ser.serialize(gossipReq, gossipReqSer = Unpooled.buffer(1024));
     bbGossipReq = Unpooled.buffer(1024);
     System.err.println("### gossipReqSer=" + gossipReqSer);
 
     List<Gossip> list32 = new ArrayList<>();
     for (int i = 0; i < 32; i++) {
-      list32.add(new Gossip("ABCDEFGH_" + i, new Message(PAYLOAD)));
+      list32.add(new Gossip("ABCDEFGH_" + i, Message.fromData(PAYLOAD)));
     }
-    gossipReqx32 = new Message(new GossipRequest(list32));
+    gossipReqx32 = Message.fromData(new GossipRequest(list32));
     ser.serialize(gossipReqx32, gossipReqx32Ser = Unpooled.buffer(1024));
     bbGossipReqx32 = Unpooled.buffer(1024);
     System.err.println("### gossipReqx32Ser=" + gossipReqx32Ser);

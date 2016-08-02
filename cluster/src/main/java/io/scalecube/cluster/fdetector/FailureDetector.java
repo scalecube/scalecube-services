@@ -73,9 +73,9 @@ public final class FailureDetector implements IFailureDetector {
     public void call(Message message) {
       LOGGER.trace("Received Ping: {}", message);
       FailureDetectorData data = message.data();
-      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
-      send(data.getFrom(), new Message(data, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
-          correlationId));
+      String correlationId = message.correlationId();
+      Message ackMsg = Message.withData(data).qualifier(ACK).correlationId(correlationId).build();
+      send(data.getFrom(), ackMsg);
     }
   });
 
@@ -87,10 +87,10 @@ public final class FailureDetector implements IFailureDetector {
       FailureDetectorData data = message.data();
       TransportEndpoint target = data.getTo();
       TransportEndpoint originalIssuer = data.getFrom();
-      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
+      String correlationId = message.correlationId();
       FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, target, originalIssuer);
-      send(target, new Message(pingReqData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID,
-          correlationId));
+      Message pingMsg = Message.withData(pingReqData).qualifier(PING).correlationId(correlationId).build();
+      send(target, pingMsg);
     }
   });
 
@@ -104,12 +104,10 @@ public final class FailureDetector implements IFailureDetector {
         public void call(Message message) {
           FailureDetectorData data = message.data();
           TransportEndpoint target = data.getOriginalIssuer();
-          String correlationId = message.header(TransportHeaders.CORRELATION_ID);
+          String correlationId = message.correlationId();
           FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
-          Message originalAckMessage =
-              new Message(originalAckData, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
-                  correlationId);
-          send(target, originalAckMessage);
+          Message originalAckMsg = Message.withData(originalAckData).qualifier(ACK).correlationId(correlationId).build();
+          send(target, originalAckMsg);
         }
       });
 
@@ -229,10 +227,9 @@ public final class FailureDetector implements IFailureDetector {
       return;
     }
 
-    final String period = "" + periodNbr.incrementAndGet();
+    final String period = Integer.toString(periodNbr.incrementAndGet());
     FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
-    Message message = new Message(pingData, TransportHeaders.QUALIFIER, PING,
-        TransportHeaders.CORRELATION_ID, period/* correlationId */);
+    Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(period).build();
     LOGGER.trace("Send Ping from {} to {}", localEndpoint, pingMember);
 
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
@@ -251,7 +248,7 @@ public final class FailureDetector implements IFailureDetector {
           }
         }));
 
-    send(pingMember, message);
+    send(pingMember, pingMsg);
   }
 
   private void doPingReq(List<TransportEndpoint> members, final TransportEndpoint targetMember, String period) {
@@ -288,11 +285,10 @@ public final class FailureDetector implements IFailureDetector {
         }));
 
     FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, targetMember);
-    Message message = new Message(pingReqData, TransportHeaders.QUALIFIER, PING_REQ,
-        TransportHeaders.CORRELATION_ID, period/* correlationId */);
+    Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(period).build();
     for (TransportEndpoint randomMember : randomMembers) {
       LOGGER.trace("Send PingReq from {} to {}", localEndpoint, randomMember);
-      send(randomMember, message);
+      send(randomMember, pingReqMsg);
     }
   }
 

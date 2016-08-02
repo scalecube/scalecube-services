@@ -50,8 +50,8 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
       LOGGER.debug("Set READY on acceptor: {}", transportChannel);
     }
 
-    ChannelFuture channelFuture =
-        ctx.writeAndFlush(new Message(handshakeResponse, QUALIFIER, Q_TRANSPORT_HANDSHAKE_SYNC_ACK));
+    Message handshakeAckMsg = Message.withData(handshakeResponse).qualifier(Q_TRANSPORT_HANDSHAKE_SYNC_ACK).build();
+    ChannelFuture channelFuture = ctx.writeAndFlush(handshakeAckMsg);
 
     channelFuture.addListener(FutureUtils.wrap(new ChannelFutureListener() {
       @Override

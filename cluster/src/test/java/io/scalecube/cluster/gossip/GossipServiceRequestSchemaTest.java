@@ -42,7 +42,7 @@ public class GossipServiceRequestSchemaTest {
 
     List<Gossip> gossips = getGossips();
 
-    Message message = new Message(new GossipRequest(gossips), TransportHeaders.CORRELATION_ID, "CORR_ID");
+    Message message = Message.withData(new GossipRequest(gossips)).correlationId("CORR_ID").build();
 
     ByteBuf bb = buffer();
     protocol.getMessageSerializer().serialize(message, bb);
@@ -55,7 +55,7 @@ public class GossipServiceRequestSchemaTest {
 
     assertNotNull(deserializedMessage);
     Assert.assertEquals(deserializedMessage.data().getClass(), GossipRequest.class);
-    Assert.assertEquals("CORR_ID", deserializedMessage.header(TransportHeaders.CORRELATION_ID));
+    Assert.assertEquals("CORR_ID", deserializedMessage.correlationId());
 
     GossipRequest gossipRequest = deserializedMessage.data();
     assertNotNull(gossipRequest);
@@ -69,8 +69,8 @@ public class GossipServiceRequestSchemaTest {
   }
 
   private List<Gossip> getGossips() {
-    Gossip request = new Gossip("idGossip", new Message(testData, TransportHeaders.QUALIFIER, testDataQualifier));
-    Gossip request2 = new Gossip("idGossip2", new Message(testData, TransportHeaders.QUALIFIER, testDataQualifier));
+    Gossip request = new Gossip("idGossip", Message.withData(testData).qualifier(testDataQualifier).build());
+    Gossip request2 = new Gossip("idGossip2", Message.withData(testData).qualifier(testDataQualifier).build());
     List<Gossip> gossips = new ArrayList<>(2);
     gossips.add(request);
     gossips.add(request2);
