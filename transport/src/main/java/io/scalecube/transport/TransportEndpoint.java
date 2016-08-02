@@ -4,6 +4,9 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Throwables;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -17,14 +20,13 @@ import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class TransportEndpoint {
-  /**
-   * Regexp pattern for {@code [host:]port:id}.
-   */
-  private static final Pattern TRASNPORT_ENDPOINT_ADDRESS_FORMAT = Pattern.compile("(^.*?):(\\d+):(.*$)");
-  /**
-   * Regexp pattern for {@code host:port}.
-   */
-  private static final Pattern SOCKET_ADDRESS_FORMAT = Pattern.compile("(^.*):(\\d+$)");
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransportEndpoint.class);
+
+  private static final Pattern TRASNPORT_ENDPOINT_ADDRESS_FORMAT =
+      Pattern.compile("(?<host>^.*?):(?<port>\\d+):(?<id>.*$)");
+
+  private static final Pattern SOCKET_ADDRESS_FORMAT =
+      Pattern.compile("(?<host>^.*):(?<port>\\d+$)");
 
   /**
    * Endpoint identifier (or <i>incarnationId</i>). Either being set upfront or obtained at connection' handshake phase.
@@ -64,7 +66,7 @@ public final class TransportEndpoint {
 
   /**
    * Creates transport endpoint from uri string. For localhost variant host may come in: {@code 127.0.0.1},
-   * {@code localhost} or omitted et al; when localhost case detected then node's public IP4 address would be resolved.
+   * {@code localhost} or omitted et al; when localhost case detected then node's public IP address would be resolved.
    *
    * @param input must come in form {@code host:port:id}
    */
@@ -85,7 +87,7 @@ public final class TransportEndpoint {
 
   /**
    * Creates local transport endpoint from endpoint id and port. <b>NOTE:</b> hostname of created transport will be set
-   * to node's public IP4 address.
+   * to node's public IP address.
    *
    * @param id endpoint id (or <i>incarnationId</i>)
    * @param port a port to bind to.
@@ -95,9 +97,9 @@ public final class TransportEndpoint {
   }
 
   /**
-   * Parses given string to get socketAddress (<b>NOTE:</b> not attemp will be made to resolve
-   * {@link java.net.InetAddress}) object. For localhost variant host may come in: {@code 127.0.0.1} or
-   * {@code localhost}; when localhost case detected then node's public IP4 address would be resolved.
+   * Parses given string to get socketAddress (<b>NOTE:</b> not attemp will be made to resolve {@link InetAddress})
+   * object. For localhost variant host may come in: {@code 127.0.0.1} or {@code localhost}; when localhost case
+   * detected then node's public IP address would be resolved.
    *
    * @param input in a form {@code host:port}
    * @return unresolved socketAddress; only {@link InetSocketAddress#getHostName()}, {@link InetSocketAddress#getPort()}
@@ -124,24 +126,19 @@ public final class TransportEndpoint {
   }
 
   /**
-   * Getting local IP4 address by the address of local host. <b>NOTE:</b> that returned IP4 address is expected to be a
-   * publicly visible IP4 address.
+   * Getting local IP address by the address of local host. <b>NOTE:</b> returned IP address is expected to be a
+   * publicly visible IP address.
    *
    * @throws RuntimeException wrapped {@link UnknownHostException} in case when local host name couldn't be resolved
-   *         into an address; or when returned IP4 address belongs to loopback address family.
+   *         into an address.
    */
   public static String getLocalIpAddress() {
-    InetAddress inetAddress;
     try {
-      inetAddress = InetAddress.getLocalHost();
-      if (inetAddress.getAddress()[0] == Byte.MAX_VALUE) {
-        throw new UnknownHostException(String.format("can't resolve non-loopback ip addr for %s, resolved to %s",
-            inetAddress.getHostName(), inetAddress.getHostAddress()));
-      }
+      return InetAddress.getLocalHost().getHostAddress();
     } catch (UnknownHostException e) {
+      LOGGER.error("Unable to determine local hostname, cause: {}", new Object[] {e});
       throw Throwables.propagate(e);
     }
-    return inetAddress.getHostAddress();
   }
 
   /**

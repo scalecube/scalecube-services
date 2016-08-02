@@ -240,7 +240,6 @@ public final class Transport implements ITransportSpi, ITransport {
         break;
       }
     }
-    // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     if (transportChannel == null) {
       if (promise != null) {
         promise.set(null);
@@ -260,7 +259,6 @@ public final class Transport implements ITransportSpi, ITransport {
       @Nullable final SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
-    // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
     Futures.addCallback(getOrConnect(endpoint.socketAddress()), new FutureCallback<TransportChannel>() {
       @Override
       public void onSuccess(TransportChannel input) {
