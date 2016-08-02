@@ -204,7 +204,7 @@ public final class ClusterMembership implements IClusterMembership {
         }
       }
     }
-    // filter accidental duplicates/locals
+    // filter accidental duplicate/local addresses
     Set<InetSocketAddress> set = new HashSet<>(memberList);
     for (Iterator<InetSocketAddress> i = set.iterator(); i.hasNext();) {
       InetSocketAddress socketAddress = i.next();

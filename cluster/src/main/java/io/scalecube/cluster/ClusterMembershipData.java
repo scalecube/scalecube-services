@@ -8,7 +8,7 @@ import java.util.List;
 
 /** DTO class. Contains a snapshot of cluster members and cluster identifier. */
 final class ClusterMembershipData {
-  /** A 'snapshot' of cluster members. */
+  /** A snapshot of cluster members. */
   @Tag(1)
   private List<ClusterMember> membership = new ArrayList<>();
   /** Sort of cluster identifier. Only makes sense at cluster membership SYNC/SYNC_ACK transitions. */

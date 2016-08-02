@@ -9,9 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Channel handler for catching 'channel active' events on 'acceptor' side.
- * <p/>
- * <b>NOTE:</b> this handler must be the first handler after data format handlers in the pipeline.
+ * Channel handler for catching channelActive events on <i>acceptor</i> side. <b>NOTE:</b> this handler must be the
+ * first handler after data format handlers in the pipeline.
  */
 @ChannelHandler.Sharable
 final class AcceptorRegistratorChannelHandler extends ChannelDuplexHandler {

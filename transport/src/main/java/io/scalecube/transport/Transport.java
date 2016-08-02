@@ -2,13 +2,16 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static io.scalecube.transport.utils.ChannelFutureUtils.setPromise;
-import static io.scalecube.transport.utils.ChannelFutureUtils.wrap;
 
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
+import io.scalecube.transport.utils.FutureUtils;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.AsyncFunction;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -40,9 +43,14 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadFactory;
 
 import javax.annotation.CheckForNull;
@@ -177,19 +185,20 @@ public final class Transport implements ITransportSpi, ITransport {
       }
     });
 
-    ChannelFuture bindFuture = server.bind(localEndpoint.socketAddress());
+    ChannelFuture bindFuture = server.bind(localEndpoint.port());
     final SettableFuture<Void> result = SettableFuture.create();
     bindFuture.addListener(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Transport endpoint '{}' bound to: {}", localEndpoint.id(), localEndpoint.socketAddress());
+          LOGGER.info("Bound transport endpoint: {} at {}:{}",
+              localEndpoint.id(), localEndpoint.host(), localEndpoint.port());
           result.set(null);
         } else {
-          Throwable ex = channelFuture.cause();
-          result.setException(ex);
-          LOGGER.error("Failed to bind to: " + localEndpoint.socketAddress() + ", caught " + ex, ex);
+          LOGGER.error("Failed to bind transport endpoint: {} at {}:{}, cause: {}",
+              localEndpoint.id(), localEndpoint.host(), localEndpoint.port(), channelFuture.cause());
+          result.setException(channelFuture.cause());
         }
       }
     });
@@ -199,8 +208,12 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address) {
     checkArgument(address != null);
-    final TransportChannel transportChannel = getOrConnect(address);
-    return Futures.transform(transportChannel.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
+    return Futures.transform(getOrConnect(address), new AsyncFunction<TransportChannel, TransportEndpoint>() {
+      @Override
+      public ListenableFuture<TransportEndpoint> apply(TransportChannel input) {
+        return Futures.transform(input.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
+      }
+    });
   }
 
   private void connect(final Channel channel, final InetSocketAddress address, final TransportChannel transport) {
@@ -209,7 +222,7 @@ public final class Transport implements ITransportSpi, ITransport {
       public void run() {
         ChannelPromise promise = channel.newPromise();
         channel.connect(address, promise);
-        promise.addListener(wrap(new ChannelFutureListener() {
+        promise.addListener(FutureUtils.wrap(new ChannelFutureListener() {
           @Override
           public void operationComplete(ChannelFuture future) {
             if (!future.isSuccess()) {
@@ -224,8 +237,13 @@ public final class Transport implements ITransportSpi, ITransport {
   @Override
   public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
-    TransportChannel transportChannel = connectedChannels.getIfExists(endpoint.socketAddress());
-    // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
+    TransportChannel transportChannel = null;
+    for (InetSocketAddress address : connectedChannels.keySet()) {
+      if (address.getAddress().getHostAddress().equals(endpoint.host()) && address.getPort() == endpoint.port()) {
+        transportChannel = connectedChannels.get(address);
+        break;
+      }
+    }
     if (transportChannel == null) {
       if (promise != null) {
         promise.set(null);
@@ -241,13 +259,37 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public void send(@CheckForNull TransportEndpoint endpoint, @CheckForNull Message message,
-      @Nullable SettableFuture<Void> promise) {
+  public void send(@CheckForNull final TransportEndpoint endpoint, @CheckForNull final Message message,
+      @Nullable final SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
-    TransportChannel transportChannel = getOrConnect(endpoint.socketAddress());
-    // TODO [AK]: check that channel endpoint id correspond to provided endpoint id; fail otherwise
-    transportChannel.send(message, promise);
+
+    ListenableFuture<TransportChannel> future = getOrConnect(endpoint.socketAddress());
+    if (!future.isDone()) {
+      Futures.addCallback(future, new FutureCallback<TransportChannel>() {
+        @Override
+        public void onSuccess(TransportChannel input) {
+          input.send(message, promise);
+        }
+
+        @Override
+        public void onFailure(Throwable cause) {
+          setFailedGetOrConnect(promise, cause, endpoint.socketAddress());
+        }
+      });
+    } else {
+      TransportChannel transportChannel;
+      try {
+        transportChannel = future.get();
+      } catch (CancellationException | ExecutionException cause) {
+        Throwable cause1 = cause instanceof ExecutionException ? cause.getCause() : cause;
+        setFailedGetOrConnect(promise, cause1, endpoint.socketAddress());
+        return;
+      } catch (InterruptedException cause) {
+        throw Throwables.propagate(cause);
+      }
+      transportChannel.send(message, promise);
+    }
   }
 
   @Nonnull
@@ -283,7 +325,7 @@ public final class Transport implements ITransportSpi, ITransport {
       }
     }
     if (serverChannel != null) {
-      setPromise(serverChannel.close(), promise);
+      FutureUtils.compose(serverChannel.close(), promise);
     }
   }
 
@@ -308,8 +350,8 @@ public final class Transport implements ITransportSpi, ITransport {
     checkNotNull(remoteEndpoint.socketAddress());
     TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.socketAddress(), transportChannel);
     if (prev != null) {
-      String err = String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint);
-      throw new TransportBrokenException(err);
+      throw new TransportBrokenException(
+          String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint));
     }
   }
 
@@ -323,29 +365,33 @@ public final class Transport implements ITransportSpi, ITransport {
     incomingMessagesSubject.onNext(message);
   }
 
-  private TransportChannel getOrConnect(@CheckForNull InetSocketAddress address) {
+  private ListenableFuture<TransportChannel> getOrConnect(@CheckForNull InetSocketAddress address) {
     checkArgument(address != null);
-    return connectedChannels.get(address, new Computable<InetSocketAddress, TransportChannel>() {
+    return Futures.transform(resolveSocketAddress(address), new Function<InetSocketAddress, TransportChannel>() {
       @Override
-      public TransportChannel compute(final InetSocketAddress address) {
-        final Channel channel = createConnectorChannel();
-        final TransportChannel transportChannel = createConnectorTransportChannel(channel, address);
-
-        LOGGER.info("Registered connector: {}", transportChannel);
-
-        final ChannelFuture registerChannelFuture = eventLoop.register(channel);
-        registerChannelFuture.addListener(new ChannelFutureListener() {
+      public TransportChannel apply(final InetSocketAddress resolvedAddress) {
+        return connectedChannels.get(resolvedAddress, new Computable<InetSocketAddress, TransportChannel>() {
           @Override
-          public void operationComplete(ChannelFuture future) throws Exception {
-            if (future.isSuccess()) {
-              connect(channel, address, transportChannel);
-            } else {
-              channel.unsafe().closeForcibly();
-              transportChannel.close();
-            }
+          public TransportChannel compute(final InetSocketAddress input) {
+            final Channel channel = createConnectorChannel();
+            final TransportChannel transportChannel = createConnectorTransportChannel(channel, input);
+
+            eventLoop.register(channel).addListener(new ChannelFutureListener() {
+              @Override
+              public void operationComplete(ChannelFuture future) throws Exception {
+                if (future.isSuccess()) {
+                  LOGGER.info("Registered connector: {}", transportChannel);
+                  connect(channel, input, transportChannel);
+                } else {
+                  channel.unsafe().closeForcibly();
+                  transportChannel.close();
+                }
+              }
+            });
+
+            return transportChannel;
           }
         });
-        return transportChannel;
       }
     });
   }
@@ -369,5 +415,34 @@ public final class Transport implements ITransportSpi, ITransport {
         return null;
       }
     });
+  }
+
+  /**
+   * Asynchronously resolves inetAddress by hostname taken from socketAddress ({@link InetSocketAddress#getHostName()}).
+   * 
+   * @return new {@link InetSocketAddress} object with resolved {@link InetAddress}.
+   */
+  private ListenableFuture<InetSocketAddress> resolveSocketAddress(final InetSocketAddress address) {
+    return Futures.withFallback(FutureUtils.compose(eventLoop.submit(new Callable<InetSocketAddress>() {
+      @Override
+      public InetSocketAddress call() throws Exception {
+        InetAddress inetAddress = InetAddress.getByName(address.getHostName());
+        return new InetSocketAddress(inetAddress, address.getPort());
+      }
+    })), new FutureFallback<InetSocketAddress>() {
+      @Override
+      public ListenableFuture<InetSocketAddress> create(Throwable cause) throws Exception {
+        LOGGER.error("Failed to resolve inet address by hostname: {}, cause: {}", address.getHostName(), cause);
+        return Futures.immediateFailedFuture(cause);
+      }
+    });
+  }
+
+  private void setFailedGetOrConnect(@Nullable SettableFuture<Void> promise, Throwable cause,
+      SocketAddress socketAddress) {
+    LOGGER.error("Failed to get transportChannel by socketAddress: {}, cause: {}", socketAddress, cause);
+    if (promise != null) {
+      promise.setException(cause);
+    }
   }
 }

@@ -1,6 +1,6 @@
 package io.scalecube.transport;
 
-import static io.scalecube.transport.utils.ChannelFutureUtils.wrap;
+import io.scalecube.transport.utils.FutureUtils;
 
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
@@ -20,10 +20,8 @@ import java.util.concurrent.TimeoutException;
 /**
  * Duplex handler. On inbound recognizes only handshake message
  * {@link TransportHandshakeData#Q_TRANSPORT_HANDSHAKE_SYNC_ACK} (rest inbound messages unsupported and results in
- * {@link TransportBrokenException}). On outbound may enqueue messages. On 'channel active' starting handshake process.
- * <p/>
- * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimeout}); and should always
- * run in different executor than io-thread.
+ * {@link TransportBrokenException}). On outbound may enqueue messages. On channelActive starting handshake process.
+ * <b>NOTE:</b> this handler is not shareable (see {@link #sendMailbox}, {@link #handshakeTimeout}).
  */
 final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
   static final Logger LOGGER = LoggerFactory.getLogger(ConnectorHandshakeChannelHandler.class);
@@ -58,7 +56,7 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
     ChannelFuture channelFuture =
         ctx.writeAndFlush(new Message(handshake, TransportHeaders.QUALIFIER,
             TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC));
-    channelFuture.addListener(wrap(new ChannelFutureListener() {
+    channelFuture.addListener(FutureUtils.wrap(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture future) {
         if (!future.isSuccess()) {

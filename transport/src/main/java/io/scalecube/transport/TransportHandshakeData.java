@@ -27,16 +27,16 @@ final class TransportHandshakeData {
   }
 
   /**
-   * Encoded transport endpoint {@code host:port:id}. <b>NOTE:</b> {@code host} isn't optinal here. This is DTO field
-   * purely for populating {@link #endpoint} property. By itself this is transport endpoint related to the opposite end
-   * of the corresponding connection; never null.
+   * Encoded transport endpoint {@code host:port:id}. This is DTO field purely for populating {@link #endpoint}
+   * property. By itself this is transport endpoint related to the opposite end of the corresponding connection; never
+   * null.
    */
   @Tag(1)
   private final String encodedEndpoint;
 
   /**
-   * A status field. When set to {@link Status#RESOLVED_OK} this mean transport connection is good and we can proceed
-   * further with transport, otherwise -- transport should be treated as invalid and purged from system; never null.
+   * A status field. When set to {@code RESOLVED_OK} this mean transport connection is good and we can proceed further
+   * with transport, otherwise -- transport should be treated as invalid and purged from system; never null.
    */
   @Tag(2)
   private final Status status;
@@ -89,7 +89,7 @@ final class TransportHandshakeData {
   }
 
   /**
-   * String explanation of the status. Not set if {@link Status#RESOLVED_OK} (but set otherwise).
+   * See {@link #explain}.
    */
   @Nullable
   String explain() {
@@ -97,7 +97,7 @@ final class TransportHandshakeData {
   }
 
   /**
-   * Returns true if status is {@link Status#RESOLVED_OK}; false otherwise.
+   * Returns true if status is {@code RESOLVED_OK}; false otherwise.
    */
   boolean isResolvedOk() {
     return status() == RESOLVED_OK;
@@ -106,8 +106,8 @@ final class TransportHandshakeData {
   @Override
   public String toString() {
     return "TransportHandshakeData{"
-        + "endpoint=" + endpoint()
-        + ", status=" + status()
+        + "endpoint=" + endpoint
+        + ", status=" + status
         + ", explain='" + explain + '\''
         + '}';
   }

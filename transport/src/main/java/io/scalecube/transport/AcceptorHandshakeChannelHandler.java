@@ -4,7 +4,7 @@ import static io.scalecube.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAK
 import static io.scalecube.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK;
 import static io.scalecube.transport.TransportHeaders.QUALIFIER;
 
-import io.scalecube.transport.utils.ChannelFutureUtils;
+import io.scalecube.transport.utils.FutureUtils;
 
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
@@ -41,6 +41,7 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
     final TransportHandshakeData handshakeRequest = message.data();
     final TransportHandshakeData handshakeResponse =
         prepareHandshakeResponse(handshakeRequest, transportSpi.localEndpoint());
+
     if (handshakeResponse.isResolvedOk()) {
       transportChannel.setHandshakeData(handshakeRequest);
       transportSpi.accept(transportChannel);
@@ -52,7 +53,7 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
     ChannelFuture channelFuture =
         ctx.writeAndFlush(new Message(handshakeResponse, QUALIFIER, Q_TRANSPORT_HANDSHAKE_SYNC_ACK));
 
-    channelFuture.addListener(ChannelFutureUtils.wrap(new ChannelFutureListener() {
+    channelFuture.addListener(FutureUtils.wrap(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture future) {
         if (!handshakeResponse.isResolvedOk()) {
@@ -64,18 +65,20 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
   }
 
   /**
-   * Handshake validator method on 'acceptor' side.
+   * Handshake factory method on <i>acceptor</i> side. Performs basic validation by comparing remote endpoint id vs
+   * local endpoint id, they must not be equal.
    *
-   * @param handshakeRequest incoming (remote) handshake from 'connector'
+   * @param handshakeRequest incoming (remote) handshake from <i>connector</i>
    * @param localEndpoint local endpoint
    * @return {@link TransportHandshakeData} object in status RESOLVED_OK or RESOLVED_ERR
    */
   private TransportHandshakeData prepareHandshakeResponse(TransportHandshakeData handshakeRequest,
       TransportEndpoint localEndpoint) {
     TransportEndpoint remoteEndpoint = handshakeRequest.endpoint();
-    if (remoteEndpoint.id().equals(localEndpoint.id())) {
+    String remoteEndpointId = remoteEndpoint.id();
+    if (remoteEndpointId.equals(localEndpoint.id())) {
       return TransportHandshakeData.error(localEndpoint,
-          String.format("Remote endpoint: %s is eq to local one: %s", handshakeRequest.endpoint(), localEndpoint));
+          String.format("Remote endpoint id: %s is eq to local one: %s", remoteEndpoint, remoteEndpointId));
     }
     return TransportHandshakeData.ok(localEndpoint);
   }
