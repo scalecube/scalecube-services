@@ -100,7 +100,7 @@ public class TransportTest extends BaseTest {
     client = createTransport(clientEndpoint());
     // create transport with wrong host
     SettableFuture<Void> sendPromise0 = SettableFuture.create();
-    client.send(TransportEndpoint.from("wronghost:49255:server"), new Message("q"), sendPromise0);
+    client.send(TransportEndpoint.from("wronghost:49255:server"), Message.fromData("q"), sendPromise0);
     try {
       sendPromise0.get(5, TimeUnit.SECONDS);
       fail();
