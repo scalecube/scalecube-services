@@ -102,7 +102,7 @@ public class TransportTest extends BaseTest {
     SettableFuture<Void> sendPromise0 = SettableFuture.create();
     client.send(TransportEndpoint.from("wronghost:49255:server"), new Message("q"), sendPromise0);
     try {
-      sendPromise0.get(3, TimeUnit.SECONDS);
+      sendPromise0.get(5, TimeUnit.SECONDS);
       fail();
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();

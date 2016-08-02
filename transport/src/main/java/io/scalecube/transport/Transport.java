@@ -359,16 +359,16 @@ public final class Transport implements ITransportSpi, ITransport {
             final Channel channel = createConnectorChannel();
             final TransportChannel transportChannel = createConnectorTransportChannel(channel, input);
 
-            Futures.addCallback(registerChannel(channel), new FutureCallback<Void>() {
+            eventLoop.register(channel).addListener(new ChannelFutureListener() {
               @Override
-              public void onSuccess(Void void0) {
-                connect(channel, input, transportChannel);
-              }
-
-              @Override
-              public void onFailure(Throwable throwable) {
-                channel.unsafe().closeForcibly();
-                transportChannel.close();
+              public void operationComplete(ChannelFuture future) throws Exception {
+                if (future.isSuccess()) {
+                  LOGGER.info("Registered connector: {}", transportChannel);
+                  connect(channel, input, transportChannel);
+                } else {
+                  channel.unsafe().closeForcibly();
+                  transportChannel.close();
+                }
               }
             });
 
@@ -396,19 +396,6 @@ public final class Transport implements ITransportSpi, ITransport {
       public Void call(TransportChannel transport) {
         connectedChannels.remove(address);
         return null;
-      }
-    });
-  }
-
-  /**
-   * Asynchronously registers channel in {@link #eventLoop}.
-   */
-  private ListenableFuture<Void> registerChannel(Channel channel) {
-    return Futures.withFallback(FutureUtils.compose(eventLoop.register(channel)), new FutureFallback<Void>() {
-      @Override
-      public ListenableFuture<Void> create(Throwable cause) {
-        LOGGER.error("Failed to register channel, cause: {}", new Object[] {cause});
-        return Futures.immediateFailedFuture(cause);
       }
     });
   }
