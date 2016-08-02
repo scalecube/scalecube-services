@@ -106,7 +106,8 @@ public final class FailureDetector implements IFailureDetector {
           TransportEndpoint target = data.getOriginalIssuer();
           String correlationId = message.correlationId();
           FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
-          Message originalAckMsg = Message.withData(originalAckData).qualifier(ACK).correlationId(correlationId).build();
+          Message originalAckMsg =
+              Message.withData(originalAckData).qualifier(ACK).correlationId(correlationId).build();
           send(target, originalAckMsg);
         }
       });
