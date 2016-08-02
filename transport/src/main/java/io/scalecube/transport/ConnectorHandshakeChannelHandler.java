@@ -1,7 +1,8 @@
 package io.scalecube.transport;
 
 import static io.scalecube.transport.TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC;
-import static io.scalecube.transport.utils.FutureUtils;
+
+import io.scalecube.transport.utils.FutureUtils;
 
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
