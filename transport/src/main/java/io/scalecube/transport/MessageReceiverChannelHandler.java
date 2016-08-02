@@ -27,11 +27,9 @@ final class MessageReceiverChannelHandler extends ChannelInboundHandlerAdapter {
    */
   @Override
   public void channelRead(ChannelHandlerContext ctx, Object msg) {
-    TransportChannel transportChannel = TransportChannel.from(ctx.channel());
     Message message = (Message) msg;
-    message.setSender(transportChannel.remoteEndpoint());
     if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug("Received {}", message);
+      LOGGER.debug("Received: {}", message);
     }
     transportSpi.onMessage(message);
   }

@@ -210,7 +210,7 @@ public final class Transport implements ITransportSpi, ITransport {
     checkArgument(address != null);
     return Futures.transform(getOrConnect(address), new AsyncFunction<TransportChannel, TransportEndpoint>() {
       @Override
-      public ListenableFuture<TransportEndpoint> apply(TransportChannel input) {
+      public ListenableFuture<TransportEndpoint> apply(@Nonnull TransportChannel input) {
         return Futures.transform(input.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
       }
     });
@@ -263,6 +263,7 @@ public final class Transport implements ITransportSpi, ITransport {
       @Nullable final SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
+    message.setSender(localEndpoint);
 
     ListenableFuture<TransportChannel> future = getOrConnect(endpoint.socketAddress());
     if (!future.isDone()) {
@@ -273,7 +274,7 @@ public final class Transport implements ITransportSpi, ITransport {
         }
 
         @Override
-        public void onFailure(Throwable cause) {
+        public void onFailure(@Nonnull Throwable cause) {
           setFailedGetOrConnect(promise, cause, endpoint.socketAddress());
         }
       });
@@ -431,7 +432,7 @@ public final class Transport implements ITransportSpi, ITransport {
       }
     })), new FutureFallback<InetSocketAddress>() {
       @Override
-      public ListenableFuture<InetSocketAddress> create(Throwable cause) throws Exception {
+      public ListenableFuture<InetSocketAddress> create(@Nonnull Throwable cause) throws Exception {
         LOGGER.error("Failed to resolve inet address by hostname: {}, cause: {}", address.getHostName(), cause);
         return Futures.immediateFailedFuture(cause);
       }

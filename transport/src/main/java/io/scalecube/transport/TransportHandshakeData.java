@@ -61,15 +61,15 @@ final class TransportHandshakeData {
   }
 
   static TransportHandshakeData create(TransportEndpoint endpoint) {
-    return new TransportHandshakeData(endpoint.getString(), CREATED, CREATED.toString());
+    return new TransportHandshakeData(endpoint.asString(), CREATED, CREATED.toString());
   }
 
   static TransportHandshakeData ok(TransportEndpoint endpoint) {
-    return new TransportHandshakeData(endpoint.getString(), RESOLVED_OK, RESOLVED_OK.toString());
+    return new TransportHandshakeData(endpoint.asString(), RESOLVED_OK, RESOLVED_OK.toString());
   }
 
   static TransportHandshakeData error(TransportEndpoint endpoint, String explain) {
-    return new TransportHandshakeData(endpoint.getString(), RESOLVED_ERROR, explain);
+    return new TransportHandshakeData(endpoint.asString(), RESOLVED_ERROR, explain);
   }
 
   /**
