@@ -92,7 +92,7 @@ public final class Transport implements ITransportSpi, ITransport {
     this.eventLoop = eventLoop;
     this.eventExecutor = eventExecutor;
     this.pipelineFactory =
-        new TransportPipelineFactory(this, new ProtostuffProtocol(), settings.isUseNetworkEmulator());
+        new TransportPipelineFactory(this, settings.isUseNetworkEmulator());
   }
 
   public static Transport newInstance(TransportEndpoint localEndpoint) {

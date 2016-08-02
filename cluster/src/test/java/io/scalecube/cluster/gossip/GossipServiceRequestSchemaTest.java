@@ -7,7 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Message;
-import io.scalecube.transport.ProtostuffProtocol;
+import io.scalecube.transport.ProtobufMessageDeserializer;
+import io.scalecube.transport.ProtobufMessageSerializer;
 import io.scalecube.transport.TransportHeaders;
 
 import io.netty.buffer.ByteBuf;
@@ -37,21 +38,21 @@ public class GossipServiceRequestSchemaTest {
   }
 
   @Test
-  public void testProtostuff() throws Exception {
-    ProtostuffProtocol protocol = new ProtostuffProtocol();
-
+  public void testProtobuf() throws Exception {
     List<Gossip> gossips = getGossips();
 
     Message message = Message.withData(new GossipRequest(gossips)).correlationId("CORR_ID").build();
 
     ByteBuf bb = buffer();
-    protocol.getMessageSerializer().serialize(message, bb);
+    ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
+    serializer.serialize(message, bb);
 
     assertTrue(bb.readableBytes() > 0);
 
     ByteBuf input = copiedBuffer(bb);
 
-    Message deserializedMessage = protocol.getMessageDeserializer().deserialize(input);
+    ProtobufMessageDeserializer deserializer = new ProtobufMessageDeserializer();
+    Message deserializedMessage = deserializer.deserialize(input);
 
     assertNotNull(deserializedMessage);
     Assert.assertEquals(deserializedMessage.data().getClass(), GossipRequest.class);

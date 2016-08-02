@@ -3,7 +3,8 @@ package io.scalecube.cluster.gossip;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageDeserializer;
 import io.scalecube.transport.MessageSerializer;
-import io.scalecube.transport.ProtostuffProtocol;
+import io.scalecube.transport.ProtobufMessageDeserializer;
+import io.scalecube.transport.ProtobufMessageSerializer;
 
 import com.google.common.collect.ImmutableList;
 
@@ -33,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 @Measurement(iterations = 5)
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
-public class ProtostuffGossipBenchmark {
+public class ProtobufGossipBenchmark {
   static final String PAYLOAD = "Tl4KqQXZ5aMiIw29";
   static final String PAYLOAD_X32 =
       "tI8Ppp8ShAp7IEDSFV1IgZCDKH2WyLI0NeSNc9oQOhQZXcHOzktuQBQmT5EGNitohtS1LShvdHgtAtWRz"
@@ -59,9 +60,8 @@ public class ProtostuffGossipBenchmark {
    */
   @Setup
   public void setup() {
-    ProtostuffProtocol protocol = new ProtostuffProtocol();
-    ser = protocol.getMessageSerializer();
-    deser = protocol.getMessageDeserializer();
+    ser = new ProtobufMessageSerializer();
+    deser = new ProtobufMessageDeserializer();
 
     gossipReq = Message.fromData(
         new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", Message.fromData(PAYLOAD_X32)))));

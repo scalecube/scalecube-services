@@ -17,7 +17,7 @@ final class SharableDeserializerHandler extends MessageToMessageDecoder<ByteBuf>
   }
 
   @Override
-  protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
+  protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) {
     Message message = deserializer.deserialize(msg);
     out.add(message);
   }

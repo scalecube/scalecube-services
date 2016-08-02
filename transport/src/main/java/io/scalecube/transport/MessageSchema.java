@@ -3,16 +3,16 @@ package io.scalecube.transport;
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.scalecube.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
-import io.scalecube.transport.utils.RecyclableLinkedBuffer;
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
+import io.scalecube.transport.utils.RecyclableLinkedBuffer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import io.protostuff.Input;
 import io.protostuff.Output;
-import io.protostuff.ProtostuffIOUtil;
+import io.protostuff.ProtobufIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 
@@ -45,6 +45,13 @@ final class MessageSchema implements Schema<Message> {
       "headerKeys", HEADER_KEYS_FIELD_NUMBER,
       "headerValues", HEADER_VALUES_FIELD_NUMBER,
       "data", DATA_FIELD_NUMBER);
+
+  static {
+    // Register message schema
+    if (!RuntimeSchema.isRegistered(Message.class)) {
+      RuntimeSchema.register(Message.class, new MessageSchema());
+    }
+  }
 
   private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>(
       new Computable<String, Optional<Class>>() {
@@ -154,7 +161,7 @@ final class MessageSchema implements Schema<Message> {
           Schema dataSchema = RuntimeSchema.getSchema(dataClass);
           data = dataSchema.newMessage();
           try {
-            ProtostuffIOUtil.mergeFrom(dataBytes, data, dataSchema);
+            ProtobufIOUtil.mergeFrom(dataBytes, data, dataSchema);
           } catch (Throwable e) {
             LOGGER.error("Failed to deserialize : {}", message);
             throw e;
@@ -195,7 +202,7 @@ final class MessageSchema implements Schema<Message> {
         // Write data as serialized byte array
         Schema dataSchema = RuntimeSchema.getSchema(dataClass);
         try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-          byte[] array = ProtostuffIOUtil.toByteArray(originalData, dataSchema, rlb.buffer());
+          byte[] array = ProtobufIOUtil.toByteArray(originalData, dataSchema, rlb.buffer());
           output.writeByteArray(DATA_FIELD_NUMBER, array, false);
         }
       }

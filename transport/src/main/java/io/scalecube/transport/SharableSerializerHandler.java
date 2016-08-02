@@ -15,7 +15,7 @@ final class SharableSerializerHandler extends MessageToByteEncoder<Message> {
   }
 
   @Override
-  protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) throws Exception {
+  protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) {
     serializer.serialize(msg, out);
   }
 }
