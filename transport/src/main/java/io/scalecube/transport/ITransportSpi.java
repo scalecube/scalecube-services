@@ -23,11 +23,5 @@ interface ITransportSpi extends ITransport {
   EventExecutorGroup getEventExecutor();
 
   /** SPI method. */
-  TransportChannel createAcceptorTransportChannel(Channel channel);
-
-  /** SPI method. */
-  void accept(TransportChannel transport);
-
-  /** SPI method. */
   void resetDueHandshake(Channel channel);
 }

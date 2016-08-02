@@ -25,7 +25,7 @@ final class AcceptorRegistratorChannelHandler extends ChannelDuplexHandler {
   @Override
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     Channel channel = ctx.channel();
-    TransportChannel transport = transportSpi.createAcceptorTransportChannel(channel);
+    TransportChannel transport = TransportChannel.newAcceptorChannel(channel);
     LOGGER.debug("Registered acceptor: {}", transport);
     super.channelActive(ctx);
   }

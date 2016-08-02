@@ -62,8 +62,14 @@ final class TransportChannel {
     return target;
   }
 
-  public static TransportChannel newAcceptorChannel(Channel channel, Func1<TransportChannel, Void> closeCallback) {
-    TransportChannel target = new TransportChannel(channel, CONNECTED, closeCallback);
+  public static TransportChannel newAcceptorChannel(Channel channel) {
+    TransportChannel target = new TransportChannel(channel, CONNECTED, new Func1<TransportChannel, Void>() {
+      @Override
+      public Void call(TransportChannel transportChannel) {
+        // Do nothing
+        return null;
+      }
+    });
     channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(target);
     return target;
   }

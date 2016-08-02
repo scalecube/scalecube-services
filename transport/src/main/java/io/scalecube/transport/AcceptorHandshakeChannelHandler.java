@@ -44,7 +44,6 @@ final class AcceptorHandshakeChannelHandler extends ChannelInboundHandlerAdapter
 
     if (handshakeResponse.isResolvedOk()) {
       transportChannel.setHandshakeData(handshakeRequest);
-      transportSpi.accept(transportChannel);
       transportSpi.resetDueHandshake(transportChannel.channel());
       transportChannel.flip(TransportChannel.Status.CONNECTED, TransportChannel.Status.READY);
       LOGGER.debug("Set READY on acceptor: {}", transportChannel);

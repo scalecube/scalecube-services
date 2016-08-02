@@ -75,7 +75,6 @@ public final class Transport implements ITransportSpi, ITransport {
   private final EventExecutorGroup eventExecutor;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
-  private final ConcurrentMap<InetSocketAddress, TransportChannel> acceptedChannels = new ConcurrentHashMap<>();
   private final Memoizer<InetSocketAddress, TransportChannel> connectedChannels = new Memoizer<>();
 
   private PipelineFactory pipelineFactory;
@@ -306,53 +305,24 @@ public final class Transport implements ITransportSpi, ITransport {
 
   @Override
   public final void stop(@Nullable SettableFuture<Void> promise) {
+    // Complete incoming messages observable
     try {
       incomingMessagesSubject.onCompleted();
     } catch (Exception ignore) {
       // ignore
     }
-    // cleanup accepted
-    for (InetSocketAddress address : acceptedChannels.keySet()) {
-      TransportChannel transport = acceptedChannels.remove(address);
-      if (transport != null) {
-        transport.close();
-      }
-    }
-    // cleanup connected
+
+    // close connected channels
     for (InetSocketAddress address : connectedChannels.keySet()) {
       TransportChannel transport = connectedChannels.remove(address);
       if (transport != null) {
         transport.close();
       }
     }
+
+    // close server channel
     if (serverChannel != null) {
       FutureUtils.compose(serverChannel.close(), promise);
-    }
-  }
-
-  @Override
-  public TransportChannel createAcceptorTransportChannel(Channel channel) {
-    return TransportChannel.newAcceptorChannel(channel, new Func1<TransportChannel, Void>() {
-      @Override
-      public Void call(TransportChannel transportChannel) {
-        TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
-        if (remoteEndpoint != null) {
-          acceptedChannels.remove(remoteEndpoint.socketAddress());
-        }
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public void accept(TransportChannel transportChannel) throws TransportBrokenException {
-    TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
-    checkNotNull(remoteEndpoint);
-    checkNotNull(remoteEndpoint.socketAddress());
-    TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.socketAddress(), transportChannel);
-    if (prev != null) {
-      throw new TransportBrokenException(
-          String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint));
     }
   }
 
