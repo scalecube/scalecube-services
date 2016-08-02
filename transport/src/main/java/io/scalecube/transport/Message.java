@@ -109,13 +109,11 @@ public final class Message {
   }
 
   /**
-   * Sets sender and used by transport pipeline. Actual sender not passed via network in the message, but resolved on
-   * the receiveing side.
+   * Sets sender and used by transport send method.
    * 
-   * @param sender endpoint from where message was received
+   * @param sender endpoint from where message was sent
    */
   void setSender(TransportEndpoint sender) {
-    checkArgument(sender != null);
     this.sender = sender;
   }
 
