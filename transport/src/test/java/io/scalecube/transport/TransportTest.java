@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 import io.scalecube.testlib.BaseTest;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -27,9 +26,6 @@ import rx.Subscriber;
 import rx.functions.Action1;
 
 import java.net.ConnectException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
@@ -216,7 +212,7 @@ public class TransportTest extends BaseTest {
 
     Message result = messageFuture.get(3, TimeUnit.SECONDS);
     assertNotNull("No response from serverEndpoint", result);
-    assertEquals("hi client", result.header(TransportHeaders.QUALIFIER));
+    assertEquals("hi client", result.header(MessageHeaders.QUALIFIER));
   }
 
   @Test
@@ -361,7 +357,7 @@ public class TransportTest extends BaseTest {
       @Override
       public void call(List<Message> messages) {
         for (Message message : messages) {
-          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
           server.send(message.sender(), echo);
         }
       }
@@ -395,7 +391,7 @@ public class TransportTest extends BaseTest {
       @Override
       public void call(List<Message> messages) {
         for (Message message : messages) {
-          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
           server.send(message.sender(), echo, null);
         }
       }
@@ -472,7 +468,7 @@ public class TransportTest extends BaseTest {
           throw new RuntimeException("" + message);
         }
         if (qualifier.startsWith("q")) {
-          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
           server.send(message.sender(), echo);
         }
       }
@@ -551,7 +547,7 @@ public class TransportTest extends BaseTest {
 
     pause(1000);
     assertEquals(1, resp.size());
-    assertEquals("q/unblocked", resp.get(0).header(TransportHeaders.QUALIFIER));
+    assertEquals("q/unblocked", resp.get(0).header(MessageHeaders.QUALIFIER));
   }
 
   private TransportEndpoint serverEndpoint() {
@@ -578,7 +574,7 @@ public class TransportTest extends BaseTest {
     ArrayList<Message> messages = new ArrayList<>(received);
     assertEquals(total, messages.size());
     for (int k = 0; k < total; k++) {
-      assertEquals("q" + k, messages.get(k).header(TransportHeaders.QUALIFIER));
+      assertEquals("q" + k, messages.get(k).header(MessageHeaders.QUALIFIER));
     }
   }
 

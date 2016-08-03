@@ -7,7 +7,7 @@ import rx.functions.Func1;
  * 
  * @author Anton Kharenko
  */
-public final class TransportHeaders {
+public final class MessageHeaders {
 
   /**
    * This header is supposed to be used by application in case if same data type can be reused for different message
@@ -26,7 +26,7 @@ public final class TransportHeaders {
    */
   public static final String DATA_TYPE = "_type";
 
-  private TransportHeaders() {
+  private MessageHeaders() {
     // Do not instantiate
   }
 
@@ -45,7 +45,7 @@ public final class TransportHeaders {
 
     @Override
     public Boolean call(Message message) {
-      boolean q0 = qualifier.equals(message.header(TransportHeaders.QUALIFIER));
+      boolean q0 = qualifier.equals(message.header(MessageHeaders.QUALIFIER));
       boolean q1 = correlationId == null || correlationId.equals(message.correlationId());
       return q0 && q1;
     }

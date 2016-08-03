@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Message;
 import io.scalecube.transport.ProtostuffProtocol;
-import io.scalecube.transport.TransportHeaders;
 
 import io.netty.buffer.ByteBuf;
 

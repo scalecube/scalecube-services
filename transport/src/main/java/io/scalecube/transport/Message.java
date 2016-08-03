@@ -134,11 +134,11 @@ public final class Message {
   }
 
   public String qualifier() {
-    return header(TransportHeaders.QUALIFIER);
+    return header(MessageHeaders.QUALIFIER);
   }
 
   public String correlationId() {
-    return header(TransportHeaders.CORRELATION_ID);
+    return header(MessageHeaders.CORRELATION_ID);
   }
 
   /**
@@ -187,11 +187,11 @@ public final class Message {
     }
 
     public Builder qualifier(String qualifier) {
-      return header(TransportHeaders.QUALIFIER, qualifier);
+      return header(MessageHeaders.QUALIFIER, qualifier);
     }
 
     public Builder correlationId(String correlationId) {
-      return header(TransportHeaders.CORRELATION_ID, correlationId);
+      return header(MessageHeaders.CORRELATION_ID, correlationId);
     }
 
     public Message build() {

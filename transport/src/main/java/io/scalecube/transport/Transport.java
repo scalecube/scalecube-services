@@ -36,8 +36,6 @@ import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
