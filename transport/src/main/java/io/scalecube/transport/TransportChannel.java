@@ -11,7 +11,6 @@ import io.scalecube.transport.utils.FutureUtils;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import io.netty.channel.Channel;
@@ -44,7 +43,6 @@ final class TransportChannel {
   private final AtomicReference<Status> status;
   private final Func1<TransportChannel, Void> closeCallback;
   private final AtomicReference<Throwable> cause = new AtomicReference<>();
-  private final SettableFuture<TransportHandshakeData> handshakeFuture = SettableFuture.create();
 
   private TransportChannel(Channel channel, Status initialStatus, Func1<TransportChannel, Void> closeCallback) {
     checkArgument(channel != null);
@@ -56,21 +54,21 @@ final class TransportChannel {
   }
 
   public static TransportChannel newConnectorChannel(Channel channel, Func1<TransportChannel, Void> closeCallback) {
-    TransportChannel target = new TransportChannel(channel, CONNECT_IN_PROGRESS, closeCallback);
-    channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(target);
-    return target;
+    TransportChannel transportChannel = new TransportChannel(channel, CONNECT_IN_PROGRESS, closeCallback);
+    channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(transportChannel);
+    return transportChannel;
   }
 
   public static TransportChannel newAcceptorChannel(Channel channel) {
-    TransportChannel target = new TransportChannel(channel, CONNECTED, new Func1<TransportChannel, Void>() {
+    TransportChannel transportChannel = new TransportChannel(channel, CONNECTED, new Func1<TransportChannel, Void>() {
       @Override
       public Void call(TransportChannel transportChannel) {
         // Do nothing
         return null;
       }
     });
-    channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(target);
-    return target;
+    channel.attr(TransportChannel.ATTR_TRANSPORT_CHANNEL).set(transportChannel);
+    return transportChannel;
   }
 
   /**
@@ -86,22 +84,8 @@ final class TransportChannel {
     return transport;
   }
 
-  /**
-   * Setter for {@link #handshakeFuture}. Called when handshake passed successfully (RESOLVED_OK) on both sides.
-   *
-   * @param handshakeData remote handshake (non null)
-   */
-  void setHandshakeData(TransportHandshakeData handshakeData) {
-    checkArgument(handshakeData != null);
-    handshakeFuture.set(handshakeData);
-  }
-
   Channel channel() {
     return channel;
-  }
-
-  ListenableFuture<TransportHandshakeData> handshakeFuture() {
-    return handshakeFuture;
   }
 
   /**

@@ -11,6 +11,7 @@ import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IManagedGossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.TransportHeaders;
 
@@ -363,17 +364,7 @@ public final class ClusterMembership implements IClusterMembership {
     ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
     final Message syncMsg = Message.withData(syncData).qualifier(SYNC).correlationId(period).build();
     for (InetSocketAddress memberAddress : members) {
-      Futures.addCallback(transport.connect(memberAddress), new FutureCallback<TransportEndpoint>() {
-        @Override
-        public void onSuccess(TransportEndpoint endpoint) {
-          transport.send(endpoint, syncMsg);
-        }
-
-        @Override
-        public void onFailure(@Nonnull Throwable throwable) {
-          LOGGER.error("Failed to send sync", throwable);
-        }
-      });
+      ((Transport) transport).send(memberAddress, syncMsg);
     }
   }
 

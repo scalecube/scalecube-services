@@ -106,7 +106,6 @@ final class ConnectorHandshakeChannelHandler extends ChannelDuplexHandler {
     final TransportChannel transportChannel = TransportChannel.from(ctx.channel());
     if (handshakeResponse.isResolvedOk()) {
       cancelHandshakeTimeout();
-      transportChannel.setHandshakeData(handshakeResponse);
       transportSpi.resetDueHandshake(transportChannel.channel());
       transportChannel.flip(TransportChannel.Status.HANDSHAKE_IN_PROGRESS, TransportChannel.Status.HANDSHAKE_PASSED);
       LOGGER.info("HANDSHAKE passed on connector: {}", transportChannel);

@@ -1,7 +1,6 @@
 package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
@@ -9,7 +8,6 @@ import io.scalecube.transport.utils.FutureUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
@@ -48,8 +46,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadFactory;
 
@@ -60,14 +56,6 @@ import javax.annotation.Nullable;
 public final class Transport implements ITransportSpi, ITransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
-
-  private static final Function<TransportHandshakeData, TransportEndpoint> HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION =
-      new Function<TransportHandshakeData, TransportEndpoint>() {
-        @Override
-        public TransportEndpoint apply(TransportHandshakeData handshakeData) {
-          return handshakeData.endpoint();
-        }
-      };
 
   private final TransportEndpoint localEndpoint;
   private final TransportSettings settings;
@@ -205,35 +193,6 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address) {
-    checkArgument(address != null);
-    return Futures.transform(getOrConnect(address), new AsyncFunction<TransportChannel, TransportEndpoint>() {
-      @Override
-      public ListenableFuture<TransportEndpoint> apply(@Nonnull TransportChannel input) {
-        return Futures.transform(input.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
-      }
-    });
-  }
-
-  private void connect(final Channel channel, final InetSocketAddress address, final TransportChannel transport) {
-    channel.eventLoop().execute(new Runnable() {
-      @Override
-      public void run() {
-        ChannelPromise promise = channel.newPromise();
-        channel.connect(address, promise);
-        promise.addListener(FutureUtils.wrap(new ChannelFutureListener() {
-          @Override
-          public void operationComplete(ChannelFuture future) {
-            if (!future.isSuccess()) {
-              transport.close(future.cause());
-            }
-          }
-        }));
-      }
-    });
-  }
-
-  @Override
   public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     TransportChannel transportChannel = null;
@@ -252,6 +211,12 @@ public final class Transport implements ITransportSpi, ITransport {
     }
   }
 
+  // TODO [AK]: Temporary workaround, should be merged with send by endpoint after endpoint id removed
+  public void send(@CheckForNull InetSocketAddress address, @CheckForNull Message message) {
+    TransportEndpoint endpoint = TransportEndpoint.create("0", address.getHostName(), address.getPort());
+    send(endpoint, message);
+  }
+
   @Override
   public void send(@CheckForNull TransportEndpoint endpoint, @CheckForNull Message message) {
     send(endpoint, message, null);
@@ -268,8 +233,8 @@ public final class Transport implements ITransportSpi, ITransport {
     if (!future.isDone()) {
       Futures.addCallback(future, new FutureCallback<TransportChannel>() {
         @Override
-        public void onSuccess(TransportChannel input) {
-          input.send(message, promise);
+        public void onSuccess(TransportChannel channel) {
+          channel.send(message, promise);
         }
 
         @Override
@@ -384,6 +349,24 @@ public final class Transport implements ITransportSpi, ITransport {
       public Void call(TransportChannel transport) {
         connectedChannels.remove(address);
         return null;
+      }
+    });
+  }
+
+  private void connect(final Channel channel, final InetSocketAddress address, final TransportChannel transport) {
+    channel.eventLoop().execute(new Runnable() {
+      @Override
+      public void run() {
+        ChannelPromise promise = channel.newPromise();
+        channel.connect(address, promise);
+        promise.addListener(FutureUtils.wrap(new ChannelFutureListener() {
+          @Override
+          public void operationComplete(ChannelFuture future) {
+            if (!future.isSuccess()) {
+              transport.close(future.cause());
+            }
+          }
+        }));
       }
     });
   }
