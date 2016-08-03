@@ -48,14 +48,14 @@ public final class Transport implements ITransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
   private final TransportEndpoint localEndpoint;
+  private final TransportSettings settings;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
   private final Memoizer<TransportEndpoint, ChannelFuture> outgoingChannels;
 
-  // TODO: move into network emulator handler
-  private final Map<TransportEndpoint, NetworkEmulatorSettings> networkEmulatorSettings = new ConcurrentHashMap<>();
-
-  // Shared handlers
+  // Pipeline
+  private final NettyBootstrapFactory bootstrapFactory;
+  private final IncomingChannelInitializer incomingChannelInitializer = new IncomingChannelInitializer();
   private final Protocol protocol;
   private final ExceptionCaughtChannelHandler exceptionHandler = new ExceptionCaughtChannelHandler();
   private final MessageToByteEncoder<Message> serializerHandler;
@@ -64,24 +64,19 @@ public final class Transport implements ITransport {
   private final NetworkEmulatorChannelHandler networkEmulatorHandler;
   private final MessageReceiverChannelHandler messageHandler;
 
-  // Channel initializers
-  private final NettyBootstrapFactory bootstrapFactory;
-  private final IncomingChannelInitializer incomingChannelInitializer = new IncomingChannelInitializer();
-
   private ServerChannel serverChannel;
 
   private Transport(TransportEndpoint localEndpoint, TransportSettings settings) {
     checkArgument(localEndpoint != null);
     checkArgument(settings != null);
     this.localEndpoint = localEndpoint;
+    this.settings = settings;
     this.protocol = new ProtostuffProtocol();
     this.serializerHandler = new SharableSerializerHandler(protocol.getMessageSerializer());
     this.deserializerHandler = new SharableDeserializerHandler(protocol.getMessageDeserializer());
     LogLevel logLevel = resolveLogLevel(settings.getLogLevel());
     this.loggingHandler = logLevel != null ? new LoggingHandler(logLevel) : null;
-    boolean useNetworkEmulator = settings.isUseNetworkEmulator();
-    this.networkEmulatorHandler =
-        useNetworkEmulator ? new NetworkEmulatorChannelHandler(networkEmulatorSettings) : null;
+    this.networkEmulatorHandler = settings.isUseNetworkEmulator() ? new NetworkEmulatorChannelHandler() : null;
     this.messageHandler = new MessageReceiverChannelHandler(incomingMessagesSubject);
     this.bootstrapFactory = new NettyBootstrapFactory(settings);
     this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
@@ -104,20 +99,48 @@ public final class Transport implements ITransport {
     return bootstrapFactory.getWorkerGroup();
   }
 
-  public void setNetworkSettings(TransportEndpoint destination, int lostPercent, int mean) {
-    NetworkEmulatorSettings settings = new NetworkEmulatorSettings(lostPercent, mean);
-    networkEmulatorSettings.put(destination, settings);
-    LOGGER.debug("Set {} for messages to: {}", settings, destination);
+  /**
+   * Sets given network emulator settings. If network emulator is disabled do nothing.
+   */
+  public void setNetworkSettings(TransportEndpoint destination, int lostPercent, int meanDelay) {
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.setNetworkSettings(destination, lostPercent, meanDelay);
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't set network settings");
+    }
   }
 
+  /**
+   * Sets default network emulator settings. If network emulator is disabled do nothing.
+   */
+  public void setDefaultNetworkSettings(int lostPercent, int meanDelay) {
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't set default network settings");
+    }
+  }
+
+  /**
+   * Block messages to given destination. If network emulator is disabled do nothing.
+   */
   public void blockMessagesTo(TransportEndpoint destination) {
-    networkEmulatorSettings.put(destination, new NetworkEmulatorSettings(100, 0));
-    LOGGER.debug("Block messages to: {}", destination);
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.blockMessagesTo(destination);
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't block messages");
+    }
   }
 
+  /**
+   * Unblock messages to all destinations. If network emulator is disabled do nothing.
+   */
   public void unblockAll() {
-    networkEmulatorSettings.clear();
-    LOGGER.debug("Unblock all messages");
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.unblockAll();
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't unblock messages");
+    }
   }
 
   @Override
@@ -259,13 +282,13 @@ public final class Transport implements ITransport {
     @Override
     protected void initChannel(Channel channel) throws Exception {
       ChannelPipeline pipeline = channel.pipeline();
-      pipeline.addLast("frameDecoder", protocol.getFrameHandlerFactory().newFrameDecoder());
-      pipeline.addLast("deserializer", deserializerHandler);
+      pipeline.addLast(protocol.getFrameHandlerFactory().newFrameDecoder());
+      pipeline.addLast(deserializerHandler);
       if (loggingHandler != null) {
-        pipeline.addLast("loggingHandler", loggingHandler);
+        pipeline.addLast(loggingHandler);
       }
-      pipeline.addLast("messageReceiver", messageHandler);
-      pipeline.addLast("exceptionHandler", exceptionHandler);
+      pipeline.addLast(messageHandler);
+      pipeline.addLast(exceptionHandler);
     }
   }
 

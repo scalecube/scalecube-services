@@ -69,7 +69,8 @@ public class FailureDetectorBuilder {
   }
 
   public static FailureDetectorBuilder FDBuilder(TransportEndpoint transportEndpoint) {
-    Transport transport = Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR);
+    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(transportEndpoint, transportSettings);
     return new FailureDetectorBuilder(transportEndpoint, transport);
   }
 

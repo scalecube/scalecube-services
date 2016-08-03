@@ -11,7 +11,6 @@ import javax.annotation.concurrent.Immutable;
 public final class TransportSettings {
 
   public static final TransportSettings DEFAULT = builder().build();
-  public static final TransportSettings DEFAULT_WITH_NETWORK_EMULATOR = builder().useNetworkEmulator(true).build();
 
   public static final int DEFAULT_CONNECT_TIMEOUT = 3000;
   public static final String DEFAULT_LOG_LEVEL = "OFF";

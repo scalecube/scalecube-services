@@ -35,8 +35,6 @@ public class GossipEmulationIT {
 
   private int counter = 0;
   private List<GossipProtocol> protocols;
-  private NioEventLoopGroup eventLoop;
-  private DefaultEventExecutorGroup eventExecutor;
 
   private int lambda = 50; // milliseconds lambda to get valid time on slow computer
 
@@ -46,12 +44,13 @@ public class GossipEmulationIT {
 
   private GossipProtocol initComponent(TransportEndpoint transportEndpoint, List<TransportEndpoint> members,
       int lostPercent, int delay) {
-    NetworkEmulatorSettings.setDefaultSettings(lostPercent, delay);
 
     GossipProtocol gossipProtocol = new GossipProtocol(transportEndpoint, getNextExecutor());
     gossipProtocol.setClusterEndpoints(members);
 
-    Transport transport = Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR);
+    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(transportEndpoint, transportSettings);
+    transport.setDefaultNetworkSettings(lostPercent, delay);
     gossipProtocol.setTransport(transport);
 
     try {
@@ -77,8 +76,6 @@ public class GossipEmulationIT {
     for (int i = 0; i < executors.length; i++) {
       executors[i] = Executors.newSingleThreadScheduledExecutor();
     }
-    eventLoop = new NioEventLoopGroup(4);
-    eventExecutor = new DefaultEventExecutorGroup(4);
   }
 
   @After
@@ -91,14 +88,6 @@ public class GossipEmulationIT {
         close.get(1, TimeUnit.SECONDS);
       } catch (Exception ignore) {
       }
-    }
-    try {
-      eventExecutor.shutdownGracefully().get(1, TimeUnit.SECONDS);
-    } catch (Exception ignore) {
-    }
-    try {
-      eventLoop.shutdownGracefully().get(1, TimeUnit.SECONDS);
-    } catch (Exception ignore) {
     }
     for (ScheduledExecutorService executor : executors) {
       executor.shutdownNow();

@@ -34,7 +34,8 @@ public class ClusterMembershipBuilder {
   final Transport transport;
 
   private ClusterMembershipBuilder(TransportEndpoint transportEndpoint, List<InetSocketAddress> members) {
-    transport = Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR);
+    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
+    transport = Transport.newInstance(transportEndpoint, transportSettings);
 
     fdBuilder = FailureDetectorBuilder.FDBuilder(transportEndpoint, transport).pingTime(100).pingTimeout(100);
 
