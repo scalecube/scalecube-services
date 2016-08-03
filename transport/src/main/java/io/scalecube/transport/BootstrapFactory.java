@@ -24,9 +24,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Locale;
 import java.util.concurrent.ThreadFactory;
 
-final class NettyBootstrapFactory {
+final class BootstrapFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(NettyBootstrapFactory.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BootstrapFactory.class);
 
   private static boolean envSupportEpoll;
 
@@ -54,7 +54,7 @@ final class NettyBootstrapFactory {
   private final EventLoopGroup bossGroup;
   private final EventLoopGroup workerGroup;
 
-  public NettyBootstrapFactory(TransportSettings settings) {
+  public BootstrapFactory(TransportSettings settings) {
     this.settings = settings;
     this.bossGroup = createEventLoopGroup(settings.getBossThreads(), new DefaultThreadFactory("sc-boss", true));
     this.workerGroup = createEventLoopGroup(settings.getWorkerThreads(), new DefaultThreadFactory("sc-io", true));

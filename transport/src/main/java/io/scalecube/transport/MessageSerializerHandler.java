@@ -6,13 +6,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 
 @ChannelHandler.Sharable
-final class SharableSerializerHandler extends MessageToByteEncoder<Message> {
+final class MessageSerializerHandler extends MessageToByteEncoder<Message> {
 
-  private final MessageSerializer serializer;
-
-  public SharableSerializerHandler(MessageSerializer serializer) {
-    this.serializer = serializer;
-  }
+  private final MessageSerializer serializer = new MessageSerializer();
 
   @Override
   protected void encode(ChannelHandlerContext ctx, Message msg, ByteBuf out) throws Exception {

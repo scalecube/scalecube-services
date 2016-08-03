@@ -30,8 +30,8 @@ public class ProtostuffMessageBenchmark {
       + "EfxPKPM2Al5CVkpg5175hzLBV5afcocm52JKwDvgSKVkoMzvnVWIQfjeAgGIERBgJ7a63mGygKDQS4moeHryedn68mmzNHGYbSqp7PIb6Rb"
       + "n8SgT1hSOATWBReLA4ZPqfGUV0miIgOU90EYXffu9aT4cc9V8rsz3q4W8ibMsxq1JMsB6";
 
-  ProtostuffMessageSerializer ser;
-  ProtostuffMessageDeserializer deser;
+  MessageSerializer ser;
+  MessageDeserializer deser;
 
   Message msg;
   ByteBuf msgSer;
@@ -46,8 +46,8 @@ public class ProtostuffMessageBenchmark {
    */
   @Setup
   public void setup() {
-    ser = new ProtostuffMessageSerializer();
-    deser = new ProtostuffMessageDeserializer();
+    ser = new MessageSerializer();
+    deser = new MessageDeserializer();
 
     msg = Message.fromData(PAYLOAD);
     ser.serialize(msg, msgSer = Unpooled.buffer(1024));

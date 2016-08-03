@@ -121,6 +121,16 @@
                 <version>${protostuff.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-runtime-registry</artifactId>
+                <version>${protostuff.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-collectionschema</artifactId>
+                <version>${protostuff.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.protobuf</groupId>
                 <artifactId>protobuf-java</artifactId>
                 <version>${protobuf.version}</version>

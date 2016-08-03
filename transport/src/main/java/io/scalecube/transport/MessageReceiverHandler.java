@@ -11,16 +11,16 @@ import org.slf4j.LoggerFactory;
 /**
  * Channel handler for getting message traffic. Activated when connection established/accepted.
  * <p/>
- * <b>NOTE:</b> in the pipeline this handler must be set just right before {@link ExceptionCaughtChannelHandler}.
+ * <b>NOTE:</b> in the pipeline this handler must be set just right before {@link ExceptionHandler}.
  */
 @ChannelHandler.Sharable
-final class MessageReceiverChannelHandler extends ChannelInboundHandlerAdapter {
+final class MessageReceiverHandler extends ChannelInboundHandlerAdapter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MessageReceiverChannelHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MessageReceiverHandler.class);
 
   private final Subject<Message, Message> incomingMessagesSubject;
 
-  MessageReceiverChannelHandler(Subject<Message, Message> incomingMessagesSubject) {
+  MessageReceiverHandler(Subject<Message, Message> incomingMessagesSubject) {
     this.incomingMessagesSubject = incomingMessagesSubject;
   }
 

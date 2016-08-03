@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * 
  * @author alexeyz
  */
-public class NetworkEmulatorSettings {
+public final class NetworkEmulatorSettings {
 
   private final int lostPercent;
   private final int meanDelay;

@@ -23,6 +23,8 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ServerChannel;
 import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.EventExecutorGroup;
@@ -52,15 +54,14 @@ public final class Transport implements ITransport {
   private final Memoizer<TransportEndpoint, ChannelFuture> outgoingChannels;
 
   // Pipeline
-  private final NettyBootstrapFactory bootstrapFactory;
+  private final BootstrapFactory bootstrapFactory;
   private final IncomingChannelInitializer incomingChannelInitializer = new IncomingChannelInitializer();
-  private final Protocol protocol;
-  private final ExceptionCaughtChannelHandler exceptionHandler = new ExceptionCaughtChannelHandler();
+  private final ExceptionHandler exceptionHandler = new ExceptionHandler();
   private final MessageToByteEncoder<Message> serializerHandler;
   private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
   private final LoggingHandler loggingHandler;
-  private final NetworkEmulatorChannelHandler networkEmulatorHandler;
-  private final MessageReceiverChannelHandler messageHandler;
+  private final NetworkEmulatorHandler networkEmulatorHandler;
+  private final MessageReceiverHandler messageHandler;
 
   private ServerChannel serverChannel;
 
@@ -69,14 +70,13 @@ public final class Transport implements ITransport {
     checkArgument(settings != null);
     this.localEndpoint = localEndpoint;
     this.settings = settings;
-    this.protocol = new ProtostuffProtocol();
-    this.serializerHandler = new SharableSerializerHandler(protocol.getMessageSerializer());
-    this.deserializerHandler = new SharableDeserializerHandler(protocol.getMessageDeserializer());
+    this.serializerHandler = new MessageSerializerHandler();
+    this.deserializerHandler = new MessageDeserializerHandler();
     LogLevel logLevel = resolveLogLevel(settings.getLogLevel());
     this.loggingHandler = logLevel != null ? new LoggingHandler(logLevel) : null;
-    this.networkEmulatorHandler = settings.isUseNetworkEmulator() ? new NetworkEmulatorChannelHandler() : null;
-    this.messageHandler = new MessageReceiverChannelHandler(incomingMessagesSubject);
-    this.bootstrapFactory = new NettyBootstrapFactory(settings);
+    this.networkEmulatorHandler = settings.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
+    this.messageHandler = new MessageReceiverHandler(incomingMessagesSubject);
+    this.bootstrapFactory = new BootstrapFactory(settings);
     this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
 
@@ -280,7 +280,7 @@ public final class Transport implements ITransport {
     @Override
     protected void initChannel(Channel channel) throws Exception {
       ChannelPipeline pipeline = channel.pipeline();
-      pipeline.addLast(protocol.getFrameHandlerFactory().newFrameDecoder());
+      pipeline.addLast(new ProtobufVarint32FrameDecoder());
       pipeline.addLast(deserializerHandler);
       if (loggingHandler != null) {
         pipeline.addLast(loggingHandler);
@@ -310,7 +310,7 @@ public final class Transport implements ITransport {
           super.channelInactive(ctx);
         }
       });
-      pipeline.addLast(protocol.getFrameHandlerFactory().newFrameEncoder());
+      pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
       pipeline.addLast(serializerHandler);
       if (loggingHandler != null) {
         pipeline.addLast(loggingHandler);

@@ -17,9 +17,9 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 @ChannelHandler.Sharable
-final class NetworkEmulatorChannelHandler extends ChannelOutboundHandlerAdapter {
+final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(NetworkEmulatorChannelHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NetworkEmulatorHandler.class);
 
   private final Map<TransportEndpoint, NetworkEmulatorSettings> networkSettings = new ConcurrentHashMap<>();
 
@@ -45,7 +45,7 @@ final class NetworkEmulatorChannelHandler extends ChannelOutboundHandlerAdapter 
         ctx.channel().eventLoop().schedule(new Callable<Void>() {
           @Override
           public Void call() throws Exception {
-            NetworkEmulatorChannelHandler.super.write(ctx, msg, promise);
+            NetworkEmulatorHandler.super.write(ctx, msg, promise);
             return null;
           }
         }, delay, TimeUnit.MILLISECONDS);
