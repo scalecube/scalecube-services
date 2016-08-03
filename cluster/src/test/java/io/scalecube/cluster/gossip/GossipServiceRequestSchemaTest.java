@@ -7,8 +7,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Message;
-import io.scalecube.transport.ProtobufMessageDeserializer;
-import io.scalecube.transport.ProtobufMessageSerializer;
+import io.scalecube.transport.MessageSchema;
+import io.scalecube.transport.ProtostuffMessageDeserializer;
+import io.scalecube.transport.ProtostuffMessageSerializer;
 import io.scalecube.transport.TransportHeaders;
 
 import io.netty.buffer.ByteBuf;
@@ -35,6 +36,8 @@ public class GossipServiceRequestSchemaTest {
 
     testData = new TestData();
     testData.setProperties(properties);
+
+    Class.forName(MessageSchema.class.getName());
   }
 
   @Test
@@ -44,14 +47,14 @@ public class GossipServiceRequestSchemaTest {
     Message message = Message.withData(new GossipRequest(gossips)).correlationId("CORR_ID").build();
 
     ByteBuf bb = buffer();
-    ProtobufMessageSerializer serializer = new ProtobufMessageSerializer();
+    ProtostuffMessageSerializer serializer = new ProtostuffMessageSerializer();
     serializer.serialize(message, bb);
 
     assertTrue(bb.readableBytes() > 0);
 
     ByteBuf input = copiedBuffer(bb);
 
-    ProtobufMessageDeserializer deserializer = new ProtobufMessageDeserializer();
+    ProtostuffMessageDeserializer deserializer = new ProtostuffMessageDeserializer();
     Message deserializedMessage = deserializer.deserialize(input);
 
     assertNotNull(deserializedMessage);

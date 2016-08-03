@@ -72,10 +72,10 @@ public final class TransportPipelineFactory implements PipelineFactory {
   }
 
   private void addProtocolHandlers(ChannelPipeline pipeline) {
-    pipeline.addLast("frameDecoder", CodecFactory.protobufFrameDecoder());
-    pipeline.addLast("deserializer", CodecFactory.protobufMessageDecoder());
-    pipeline.addLast("frameEncoder", CodecFactory.protobufFrameEncoder());
-    pipeline.addLast("serializer", CodecFactory.protobufMessageEncoder());
+    pipeline.addLast("frameDecoder", CodecFactory.protoFrameDecoder());
+    pipeline.addLast("deserializer", CodecFactory.protostuffMessageDecoder());
+    pipeline.addLast("frameEncoder", CodecFactory.protoFrameEncoder());
+    pipeline.addLast("serializer", CodecFactory.protostuffMessageEncoder());
   }
 
   public void setNetworkSettings(TransportEndpoint endpoint, int lostPercent, int mean) {

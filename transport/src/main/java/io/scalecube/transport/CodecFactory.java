@@ -8,19 +8,19 @@ public class CodecFactory {
 
   private CodecFactory() {}
 
-  public static ChannelHandler protobufFrameDecoder() {
+  public static ChannelHandler protoFrameDecoder() {
     return new ProtobufVarint32FrameDecoder();
   }
 
-  public static ChannelHandler protobufFrameEncoder() {
+  public static ChannelHandler protoFrameEncoder() {
     return new ProtobufVarint32LengthFieldPrepender();
   }
 
-  public static ChannelHandler protobufMessageDecoder() {
-    return new SharableDeserializerHandler(new ProtobufMessageDeserializer());
+  public static ChannelHandler protostuffMessageDecoder() {
+    return new SharableDeserializerHandler(new ProtostuffMessageDeserializer());
   }
 
-  public static ChannelHandler protobufMessageEncoder() {
-    return new SharableSerializerHandler(new ProtobufMessageSerializer());
+  public static ChannelHandler protostuffMessageEncoder() {
+    return new SharableSerializerHandler(new ProtostuffMessageSerializer());
   }
 }
