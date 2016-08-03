@@ -98,11 +98,6 @@ public final class TransportPipelineFactory implements PipelineFactory {
     LOGGER.debug("Set BLOCK messages to {}", destination);
   }
 
-  public void unblockMessagesTo(TransportEndpoint destination) {
-    networkSettings.put(destination, new NetworkEmulatorSettings(0, 0));
-    LOGGER.debug("Set UNBLOCK messages to {}", destination);
-  }
-
   public void unblockAll() {
     networkSettings.clear();
     LOGGER.debug("Set UNBLOCK ALL messages");

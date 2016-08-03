@@ -149,37 +149,6 @@ public class TransportTest extends BaseTest {
     }
   }
 
-  @Test(expected = TransportClosedException.class)
-  public void testDisconnectAndSendSequentiallyFail() throws Throwable {
-    final TransportEndpoint clientEndpoint = clientEndpoint();
-    final TransportEndpoint serverEndpoint = serverEndpoint();
-
-    client = createTransport(clientEndpoint);
-    server = createTransport(serverEndpoint);
-
-    for (int i = 0; i < 100; i++) {
-      LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
-
-      // Send message
-      SettableFuture<Void> sentPromise = SettableFuture.create();
-      client.send(serverEndpoint, Message.fromData("Hello 0 at #" + i), sentPromise);
-
-      // Disconnect without waiting for message sent
-      SettableFuture<Void> disconnectedPromise = SettableFuture.create();
-      client.disconnect(serverEndpoint, disconnectedPromise);
-
-      // Eventually send should fail with TransportClosedException since either async disconnect will close channel
-      // before
-      // message sent or next sent in a loop will be allocated on the channel which is disconnecting instead of creating
-      // new connection.
-      try {
-        sentPromise.get(1, TimeUnit.SECONDS);
-      } catch (InterruptedException | TimeoutException | ExecutionException e) {
-        throw e.getCause();
-      }
-    }
-  }
-
   @Test
   public void testDisconnectAndSendSequentiallySuccess() throws Exception {
     final TransportEndpoint clientEndpoint = clientEndpoint();

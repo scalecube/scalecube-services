@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 
 import rx.functions.Func1;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.CheckForNull;
@@ -103,24 +102,6 @@ final class TransportChannel {
 
   ListenableFuture<TransportHandshakeData> handshakeFuture() {
     return handshakeFuture;
-  }
-
-  /**
-   * Origin/Destination of this transport.
-   *
-   * @return TransportEndpoint object this transport is referencing to; or {@code null} if this transport isn't READY
-   *         yet
-   */
-  @Nullable
-  public TransportEndpoint remoteEndpoint() {
-    if (handshakeFuture.isDone()) {
-      try {
-        return handshakeFuture.get().endpoint();
-      } catch (InterruptedException | ExecutionException ex) {
-        LOGGER.error("Failed to get remote endpoint, ex");
-      }
-    }
-    return null;
   }
 
   /**
