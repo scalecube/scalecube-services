@@ -1,7 +1,5 @@
 package io.scalecube.transport;
 
-import io.scalecube.transport.utils.RecyclableLinkedBuffer;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.EncoderException;

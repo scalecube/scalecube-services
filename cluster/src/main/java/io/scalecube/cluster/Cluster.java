@@ -10,7 +10,7 @@ import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.utils.AvailablePortFinder;
+import io.scalecube.transport.AvailablePortFinder;
 
 import com.google.common.base.Function;
 import com.google.common.base.Optional;

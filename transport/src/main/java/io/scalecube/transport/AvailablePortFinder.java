@@ -1,4 +1,4 @@
-package io.scalecube.transport.utils;
+package io.scalecube.transport;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -10,7 +10,7 @@ import java.util.NoSuchElementException;
  *
  * @author Anton Kharenko
  */
-public class AvailablePortFinder {
+public final class AvailablePortFinder {
 
   /**
    * The minimum server port number. Set at 1100 to avoid returning privileged port numbers.

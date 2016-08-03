@@ -188,11 +188,6 @@ public final class TransportEndpoint {
     return socketAddress != null ? socketAddress : (socketAddress = InetSocketAddress.createUnresolved(host, port));
   }
 
-  @Nonnull
-  public String asString() {
-    return host + ":" + port + ":" + id;
-  }
-
   @Override
   public boolean equals(Object other) {
     if (this == other) {
@@ -212,9 +207,6 @@ public final class TransportEndpoint {
 
   @Override
   public String toString() {
-    return "TransportEndpoint{id=" + id
-        + ", host=" + host
-        + ", port=" + port
-        + '}';
+    return host + ":" + port + ":" + id;
   }
 }

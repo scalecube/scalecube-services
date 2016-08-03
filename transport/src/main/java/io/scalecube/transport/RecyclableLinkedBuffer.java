@@ -1,4 +1,4 @@
-package io.scalecube.transport.utils;
+package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -18,7 +18,7 @@ import io.protostuff.LinkedBuffer;
  *     rlb.release();
  * </pre>
  */
-public final class RecyclableLinkedBuffer implements AutoCloseable {
+final class RecyclableLinkedBuffer implements AutoCloseable {
   public static final int DEFAULT_BUFFER_SIZE = 512;
   public static final int DEFAULT_MAX_CAPACITY = 256;
 

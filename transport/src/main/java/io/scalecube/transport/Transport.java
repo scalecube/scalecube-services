@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
-import io.scalecube.transport.utils.FutureUtils;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -191,10 +190,10 @@ public final class Transport implements ITransport {
 
     // close server channel
     if (serverChannel != null) {
-      FutureUtils.compose(serverChannel.close(), promise);
+      composeFutures(serverChannel.close(), promise);
     }
 
-    // TODO: shutdown boss/worker threads
+    // TODO [AK]: shutdown boss/worker threads
   }
 
   @Nonnull
@@ -208,7 +207,7 @@ public final class Transport implements ITransport {
     checkArgument(endpoint != null);
     ChannelFuture channelFuture = outgoingChannels.remove(endpoint);
     if (channelFuture != null && channelFuture.isSuccess()) {
-      FutureUtils.compose(channelFuture.channel().close(), promise);
+      composeFutures(channelFuture.channel().close(), promise);
     } else {
       if (promise != null) {
         promise.set(null);
@@ -236,13 +235,36 @@ public final class Transport implements ITransport {
 
     final ChannelFuture channelFuture = outgoingChannels.get(endpoint);
     if (channelFuture.isSuccess()) {
-      FutureUtils.compose(channelFuture.channel().writeAndFlush(message), promise);
+      composeFutures(channelFuture.channel().writeAndFlush(message), promise);
     } else {
       channelFuture.addListener(new ChannelFutureListener() {
         @Override
         public void operationComplete(ChannelFuture channelFuture) {
           if (channelFuture.isSuccess()) {
-            FutureUtils.compose(channelFuture.channel().writeAndFlush(message), promise);
+            composeFutures(channelFuture.channel().writeAndFlush(message), promise);
+          } else {
+            if (promise != null) {
+              promise.setException(channelFuture.cause());
+            }
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Converts netty {@link ChannelFuture} to the given guava {@link SettableFuture}.
+   *
+   * @param channelFuture netty channel future
+   * @param promise guava future; can be null
+   */
+  private void composeFutures(ChannelFuture channelFuture, @Nullable final SettableFuture<Void> promise) {
+    if (promise != null) {
+      channelFuture.addListener(new ChannelFutureListener() {
+        @Override
+        public void operationComplete(ChannelFuture channelFuture) throws Exception {
+          if (channelFuture.isSuccess()) {
+            promise.set(channelFuture.get());
           } else {
             promise.setException(channelFuture.cause());
           }
