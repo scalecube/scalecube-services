@@ -2,16 +2,6 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPipeline;
-import io.netty.handler.codec.MessageToByteEncoder;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 import io.scalecube.transport.utils.FutureUtils;
@@ -19,12 +9,22 @@ import io.scalecube.transport.utils.FutureUtils;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ServerChannel;
+import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 import org.slf4j.Logger;
@@ -80,14 +80,15 @@ public final class Transport implements ITransport {
     LogLevel logLevel = resolveLogLevel(settings.getLogLevel());
     this.loggingHandler = logLevel != null ? new LoggingHandler(logLevel) : null;
     boolean useNetworkEmulator = settings.isUseNetworkEmulator();
-    this.networkEmulatorHandler = useNetworkEmulator ? new NetworkEmulatorChannelHandler(networkEmulatorSettings) : null;
+    this.networkEmulatorHandler =
+        useNetworkEmulator ? new NetworkEmulatorChannelHandler(networkEmulatorSettings) : null;
     this.messageHandler = new MessageReceiverChannelHandler(incomingMessagesSubject);
     this.bootstrapFactory = new NettyBootstrapFactory(settings);
     this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
 
   private LogLevel resolveLogLevel(String logLevel) {
-    return (logLevel != null && !logLevel.equals("OFF")) ?  LogLevel.valueOf(logLevel) : null;
+    return (logLevel != null && !logLevel.equals("OFF")) ? LogLevel.valueOf(logLevel) : null;
   }
 
   public static Transport newInstance(TransportEndpoint localEndpoint, TransportSettings settings) {
@@ -186,7 +187,7 @@ public final class Transport implements ITransport {
     checkArgument(endpoint != null);
     ChannelFuture channelFuture = outgoingChannels.remove(endpoint);
     if (channelFuture != null && channelFuture.isSuccess()) {
-        FutureUtils.compose(channelFuture.channel().close(), promise);
+      FutureUtils.compose(channelFuture.channel().close(), promise);
     } else {
       if (promise != null) {
         promise.set(null);

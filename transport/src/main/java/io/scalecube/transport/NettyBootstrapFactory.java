@@ -88,8 +88,8 @@ final class NettyBootstrapFactory {
   /**
    * @return {@link EpollEventLoopGroup} or {@link NioEventLoopGroup} object dep on {@link #isEpollSupported()} call.
    */
-  private EventLoopGroup createEventLoopGroup(int nThreads, ThreadFactory threadFactory) {
-    return isEpollSupported() ? new EpollEventLoopGroup(nThreads, threadFactory) : new NioEventLoopGroup(nThreads,
+  private EventLoopGroup createEventLoopGroup(int threadNum, ThreadFactory threadFactory) {
+    return isEpollSupported() ? new EpollEventLoopGroup(threadNum, threadFactory) : new NioEventLoopGroup(threadNum,
         threadFactory);
   }
 
