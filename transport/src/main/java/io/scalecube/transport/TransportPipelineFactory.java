@@ -2,11 +2,8 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
-import io.netty.handler.codec.MessageToByteEncoder;
-import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.logging.LoggingHandler;
 
 import org.slf4j.Logger;
@@ -18,13 +15,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class TransportPipelineFactory implements PipelineFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransportPipelineFactory.class);
 
-  private final Protocol protocol;
   private final Map<TransportEndpoint, NetworkEmulatorSettings> networkSettings = new ConcurrentHashMap<>();
+
+  private final CodecFactory codecFactory = new CodecFactory();
 
   // Shared handlers
   private final ExceptionCaughtChannelHandler exceptionHandler = new ExceptionCaughtChannelHandler();
-  private final MessageToByteEncoder<Message> serializerHandler;
-  private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
   private final AcceptorHandshakeChannelHandler acceptorHandshakeHandler;
   private final AcceptorRegistratorChannelHandler acceptorRegistratorHandler;
   private final LoggingHandler loggingHandler;
@@ -34,14 +30,9 @@ public final class TransportPipelineFactory implements PipelineFactory {
   /**
    * Creates new TransportPipelineFactory with concrete transport and protocol.
    */
-  public TransportPipelineFactory(ITransportSpi transportSpi, Protocol protocol, boolean useNetworkEmulator) {
+  public TransportPipelineFactory(ITransportSpi transportSpi, boolean useNetworkEmulator) {
     checkArgument(transportSpi != null);
-    checkArgument(protocol != null);
-    this.protocol = protocol;
-
     // Init shared handlers
-    this.serializerHandler = new SharableSerializerHandler(protocol.getMessageSerializer());
-    this.deserializerHandler = new SharableDeserializerHandler(protocol.getMessageDeserializer());
     this.loggingHandler = transportSpi.getLogLevel() != null ? new LoggingHandler(transportSpi.getLogLevel()) : null;
     this.acceptorHandshakeHandler = new AcceptorHandshakeChannelHandler(transportSpi);
     this.acceptorRegistratorHandler = new AcceptorRegistratorChannelHandler(transportSpi);
@@ -83,10 +74,10 @@ public final class TransportPipelineFactory implements PipelineFactory {
   }
 
   private void addProtocolHandlers(ChannelPipeline pipeline) {
-    pipeline.addLast("frameDecoder", protocol.getFrameHandlerFactory().newFrameDecoder());
-    pipeline.addLast("deserializer", deserializerHandler);
-    pipeline.addLast("frameEncoder", protocol.getFrameHandlerFactory().newFrameEncoder());
-    pipeline.addLast("serializer", serializerHandler);
+    pipeline.addLast("frameDecoder", codecFactory.protoFrameDecoder());
+    pipeline.addLast("deserializer", codecFactory.protostuffMessageDecoder());
+    pipeline.addLast("frameEncoder", codecFactory.protoFrameEncoder());
+    pipeline.addLast("serializer", codecFactory.protostuffMessageEncoder());
   }
 
   public void setNetworkSettings(TransportEndpoint endpoint, int lostPercent, int mean) {

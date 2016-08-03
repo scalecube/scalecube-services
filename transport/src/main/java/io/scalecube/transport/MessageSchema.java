@@ -3,9 +3,9 @@ package io.scalecube.transport;
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.scalecube.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
-import io.scalecube.transport.utils.RecyclableLinkedBuffer;
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
+import io.scalecube.transport.utils.RecyclableLinkedBuffer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
@@ -31,8 +31,15 @@ import java.util.Map;
  * 
  * @author Anton Kharenko
  */
-final class MessageSchema implements Schema<Message> {
+public final class MessageSchema implements Schema<Message> {
   private static final Logger LOGGER = LoggerFactory.getLogger(MessageSchema.class);
+
+  static {
+    // Register message schema
+    if (!RuntimeSchema.isRegistered(Message.class)) {
+      RuntimeSchema.register(Message.class, new MessageSchema());
+    }
+  }
 
   private static final int HEADER_KEYS_FIELD_NUMBER = 1;
   private static final int HEADER_VALUES_FIELD_NUMBER = 2;

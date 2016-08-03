@@ -3,7 +3,8 @@ package io.scalecube.cluster.gossip;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageDeserializer;
 import io.scalecube.transport.MessageSerializer;
-import io.scalecube.transport.ProtostuffProtocol;
+import io.scalecube.transport.ProtostuffMessageDeserializer;
+import io.scalecube.transport.ProtostuffMessageSerializer;
 
 import com.google.common.collect.ImmutableList;
 
@@ -59,9 +60,8 @@ public class ProtostuffGossipBenchmark {
    */
   @Setup
   public void setup() {
-    ProtostuffProtocol protocol = new ProtostuffProtocol();
-    ser = protocol.getMessageSerializer();
-    deser = protocol.getMessageDeserializer();
+    ser = new ProtostuffMessageSerializer();
+    deser = new ProtostuffMessageDeserializer();
 
     gossipReq = Message.fromData(
         new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", Message.fromData(PAYLOAD_X32)))));
