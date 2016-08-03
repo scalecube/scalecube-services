@@ -51,9 +51,7 @@ public class GossipEmulationIT {
     GossipProtocol gossipProtocol = new GossipProtocol(transportEndpoint, getNextExecutor());
     gossipProtocol.setClusterEndpoints(members);
 
-    Transport transport =
-        Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR, eventLoop,
-            eventExecutor);
+    Transport transport = Transport.newInstance(transportEndpoint, TransportSettings.DEFAULT_WITH_NETWORK_EMULATOR);
     gossipProtocol.setTransport(transport);
 
     try {

@@ -26,14 +26,6 @@ final class NetworkEmulatorChannelHandler extends ChannelOutboundHandlerAdapter 
 
   @Override
   public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
-    Message message = (Message) msg;
-    String qualifier = message.header(TransportHeaders.QUALIFIER);
-    if (TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC.equals(qualifier)
-        || TransportHandshakeData.Q_TRANSPORT_HANDSHAKE_SYNC_ACK.equals(qualifier)) {
-      super.write(ctx, msg, promise);
-      return;
-    }
-
     // Resolve network settings
     InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
     NetworkEmulatorSettings networkSettings = NetworkEmulatorSettings.defaultSettings();

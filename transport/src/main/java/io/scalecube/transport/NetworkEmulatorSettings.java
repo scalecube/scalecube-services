@@ -61,6 +61,6 @@ public class NetworkEmulatorSettings {
 
   @Override
   public String toString() {
-    return "NetworkEmulatorSettings{" + "lostPercent=" + lostPercent + ", mean=" + mean + '}';
+    return "NetworkEmulatorSettings{lostPercent=" + lostPercent + ", mean=" + mean + '}';
   }
 }

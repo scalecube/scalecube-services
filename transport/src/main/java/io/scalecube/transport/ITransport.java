@@ -74,8 +74,7 @@ public interface ITransport {
   /**
    * Sends message to remote endpoint. It will issue connect in case if no transport channel by given transport
    * {@code endpoint} exists already. Send is an async operation, if result of operation is not needed leave third
-   * parameter null, otherwise pass {@link SettableFuture}. If transport channel is already closed - {@code promise}
-   * will be failed with {@link TransportClosedException}.
+   * parameter null, otherwise pass {@link SettableFuture}.
    *
    * @param message message to send
    * @param promise promise will be completed with result of sending (void or exception)

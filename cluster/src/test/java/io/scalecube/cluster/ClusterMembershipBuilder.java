@@ -11,7 +11,6 @@ import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportPipelineFactory;
 import io.scalecube.transport.TransportSettings;
 
 import com.google.common.base.Function;
@@ -29,7 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ClusterMembershipBuilder {
-  final ClusterMembership target;
+  final ClusterMembership membership;
   final GossipProtocol gossipProtocol;
   final FailureDetectorBuilder fdBuilder;
   final Transport transport;
@@ -42,18 +41,18 @@ public class ClusterMembershipBuilder {
     gossipProtocol = new GossipProtocol(transportEndpoint, Executors.newSingleThreadScheduledExecutor());
     gossipProtocol.setTransport(transport);
 
-    target = new ClusterMembership(transportEndpoint, Schedulers.computation());
-    target.setTransport(transport);
-    target.setFailureDetector(fdBuilder.target());
-    target.setGossipProtocol(gossipProtocol);
-    target.setLocalMetadata(new HashMap<String, String>() {
+    membership = new ClusterMembership(transportEndpoint, Schedulers.computation());
+    membership.setTransport(transport);
+    membership.setFailureDetector(fdBuilder.target());
+    membership.setGossipProtocol(gossipProtocol);
+    membership.setLocalMetadata(new HashMap<String, String>() {
       {
         put("key", "val");
       }
     });
-    target.setSeedMembers(members);
-    target.setSyncTime(1000);
-    target.setSyncTimeout(100);
+    membership.setSeedMembers(members);
+    membership.setSyncTime(1000);
+    membership.setSyncTimeout(100);
   }
 
   public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint,
@@ -65,70 +64,18 @@ public class ClusterMembershipBuilder {
     return new ClusterMembershipBuilder(transportEndpoint, Arrays.asList(members));
   }
 
-  public ClusterMembershipBuilder syncTime(int syncTime) {
-    target.setSyncTime(syncTime);
-    return this;
-  }
-
-  public ClusterMembershipBuilder syncTimeout(int syncTimeout) {
-    target.setSyncTimeout(syncTimeout);
-    return this;
-  }
-
   public ClusterMembershipBuilder maxSuspectTime(int maxSuspectTime) {
-    target.setMaxSuspectTime(maxSuspectTime);
-    return this;
-  }
-
-  public ClusterMembershipBuilder maxShutdownTime(int maxShutdownTime) {
-    target.setMaxShutdownTime(maxShutdownTime);
-    return this;
-  }
-
-  public ClusterMembershipBuilder pingTime(int pingTime) {
-    fdBuilder.pingTime(pingTime);
-    return this;
-  }
-
-  public ClusterMembershipBuilder pingTimeout(int pingTimeout) {
-    fdBuilder.pingTimeout(pingTimeout);
-    return this;
-  }
-
-  public ClusterMembershipBuilder ping(TransportEndpoint member) {
-    fdBuilder.ping(member);
-    return this;
-  }
-
-  public ClusterMembershipBuilder noRandomMembers() {
-    fdBuilder.noRandomMembers();
-    return this;
-  }
-
-  public ClusterMembershipBuilder randomMembers(List<TransportEndpoint> members) {
-    fdBuilder.randomMembers(members);
+    membership.setMaxSuspectTime(maxSuspectTime);
     return this;
   }
 
   public ClusterMembershipBuilder block(TransportEndpoint dest) {
-    transport.<TransportPipelineFactory>getPipelineFactory().blockMessagesTo(dest);
-    return this;
-  }
-
-  public ClusterMembershipBuilder block(List<TransportEndpoint> members) {
-    for (TransportEndpoint dest : members) {
-      block(dest);
-    }
-    return this;
-  }
-
-  public ClusterMembershipBuilder network(TransportEndpoint member, int lostPercent, int mean) {
-    transport.<TransportPipelineFactory>getPipelineFactory().setNetworkSettings(member, lostPercent, mean);
+    transport.blockMessagesTo(dest);
     return this;
   }
 
   public ClusterMembershipBuilder unblockAll() {
-    transport.<TransportPipelineFactory>getPipelineFactory().unblockAll();
+    transport.unblockAll();
     return this;
   }
 
@@ -137,7 +84,7 @@ public class ClusterMembershipBuilder {
       transport.start().get();
       fdBuilder.target().start();
       gossipProtocol.start();
-      target.start().get();
+      membership.start().get();
     } catch (Exception ex) {
       Throwables.propagate(ex);
     }
@@ -148,7 +95,7 @@ public class ClusterMembershipBuilder {
     destroyTransport(transport);
     fdBuilder.target().stop();
     gossipProtocol.stop();
-    target.stop();
+    membership.stop();
   }
 
   private void destroyTransport(ITransport tf) {
@@ -192,7 +139,7 @@ public class ClusterMembershipBuilder {
         return input.endpoint();
       }
     };
-    List<TransportEndpoint> list = newArrayList(transform(filter(target.members(), predicate), function));
+    List<TransportEndpoint> list = newArrayList(transform(filter(membership.members(), predicate), function));
     assertEquals("expect " + s + ": " + list, members.length, list.size());
     for (TransportEndpoint member : members) {
       assertTrue("expect " + s + ": " + member, list.contains(member));

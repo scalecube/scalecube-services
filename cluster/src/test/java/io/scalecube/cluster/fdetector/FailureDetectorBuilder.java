@@ -2,7 +2,6 @@ package io.scalecube.cluster.fdetector;
 
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportPipelineFactory;
 import io.scalecube.transport.TransportSettings;
 
 import com.google.common.base.Throwables;
@@ -52,8 +51,7 @@ public class FailureDetectorBuilder {
 
   public FailureDetectorBuilder block(TransportEndpoint dest) {
     Transport tf = (Transport) target.getTransport();
-    TransportPipelineFactory pf = tf.getPipelineFactory();
-    pf.blockMessagesTo(dest);
+    tf.blockMessagesTo(dest);
     return this;
   }
 
@@ -64,17 +62,9 @@ public class FailureDetectorBuilder {
     return this;
   }
 
-  public FailureDetectorBuilder network(TransportEndpoint member, int lostPercent, int mean) {
-    Transport tf = (Transport) target.getTransport();
-    TransportPipelineFactory pf = tf.getPipelineFactory();
-    pf.setNetworkSettings(member, lostPercent, mean);
-    return this;
-  }
-
   public FailureDetectorBuilder unblockAll() {
     Transport tf = (Transport) target.getTransport();
-    TransportPipelineFactory pf = tf.getPipelineFactory();
-    pf.unblockAll();
+    tf.unblockAll();
     return this;
   }
 

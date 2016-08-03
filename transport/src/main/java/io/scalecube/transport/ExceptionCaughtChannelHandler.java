@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 
 /**
- * Catching generic exceptions along with {@link TransportBrokenException}. Catching 'channel inactive' events.
+ * Catching and logging exceptions.
  * <p/>
  * <b>NOTE:</b> this handler must be the last handler in the pipeline.
  */
@@ -21,24 +21,7 @@ final class ExceptionCaughtChannelHandler extends ChannelDuplexHandler {
 
   @Override
   public final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-    if (cause instanceof TransportBrokenException) {
-      TransportChannel transport = TransportChannel.from(ctx.channel());
-      LOGGER.warn("Broken transport: {}, cause: {}", transport, cause);
-      transport.close(cause);
-    } else if (cause instanceof ClosedChannelException) {
-      LOGGER.info("ClosedChannelException caught for channel ", ctx.channel());
-    } else if (cause instanceof IOException) {
-      LOGGER.info("IOException caught for channel {}, {}", ctx.channel(), cause.getMessage());
-    } else {
-      LOGGER.error("Exception caught for channel {}, {}", ctx.channel(), cause.getMessage(), cause);
-    }
+    LOGGER.warn("Exception caught for channel {}, {}", ctx.channel(), cause.getMessage(), cause);
   }
 
-  @Override
-  public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-    TransportChannel transport = TransportChannel.from(ctx.channel());
-    LOGGER.debug("Transport inactive: {}", transport);
-    transport.close();
-    super.channelInactive(ctx);
-  }
 }

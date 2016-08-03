@@ -31,6 +31,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -110,7 +111,7 @@ public class TransportTest extends BaseTest {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       assertNotNull(cause);
-      assertAmongExpectedClasses(cause.getClass(), UnknownHostException.class);
+      assertAmongExpectedClasses(cause.getClass(), UnresolvedAddressException.class);
     }
   }
 
@@ -223,8 +224,8 @@ public class TransportTest extends BaseTest {
     TransportEndpoint clientEndpoint = clientEndpoint();
     TransportEndpoint serverEndpoint = serverEndpoint();
 
-    client = createTransport(clientEndpoint, 100);
-    server = createTransport(serverEndpoint, 100);
+    client = createTransport(clientEndpoint);
+    server = createTransport(serverEndpoint);
 
     int total = 1000;
     for (int i = 0; i < 10; i++) {
@@ -268,8 +269,8 @@ public class TransportTest extends BaseTest {
     TransportEndpoint clientEndpoint = clientEndpoint(49050);
     TransportEndpoint serverEndpoint = serverEndpoint(49060);
 
-    Transport client = createTransport(clientEndpoint, 100);
-    Transport server = createTransport(serverEndpoint, 100);
+    Transport client = createTransport(clientEndpoint);
+    Transport server = createTransport(serverEndpoint);
 
     final int total = 1000;
     for (int i = 0; i < 10; i++) {
@@ -326,7 +327,7 @@ public class TransportTest extends BaseTest {
 
     int lostPercent = 50;
     int mean = 0;
-    client.<TransportPipelineFactory>getPipelineFactory().setNetworkSettings(serverEndpoint, lostPercent, mean);
+    client.setNetworkSettings(serverEndpoint, lostPercent, mean);
 
     final List<Message> serverMessageList = new ArrayList<>();
     server.listen().subscribe(new Action1<Message>() {
@@ -545,32 +546,12 @@ public class TransportTest extends BaseTest {
 
     // then block client->server messages
     pause(1000);
-    client.<TransportPipelineFactory>getPipelineFactory().blockMessagesTo(serverEndpoint);
+    client.blockMessagesTo(serverEndpoint);
     send(client, serverEndpoint, Message.fromQualifier("q/blocked"));
 
     pause(1000);
     assertEquals(1, resp.size());
     assertEquals("q/unblocked", resp.get(0).header(TransportHeaders.QUALIFIER));
-  }
-
-  @Test
-  public void testSendMailboxBecomingFull() throws Exception {
-    TransportEndpoint clientEndpoint = clientEndpoint();
-    TransportEndpoint serverEndpoint = serverEndpoint();
-
-    client = createTransport(clientEndpoint, 1);
-    server = createTransport(serverEndpoint, 1);
-
-    client.send(serverEndpoint, Message.fromQualifier("ping0"));
-
-    SettableFuture<Void> send1 = SettableFuture.create();
-    client.send(serverEndpoint, Message.fromQualifier("ping1"), send1);
-    try {
-      send1.get(1, TimeUnit.SECONDS);
-    } catch (ExecutionException e) {
-      TransportMessageException cause = (TransportMessageException) e.getCause();
-      assertNotNull(cause);
-    }
   }
 
   private TransportEndpoint serverEndpoint() {
@@ -651,13 +632,11 @@ public class TransportTest extends BaseTest {
   }
 
   private Transport createTransport(TransportEndpoint endpoint) {
-    return createTransport(endpoint, 1000);
-  }
-
-  private Transport createTransport(TransportEndpoint endpoint, int sendHwm) {
-    Transport transport =
-        Transport.newInstance(endpoint, TransportSettings.builder().connectTimeout(1000).sendHighWaterMark(sendHwm)
-            .useNetworkEmulator(true).build());
+    TransportSettings settings = TransportSettings.builder()
+        .connectTimeout(1000)
+        .useNetworkEmulator(true)
+        .build();
+    Transport transport = Transport.newInstance(endpoint, settings);
     try {
       transport.start().get();
     } catch (Exception e) {
