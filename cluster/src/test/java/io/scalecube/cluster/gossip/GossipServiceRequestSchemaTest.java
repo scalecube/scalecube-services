@@ -10,7 +10,6 @@ import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageSchema;
 import io.scalecube.transport.ProtostuffMessageDeserializer;
 import io.scalecube.transport.ProtostuffMessageSerializer;
-import io.scalecube.transport.TransportHeaders;
 
 import io.netty.buffer.ByteBuf;
 
@@ -41,7 +40,7 @@ public class GossipServiceRequestSchemaTest {
   }
 
   @Test
-  public void testProtobuf() throws Exception {
+  public void testProtostuff() throws Exception {
     List<Gossip> gossips = getGossips();
 
     Message message = Message.withData(new GossipRequest(gossips)).correlationId("CORR_ID").build();

@@ -17,6 +17,8 @@ public final class TransportPipelineFactory implements PipelineFactory {
 
   private final Map<TransportEndpoint, NetworkEmulatorSettings> networkSettings = new ConcurrentHashMap<>();
 
+  private final CodecFactory codecFactory = new CodecFactory();
+
   // Shared handlers
   private final ExceptionCaughtChannelHandler exceptionHandler = new ExceptionCaughtChannelHandler();
   private final AcceptorHandshakeChannelHandler acceptorHandshakeHandler;
@@ -72,10 +74,10 @@ public final class TransportPipelineFactory implements PipelineFactory {
   }
 
   private void addProtocolHandlers(ChannelPipeline pipeline) {
-    pipeline.addLast("frameDecoder", CodecFactory.protoFrameDecoder());
-    pipeline.addLast("deserializer", CodecFactory.protostuffMessageDecoder());
-    pipeline.addLast("frameEncoder", CodecFactory.protoFrameEncoder());
-    pipeline.addLast("serializer", CodecFactory.protostuffMessageEncoder());
+    pipeline.addLast("frameDecoder", codecFactory.protoFrameDecoder());
+    pipeline.addLast("deserializer", codecFactory.protostuffMessageDecoder());
+    pipeline.addLast("frameEncoder", codecFactory.protoFrameEncoder());
+    pipeline.addLast("serializer", codecFactory.protostuffMessageEncoder());
   }
 
   public void setNetworkSettings(TransportEndpoint endpoint, int lostPercent, int mean) {
