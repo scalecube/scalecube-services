@@ -1,5 +1,6 @@
 package io.scalecube.cluster;
 
+import io.scalecube.transport.TransportEndpoint;
 import rx.Observable;
 
 import java.util.List;
@@ -16,6 +17,9 @@ public interface IClusterMembership {
 
   /** Returns cluster member by its id or null if no member with such id exists. */
   ClusterMember member(String id);
+
+  /** Returns cluster member by its address or null if no member with such address exists. */
+  ClusterMember member(TransportEndpoint address);
 
   /** Returns local cluster member. */
   ClusterMember localMember();

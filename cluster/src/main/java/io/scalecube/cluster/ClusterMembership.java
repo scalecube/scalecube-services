@@ -243,6 +243,12 @@ public final class ClusterMembership implements IClusterMembership {
   }
 
   @Override
+  public ClusterMember member(TransportEndpoint address) {
+    checkArgument(address != null, "Member endpoint can't be null or empty");
+    return membership.get(address);
+  }
+
+  @Override
   public ClusterMember localMember() {
     return membership.get(localEndpoint);
   }
@@ -432,7 +438,7 @@ public final class ClusterMembership implements IClusterMembership {
             @Override
             public void run() {
               LOGGER.debug("Time to remove SUSPECTED member={} from membership", member.endpoint());
-              processUpdates(membership.remove(member.endpoint()), false/* spread gossip */);
+              processUpdates(membership.remove(member.id()), false/* spread gossip */);
             }
           }, maxSuspectTime, TimeUnit.MILLISECONDS);
           break;
@@ -445,7 +451,7 @@ public final class ClusterMembership implements IClusterMembership {
             @Override
             public void run() {
               LOGGER.debug("Time to remove SHUTDOWN member={} from membership", member.endpoint());
-              membership.remove(member.endpoint());
+              membership.remove(member.id());
             }
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
           break;

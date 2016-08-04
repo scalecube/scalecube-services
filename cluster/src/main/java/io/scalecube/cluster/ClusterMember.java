@@ -20,21 +20,20 @@ public final class ClusterMember implements Comparable<ClusterMember> {
   private final TransportEndpoint endpoint;
   private final Map<String, String> metadata;
   private final ClusterMemberStatus status;
-  private final long lastUpdateTimestamp;
+  private final long timestamp;
 
   ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
     this(endpoint, status, metadata, System.currentTimeMillis());
   }
 
-  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata,
-      long lastUpdateTimestamp) {
+  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata, long timestamp) {
     checkArgument(endpoint != null);
     checkArgument(status != null);
     this.id = endpoint.id();
     this.endpoint = endpoint;
     this.status = status;
     this.metadata = metadata;
-    this.lastUpdateTimestamp = lastUpdateTimestamp;
+    this.timestamp = timestamp;
   }
 
   @Nonnull
@@ -56,8 +55,8 @@ public final class ClusterMember implements Comparable<ClusterMember> {
     return Collections.unmodifiableMap(metadata);
   }
 
-  public long lastUpdateTimestamp() {
-    return lastUpdateTimestamp;
+  public long timestamp() {
+    return timestamp;
   }
 
   @Override
@@ -72,7 +71,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
       return -1;
     }
 
-    int clockCompare = Long.compare(lastUpdateTimestamp, r1.lastUpdateTimestamp);
+    int clockCompare = Long.compare(timestamp, r1.timestamp);
     if (clockCompare < 0) {
       return -1;
     }
@@ -88,7 +87,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
     return "ClusterMember{endpoint=" + endpoint
         + ", status=" + status
         + ", metadata=" + metadata
-        + ", lastUpdateTimestamp=" + lastUpdateTimestamp
+        + ", lastUpdateTimestamp=" + timestamp
         + '}';
   }
 }

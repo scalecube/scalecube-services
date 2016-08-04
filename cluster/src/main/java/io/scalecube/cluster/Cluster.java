@@ -13,7 +13,6 @@ import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.AvailablePortFinder;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
