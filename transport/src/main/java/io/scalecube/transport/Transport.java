@@ -58,9 +58,9 @@ public final class Transport implements ITransport {
   private final ExceptionHandler exceptionHandler = new ExceptionHandler();
   private final MessageToByteEncoder<Message> serializerHandler;
   private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
+  private final MessageReceiverHandler messageHandler;
   private final LoggingHandler loggingHandler;
   private final NetworkEmulatorHandler networkEmulatorHandler;
-  private final MessageReceiverHandler messageHandler;
 
   private ServerChannel serverChannel;
 
@@ -92,7 +92,7 @@ public final class Transport implements ITransport {
     return localEndpoint;
   }
 
-  public EventExecutorGroup getEventExecutor() {
+  public EventExecutorGroup getWorkerGroup() {
     return bootstrapFactory.getWorkerGroup();
   }
 

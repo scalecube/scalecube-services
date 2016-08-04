@@ -67,7 +67,6 @@ final class BootstrapFactory {
         .childOption(ChannelOption.TCP_NODELAY, true)
         .childOption(ChannelOption.SO_KEEPALIVE, true)
         .childOption(ChannelOption.SO_REUSEADDR, true)
-        .childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, settings.getWriteBufferHighWaterMark())
         .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
     return bootstrap;
   }
@@ -80,7 +79,6 @@ final class BootstrapFactory {
         .option(ChannelOption.SO_KEEPALIVE, true)
         .option(ChannelOption.SO_REUSEADDR, true)
         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, settings.getConnectTimeout())
-        .option(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, settings.getWriteBufferHighWaterMark())
         .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
     return bootstrap;
   }

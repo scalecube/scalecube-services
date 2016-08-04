@@ -81,14 +81,14 @@ public final class Cluster implements ICluster {
     gossipProtocol.setMaxEndpointsToSelect(config.gossipProtocolSettings.getMaxEndpointsToSelect());
 
     // Build failure detector component
-    failureDetector = new FailureDetector(localEndpoint, Schedulers.from(transport.getEventExecutor()));
+    failureDetector = new FailureDetector(localEndpoint, Schedulers.from(transport.getWorkerGroup()));
     failureDetector.setTransport(transport);
     failureDetector.setPingTime(config.failureDetectorSettings.getPingTime());
     failureDetector.setPingTimeout(config.failureDetectorSettings.getPingTimeout());
     failureDetector.setMaxEndpointsToSelect(config.failureDetectorSettings.getMaxEndpointsToSelect());
 
     // Build cluster membership component
-    clusterMembership = new ClusterMembership(localEndpoint, Schedulers.from(transport.getEventExecutor()));
+    clusterMembership = new ClusterMembership(localEndpoint, Schedulers.from(transport.getWorkerGroup()));
     clusterMembership.setFailureDetector(failureDetector);
     clusterMembership.setGossipProtocol(gossipProtocol);
     clusterMembership.setTransport(transport);

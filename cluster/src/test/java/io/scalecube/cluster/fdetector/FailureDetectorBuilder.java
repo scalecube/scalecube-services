@@ -15,7 +15,7 @@ public class FailureDetectorBuilder {
   final FailureDetector target;
 
   FailureDetectorBuilder(TransportEndpoint transportEndpoint, Transport tf) {
-    target = new FailureDetector(transportEndpoint, Schedulers.from(tf.getEventExecutor()));
+    target = new FailureDetector(transportEndpoint, Schedulers.from(tf.getWorkerGroup()));
     target.setTransport(tf);
   }
 
