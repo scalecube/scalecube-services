@@ -48,6 +48,9 @@ public final class Cluster implements ICluster {
   // Cluster config
   private final ClusterConfig config;
 
+  // Member
+  private final String memberId;
+
   // Cluster components
   private final Transport transport;
   private final FailureDetector failureDetector;
@@ -65,8 +68,8 @@ public final class Cluster implements ICluster {
     checkNotNull(config.membershipSettings);
     this.config = config;
 
-    // Build local endpoint
-    String memberId = UUID.randomUUID().toString();
+    // Build local member
+    memberId = UUID.randomUUID().toString();
     TransportEndpoint localEndpoint = TransportEndpoint.createLocal(memberId, config.port);
 
     // Build transport
@@ -148,8 +151,7 @@ public final class Cluster implements ICluster {
 
   private ListenableFuture<ICluster> join0() {
     updateClusterState(State.INSTANTIATED, State.JOINING);
-    LOGGER.info("Cluster instance '{}' joining seed members: {}", transport.localEndpoint().id(),
-        config.seedMembers);
+    LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.seedMembers);
     ListenableFuture<Void> transportFuture = transport.start();
     ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Void, Void>() {
       @Override
@@ -163,8 +165,7 @@ public final class Cluster implements ICluster {
       @Override
       public ICluster apply(@Nullable Void param) {
         updateClusterState(State.JOINING, State.JOINED);
-        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", transport.localEndpoint().id(),
-            membership().members());
+        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, membership().members());
         return Cluster.this;
       }
     });
@@ -203,7 +204,7 @@ public final class Cluster implements ICluster {
   @Override
   public ListenableFuture<Void> leave() {
     updateClusterState(State.JOINED, State.LEAVING);
-    LOGGER.info("Cluster instance '{}' leaving cluster", transport.localEndpoint().id());
+    LOGGER.info("Cluster instance '{}' leaving cluster", memberId);
 
     // Notify cluster members about graceful shutdown of current member
     clusterMembership.leave();
@@ -229,7 +230,7 @@ public final class Cluster implements ICluster {
       public Void apply(Void input) {
         stopExecutor.shutdown();
         updateClusterState(State.LEAVING, State.STOPPED);
-        LOGGER.info("Cluster instance '{}' stopped", transport.localEndpoint().id());
+        LOGGER.info("Cluster instance '{}' stopped", memberId);
         return input;
       }
     });

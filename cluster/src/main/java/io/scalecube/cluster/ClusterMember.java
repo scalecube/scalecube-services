@@ -22,14 +22,16 @@ public final class ClusterMember implements Comparable<ClusterMember> {
   private final ClusterMemberStatus status;
   private final long timestamp;
 
-  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
-    this(endpoint, status, metadata, System.currentTimeMillis());
+  ClusterMember(String id, TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
+    this(id, endpoint, status, metadata, System.currentTimeMillis());
   }
 
-  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata, long timestamp) {
+  ClusterMember(String id, TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata,
+      long timestamp) {
+    checkArgument(id != null);
     checkArgument(endpoint != null);
     checkArgument(status != null);
-    this.id = endpoint.id();
+    this.id = id;
     this.endpoint = endpoint;
     this.status = status;
     this.metadata = metadata;

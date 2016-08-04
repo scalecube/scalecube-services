@@ -262,7 +262,8 @@ public final class ClusterMembership implements IClusterMembership {
     timer.start();
 
     // Register itself initially before SYNC/SYNC_ACK
-    List<ClusterMember> updates = membership.merge(new ClusterMember(localEndpoint, TRUSTED, localMetadata));
+    ClusterMember localMember = new ClusterMember(localEndpoint.id(), localEndpoint, TRUSTED, localMetadata);
+    List<ClusterMember> updates = membership.merge(localMember);
     processUpdates(updates, false/* spread gossip */);
 
     // Listen to SYNC requests from joining/synchronizing members
@@ -467,8 +468,8 @@ public final class ClusterMembership implements IClusterMembership {
    * information about leave before stopping server.
    */
   public void leave() {
-    ClusterMember r1 = new ClusterMember(localEndpoint, SHUTDOWN, localMetadata);
-    gossipProtocol.spread(Message.fromData(new ClusterMembershipData(ImmutableList.of(r1), syncGroup)));
+    ClusterMember localMember = new ClusterMember(localEndpoint.id(), localEndpoint, SHUTDOWN, localMetadata);
+    gossipProtocol.spread(Message.fromData(new ClusterMembershipData(ImmutableList.of(localMember), syncGroup)));
   }
 
   @Override

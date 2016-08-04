@@ -44,14 +44,20 @@ final class ClusterMembershipTable {
   public List<ClusterMember> merge(FailureDetectorEvent event) {
     ClusterMember r0 = get(event.endpoint());
     if (r0 != null) {
-      return merge(new ClusterMember(event.endpoint(), event.status(), r0.metadata()));
+      return merge(new ClusterMember(r0.id(), r0.endpoint(), event.status(), r0.metadata()));
     } else {
       return Collections.emptyList();
     }
   }
 
   public ClusterMember get(TransportEndpoint endpoint) {
-    return membership.get(endpoint.id());
+    // TODO [AK]: Temporary solution, should be optimized!!!
+    for (ClusterMember member : membership.values()) {
+      if (member.endpoint().equals(endpoint)) {
+        return member;
+      }
+    }
+    return null;
   }
 
   public ClusterMember get(String id) {
@@ -62,7 +68,7 @@ final class ClusterMembershipTable {
     List<ClusterMember> updates = new ArrayList<>(1);
     ClusterMember r0 = membership.remove(id);
     if (r0 != null) {
-      updates.add(new ClusterMember(r0.endpoint(), REMOVED, r0.metadata()));
+      updates.add(new ClusterMember(r0.id(), r0.endpoint(), REMOVED, r0.metadata()));
     }
     return updates;
   }
