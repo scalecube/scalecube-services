@@ -7,10 +7,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Message;
-import io.scalecube.transport.ProtostuffProtocol;
-import io.scalecube.transport.TransportHeaders;
 
 import io.netty.buffer.ByteBuf;
+import io.scalecube.transport.MessageCodec;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,20 +37,19 @@ public class GossipServiceRequestSchemaTest {
 
   @Test
   public void testProtostuff() throws Exception {
-    ProtostuffProtocol protocol = new ProtostuffProtocol();
 
     List<Gossip> gossips = getGossips();
 
     Message message = Message.withData(new GossipRequest(gossips)).correlationId("CORR_ID").build();
 
     ByteBuf bb = buffer();
-    protocol.getMessageSerializer().serialize(message, bb);
+    MessageCodec.serialize(message, bb);
 
     assertTrue(bb.readableBytes() > 0);
 
     ByteBuf input = copiedBuffer(bb);
 
-    Message deserializedMessage = protocol.getMessageDeserializer().deserialize(input);
+    Message deserializedMessage = MessageCodec.deserialize(input);
 
     assertNotNull(deserializedMessage);
     Assert.assertEquals(deserializedMessage.data().getClass(), GossipRequest.class);

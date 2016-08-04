@@ -11,14 +11,14 @@ import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IManagedGossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportHeaders;
+import io.scalecube.transport.MessageHeaders;
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -65,7 +65,7 @@ public final class ClusterMembership implements IClusterMembership {
   private static final String SYNC_ACK = "io.scalecube.cluster/membership/syncAck";
 
   // filters
-  private static final TransportHeaders.Filter SYNC_FILTER = new TransportHeaders.Filter(SYNC);
+  private static final MessageHeaders.Filter SYNC_FILTER = new MessageHeaders.Filter(SYNC);
   private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER = new Func1<Message, Boolean>() {
     @Override
     public Boolean call(Message message) {
@@ -363,17 +363,7 @@ public final class ClusterMembership implements IClusterMembership {
     ClusterMembershipData syncData = new ClusterMembershipData(membership.asList(), syncGroup);
     final Message syncMsg = Message.withData(syncData).qualifier(SYNC).correlationId(period).build();
     for (InetSocketAddress memberAddress : members) {
-      Futures.addCallback(transport.connect(memberAddress), new FutureCallback<TransportEndpoint>() {
-        @Override
-        public void onSuccess(TransportEndpoint endpoint) {
-          transport.send(endpoint, syncMsg);
-        }
-
-        @Override
-        public void onFailure(@Nonnull Throwable throwable) {
-          LOGGER.error("Failed to send sync", throwable);
-        }
-      });
+      ((Transport) transport).send(memberAddress, syncMsg);
     }
   }
 
@@ -481,11 +471,11 @@ public final class ClusterMembership implements IClusterMembership {
     return this.localMember().endpoint().equals(member.endpoint());
   }
 
-  private TransportHeaders.Filter syncFilter() {
+  private MessageHeaders.Filter syncFilter() {
     return SYNC_FILTER;
   }
 
-  private TransportHeaders.Filter syncAckFilter(String correlationId) {
-    return new TransportHeaders.Filter(SYNC_ACK, correlationId);
+  private MessageHeaders.Filter syncAckFilter(String correlationId) {
+    return new MessageHeaders.Filter(SYNC_ACK, correlationId);
   }
 }

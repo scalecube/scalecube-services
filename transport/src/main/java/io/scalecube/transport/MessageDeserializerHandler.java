@@ -8,17 +8,11 @@ import io.netty.handler.codec.MessageToMessageDecoder;
 import java.util.List;
 
 @ChannelHandler.Sharable
-final class SharableDeserializerHandler extends MessageToMessageDecoder<ByteBuf> {
-
-  private final MessageDeserializer deserializer;
-
-  public SharableDeserializerHandler(MessageDeserializer deserializer) {
-    this.deserializer = deserializer;
-  }
+final class MessageDeserializerHandler extends MessageToMessageDecoder<ByteBuf> {
 
   @Override
   protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
-    Message message = deserializer.deserialize(msg);
-    out.add(message);
+    out.add(MessageCodec.deserialize(msg));
   }
+
 }

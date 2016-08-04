@@ -1,136 +1,90 @@
 package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
-import io.scalecube.transport.utils.FutureUtils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.AsyncFunction;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.FutureFallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.PooledByteBufAllocator;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ServerChannel;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.handler.codec.MessageToMessageDecoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
+import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.handler.logging.LogLevel;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.EventExecutorGroup;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
-import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ThreadFactory;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public final class Transport implements ITransportSpi, ITransport {
+public final class Transport implements ITransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
-  private static final Function<TransportHandshakeData, TransportEndpoint> HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION =
-      new Function<TransportHandshakeData, TransportEndpoint>() {
-        @Override
-        public TransportEndpoint apply(TransportHandshakeData handshakeData) {
-          return handshakeData.endpoint();
-        }
-      };
-
   private final TransportEndpoint localEndpoint;
   private final TransportSettings settings;
-  private final EventLoopGroup eventLoop;
-  private final EventExecutorGroup eventExecutor;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
-  private final ConcurrentMap<InetSocketAddress, TransportChannel> acceptedChannels = new ConcurrentHashMap<>();
-  private final Memoizer<InetSocketAddress, TransportChannel> connectedChannels = new Memoizer<>();
+  private final Memoizer<TransportEndpoint, ChannelFuture> outgoingChannels;
 
-  private PipelineFactory pipelineFactory;
+  // Pipeline
+  private final BootstrapFactory bootstrapFactory;
+  private final IncomingChannelInitializer incomingChannelInitializer = new IncomingChannelInitializer();
+  private final ExceptionHandler exceptionHandler = new ExceptionHandler();
+  private final MessageToByteEncoder<Message> serializerHandler;
+  private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
+  private final MessageReceiverHandler messageHandler;
+  private final LoggingHandler loggingHandler;
+  private final NetworkEmulatorHandler networkEmulatorHandler;
+
   private ServerChannel serverChannel;
 
-  private Transport(TransportEndpoint localEndpoint, TransportSettings settings, EventLoopGroup eventLoop,
-      EventExecutorGroup eventExecutor) {
+  private Transport(TransportEndpoint localEndpoint, TransportSettings settings) {
     checkArgument(localEndpoint != null);
     checkArgument(settings != null);
-    checkArgument(eventLoop != null);
-    checkArgument(eventExecutor != null);
     this.localEndpoint = localEndpoint;
     this.settings = settings;
-    this.eventLoop = eventLoop;
-    this.eventExecutor = eventExecutor;
-    this.pipelineFactory =
-        new TransportPipelineFactory(this, new ProtostuffProtocol(), settings.isUseNetworkEmulator());
+    this.serializerHandler = new MessageSerializerHandler();
+    this.deserializerHandler = new MessageDeserializerHandler();
+    LogLevel logLevel = resolveLogLevel(settings.getLogLevel());
+    this.loggingHandler = logLevel != null ? new LoggingHandler(logLevel) : null;
+    this.networkEmulatorHandler = settings.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
+    this.messageHandler = new MessageReceiverHandler(incomingMessagesSubject);
+    this.bootstrapFactory = new BootstrapFactory(settings);
+    this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
 
-  public static Transport newInstance(TransportEndpoint localEndpoint) {
-    return newInstance(localEndpoint, TransportSettings.DEFAULT);
+  private LogLevel resolveLogLevel(String logLevel) {
+    return (logLevel != null && !logLevel.equals("OFF")) ? LogLevel.valueOf(logLevel) : null;
   }
 
   public static Transport newInstance(TransportEndpoint localEndpoint, TransportSettings settings) {
-    return newInstance(localEndpoint, settings, defaultEventLoop(localEndpoint), defaultEventExecutor(localEndpoint));
-  }
-
-  public static Transport newInstance(TransportEndpoint localEndpoint, EventLoopGroup eventLoop,
-      EventExecutorGroup eventExecutor) {
-    return newInstance(localEndpoint, TransportSettings.DEFAULT, eventLoop, eventExecutor);
-  }
-
-  public static Transport newInstance(TransportEndpoint localEndpoint, TransportSettings settings,
-      EventLoopGroup eventLoop, EventExecutorGroup eventExecutor) {
-    return new Transport(localEndpoint, settings, eventLoop, eventExecutor);
-  }
-
-  private static EventLoopGroup defaultEventLoop(TransportEndpoint localEndpoint) {
-    ThreadFactory eventLoopThreadFactory = createThreadFactory("scalecube-transport-io-%s@" + localEndpoint);
-    return new NioEventLoopGroup(1, eventLoopThreadFactory);
-  }
-
-  private static EventExecutorGroup defaultEventExecutor(TransportEndpoint localEndpoint) {
-    ThreadFactory eventExecutorThreadFactory = createThreadFactory("scalecube-transport-exec-%s@" + localEndpoint);
-    return new DefaultEventExecutorGroup(1, eventExecutorThreadFactory);
-  }
-
-  private static ThreadFactory createThreadFactory(String namingFormat) {
-    return new ThreadFactoryBuilder().setNameFormat(namingFormat)
-        .setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-          @Override
-          public void uncaughtException(Thread thread, Throwable ex) {
-            LOGGER.error("Unhandled exception: {}", ex, ex);
-          }
-        }).setDaemon(true).build();
+    return new Transport(localEndpoint, settings);
   }
 
   @Override
@@ -138,53 +92,59 @@ public final class Transport implements ITransportSpi, ITransport {
     return localEndpoint;
   }
 
-  public EventLoopGroup getEventLoop() {
-    return eventLoop;
+  public EventExecutorGroup getWorkerGroup() {
+    return bootstrapFactory.getWorkerGroup();
   }
 
-  @Override
-  public EventExecutorGroup getEventExecutor() {
-    return eventExecutor;
-  }
-
-  @Override
-  public final int getHandshakeTimeout() {
-    return settings.getHandshakeTimeout();
-  }
-
-  @Override
-  public int getSendHighWaterMark() {
-    return settings.getSendHighWaterMark();
-  }
-
-  @Override
-  public LogLevel getLogLevel() {
-    String logLevel = settings.getLogLevel();
-    if (logLevel != null && !logLevel.equals("OFF")) {
-      return LogLevel.valueOf(logLevel);
+  /**
+   * Sets given network emulator settings. If network emulator is disabled do nothing.
+   */
+  public void setNetworkSettings(TransportEndpoint destination, int lostPercent, int meanDelay) {
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.setNetworkSettings(destination, lostPercent, meanDelay);
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't set network settings");
     }
-    return null;
   }
 
-  @SuppressWarnings("unchecked")
-  public <T extends PipelineFactory> T getPipelineFactory() {
-    return (T) pipelineFactory;
+  /**
+   * Sets default network emulator settings. If network emulator is disabled do nothing.
+   */
+  public void setDefaultNetworkSettings(int lostPercent, int meanDelay) {
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't set default network settings");
+    }
+  }
+
+  /**
+   * Block messages to given destination. If network emulator is disabled do nothing.
+   */
+  public void blockMessagesTo(TransportEndpoint destination) {
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.blockMessagesTo(destination);
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't block messages");
+    }
+  }
+
+  /**
+   * Unblock messages to all destinations. If network emulator is disabled do nothing.
+   */
+  public void unblockAll() {
+    if (settings.isUseNetworkEmulator()) {
+      networkEmulatorHandler.unblockAll();
+    } else {
+      LOGGER.warn("Network emulator is disabled: can't unblock messages");
+    }
   }
 
   @Override
   public final ListenableFuture<Void> start() {
-    incomingMessagesSubject.subscribeOn(Schedulers.from(eventExecutor)); // define that we making smart subscribe
+    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
-    Class<? extends ServerChannel> serverChannelClass = NioServerSocketChannel.class;
-
-    ServerBootstrap server = new ServerBootstrap();
-    server.group(eventLoop).channel(serverChannelClass).childHandler(new ChannelInitializer<Channel>() {
-      @Override
-      protected void initChannel(Channel channel) {
-        pipelineFactory.setAcceptorPipeline(channel, Transport.this);
-      }
-    });
-
+    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
     ChannelFuture bindFuture = server.bind(localEndpoint.port());
     final SettableFuture<Void> result = SettableFuture.create();
     bindFuture.addListener(new ChannelFutureListener() {
@@ -192,12 +152,10 @@ public final class Transport implements ITransportSpi, ITransport {
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound transport endpoint: {} at {}:{}",
-              localEndpoint.id(), localEndpoint.host(), localEndpoint.port());
+          LOGGER.info("Bound transport endpoint: {}", localEndpoint);
           result.set(null);
         } else {
-          LOGGER.error("Failed to bind transport endpoint: {} at {}:{}, cause: {}",
-              localEndpoint.id(), localEndpoint.host(), localEndpoint.port(), channelFuture.cause());
+          LOGGER.error("Failed to bind transport endpoint: {}, cause: {}", localEndpoint, channelFuture.cause());
           result.setException(channelFuture.cause());
         }
       }
@@ -206,51 +164,61 @@ public final class Transport implements ITransportSpi, ITransport {
   }
 
   @Override
-  public ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address) {
-    checkArgument(address != null);
-    return Futures.transform(getOrConnect(address), new AsyncFunction<TransportChannel, TransportEndpoint>() {
-      @Override
-      public ListenableFuture<TransportEndpoint> apply(TransportChannel input) {
-        return Futures.transform(input.handshakeFuture(), HANDSHAKE_DATA_TO_ENDPOINT_FUNCTION);
-      }
-    });
+  public final void stop() {
+    stop(null);
   }
 
-  private void connect(final Channel channel, final InetSocketAddress address, final TransportChannel transport) {
-    channel.eventLoop().execute(new Runnable() {
-      @Override
-      public void run() {
-        ChannelPromise promise = channel.newPromise();
-        channel.connect(address, promise);
-        promise.addListener(FutureUtils.wrap(new ChannelFutureListener() {
-          @Override
-          public void operationComplete(ChannelFuture future) {
-            if (!future.isSuccess()) {
-              transport.close(future.cause());
-            }
-          }
-        }));
+  @Override
+  public final void stop(@Nullable SettableFuture<Void> promise) {
+    // Complete incoming messages observable
+    try {
+      incomingMessagesSubject.onCompleted();
+    } catch (Exception ignore) {
+      // ignore
+    }
+
+    // close connected channels
+    for (TransportEndpoint endpoint : outgoingChannels.keySet()) {
+      ChannelFuture channelFuture = outgoingChannels.getIfExists(endpoint);
+      if (channelFuture.isSuccess()) {
+        channelFuture.channel().close();
+      } else {
+        channelFuture.addListener(ChannelFutureListener.CLOSE);
       }
-    });
+    }
+    outgoingChannels.clear();
+
+    // close server channel
+    if (serverChannel != null) {
+      composeFutures(serverChannel.close(), promise);
+    }
+
+    // TODO [AK]: shutdown boss/worker threads
+  }
+
+  @Nonnull
+  @Override
+  public final Observable<Message> listen() {
+    return incomingMessagesSubject;
   }
 
   @Override
   public void disconnect(@CheckForNull TransportEndpoint endpoint, @Nullable SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
-    TransportChannel transportChannel = null;
-    for (InetSocketAddress address : connectedChannels.keySet()) {
-      if (address.getAddress().getHostAddress().equals(endpoint.host()) && address.getPort() == endpoint.port()) {
-        transportChannel = connectedChannels.get(address);
-        break;
-      }
-    }
-    if (transportChannel == null) {
+    ChannelFuture channelFuture = outgoingChannels.remove(endpoint);
+    if (channelFuture != null && channelFuture.isSuccess()) {
+      composeFutures(channelFuture.channel().close(), promise);
+    } else {
       if (promise != null) {
         promise.set(null);
       }
-    } else {
-      transportChannel.close(promise);
     }
+  }
+
+  // TODO [AK]: Temporary workaround, should be merged with send by endpoint after endpoint id removed
+  public void send(@CheckForNull InetSocketAddress address, @CheckForNull Message message) {
+    TransportEndpoint endpoint = TransportEndpoint.create("0", address.getHostName(), address.getPort());
+    send(endpoint, message);
   }
 
   @Override
@@ -263,186 +231,118 @@ public final class Transport implements ITransportSpi, ITransport {
       @Nullable final SettableFuture<Void> promise) {
     checkArgument(endpoint != null);
     checkArgument(message != null);
+    message.setSender(localEndpoint);
 
-    ListenableFuture<TransportChannel> future = getOrConnect(endpoint.socketAddress());
-    if (!future.isDone()) {
-      Futures.addCallback(future, new FutureCallback<TransportChannel>() {
+    final ChannelFuture channelFuture = outgoingChannels.get(endpoint);
+    if (channelFuture.isSuccess()) {
+      composeFutures(channelFuture.channel().writeAndFlush(message), promise);
+    } else {
+      channelFuture.addListener(new ChannelFutureListener() {
         @Override
-        public void onSuccess(TransportChannel input) {
-          input.send(message, promise);
-        }
-
-        @Override
-        public void onFailure(Throwable cause) {
-          setFailedGetOrConnect(promise, cause, endpoint.socketAddress());
+        public void operationComplete(ChannelFuture channelFuture) {
+          if (channelFuture.isSuccess()) {
+            composeFutures(channelFuture.channel().writeAndFlush(message), promise);
+          } else {
+            if (promise != null) {
+              promise.setException(channelFuture.cause());
+            }
+          }
         }
       });
-    } else {
-      TransportChannel transportChannel;
-      try {
-        transportChannel = future.get();
-      } catch (CancellationException | ExecutionException cause) {
-        Throwable cause1 = cause instanceof ExecutionException ? cause.getCause() : cause;
-        setFailedGetOrConnect(promise, cause1, endpoint.socketAddress());
-        return;
-      } catch (InterruptedException cause) {
-        throw Throwables.propagate(cause);
-      }
-      transportChannel.send(message, promise);
     }
-  }
-
-  @Nonnull
-  @Override
-  public final Observable<Message> listen() {
-    return incomingMessagesSubject;
-  }
-
-  @Override
-  public final void stop() {
-    stop(null);
-  }
-
-  @Override
-  public final void stop(@Nullable SettableFuture<Void> promise) {
-    try {
-      incomingMessagesSubject.onCompleted();
-    } catch (Exception ignore) {
-      // ignore
-    }
-    // cleanup accepted
-    for (InetSocketAddress address : acceptedChannels.keySet()) {
-      TransportChannel transport = acceptedChannels.remove(address);
-      if (transport != null) {
-        transport.close();
-      }
-    }
-    // cleanup connected
-    for (InetSocketAddress address : connectedChannels.keySet()) {
-      TransportChannel transport = connectedChannels.remove(address);
-      if (transport != null) {
-        transport.close();
-      }
-    }
-    if (serverChannel != null) {
-      FutureUtils.compose(serverChannel.close(), promise);
-    }
-  }
-
-  @Override
-  public TransportChannel createAcceptorTransportChannel(Channel channel) {
-    return TransportChannel.newAcceptorChannel(channel, new Func1<TransportChannel, Void>() {
-      @Override
-      public Void call(TransportChannel transportChannel) {
-        TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
-        if (remoteEndpoint != null) {
-          acceptedChannels.remove(remoteEndpoint.socketAddress());
-        }
-        return null;
-      }
-    });
-  }
-
-  @Override
-  public void accept(TransportChannel transportChannel) throws TransportBrokenException {
-    TransportEndpoint remoteEndpoint = transportChannel.remoteEndpoint();
-    checkNotNull(remoteEndpoint);
-    checkNotNull(remoteEndpoint.socketAddress());
-    TransportChannel prev = acceptedChannels.putIfAbsent(remoteEndpoint.socketAddress(), transportChannel);
-    if (prev != null) {
-      throw new TransportBrokenException(
-          String.format("Detected duplicate %s for key=%s in accepted_map", prev, remoteEndpoint));
-    }
-  }
-
-  @Override
-  public void resetDueHandshake(Channel channel) {
-    pipelineFactory.resetDueHandshake(channel, this);
-  }
-
-  @Override
-  public void onMessage(Message message) {
-    incomingMessagesSubject.onNext(message);
-  }
-
-  private ListenableFuture<TransportChannel> getOrConnect(@CheckForNull InetSocketAddress address) {
-    checkArgument(address != null);
-    return Futures.transform(resolveSocketAddress(address), new Function<InetSocketAddress, TransportChannel>() {
-      @Override
-      public TransportChannel apply(final InetSocketAddress resolvedAddress) {
-        return connectedChannels.get(resolvedAddress, new Computable<InetSocketAddress, TransportChannel>() {
-          @Override
-          public TransportChannel compute(final InetSocketAddress input) {
-            final Channel channel = createConnectorChannel();
-            final TransportChannel transportChannel = createConnectorTransportChannel(channel, input);
-
-            eventLoop.register(channel).addListener(new ChannelFutureListener() {
-              @Override
-              public void operationComplete(ChannelFuture future) throws Exception {
-                if (future.isSuccess()) {
-                  LOGGER.info("Registered connector: {}", transportChannel);
-                  connect(channel, input, transportChannel);
-                } else {
-                  channel.unsafe().closeForcibly();
-                  transportChannel.close();
-                }
-              }
-            });
-
-            return transportChannel;
-          }
-        });
-      }
-    });
-  }
-
-  private Channel createConnectorChannel() {
-    Channel channel = new NioSocketChannel();
-    pipelineFactory.setConnectorPipeline(channel, this);
-    channel.config().setOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, settings.getConnectTimeout());
-    channel.config().setOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
-    channel.config().setOption(ChannelOption.TCP_NODELAY, true);
-    channel.config().setOption(ChannelOption.SO_KEEPALIVE, true);
-    channel.config().setOption(ChannelOption.SO_REUSEADDR, true);
-    return channel;
-  }
-
-  private TransportChannel createConnectorTransportChannel(Channel channel, final InetSocketAddress address) {
-    return TransportChannel.newConnectorChannel(channel, new Func1<TransportChannel, Void>() {
-      @Override
-      public Void call(TransportChannel transport) {
-        connectedChannels.remove(address);
-        return null;
-      }
-    });
   }
 
   /**
-   * Asynchronously resolves inetAddress by hostname taken from socketAddress ({@link InetSocketAddress#getHostName()}).
-   * 
-   * @return new {@link InetSocketAddress} object with resolved {@link InetAddress}.
+   * Converts netty {@link ChannelFuture} to the given guava {@link SettableFuture}.
+   *
+   * @param channelFuture netty channel future
+   * @param promise guava future; can be null
    */
-  private ListenableFuture<InetSocketAddress> resolveSocketAddress(final InetSocketAddress address) {
-    return Futures.withFallback(FutureUtils.compose(eventLoop.submit(new Callable<InetSocketAddress>() {
-      @Override
-      public InetSocketAddress call() throws Exception {
-        InetAddress inetAddress = InetAddress.getByName(address.getHostName());
-        return new InetSocketAddress(inetAddress, address.getPort());
-      }
-    })), new FutureFallback<InetSocketAddress>() {
-      @Override
-      public ListenableFuture<InetSocketAddress> create(Throwable cause) throws Exception {
-        LOGGER.error("Failed to resolve inet address by hostname: {}, cause: {}", address.getHostName(), cause);
-        return Futures.immediateFailedFuture(cause);
-      }
-    });
-  }
-
-  private void setFailedGetOrConnect(@Nullable SettableFuture<Void> promise, Throwable cause,
-      SocketAddress socketAddress) {
-    LOGGER.error("Failed to get transportChannel by socketAddress: {}, cause: {}", socketAddress, cause);
+  private void composeFutures(ChannelFuture channelFuture, @Nullable final SettableFuture<Void> promise) {
     if (promise != null) {
-      promise.setException(cause);
+      channelFuture.addListener(new ChannelFutureListener() {
+        @Override
+        public void operationComplete(ChannelFuture channelFuture) throws Exception {
+          if (channelFuture.isSuccess()) {
+            promise.set(channelFuture.get());
+          } else {
+            promise.setException(channelFuture.cause());
+          }
+        }
+      });
     }
   }
+
+  private final class OutgoingChannelComputable implements Computable<TransportEndpoint, ChannelFuture> {
+    @Override
+    public ChannelFuture compute(final TransportEndpoint endpoint) throws Exception {
+      OutgoingChannelInitializer channelInitializer = new OutgoingChannelInitializer(endpoint);
+      Bootstrap client = bootstrapFactory.clientBootstrap().handler(channelInitializer);
+      ChannelFuture connectFuture = client.connect(endpoint.host(), endpoint.port());
+
+      // Register logger and cleanup listener
+      connectFuture.addListener(new ChannelFutureListener() {
+        @Override
+        public void operationComplete(ChannelFuture channelFuture) {
+          if (channelFuture.isSuccess()) {
+            LOGGER.info("Connected transport endpoint: {} {}", endpoint, channelFuture.channel());
+          } else {
+            LOGGER.warn("Failed to connect transport endpoint: {}", endpoint);
+            outgoingChannels.delete(endpoint);
+          }
+        }
+      });
+
+      return connectFuture;
+    }
+  }
+
+  @ChannelHandler.Sharable
+  private final class IncomingChannelInitializer extends ChannelInitializer {
+    @Override
+    protected void initChannel(Channel channel) throws Exception {
+      ChannelPipeline pipeline = channel.pipeline();
+      pipeline.addLast(new ProtobufVarint32FrameDecoder());
+      pipeline.addLast(deserializerHandler);
+      if (loggingHandler != null) {
+        pipeline.addLast(loggingHandler);
+      }
+      pipeline.addLast(messageHandler);
+      pipeline.addLast(exceptionHandler);
+    }
+  }
+
+  @ChannelHandler.Sharable
+  private final class OutgoingChannelInitializer extends ChannelInitializer {
+
+    private final TransportEndpoint endpoint;
+
+    public OutgoingChannelInitializer(TransportEndpoint endpoint) {
+      this.endpoint = endpoint;
+    }
+
+    @Override
+    protected void initChannel(Channel channel) throws Exception {
+      ChannelPipeline pipeline = channel.pipeline();
+      pipeline.addLast(new ChannelDuplexHandler() {
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+          LOGGER.debug("Disconnected transport endpoint: {} {}", endpoint, ctx.channel());
+          outgoingChannels.delete(endpoint);
+          super.channelInactive(ctx);
+        }
+      });
+      pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
+      pipeline.addLast(serializerHandler);
+      if (loggingHandler != null) {
+        pipeline.addLast(loggingHandler);
+      }
+      if (networkEmulatorHandler != null) {
+        pipeline.addLast(networkEmulatorHandler);
+      }
+      pipeline.addLast(exceptionHandler);
+    }
+  }
+
+
 }

@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportHeaders;
 
 import com.google.common.collect.Lists;
 

@@ -1,9 +1,8 @@
 package io.scalecube.transport;
 
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
-import static io.scalecube.transport.utils.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
+import static io.scalecube.transport.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
-import io.scalecube.transport.utils.RecyclableLinkedBuffer;
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 
@@ -37,14 +36,21 @@ final class MessageSchema implements Schema<Message> {
   private static final int HEADER_KEYS_FIELD_NUMBER = 1;
   private static final int HEADER_VALUES_FIELD_NUMBER = 2;
   private static final int DATA_FIELD_NUMBER = 3;
+  private static final int SENDER_ID_FIELD_NUMBER = 4;
+  private static final int SENDER_HOST_FIELD_NUMBER = 5;
+  private static final int SENDER_PORT_FIELD_NUMBER = 6;
 
-  private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer(MIN_BUFFER_SIZE,
-      DEFAULT_MAX_CAPACITY);
+  private static final RecyclableLinkedBuffer recyclableLinkedBuffer =
+      new RecyclableLinkedBuffer(MIN_BUFFER_SIZE, DEFAULT_MAX_CAPACITY);
 
-  private static final Map<String, Integer> fieldMap = ImmutableMap.of(
-      "headerKeys", HEADER_KEYS_FIELD_NUMBER,
-      "headerValues", HEADER_VALUES_FIELD_NUMBER,
-      "data", DATA_FIELD_NUMBER);
+  private static final Map<String, Integer> fieldMap = ImmutableMap.<String, Integer>builder()
+      .put("headerKeys", HEADER_KEYS_FIELD_NUMBER)
+      .put("headerValues", HEADER_VALUES_FIELD_NUMBER)
+      .put("data", DATA_FIELD_NUMBER)
+      .put("senderId", SENDER_ID_FIELD_NUMBER)
+      .put("senderHost", SENDER_HOST_FIELD_NUMBER)
+      .put("senderPort", SENDER_PORT_FIELD_NUMBER)
+      .build();
 
   private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>(
       new Computable<String, Optional<Class>>() {
@@ -68,6 +74,12 @@ final class MessageSchema implements Schema<Message> {
         return "headerValues";
       case DATA_FIELD_NUMBER:
         return "data";
+      case SENDER_ID_FIELD_NUMBER:
+        return "senderId";
+      case SENDER_HOST_FIELD_NUMBER:
+        return "senderHost";
+      case SENDER_PORT_FIELD_NUMBER:
+        return "senderPort";
       default:
         return null;
     }
@@ -109,6 +121,9 @@ final class MessageSchema implements Schema<Message> {
     boolean iterate = true;
     List<String> headerKeys = new ArrayList<>();
     List<String> headerValues = new ArrayList<>();
+    String senderId = null;
+    String senderHost = null;
+    int senderPort = 0;
     byte[] dataBytes = null;
     while (iterate) {
       int number = input.readFieldNumber(this);
@@ -124,6 +139,15 @@ final class MessageSchema implements Schema<Message> {
           break;
         case DATA_FIELD_NUMBER:
           dataBytes = input.readByteArray();
+          break;
+        case SENDER_ID_FIELD_NUMBER:
+          senderId = input.readString();
+          break;
+        case SENDER_HOST_FIELD_NUMBER:
+          senderHost = input.readString();
+          break;
+        case SENDER_PORT_FIELD_NUMBER:
+          senderPort = input.readInt32();
           break;
         default:
           input.handleUnknownField(number, this);
@@ -143,13 +167,13 @@ final class MessageSchema implements Schema<Message> {
     // Deserialize data
     Object data = null;
     if (dataBytes != null) {
-      String dataType = headers.get(TransportHeaders.DATA_TYPE);
+      String dataType = headers.get(MessageHeaders.DATA_TYPE);
       if (dataType == null) {
         data = dataBytes;
       } else {
         Optional<Class> optionalDataClass = classCache.get(dataType);
         if (optionalDataClass.isPresent()) {
-          headers.remove(TransportHeaders.DATA_TYPE);
+          headers.remove(MessageHeaders.DATA_TYPE);
           Class<?> dataClass = optionalDataClass.get();
           Schema dataSchema = RuntimeSchema.getSchema(dataClass);
           data = dataSchema.newMessage();
@@ -165,9 +189,16 @@ final class MessageSchema implements Schema<Message> {
       }
     }
 
+    // Deserialize sender
+    TransportEndpoint sender = null;
+    if (senderId != null && senderHost != null) {
+      sender = TransportEndpoint.create(senderId, senderHost, senderPort);
+    }
+
     // Set message
     message.setHeaders(headers);
     message.setData(data);
+    message.setSender(sender);
   }
 
   @Override
@@ -189,7 +220,7 @@ final class MessageSchema implements Schema<Message> {
       } else {
         // Write data class as an additional header
         Class<?> dataClass = originalData.getClass();
-        output.writeString(HEADER_KEYS_FIELD_NUMBER, TransportHeaders.DATA_TYPE, true);
+        output.writeString(HEADER_KEYS_FIELD_NUMBER, MessageHeaders.DATA_TYPE, true);
         output.writeString(HEADER_VALUES_FIELD_NUMBER, dataClass.getName(), true);
 
         // Write data as serialized byte array
@@ -199,6 +230,14 @@ final class MessageSchema implements Schema<Message> {
           output.writeByteArray(DATA_FIELD_NUMBER, array, false);
         }
       }
+    }
+
+    // Write sender
+    TransportEndpoint sender = message.sender();
+    if (sender != null) {
+      output.writeString(SENDER_ID_FIELD_NUMBER, sender.id(), false);
+      output.writeString(SENDER_HOST_FIELD_NUMBER, sender.host(), false);
+      output.writeInt32(SENDER_PORT_FIELD_NUMBER, sender.port(), false);
     }
   }
 }

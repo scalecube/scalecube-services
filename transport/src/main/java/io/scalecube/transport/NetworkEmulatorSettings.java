@@ -11,26 +11,14 @@ import java.util.concurrent.ThreadLocalRandom;
  * 
  * @author alexeyz
  */
-public class NetworkEmulatorSettings {
-
-  // TODO [AK]: Create class NetworkEmulator and move defauls and part of other logic there
-  private static NetworkEmulatorSettings defaultSettings = new NetworkEmulatorSettings(0, 0);
-
-  public static NetworkEmulatorSettings defaultSettings() {
-    return defaultSettings;
-  }
-
-  public static void setDefaultSettings(int lostPercent, int delay) {
-    defaultSettings = new NetworkEmulatorSettings(lostPercent, delay);
-  }
+public final class NetworkEmulatorSettings {
 
   private final int lostPercent;
-
-  private final int mean;
+  private final int meanDelay;
 
   public NetworkEmulatorSettings(int lostPercent, int mean) {
     this.lostPercent = lostPercent;
-    this.mean = mean;
+    this.meanDelay = mean;
   }
 
   /** Probability of message loss in percents. */
@@ -39,8 +27,8 @@ public class NetworkEmulatorSettings {
   }
 
   /** Mean network delay for message in milliseconds. */
-  public int getMean() {
-    return mean;
+  public int getMeanDelay() {
+    return meanDelay;
   }
 
   public boolean evaluateLost() {
@@ -49,11 +37,11 @@ public class NetworkEmulatorSettings {
 
   /** Delays are emulated using exponential distribution of probabilities. */
   public long evaluateDelay() {
-    if (mean > 0) {
+    if (meanDelay > 0) {
       // Network delays (network delays). Delays should be emulated using exponential distribution of probabilities.
       // log(1-x)/(1/mean)
       Double x0 = ThreadLocalRandom.current().nextDouble();
-      Double y0 = -Math.log(1 - x0) * mean;
+      Double y0 = -Math.log(1 - x0) * meanDelay;
       return y0.longValue();
     }
     return 0;
@@ -61,6 +49,6 @@ public class NetworkEmulatorSettings {
 
   @Override
   public String toString() {
-    return "NetworkEmulatorSettings{" + "lostPercent=" + lostPercent + ", mean=" + mean + '}';
+    return "NetworkEmulatorSettings{lostPercent=" + lostPercent + ", meanDelay=" + meanDelay + '}';
   }
 }

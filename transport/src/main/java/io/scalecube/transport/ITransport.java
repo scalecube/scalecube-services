@@ -46,15 +46,6 @@ public interface ITransport {
   void stop(@Nullable SettableFuture<Void> promise);
 
   /**
-   * Issues connect to the given transport address. This method may be used in case if specific incarnation id of remote
-   * endpoint is unknown to connect by address. So result endpoint then can be used for message sending.
-   *
-   * @param address address of transport endpoint to connect
-   * @return Listenable future to remote transport endpoint, which is completed once the handshake is passed.
-   */
-  ListenableFuture<TransportEndpoint> connect(@CheckForNull InetSocketAddress address);
-
-  /**
    * Disconnects existing transport channel to the given endpoint. If there is no connection do nothing and immediately
    * set provided promise. Close is an async operation it may cause to fail send operations either called before
    * disconnect (if their promise not set yet) or the following after disconnect since they may be assigned to existing
@@ -83,8 +74,7 @@ public interface ITransport {
   /**
    * Sends message to remote endpoint. It will issue connect in case if no transport channel by given transport
    * {@code endpoint} exists already. Send is an async operation, if result of operation is not needed leave third
-   * parameter null, otherwise pass {@link SettableFuture}. If transport channel is already closed - {@code promise}
-   * will be failed with {@link TransportClosedException}.
+   * parameter null, otherwise pass {@link SettableFuture}.
    *
    * @param message message to send
    * @param promise promise will be completed with result of sending (void or exception)

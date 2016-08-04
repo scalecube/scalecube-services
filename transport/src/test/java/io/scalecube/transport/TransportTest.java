@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 import io.scalecube.testlib.BaseTest;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -27,10 +26,8 @@ import rx.Subscriber;
 import rx.functions.Action1;
 
 import java.net.ConnectException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -55,6 +52,8 @@ public class TransportTest extends BaseTest {
     destroyTransport(server);
   }
 
+  // TODO: Tests below should use send instead of connect
+  /*
   @Test
   public void testConnectByHostnameThenConnectByRawIp() throws Exception {
     TransportEndpoint clientEndpoint = clientEndpoint();
@@ -94,6 +93,7 @@ public class TransportTest extends BaseTest {
 
     assertSame(transportEndpointByHostname, transportEndpointByIp);
   }
+  */
 
   @Test
   public void testUnresolvedHostConnection() throws Exception {
@@ -107,7 +107,7 @@ public class TransportTest extends BaseTest {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       assertNotNull(cause);
-      assertAmongExpectedClasses(cause.getClass(), UnknownHostException.class);
+      assertAmongExpectedClasses(cause.getClass(), UnresolvedAddressException.class);
     }
   }
 
@@ -146,37 +146,6 @@ public class TransportTest extends BaseTest {
       }
 
       destroyTransport(client);
-    }
-  }
-
-  @Test(expected = TransportClosedException.class)
-  public void testDisconnectAndSendSequentiallyFail() throws Throwable {
-    final TransportEndpoint clientEndpoint = clientEndpoint();
-    final TransportEndpoint serverEndpoint = serverEndpoint();
-
-    client = createTransport(clientEndpoint);
-    server = createTransport(serverEndpoint);
-
-    for (int i = 0; i < 100; i++) {
-      LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
-
-      // Send message
-      SettableFuture<Void> sentPromise = SettableFuture.create();
-      client.send(serverEndpoint, Message.fromData("Hello 0 at #" + i), sentPromise);
-
-      // Disconnect without waiting for message sent
-      SettableFuture<Void> disconnectedPromise = SettableFuture.create();
-      client.disconnect(serverEndpoint, disconnectedPromise);
-
-      // Eventually send should fail with TransportClosedException since either async disconnect will close channel
-      // before
-      // message sent or next sent in a loop will be allocated on the channel which is disconnecting instead of creating
-      // new connection.
-      try {
-        sentPromise.get(1, TimeUnit.SECONDS);
-      } catch (InterruptedException | TimeoutException | ExecutionException e) {
-        throw e.getCause();
-      }
     }
   }
 
@@ -243,7 +212,7 @@ public class TransportTest extends BaseTest {
 
     Message result = messageFuture.get(3, TimeUnit.SECONDS);
     assertNotNull("No response from serverEndpoint", result);
-    assertEquals("hi client", result.header(TransportHeaders.QUALIFIER));
+    assertEquals("hi client", result.header(MessageHeaders.QUALIFIER));
   }
 
   @Test
@@ -251,8 +220,8 @@ public class TransportTest extends BaseTest {
     TransportEndpoint clientEndpoint = clientEndpoint();
     TransportEndpoint serverEndpoint = serverEndpoint();
 
-    client = createTransport(clientEndpoint, 100);
-    server = createTransport(serverEndpoint, 100);
+    client = createTransport(clientEndpoint);
+    server = createTransport(serverEndpoint);
 
     int total = 1000;
     for (int i = 0; i < 10; i++) {
@@ -296,8 +265,8 @@ public class TransportTest extends BaseTest {
     TransportEndpoint clientEndpoint = clientEndpoint(49050);
     TransportEndpoint serverEndpoint = serverEndpoint(49060);
 
-    Transport client = createTransport(clientEndpoint, 100);
-    Transport server = createTransport(serverEndpoint, 100);
+    Transport client = createTransport(clientEndpoint);
+    Transport server = createTransport(serverEndpoint);
 
     final int total = 1000;
     for (int i = 0; i < 10; i++) {
@@ -354,7 +323,7 @@ public class TransportTest extends BaseTest {
 
     int lostPercent = 50;
     int mean = 0;
-    client.<TransportPipelineFactory>getPipelineFactory().setNetworkSettings(serverEndpoint, lostPercent, mean);
+    client.setNetworkSettings(serverEndpoint, lostPercent, mean);
 
     final List<Message> serverMessageList = new ArrayList<>();
     server.listen().subscribe(new Action1<Message>() {
@@ -388,7 +357,7 @@ public class TransportTest extends BaseTest {
       @Override
       public void call(List<Message> messages) {
         for (Message message : messages) {
-          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
           server.send(message.sender(), echo);
         }
       }
@@ -422,7 +391,7 @@ public class TransportTest extends BaseTest {
       @Override
       public void call(List<Message> messages) {
         for (Message message : messages) {
-          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
           server.send(message.sender(), echo, null);
         }
       }
@@ -499,7 +468,7 @@ public class TransportTest extends BaseTest {
           throw new RuntimeException("" + message);
         }
         if (qualifier.startsWith("q")) {
-          Message echo = Message.fromData("echo/" + message.header(TransportHeaders.QUALIFIER));
+          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
           server.send(message.sender(), echo);
         }
       }
@@ -573,32 +542,12 @@ public class TransportTest extends BaseTest {
 
     // then block client->server messages
     pause(1000);
-    client.<TransportPipelineFactory>getPipelineFactory().blockMessagesTo(serverEndpoint);
+    client.blockMessagesTo(serverEndpoint);
     send(client, serverEndpoint, Message.fromQualifier("q/blocked"));
 
     pause(1000);
     assertEquals(1, resp.size());
-    assertEquals("q/unblocked", resp.get(0).header(TransportHeaders.QUALIFIER));
-  }
-
-  @Test
-  public void testSendMailboxBecomingFull() throws Exception {
-    TransportEndpoint clientEndpoint = clientEndpoint();
-    TransportEndpoint serverEndpoint = serverEndpoint();
-
-    client = createTransport(clientEndpoint, 1);
-    server = createTransport(serverEndpoint, 1);
-
-    client.send(serverEndpoint, Message.fromQualifier("ping0"));
-
-    SettableFuture<Void> send1 = SettableFuture.create();
-    client.send(serverEndpoint, Message.fromQualifier("ping1"), send1);
-    try {
-      send1.get(1, TimeUnit.SECONDS);
-    } catch (ExecutionException e) {
-      TransportMessageException cause = (TransportMessageException) e.getCause();
-      assertNotNull(cause);
-    }
+    assertEquals("q/unblocked", resp.get(0).header(MessageHeaders.QUALIFIER));
   }
 
   private TransportEndpoint serverEndpoint() {
@@ -625,7 +574,7 @@ public class TransportTest extends BaseTest {
     ArrayList<Message> messages = new ArrayList<>(received);
     assertEquals(total, messages.size());
     for (int k = 0; k < total; k++) {
-      assertEquals("q" + k, messages.get(k).header(TransportHeaders.QUALIFIER));
+      assertEquals("q" + k, messages.get(k).header(MessageHeaders.QUALIFIER));
     }
   }
 
@@ -679,13 +628,11 @@ public class TransportTest extends BaseTest {
   }
 
   private Transport createTransport(TransportEndpoint endpoint) {
-    return createTransport(endpoint, 1000);
-  }
-
-  private Transport createTransport(TransportEndpoint endpoint, int sendHwm) {
-    Transport transport =
-        Transport.newInstance(endpoint, TransportSettings.builder().connectTimeout(1000).sendHighWaterMark(sendHwm)
-            .useNetworkEmulator(true).build());
+    TransportSettings settings = TransportSettings.builder()
+        .connectTimeout(1000)
+        .useNetworkEmulator(true)
+        .build();
+    Transport transport = Transport.newInstance(endpoint, settings);
     try {
       transport.start().get();
     } catch (Exception e) {

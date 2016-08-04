@@ -9,7 +9,7 @@ import static java.lang.Math.min;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportHeaders;
+import io.scalecube.transport.MessageHeaders;
 
 import com.google.common.collect.Sets;
 
@@ -48,9 +48,9 @@ public final class FailureDetector implements IFailureDetector {
   private static final String ACK = "io.scalecube.cluster/fdetector/ack";
 
   // filters
-  private static final TransportHeaders.Filter ACK_FILTER = new TransportHeaders.Filter(ACK);
-  private static final TransportHeaders.Filter PING_FILTER = new TransportHeaders.Filter(PING);
-  private static final TransportHeaders.Filter PING_REQ_FILTER = new TransportHeaders.Filter(PING_REQ);
+  private static final MessageHeaders.Filter ACK_FILTER = new MessageHeaders.Filter(ACK);
+  private static final MessageHeaders.Filter PING_FILTER = new MessageHeaders.Filter(PING);
+  private static final MessageHeaders.Filter PING_REQ_FILTER = new MessageHeaders.Filter(PING_REQ);
 
   private volatile List<TransportEndpoint> members = new ArrayList<>();
   private ITransport transport;
@@ -346,7 +346,7 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private Func1<Message, Boolean> ackFilter(String correlationId) {
-    return new TransportHeaders.Filter(ACK, correlationId);
+    return new MessageHeaders.Filter(ACK, correlationId);
   }
 
   private Func1<Message, Boolean> targetFilter(final TransportEndpoint endpoint) {

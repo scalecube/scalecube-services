@@ -2,6 +2,7 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 
 import org.slf4j.Logger;
@@ -55,13 +56,21 @@ public final class TransportEndpoint {
   private TransportEndpoint() {}
 
   private TransportEndpoint(@CheckForNull String id, @CheckForNull InetSocketAddress socketAddress) {
-    checkArgument(id != null);
-    checkArgument(!id.isEmpty());
+    checkArgument(!Strings.isNullOrEmpty(id));
     checkArgument(socketAddress != null);
     this.id = id;
     this.socketAddress = socketAddress;
     this.host = socketAddress.getHostName();
     this.port = socketAddress.getPort();
+  }
+
+  private TransportEndpoint(@CheckForNull String id, @CheckForNull String host, int port) {
+    checkArgument(!Strings.isNullOrEmpty(id));
+    checkArgument(!Strings.isNullOrEmpty(host));
+    this.id = id;
+    this.host = host;
+    this.port = port;
+    this.socketAddress = InetSocketAddress.createUnresolved(host, port);
   }
 
   /**
@@ -86,8 +95,15 @@ public final class TransportEndpoint {
   }
 
   /**
-   * Creates local transport endpoint from endpoint id and port. <b>NOTE:</b> hostname of created transport will be set
-   * to node's public IP address.
+   * Creates transport endpoint from endpoint id, host and port.
+   */
+  public static TransportEndpoint create(String id, String host, int port) {
+    return new TransportEndpoint(id, host, port);
+  }
+
+  /**
+   * Creates local transport endpoint from endpoint id and port.
+   * <b>NOTE:</b> hostname of created transport will be set to node's public IP address.
    *
    * @param id endpoint id (or <i>incarnationId</i>)
    * @param port a port to bind to.
@@ -172,11 +188,6 @@ public final class TransportEndpoint {
     return socketAddress != null ? socketAddress : (socketAddress = InetSocketAddress.createUnresolved(host, port));
   }
 
-  @Nonnull
-  public String getString() {
-    return host + ":" + port + ":" + id;
-  }
-
   @Override
   public boolean equals(Object other) {
     if (this == other) {
@@ -196,6 +207,6 @@ public final class TransportEndpoint {
 
   @Override
   public String toString() {
-    return "TransportEndpoint{" + getString() + "}";
+    return host + ":" + port + ":" + id;
   }
 }
