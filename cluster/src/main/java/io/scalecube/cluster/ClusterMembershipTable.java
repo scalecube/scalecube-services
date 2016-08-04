@@ -42,7 +42,7 @@ final class ClusterMembershipTable {
   }
 
   public List<ClusterMember> merge(FailureDetectorEvent event) {
-    ClusterMember r0 = membership.get(event.endpoint());
+    ClusterMember r0 = get(event.endpoint());
     if (r0 != null) {
       return merge(new ClusterMember(event.endpoint(), event.status(), r0.metadata()));
     } else {
