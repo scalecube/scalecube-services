@@ -10,10 +10,9 @@ import java.util.List;
 @ChannelHandler.Sharable
 final class MessageDeserializerHandler extends MessageToMessageDecoder<ByteBuf> {
 
-  private final MessageDeserializer deserializer = new MessageDeserializer();
-
   @Override
   protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
-    out.add(deserializer.deserialize(msg));
+    out.add(MessageCodec.deserialize(msg));
   }
+
 }

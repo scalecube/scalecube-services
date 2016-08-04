@@ -1,13 +1,20 @@
 package io.scalecube.transport;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.runtime.RuntimeSchema;
 
-public final class MessageSerializer {
+/**
+ * Contains static methods for message serializing/deserializing logic.
+ *
+ * @author Anton Kharenko
+ */
+public final class MessageCodec {
 
   private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer();
 
@@ -18,10 +25,29 @@ public final class MessageSerializer {
     }
   }
 
+  private MessageCodec() {
+    // Do not instantiate
+  }
+
+  /**
+   * Deserializes message from given byte buffer.
+   */
+  public static Message deserialize(ByteBuf bb) {
+    Schema<Message> schema = RuntimeSchema.getSchema(Message.class);
+    Message message = schema.newMessage();
+    try {
+      ProtostuffIOUtil.mergeFrom(new ByteBufInputStream(bb), message, schema);
+    } catch (Exception e) {
+      throw new DecoderException(e.getMessage(), e);
+    }
+
+    return message;
+  }
+
   /**
    * Serializes given message into byte buffer.
    */
-  public void serialize(Message message, ByteBuf bb) {
+  public static void serialize(Message message, ByteBuf bb) {
     Schema<Message> schema = RuntimeSchema.getSchema(Message.class);
     try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
       try {
