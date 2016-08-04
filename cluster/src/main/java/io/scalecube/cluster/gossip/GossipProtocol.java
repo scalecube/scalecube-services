@@ -48,35 +48,32 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class GossipProtocol implements IGossipProtocol, IManagedGossipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
-  private ITransport transport;
+  private final ITransport transport;
+  private final TransportEndpoint localEndpoint;
+  private final ScheduledExecutorService executor;
+  private final GossipProtocolSettings settings;
+
   @SuppressWarnings("unchecked")
   private Subject<Message, Message> subject = new SerializedSubject(PublishSubject.create());
   private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
   private volatile List<TransportEndpoint> members = new ArrayList<>();
-  private final TransportEndpoint localEndpoint;
-  private final ScheduledExecutorService executor;
+
   private AtomicLong counter = new AtomicLong(0);
   private Queue<GossipTask> gossipsQueue = new ConcurrentLinkedQueue<>();
-  private int maxGossipSent = 2;
-  private int gossipTime = 300;
-  private int maxEndpointsToSelect = 3;
   private long period = 0;
   private volatile int factor = 1;
   private Subscriber<Message> onGossipRequestSubscriber;
   private ScheduledFuture<?> executorTask;
 
-  public GossipProtocol(TransportEndpoint localEndpoint) {
-    this.localEndpoint = localEndpoint;
-    this.executor = createDedicatedScheduledExecutor();
+  public GossipProtocol(ITransport transport) {
+    this(transport, GossipProtocolSettings.DEFAULT);
   }
 
-  public GossipProtocol(TransportEndpoint localEndpoint, ScheduledExecutorService executor) {
-    this.localEndpoint = localEndpoint;
-    this.executor = executor;
-  }
-
-  private ScheduledExecutorService createDedicatedScheduledExecutor() {
-    return Executors.newScheduledThreadPool(1, createThreadFactory("scalecube-gossip-scheduled-%s"));
+  public GossipProtocol(ITransport transport, GossipProtocolSettings settings) {
+    this.transport = transport;
+    this.localEndpoint = transport.localEndpoint();
+    this.settings = settings;
+    this.executor = Executors.newSingleThreadScheduledExecutor(createThreadFactory("scalecube-gossip-scheduled-%s"));
   }
 
   private ThreadFactory createThreadFactory(String namingFormat) {
@@ -87,22 +84,6 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
             LOGGER.error("Unhandled exception: {}", ex, ex);
           }
         }).setDaemon(true).build();
-  }
-
-  public void setMaxGossipSent(int maxGossipSent) {
-    this.maxGossipSent = maxGossipSent;
-  }
-
-  public void setGossipTime(int gossipTime) {
-    this.gossipTime = gossipTime;
-  }
-
-  public int getGossipTime() {
-    return gossipTime;
-  }
-
-  public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
-    this.maxEndpointsToSelect = maxEndpointsToSelect;
   }
 
   @Override
@@ -116,10 +97,6 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     LOGGER.debug("Set cluster members: {}", this.members);
   }
 
-  public void setTransport(ITransport transport) {
-    this.transport = transport;
-  }
-
   public ITransport getTransport() {
     return transport;
   }
@@ -128,8 +105,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   public void start() {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
     transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
-    executorTask =
-        executor.scheduleWithFixedDelay(new GossipProtocolRunnable(), gossipTime, gossipTime, TimeUnit.MILLISECONDS);
+    executorTask = executor.scheduleWithFixedDelay(new GossipProtocolRunnable(),
+        settings.getGossipTime(), settings.getGossipTime(), TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -186,10 +163,11 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     if (period % members.size() == 0) {
       Collections.shuffle(members, ThreadLocalRandom.current());
     }
+    int maxEndpointsToSelect = settings.getMaxEndpointsToSelect();
     for (int i = 0; i < Math.min(maxEndpointsToSelect, members.size()); i++) {
       TransportEndpoint transportEndpoint = getNextRandom(members, maxEndpointsToSelect, i);
       // Filter only gossips which should be sent to chosen clusterEndpoint
-      GossipSendPredicate predicate = new GossipSendPredicate(transportEndpoint, maxGossipSent * factor);
+      GossipSendPredicate predicate = new GossipSendPredicate(transportEndpoint, settings.getMaxGossipSent() * factor);
       Collection<GossipLocalState> gossipLocalStateNeedSend = filter(gossips, predicate);
       if (!gossipLocalStateNeedSend.isEmpty()) {
         // Transform to actual gossip with incrementing sent count

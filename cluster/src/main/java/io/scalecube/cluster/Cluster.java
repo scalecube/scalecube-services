@@ -74,11 +74,7 @@ public final class Cluster implements ICluster {
     transport = Transport.newInstance(localEndpoint, config.transportSettings);
 
     // Build gossip protocol component
-    gossipProtocol = new GossipProtocol(localEndpoint);
-    gossipProtocol.setTransport(transport);
-    gossipProtocol.setMaxGossipSent(config.gossipProtocolSettings.getMaxGossipSent());
-    gossipProtocol.setGossipTime(config.gossipProtocolSettings.getGossipTime());
-    gossipProtocol.setMaxEndpointsToSelect(config.gossipProtocolSettings.getMaxEndpointsToSelect());
+    gossipProtocol = new GossipProtocol(transport, config.gossipProtocolSettings);
 
     // Build failure detector component
     failureDetector = new FailureDetector(transport, config.failureDetectorSettings);
@@ -216,7 +212,7 @@ public final class Cluster implements ICluster {
     // Wait for some time until 'leave' gossip start to spread through the cluster before stopping cluster components
     final SettableFuture<Void> transportStoppedFuture = SettableFuture.create();
     final ScheduledExecutorService stopExecutor = Executors.newSingleThreadScheduledExecutor();
-    long delay = 3 * gossipProtocol.getGossipTime(); // wait for 3 gossip periods before stopping
+    long delay = 3 * config.gossipProtocolSettings.getGossipTime(); // wait for 3 gossip periods before stopping
     stopExecutor.schedule(new Runnable() {
       @Override
       public void run() {

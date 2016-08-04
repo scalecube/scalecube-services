@@ -1,6 +1,7 @@
 package io.scalecube.cluster;
 
 import io.scalecube.cluster.fdetector.FailureDetectorSettings;
+import io.scalecube.cluster.gossip.GossipProtocolSettings;
 import io.scalecube.transport.TransportSettings;
 
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import java.util.Map;
  * @see MembershipSettings
  * @see FailureDetectorSettings
  * @see GossipProtocolSettings
+ *
  * @author Anton Kharenko
  */
 public class ClusterConfig {
@@ -20,7 +22,6 @@ public class ClusterConfig {
   public static final int DEFAULT_PORT_COUNT = 100;
   public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
   public static final MembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new MembershipSettings();
-  public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
 
   String seedMembers = "";
   int port = DEFAULT_PORT;
@@ -30,7 +31,7 @@ public class ClusterConfig {
   TransportSettings transportSettings = TransportSettings.DEFAULT;
   MembershipSettings membershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
   FailureDetectorSettings failureDetectorSettings = FailureDetectorSettings.DEFAULT;
-  GossipProtocolSettings gossipProtocolSettings = DEFAULT_GOSSIP_PROTOCOL_SETTINGS;
+  GossipProtocolSettings gossipProtocolSettings = GossipProtocolSettings.DEFAULT;
 
   private ClusterConfig() {}
 
@@ -215,57 +216,6 @@ public class ClusterConfig {
           + ", maxSuspectTime=" + maxSuspectTime
           + ", maxShutdownTime=" + maxShutdownTime
           + ", syncGroup='" + syncGroup + '\''
-          + '}';
-    }
-  }
-
-  public static class GossipProtocolSettings {
-
-    public static final int DEFAULT_MAX_GOSSIP_SENT = 2;
-    public static final int DEFAULT_GOSSIP_TIME = 300;
-    public static final int DEFAULT_MAX_ENDPOINTS_TO_SELECT = 3;
-
-    private int maxGossipSent = DEFAULT_MAX_GOSSIP_SENT;
-    private int gossipTime = DEFAULT_GOSSIP_TIME;
-    private int maxEndpointsToSelect = DEFAULT_MAX_ENDPOINTS_TO_SELECT;
-
-    public GossipProtocolSettings() {}
-
-    public GossipProtocolSettings(int maxGossipSent, int gossipTime, int maxEndpointsToSelect) {
-      this.maxGossipSent = maxGossipSent;
-      this.gossipTime = gossipTime;
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    public int getMaxGossipSent() {
-      return maxGossipSent;
-    }
-
-    public void setMaxGossipSent(int maxGossipSent) {
-      this.maxGossipSent = maxGossipSent;
-    }
-
-    public int getGossipTime() {
-      return gossipTime;
-    }
-
-    public void setGossipTime(int gossipTime) {
-      this.gossipTime = gossipTime;
-    }
-
-    public int getMaxEndpointsToSelect() {
-      return maxEndpointsToSelect;
-    }
-
-    public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    @Override
-    public String toString() {
-      return "GossipProtocolSettings{maxGossipSent=" + maxGossipSent
-          + ", gossipTime=" + gossipTime
-          + ", maxEndpointsToSelect=" + maxEndpointsToSelect
           + '}';
     }
   }

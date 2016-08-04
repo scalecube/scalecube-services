@@ -41,8 +41,7 @@ public class ClusterMembershipBuilder {
     FailureDetectorSettings fdSettings = FailureDetectorSettings.builder().pingTime(100).pingTimeout(100).build();
     failureDetector = new FailureDetector(transport, fdSettings);
 
-    gossipProtocol = new GossipProtocol(transportEndpoint, Executors.newSingleThreadScheduledExecutor());
-    gossipProtocol.setTransport(transport);
+    gossipProtocol = new GossipProtocol(transport);
 
     membership = new ClusterMembership(transportEndpoint, Schedulers.computation());
     membership.setTransport(transport);
