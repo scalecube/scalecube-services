@@ -8,9 +8,9 @@ import java.util.Map;
 /**
  * Cluster configuration encapsulate settings needed cluster to create and successfully join.
  * 
- * @see ClusterConfig.ClusterMembershipSettings
- * @see ClusterConfig.FailureDetectorSettings
- * @see ClusterConfig.GossipProtocolSettings
+ * @see MembershipSettings
+ * @see FailureDetectorSettings
+ * @see GossipProtocolSettings
  * @author Anton Kharenko
  */
 public class ClusterConfig {
@@ -18,18 +18,17 @@ public class ClusterConfig {
   public static final int DEFAULT_PORT = 4801;
   public static final int DEFAULT_PORT_COUNT = 100;
   public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
-  public static final ClusterMembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new ClusterMembershipSettings();
+  public static final MembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new MembershipSettings();
   public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
   public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
 
-  String memberId = null;
   String seedMembers = "";
   int port = DEFAULT_PORT;
   int portCount = DEFAULT_PORT_COUNT;
   boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
   Map<String, String> metadata = new HashMap<>();
   TransportSettings transportSettings = TransportSettings.DEFAULT;
-  ClusterMembershipSettings clusterMembershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
+  MembershipSettings membershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
   FailureDetectorSettings failureDetectorSettings = DEFAULT_FAILURE_DETECTOR_SETTINGS;
   GossipProtocolSettings gossipProtocolSettings = DEFAULT_GOSSIP_PROTOCOL_SETTINGS;
 
@@ -37,10 +36,6 @@ public class ClusterConfig {
 
   public static ClusterConfig newInstance() {
     return new ClusterConfig();
-  }
-
-  public void setMemberId(String memberId) {
-    this.memberId = memberId;
   }
 
   public void setSeedMembers(String seedMembers) {
@@ -63,8 +58,8 @@ public class ClusterConfig {
     this.metadata = metadata;
   }
 
-  public void setClusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
-    this.clusterMembershipSettings = clusterMembershipSettings;
+  public void setMembershipSettings(MembershipSettings membershipSettings) {
+    this.membershipSettings = membershipSettings;
   }
 
   public void setFailureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
@@ -81,11 +76,6 @@ public class ClusterConfig {
 
   public ClusterConfig metadata(Map<String, String> metadata) {
     setMetadata(metadata);
-    return this;
-  }
-
-  public ClusterConfig memberId(String memberId) {
-    setMemberId(memberId);
     return this;
   }
 
@@ -109,8 +99,8 @@ public class ClusterConfig {
     return this;
   }
 
-  public ClusterConfig clusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
-    setClusterMembershipSettings(clusterMembershipSettings);
+  public ClusterConfig membershipSettings(MembershipSettings membershipSettings) {
+    setMembershipSettings(membershipSettings);
     return this;
   }
 
@@ -132,20 +122,19 @@ public class ClusterConfig {
   @Override
   public String toString() {
     return "ClusterConfiguration{"
-        + "memberId='" + memberId + '\''
         + ", seedMembers='" + seedMembers + '\''
         + ", port=" + port
         + ", portCount=" + portCount
         + ", portAutoIncrement=" + portAutoIncrement
         + ", metadata=" + metadata
         + ", transportSettings=" + transportSettings
-        + ", clusterMembershipSettings=" + clusterMembershipSettings
+        + ", clusterMembershipSettings=" + membershipSettings
         + ", failureDetectorSettings=" + failureDetectorSettings
         + ", gossipProtocolSettings=" + gossipProtocolSettings
         + '}';
   }
 
-  public static class ClusterMembershipSettings {
+  public static class MembershipSettings {
 
     public static final int DEFAULT_SYNC_TIME = 30 * 1000;
     public static final int DEFAULT_SYNC_TIMEOUT = 3 * 1000;
@@ -159,7 +148,7 @@ public class ClusterConfig {
     private int maxShutdownTime = DEFAULT_MAX_SHUTDOWN_TIME;
     private String syncGroup = DEFAULT_SYNC_GROUP;
 
-    public ClusterMembershipSettings() {}
+    public MembershipSettings() {}
 
     /**
      * Creates new cluster membership settings
@@ -170,8 +159,8 @@ public class ClusterConfig {
      * @param maxShutdownTime waiting time interval in milliseconds after shutdown event when node will not be removed
      * @param syncGroup cluster's sync group. Members with different groups will form different clusters.
      */
-    public ClusterMembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
-        String syncGroup) {
+    public MembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
+                              String syncGroup) {
       this.syncTime = syncTime;
       this.syncTimeout = syncTimeout;
       this.maxSuspectTime = maxSuspectTime;

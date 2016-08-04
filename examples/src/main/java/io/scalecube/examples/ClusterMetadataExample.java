@@ -44,7 +44,6 @@ public class ClusterMetadataExample {
     ClusterConfig config = ClusterConfig.newInstance()
         .port(4004)
         .seedMembers("localhost:3000")
-        .memberId("my_member_id")
         .metadata(ImmutableMap.of("alias", "Joe"));
 
     // configure cluster 2 with the metadata and attach cluster 2 as Joe and join seed

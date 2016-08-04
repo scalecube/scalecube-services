@@ -16,9 +16,10 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class ClusterMember implements Comparable<ClusterMember> {
+  private final String id;
   private final TransportEndpoint endpoint;
-  private final ClusterMemberStatus status;
   private final Map<String, String> metadata;
+  private final ClusterMemberStatus status;
   private final long lastUpdateTimestamp;
 
   ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
@@ -29,6 +30,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
       long lastUpdateTimestamp) {
     checkArgument(endpoint != null);
     checkArgument(status != null);
+    this.id = endpoint.id();
     this.endpoint = endpoint;
     this.status = status;
     this.metadata = metadata;
@@ -37,7 +39,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   @Nonnull
   public String id() {
-    return endpoint.id();
+    return id;
   }
 
   @Nonnull

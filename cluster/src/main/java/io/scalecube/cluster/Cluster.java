@@ -63,11 +63,11 @@ public final class Cluster implements ICluster {
     checkNotNull(config.transportSettings);
     checkNotNull(config.gossipProtocolSettings);
     checkNotNull(config.failureDetectorSettings);
-    checkNotNull(config.clusterMembershipSettings);
+    checkNotNull(config.membershipSettings);
     this.config = config;
 
     // Build local endpoint
-    String memberId = Optional.fromNullable(config.memberId).or(UUID.randomUUID().toString());
+    String memberId = UUID.randomUUID().toString();
     TransportEndpoint localEndpoint = TransportEndpoint.createLocal(memberId, config.port);
 
     // Build transport
@@ -94,11 +94,11 @@ public final class Cluster implements ICluster {
     clusterMembership.setTransport(transport);
     clusterMembership.setLocalMetadata(config.metadata);
     clusterMembership.setSeedMembers(config.seedMembers);
-    clusterMembership.setSyncTime(config.clusterMembershipSettings.getSyncTime());
-    clusterMembership.setSyncTimeout(config.clusterMembershipSettings.getSyncTimeout());
-    clusterMembership.setMaxSuspectTime(config.clusterMembershipSettings.getMaxSuspectTime());
-    clusterMembership.setMaxShutdownTime(config.clusterMembershipSettings.getMaxShutdownTime());
-    clusterMembership.setSyncGroup(config.clusterMembershipSettings.getSyncGroup());
+    clusterMembership.setSyncTime(config.membershipSettings.getSyncTime());
+    clusterMembership.setSyncTimeout(config.membershipSettings.getSyncTimeout());
+    clusterMembership.setMaxSuspectTime(config.membershipSettings.getMaxSuspectTime());
+    clusterMembership.setMaxShutdownTime(config.membershipSettings.getMaxShutdownTime());
+    clusterMembership.setSyncGroup(config.membershipSettings.getSyncGroup());
 
     // Initial state
     this.state = new AtomicReference<>(State.INSTANTIATED);
@@ -119,13 +119,6 @@ public final class Cluster implements ICluster {
 
   public static ICluster joinAwait(String seedMembers) {
     return joinAwait(ClusterConfig.newInstance().seedMembers(seedMembers));
-  }
-
-  public static ICluster joinAwait(String memberId, int port, String seedMembers) {
-    return joinAwait(ClusterConfig.newInstance()
-        .memberId(memberId)
-        .port(port)
-        .seedMembers(seedMembers));
   }
 
   /**
@@ -155,17 +148,12 @@ public final class Cluster implements ICluster {
     return join(ClusterConfig.newInstance().seedMembers(seedMembers));
   }
 
-  public static ListenableFuture<ICluster> join(String memberId, int port, String seedMembers) {
-    return join(ClusterConfig.newInstance().memberId(memberId).port(port).seedMembers(seedMembers));
-  }
-
   public static ListenableFuture<ICluster> join(final ClusterConfig config) {
     if (config.portAutoIncrement) { // Find available port
       config.port = AvailablePortFinder.getNextAvailable(config.port, config.portCount);
     }
     return new Cluster(config).join0();
   }
-
 
   private ListenableFuture<ICluster> join0() {
     updateClusterState(State.INSTANTIATED, State.JOINING);
