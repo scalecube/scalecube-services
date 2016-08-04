@@ -6,7 +6,8 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.cluster.fdetector.FailureDetectorBuilder;
+import io.scalecube.cluster.fdetector.FailureDetector;
+import io.scalecube.cluster.fdetector.FailureDetectorSettings;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
@@ -28,23 +29,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ClusterMembershipBuilder {
+  final Transport transport;
   final ClusterMembership membership;
   final GossipProtocol gossipProtocol;
-  final FailureDetectorBuilder fdBuilder;
-  final Transport transport;
+  final FailureDetector failureDetector;
 
   private ClusterMembershipBuilder(TransportEndpoint transportEndpoint, List<InetSocketAddress> members) {
     TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
     transport = Transport.newInstance(transportEndpoint, transportSettings);
 
-    fdBuilder = FailureDetectorBuilder.FDBuilder(transportEndpoint, transport).pingTime(100).pingTimeout(100);
+    FailureDetectorSettings fdSettings = FailureDetectorSettings.builder().pingTime(100).pingTimeout(100).build();
+    failureDetector = new FailureDetector(transport, fdSettings);
 
     gossipProtocol = new GossipProtocol(transportEndpoint, Executors.newSingleThreadScheduledExecutor());
     gossipProtocol.setTransport(transport);
 
     membership = new ClusterMembership(transportEndpoint, Schedulers.computation());
     membership.setTransport(transport);
-    membership.setFailureDetector(fdBuilder.target());
+    membership.setFailureDetector(failureDetector);
     membership.setGossipProtocol(gossipProtocol);
     membership.setLocalMetadata(new HashMap<String, String>() {
       {
@@ -83,7 +85,7 @@ public class ClusterMembershipBuilder {
   ClusterMembershipBuilder init() {
     try {
       transport.start().get();
-      fdBuilder.target().start();
+      failureDetector.start();
       gossipProtocol.start();
       membership.start().get();
     } catch (Exception ex) {
@@ -94,7 +96,7 @@ public class ClusterMembershipBuilder {
 
   void destroy() {
     destroyTransport(transport);
-    fdBuilder.target().stop();
+    failureDetector.stop();
     gossipProtocol.stop();
     membership.stop();
   }

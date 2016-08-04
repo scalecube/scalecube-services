@@ -1,5 +1,6 @@
 package io.scalecube.cluster;
 
+import io.scalecube.cluster.fdetector.FailureDetectorSettings;
 import io.scalecube.transport.TransportSettings;
 
 import java.util.HashMap;
@@ -19,7 +20,6 @@ public class ClusterConfig {
   public static final int DEFAULT_PORT_COUNT = 100;
   public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
   public static final MembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new MembershipSettings();
-  public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
   public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
 
   String seedMembers = "";
@@ -29,7 +29,7 @@ public class ClusterConfig {
   Map<String, String> metadata = new HashMap<>();
   TransportSettings transportSettings = TransportSettings.DEFAULT;
   MembershipSettings membershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
-  FailureDetectorSettings failureDetectorSettings = DEFAULT_FAILURE_DETECTOR_SETTINGS;
+  FailureDetectorSettings failureDetectorSettings = FailureDetectorSettings.DEFAULT;
   GossipProtocolSettings gossipProtocolSettings = DEFAULT_GOSSIP_PROTOCOL_SETTINGS;
 
   private ClusterConfig() {}
@@ -270,54 +270,4 @@ public class ClusterConfig {
     }
   }
 
-  public static class FailureDetectorSettings {
-
-    public static final int DEFAULT_PING_TIME = 2000;
-    public static final int DEFAULT_PING_TIMEOUT = 1000;
-    public static final int DEFAULT_MAX_ENDPOINTS_TO_SELECT = 3;
-
-    private int pingTime = DEFAULT_PING_TIME;
-    private int pingTimeout = DEFAULT_PING_TIMEOUT;
-    private int maxEndpointsToSelect = DEFAULT_MAX_ENDPOINTS_TO_SELECT;
-
-    public FailureDetectorSettings() {}
-
-    public FailureDetectorSettings(int pingTime, int pingTimeout, int maxEndpointsToSelect) {
-      this.pingTime = pingTime;
-      this.pingTimeout = pingTimeout;
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    public int getPingTime() {
-      return pingTime;
-    }
-
-    public void setPingTime(int pingTime) {
-      this.pingTime = pingTime;
-    }
-
-    public int getPingTimeout() {
-      return pingTimeout;
-    }
-
-    public void setPingTimeout(int pingTimeout) {
-      this.pingTimeout = pingTimeout;
-    }
-
-    public int getMaxEndpointsToSelect() {
-      return maxEndpointsToSelect;
-    }
-
-    public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    @Override
-    public String toString() {
-      return "FailureDetectorSettings{pingTime=" + pingTime
-          + ", pingTimeout=" + pingTimeout
-          + ", maxEndpointsToSelect=" + maxEndpointsToSelect
-          + '}';
-    }
-  }
 }

@@ -8,6 +8,7 @@ import static java.lang.Math.min;
 
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportEndpoint;
 import io.scalecube.transport.MessageHeaders;
 
@@ -24,6 +25,7 @@ import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
@@ -53,18 +55,18 @@ public final class FailureDetector implements IFailureDetector {
   private static final MessageHeaders.Filter PING_REQ_FILTER = new MessageHeaders.Filter(PING_REQ);
 
   private volatile List<TransportEndpoint> members = new ArrayList<>();
-  private ITransport transport;
+
+  private final ITransport transport;
   private final TransportEndpoint localEndpoint;
   private final Scheduler scheduler;
+  private final FailureDetectorSettings settings;
+
   @SuppressWarnings("unchecked")
   private Subject<FailureDetectorEvent, FailureDetectorEvent> subject = new SerializedSubject(PublishSubject.create());
   private AtomicInteger periodNbr = new AtomicInteger();
   private Set<TransportEndpoint> suspectedMembers = Sets.newConcurrentHashSet();
   private TransportEndpoint pingMember; // for test purpose only
   private List<TransportEndpoint> randomMembers; // for test purpose only
-  private int pingTime = 2000;
-  private int pingTimeout = 1000;
-  private int maxEndpointsToSelect = 3;
   private volatile Subscription fdTask;
 
   /** Listener to PING message and answer with ACK. */
@@ -112,23 +114,17 @@ public final class FailureDetector implements IFailureDetector {
         }
       });
 
-  public FailureDetector(TransportEndpoint localEndpoint, Scheduler scheduler) {
-    checkArgument(localEndpoint != null);
-    checkArgument(scheduler != null);
-    this.localEndpoint = localEndpoint;
-    this.scheduler = scheduler;
+  public FailureDetector(Transport transport) {
+    this(transport, FailureDetectorSettings.DEFAULT);
   }
 
-  public void setPingTime(int pingTime) {
-    this.pingTime = pingTime;
-  }
-
-  public void setPingTimeout(int pingTimeout) {
-    this.pingTimeout = pingTimeout;
-  }
-
-  public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
-    this.maxEndpointsToSelect = maxEndpointsToSelect;
+  public FailureDetector(Transport transport, FailureDetectorSettings settings) {
+    checkArgument(transport != null);
+    checkArgument(settings != null);
+    this.transport = transport;
+    this.settings = settings;
+    this.localEndpoint = transport.localEndpoint();
+    this.scheduler = Schedulers.from(transport.getWorkerGroup());
   }
 
   @Override
@@ -139,10 +135,6 @@ public final class FailureDetector implements IFailureDetector {
     Collections.shuffle(list);
     this.members = list;
     LOGGER.debug("Set cluster members: {}", this.members);
-  }
-
-  public void setTransport(ITransport transport) {
-    this.transport = transport;
   }
 
   public ITransport getTransport() {
@@ -191,7 +183,7 @@ public final class FailureDetector implements IFailureDetector {
           LOGGER.error("Unhandled exception: {}", e, e);
         }
       }
-    }, 0, pingTime, TimeUnit.MILLISECONDS);
+    }, 0, settings.getPingTime(), TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -234,7 +226,7 @@ public final class FailureDetector implements IFailureDetector {
     LOGGER.trace("Send Ping from {} to {}", localEndpoint, pingMember);
 
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
-        .timeout(pingTimeout, TimeUnit.MILLISECONDS, scheduler)
+        .timeout(settings.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
           public void call(Message transportMessage) {
@@ -244,7 +236,8 @@ public final class FailureDetector implements IFailureDetector {
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now", pingMember, pingTimeout);
+            LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now",
+                pingMember, settings.getPingTimeout());
             doPingReq(members, pingMember, period);
           }
         }));
@@ -253,15 +246,16 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private void doPingReq(List<TransportEndpoint> members, final TransportEndpoint targetMember, String period) {
-    final int timeout = pingTime - pingTimeout;
+    final int timeout = settings.getPingTime() - settings.getPingTimeout();
     if (timeout <= 0) {
-      LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})", pingTime, pingTimeout);
+      LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})",
+          settings.getPingTime(), settings.getPingTimeout());
       declareSuspected(targetMember);
       return;
     }
 
     final List<TransportEndpoint> randomMembers =
-        selectRandomMembers(members, maxEndpointsToSelect, targetMember/* exclude */);
+        selectRandomMembers(members, settings.getMaxEndpointsToSelect(), targetMember/* exclude */);
     if (randomMembers.isEmpty()) {
       LOGGER.trace("No PingReq occurred, because member selection is empty");
       declareSuspected(targetMember);

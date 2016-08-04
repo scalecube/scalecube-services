@@ -2,6 +2,8 @@ package io.scalecube.cluster.fdetector;
 
 import static com.google.common.collect.ImmutableList.of;
 import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilder;
+import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilderWithPingTime;
+import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilderWithPingTimeout;
 import static io.scalecube.transport.TransportEndpoint.from;
 import static org.junit.Assert.assertEquals;
 
@@ -31,9 +33,9 @@ public class FailureDetectorIT {
     members.add(c);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).ping(b).noRandomMembers());
-    builders.add(FDBuilder(b).set(members).ping(c).noRandomMembers());
-    builders.add(FDBuilder(c).set(members).ping(a).noRandomMembers());
+    builders.add(FDBuilder(a).set(members).pingMember(b).noRandomMembers());
+    builders.add(FDBuilder(b).set(members).pingMember(c).noRandomMembers());
+    builders.add(FDBuilder(c).set(members).pingMember(a).noRandomMembers());
 
     try {
       create(builders);
@@ -76,8 +78,8 @@ public class FailureDetectorIT {
     members.add(b);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).pingTime(100).set(members));
-    builders.add(FDBuilder(b).pingTime(300).set(members));
+    builders.add(FDBuilderWithPingTime(a, 100).set(members));
+    builders.add(FDBuilderWithPingTime(b, 300).set(members));
 
     try {
       create(builders);
@@ -100,9 +102,9 @@ public class FailureDetectorIT {
     members.add(c);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).ping(b).block(members));
-    builders.add(FDBuilder(b).set(members).ping(c).block(members));
-    builders.add(FDBuilder(c).set(members).ping(a).block(members));
+    builders.add(FDBuilder(a).set(members).pingMember(b).block(members));
+    builders.add(FDBuilder(b).set(members).pingMember(c).block(members));
+    builders.add(FDBuilder(c).set(members).pingMember(a).block(members));
 
     try {
       create(builders);
@@ -126,8 +128,8 @@ public class FailureDetectorIT {
     members.add(b);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).ping(b).block(members));
-    builders.add(FDBuilder(b).set(members).ping(a).block(members));
+    builders.add(FDBuilder(a).set(members).pingMember(b).block(members));
+    builders.add(FDBuilder(b).set(members).pingMember(a).block(members));
 
     try {
       create(builders);
@@ -152,9 +154,9 @@ public class FailureDetectorIT {
     members.add(c);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).ping(b).block(b));
-    builders.add(FDBuilder(b).set(members).ping(c));
-    builders.add(FDBuilder(c).set(members).ping(a));
+    builders.add(FDBuilder(a).set(members).pingMember(b).block(b));
+    builders.add(FDBuilder(b).set(members).pingMember(c));
+    builders.add(FDBuilder(c).set(members).pingMember(a));
 
     try {
       create(builders);
@@ -179,11 +181,11 @@ public class FailureDetectorIT {
     members.add(d);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).pingTimeout(999).set(members).ping(b).block(b).noRandomMembers()); // a--X-->b and no
-                                                                                                 // neighbors
-    builders.add(FDBuilder(b).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
-    builders.add(FDBuilder(c).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
-    builders.add(FDBuilder(d).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
+    // a--X-->b and no neighbors
+    builders.add(FDBuilderWithPingTimeout(a, 999).set(members).pingMember(b).block(b).noRandomMembers());
+    builders.add(FDBuilderWithPingTime(b, 100).set(members).pingMember(a).noRandomMembers()); // ping a
+    builders.add(FDBuilderWithPingTime(c, 100).set(members).pingMember(a).noRandomMembers()); // ping a
+    builders.add(FDBuilderWithPingTime(d, 100).set(members).pingMember(a).noRandomMembers()); // ping a
 
     try {
       create(builders);
@@ -212,13 +214,13 @@ public class FailureDetectorIT {
     members.add(e);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).pingTimeout(499).set(members).ping(b).block(b).randomMembers(of(c)).block(c)); // a--X-->b
-                                                                                                             // then
-                                                                                                             // a--X-->c
-    builders.add(FDBuilder(b).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
-    builders.add(FDBuilder(c).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
-    builders.add(FDBuilder(d).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
-    builders.add(FDBuilder(e).pingTime(100).set(members).ping(a).noRandomMembers()); // ping a
+    // a--X-->b then a--X-->c
+    builders.add(FDBuilderWithPingTimeout(a, 499).set(members).pingMember(b).block(b).randomMembers(of(c)).block(c));
+
+    builders.add(FDBuilderWithPingTime(b, 100).set(members).pingMember(a).noRandomMembers()); // ping a
+    builders.add(FDBuilderWithPingTime(c, 100).set(members).pingMember(a).noRandomMembers()); // ping a
+    builders.add(FDBuilderWithPingTime(d, 100).set(members).pingMember(a).noRandomMembers()); // ping a
+    builders.add(FDBuilderWithPingTime(e, 100).set(members).pingMember(a).noRandomMembers()); // ping a
 
     try {
       create(builders);
@@ -246,10 +248,10 @@ public class FailureDetectorIT {
     members.add(x);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).ping(x).block(x));
-    builders.add(FDBuilder(b).set(members).ping(x).block(x));
-    builders.add(FDBuilder(c).set(members).ping(x).block(x));
-    builders.add(FDBuilder(x).set(members).ping(a));
+    builders.add(FDBuilder(a).set(members).pingMember(x).block(x));
+    builders.add(FDBuilder(b).set(members).pingMember(x).block(x));
+    builders.add(FDBuilder(c).set(members).pingMember(x).block(x));
+    builders.add(FDBuilder(x).set(members).pingMember(a));
 
     try {
       create(builders);
@@ -278,10 +280,10 @@ public class FailureDetectorIT {
     members.add(x);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).ping(x).block(x));
-    builders.add(FDBuilder(b).set(members).ping(a).block(x));
-    builders.add(FDBuilder(d).set(members).ping(a).block(x));
-    builders.add(FDBuilder(x).pingTime(100500).set(members).ping(b));
+    builders.add(FDBuilder(a).set(members).pingMember(x).block(x));
+    builders.add(FDBuilder(b).set(members).pingMember(a).block(x));
+    builders.add(FDBuilder(d).set(members).pingMember(a).block(x));
+    builders.add(FDBuilderWithPingTime(x, 100500).set(members).pingMember(b));
 
     try {
       create(builders);
@@ -336,8 +338,8 @@ public class FailureDetectorIT {
     members.add(y);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).ping(x));
-    builders.add(FDBuilder(b).set(members).ping(y));
+    builders.add(FDBuilder(a).set(members).pingMember(x));
+    builders.add(FDBuilder(b).set(members).pingMember(y));
     builders.add(FDBuilder(x).set(members));
     builders.add(FDBuilder(y).set(members));
 
@@ -370,9 +372,9 @@ public class FailureDetectorIT {
     members.add(x);
 
     List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).set(members).pingTime(100).ping(x));
-    builders.add(FDBuilder(b).set(members).pingTime(100).ping(x));
-    builders.add(FDBuilder(x).pingTime(100500).set(members));
+    builders.add(FDBuilderWithPingTime(a, 100).set(members).pingMember(x));
+    builders.add(FDBuilderWithPingTime(b, 100).set(members).pingMember(x));
+    builders.add(FDBuilderWithPingTime(x, 100500).set(members));
 
     try {
       create(builders);
@@ -389,7 +391,7 @@ public class FailureDetectorIT {
 
       TransportEndpoint xx = from("localhost:20125:xx");
       members.add(xx);
-      FailureDetectorBuilder xxBuilder = FDBuilder(xx).set(members).pingTime(100).ping(x);
+      FailureDetectorBuilder xxBuilder = FDBuilderWithPingTime(xx, 100).set(members).pingMember(x);
       builders.add(xxBuilder);
       for (FailureDetectorBuilder builder : builders) {
         builder.set(members);
@@ -411,9 +413,9 @@ public class FailureDetectorIT {
   private Map<TransportEndpoint, TransportEndpoint> getSuspected(Iterable<FailureDetectorBuilder> builders) {
     Map<TransportEndpoint, TransportEndpoint> target = new HashMap<>();
     for (FailureDetectorBuilder builder : builders) {
-      List<TransportEndpoint> suspectedMembers = builder.target.getSuspectedMembers();
+      List<TransportEndpoint> suspectedMembers = builder.failureDetector.getSuspectedMembers();
       if (!suspectedMembers.isEmpty()) {
-        TransportEndpoint localEndpoint = builder.target.getLocalEndpoint();
+        TransportEndpoint localEndpoint = builder.failureDetector.getLocalEndpoint();
         assertEquals(localEndpoint + ": " + suspectedMembers, 1, suspectedMembers.size());
         target.put(localEndpoint, suspectedMembers.get(0));
       }
@@ -423,16 +425,16 @@ public class FailureDetectorIT {
 
   private void destroy(Iterable<FailureDetectorBuilder> builders) {
     for (FailureDetectorBuilder builder : builders) {
-      builder.target.stop();
-      destroyTransport(builder.target.getTransport());
+      builder.failureDetector.stop();
+      destroyTransport(builder.failureDetector.getTransport());
     }
   }
 
   private void destroy(TransportEndpoint endpoint, Iterable<FailureDetectorBuilder> builders) {
     for (FailureDetectorBuilder builder : builders) {
-      if (builder.target.getLocalEndpoint() == endpoint) {
-        builder.target.stop();
-        destroyTransport(builder.target.getTransport());
+      if (builder.failureDetector.getLocalEndpoint() == endpoint) {
+        builder.failureDetector.stop();
+        destroyTransport(builder.failureDetector.getTransport());
         return;
       }
     }
