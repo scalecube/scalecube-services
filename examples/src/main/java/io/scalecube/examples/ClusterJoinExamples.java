@@ -1,10 +1,10 @@
 package io.scalecube.examples;
 
-import com.google.common.collect.ImmutableMap;
-
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
+
+import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
 
@@ -33,7 +33,7 @@ public class ClusterJoinExamples {
     // Start another member with metadata
     Map<String, String> metadata = ImmutableMap.of("alias", "another member");
     ClusterConfig config = ClusterConfig.newInstance().seedMembers(seedMember).metadata(metadata);
-    ICluster clusterNode3= Cluster.joinAwait(config);
+    ICluster clusterNode3 = Cluster.joinAwait(config);
 
     // Start cluster member in separate cluster (separate sync group)
     ClusterConfig.MembershipSettings membershipSettings = new ClusterConfig.MembershipSettings();
