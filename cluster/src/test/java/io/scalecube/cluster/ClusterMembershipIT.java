@@ -9,7 +9,6 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
-import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -20,8 +19,7 @@ public class ClusterMembershipIT {
     Address a = Address.from("localhost:20123");
     Address b = Address.from("localhost:20124");
     Address c = Address.from("localhost:20125");
-    List<InetSocketAddress> members =
-        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress());
+    List<Address> members = ImmutableList.of(a, b, c);
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
@@ -45,8 +43,7 @@ public class ClusterMembershipIT {
     Address a = Address.from("localhost:20123");
     Address b = Address.from("localhost:20124");
     Address c = Address.from("localhost:20125");
-    List<InetSocketAddress> members =
-        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress());
+    List<Address> members = ImmutableList.of(a, b, c);
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).block(b).block(c).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).block(a).block(c).init();
@@ -80,8 +77,7 @@ public class ClusterMembershipIT {
     Address a = Address.from("localhost:20123");
     Address b = Address.from("localhost:20124");
     Address c = Address.from("localhost:20125");
-    List<InetSocketAddress> members =
-        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress());
+    List<Address> members = ImmutableList.of(a, b, c);
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
@@ -126,8 +122,7 @@ public class ClusterMembershipIT {
     Address b = Address.from("localhost:20124");
     Address c = Address.from("localhost:20125");
     Address d = Address.from("localhost:20126");
-    List<InetSocketAddress> members =
-        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress(), d.socketAddress());
+    List<Address> members = ImmutableList.of(a, b, c, d);
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
@@ -175,8 +170,7 @@ public class ClusterMembershipIT {
     Address b = Address.from("localhost:20124");
     Address c = Address.from("localhost:20125");
     Address d = Address.from("localhost:20126");
-    List<InetSocketAddress> members =
-        ImmutableList.of(a.socketAddress(), b.socketAddress(), c.socketAddress(), d.socketAddress());
+    List<Address> members = ImmutableList.of(a, b, c, d);
 
     ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
     ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
@@ -185,8 +179,8 @@ public class ClusterMembershipIT {
 
     Address restartedC = Address.from("localhost:20125");
     Address restartedD = Address.from("localhost:20126");
-    ClusterMembershipBuilder cm_rc = CMBuilder(restartedC, a.socketAddress(), b.socketAddress());
-    ClusterMembershipBuilder cm_rd = CMBuilder(restartedD, a.socketAddress(), b.socketAddress());
+    ClusterMembershipBuilder cm_rc = CMBuilder(restartedC, a, b);
+    ClusterMembershipBuilder cm_rd = CMBuilder(restartedD, a, b);
 
     try {
       pause(3);
@@ -236,10 +230,10 @@ public class ClusterMembershipIT {
     Address e = Address.from("localhost:20127");
 
     ClusterMembershipBuilder cm_a = CMBuilder(a).init();
-    ClusterMembershipBuilder cm_b = CMBuilder(b, a.socketAddress()).init();
-    ClusterMembershipBuilder cm_c = CMBuilder(c, a.socketAddress()).init();
-    ClusterMembershipBuilder cm_d = CMBuilder(d, b.socketAddress()).init();
-    ClusterMembershipBuilder cm_e = CMBuilder(e, b.socketAddress()).init();
+    ClusterMembershipBuilder cm_b = CMBuilder(b, a).init();
+    ClusterMembershipBuilder cm_c = CMBuilder(c, a).init();
+    ClusterMembershipBuilder cm_d = CMBuilder(d, b).init();
+    ClusterMembershipBuilder cm_e = CMBuilder(e, b).init();
 
     try {
       pause(3);

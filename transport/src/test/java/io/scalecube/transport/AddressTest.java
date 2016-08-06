@@ -18,9 +18,6 @@ public class AddressTest {
     assertEquals(Address.getLocalIpAddress(), address2.host());
 
     assertEquals(address1, address2);
-    assertEquals(address1.host(), address2.host());
-    assertEquals(address1.port(), address2.port());
-    assertEquals(address1.socketAddress(), address2.socketAddress());
   }
 
   @Test
@@ -28,7 +25,6 @@ public class AddressTest {
     Address address = Address.from("host:1111");
     assertEquals(1111, address.port());
     assertEquals("host", address.host());
-    assertTrue(address.socketAddress().isUnresolved());
   }
 
 }

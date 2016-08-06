@@ -63,15 +63,9 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
   }
 
   private NetworkEmulatorSettings resolveNetworkSettings(Channel channel) {
-    InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
-    NetworkEmulatorSettings networkSettings = defaultSettings;
-    for (Map.Entry<Address, NetworkEmulatorSettings> settings : this.networkSettings.entrySet()) {
-      Address key = settings.getKey();
-      if (remoteAddress.getHostName().equals(key.host()) && remoteAddress.getPort() == key.port()) {
-        networkSettings = settings.getValue();
-      }
-    }
-    return networkSettings;
+    InetSocketAddress remoteSocketAddress = (InetSocketAddress) channel.remoteAddress();
+    Address remoteAddress = Address.create(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort());
+    return networkSettings.containsKey(remoteAddress) ? networkSettings.get(remoteAddress) : defaultSettings;
   }
 
   public void setNetworkSettings(Address destination, int lostPercent, int mean) {

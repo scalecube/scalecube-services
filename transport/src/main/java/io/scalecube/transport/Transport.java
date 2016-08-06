@@ -36,8 +36,6 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
-import java.net.InetSocketAddress;
-
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -213,11 +211,6 @@ public final class Transport implements ITransport {
         promise.set(null);
       }
     }
-  }
-
-  // TODO [AK]: Temporary workaround, should be merged with send by address
-  public void send(@CheckForNull InetSocketAddress socketAddress, @CheckForNull Message message) {
-    send(Address.create(socketAddress.getHostName(), socketAddress.getPort()), message);
   }
 
   @Override

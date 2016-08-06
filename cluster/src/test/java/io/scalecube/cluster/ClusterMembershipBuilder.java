@@ -21,7 +21,6 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import rx.schedulers.Schedulers;
 
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +33,7 @@ public class ClusterMembershipBuilder {
   final GossipProtocol gossipProtocol;
   final FailureDetector failureDetector;
 
-  private ClusterMembershipBuilder(Address localAddress, List<InetSocketAddress> members) {
+  private ClusterMembershipBuilder(Address localAddress, List<Address> members) {
     TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
     transport = Transport.newInstance(localAddress, transportSettings);
 
@@ -60,12 +59,11 @@ public class ClusterMembershipBuilder {
     membership.setSyncTimeout(100);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(Address localAddress,
-      List<InetSocketAddress> members) {
+  public static ClusterMembershipBuilder CMBuilder(Address localAddress, List<Address> members) {
     return new ClusterMembershipBuilder(localAddress, members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(Address localAddress, InetSocketAddress... members) {
+  public static ClusterMembershipBuilder CMBuilder(Address localAddress, Address... members) {
     return new ClusterMembershipBuilder(localAddress, Arrays.asList(members));
   }
 

@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -95,8 +94,7 @@ public final class Address {
   }
 
   /**
-   * Host address. <b>NOTE:</b> {@link #socketAddress}'s hostname ({@link InetSocketAddress#getHostName()}) is eq to
-   * value of this field.
+   * Host address.
    */
   @Nonnull
   public String host() {
@@ -104,20 +102,10 @@ public final class Address {
   }
 
   /**
-   * Port. <b>NOTE:</b> {@link #socketAddress}'s port ({@link InetSocketAddress#getPort()}) is eq to value of this
-   * field.
+   * Port.
    */
   public int port() {
     return port;
-  }
-
-  /**
-   * Socket address. A call {@code socketAddress.isUnresolved()} would return {@code true}, i.e. only
-   * {@link InetSocketAddress#getHostName()}, {@link InetSocketAddress#getPort()} will be accessible.
-   */
-  @Nonnull
-  public InetSocketAddress socketAddress() {
-    return InetSocketAddress.createUnresolved(host, port);
   }
 
   @Override
