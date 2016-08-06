@@ -50,7 +50,6 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
 
   private final String memberId;
   private final ITransport transport;
-  private final Address localAddress;
   private final ScheduledExecutorService executor;
   private final GossipProtocolSettings settings;
 
@@ -73,7 +72,6 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   public GossipProtocol(String memberId, ITransport transport, GossipProtocolSettings settings) {
     this.memberId = memberId;
     this.transport = transport;
-    this.localAddress = transport.localAddress();
     this.settings = settings;
     this.executor = Executors.newSingleThreadScheduledExecutor(createThreadFactory("scalecube-gossip-scheduled-%s"));
   }
@@ -90,9 +88,9 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
 
   @Override
   public void setClusterMembers(Collection<Address> members) {
-    Set<Address> set = new HashSet<>(members);
-    set.remove(localAddress);
-    List<Address> list = new ArrayList<>(set);
+    Set<Address> remoteMembers = new HashSet<>(members);
+    remoteMembers.remove(transport.localAddress());
+    List<Address> list = new ArrayList<>(remoteMembers);
     Collections.shuffle(list);
     this.members = list;
     this.factor = 32 - Integer.numberOfLeadingZeros(list.size() + 1);
@@ -126,7 +124,8 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   public void spread(Message message) {
     String gossipId = generateGossipId();
     Gossip gossip = new Gossip(gossipId, message);
-    gossipsQueue.offer(new GossipTask(gossip, localAddress));
+    GossipTask gossipTask = new GossipTask(gossip, transport.localAddress());
+    gossipsQueue.offer(gossipTask);
   }
 
   @Override
@@ -141,7 +140,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
       Address origin = gossipTask.getOrigin();
       GossipLocalState gossipLocalState = gossipsMap.get(gossip.getGossipId());
       if (gossipLocalState == null) {
-        boolean isRemote = !origin.equals(localAddress);
+        boolean isRemote = !origin.equals(transport.localAddress());
         LOGGER.debug("Saved new_" + (isRemote ? "remote" : "local") + " {}", gossip);
         gossipLocalState = GossipLocalState.create(gossip, origin, period);
         gossipsMap.put(gossip.getGossipId(), gossipLocalState);

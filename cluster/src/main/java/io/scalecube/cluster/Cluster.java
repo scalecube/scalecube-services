@@ -83,16 +83,16 @@ public final class Cluster implements ICluster {
 
     // Build cluster membership component
     clusterMembership = new ClusterMembership(memberId, localAddress, Schedulers.from(transport.getWorkerGroup()));
+    clusterMembership.setTransport(transport);
     clusterMembership.setFailureDetector(failureDetector);
     clusterMembership.setGossipProtocol(gossipProtocol);
-    clusterMembership.setTransport(transport);
     clusterMembership.setLocalMetadata(config.metadata);
     clusterMembership.setSeedMembers(config.seedMembers);
     clusterMembership.setSyncTime(config.membershipSettings.getSyncTime());
     clusterMembership.setSyncTimeout(config.membershipSettings.getSyncTimeout());
+    clusterMembership.setSyncGroup(config.membershipSettings.getSyncGroup());
     clusterMembership.setMaxSuspectTime(config.membershipSettings.getMaxSuspectTime());
     clusterMembership.setMaxShutdownTime(config.membershipSettings.getMaxShutdownTime());
-    clusterMembership.setSyncGroup(config.membershipSettings.getSyncGroup());
 
     // Initial state
     this.state = new AtomicReference<>(State.INSTANTIATED);
