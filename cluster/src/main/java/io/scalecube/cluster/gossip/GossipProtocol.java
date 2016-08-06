@@ -65,10 +65,23 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   private Subscriber<Message> onGossipRequestSubscriber;
   private ScheduledFuture<?> executorTask;
 
+  /**
+   * Creates new instance of gossip protocol with given memberId, transport and default settings.
+   *
+   * @param memberId id of current member
+   * @param transport transport
+   */
   public GossipProtocol(String memberId, ITransport transport) {
     this(memberId, transport, GossipProtocolSettings.DEFAULT);
   }
 
+  /**
+   * Creates new instance of gossip protocol with given memberId, transport and settings.
+   *
+   * @param memberId id of current member
+   * @param transport transport
+   * @param settings gossip protocol settings
+   */
   public GossipProtocol(String memberId, ITransport transport, GossipProtocolSettings settings) {
     this.memberId = memberId;
     this.transport = transport;
