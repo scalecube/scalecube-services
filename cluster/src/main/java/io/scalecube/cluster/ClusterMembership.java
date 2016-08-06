@@ -9,10 +9,11 @@ import static io.scalecube.cluster.ClusterMembershipDataUtils.syncGroupFilter;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IManagedGossipProtocol;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.Address;
 import io.scalecube.transport.MessageHeaders;
+import io.scalecube.transport.Transport;
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
@@ -25,7 +26,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.scalecube.transport.Transport;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
