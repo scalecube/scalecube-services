@@ -12,7 +12,7 @@ import io.scalecube.cluster.gossip.IManagedGossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.MessageHeaders;
 
 import com.google.common.base.Function;
@@ -83,7 +83,8 @@ public final class ClusterMembership implements IClusterMembership {
   private String syncGroup = "default";
   private List<InetSocketAddress> seedMembers = new ArrayList<>();
   private ITransport transport;
-  private final TransportEndpoint localEndpoint;
+  private final String memberId;
+  private final Address localAddress;
   private final Scheduler scheduler;
   private volatile Subscription cmTask;
   private TickingTimer timer;
@@ -98,19 +99,19 @@ public final class ClusterMembership implements IClusterMembership {
     @Override
     public void call(Message message) {
       ClusterMembershipData data = message.data();
-      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localEndpoint, data);
+      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localAddress, data);
       List<ClusterMember> updates = membership.merge(filteredData);
-      TransportEndpoint endpoint = message.sender();
+      Address sender = message.sender();
       if (!updates.isEmpty()) {
-        LOGGER.debug("Received Sync from {}, updates: {}", endpoint, updates);
+        LOGGER.debug("Received Sync from {}, updates: {}", sender, updates);
         processUpdates(updates, true/* spread gossip */);
       } else {
-        LOGGER.debug("Received Sync from {}, no updates", endpoint);
+        LOGGER.debug("Received Sync from {}, no updates", sender);
       }
       String correlationId = message.correlationId();
       ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
       Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
-      transport.send(endpoint, syncAckMsg);
+      transport.send(sender, syncAckMsg);
     }
   });
 
@@ -149,8 +150,9 @@ public final class ClusterMembership implements IClusterMembership {
     }
   };
 
-  ClusterMembership(TransportEndpoint localEndpoint, Scheduler scheduler) {
-    this.localEndpoint = localEndpoint;
+  ClusterMembership(String memberId, Address localAddress, Scheduler scheduler) {
+    this.memberId = memberId;
+    this.localAddress = localAddress;
     this.scheduler = scheduler;
   }
 
@@ -184,7 +186,7 @@ public final class ClusterMembership implements IClusterMembership {
 
   public void setSeedMembers(Collection<InetSocketAddress> seedMembers) {
     Set<InetSocketAddress> set = new HashSet<>(seedMembers);
-    set.remove(localEndpoint.socketAddress());
+    set.remove(localAddress.socketAddress());
     this.seedMembers = new ArrayList<>(set);
   }
 
@@ -197,7 +199,7 @@ public final class ClusterMembership implements IClusterMembership {
     for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
       if (token.length() != 0) {
         try {
-          memberList.add(TransportEndpoint.parseSocketAddress(token));
+          memberList.add(Address.from(token).socketAddress());
         } catch (IllegalArgumentException e) {
           LOGGER.warn("Skipped setting wellknown_member, caught: " + e);
         }
@@ -207,7 +209,7 @@ public final class ClusterMembership implements IClusterMembership {
     Set<InetSocketAddress> set = new HashSet<>(memberList);
     for (Iterator<InetSocketAddress> i = set.iterator(); i.hasNext();) {
       InetSocketAddress socketAddress = i.next();
-      if (localEndpoint.socketAddress().equals(socketAddress)) {
+      if (localAddress.socketAddress().equals(socketAddress)) {
         i.remove();
       }
     }
@@ -220,10 +222,6 @@ public final class ClusterMembership implements IClusterMembership {
 
   public void setLocalMetadata(Map<String, String> localMetadata) {
     this.localMetadata = localMetadata;
-  }
-
-  public List<InetSocketAddress> getSeedMembers() {
-    return new ArrayList<>(seedMembers);
   }
 
   @Override
@@ -243,14 +241,14 @@ public final class ClusterMembership implements IClusterMembership {
   }
 
   @Override
-  public ClusterMember member(TransportEndpoint address) {
-    checkArgument(address != null, "Member endpoint can't be null or empty");
+  public ClusterMember member(Address address) {
+    checkArgument(address != null, "Member address can't be null or empty");
     return membership.get(address);
   }
 
   @Override
   public ClusterMember localMember() {
-    return membership.get(localEndpoint);
+    return membership.get(localAddress);
   }
 
   /**
@@ -262,7 +260,7 @@ public final class ClusterMembership implements IClusterMembership {
     timer.start();
 
     // Register itself initially before SYNC/SYNC_ACK
-    ClusterMember localMember = new ClusterMember(localEndpoint.id(), localEndpoint, TRUSTED, localMetadata);
+    ClusterMember localMember = new ClusterMember(memberId, localAddress, TRUSTED, localMetadata);
     List<ClusterMember> updates = membership.merge(localMember);
     processUpdates(updates, false/* spread gossip */);
 
@@ -276,7 +274,7 @@ public final class ClusterMembership implements IClusterMembership {
     failureDetector.listenStatus().subscribe(onFdSubscriber);
 
     // Listen to 'membership' message from GossipProtocol
-    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(localEndpoint))
+    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(localAddress))
         .subscribe(onGossipSubscriber);
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
@@ -376,14 +374,14 @@ public final class ClusterMembership implements IClusterMembership {
 
   private void onSyncAck(Message message) {
     ClusterMembershipData data = message.data();
-    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localEndpoint, data);
-    TransportEndpoint endpoint = message.sender();
+    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localAddress, data);
+    Address sender = message.sender();
     List<ClusterMember> updates = membership.merge(filteredData);
     if (!updates.isEmpty()) {
-      LOGGER.debug("Received SyncAck from {}, updates: {}", endpoint, updates);
+      LOGGER.debug("Received SyncAck from {}, updates: {}", sender, updates);
       processUpdates(updates, true/* spread gossip */);
     } else {
-      LOGGER.debug("Received SyncAck from {}, no updates", endpoint);
+      LOGGER.debug("Received SyncAck from {}, no updates", sender);
     }
   }
 
@@ -416,9 +414,9 @@ public final class ClusterMembership implements IClusterMembership {
     }
 
     // Reset cluster members on FailureDetector and Gossip
-    Collection<TransportEndpoint> endpoints = membership.getTrustedOrSuspectedEndpoints();
-    failureDetector.setClusterEndpoints(endpoints);
-    gossipProtocol.setClusterEndpoints(endpoints);
+    Collection<Address> members = membership.getTrustedOrSuspectedMembers();
+    failureDetector.setClusterMembers(members);
+    gossipProtocol.setClusterMembers(members);
 
     // Publish updates to cluster
     if (spreadGossip) {
@@ -431,27 +429,27 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Check state transition
     for (final ClusterMember member : updates) {
-      LOGGER.debug("Member {} became {}", member.endpoint(), member.status());
+      LOGGER.debug("Member {} became {}", member.address(), member.status());
       switch (member.status()) {
         case SUSPECTED:
-          failureDetector.suspect(member.endpoint());
+          failureDetector.suspect(member.address());
           timer.schedule(member.id(), new Runnable() {
             @Override
             public void run() {
-              LOGGER.debug("Time to remove SUSPECTED member={} from membership", member.endpoint());
+              LOGGER.debug("Time to remove SUSPECTED member={} from membership", member.address());
               processUpdates(membership.remove(member.id()), false/* spread gossip */);
             }
           }, maxSuspectTime, TimeUnit.MILLISECONDS);
           break;
         case TRUSTED:
-          failureDetector.trust(member.endpoint());
+          failureDetector.trust(member.address());
           timer.cancel(member.id());
           break;
         case SHUTDOWN:
           timer.schedule(new Runnable() {
             @Override
             public void run() {
-              LOGGER.debug("Time to remove SHUTDOWN member={} from membership", member.endpoint());
+              LOGGER.debug("Time to remove SHUTDOWN member={} from membership", member.address());
               membership.remove(member.id());
             }
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
@@ -468,14 +466,14 @@ public final class ClusterMembership implements IClusterMembership {
    * information about leave before stopping server.
    */
   public void leave() {
-    ClusterMember localMember = new ClusterMember(localEndpoint.id(), localEndpoint, SHUTDOWN, localMetadata);
+    ClusterMember localMember = new ClusterMember(memberId, localAddress, SHUTDOWN, localMetadata);
     gossipProtocol.spread(Message.fromData(new ClusterMembershipData(ImmutableList.of(localMember), syncGroup)));
   }
 
   @Override
   public boolean isLocalMember(ClusterMember member) {
     checkArgument(member != null);
-    return this.localMember().endpoint().equals(member.endpoint());
+    return this.localMember().address().equals(member.address());
   }
 
   private MessageHeaders.Filter syncFilter() {

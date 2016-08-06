@@ -1,6 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import rx.Observable;
 
@@ -28,11 +28,11 @@ public interface IFailureDetector {
   Observable<FailureDetectorEvent> listenStatus();
 
   /** Marks given member as SUSPECTED inside FD algorithm internals. */
-  void suspect(TransportEndpoint member);
+  void suspect(Address member);
 
   /** Marks given member as TRUSTED inside FD algorithm internals. */
-  void trust(TransportEndpoint member);
+  void trust(Address member);
 
   /** Updates list of cluster members among which should work FD algorithm. */
-  void setClusterEndpoints(Collection<TransportEndpoint> members);
+  void setClusterMembers(Collection<Address> members);
 }

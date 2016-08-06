@@ -11,7 +11,7 @@ import io.scalecube.cluster.fdetector.FailureDetectorSettings;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportSettings;
 
 import com.google.common.base.Function;
@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class ClusterMembershipBuilder {
@@ -33,16 +34,19 @@ public class ClusterMembershipBuilder {
   final GossipProtocol gossipProtocol;
   final FailureDetector failureDetector;
 
-  private ClusterMembershipBuilder(TransportEndpoint transportEndpoint, List<InetSocketAddress> members) {
+  private ClusterMembershipBuilder(Address localAddress, List<InetSocketAddress> members) {
     TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    transport = Transport.newInstance(transportEndpoint, transportSettings);
+    transport = Transport.newInstance(localAddress, transportSettings);
+
+    String memberId = UUID.randomUUID().toString();
 
     FailureDetectorSettings fdSettings = FailureDetectorSettings.builder().pingTime(100).pingTimeout(100).build();
     failureDetector = new FailureDetector(transport, fdSettings);
 
-    gossipProtocol = new GossipProtocol(transport);
+    gossipProtocol = new GossipProtocol(memberId, transport);
 
-    membership = new ClusterMembership(transportEndpoint, Schedulers.computation());
+
+    membership = new ClusterMembership(memberId, localAddress, Schedulers.computation());
     membership.setTransport(transport);
     membership.setFailureDetector(failureDetector);
     membership.setGossipProtocol(gossipProtocol);
@@ -56,13 +60,13 @@ public class ClusterMembershipBuilder {
     membership.setSyncTimeout(100);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint,
+  public static ClusterMembershipBuilder CMBuilder(Address localAddress,
       List<InetSocketAddress> members) {
-    return new ClusterMembershipBuilder(transportEndpoint, members);
+    return new ClusterMembershipBuilder(localAddress, members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint, InetSocketAddress... members) {
-    return new ClusterMembershipBuilder(transportEndpoint, Arrays.asList(members));
+  public static ClusterMembershipBuilder CMBuilder(Address localAddress, InetSocketAddress... members) {
+    return new ClusterMembershipBuilder(localAddress, Arrays.asList(members));
   }
 
   public ClusterMembershipBuilder maxSuspectTime(int maxSuspectTime) {
@@ -70,7 +74,7 @@ public class ClusterMembershipBuilder {
     return this;
   }
 
-  public ClusterMembershipBuilder block(TransportEndpoint dest) {
+  public ClusterMembershipBuilder block(Address dest) {
     transport.blockMessagesTo(dest);
     return this;
   }
@@ -112,37 +116,37 @@ public class ClusterMembershipBuilder {
     }
   }
 
-  public ClusterMembershipBuilder assertTrusted(TransportEndpoint... members) {
+  public ClusterMembershipBuilder assertTrusted(Address... members) {
     assertStatus(ClusterMemberStatus.TRUSTED, members);
     return this;
   }
 
-  public ClusterMembershipBuilder assertSuspected(TransportEndpoint... members) {
+  public ClusterMembershipBuilder assertSuspected(Address... members) {
     assertStatus(ClusterMemberStatus.SUSPECTED, members);
     return this;
   }
 
   public ClusterMembershipBuilder assertNoSuspected() {
-    assertStatus(ClusterMemberStatus.SUSPECTED, new TransportEndpoint[0]);
+    assertStatus(ClusterMemberStatus.SUSPECTED, new Address[0]);
     return this;
   }
 
-  private void assertStatus(final ClusterMemberStatus s, TransportEndpoint[] members) {
+  private void assertStatus(final ClusterMemberStatus s, Address[] members) {
     Predicate<ClusterMember> predicate = new Predicate<ClusterMember>() {
       @Override
       public boolean apply(ClusterMember input) {
         return input.status() == s;
       }
     };
-    Function<ClusterMember, TransportEndpoint> function = new Function<ClusterMember, TransportEndpoint>() {
+    Function<ClusterMember, Address> function = new Function<ClusterMember, Address>() {
       @Override
-      public TransportEndpoint apply(ClusterMember input) {
-        return input.endpoint();
+      public Address apply(ClusterMember input) {
+        return input.address();
       }
     };
-    List<TransportEndpoint> list = newArrayList(transform(filter(membership.members(), predicate), function));
+    List<Address> list = newArrayList(transform(filter(membership.members(), predicate), function));
     assertEquals("expect " + s + ": " + list, members.length, list.size());
-    for (TransportEndpoint member : members) {
+    for (Address member : members) {
       assertTrue("expect " + s + ": " + member, list.contains(member));
     }
   }

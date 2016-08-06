@@ -6,16 +6,16 @@ public final class FailureDetectorSettings {
 
   public static final int DEFAULT_PING_TIME = 2000;
   public static final int DEFAULT_PING_TIMEOUT = 1000;
-  public static final int DEFAULT_MAX_ENDPOINTS_TO_SELECT = 3;
+  public static final int DEFAULT_MAX_MEMBERS_TO_SELECT = 3;
 
   private final int pingTime;
   private final int pingTimeout;
-  private final int maxEndpointsToSelect;
+  private final int maxMembersToSelect;
 
   private FailureDetectorSettings(Builder builder) {
     this.pingTime = builder.pingTime;
     this.pingTimeout = builder.pingTimeout;
-    this.maxEndpointsToSelect = builder.maxEndpointsToSelect;
+    this.maxMembersToSelect = builder.maxMembersToSelect;
   }
 
   public static Builder builder() {
@@ -30,15 +30,15 @@ public final class FailureDetectorSettings {
     return pingTimeout;
   }
 
-  public int getMaxEndpointsToSelect() {
-    return maxEndpointsToSelect;
+  public int getMaxMembersToSelect() {
+    return maxMembersToSelect;
   }
 
   @Override
   public String toString() {
     return "FailureDetectorSettings{pingTime=" + pingTime
         + ", pingTimeout=" + pingTimeout
-        + ", maxEndpointsToSelect=" + maxEndpointsToSelect
+        + ", maxMembersToSelect=" + maxMembersToSelect
         + '}';
   }
 
@@ -46,7 +46,7 @@ public final class FailureDetectorSettings {
 
     private int pingTime = DEFAULT_PING_TIME;
     private int pingTimeout = DEFAULT_PING_TIMEOUT;
-    private int maxEndpointsToSelect = DEFAULT_MAX_ENDPOINTS_TO_SELECT;
+    private int maxMembersToSelect = DEFAULT_MAX_MEMBERS_TO_SELECT;
 
     private Builder() {}
 
@@ -60,8 +60,8 @@ public final class FailureDetectorSettings {
       return this;
     }
 
-    public Builder maxEndpointsToSelect(int maxEndpointsToSelect) {
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
+    public Builder maxMembersToSelect(int maxMembersToSelect) {
+      this.maxMembersToSelect = maxMembersToSelect;
       return this;
     }
 

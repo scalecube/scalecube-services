@@ -9,7 +9,7 @@ import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.AvailablePortFinder;
 
 import com.google.common.base.Function;
@@ -70,19 +70,19 @@ public final class Cluster implements ICluster {
 
     // Build local member
     memberId = UUID.randomUUID().toString();
-    TransportEndpoint localEndpoint = TransportEndpoint.createLocal(memberId, config.port);
+    Address localAddress = Address.createLocal(config.port);
 
     // Build transport
-    transport = Transport.newInstance(localEndpoint, config.transportSettings);
+    transport = Transport.newInstance(localAddress, config.transportSettings);
 
     // Build gossip protocol component
-    gossipProtocol = new GossipProtocol(transport, config.gossipProtocolSettings);
+    gossipProtocol = new GossipProtocol(memberId, transport, config.gossipProtocolSettings);
 
     // Build failure detector component
     failureDetector = new FailureDetector(transport, config.failureDetectorSettings);
 
     // Build cluster membership component
-    clusterMembership = new ClusterMembership(localEndpoint, Schedulers.from(transport.getWorkerGroup()));
+    clusterMembership = new ClusterMembership(memberId, localAddress, Schedulers.from(transport.getWorkerGroup()));
     clusterMembership.setFailureDetector(failureDetector);
     clusterMembership.setGossipProtocol(gossipProtocol);
     clusterMembership.setTransport(transport);
@@ -174,13 +174,13 @@ public final class Cluster implements ICluster {
   @Override
   public void send(ClusterMember member, Message message) {
     checkJoinedState();
-    transport.send(member.endpoint(), message);
+    transport.send(member.address(), message);
   }
 
   @Override
   public void send(ClusterMember member, Message message, SettableFuture<Void> promise) {
     checkJoinedState();
-    transport.send(member.endpoint(), message, promise);
+    transport.send(member.address(), message, promise);
   }
 
   @Override

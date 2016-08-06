@@ -6,16 +6,16 @@ public final class GossipProtocolSettings {
 
   public static final int DEFAULT_MAX_GOSSIP_SENT = 2;
   public static final int DEFAULT_GOSSIP_TIME = 300;
-  public static final int DEFAULT_MAX_ENDPOINTS_TO_SELECT = 3;
+  public static final int DEFAULT_MAX_MEMBERS_TO_SELECT = 3;
 
   private final int maxGossipSent;
   private final int gossipTime;
-  private final int maxEndpointsToSelect;
+  private final int maxMembersToSelect;
 
   private GossipProtocolSettings(Builder builder) {
     this.maxGossipSent = builder.maxGossipSent;
     this.gossipTime = builder.gossipTime;
-    this.maxEndpointsToSelect = builder.maxEndpointsToSelect;
+    this.maxMembersToSelect = builder.maxMembersToSelect;
   }
 
   public static Builder builder() {
@@ -30,15 +30,15 @@ public final class GossipProtocolSettings {
     return gossipTime;
   }
 
-  public int getMaxEndpointsToSelect() {
-    return maxEndpointsToSelect;
+  public int getMaxMembersToSelect() {
+    return maxMembersToSelect;
   }
 
   @Override
   public String toString() {
     return "GossipProtocolSettings{maxGossipSent=" + maxGossipSent
         + ", gossipTime=" + gossipTime
-        + ", maxEndpointsToSelect=" + maxEndpointsToSelect
+        + ", maxMembersToSelect=" + maxMembersToSelect
         + '}';
   }
 
@@ -46,7 +46,7 @@ public final class GossipProtocolSettings {
 
     private int maxGossipSent = DEFAULT_MAX_GOSSIP_SENT;
     private int gossipTime = DEFAULT_GOSSIP_TIME;
-    private int maxEndpointsToSelect = DEFAULT_MAX_ENDPOINTS_TO_SELECT;
+    private int maxMembersToSelect = DEFAULT_MAX_MEMBERS_TO_SELECT;
 
     private Builder() {}
 
@@ -60,8 +60,8 @@ public final class GossipProtocolSettings {
       return this;
     }
 
-    public Builder maxEndpointsToSelect(int maxEndpointsToSelect) {
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
+    public Builder maxMembersToSelect(int maxMembersToSelect) {
+      this.maxMembersToSelect = maxMembersToSelect;
       return this;
     }
 

@@ -21,7 +21,7 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NetworkEmulatorHandler.class);
 
-  private final Map<TransportEndpoint, NetworkEmulatorSettings> networkSettings = new ConcurrentHashMap<>();
+  private final Map<Address, NetworkEmulatorSettings> networkSettings = new ConcurrentHashMap<>();
 
   private NetworkEmulatorSettings defaultSettings = new NetworkEmulatorSettings(0, 0);
 
@@ -65,8 +65,8 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
   private NetworkEmulatorSettings resolveNetworkSettings(Channel channel) {
     InetSocketAddress remoteAddress = (InetSocketAddress) channel.remoteAddress();
     NetworkEmulatorSettings networkSettings = defaultSettings;
-    for (Map.Entry<TransportEndpoint, NetworkEmulatorSettings> settings : this.networkSettings.entrySet()) {
-      TransportEndpoint key = settings.getKey();
+    for (Map.Entry<Address, NetworkEmulatorSettings> settings : this.networkSettings.entrySet()) {
+      Address key = settings.getKey();
       if (remoteAddress.getHostName().equals(key.host()) && remoteAddress.getPort() == key.port()) {
         networkSettings = settings.getValue();
       }
@@ -74,7 +74,7 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
     return networkSettings;
   }
 
-  public void setNetworkSettings(TransportEndpoint destination, int lostPercent, int mean) {
+  public void setNetworkSettings(Address destination, int lostPercent, int mean) {
     NetworkEmulatorSettings settings = new NetworkEmulatorSettings(lostPercent, mean);
     networkSettings.put(destination, settings);
     LOGGER.debug("Set {} for messages to: {}", settings, destination);
@@ -85,7 +85,7 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
     LOGGER.debug("Set default {}", defaultSettings);
   }
 
-  public void blockMessagesTo(TransportEndpoint destination) {
+  public void blockMessagesTo(Address destination) {
     networkSettings.put(destination, new NetworkEmulatorSettings(100, 0));
     LOGGER.debug("Block messages to: {}", destination);
   }

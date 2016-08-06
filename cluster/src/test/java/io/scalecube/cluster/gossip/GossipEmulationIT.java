@@ -2,7 +2,7 @@ package io.scalecube.cluster.gossip;
 
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportSettings;
 
 import com.google.common.base.Throwables;
@@ -18,6 +18,7 @@ import rx.functions.Action1;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -219,32 +220,33 @@ public class GossipEmulationIT {
   }
 
   private List<GossipProtocol> initGossipers(int membersNum, int lostPercent, int delay) {
-    final List<TransportEndpoint> members = initMembers(membersNum);
+    final List<Address> members = initMembers(membersNum);
     gossipers = Lists.newArrayList();
-    for (TransportEndpoint member : members) {
+    for (Address member : members) {
       gossipers.add(initGossiper(member, members, lostPercent, delay));
     }
     return gossipers;
   }
 
-  private List<TransportEndpoint> initMembers(int membersNum) {
-    List<TransportEndpoint> members = new ArrayList<>(membersNum);
-    for (int id = 0; id < membersNum; id++) {
-      int port = 20000 + id;
-      members.add(TransportEndpoint.from("localhost:" + port + ":" + id));
+  private List<Address> initMembers(int membersNum) {
+    List<Address> members = new ArrayList<>(membersNum);
+    for (int portShift = 0; portShift < membersNum; portShift++) {
+      int port = 20000 + portShift;
+      members.add(Address.from("localhost:" + port));
     }
     return members;
   }
 
-  private GossipProtocol initGossiper(TransportEndpoint transportEndpoint, List<TransportEndpoint> members,
-      int lostPercent, int delay) {
+  private GossipProtocol initGossiper(Address localAddress, List<Address> members,
+                                      int lostPercent, int delay) {
 
     TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(transportEndpoint, transportSettings);
+    Transport transport = Transport.newInstance(localAddress, transportSettings);
     transport.setDefaultNetworkSettings(lostPercent, delay);
 
-    GossipProtocol gossipProtocol = new GossipProtocol(transport);
-    gossipProtocol.setClusterEndpoints(members);
+    String memberId = UUID.randomUUID().toString();
+    GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
+    gossipProtocol.setClusterMembers(members);
 
     try {
       transport.start().get();

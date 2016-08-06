@@ -1,6 +1,6 @@
 package io.scalecube.cluster.gossip;
 
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
@@ -15,12 +15,12 @@ final class GossipLocalState {
   private int sent;
   /** Local time when gossip first period occur. */
   private long period;
-  /** Set of endpoints this gossip was received from. */
-  private Set<TransportEndpoint> members;
+  /** Set of members this gossip was received from. */
+  private Set<Address> members;
 
   private GossipLocalState() {}
 
-  public static GossipLocalState create(Gossip gossip, TransportEndpoint member, long period) {
+  public static GossipLocalState create(Gossip gossip, Address member, long period) {
     Preconditions.checkNotNull(gossip);
     GossipLocalState data = new GossipLocalState();
     data.gossip = gossip;
@@ -34,12 +34,12 @@ final class GossipLocalState {
 
   }
 
-  public void addMember(TransportEndpoint source) {
+  public void addMember(Address source) {
     members.add(source);
   }
 
-  public boolean containsMember(TransportEndpoint endpoint) {
-    return members.contains(endpoint);
+  public boolean containsMember(Address address) {
+    return members.contains(address);
   }
 
   public void incrementSend() {

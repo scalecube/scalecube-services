@@ -36,9 +36,8 @@ final class MessageSchema implements Schema<Message> {
   private static final int HEADER_KEYS_FIELD_NUMBER = 1;
   private static final int HEADER_VALUES_FIELD_NUMBER = 2;
   private static final int DATA_FIELD_NUMBER = 3;
-  private static final int SENDER_ID_FIELD_NUMBER = 4;
-  private static final int SENDER_HOST_FIELD_NUMBER = 5;
-  private static final int SENDER_PORT_FIELD_NUMBER = 6;
+  private static final int SENDER_HOST_FIELD_NUMBER = 4;
+  private static final int SENDER_PORT_FIELD_NUMBER = 5;
 
   private static final RecyclableLinkedBuffer recyclableLinkedBuffer =
       new RecyclableLinkedBuffer(MIN_BUFFER_SIZE, DEFAULT_MAX_CAPACITY);
@@ -47,7 +46,6 @@ final class MessageSchema implements Schema<Message> {
       .put("headerKeys", HEADER_KEYS_FIELD_NUMBER)
       .put("headerValues", HEADER_VALUES_FIELD_NUMBER)
       .put("data", DATA_FIELD_NUMBER)
-      .put("senderId", SENDER_ID_FIELD_NUMBER)
       .put("senderHost", SENDER_HOST_FIELD_NUMBER)
       .put("senderPort", SENDER_PORT_FIELD_NUMBER)
       .build();
@@ -74,8 +72,6 @@ final class MessageSchema implements Schema<Message> {
         return "headerValues";
       case DATA_FIELD_NUMBER:
         return "data";
-      case SENDER_ID_FIELD_NUMBER:
-        return "senderId";
       case SENDER_HOST_FIELD_NUMBER:
         return "senderHost";
       case SENDER_PORT_FIELD_NUMBER:
@@ -121,7 +117,6 @@ final class MessageSchema implements Schema<Message> {
     boolean iterate = true;
     List<String> headerKeys = new ArrayList<>();
     List<String> headerValues = new ArrayList<>();
-    String senderId = null;
     String senderHost = null;
     int senderPort = 0;
     byte[] dataBytes = null;
@@ -139,9 +134,6 @@ final class MessageSchema implements Schema<Message> {
           break;
         case DATA_FIELD_NUMBER:
           dataBytes = input.readByteArray();
-          break;
-        case SENDER_ID_FIELD_NUMBER:
-          senderId = input.readString();
           break;
         case SENDER_HOST_FIELD_NUMBER:
           senderHost = input.readString();
@@ -190,10 +182,7 @@ final class MessageSchema implements Schema<Message> {
     }
 
     // Deserialize sender
-    TransportEndpoint sender = null;
-    if (senderId != null && senderHost != null) {
-      sender = TransportEndpoint.create(senderId, senderHost, senderPort);
-    }
+    Address sender = senderHost != null ? Address.create(senderHost, senderPort) : null;
 
     // Set message
     message.setHeaders(headers);
@@ -233,9 +222,8 @@ final class MessageSchema implements Schema<Message> {
     }
 
     // Write sender
-    TransportEndpoint sender = message.sender();
+    Address sender = message.sender();
     if (sender != null) {
-      output.writeString(SENDER_ID_FIELD_NUMBER, sender.id(), false);
       output.writeString(SENDER_HOST_FIELD_NUMBER, sender.host(), false);
       output.writeInt32(SENDER_PORT_FIELD_NUMBER, sender.port(), false);
     }

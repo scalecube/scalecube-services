@@ -1,6 +1,6 @@
 package io.scalecube.cluster.gossip;
 
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import java.util.Collection;
 
@@ -12,7 +12,7 @@ import java.util.Collection;
 public interface IManagedGossipProtocol extends IGossipProtocol {
 
   /** Updates list of cluster members among which should be spread gossips. */
-  void setClusterEndpoints(Collection<TransportEndpoint> endpoints);
+  void setClusterMembers(Collection<Address> members);
 
   /** Starts running gossip protocol. After started it begins to receive and send gossip messages */
   void start();

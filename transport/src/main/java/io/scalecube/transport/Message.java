@@ -13,7 +13,7 @@ public final class Message {
 
   private Map<String, String> headers = Collections.emptyMap();
   private Object data;
-  private TransportEndpoint sender;
+  private Address sender;
 
   /**
    * Instantiates empty message for deserialization purpose.
@@ -111,9 +111,9 @@ public final class Message {
   /**
    * Sets sender and used by transport send method.
    * 
-   * @param sender endpoint from where message was sent
+   * @param sender address from where message was sent
    */
-  void setSender(TransportEndpoint sender) {
+  void setSender(Address sender) {
     this.sender = sender;
   }
 
@@ -151,7 +151,7 @@ public final class Message {
     return (T) data;
   }
 
-  public TransportEndpoint sender() {
+  public Address sender() {
     return sender;
   }
 

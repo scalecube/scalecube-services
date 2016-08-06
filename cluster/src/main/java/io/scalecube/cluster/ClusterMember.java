@@ -2,7 +2,7 @@ package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import java.util.Collections;
 import java.util.Map;
@@ -11,28 +11,28 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * DTO class. Hosting cluster endpoint, status, metadata and update timestamp. Most important, contains --
+ * DTO class. Hosting cluster member id, address, status, metadata and update timestamp. Most important, contains --
  * {@link #compareTo(ClusterMember)} .
  */
 @Immutable
 public final class ClusterMember implements Comparable<ClusterMember> {
   private final String id;
-  private final TransportEndpoint endpoint;
+  private final Address address;
   private final Map<String, String> metadata;
   private final ClusterMemberStatus status;
   private final long timestamp;
 
-  ClusterMember(String id, TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
-    this(id, endpoint, status, metadata, System.currentTimeMillis());
+  ClusterMember(String id, Address address, ClusterMemberStatus status, Map<String, String> metadata) {
+    this(id, address, status, metadata, System.currentTimeMillis());
   }
 
-  ClusterMember(String id, TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata,
-      long timestamp) {
+  ClusterMember(String id, Address address, ClusterMemberStatus status, Map<String, String> metadata,
+                long timestamp) {
     checkArgument(id != null);
-    checkArgument(endpoint != null);
+    checkArgument(address != null);
     checkArgument(status != null);
     this.id = id;
-    this.endpoint = endpoint;
+    this.address = address;
     this.status = status;
     this.metadata = metadata;
     this.timestamp = timestamp;
@@ -44,8 +44,8 @@ public final class ClusterMember implements Comparable<ClusterMember> {
   }
 
   @Nonnull
-  public TransportEndpoint endpoint() {
-    return endpoint;
+  public Address address() {
+    return address;
   }
 
   @Nonnull
@@ -86,7 +86,8 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   @Override
   public String toString() {
-    return "ClusterMember{endpoint=" + endpoint
+    return "ClusterMember{id=" + id
+        + ", address=" + address
         + ", status=" + status
         + ", metadata=" + metadata
         + ", lastUpdateTimestamp=" + timestamp

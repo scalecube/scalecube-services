@@ -1,41 +1,41 @@
 package io.scalecube.cluster.fdetector;
 
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import io.protostuff.Tag;
 
 /** DTO class. Supports FailureDetector messages (Ping, Ack, PingReq). */
 final class FailureDetectorData {
-  /** Message's source endpoint. */
+  /** Message's source address. */
   @Tag(1)
-  private TransportEndpoint from;
-  /** Message's destination endpoint. */
+  private Address from;
+  /** Message's destination address. */
   @Tag(2)
-  private TransportEndpoint to;
-  /** Endpoint, who originally initiated ping sequence. */
+  private Address to;
+  /** Address of member, who originally initiated ping sequence. */
   @Tag(3)
-  private TransportEndpoint originalIssuer;
+  private Address originalIssuer;
 
-  public FailureDetectorData(TransportEndpoint from, TransportEndpoint to) {
+  public FailureDetectorData(Address from, Address to) {
     this.from = from;
     this.to = to;
   }
 
-  public FailureDetectorData(TransportEndpoint from, TransportEndpoint to, TransportEndpoint originalIssuer) {
+  public FailureDetectorData(Address from, Address to, Address originalIssuer) {
     this.from = from;
     this.to = to;
     this.originalIssuer = originalIssuer;
   }
 
-  public TransportEndpoint getFrom() {
+  public Address getFrom() {
     return from;
   }
 
-  public TransportEndpoint getTo() {
+  public Address getTo() {
     return to;
   }
 
-  public TransportEndpoint getOriginalIssuer() {
+  public Address getOriginalIssuer() {
     return originalIssuer;
   }
 

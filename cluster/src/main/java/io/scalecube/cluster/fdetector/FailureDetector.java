@@ -9,7 +9,7 @@ import static java.lang.Math.min;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.MessageHeaders;
 
 import com.google.common.collect.Sets;
@@ -54,19 +54,19 @@ public final class FailureDetector implements IFailureDetector {
   private static final MessageHeaders.Filter PING_FILTER = new MessageHeaders.Filter(PING);
   private static final MessageHeaders.Filter PING_REQ_FILTER = new MessageHeaders.Filter(PING_REQ);
 
-  private volatile List<TransportEndpoint> members = new ArrayList<>();
+  private volatile List<Address> members = new ArrayList<>();
 
   private final ITransport transport;
-  private final TransportEndpoint localEndpoint;
+  private final Address localAddress;
   private final Scheduler scheduler;
   private final FailureDetectorSettings settings;
 
   @SuppressWarnings("unchecked")
   private Subject<FailureDetectorEvent, FailureDetectorEvent> subject = new SerializedSubject(PublishSubject.create());
   private AtomicInteger periodNbr = new AtomicInteger();
-  private Set<TransportEndpoint> suspectedMembers = Sets.newConcurrentHashSet();
-  private TransportEndpoint pingMember; // for test purpose only
-  private List<TransportEndpoint> randomMembers; // for test purpose only
+  private Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
+  private Address pingMember; // for test purpose only
+  private List<Address> randomMembers; // for test purpose only
   private volatile Subscription fdTask;
 
   /** Listener to PING message and answer with ACK. */
@@ -77,7 +77,7 @@ public final class FailureDetector implements IFailureDetector {
       FailureDetectorData data = message.data();
       String correlationId = message.correlationId();
       Message ackMsg = Message.withData(data).qualifier(ACK).correlationId(correlationId).build();
-      send(data.getFrom(), ackMsg);
+      transport.send(data.getFrom(), ackMsg);
     }
   });
 
@@ -87,12 +87,12 @@ public final class FailureDetector implements IFailureDetector {
     public void call(Message message) {
       LOGGER.trace("Received PingReq: {}", message);
       FailureDetectorData data = message.data();
-      TransportEndpoint target = data.getTo();
-      TransportEndpoint originalIssuer = data.getFrom();
+      Address target = data.getTo();
+      Address originalIssuer = data.getFrom();
       String correlationId = message.correlationId();
-      FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, target, originalIssuer);
+      FailureDetectorData pingReqData = new FailureDetectorData(localAddress, target, originalIssuer);
       Message pingMsg = Message.withData(pingReqData).qualifier(PING).correlationId(correlationId).build();
-      send(target, pingMsg);
+      transport.send(target, pingMsg);
     }
   });
 
@@ -105,33 +105,44 @@ public final class FailureDetector implements IFailureDetector {
         @Override
         public void call(Message message) {
           FailureDetectorData data = message.data();
-          TransportEndpoint target = data.getOriginalIssuer();
+          Address target = data.getOriginalIssuer();
           String correlationId = message.correlationId();
           FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
           Message originalAckMsg =
               Message.withData(originalAckData).qualifier(ACK).correlationId(correlationId).build();
-          send(target, originalAckMsg);
+          transport.send(target, originalAckMsg);
         }
       });
 
+  /**
+   * Creates new instance of failure detector with given transport and default settings.
+   *
+   * @param transport transport
+   */
   public FailureDetector(Transport transport) {
     this(transport, FailureDetectorSettings.DEFAULT);
   }
 
+  /**
+   * Creates new instance of failure detector with given transport and settings.
+   *
+   * @param transport transport
+   * @param settings failure detector settings
+   */
   public FailureDetector(Transport transport, FailureDetectorSettings settings) {
     checkArgument(transport != null);
     checkArgument(settings != null);
     this.transport = transport;
     this.settings = settings;
-    this.localEndpoint = transport.localEndpoint();
+    this.localAddress = transport.localAddress();
     this.scheduler = Schedulers.from(transport.getWorkerGroup());
   }
 
   @Override
-  public void setClusterEndpoints(Collection<TransportEndpoint> members) {
-    Set<TransportEndpoint> set = new HashSet<>(members);
-    set.remove(localEndpoint);
-    List<TransportEndpoint> list = new ArrayList<>(set);
+  public void setClusterMembers(Collection<Address> members) {
+    Set<Address> set = new HashSet<>(members);
+    set.remove(localAddress);
+    List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
     this.members = list;
     LOGGER.debug("Set cluster members: {}", this.members);
@@ -141,30 +152,26 @@ public final class FailureDetector implements IFailureDetector {
     return transport;
   }
 
-  public TransportEndpoint getLocalEndpoint() {
-    return localEndpoint;
-  }
-
-  public List<TransportEndpoint> getSuspectedMembers() {
+  public List<Address> getSuspectedMembers() {
     return new ArrayList<>(suspectedMembers);
   }
 
   /** <b>NOTE:</b> this method is for test purpose only. */
-  void setPingMember(TransportEndpoint member) {
+  void setPingMember(Address member) {
     checkNotNull(member);
-    checkArgument(member != localEndpoint);
+    checkArgument(member != localAddress);
     this.pingMember = member;
   }
 
   /** <b>NOTE:</b> this method is for test purpose only. */
-  void setRandomMembers(List<TransportEndpoint> randomMembers) {
+  void setRandomMembers(List<Address> randomMembers) {
     checkNotNull(randomMembers);
     this.randomMembers = randomMembers;
   }
 
   @Override
   public void start() {
-    transport.listen().filter(PING_FILTER).filter(targetFilter(localEndpoint)).subscribe(onPingSubscriber);
+    transport.listen().filter(PING_FILTER).filter(targetFilter(localAddress)).subscribe(onPingSubscriber);
     transport.listen().filter(PING_REQ_FILTER).subscribe(onPingReqSubscriber);
     transport.listen().filter(ACK_FILTER).filter(new Func1<Message, Boolean>() {
       @Override
@@ -203,29 +210,29 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   @Override
-  public void suspect(TransportEndpoint member) {
+  public void suspect(Address member) {
     checkNotNull(member);
     suspectedMembers.add(member);
   }
 
   @Override
-  public void trust(TransportEndpoint member) {
+  public void trust(Address member) {
     checkNotNull(member);
     suspectedMembers.remove(member);
   }
 
-  private void doPing(final List<TransportEndpoint> members) {
-    final TransportEndpoint pingMember = selectPingMember(members);
+  private void doPing(final List<Address> members) {
+    final Address pingMember = selectPingMember(members);
     if (pingMember == null) {
       return;
     }
 
     final String period = Integer.toString(periodNbr.incrementAndGet());
-    FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
+    FailureDetectorData pingData = new FailureDetectorData(localAddress, pingMember);
     Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(period).build();
-    LOGGER.trace("Send Ping from {} to {}", localEndpoint, pingMember);
+    LOGGER.trace("Send Ping from {} to {}", localAddress, pingMember);
 
-    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
+    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localAddress, pingMember)).take(1)
         .timeout(settings.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
@@ -242,10 +249,10 @@ public final class FailureDetector implements IFailureDetector {
           }
         }));
 
-    send(pingMember, pingMsg);
+    transport.send(pingMember, pingMsg);
   }
 
-  private void doPingReq(List<TransportEndpoint> members, final TransportEndpoint targetMember, String period) {
+  private void doPingReq(List<Address> members, final Address targetMember, String period) {
     final int timeout = settings.getPingTime() - settings.getPingTimeout();
     if (timeout <= 0) {
       LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})",
@@ -254,15 +261,15 @@ public final class FailureDetector implements IFailureDetector {
       return;
     }
 
-    final List<TransportEndpoint> randomMembers =
-        selectRandomMembers(members, settings.getMaxEndpointsToSelect(), targetMember/* exclude */);
+    final List<Address> randomMembers =
+        selectRandomMembers(members, settings.getMaxMembersToSelect(), targetMember/* exclude */);
     if (randomMembers.isEmpty()) {
       LOGGER.trace("No PingReq occurred, because member selection is empty");
       declareSuspected(targetMember);
       return;
     }
 
-    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, targetMember)).take(1)
+    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localAddress, targetMember)).take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
@@ -279,18 +286,18 @@ public final class FailureDetector implements IFailureDetector {
           }
         }));
 
-    FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, targetMember);
+    FailureDetectorData pingReqData = new FailureDetectorData(localAddress, targetMember);
     Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(period).build();
-    for (TransportEndpoint randomMember : randomMembers) {
-      LOGGER.trace("Send PingReq from {} to {}", localEndpoint, randomMember);
-      send(randomMember, pingReqMsg);
+    for (Address randomMember : randomMembers) {
+      LOGGER.trace("Send PingReq from {} to {}", localAddress, randomMember);
+      transport.send(randomMember, pingReqMsg);
     }
   }
 
   /**
    * Adds given member to {@link #suspectedMembers} and emitting state {@code SUSPECTED}.
    */
-  private void declareSuspected(TransportEndpoint member) {
+  private void declareSuspected(Address member) {
     if (suspectedMembers.add(member)) {
       LOGGER.debug("Member {} became SUSPECTED", member);
       subject.onNext(suspected(member));
@@ -300,26 +307,22 @@ public final class FailureDetector implements IFailureDetector {
   /**
    * Removes given member from {@link #suspectedMembers} and emitting state {@code TRUSTED}.
    */
-  private void declareTrusted(TransportEndpoint member) {
+  private void declareTrusted(Address member) {
     if (suspectedMembers.remove(member)) {
       LOGGER.debug("Member {} became TRUSTED", member);
       subject.onNext(trusted(member));
     }
   }
 
-  private void send(TransportEndpoint endpoint, Message message) {
-    transport.send(endpoint, message);
-  }
-
-  private TransportEndpoint selectPingMember(List<TransportEndpoint> members) {
+  private Address selectPingMember(List<Address> members) {
     if (pingMember != null) {
       return pingMember;
     }
     return members.isEmpty() ? null : selectRandomMembers(members, 1, null).get(0);
   }
 
-  private List<TransportEndpoint> selectRandomMembers(List<TransportEndpoint> members, int count,
-      TransportEndpoint memberToExclude) {
+  private List<Address> selectRandomMembers(List<Address> members, int count,
+                                            Address memberToExclude) {
     if (randomMembers != null) {
       return randomMembers;
     }
@@ -327,12 +330,12 @@ public final class FailureDetector implements IFailureDetector {
     checkArgument(count > 0, "FailureDetector: k is required!");
     count = min(count, 5);
 
-    List<TransportEndpoint> list = new ArrayList<>(members);
+    List<Address> list = new ArrayList<>(members);
     list.remove(memberToExclude);
 
-    List<TransportEndpoint> target = new ArrayList<>(count);
+    List<Address> target = new ArrayList<>(count);
     for (; !list.isEmpty() && count != 0; count--) {
-      TransportEndpoint member = list.get(ThreadLocalRandom.current().nextInt(list.size()));
+      Address member = list.get(ThreadLocalRandom.current().nextInt(list.size()));
       target.add(member);
       list.remove(member);
     }
@@ -343,21 +346,21 @@ public final class FailureDetector implements IFailureDetector {
     return new MessageHeaders.Filter(ACK, correlationId);
   }
 
-  private Func1<Message, Boolean> targetFilter(final TransportEndpoint endpoint) {
+  private Func1<Message, Boolean> targetFilter(final Address address) {
     return new Func1<Message, Boolean>() {
       @Override
       public Boolean call(Message message) {
         FailureDetectorData data = message.data();
-        return data.getTo().equals(endpoint);
+        return data.getTo().equals(address);
       }
     };
   }
 
   private static class CorrelationFilter implements Func1<Message, Boolean> {
-    final TransportEndpoint from;
-    final TransportEndpoint target;
+    final Address from;
+    final Address target;
 
-    CorrelationFilter(TransportEndpoint from, TransportEndpoint target) {
+    CorrelationFilter(Address from, Address target) {
       this.from = from;
       this.target = target;
     }
