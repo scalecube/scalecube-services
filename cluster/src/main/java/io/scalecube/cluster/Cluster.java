@@ -82,8 +82,7 @@ public final class Cluster implements ICluster {
     failureDetector = new FailureDetector(transport, config.failureDetectorSettings);
 
     // Build cluster membership component
-    clusterMembership = new ClusterMembership(memberId, localAddress, Schedulers.from(transport.getWorkerGroup()));
-    clusterMembership.setTransport(transport);
+    clusterMembership = new ClusterMembership(memberId, transport);
     clusterMembership.setFailureDetector(failureDetector);
     clusterMembership.setGossipProtocol(gossipProtocol);
     clusterMembership.setLocalMetadata(config.metadata);

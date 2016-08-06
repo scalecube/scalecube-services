@@ -45,8 +45,7 @@ public class ClusterMembershipBuilder {
     gossipProtocol = new GossipProtocol(memberId, transport);
 
 
-    membership = new ClusterMembership(memberId, localAddress, Schedulers.computation());
-    membership.setTransport(transport);
+    membership = new ClusterMembership(memberId, transport);
     membership.setFailureDetector(failureDetector);
     membership.setGossipProtocol(gossipProtocol);
     membership.setLocalMetadata(new HashMap<String, String>() {

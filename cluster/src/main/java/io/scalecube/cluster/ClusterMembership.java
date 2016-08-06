@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.scalecube.transport.Transport;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
@@ -34,6 +35,7 @@ import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observable.ListenableFutureObservable;
 import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
@@ -79,9 +81,8 @@ public final class ClusterMembership implements IClusterMembership {
   private int maxShutdownTime = 60 * 1000;
   private String syncGroup = "default";
   private List<Address> seedMembers = new ArrayList<>();
-  private ITransport transport;
+  private final ITransport transport;
   private final String memberId;
-  private final Address localAddress;
   private final Scheduler scheduler;
   private volatile Subscription cmTask;
   private TickingTimer timer;
@@ -96,7 +97,7 @@ public final class ClusterMembership implements IClusterMembership {
     @Override
     public void call(Message message) {
       ClusterMembershipData data = message.data();
-      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localAddress, data);
+      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.localAddress(), data);
       List<ClusterMember> updates = membership.merge(filteredData);
       Address sender = message.sender();
       if (!updates.isEmpty()) {
@@ -147,10 +148,10 @@ public final class ClusterMembership implements IClusterMembership {
     }
   };
 
-  ClusterMembership(String memberId, Address localAddress, Scheduler scheduler) {
+  ClusterMembership(String memberId, Transport transport) {
     this.memberId = memberId;
-    this.localAddress = localAddress;
-    this.scheduler = scheduler;
+    this.transport = transport;
+    this.scheduler = Schedulers.from(transport.getWorkerGroup());
   }
 
   public void setFailureDetector(IFailureDetector failureDetector) {
@@ -202,12 +203,8 @@ public final class ClusterMembership implements IClusterMembership {
   public void setSeedMembers(Collection<Address> seedMembers) {
     // filter duplicates and local addresses
     Set<Address> seedMembersSet = new HashSet<>(seedMembers);
-    seedMembersSet.remove(localAddress);
+    seedMembersSet.remove(transport.localAddress());
     this.seedMembers = new ArrayList<>(seedMembersSet);
-  }
-
-  public void setTransport(ITransport transport) {
-    this.transport = transport;
   }
 
   public void setLocalMetadata(Map<String, String> localMetadata) {
@@ -238,7 +235,7 @@ public final class ClusterMembership implements IClusterMembership {
 
   @Override
   public ClusterMember localMember() {
-    return membership.get(localAddress);
+    return membership.get(memberId);
   }
 
   /**
@@ -250,7 +247,7 @@ public final class ClusterMembership implements IClusterMembership {
     timer.start();
 
     // Register itself initially before SYNC/SYNC_ACK
-    ClusterMember localMember = new ClusterMember(memberId, localAddress, TRUSTED, localMetadata);
+    ClusterMember localMember = new ClusterMember(memberId, transport.localAddress(), TRUSTED, localMetadata);
     List<ClusterMember> updates = membership.merge(localMember);
     processUpdates(updates, false/* spread gossip */);
 
@@ -264,7 +261,7 @@ public final class ClusterMembership implements IClusterMembership {
     failureDetector.listenStatus().subscribe(onFdSubscriber);
 
     // Listen to 'membership' message from GossipProtocol
-    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(localAddress))
+    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(transport.localAddress()))
         .subscribe(onGossipSubscriber);
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
@@ -364,7 +361,7 @@ public final class ClusterMembership implements IClusterMembership {
 
   private void onSyncAck(Message message) {
     ClusterMembershipData data = message.data();
-    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(localAddress, data);
+    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.localAddress(), data);
     Address sender = message.sender();
     List<ClusterMember> updates = membership.merge(filteredData);
     if (!updates.isEmpty()) {
@@ -456,7 +453,7 @@ public final class ClusterMembership implements IClusterMembership {
    * information about leave before stopping server.
    */
   public void leave() {
-    ClusterMember localMember = new ClusterMember(memberId, localAddress, SHUTDOWN, localMetadata);
+    ClusterMember localMember = new ClusterMember(memberId, transport.localAddress(), SHUTDOWN, localMetadata);
     gossipProtocol.spread(Message.fromData(new ClusterMembershipData(ImmutableList.of(localMember), syncGroup)));
   }
 

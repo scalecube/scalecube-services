@@ -16,7 +16,7 @@ import javax.annotation.Nullable;
 public interface ITransport {
 
   /**
-   * Returns {@link Address} corresponding to this instance of transport.
+   * Returns {@link Address} on which listens incomming messages this instance of transport.
    */
   Address localAddress();
 
@@ -78,8 +78,7 @@ public interface ITransport {
    * @param promise promise will be completed with result of sending (void or exception)
    * @throws IllegalArgumentException if {@code message} or {@code address} is null
    */
-  void send(@CheckForNull Address address, @CheckForNull Message message,
-            @Nullable SettableFuture<Void> promise);
+  void send(@CheckForNull Address address, @CheckForNull Message message, @Nullable SettableFuture<Void> promise);
 
   /**
    * Returns stream of received messages. For each observers subscribed to the returned observable:
