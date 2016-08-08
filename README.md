@@ -4,6 +4,7 @@
 
 ScaleCube is a lightweight decentralized cluster membership, failure detection, messaging and gossip protocol library 
 for the Java VM.
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube)
 
 Web Site: [http://scalecube.io](http://scalecube.io/)
 
@@ -17,7 +18,7 @@ Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
 Binaries and dependency information for Maven can be found at 
 [http://search.maven.org](http://search.maven.org/#search%7Cga%7C1%7Cio.scalecube.scalecube).
 
-Maven dependency:
+To add a dependency on ScaleCube using Maven, use the following:
 
 ``` xml
 <dependency>
