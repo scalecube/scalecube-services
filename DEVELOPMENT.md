@@ -1,10 +1,10 @@
-# Setup Development Environment
+# Setting up development environment
 
-## Install build tools
-Your require to have latest stable [Oracle JDK 7](http://java.oracle.com/), latest stable 
+## Install the necessary build tools
+You require to have latest stable [Oracle JDK 7](http://java.oracle.com/), latest stable 
 [Apache Maven](http://maven.apache.org/) and [Git](http://git-scm.com/) installed on your machine.
 
-## Setup IDE
+## Set up IntelliJ IDEA
 ScaleCube project team uses [IntelliJ IDEA](http://www.jetbrains.com/idea/) as the primary IDE, although we are fine 
 with using other development environments as long as you adhere to our coding style.
 
