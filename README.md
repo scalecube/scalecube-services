@@ -1,10 +1,10 @@
 # ScaleCube
 
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube)
 
 ScaleCube is a lightweight decentralized cluster membership, failure detection, messaging and gossip protocol library 
 for the Java VM.
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube)
 
 Web Site: [http://scalecube.io](http://scalecube.io/)
 
