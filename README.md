@@ -1,9 +1,4 @@
-## Project Status
-
-This is an alpha version of the project and it is **not** stable or production ready as for now. 
-Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.    
-
-## ScaleCube
+# ScaleCube
 
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
 
@@ -12,6 +7,11 @@ applications that scales. It connects distributed microservices in a way that re
 when viewed collectively. It greatly simplifies and streamlines asynchronous programming and provides a tool-set for 
 managing [microservices architecture](http://microservices.io/patterns/index.html). ScaleCube has succeeded to find a way to achieve ease of development, performance, stability, 
 and flexibility without a compromise.
+
+## Project Status
+
+This is an alpha version of the project and it is **not** stable or production ready as for now. 
+Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
 
 ## Explore
 ScaleCube contains several different components designed to make it easier for you to write reactive applications in java. it is highly modular and you just use the bits that you need and nothing more.
