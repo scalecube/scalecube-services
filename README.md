@@ -21,9 +21,9 @@ Maven dependency:
 
 ``` xml
 <dependency>
-	<groupId>io.scalecube</groupId>
-	<artifactId>scalecube-cluster</artifactId>
-	<version>0.0.5</version>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-cluster</artifactId>
+  <version>0.0.5</version>
 </dependency>
 ```
 
