@@ -8,9 +8,9 @@ import javax.annotation.concurrent.Immutable;
  * @author Anton Kharenko
  */
 @Immutable
-public final class TransportSettings {
+public final class TransportConfig {
 
-  public static final TransportSettings DEFAULT = builder().build();
+  public static final TransportConfig DEFAULT = builder().build();
 
   public static final int DEFAULT_CONNECT_TIMEOUT = 3000;
   public static final String DEFAULT_LOG_LEVEL = "OFF";
@@ -26,7 +26,7 @@ public final class TransportSettings {
   private final int bossThreads;
   private final int workerThreads;
 
-  private TransportSettings(Builder builder) {
+  private TransportConfig(Builder builder) {
     this.connectTimeout = builder.connectTimeout;
     this.logLevel = builder.logLevel;
     this.useNetworkEmulator = builder.useNetworkEmulator;
@@ -65,7 +65,7 @@ public final class TransportSettings {
 
   @Override
   public String toString() {
-    return "TransportSettings{connectTimeout=" + connectTimeout
+    return "TransportConfig{connectTimeout=" + connectTimeout
         + ", logLevel='" + logLevel + '\''
         + ", useNetworkEmulator=" + useNetworkEmulator
         + ", enableEpoll=" + enableEpoll
@@ -115,8 +115,8 @@ public final class TransportSettings {
       return this;
     }
 
-    public TransportSettings build() {
-      return new TransportSettings(this);
+    public TransportConfig build() {
+      return new TransportConfig(this);
     }
   }
 }

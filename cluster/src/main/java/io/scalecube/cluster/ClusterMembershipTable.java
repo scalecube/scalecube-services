@@ -5,7 +5,7 @@ import static io.scalecube.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
 
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,27 +42,33 @@ final class ClusterMembershipTable {
   }
 
   public List<ClusterMember> merge(FailureDetectorEvent event) {
-    ClusterMember r0 = membership.get(event.endpoint().id());
+    ClusterMember r0 = get(event.address());
     if (r0 != null) {
-      return merge(new ClusterMember(event.endpoint(), event.status(), r0.metadata()));
+      return merge(new ClusterMember(r0.id(), r0.address(), event.status(), r0.metadata()));
     } else {
       return Collections.emptyList();
     }
   }
 
-  public ClusterMember get(TransportEndpoint endpoint) {
-    return membership.get(endpoint.id());
+  public ClusterMember get(Address address) {
+    // TODO [AK]: Temporary solution, should be optimized!!!
+    for (ClusterMember member : membership.values()) {
+      if (member.address().equals(address)) {
+        return member;
+      }
+    }
+    return null;
   }
 
   public ClusterMember get(String id) {
     return membership.get(id);
   }
 
-  public List<ClusterMember> remove(TransportEndpoint endpoint) {
+  public List<ClusterMember> remove(String id) {
     List<ClusterMember> updates = new ArrayList<>(1);
-    ClusterMember r0 = membership.remove(endpoint.id());
+    ClusterMember r0 = membership.remove(id);
     if (r0 != null) {
-      updates.add(new ClusterMember(endpoint, REMOVED, r0.metadata()));
+      updates.add(new ClusterMember(r0.id(), r0.address(), REMOVED, r0.metadata()));
     }
     return updates;
   }
@@ -72,15 +78,15 @@ final class ClusterMembershipTable {
   }
 
   /**
-   * Getting {@code TRUSTED} or {@code SUSPECTED} member's endpoints.
+   * Getting {@code TRUSTED} or {@code SUSPECTED} member's addresses.
    */
-  public Collection<TransportEndpoint> getTrustedOrSuspectedEndpoints() {
-    Collection<TransportEndpoint> endpoints = new ArrayList<>();
+  public Collection<Address> getTrustedOrSuspectedMembers() {
+    Collection<Address> addresses = new ArrayList<>();
     for (ClusterMember member : membership.values()) {
       if (member.status() == TRUSTED || member.status() == SUSPECTED) {
-        endpoints.add(member.endpoint());
+        addresses.add(member.address());
       }
     }
-    return endpoints;
+    return addresses;
   }
 }

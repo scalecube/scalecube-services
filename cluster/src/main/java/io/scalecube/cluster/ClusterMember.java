@@ -2,7 +2,7 @@ package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import java.util.Collections;
 import java.util.Map;
@@ -11,38 +11,41 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * DTO class. Hosting cluster endpoint, status, metadata and update timestamp. Most important, contains --
+ * DTO class. Hosting cluster member id, address, status, metadata and update timestamp. Most important, contains --
  * {@link #compareTo(ClusterMember)} .
  */
 @Immutable
 public final class ClusterMember implements Comparable<ClusterMember> {
-  private final TransportEndpoint endpoint;
-  private final ClusterMemberStatus status;
+  private final String id;
+  private final Address address;
   private final Map<String, String> metadata;
-  private final long lastUpdateTimestamp;
+  private final ClusterMemberStatus status;
+  private final long timestamp;
 
-  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata) {
-    this(endpoint, status, metadata, System.currentTimeMillis());
+  ClusterMember(String id, Address address, ClusterMemberStatus status, Map<String, String> metadata) {
+    this(id, address, status, metadata, System.currentTimeMillis());
   }
 
-  ClusterMember(TransportEndpoint endpoint, ClusterMemberStatus status, Map<String, String> metadata,
-      long lastUpdateTimestamp) {
-    checkArgument(endpoint != null);
+  ClusterMember(String id, Address address, ClusterMemberStatus status, Map<String, String> metadata,
+                long timestamp) {
+    checkArgument(id != null);
+    checkArgument(address != null);
     checkArgument(status != null);
-    this.endpoint = endpoint;
+    this.id = id;
+    this.address = address;
     this.status = status;
     this.metadata = metadata;
-    this.lastUpdateTimestamp = lastUpdateTimestamp;
+    this.timestamp = timestamp;
   }
 
   @Nonnull
   public String id() {
-    return endpoint.id();
+    return id;
   }
 
   @Nonnull
-  public TransportEndpoint endpoint() {
-    return endpoint;
+  public Address address() {
+    return address;
   }
 
   @Nonnull
@@ -54,8 +57,8 @@ public final class ClusterMember implements Comparable<ClusterMember> {
     return Collections.unmodifiableMap(metadata);
   }
 
-  public long lastUpdateTimestamp() {
-    return lastUpdateTimestamp;
+  public long timestamp() {
+    return timestamp;
   }
 
   @Override
@@ -70,7 +73,7 @@ public final class ClusterMember implements Comparable<ClusterMember> {
       return -1;
     }
 
-    int clockCompare = Long.compare(lastUpdateTimestamp, r1.lastUpdateTimestamp);
+    int clockCompare = Long.compare(timestamp, r1.timestamp);
     if (clockCompare < 0) {
       return -1;
     }
@@ -83,10 +86,11 @@ public final class ClusterMember implements Comparable<ClusterMember> {
 
   @Override
   public String toString() {
-    return "ClusterMember{endpoint=" + endpoint
+    return "ClusterMember{id=" + id
+        + ", address=" + address
         + ", status=" + status
         + ", metadata=" + metadata
-        + ", lastUpdateTimestamp=" + lastUpdateTimestamp
+        + ", lastUpdateTimestamp=" + timestamp
         + '}';
   }
 }

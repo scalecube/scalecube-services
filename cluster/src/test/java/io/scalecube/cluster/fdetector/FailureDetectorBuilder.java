@@ -1,94 +1,87 @@
 package io.scalecube.cluster.fdetector;
 
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.TransportConfig;
 
 import com.google.common.base.Throwables;
-
-import rx.schedulers.Schedulers;
 
 import java.util.Arrays;
 import java.util.List;
 
 public class FailureDetectorBuilder {
-  final FailureDetector target;
+  final FailureDetector failureDetector;
 
-  FailureDetectorBuilder(TransportEndpoint transportEndpoint, Transport tf) {
-    target = new FailureDetector(transportEndpoint, Schedulers.from(tf.getWorkerGroup()));
-    target.setTransport(tf);
+  FailureDetectorBuilder(Transport transport, FailureDetectorConfig failureDetectorConfig) {
+    failureDetector = new FailureDetector(transport, failureDetectorConfig);
   }
 
-  public FailureDetectorBuilder set(List<TransportEndpoint> members) {
-    target.setClusterEndpoints(members);
+  public FailureDetectorBuilder set(List<Address> members) {
+    failureDetector.setMembers(members);
     return this;
   }
 
-  public FailureDetectorBuilder pingTime(int pingTime) {
-    target.setPingTime(pingTime);
-    return this;
-  }
-
-  public FailureDetectorBuilder pingTimeout(int pingTimeout) {
-    target.setPingTimeout(pingTimeout);
-    return this;
-  }
-
-  public FailureDetectorBuilder ping(TransportEndpoint member) {
-    target.setPingMember(member);
+  public FailureDetectorBuilder pingMember(Address member) {
+    failureDetector.setPingMember(member);
     return this;
   }
 
   public FailureDetectorBuilder noRandomMembers() {
-    target.setRandomMembers(Arrays.asList(new TransportEndpoint[0]));
+    failureDetector.setRandomMembers(Arrays.asList(new Address[0]));
     return this;
   }
 
-  public FailureDetectorBuilder randomMembers(List<TransportEndpoint> members) {
-    target.setRandomMembers(members);
+  public FailureDetectorBuilder randomMembers(List<Address> members) {
+    failureDetector.setRandomMembers(members);
     return this;
   }
 
-  public FailureDetectorBuilder block(TransportEndpoint dest) {
-    Transport tf = (Transport) target.getTransport();
+  public FailureDetectorBuilder block(Address dest) {
+    Transport tf = (Transport) failureDetector.getTransport();
     tf.blockMessagesTo(dest);
     return this;
   }
 
-  public FailureDetectorBuilder block(List<TransportEndpoint> members) {
-    for (TransportEndpoint dest : members) {
+  public FailureDetectorBuilder block(List<Address> members) {
+    for (Address dest : members) {
       block(dest);
     }
     return this;
   }
 
   public FailureDetectorBuilder unblockAll() {
-    Transport tf = (Transport) target.getTransport();
+    Transport tf = (Transport) failureDetector.getTransport();
     tf.unblockAll();
     return this;
   }
 
-  public static FailureDetectorBuilder FDBuilder(TransportEndpoint transportEndpoint) {
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(transportEndpoint, transportSettings);
-    return new FailureDetectorBuilder(transportEndpoint, transport);
+  public static FailureDetectorBuilder FDBuilder(Address localAddress) {
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
+    return new FailureDetectorBuilder(transport, FailureDetectorConfig.DEFAULT);
   }
 
-  public static FailureDetectorBuilder FDBuilder(TransportEndpoint transportEndpoint, Transport tf) {
-    return new FailureDetectorBuilder(transportEndpoint, tf);
+  public static FailureDetectorBuilder FDBuilderWithPingTimeout(Address localAddress, int pingTimeout) {
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
+    FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder().pingTimeout(pingTimeout).build();
+    return new FailureDetectorBuilder(transport, failureDetectorConfig);
   }
 
-  public FailureDetector target() {
-    return target;
+  public static FailureDetectorBuilder FDBuilderWithPingTime(Address localAddress, int pingTime) {
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
+    FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder().pingTime(pingTime).build();
+    return new FailureDetectorBuilder(transport, failureDetectorConfig);
   }
 
   public FailureDetectorBuilder init() {
     try {
-      target.getTransport().start().get();
+      failureDetector.getTransport().start().get();
     } catch (Exception ex) {
       Throwables.propagate(ex);
     }
-    target.start();
+    failureDetector.start();
     return this;
   }
 }

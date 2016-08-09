@@ -1,6 +1,8 @@
 package io.scalecube.cluster;
 
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
+import io.scalecube.cluster.gossip.GossipProtocolConfig;
+import io.scalecube.transport.TransportConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,9 +10,10 @@ import java.util.Map;
 /**
  * Cluster configuration encapsulate settings needed cluster to create and successfully join.
  * 
- * @see ClusterConfig.ClusterMembershipSettings
- * @see ClusterConfig.FailureDetectorSettings
- * @see ClusterConfig.GossipProtocolSettings
+ * @see MembershipConfig
+ * @see FailureDetectorConfig
+ * @see GossipProtocolConfig
+ *
  * @author Anton Kharenko
  */
 public class ClusterConfig {
@@ -18,29 +21,22 @@ public class ClusterConfig {
   public static final int DEFAULT_PORT = 4801;
   public static final int DEFAULT_PORT_COUNT = 100;
   public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
-  public static final ClusterMembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new ClusterMembershipSettings();
-  public static final FailureDetectorSettings DEFAULT_FAILURE_DETECTOR_SETTINGS = new FailureDetectorSettings();
-  public static final GossipProtocolSettings DEFAULT_GOSSIP_PROTOCOL_SETTINGS = new GossipProtocolSettings();
+  public static final MembershipConfig DEFAULT_MEMBERSHIP_CONFIG = new MembershipConfig();
 
-  String memberId = null;
   String seedMembers = "";
   int port = DEFAULT_PORT;
   int portCount = DEFAULT_PORT_COUNT;
   boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
   Map<String, String> metadata = new HashMap<>();
-  TransportSettings transportSettings = TransportSettings.DEFAULT;
-  ClusterMembershipSettings clusterMembershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
-  FailureDetectorSettings failureDetectorSettings = DEFAULT_FAILURE_DETECTOR_SETTINGS;
-  GossipProtocolSettings gossipProtocolSettings = DEFAULT_GOSSIP_PROTOCOL_SETTINGS;
+  TransportConfig transportConfig = TransportConfig.DEFAULT;
+  MembershipConfig membershipConfig = DEFAULT_MEMBERSHIP_CONFIG;
+  FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.DEFAULT;
+  GossipProtocolConfig gossipProtocolConfig = GossipProtocolConfig.DEFAULT;
 
   private ClusterConfig() {}
 
   public static ClusterConfig newInstance() {
     return new ClusterConfig();
-  }
-
-  public void setMemberId(String memberId) {
-    this.memberId = memberId;
   }
 
   public void setSeedMembers(String seedMembers) {
@@ -63,29 +59,24 @@ public class ClusterConfig {
     this.metadata = metadata;
   }
 
-  public void setClusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
-    this.clusterMembershipSettings = clusterMembershipSettings;
+  public void setMembershipConfig(MembershipConfig membershipConfig) {
+    this.membershipConfig = membershipConfig;
   }
 
-  public void setFailureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
-    this.failureDetectorSettings = failureDetectorSettings;
+  public void setFailureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
+    this.failureDetectorConfig = failureDetectorConfig;
   }
 
-  public void setGossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
-    this.gossipProtocolSettings = gossipProtocolSettings;
+  public void setGossipProtocolConfig(GossipProtocolConfig gossipProtocolConfig) {
+    this.gossipProtocolConfig = gossipProtocolConfig;
   }
 
-  public void setTransportSettings(TransportSettings transportSettings) {
-    this.transportSettings = transportSettings;
+  public void setTransportConfig(TransportConfig transportConfig) {
+    this.transportConfig = transportConfig;
   }
 
   public ClusterConfig metadata(Map<String, String> metadata) {
     setMetadata(metadata);
-    return this;
-  }
-
-  public ClusterConfig memberId(String memberId) {
-    setMemberId(memberId);
     return this;
   }
 
@@ -109,43 +100,41 @@ public class ClusterConfig {
     return this;
   }
 
-  public ClusterConfig clusterMembershipSettings(ClusterMembershipSettings clusterMembershipSettings) {
-    setClusterMembershipSettings(clusterMembershipSettings);
+  public ClusterConfig membershipConfig(MembershipConfig membershipConfig) {
+    setMembershipConfig(membershipConfig);
     return this;
   }
 
-  public ClusterConfig failureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
-    setFailureDetectorSettings(failureDetectorSettings);
+  public ClusterConfig failureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
+    setFailureDetectorConfig(failureDetectorConfig);
     return this;
   }
 
-  public ClusterConfig gossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
-    setGossipProtocolSettings(gossipProtocolSettings);
+  public ClusterConfig gossipProtocolConfig(GossipProtocolConfig gossipProtocolConfig) {
+    setGossipProtocolConfig(gossipProtocolConfig);
     return this;
   }
 
-  public ClusterConfig transportSettings(TransportSettings transportSetting) {
-    setTransportSettings(transportSetting);
+  public ClusterConfig transportConfig(TransportConfig transportSetting) {
+    setTransportConfig(transportSetting);
     return this;
   }
 
   @Override
   public String toString() {
-    return "ClusterConfiguration{"
-        + "memberId='" + memberId + '\''
-        + ", seedMembers='" + seedMembers + '\''
+    return "ClusterConfig{seedMembers='" + seedMembers + '\''
         + ", port=" + port
         + ", portCount=" + portCount
         + ", portAutoIncrement=" + portAutoIncrement
         + ", metadata=" + metadata
-        + ", transportSettings=" + transportSettings
-        + ", clusterMembershipSettings=" + clusterMembershipSettings
-        + ", failureDetectorSettings=" + failureDetectorSettings
-        + ", gossipProtocolSettings=" + gossipProtocolSettings
+        + ", transportConfig=" + transportConfig
+        + ", membershipConfig=" + membershipConfig
+        + ", failureDetectorConfig=" + failureDetectorConfig
+        + ", gossipProtocolConfig=" + gossipProtocolConfig
         + '}';
   }
 
-  public static class ClusterMembershipSettings {
+  public static class MembershipConfig {
 
     public static final int DEFAULT_SYNC_TIME = 30 * 1000;
     public static final int DEFAULT_SYNC_TIMEOUT = 3 * 1000;
@@ -159,7 +148,7 @@ public class ClusterConfig {
     private int maxShutdownTime = DEFAULT_MAX_SHUTDOWN_TIME;
     private String syncGroup = DEFAULT_SYNC_GROUP;
 
-    public ClusterMembershipSettings() {}
+    public MembershipConfig() {}
 
     /**
      * Creates new cluster membership settings
@@ -170,8 +159,8 @@ public class ClusterConfig {
      * @param maxShutdownTime waiting time interval in milliseconds after shutdown event when node will not be removed
      * @param syncGroup cluster's sync group. Members with different groups will form different clusters.
      */
-    public ClusterMembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
-        String syncGroup) {
+    public MembershipConfig(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
+                            String syncGroup) {
       this.syncTime = syncTime;
       this.syncTimeout = syncTimeout;
       this.maxSuspectTime = maxSuspectTime;
@@ -221,7 +210,7 @@ public class ClusterConfig {
 
     @Override
     public String toString() {
-      return "ClusterMembershipSettings{syncTime=" + syncTime
+      return "MembershipConfigF{syncTime=" + syncTime
           + ", syncTimeout=" + syncTimeout
           + ", maxSuspectTime=" + maxSuspectTime
           + ", maxShutdownTime=" + maxShutdownTime
@@ -230,105 +219,4 @@ public class ClusterConfig {
     }
   }
 
-  public static class GossipProtocolSettings {
-
-    public static final int DEFAULT_MAX_GOSSIP_SENT = 2;
-    public static final int DEFAULT_GOSSIP_TIME = 300;
-    public static final int DEFAULT_MAX_ENDPOINTS_TO_SELECT = 3;
-
-    private int maxGossipSent = DEFAULT_MAX_GOSSIP_SENT;
-    private int gossipTime = DEFAULT_GOSSIP_TIME;
-    private int maxEndpointsToSelect = DEFAULT_MAX_ENDPOINTS_TO_SELECT;
-
-    public GossipProtocolSettings() {}
-
-    public GossipProtocolSettings(int maxGossipSent, int gossipTime, int maxEndpointsToSelect) {
-      this.maxGossipSent = maxGossipSent;
-      this.gossipTime = gossipTime;
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    public int getMaxGossipSent() {
-      return maxGossipSent;
-    }
-
-    public void setMaxGossipSent(int maxGossipSent) {
-      this.maxGossipSent = maxGossipSent;
-    }
-
-    public int getGossipTime() {
-      return gossipTime;
-    }
-
-    public void setGossipTime(int gossipTime) {
-      this.gossipTime = gossipTime;
-    }
-
-    public int getMaxEndpointsToSelect() {
-      return maxEndpointsToSelect;
-    }
-
-    public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    @Override
-    public String toString() {
-      return "GossipProtocolSettings{maxGossipSent=" + maxGossipSent
-          + ", gossipTime=" + gossipTime
-          + ", maxEndpointsToSelect=" + maxEndpointsToSelect
-          + '}';
-    }
-  }
-
-  public static class FailureDetectorSettings {
-
-    public static final int DEFAULT_PING_TIME = 2000;
-    public static final int DEFAULT_PING_TIMEOUT = 1000;
-    public static final int DEFAULT_MAX_ENDPOINTS_TO_SELECT = 3;
-
-    private int pingTime = DEFAULT_PING_TIME;
-    private int pingTimeout = DEFAULT_PING_TIMEOUT;
-    private int maxEndpointsToSelect = DEFAULT_MAX_ENDPOINTS_TO_SELECT;
-
-    public FailureDetectorSettings() {}
-
-    public FailureDetectorSettings(int pingTime, int pingTimeout, int maxEndpointsToSelect) {
-      this.pingTime = pingTime;
-      this.pingTimeout = pingTimeout;
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    public int getPingTime() {
-      return pingTime;
-    }
-
-    public void setPingTime(int pingTime) {
-      this.pingTime = pingTime;
-    }
-
-    public int getPingTimeout() {
-      return pingTimeout;
-    }
-
-    public void setPingTimeout(int pingTimeout) {
-      this.pingTimeout = pingTimeout;
-    }
-
-    public int getMaxEndpointsToSelect() {
-      return maxEndpointsToSelect;
-    }
-
-    public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
-      this.maxEndpointsToSelect = maxEndpointsToSelect;
-    }
-
-    @Override
-    public String toString() {
-      return "FailureDetectorSettings{pingTime=" + pingTime
-          + ", pingTimeout=" + pingTimeout
-          + ", maxEndpointsToSelect=" + maxEndpointsToSelect
-          + '}';
-    }
-  }
 }

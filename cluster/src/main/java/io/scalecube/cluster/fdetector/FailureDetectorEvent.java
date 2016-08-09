@@ -1,32 +1,32 @@
 package io.scalecube.cluster.fdetector;
 
 import io.scalecube.cluster.ClusterMemberStatus;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import javax.annotation.concurrent.Immutable;
 
-/** Tuple class. Contains transport endpoint and its status. */
+/** Tuple class. Contains member address and its status. */
 @Immutable
 public final class FailureDetectorEvent {
 
-  private final TransportEndpoint endpoint;
+  private final Address address;
   private final ClusterMemberStatus status;
 
-  private FailureDetectorEvent(TransportEndpoint endpoint, ClusterMemberStatus status) {
-    this.endpoint = endpoint;
+  private FailureDetectorEvent(Address address, ClusterMemberStatus status) {
+    this.address = address;
     this.status = status;
   }
 
-  public static FailureDetectorEvent trusted(TransportEndpoint endpoint) {
-    return new FailureDetectorEvent(endpoint, ClusterMemberStatus.TRUSTED);
+  public static FailureDetectorEvent trusted(Address address) {
+    return new FailureDetectorEvent(address, ClusterMemberStatus.TRUSTED);
   }
 
-  public static FailureDetectorEvent suspected(TransportEndpoint endpoint) {
-    return new FailureDetectorEvent(endpoint, ClusterMemberStatus.SUSPECTED);
+  public static FailureDetectorEvent suspected(Address address) {
+    return new FailureDetectorEvent(address, ClusterMemberStatus.SUSPECTED);
   }
 
-  public TransportEndpoint endpoint() {
-    return endpoint;
+  public Address address() {
+    return address;
   }
 
   public ClusterMemberStatus status() {
@@ -35,6 +35,6 @@ public final class FailureDetectorEvent {
 
   @Override
   public String toString() {
-    return "FailureDetectorEvent{" + "endpoint=" + endpoint + ", status=" + status + '}';
+    return "FailureDetectorEvent{address=" + address + ", status=" + status + '}';
   }
 }

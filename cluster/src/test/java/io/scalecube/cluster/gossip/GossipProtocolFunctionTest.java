@@ -4,7 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Message;
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -18,13 +18,13 @@ import java.util.Queue;
 
 public class GossipProtocolFunctionTest {
 
-  private TransportEndpoint remote;
-  private TransportEndpoint local;
+  private Address remote;
+  private Address local;
 
   @Before
   public void setup() {
-    remote = TransportEndpoint.from("localhost:1:id1");
-    local = TransportEndpoint.from("localhost:2:id2");
+    remote = Address.from("localhost:1");
+    local = Address.from("localhost:2");
   }
 
   @Test

@@ -1,23 +1,16 @@
 package io.scalecube.cluster.gossip;
 
 import io.scalecube.transport.Message;
-import io.scalecube.transport.NetworkEmulatorSettings;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.TransportConfig;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.SettableFuture;
 
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.concurrent.DefaultEventExecutorGroup;
-
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -25,88 +18,38 @@ import rx.functions.Action1;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class GossipEmulationIT {
-  private ScheduledExecutorService[] executors = new ScheduledExecutorService[16];
 
-  private int counter = 0;
-  private List<GossipProtocol> protocols;
+  private static final int TIMEOUT = 20050;
 
-  private int lambda = 50; // milliseconds lambda to get valid time on slow computer
-
-  private ScheduledExecutorService getNextExecutor() {
-    return executors[counter++ % executors.length];
-  }
-
-  private GossipProtocol initComponent(TransportEndpoint transportEndpoint, List<TransportEndpoint> members,
-      int lostPercent, int delay) {
-
-    GossipProtocol gossipProtocol = new GossipProtocol(transportEndpoint, getNextExecutor());
-    gossipProtocol.setClusterEndpoints(members);
-
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(transportEndpoint, transportSettings);
-    transport.setDefaultNetworkSettings(lostPercent, delay);
-    gossipProtocol.setTransport(transport);
-
-    try {
-      transport.start().get();
-    } catch (Exception ex) {
-      Throwables.propagate(ex);
-    }
-    gossipProtocol.start();
-
-    return gossipProtocol;
-  }
-
-  private static List<TransportEndpoint> initMembers(int num) {
-    List<TransportEndpoint> result = new ArrayList<>(num);
-    for (int i = 0; i < num; i++) {
-      result.add(TransportEndpoint.from("localhost:" + (i + 20000) + ":" + i));
-    }
-    return result;
-  }
-
-  @Before
-  public void init() {
-    for (int i = 0; i < executors.length; i++) {
-      executors[i] = Executors.newSingleThreadScheduledExecutor();
-    }
-  }
+  private List<GossipProtocol> gossipers;
 
   @After
   public void destroy() throws Exception {
-    for (GossipProtocol protocol : protocols) {
-      protocol.stop();
+    for (GossipProtocol gossiper : gossipers) {
+      gossiper.stop();
       SettableFuture<Void> close = SettableFuture.create();
-      protocol.getTransport().stop(close);
+      gossiper.getTransport().stop(close);
       try {
         close.get(1, TimeUnit.SECONDS);
       } catch (Exception ignore) {
       }
     }
-    for (ScheduledExecutorService executor : executors) {
-      executor.shutdownNow();
-    }
   }
 
   @Test
   public void test10WithoutLostSmallDelay() throws Exception {
-    int members = 10;
-    final List<TransportEndpoint> endpoints = initMembers(members);
-    protocols = Lists.newArrayList(Collections2.transform(endpoints, new Function<TransportEndpoint, GossipProtocol>() {
-      @Override
-      public GossipProtocol apply(final TransportEndpoint input) {
-        return initComponent(input, endpoints, 0, 2);
-      }
-    }));
+    int membersNum = 10;
+    int lostPercent = 0;
+    int delay = 2;
+    gossipers = initGossipers(membersNum, lostPercent, delay);
 
-    final CountDownLatch latch = new CountDownLatch(members - 1);
-    for (final GossipProtocol protocol : protocols) {
+    final CountDownLatch latch = new CountDownLatch(membersNum - 1);
+    for (final GossipProtocol protocol : gossipers) {
       protocol.listen().subscribe(new Action1<Message>() {
         @Override
         public void call(Message gossip) {
@@ -116,26 +59,22 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(Message.fromData("data"));
+    gossipers.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
-    Assert.assertTrue("Time: " + time, time < 20000 + lambda);
+    Assert.assertTrue("Time: " + time, time < TIMEOUT);
     System.out.println("Time: " + time);
   }
 
   @Test
   public void test10Lost20SmallDelay() throws Exception {
-    int members = 10;
-    final List<TransportEndpoint> endpoints = initMembers(members);
-    protocols = Lists.newArrayList(Collections2.transform(endpoints, new Function<TransportEndpoint, GossipProtocol>() {
-      @Override
-      public GossipProtocol apply(final TransportEndpoint input) {
-        return initComponent(input, endpoints, 20, 2);
-      }
-    }));
+    int membersNum = 10;
+    int lostPercent = 20;
+    int delay = 2;
+    gossipers = initGossipers(membersNum, lostPercent, delay);
 
-    final CountDownLatch latch = new CountDownLatch(members - 1);
-    for (final GossipProtocol protocol : protocols) {
+    final CountDownLatch latch = new CountDownLatch(membersNum - 1);
+    for (final GossipProtocol protocol : gossipers) {
       protocol.listen().subscribe(new Action1<Message>() {
         @Override
         public void call(Message gossip) {
@@ -145,26 +84,22 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(Message.fromData("data"));
+    gossipers.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
-    Assert.assertTrue("Time: " + time, time < 20000 + lambda);
+    Assert.assertTrue("Time: " + time, time < TIMEOUT);
     System.out.println("Time: " + time);
   }
 
   @Test
   public void test100WithoutLostSmallDelay() throws Exception {
-    int members = 100;
-    final List<TransportEndpoint> endpoints = initMembers(members);
-    protocols = Lists.newArrayList(Collections2.transform(endpoints, new Function<TransportEndpoint, GossipProtocol>() {
-      @Override
-      public GossipProtocol apply(final TransportEndpoint input) {
-        return initComponent(input, endpoints, 0, 2);
-      }
-    }));
+    int membersNum = 100;
+    int lostPercent = 0;
+    int delay = 2;
+    gossipers = initGossipers(membersNum, lostPercent, delay);
 
-    final CountDownLatch latch = new CountDownLatch(members - 1);
-    for (final GossipProtocol protocol : protocols) {
+    final CountDownLatch latch = new CountDownLatch(membersNum - 1);
+    for (final GossipProtocol protocol : gossipers) {
       protocol.listen().subscribe(new Action1<Message>() {
         @Override
         public void call(Message gossip) {
@@ -174,26 +109,22 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(Message.fromData("data"));
+    gossipers.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
-    Assert.assertTrue("Time: " + time, time < 20000 + lambda);
+    Assert.assertTrue("Time: " + time, time < TIMEOUT);
     System.out.println("Time: " + time);
   }
 
   @Test
   public void test100Lost5BigDelay() throws Exception {
-    int members = 100;
-    final List<TransportEndpoint> endpoints = initMembers(members);
-    protocols = Lists.newArrayList(Collections2.transform(endpoints, new Function<TransportEndpoint, GossipProtocol>() {
-      @Override
-      public GossipProtocol apply(final TransportEndpoint input) {
-        return initComponent(input, endpoints, 5, 500);
-      }
-    }));
+    int membersNum = 100;
+    int lostPercent = 5;
+    int delay = 500;
+    gossipers = initGossipers(membersNum, lostPercent, delay);
 
-    final CountDownLatch latch = new CountDownLatch(members - 1);
-    for (final GossipProtocol protocol : protocols) {
+    final CountDownLatch latch = new CountDownLatch(membersNum - 1);
+    for (final GossipProtocol protocol : gossipers) {
       protocol.listen().subscribe(new Action1<Message>() {
         @Override
         public void call(Message gossip) {
@@ -203,29 +134,23 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(Message.fromData("data"));
+    gossipers.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
-    Assert.assertTrue("Time: " + time, time < 20000 + lambda);
+    Assert.assertTrue("Time: " + time, time < TIMEOUT);
     System.out.println("Time: " + time);
   }
 
   @Ignore
   @Test
   public void test1000Lost10BigDelay() throws Exception {
-    int members = 1000;
-    final List<TransportEndpoint> TransportEndpoints = initMembers(members);
-    protocols =
-        Lists.newArrayList(Collections2.transform(TransportEndpoints,
-            new Function<TransportEndpoint, GossipProtocol>() {
-              @Override
-              public GossipProtocol apply(final TransportEndpoint input) {
-                return initComponent(input, TransportEndpoints, 10, 1000);
-              }
-            }));
+    int membersNum = 1000;
+    int lostPercent = 10;
+    int delay = 10000;
+    gossipers = initGossipers(membersNum, lostPercent, delay);
 
-    final CountDownLatch latch = new CountDownLatch(members - 1);
-    for (final GossipProtocol protocol : protocols) {
+    final CountDownLatch latch = new CountDownLatch(membersNum - 1);
+    for (final GossipProtocol protocol : gossipers) {
       protocol.listen().subscribe(new Action1<Message>() {
         @Override
         public void call(Message gossip) {
@@ -235,27 +160,23 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(Message.fromData("data"));
+    gossipers.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
-    Assert.assertTrue("Time: " + time, time < 20000 + lambda);
+    Assert.assertTrue("Time: " + time, time < TIMEOUT);
     System.out.println("Time: " + time);
   }
 
   @Ignore
   @Test
   public void test10000Lost5SmallDelay() throws Exception {
-    int members = 10000;
-    final List<TransportEndpoint> endpoints = initMembers(members);
-    protocols = Lists.newArrayList(Collections2.transform(endpoints, new Function<TransportEndpoint, GossipProtocol>() {
-      @Override
-      public GossipProtocol apply(final TransportEndpoint input) {
-        return initComponent(input, endpoints, 5, 2);
-      }
-    }));
+    int membersNum = 10000;
+    int lostPercent = 5;
+    int delay = 2;
+    gossipers = initGossipers(membersNum, lostPercent, delay);
 
-    final CountDownLatch latch = new CountDownLatch(members - 1);
-    for (final GossipProtocol protocol : protocols) {
+    final CountDownLatch latch = new CountDownLatch(membersNum - 1);
+    for (final GossipProtocol protocol : gossipers) {
       protocol.listen().subscribe(new Action1<Message>() {
         @Override
         public void call(Message gossip) {
@@ -265,7 +186,7 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(Message.fromData("data"));
+    gossipers.get(0).spread(Message.fromData("data"));
     latch.await(30, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
     Assert.assertTrue("Time: " + time + "count: " + latch.getCount(), time < 30000);
@@ -275,17 +196,13 @@ public class GossipEmulationIT {
   @Ignore
   @Test
   public void test1000WithoutLostSmallDelay() throws Exception {
-    int members = 1000;
-    final List<TransportEndpoint> endpoints = initMembers(members);
-    protocols = Lists.newArrayList(Collections2.transform(endpoints, new Function<TransportEndpoint, GossipProtocol>() {
-      @Override
-      public GossipProtocol apply(final TransportEndpoint input) {
-        return initComponent(input, endpoints, 0, 2);
-      }
-    }));
+    int membersNum = 1000;
+    int lostPercent = 0;
+    int delay = 2;
+    gossipers = initGossipers(membersNum, lostPercent, delay);
 
-    final CountDownLatch latch = new CountDownLatch(members - 1);
-    for (final GossipProtocol protocol : protocols) {
+    final CountDownLatch latch = new CountDownLatch(membersNum - 1);
+    for (final GossipProtocol protocol : gossipers) {
       protocol.listen().subscribe(new Action1<Message>() {
         @Override
         public void call(Message gossip) {
@@ -295,10 +212,49 @@ public class GossipEmulationIT {
     }
 
     long start = System.currentTimeMillis();
-    protocols.get(0).spread(Message.fromData("data"));
+    gossipers.get(0).spread(Message.fromData("data"));
     latch.await(20, TimeUnit.SECONDS);
     long time = System.currentTimeMillis() - start;
-    Assert.assertTrue("Time: " + time, time < 20000 + lambda);
+    Assert.assertTrue("Time: " + time, time < TIMEOUT);
     System.out.println("Time: " + time);
+  }
+
+  private List<GossipProtocol> initGossipers(int membersNum, int lostPercent, int delay) {
+    final List<Address> members = initMembers(membersNum);
+    gossipers = Lists.newArrayList();
+    for (Address member : members) {
+      gossipers.add(initGossiper(member, members, lostPercent, delay));
+    }
+    return gossipers;
+  }
+
+  private List<Address> initMembers(int membersNum) {
+    List<Address> members = new ArrayList<>(membersNum);
+    for (int portShift = 0; portShift < membersNum; portShift++) {
+      int port = 20000 + portShift;
+      members.add(Address.from("localhost:" + port));
+    }
+    return members;
+  }
+
+  private GossipProtocol initGossiper(Address localAddress, List<Address> members,
+                                      int lostPercent, int delay) {
+
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
+    transport.setDefaultNetworkSettings(lostPercent, delay);
+
+    String memberId = UUID.randomUUID().toString();
+    GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
+    gossipProtocol.setMembers(members);
+
+    try {
+      transport.start().get();
+    } catch (Exception ex) {
+      Throwables.propagate(ex);
+    }
+    gossipProtocol.start();
+
+    return gossipProtocol;
   }
 }

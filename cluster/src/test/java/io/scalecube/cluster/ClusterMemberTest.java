@@ -1,11 +1,12 @@
 package io.scalecube.cluster;
 
-import static io.scalecube.transport.TransportEndpoint.from;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
 import java.util.HashMap;
+
+import io.scalecube.transport.Address;
 
 public class ClusterMemberTest {
 
@@ -41,18 +42,18 @@ public class ClusterMemberTest {
   }
 
   private ClusterMember r0(ClusterMemberStatus status) {
-    return new ClusterMember(from("localhost:1:id0"), status, new HashMap<String, String>());
+    return new ClusterMember("id0", Address.from("localhost:1"), status, new HashMap<String, String>());
   }
 
   private ClusterMember r1(ClusterMemberStatus status) {
-    return new ClusterMember(from("localhost:2:id1"), status, new HashMap<String, String>());
+    return new ClusterMember("id1", Address.from("localhost:2"), status, new HashMap<String, String>());
   }
 
   private ClusterMember r0(ClusterMemberStatus status, long timestamp) {
-    return new ClusterMember(from("localhost:1:id0"), status, new HashMap<String, String>(), timestamp);
+    return new ClusterMember("id0", Address.from("localhost:1"), status, new HashMap<String, String>(), timestamp);
   }
 
   private ClusterMember r1(ClusterMemberStatus status, long timestamp) {
-    return new ClusterMember(from("localhost:2:id1"), status, new HashMap<String, String>(), timestamp);
+    return new ClusterMember("id1", Address.from("localhost:2"), status, new HashMap<String, String>(), timestamp);
   }
 }

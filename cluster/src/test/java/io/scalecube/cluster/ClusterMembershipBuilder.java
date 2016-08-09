@@ -6,45 +6,45 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.cluster.fdetector.FailureDetectorBuilder;
+import io.scalecube.cluster.fdetector.FailureDetector;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.TransportConfig;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 
-import rx.schedulers.Schedulers;
-
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class ClusterMembershipBuilder {
+  final Transport transport;
   final ClusterMembership membership;
   final GossipProtocol gossipProtocol;
-  final FailureDetectorBuilder fdBuilder;
-  final Transport transport;
+  final FailureDetector failureDetector;
 
-  private ClusterMembershipBuilder(TransportEndpoint transportEndpoint, List<InetSocketAddress> members) {
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    transport = Transport.newInstance(transportEndpoint, transportSettings);
+  private ClusterMembershipBuilder(Address localAddress, List<Address> members) {
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    transport = Transport.newInstance(localAddress, transportConfig);
 
-    fdBuilder = FailureDetectorBuilder.FDBuilder(transportEndpoint, transport).pingTime(100).pingTimeout(100);
+    String memberId = UUID.randomUUID().toString();
 
-    gossipProtocol = new GossipProtocol(transportEndpoint, Executors.newSingleThreadScheduledExecutor());
-    gossipProtocol.setTransport(transport);
+    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder().pingTime(100).pingTimeout(100).build();
+    failureDetector = new FailureDetector(transport, fdConfig);
 
-    membership = new ClusterMembership(transportEndpoint, Schedulers.computation());
-    membership.setTransport(transport);
-    membership.setFailureDetector(fdBuilder.target());
+    gossipProtocol = new GossipProtocol(memberId, transport);
+
+
+    membership = new ClusterMembership(memberId, transport);
+    membership.setFailureDetector(failureDetector);
     membership.setGossipProtocol(gossipProtocol);
     membership.setLocalMetadata(new HashMap<String, String>() {
       {
@@ -56,13 +56,12 @@ public class ClusterMembershipBuilder {
     membership.setSyncTimeout(100);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint,
-      List<InetSocketAddress> members) {
-    return new ClusterMembershipBuilder(transportEndpoint, members);
+  public static ClusterMembershipBuilder CMBuilder(Address localAddress, List<Address> members) {
+    return new ClusterMembershipBuilder(localAddress, members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(TransportEndpoint transportEndpoint, InetSocketAddress... members) {
-    return new ClusterMembershipBuilder(transportEndpoint, Arrays.asList(members));
+  public static ClusterMembershipBuilder CMBuilder(Address localAddress, Address... members) {
+    return new ClusterMembershipBuilder(localAddress, Arrays.asList(members));
   }
 
   public ClusterMembershipBuilder maxSuspectTime(int maxSuspectTime) {
@@ -70,7 +69,7 @@ public class ClusterMembershipBuilder {
     return this;
   }
 
-  public ClusterMembershipBuilder block(TransportEndpoint dest) {
+  public ClusterMembershipBuilder block(Address dest) {
     transport.blockMessagesTo(dest);
     return this;
   }
@@ -83,7 +82,7 @@ public class ClusterMembershipBuilder {
   ClusterMembershipBuilder init() {
     try {
       transport.start().get();
-      fdBuilder.target().start();
+      failureDetector.start();
       gossipProtocol.start();
       membership.start().get();
     } catch (Exception ex) {
@@ -94,7 +93,7 @@ public class ClusterMembershipBuilder {
 
   void destroy() {
     destroyTransport(transport);
-    fdBuilder.target().stop();
+    failureDetector.stop();
     gossipProtocol.stop();
     membership.stop();
   }
@@ -112,37 +111,37 @@ public class ClusterMembershipBuilder {
     }
   }
 
-  public ClusterMembershipBuilder assertTrusted(TransportEndpoint... members) {
+  public ClusterMembershipBuilder assertTrusted(Address... members) {
     assertStatus(ClusterMemberStatus.TRUSTED, members);
     return this;
   }
 
-  public ClusterMembershipBuilder assertSuspected(TransportEndpoint... members) {
+  public ClusterMembershipBuilder assertSuspected(Address... members) {
     assertStatus(ClusterMemberStatus.SUSPECTED, members);
     return this;
   }
 
   public ClusterMembershipBuilder assertNoSuspected() {
-    assertStatus(ClusterMemberStatus.SUSPECTED, new TransportEndpoint[0]);
+    assertStatus(ClusterMemberStatus.SUSPECTED, new Address[0]);
     return this;
   }
 
-  private void assertStatus(final ClusterMemberStatus s, TransportEndpoint[] members) {
+  private void assertStatus(final ClusterMemberStatus s, Address[] members) {
     Predicate<ClusterMember> predicate = new Predicate<ClusterMember>() {
       @Override
       public boolean apply(ClusterMember input) {
         return input.status() == s;
       }
     };
-    Function<ClusterMember, TransportEndpoint> function = new Function<ClusterMember, TransportEndpoint>() {
+    Function<ClusterMember, Address> function = new Function<ClusterMember, Address>() {
       @Override
-      public TransportEndpoint apply(ClusterMember input) {
-        return input.endpoint();
+      public Address apply(ClusterMember input) {
+        return input.address();
       }
     };
-    List<TransportEndpoint> list = newArrayList(transform(filter(membership.members(), predicate), function));
+    List<Address> list = newArrayList(transform(filter(membership.members(), predicate), function));
     assertEquals("expect " + s + ": " + list, members.length, list.size());
-    for (TransportEndpoint member : members) {
+    for (Address member : members) {
       assertTrue("expect " + s + ": " + member, list.contains(member));
     }
   }
