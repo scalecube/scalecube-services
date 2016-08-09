@@ -329,7 +329,6 @@ public class FailureDetectorIT {
   }
 
   // TODO [AK]: Rewrite this test after fix. Incarnation isn't respected by FD!!!
-  /*
   @Test
   public void testMemberBecomeSuspectedIncarnationRespected() throws Exception {
     Transport a = Transport.bindAwait(true);
@@ -380,7 +379,6 @@ public class FailureDetectorIT {
       destroy(builders);
     }
   }
-  */
 
   private Map<Address, Address> getSuspected(Iterable<FailureDetectorBuilder> builders) {
     Map<Address, Address> target = new HashMap<>();
