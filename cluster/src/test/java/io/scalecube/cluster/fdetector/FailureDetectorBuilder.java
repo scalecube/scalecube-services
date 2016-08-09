@@ -16,7 +16,7 @@ public class FailureDetectorBuilder {
     failureDetector = new FailureDetector(transport, failureDetectorConfig);
   }
 
-  public FailureDetectorBuilder set(List<Address> members) {
+  public FailureDetectorBuilder members(List<Address> members) {
     failureDetector.setMembers(members);
     return this;
   }
@@ -55,32 +55,21 @@ public class FailureDetectorBuilder {
     return this;
   }
 
-  public static FailureDetectorBuilder FDBuilder(Address localAddress) {
-    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportConfig);
+  public static FailureDetectorBuilder FDBuilder(Transport transport) {
     return new FailureDetectorBuilder(transport, FailureDetectorConfig.DEFAULT);
   }
 
-  public static FailureDetectorBuilder FDBuilderWithPingTimeout(Address localAddress, int pingTimeout) {
-    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportConfig);
+  public static FailureDetectorBuilder FDBuilderWithPingTimeout(Transport transport, int pingTimeout) {
     FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder().pingTimeout(pingTimeout).build();
     return new FailureDetectorBuilder(transport, failureDetectorConfig);
   }
 
-  public static FailureDetectorBuilder FDBuilderWithPingTime(Address localAddress, int pingTime) {
-    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportConfig);
+  public static FailureDetectorBuilder FDBuilderWithPingTime(Transport transport, int pingTime) {
     FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder().pingTime(pingTime).build();
     return new FailureDetectorBuilder(transport, failureDetectorConfig);
   }
 
-  public FailureDetectorBuilder init() {
-    try {
-      failureDetector.getTransport().start().get();
-    } catch (Exception ex) {
-      Throwables.propagate(ex);
-    }
+  public FailureDetectorBuilder start() {
     failureDetector.start();
     return this;
   }

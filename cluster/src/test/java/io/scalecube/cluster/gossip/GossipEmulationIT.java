@@ -220,41 +220,34 @@ public class GossipEmulationIT {
   }
 
   private List<GossipProtocol> initGossipers(int membersNum, int lostPercent, int delay) {
-    final List<Address> members = initMembers(membersNum);
-    gossipers = Lists.newArrayList();
-    for (Address member : members) {
-      gossipers.add(initGossiper(member, members, lostPercent, delay));
+    final List<Transport> transports = initTransports(membersNum, lostPercent, delay);
+    List<Address> members = new ArrayList<>();
+    for (Transport transport : transports) {
+      members.add(transport.address());
+    }
+    gossipers = new ArrayList<>();
+    for (Transport transport : transports) {
+      gossipers.add(initGossiper(transport, members));
     }
     return gossipers;
   }
 
-  private List<Address> initMembers(int membersNum) {
-    List<Address> members = new ArrayList<>(membersNum);
-    for (int portShift = 0; portShift < membersNum; portShift++) {
-      int port = 20000 + portShift;
-      members.add(Address.from("localhost:" + port));
+  private List<Transport> initTransports(int membersNum, int lostPercent, int delay) {
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    List<Transport> transports = new ArrayList<>(membersNum);
+    for (int i = 0; i < membersNum; i++) {
+      Transport transport = Transport.bindAwait(transportConfig);
+      transport.setDefaultNetworkSettings(lostPercent, delay);
+      transports.add(transport);
     }
-    return members;
+    return transports;
   }
 
-  private GossipProtocol initGossiper(Address localAddress, List<Address> members,
-                                      int lostPercent, int delay) {
-
-    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportConfig);
-    transport.setDefaultNetworkSettings(lostPercent, delay);
-
+  private GossipProtocol initGossiper(Transport transport, List<Address> members) {
     String memberId = UUID.randomUUID().toString();
     GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
     gossipProtocol.setMembers(members);
-
-    try {
-      transport.start().get();
-    } catch (Exception ex) {
-      Throwables.propagate(ex);
-    }
     gossipProtocol.start();
-
     return gossipProtocol;
   }
 }

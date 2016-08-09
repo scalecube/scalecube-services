@@ -97,7 +97,7 @@ public final class ClusterMembership implements IClusterMembership {
     @Override
     public void call(Message message) {
       ClusterMembershipData data = message.data();
-      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.localAddress(), data);
+      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.address(), data);
       List<ClusterMember> updates = membership.merge(filteredData);
       Address sender = message.sender();
       if (!updates.isEmpty()) {
@@ -203,7 +203,7 @@ public final class ClusterMembership implements IClusterMembership {
   public void setSeedMembers(Collection<Address> seedMembers) {
     // filter duplicates and local addresses
     Set<Address> seedMembersSet = new HashSet<>(seedMembers);
-    seedMembersSet.remove(transport.localAddress());
+    seedMembersSet.remove(transport.address());
     this.seedMembers = new ArrayList<>(seedMembersSet);
   }
 
@@ -247,7 +247,7 @@ public final class ClusterMembership implements IClusterMembership {
     timer.start();
 
     // Register itself initially before SYNC/SYNC_ACK
-    ClusterMember localMember = new ClusterMember(memberId, transport.localAddress(), TRUSTED, localMetadata);
+    ClusterMember localMember = new ClusterMember(memberId, transport.address(), TRUSTED, localMetadata);
     List<ClusterMember> updates = membership.merge(localMember);
     processUpdates(updates, false/* spread gossip */);
 
@@ -261,7 +261,7 @@ public final class ClusterMembership implements IClusterMembership {
     failureDetector.listenStatus().subscribe(onFdSubscriber);
 
     // Listen to 'membership' message from GossipProtocol
-    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(transport.localAddress()))
+    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(transport.address()))
         .subscribe(onGossipSubscriber);
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
@@ -344,7 +344,7 @@ public final class ClusterMembership implements IClusterMembership {
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.info("Timeout getting SyncAck from members: {}", members);
+            LOGGER.info("Timeout getting SyncAck from members: {}", members, throwable);
           }
         }));
 
@@ -361,7 +361,7 @@ public final class ClusterMembership implements IClusterMembership {
 
   private void onSyncAck(Message message) {
     ClusterMembershipData data = message.data();
-    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.localAddress(), data);
+    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.address(), data);
     Address sender = message.sender();
     List<ClusterMember> updates = membership.merge(filteredData);
     if (!updates.isEmpty()) {
@@ -453,7 +453,7 @@ public final class ClusterMembership implements IClusterMembership {
    * information about leave before stopping server.
    */
   public void leave() {
-    ClusterMember localMember = new ClusterMember(memberId, transport.localAddress(), SHUTDOWN, localMetadata);
+    ClusterMember localMember = new ClusterMember(memberId, transport.address(), SHUTDOWN, localMetadata);
     gossipProtocol.spread(Message.fromData(new ClusterMembershipData(ImmutableList.of(localMember), syncGroup)));
   }
 

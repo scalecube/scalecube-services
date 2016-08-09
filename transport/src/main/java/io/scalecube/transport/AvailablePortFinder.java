@@ -3,6 +3,7 @@ package io.scalecube.transport;
 import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.NoSuchElementException;
 
 /**
@@ -10,7 +11,7 @@ import java.util.NoSuchElementException;
  *
  * @author Anton Kharenko
  */
-public final class AvailablePortFinder {
+final class AvailablePortFinder {
 
   /**
    * The minimum server port number. Set at 1100 to avoid returning privileged port numbers.
@@ -51,30 +52,24 @@ public final class AvailablePortFinder {
       throw new IllegalArgumentException("Invalid port number: " + port);
     }
 
-    ServerSocket ss = null;
-    DatagramSocket ds = null;
+    Socket socket = null;
     try {
-      ss = new ServerSocket(port);
-      ss.setReuseAddress(true);
-      ds = new DatagramSocket(port);
-      ds.setReuseAddress(true);
-      return true;
-    } catch (IOException ignore) {
-      // Do nothing
-    } finally {
-      if (ds != null) {
-        ds.close();
-      }
+      socket = new Socket(Address.getLocalIpAddress(), port);
 
-      if (ss != null) {
+      // If the code makes it this far without an exception it means
+      // something is using the port and has responded.
+      return false;
+    } catch (IOException ignore) {
+      return true;
+    } finally {
+      if (socket != null) {
         try {
-          ss.close();
+          socket.close();
         } catch (IOException ignore) {
           // Should not be thrown
         }
       }
     }
-    return false;
   }
 
 }

@@ -102,7 +102,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   @Override
   public void setMembers(Collection<Address> members) {
     Set<Address> remoteMembers = new HashSet<>(members);
-    remoteMembers.remove(transport.localAddress());
+    remoteMembers.remove(transport.address());
     List<Address> list = new ArrayList<>(remoteMembers);
     Collections.shuffle(list);
     this.members = list;
@@ -137,7 +137,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   public void spread(Message message) {
     String gossipId = generateGossipId();
     Gossip gossip = new Gossip(gossipId, message);
-    GossipTask gossipTask = new GossipTask(gossip, transport.localAddress());
+    GossipTask gossipTask = new GossipTask(gossip, transport.address());
     gossipsQueue.offer(gossipTask);
   }
 
@@ -153,7 +153,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
       Address origin = gossipTask.getOrigin();
       GossipLocalState gossipLocalState = gossipsMap.get(gossip.getGossipId());
       if (gossipLocalState == null) {
-        boolean isRemote = !origin.equals(transport.localAddress());
+        boolean isRemote = !origin.equals(transport.address());
         LOGGER.debug("Saved new_" + (isRemote ? "remote" : "local") + " {}", gossip);
         gossipLocalState = GossipLocalState.create(gossip, origin, period);
         gossipsMap.put(gossip.getGossipId(), gossipLocalState);

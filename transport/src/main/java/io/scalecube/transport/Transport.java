@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -44,7 +45,6 @@ public final class Transport implements ITransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
-  private final Address localAddress;
   private final TransportConfig config;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
@@ -60,12 +60,11 @@ public final class Transport implements ITransport {
   private final LoggingHandler loggingHandler;
   private final NetworkEmulatorHandler networkEmulatorHandler;
 
+  private Address localAddress;
   private ServerChannel serverChannel;
 
-  private Transport(Address localAddress, TransportConfig config) {
-    checkArgument(localAddress != null);
+  private Transport(TransportConfig config) {
     checkArgument(config != null);
-    this.localAddress = localAddress;
     this.config = config;
     this.serializerHandler = new MessageSerializerHandler();
     this.deserializerHandler = new MessageDeserializerHandler();
@@ -81,12 +80,64 @@ public final class Transport implements ITransport {
     return (logLevel != null && !logLevel.equals("OFF")) ? LogLevel.valueOf(logLevel) : null;
   }
 
-  public static Transport newInstance(Address localAddress, TransportConfig config) {
-    return new Transport(localAddress, config);
+  public static Transport bindAwait() {
+    return bindAwait(TransportConfig.DEFAULT);
+  }
+
+  public static Transport bindAwait(boolean useNetworkEmulator) {
+    return bindAwait(TransportConfig.builder().useNetworkEmulator(useNetworkEmulator).build());
+  }
+
+  public static Transport bindAwait(TransportConfig config) {
+    try {
+      return bind(config).get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
+  }
+
+  public static ListenableFuture<Transport> bind() {
+    return bind(TransportConfig.DEFAULT);
+  }
+
+  public static ListenableFuture<Transport> bind(TransportConfig config) {
+    return new Transport(config).bind0();
+  }
+
+  /**
+   * Starts transport to accept connection and connect to other transports.
+   */
+  private ListenableFuture<Transport> bind0() {
+    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
+
+    // Resolve bind port
+    int bindPort = config.isPortAutoIncrement() ?
+        AvailablePortFinder.getNextAvailable(config.getPort(), config.getPortCount()) : // Find available port
+        config.getPort();
+
+    localAddress = Address.createLocal(bindPort);
+
+    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
+    ChannelFuture bindFuture = server.bind(localAddress.host(), localAddress.port());
+    final SettableFuture<Transport> result = SettableFuture.create();
+    bindFuture.addListener(new ChannelFutureListener() {
+      @Override
+      public void operationComplete(ChannelFuture channelFuture) throws Exception {
+        if (channelFuture.isSuccess()) {
+          serverChannel = (ServerChannel) channelFuture.channel();
+          LOGGER.info("Bound to: {}", localAddress);
+          result.set(Transport.this);
+        } else {
+          LOGGER.error("Failed to bind to: {}, cause: {}", localAddress, channelFuture.cause());
+          result.setException(channelFuture.cause());
+        }
+      }
+    });
+    return result;
   }
 
   @Override
-  public Address localAddress() {
+  public Address address() {
     return localAddress;
   }
 
@@ -136,29 +187,6 @@ public final class Transport implements ITransport {
     } else {
       LOGGER.warn("Network emulator is disabled: can't unblock messages");
     }
-  }
-
-  @Override
-  public final ListenableFuture<Void> start() {
-    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
-
-    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(localAddress.port());
-    final SettableFuture<Void> result = SettableFuture.create();
-    bindFuture.addListener(new ChannelFutureListener() {
-      @Override
-      public void operationComplete(ChannelFuture channelFuture) throws Exception {
-        if (channelFuture.isSuccess()) {
-          serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", localAddress);
-          result.set(null);
-        } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", localAddress, channelFuture.cause());
-          result.setException(channelFuture.cause());
-        }
-      }
-    });
-    return result;
   }
 
   @Override
@@ -220,7 +248,7 @@ public final class Transport implements ITransport {
 
   @Override
   public void send(@CheckForNull final Address address, @CheckForNull final Message message,
-                   @Nullable final SettableFuture<Void> promise) {
+      @Nullable final SettableFuture<Void> promise) {
     checkArgument(address != null);
     checkArgument(message != null);
     message.setSender(localAddress);

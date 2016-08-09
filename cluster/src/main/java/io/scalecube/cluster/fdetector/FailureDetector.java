@@ -89,7 +89,7 @@ public final class FailureDetector implements IFailureDetector {
       Address target = data.getTo();
       Address originalIssuer = data.getFrom();
       String correlationId = message.correlationId();
-      FailureDetectorData pingReqData = new FailureDetectorData(transport.localAddress(), target, originalIssuer);
+      FailureDetectorData pingReqData = new FailureDetectorData(transport.address(), target, originalIssuer);
       Message pingMsg = Message.withData(pingReqData).qualifier(PING).correlationId(correlationId).build();
       transport.send(target, pingMsg);
     }
@@ -139,7 +139,7 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public void setMembers(Collection<Address> members) {
     Set<Address> set = new HashSet<>(members);
-    set.remove(transport.localAddress());
+    set.remove(transport.address());
     List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
     this.members = list;
@@ -157,7 +157,7 @@ public final class FailureDetector implements IFailureDetector {
   /** <b>NOTE:</b> this method is for test purpose only. */
   void setPingMember(Address member) {
     checkNotNull(member);
-    checkArgument(member != transport.localAddress());
+    checkArgument(member != transport.address());
     this.pingMember = member;
   }
 
@@ -169,7 +169,7 @@ public final class FailureDetector implements IFailureDetector {
 
   @Override
   public void start() {
-    transport.listen().filter(PING_FILTER).filter(targetFilter(transport.localAddress())).subscribe(onPingSubscriber);
+    transport.listen().filter(PING_FILTER).filter(targetFilter(transport.address())).subscribe(onPingSubscriber);
     transport.listen().filter(PING_REQ_FILTER).subscribe(onPingReqSubscriber);
     transport.listen().filter(ACK_FILTER).filter(new Func1<Message, Boolean>() {
       @Override
@@ -225,7 +225,7 @@ public final class FailureDetector implements IFailureDetector {
       return;
     }
 
-    final Address localAddress = transport.localAddress();
+    final Address localAddress = transport.address();
     final String period = Integer.toString(periodNbr.incrementAndGet());
     FailureDetectorData pingData = new FailureDetectorData(localAddress, pingMember);
     Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(period).build();
@@ -268,7 +268,7 @@ public final class FailureDetector implements IFailureDetector {
       return;
     }
 
-    Address localAddress = transport.localAddress();
+    Address localAddress = transport.address();
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localAddress, targetMember)).take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {

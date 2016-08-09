@@ -16,14 +16,9 @@ import javax.annotation.Nullable;
 public interface ITransport {
 
   /**
-   * Returns {@link Address} on which listens incomming messages this instance of transport.
+   * Returns local {@link Address} on which current instance of transport listens for incoming messages.
    */
-  Address localAddress();
-
-  /**
-   * Starts transport to accept connection and connect to other transports.
-   */
-  ListenableFuture<Void> start();
+  Address address();
 
   /**
    * Stop transport, disconnect all available connections which belong to this transport. <br/>

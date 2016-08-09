@@ -32,8 +32,12 @@ public class ClusterMembershipBuilder {
   final FailureDetector failureDetector;
 
   private ClusterMembershipBuilder(Address localAddress, List<Address> members) {
-    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
-    transport = Transport.newInstance(localAddress, transportConfig);
+    TransportConfig transportConfig = TransportConfig.builder()
+        .useNetworkEmulator(true)
+        .portAutoIncrement(false)
+        .port(localAddress.port())
+        .build();
+    transport = Transport.bindAwait(transportConfig);
 
     String memberId = UUID.randomUUID().toString();
 
@@ -60,10 +64,6 @@ public class ClusterMembershipBuilder {
     return new ClusterMembershipBuilder(localAddress, members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(Address localAddress, Address... members) {
-    return new ClusterMembershipBuilder(localAddress, Arrays.asList(members));
-  }
-
   public ClusterMembershipBuilder maxSuspectTime(int maxSuspectTime) {
     membership.setMaxSuspectTime(maxSuspectTime);
     return this;
@@ -81,7 +81,6 @@ public class ClusterMembershipBuilder {
 
   ClusterMembershipBuilder init() {
     try {
-      transport.start().get();
       failureDetector.start();
       gossipProtocol.start();
       membership.start().get();
@@ -104,10 +103,7 @@ public class ClusterMembershipBuilder {
     try {
       close.get(1, TimeUnit.SECONDS);
     } catch (Exception ignore) {
-    }
-    try {
-      Thread.sleep(10);
-    } catch (InterruptedException ignore) {
+      // ignore
     }
   }
 
