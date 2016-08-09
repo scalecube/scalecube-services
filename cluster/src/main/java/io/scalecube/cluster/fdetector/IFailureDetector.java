@@ -34,5 +34,5 @@ public interface IFailureDetector {
   void trust(Address member);
 
   /** Updates list of cluster members among which should work FD algorithm. */
-  void setClusterMembers(Collection<Address> members);
+  void setMembers(Collection<Address> members);
 }

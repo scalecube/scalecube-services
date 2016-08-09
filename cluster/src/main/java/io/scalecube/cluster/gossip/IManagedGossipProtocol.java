@@ -12,7 +12,7 @@ import java.util.Collection;
 public interface IManagedGossipProtocol extends IGossipProtocol {
 
   /** Updates list of cluster members among which should be spread gossips. */
-  void setClusterMembers(Collection<Address> members);
+  void setMembers(Collection<Address> members);
 
   /** Starts running gossip protocol. After started it begins to receive and send gossip messages */
   void start();

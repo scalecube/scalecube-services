@@ -402,8 +402,8 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Reset cluster members on FailureDetector and Gossip
     Collection<Address> members = membership.getTrustedOrSuspectedMembers();
-    failureDetector.setClusterMembers(members);
-    gossipProtocol.setClusterMembers(members);
+    failureDetector.setMembers(members);
+    gossipProtocol.setMembers(members);
 
     // Publish updates to cluster
     if (spreadGossip) {

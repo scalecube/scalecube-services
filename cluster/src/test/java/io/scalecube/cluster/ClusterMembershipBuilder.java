@@ -7,19 +7,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
-import io.scalecube.cluster.fdetector.FailureDetectorSettings;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.transport.TransportConfig;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
-
-import rx.schedulers.Schedulers;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,13 +32,13 @@ public class ClusterMembershipBuilder {
   final FailureDetector failureDetector;
 
   private ClusterMembershipBuilder(Address localAddress, List<Address> members) {
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    transport = Transport.newInstance(localAddress, transportSettings);
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    transport = Transport.newInstance(localAddress, transportConfig);
 
     String memberId = UUID.randomUUID().toString();
 
-    FailureDetectorSettings fdSettings = FailureDetectorSettings.builder().pingTime(100).pingTimeout(100).build();
-    failureDetector = new FailureDetector(transport, fdSettings);
+    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder().pingTime(100).pingTimeout(100).build();
+    failureDetector = new FailureDetector(transport, fdConfig);
 
     gossipProtocol = new GossipProtocol(memberId, transport);
 

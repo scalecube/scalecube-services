@@ -1,8 +1,8 @@
 package io.scalecube.cluster;
 
-import io.scalecube.cluster.fdetector.FailureDetectorSettings;
-import io.scalecube.cluster.gossip.GossipProtocolSettings;
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
+import io.scalecube.cluster.gossip.GossipProtocolConfig;
+import io.scalecube.transport.TransportConfig;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -10,9 +10,9 @@ import java.util.Map;
 /**
  * Cluster configuration encapsulate settings needed cluster to create and successfully join.
  * 
- * @see MembershipSettings
- * @see FailureDetectorSettings
- * @see GossipProtocolSettings
+ * @see MembershipConfig
+ * @see FailureDetectorConfig
+ * @see GossipProtocolConfig
  *
  * @author Anton Kharenko
  */
@@ -21,17 +21,17 @@ public class ClusterConfig {
   public static final int DEFAULT_PORT = 4801;
   public static final int DEFAULT_PORT_COUNT = 100;
   public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
-  public static final MembershipSettings DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS = new MembershipSettings();
+  public static final MembershipConfig DEFAULT_MEMBERSHIP_CONFIG = new MembershipConfig();
 
   String seedMembers = "";
   int port = DEFAULT_PORT;
   int portCount = DEFAULT_PORT_COUNT;
   boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
   Map<String, String> metadata = new HashMap<>();
-  TransportSettings transportSettings = TransportSettings.DEFAULT;
-  MembershipSettings membershipSettings = DEFAULT_CLUSTER_MEMBERSHIP_SETTINGS;
-  FailureDetectorSettings failureDetectorSettings = FailureDetectorSettings.DEFAULT;
-  GossipProtocolSettings gossipProtocolSettings = GossipProtocolSettings.DEFAULT;
+  TransportConfig transportConfig = TransportConfig.DEFAULT;
+  MembershipConfig membershipConfig = DEFAULT_MEMBERSHIP_CONFIG;
+  FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.DEFAULT;
+  GossipProtocolConfig gossipProtocolConfig = GossipProtocolConfig.DEFAULT;
 
   private ClusterConfig() {}
 
@@ -59,20 +59,20 @@ public class ClusterConfig {
     this.metadata = metadata;
   }
 
-  public void setMembershipSettings(MembershipSettings membershipSettings) {
-    this.membershipSettings = membershipSettings;
+  public void setMembershipConfig(MembershipConfig membershipConfig) {
+    this.membershipConfig = membershipConfig;
   }
 
-  public void setFailureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
-    this.failureDetectorSettings = failureDetectorSettings;
+  public void setFailureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
+    this.failureDetectorConfig = failureDetectorConfig;
   }
 
-  public void setGossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
-    this.gossipProtocolSettings = gossipProtocolSettings;
+  public void setGossipProtocolConfig(GossipProtocolConfig gossipProtocolConfig) {
+    this.gossipProtocolConfig = gossipProtocolConfig;
   }
 
-  public void setTransportSettings(TransportSettings transportSettings) {
-    this.transportSettings = transportSettings;
+  public void setTransportConfig(TransportConfig transportConfig) {
+    this.transportConfig = transportConfig;
   }
 
   public ClusterConfig metadata(Map<String, String> metadata) {
@@ -100,42 +100,41 @@ public class ClusterConfig {
     return this;
   }
 
-  public ClusterConfig membershipSettings(MembershipSettings membershipSettings) {
-    setMembershipSettings(membershipSettings);
+  public ClusterConfig membershipConfig(MembershipConfig membershipConfig) {
+    setMembershipConfig(membershipConfig);
     return this;
   }
 
-  public ClusterConfig failureDetectorSettings(FailureDetectorSettings failureDetectorSettings) {
-    setFailureDetectorSettings(failureDetectorSettings);
+  public ClusterConfig failureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
+    setFailureDetectorConfig(failureDetectorConfig);
     return this;
   }
 
-  public ClusterConfig gossipProtocolSettings(GossipProtocolSettings gossipProtocolSettings) {
-    setGossipProtocolSettings(gossipProtocolSettings);
+  public ClusterConfig gossipProtocolConfig(GossipProtocolConfig gossipProtocolConfig) {
+    setGossipProtocolConfig(gossipProtocolConfig);
     return this;
   }
 
-  public ClusterConfig transportSettings(TransportSettings transportSetting) {
-    setTransportSettings(transportSetting);
+  public ClusterConfig transportConfig(TransportConfig transportSetting) {
+    setTransportConfig(transportSetting);
     return this;
   }
 
   @Override
   public String toString() {
-    return "ClusterConfiguration{"
-        + ", seedMembers='" + seedMembers + '\''
+    return "ClusterConfig{seedMembers='" + seedMembers + '\''
         + ", port=" + port
         + ", portCount=" + portCount
         + ", portAutoIncrement=" + portAutoIncrement
         + ", metadata=" + metadata
-        + ", transportSettings=" + transportSettings
-        + ", clusterMembershipSettings=" + membershipSettings
-        + ", failureDetectorSettings=" + failureDetectorSettings
-        + ", gossipProtocolSettings=" + gossipProtocolSettings
+        + ", transportConfig=" + transportConfig
+        + ", membershipConfig=" + membershipConfig
+        + ", failureDetectorConfig=" + failureDetectorConfig
+        + ", gossipProtocolConfig=" + gossipProtocolConfig
         + '}';
   }
 
-  public static class MembershipSettings {
+  public static class MembershipConfig {
 
     public static final int DEFAULT_SYNC_TIME = 30 * 1000;
     public static final int DEFAULT_SYNC_TIMEOUT = 3 * 1000;
@@ -149,7 +148,7 @@ public class ClusterConfig {
     private int maxShutdownTime = DEFAULT_MAX_SHUTDOWN_TIME;
     private String syncGroup = DEFAULT_SYNC_GROUP;
 
-    public MembershipSettings() {}
+    public MembershipConfig() {}
 
     /**
      * Creates new cluster membership settings
@@ -160,8 +159,8 @@ public class ClusterConfig {
      * @param maxShutdownTime waiting time interval in milliseconds after shutdown event when node will not be removed
      * @param syncGroup cluster's sync group. Members with different groups will form different clusters.
      */
-    public MembershipSettings(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
-                              String syncGroup) {
+    public MembershipConfig(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
+                            String syncGroup) {
       this.syncTime = syncTime;
       this.syncTimeout = syncTimeout;
       this.maxSuspectTime = maxSuspectTime;
@@ -211,7 +210,7 @@ public class ClusterConfig {
 
     @Override
     public String toString() {
-      return "ClusterMembershipSettings{syncTime=" + syncTime
+      return "MembershipConfigF{syncTime=" + syncTime
           + ", syncTimeout=" + syncTimeout
           + ", maxSuspectTime=" + maxSuspectTime
           + ", maxShutdownTime=" + maxShutdownTime

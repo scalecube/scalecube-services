@@ -51,7 +51,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   private final String memberId;
   private final ITransport transport;
   private final ScheduledExecutorService executor;
-  private final GossipProtocolSettings settings;
+  private final GossipProtocolConfig config;
 
   @SuppressWarnings("unchecked")
   private Subject<Message, Message> subject = new SerializedSubject(PublishSubject.create());
@@ -72,7 +72,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
    * @param transport transport
    */
   public GossipProtocol(String memberId, ITransport transport) {
-    this(memberId, transport, GossipProtocolSettings.DEFAULT);
+    this(memberId, transport, GossipProtocolConfig.DEFAULT);
   }
 
   /**
@@ -80,12 +80,12 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
    *
    * @param memberId id of current member
    * @param transport transport
-   * @param settings gossip protocol settings
+   * @param config gossip protocol settings
    */
-  public GossipProtocol(String memberId, ITransport transport, GossipProtocolSettings settings) {
+  public GossipProtocol(String memberId, ITransport transport, GossipProtocolConfig config) {
     this.memberId = memberId;
     this.transport = transport;
-    this.settings = settings;
+    this.config = config;
     this.executor = Executors.newSingleThreadScheduledExecutor(createThreadFactory("scalecube-gossip-scheduled-%s"));
   }
 
@@ -100,7 +100,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   }
 
   @Override
-  public void setClusterMembers(Collection<Address> members) {
+  public void setMembers(Collection<Address> members) {
     Set<Address> remoteMembers = new HashSet<>(members);
     remoteMembers.remove(transport.localAddress());
     List<Address> list = new ArrayList<>(remoteMembers);
@@ -119,7 +119,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
     transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
     executorTask = executor.scheduleWithFixedDelay(new GossipProtocolRunnable(),
-        settings.getGossipTime(), settings.getGossipTime(), TimeUnit.MILLISECONDS);
+        config.getGossipTime(), config.getGossipTime(), TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -177,11 +177,11 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     if (period % members.size() == 0) {
       Collections.shuffle(members, ThreadLocalRandom.current());
     }
-    int maxMembersToSelect = settings.getMaxMembersToSelect();
+    int maxMembersToSelect = config.getMaxMembersToSelect();
     for (int i = 0; i < Math.min(maxMembersToSelect, members.size()); i++) {
       Address address = getNextRandom(members, maxMembersToSelect, i);
       // Filter only gossips which should be sent to chosen address
-      GossipSendPredicate predicate = new GossipSendPredicate(address, settings.getMaxGossipSent() * factor);
+      GossipSendPredicate predicate = new GossipSendPredicate(address, config.getMaxGossipSent() * factor);
       Collection<GossipLocalState> gossipLocalStateNeedSend = filter(gossips, predicate);
       if (!gossipLocalStateNeedSend.isEmpty()) {
         // Transform to actual gossip with incrementing sent count

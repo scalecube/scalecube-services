@@ -3,7 +3,7 @@ package io.scalecube.cluster.gossip;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.transport.TransportConfig;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
@@ -240,13 +240,13 @@ public class GossipEmulationIT {
   private GossipProtocol initGossiper(Address localAddress, List<Address> members,
                                       int lostPercent, int delay) {
 
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportSettings);
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
     transport.setDefaultNetworkSettings(lostPercent, delay);
 
     String memberId = UUID.randomUUID().toString();
     GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
-    gossipProtocol.setClusterMembers(members);
+    gossipProtocol.setMembers(members);
 
     try {
       transport.start().get();

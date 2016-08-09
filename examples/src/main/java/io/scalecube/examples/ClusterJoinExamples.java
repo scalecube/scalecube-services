@@ -36,9 +36,9 @@ public class ClusterJoinExamples {
     ICluster clusterNode3 = Cluster.joinAwait(config);
 
     // Start cluster member in separate cluster (separate sync group)
-    ClusterConfig.MembershipSettings membershipSettings = new ClusterConfig.MembershipSettings();
-    membershipSettings.setSyncGroup("cluster-B");
-    ClusterConfig config2 = ClusterConfig.newInstance().seedMembers(seedMember).membershipSettings(membershipSettings);
+    ClusterConfig.MembershipConfig membershipConfig = new ClusterConfig.MembershipConfig();
+    membershipConfig.setSyncGroup("cluster-B");
+    ClusterConfig config2 = ClusterConfig.newInstance().seedMembers(seedMember).membershipConfig(membershipConfig);
     ICluster anotherClusterNode = Cluster.joinAwait(config2);
 
     // Print first cluster members (3 nodes)

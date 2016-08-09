@@ -585,11 +585,11 @@ public class TransportTest extends BaseTest {
   }
 
   private Transport createTransport(Address address) {
-    TransportSettings settings = TransportSettings.builder()
+    TransportConfig config = TransportConfig.builder()
         .connectTimeout(1000)
         .useNetworkEmulator(true)
         .build();
-    Transport transport = Transport.newInstance(address, settings);
+    Transport transport = Transport.newInstance(address, config);
     try {
       transport.start().get();
     } catch (Exception e) {

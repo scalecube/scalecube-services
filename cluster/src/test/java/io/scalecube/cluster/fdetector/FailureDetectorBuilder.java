@@ -2,7 +2,7 @@ package io.scalecube.cluster.fdetector;
 
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.TransportSettings;
+import io.scalecube.transport.TransportConfig;
 
 import com.google.common.base.Throwables;
 
@@ -12,12 +12,12 @@ import java.util.List;
 public class FailureDetectorBuilder {
   final FailureDetector failureDetector;
 
-  FailureDetectorBuilder(Transport transport, FailureDetectorSettings settings) {
-    failureDetector = new FailureDetector(transport, settings);
+  FailureDetectorBuilder(Transport transport, FailureDetectorConfig failureDetectorConfig) {
+    failureDetector = new FailureDetector(transport, failureDetectorConfig);
   }
 
   public FailureDetectorBuilder set(List<Address> members) {
-    failureDetector.setClusterMembers(members);
+    failureDetector.setMembers(members);
     return this;
   }
 
@@ -56,23 +56,23 @@ public class FailureDetectorBuilder {
   }
 
   public static FailureDetectorBuilder FDBuilder(Address localAddress) {
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportSettings);
-    return new FailureDetectorBuilder(transport, FailureDetectorSettings.DEFAULT);
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
+    return new FailureDetectorBuilder(transport, FailureDetectorConfig.DEFAULT);
   }
 
   public static FailureDetectorBuilder FDBuilderWithPingTimeout(Address localAddress, int pingTimeout) {
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportSettings);
-    FailureDetectorSettings settings = FailureDetectorSettings.builder().pingTimeout(pingTimeout).build();
-    return new FailureDetectorBuilder(transport, settings);
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
+    FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder().pingTimeout(pingTimeout).build();
+    return new FailureDetectorBuilder(transport, failureDetectorConfig);
   }
 
   public static FailureDetectorBuilder FDBuilderWithPingTime(Address localAddress, int pingTime) {
-    TransportSettings transportSettings = TransportSettings.builder().useNetworkEmulator(true).build();
-    Transport transport = Transport.newInstance(localAddress, transportSettings);
-    FailureDetectorSettings settings = FailureDetectorSettings.builder().pingTime(pingTime).build();
-    return new FailureDetectorBuilder(transport, settings);
+    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
+    Transport transport = Transport.newInstance(localAddress, transportConfig);
+    FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder().pingTime(pingTime).build();
+    return new FailureDetectorBuilder(transport, failureDetectorConfig);
   }
 
   public FailureDetectorBuilder init() {

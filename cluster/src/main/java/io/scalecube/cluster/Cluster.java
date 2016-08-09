@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
-import rx.schedulers.Schedulers;
 
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -62,10 +61,10 @@ public final class Cluster implements ICluster {
 
   private Cluster(ClusterConfig config) {
     checkNotNull(config);
-    checkNotNull(config.transportSettings);
-    checkNotNull(config.gossipProtocolSettings);
-    checkNotNull(config.failureDetectorSettings);
-    checkNotNull(config.membershipSettings);
+    checkNotNull(config.transportConfig);
+    checkNotNull(config.gossipProtocolConfig);
+    checkNotNull(config.failureDetectorConfig);
+    checkNotNull(config.membershipConfig);
     this.config = config;
 
     // Build local member
@@ -73,13 +72,13 @@ public final class Cluster implements ICluster {
     Address localAddress = Address.createLocal(config.port);
 
     // Build transport
-    transport = Transport.newInstance(localAddress, config.transportSettings);
+    transport = Transport.newInstance(localAddress, config.transportConfig);
 
     // Build gossip protocol component
-    gossipProtocol = new GossipProtocol(memberId, transport, config.gossipProtocolSettings);
+    gossipProtocol = new GossipProtocol(memberId, transport, config.gossipProtocolConfig);
 
     // Build failure detector component
-    failureDetector = new FailureDetector(transport, config.failureDetectorSettings);
+    failureDetector = new FailureDetector(transport, config.failureDetectorConfig);
 
     // Build cluster membership component
     clusterMembership = new ClusterMembership(memberId, transport);
@@ -87,11 +86,11 @@ public final class Cluster implements ICluster {
     clusterMembership.setGossipProtocol(gossipProtocol);
     clusterMembership.setLocalMetadata(config.metadata);
     clusterMembership.setSeedMembers(config.seedMembers);
-    clusterMembership.setSyncTime(config.membershipSettings.getSyncTime());
-    clusterMembership.setSyncTimeout(config.membershipSettings.getSyncTimeout());
-    clusterMembership.setSyncGroup(config.membershipSettings.getSyncGroup());
-    clusterMembership.setMaxSuspectTime(config.membershipSettings.getMaxSuspectTime());
-    clusterMembership.setMaxShutdownTime(config.membershipSettings.getMaxShutdownTime());
+    clusterMembership.setSyncTime(config.membershipConfig.getSyncTime());
+    clusterMembership.setSyncTimeout(config.membershipConfig.getSyncTimeout());
+    clusterMembership.setSyncGroup(config.membershipConfig.getSyncGroup());
+    clusterMembership.setMaxSuspectTime(config.membershipConfig.getMaxSuspectTime());
+    clusterMembership.setMaxShutdownTime(config.membershipConfig.getMaxShutdownTime());
 
     // Initial state
     this.state = new AtomicReference<>(State.INSTANTIATED);
@@ -211,7 +210,7 @@ public final class Cluster implements ICluster {
     // Wait for some time until 'leave' gossip start to spread through the cluster before stopping cluster components
     final SettableFuture<Void> transportStoppedFuture = SettableFuture.create();
     final ScheduledExecutorService stopExecutor = Executors.newSingleThreadScheduledExecutor();
-    long delay = 3 * config.gossipProtocolSettings.getGossipTime(); // wait for 3 gossip periods before stopping
+    long delay = 3 * config.gossipProtocolConfig.getGossipTime(); // wait for 3 gossip periods before stopping
     stopExecutor.schedule(new Runnable() {
       @Override
       public void run() {

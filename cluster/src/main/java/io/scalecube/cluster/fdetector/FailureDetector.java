@@ -58,7 +58,7 @@ public final class FailureDetector implements IFailureDetector {
 
   private final ITransport transport;
   private final Scheduler scheduler;
-  private final FailureDetectorSettings settings;
+  private final FailureDetectorConfig config;
 
   @SuppressWarnings("unchecked")
   private Subject<FailureDetectorEvent, FailureDetectorEvent> subject = new SerializedSubject(PublishSubject.create());
@@ -119,25 +119,25 @@ public final class FailureDetector implements IFailureDetector {
    * @param transport transport
    */
   public FailureDetector(Transport transport) {
-    this(transport, FailureDetectorSettings.DEFAULT);
+    this(transport, FailureDetectorConfig.DEFAULT);
   }
 
   /**
    * Creates new instance of failure detector with given transport and settings.
    *
    * @param transport transport
-   * @param settings failure detector settings
+   * @param config failure detector settings
    */
-  public FailureDetector(Transport transport, FailureDetectorSettings settings) {
+  public FailureDetector(Transport transport, FailureDetectorConfig config) {
     checkArgument(transport != null);
-    checkArgument(settings != null);
+    checkArgument(config != null);
     this.transport = transport;
-    this.settings = settings;
+    this.config = config;
     this.scheduler = Schedulers.from(transport.getWorkerGroup());
   }
 
   @Override
-  public void setClusterMembers(Collection<Address> members) {
+  public void setMembers(Collection<Address> members) {
     Set<Address> set = new HashSet<>(members);
     set.remove(transport.localAddress());
     List<Address> list = new ArrayList<>(set);
@@ -188,7 +188,7 @@ public final class FailureDetector implements IFailureDetector {
           LOGGER.error("Unhandled exception: {}", e, e);
         }
       }
-    }, 0, settings.getPingTime(), TimeUnit.MILLISECONDS);
+    }, 0, config.getPingTime(), TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -232,7 +232,7 @@ public final class FailureDetector implements IFailureDetector {
     LOGGER.trace("Send Ping from {} to {}", localAddress, pingMember);
 
     transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localAddress, pingMember)).take(1)
-        .timeout(settings.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
+        .timeout(config.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
           public void call(Message transportMessage) {
@@ -243,7 +243,7 @@ public final class FailureDetector implements IFailureDetector {
           @Override
           public void call(Throwable throwable) {
             LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now",
-                pingMember, settings.getPingTimeout());
+                pingMember, config.getPingTimeout());
             doPingReq(members, pingMember, period);
           }
         }));
@@ -252,16 +252,16 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private void doPingReq(List<Address> members, final Address targetMember, String period) {
-    final int timeout = settings.getPingTime() - settings.getPingTimeout();
+    final int timeout = config.getPingTime() - config.getPingTimeout();
     if (timeout <= 0) {
       LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})",
-          settings.getPingTime(), settings.getPingTimeout());
+          config.getPingTime(), config.getPingTimeout());
       declareSuspected(targetMember);
       return;
     }
 
     final List<Address> randomMembers =
-        selectRandomMembers(members, settings.getMaxMembersToSelect(), targetMember/* exclude */);
+        selectRandomMembers(members, config.getMaxMembersToSelect(), targetMember/* exclude */);
     if (randomMembers.isEmpty()) {
       LOGGER.trace("No PingReq occurred, because member selection is empty");
       declareSuspected(targetMember);

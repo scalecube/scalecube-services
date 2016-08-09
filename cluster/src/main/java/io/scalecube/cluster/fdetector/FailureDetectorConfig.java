@@ -1,8 +1,8 @@
 package io.scalecube.cluster.fdetector;
 
-public final class FailureDetectorSettings {
+public final class FailureDetectorConfig {
 
-  public static final FailureDetectorSettings DEFAULT = builder().build();
+  public static final FailureDetectorConfig DEFAULT = builder().build();
 
   public static final int DEFAULT_PING_TIME = 2000;
   public static final int DEFAULT_PING_TIMEOUT = 1000;
@@ -12,7 +12,7 @@ public final class FailureDetectorSettings {
   private final int pingTimeout;
   private final int maxMembersToSelect;
 
-  private FailureDetectorSettings(Builder builder) {
+  private FailureDetectorConfig(Builder builder) {
     this.pingTime = builder.pingTime;
     this.pingTimeout = builder.pingTimeout;
     this.maxMembersToSelect = builder.maxMembersToSelect;
@@ -36,7 +36,7 @@ public final class FailureDetectorSettings {
 
   @Override
   public String toString() {
-    return "FailureDetectorSettings{pingTime=" + pingTime
+    return "FailureDetectorConfig{pingTime=" + pingTime
         + ", pingTimeout=" + pingTimeout
         + ", maxMembersToSelect=" + maxMembersToSelect
         + '}';
@@ -65,8 +65,8 @@ public final class FailureDetectorSettings {
       return this;
     }
 
-    public FailureDetectorSettings build() {
-      return new FailureDetectorSettings(this);
+    public FailureDetectorConfig build() {
+      return new FailureDetectorConfig(this);
     }
   }
 }

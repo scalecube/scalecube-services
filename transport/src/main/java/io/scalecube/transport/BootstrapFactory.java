@@ -50,14 +50,14 @@ final class BootstrapFactory {
     }
   }
 
-  private final TransportSettings settings;
+  private final TransportConfig config;
   private final EventLoopGroup bossGroup;
   private final EventLoopGroup workerGroup;
 
-  public BootstrapFactory(TransportSettings settings) {
-    this.settings = settings;
-    this.bossGroup = createEventLoopGroup(settings.getBossThreads(), new DefaultThreadFactory("sc-boss", true));
-    this.workerGroup = createEventLoopGroup(settings.getWorkerThreads(), new DefaultThreadFactory("sc-io", true));
+  public BootstrapFactory(TransportConfig config) {
+    this.config = config;
+    this.bossGroup = createEventLoopGroup(config.getBossThreads(), new DefaultThreadFactory("sc-boss", true));
+    this.workerGroup = createEventLoopGroup(config.getWorkerThreads(), new DefaultThreadFactory("sc-io", true));
   }
 
   public ServerBootstrap serverBootstrap() {
@@ -78,7 +78,7 @@ final class BootstrapFactory {
         .option(ChannelOption.TCP_NODELAY, true)
         .option(ChannelOption.SO_KEEPALIVE, true)
         .option(ChannelOption.SO_REUSEADDR, true)
-        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, settings.getConnectTimeout())
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, config.getConnectTimeout())
         .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
     return bootstrap;
   }
@@ -100,7 +100,7 @@ final class BootstrapFactory {
   }
 
   private boolean isEpollSupported() {
-    return envSupportEpoll && settings.isEnableEpoll();
+    return envSupportEpoll && config.isEnableEpoll();
   }
 
   public EventLoopGroup getWorkerGroup() {

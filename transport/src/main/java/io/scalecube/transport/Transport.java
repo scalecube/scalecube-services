@@ -45,7 +45,7 @@ public final class Transport implements ITransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
   private final Address localAddress;
-  private final TransportSettings settings;
+  private final TransportConfig config;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
   private final Memoizer<Address, ChannelFuture> outgoingChannels;
@@ -62,18 +62,18 @@ public final class Transport implements ITransport {
 
   private ServerChannel serverChannel;
 
-  private Transport(Address localAddress, TransportSettings settings) {
+  private Transport(Address localAddress, TransportConfig config) {
     checkArgument(localAddress != null);
-    checkArgument(settings != null);
+    checkArgument(config != null);
     this.localAddress = localAddress;
-    this.settings = settings;
+    this.config = config;
     this.serializerHandler = new MessageSerializerHandler();
     this.deserializerHandler = new MessageDeserializerHandler();
-    LogLevel logLevel = resolveLogLevel(settings.getLogLevel());
+    LogLevel logLevel = resolveLogLevel(config.getLogLevel());
     this.loggingHandler = logLevel != null ? new LoggingHandler(logLevel) : null;
-    this.networkEmulatorHandler = settings.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
+    this.networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
     this.messageHandler = new MessageReceiverHandler(incomingMessagesSubject);
-    this.bootstrapFactory = new BootstrapFactory(settings);
+    this.bootstrapFactory = new BootstrapFactory(config);
     this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
 
@@ -81,8 +81,8 @@ public final class Transport implements ITransport {
     return (logLevel != null && !logLevel.equals("OFF")) ? LogLevel.valueOf(logLevel) : null;
   }
 
-  public static Transport newInstance(Address localAddress, TransportSettings settings) {
-    return new Transport(localAddress, settings);
+  public static Transport newInstance(Address localAddress, TransportConfig config) {
+    return new Transport(localAddress, config);
   }
 
   @Override
@@ -98,7 +98,7 @@ public final class Transport implements ITransport {
    * Sets given network emulator settings. If network emulator is disabled do nothing.
    */
   public void setNetworkSettings(Address destination, int lostPercent, int meanDelay) {
-    if (settings.isUseNetworkEmulator()) {
+    if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setNetworkSettings(destination, lostPercent, meanDelay);
     } else {
       LOGGER.warn("Network emulator is disabled: can't set network settings");
@@ -109,7 +109,7 @@ public final class Transport implements ITransport {
    * Sets default network emulator settings. If network emulator is disabled do nothing.
    */
   public void setDefaultNetworkSettings(int lostPercent, int meanDelay) {
-    if (settings.isUseNetworkEmulator()) {
+    if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
     } else {
       LOGGER.warn("Network emulator is disabled: can't set default network settings");
@@ -120,7 +120,7 @@ public final class Transport implements ITransport {
    * Block messages to given destination. If network emulator is disabled do nothing.
    */
   public void blockMessagesTo(Address destination) {
-    if (settings.isUseNetworkEmulator()) {
+    if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.blockMessagesTo(destination);
     } else {
       LOGGER.warn("Network emulator is disabled: can't block messages");
@@ -131,7 +131,7 @@ public final class Transport implements ITransport {
    * Unblock messages to all destinations. If network emulator is disabled do nothing.
    */
   public void unblockAll() {
-    if (settings.isUseNetworkEmulator()) {
+    if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.unblockAll();
     } else {
       LOGGER.warn("Network emulator is disabled: can't unblock messages");
