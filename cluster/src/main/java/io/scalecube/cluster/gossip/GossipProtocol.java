@@ -86,7 +86,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     this.memberId = memberId;
     this.transport = transport;
     this.config = config;
-    this.executor = Executors.newSingleThreadScheduledExecutor(createThreadFactory("scalecube-gossip-scheduled-%s"));
+    this.executor = Executors.newSingleThreadScheduledExecutor(createThreadFactory("sc-gossip-%s"));
   }
 
   private ThreadFactory createThreadFactory(String namingFormat) {
