@@ -143,7 +143,7 @@ public final class FailureDetector implements IFailureDetector {
     List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
     this.members = list;
-    LOGGER.debug("Set cluster members: {}", this.members);
+    LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
   }
 
   public ITransport getTransport() {
@@ -299,7 +299,7 @@ public final class FailureDetector implements IFailureDetector {
    */
   private void declareSuspected(Address member) {
     if (suspectedMembers.add(member)) {
-      LOGGER.debug("Member {} became SUSPECTED", member);
+      LOGGER.debug("Member {} became SUSPECTED for {}", member, transport.address());
       subject.onNext(suspected(member));
     }
   }
@@ -309,7 +309,7 @@ public final class FailureDetector implements IFailureDetector {
    */
   private void declareTrusted(Address member) {
     if (suspectedMembers.remove(member)) {
-      LOGGER.debug("Member {} became TRUSTED", member);
+      LOGGER.debug("Member {} became TRUSTED for {}", member, transport.address());
       subject.onNext(trusted(member));
     }
   }

@@ -19,7 +19,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -70,7 +69,7 @@ public class ClusterMembershipBuilder {
   }
 
   public ClusterMembershipBuilder block(Address dest) {
-    transport.blockMessagesTo(dest);
+    transport.block(dest);
     return this;
   }
 

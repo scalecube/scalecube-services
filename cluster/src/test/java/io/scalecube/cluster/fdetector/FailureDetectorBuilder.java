@@ -2,9 +2,6 @@ package io.scalecube.cluster.fdetector;
 
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.TransportConfig;
-
-import com.google.common.base.Throwables;
 
 import java.util.Arrays;
 import java.util.List;
@@ -38,7 +35,7 @@ public class FailureDetectorBuilder {
 
   public FailureDetectorBuilder block(Address dest) {
     Transport tf = (Transport) failureDetector.getTransport();
-    tf.blockMessagesTo(dest);
+    tf.block(dest);
     return this;
   }
 
@@ -49,14 +46,17 @@ public class FailureDetectorBuilder {
     return this;
   }
 
-  public FailureDetectorBuilder unblockAll() {
-    Transport tf = (Transport) failureDetector.getTransport();
-    tf.unblockAll();
-    return this;
-  }
-
   public static FailureDetectorBuilder FDBuilder(Transport transport) {
     return new FailureDetectorBuilder(transport, FailureDetectorConfig.DEFAULT);
+  }
+
+  public static FailureDetectorBuilder FDBuilderFast(Transport transport) {
+    FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder()
+        .pingTimeout(100)
+        .pingTime(200)
+        .maxMembersToSelect(2)
+        .build();
+    return new FailureDetectorBuilder(transport, failureDetectorConfig);
   }
 
   public static FailureDetectorBuilder FDBuilderWithPingTimeout(Transport transport, int pingTimeout) {

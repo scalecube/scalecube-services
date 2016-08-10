@@ -158,7 +158,8 @@ public final class Transport implements ITransport {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setNetworkSettings(destination, lostPercent, meanDelay);
     } else {
-      LOGGER.warn("Network emulator is disabled: can't set network settings");
+      LOGGER.warn("Noop on 'setNetworkSettings({},{},{})' since network emulator is disabled",
+          destination, lostPercent, meanDelay);
     }
   }
 
@@ -169,18 +170,30 @@ public final class Transport implements ITransport {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
     } else {
-      LOGGER.warn("Network emulator is disabled: can't set default network settings");
+      LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
+          lostPercent, meanDelay);
     }
   }
 
   /**
    * Block messages to given destination. If network emulator is disabled do nothing.
    */
-  public void blockMessagesTo(Address destination) {
+  public void block(Address destination) {
     if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.blockMessagesTo(destination);
+      networkEmulatorHandler.block(destination);
     } else {
-      LOGGER.warn("Network emulator is disabled: can't block messages");
+      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destination);
+    }
+  }
+
+  /**
+   * Unblock messages to given destination. If network emulator is disabled do nothing.
+   */
+  public void unblock(Address destination) {
+    if (config.isUseNetworkEmulator()) {
+      networkEmulatorHandler.unblock(destination);
+    } else {
+      LOGGER.warn("Noop on 'unblock({})' since network emulator is disabled", destination);
     }
   }
 
@@ -191,7 +204,7 @@ public final class Transport implements ITransport {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.unblockAll();
     } else {
-      LOGGER.warn("Network emulator is disabled: can't unblock messages");
+      LOGGER.warn("Noop on 'unblockAll()' since network emulator is disabled");
     }
   }
 

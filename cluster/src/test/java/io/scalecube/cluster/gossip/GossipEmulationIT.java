@@ -19,41 +19,44 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class GossipEmulationIT {
 
-  private static final int TIMEOUT = 20050;
-
   @Test
-  public void test10WithoutLostSmallDelay() throws Exception {
+  public void test10WithoutLostSmallDelay5Sec() throws Exception {
     int membersNum = 10;
     int lostPercent = 0;
-    int delay = 2;
-    testGossipProtocol(membersNum, lostPercent, delay, TIMEOUT);
+    int meanDelay = 2;
+    int timeout = 5000;
+    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
   }
 
   @Test
-  public void test10Lost20SmallDelay() throws Exception {
+  public void test10Lost20SmallDelay5Sec() throws Exception {
     int membersNum = 10;
     int lostPercent = 20;
-    int delay = 2;
-    testGossipProtocol(membersNum, lostPercent, delay, TIMEOUT);
+    int meanDelay = 2;
+    int timeout = 5000;
+    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
   }
 
   @Test
-  public void test100WithoutLostSmallDelay() throws Exception {
+  public void test100WithoutLostSmallDelay10Sec() throws Exception {
     int membersNum = 100;
     int lostPercent = 0;
-    int delay = 2;
-    testGossipProtocol(membersNum, lostPercent, delay, TIMEOUT);
+    int meanDelay = 2;
+    int timeout = 10000;
+    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
   }
 
   @Test
-  public void test100Lost5BigDelay() throws Exception {
+  public void test100Lost5BigDelay20Sec() throws Exception {
     int membersNum = 100;
     int lostPercent = 5;
-    int delay = 100;
-    testGossipProtocol(membersNum, lostPercent, delay, TIMEOUT);
+    int meanDelay = 500;
+    int timeout = 20000;
+    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
   }
 
   private void testGossipProtocol(int membersNum, int lostPercent, int delay, int timeout) throws Exception {
@@ -65,13 +68,19 @@ public class GossipEmulationIT {
       final String gossipData = "test gossip";
       final CountDownLatch latch = new CountDownLatch(membersNum - 1);
       final Set<Address> receivers = new HashSet<>();
+      final AtomicBoolean doubleDelivery = new AtomicBoolean(false);
       for (final GossipProtocol protocol : gossipProtocols) {
         protocol.listen().subscribe(new Action1<Message>() {
           @Override
           public void call(Message gossip) {
             if (gossipData.equals(gossip.data())) {
-              receivers.add(protocol.getTransport().address());
-              latch.countDown();
+              boolean firstTimeAdded = receivers.add(protocol.getTransport().address());
+              if (firstTimeAdded) {
+                latch.countDown();
+              } else {
+                System.out.println("Delivered gossip twice to: " + protocol.getTransport().address());
+                doubleDelivery.set(true);
+              }
             }
           }
         });
@@ -82,7 +91,8 @@ public class GossipEmulationIT {
       gossipProtocols.get(0).spread(Message.fromData(gossipData));
       latch.await(2 * timeout, TimeUnit.MILLISECONDS); // Await double timeout
       long time = System.currentTimeMillis() - start;
-      Assert.assertEquals(membersNum - 1, receivers.size()); // check all members received gossip exactly once
+      Assert.assertFalse("Delivered gossip twice to same member", doubleDelivery.get());
+      Assert.assertEquals("Not all members received gossip", membersNum - 1, receivers.size());
       Assert.assertTrue("Time " + time + "ms is bigger then expected " + timeout + "ms", time < timeout);
       System.out.println("Time: " + time + "ms");
     } finally {

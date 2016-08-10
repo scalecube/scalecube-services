@@ -79,9 +79,14 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
     LOGGER.debug("Set default {}", defaultSettings);
   }
 
-  public void blockMessagesTo(Address destination) {
+  public void block(Address destination) {
     networkSettings.put(destination, new NetworkEmulatorSettings(100, 0));
     LOGGER.debug("Block messages to: {}", destination);
+  }
+
+  public void unblock(Address destination) {
+    networkSettings.remove(destination);
+    LOGGER.debug("Unblock messages to: {}", destination);
   }
 
   public void unblockAll() {

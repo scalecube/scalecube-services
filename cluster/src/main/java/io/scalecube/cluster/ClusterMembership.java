@@ -344,7 +344,7 @@ public final class ClusterMembership implements IClusterMembership {
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.info("Timeout getting SyncAck from members: {}", members, throwable);
+            LOGGER.info("Timeout getting SyncAck from members: {}", members);
           }
         }));
 

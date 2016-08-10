@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ClusterDynamicPortTest {
 
   @Test
@@ -12,12 +15,19 @@ public class ClusterDynamicPortTest {
     String seedNodeAddress = "localhost:" + ClusterConfig.DEFAULT_PORT;
 
     long start = System.currentTimeMillis();
+    List<ICluster> otherNodes = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
-      Cluster.joinAwait(seedNodeAddress);
+      otherNodes.add(Cluster.joinAwait(seedNodeAddress));
     }
     long end = System.currentTimeMillis();
     System.out.println("Time: " + (end - start) + " millis");
     assertEquals(11, seedNode.membership().members().size());
     System.out.println("Cluster nodes: " + seedNode.membership().members());
+
+    // Destroy all nodes
+    seedNode.leave().get();
+    for (ICluster node : otherNodes) {
+      node.leave().get();
+    }
   }
 }

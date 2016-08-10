@@ -462,7 +462,7 @@ public class TransportTest extends BaseTest {
 
     // then block client->server messages
     pause(1000);
-    client.blockMessagesTo(server.address());
+    client.block(server.address());
     send(client, server.address(), Message.fromQualifier("q/blocked"));
 
     pause(1000);
