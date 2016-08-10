@@ -255,20 +255,6 @@ public final class Transport implements ITransport {
   }
 
   @Override
-  public void disconnect(@CheckForNull Address address, @Nullable SettableFuture<Void> promise) {
-    checkState(!stopped, "Transport is stopped");
-    checkArgument(address != null);
-    ChannelFuture channelFuture = outgoingChannels.remove(address);
-    if (channelFuture != null && channelFuture.isSuccess()) {
-      composeFutures(channelFuture.channel().close(), promise);
-    } else {
-      if (promise != null) {
-        promise.set(null);
-      }
-    }
-  }
-
-  @Override
   public void send(@CheckForNull Address address, @CheckForNull Message message) {
     send(address, message, null);
   }

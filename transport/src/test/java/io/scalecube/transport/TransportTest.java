@@ -106,30 +106,6 @@ public class TransportTest extends BaseTest {
   }
 
   @Test
-  public void testDisconnectAndSendSequentiallySuccess() throws Exception {
-    client = createTransport();
-    server = createTransport();
-
-    for (int i = 0; i < 10; i++) {
-      LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
-
-      // Connect and send
-      SettableFuture<Void> sentPromise = SettableFuture.create();
-      client.send(server.address(), Message.fromData("Hello 0 at #" + i), sentPromise);
-
-      // Wait that message was sent
-      sentPromise.get(1, TimeUnit.SECONDS);
-
-      // Disconnect
-      SettableFuture<Void> disconnectedPromise = SettableFuture.create();
-      client.disconnect(server.address(), disconnectedPromise);
-
-      // Wait disconnected
-      disconnectedPromise.get(1, TimeUnit.SECONDS);
-    }
-  }
-
-  @Test
   public void testPingPongClientTFListenAndServerTFListen() throws Exception {
     client = createTransport();
     server = createTransport();
@@ -161,13 +137,13 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testConnectorSendOrder1Thread() throws Exception {
-    client = createTransport();
     server = createTransport();
 
     int total = 1000;
     for (int i = 0; i < 10; i++) {
       LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
 
+      client = createTransport();
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(total);
       server.listen().subscribe(new Action1<Message>() {
@@ -190,20 +166,14 @@ public class TransportTest extends BaseTest {
       }
 
       latch.await(20, TimeUnit.SECONDS);
-      {
-        SettableFuture<Void> close = SettableFuture.create();
-        client.disconnect(server.address(), close);
-        close.get(1, TimeUnit.SECONDS);
-      }
-      pause(100); // wait a bit so close could recognized on other side
-
       assertSendOrder(total, received);
+
+      destroyTransport(client);
     }
   }
 
   @Test
   public void testConnectorSendOrder4Thread() throws Exception {
-    Transport client = createTransport();
     Transport server = createTransport();
 
     final int total = 1000;
@@ -211,6 +181,7 @@ public class TransportTest extends BaseTest {
       LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
       ExecutorService exec = Executors.newFixedThreadPool(4, new ThreadFactoryBuilder().setDaemon(true).build());
 
+      Transport client = createTransport();
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(4 * total);
       server.listen().subscribe(new Action1<Message>() {
@@ -233,18 +204,14 @@ public class TransportTest extends BaseTest {
       f2.get(1, TimeUnit.SECONDS);
       f3.get(1, TimeUnit.SECONDS);
 
-      {
-        SettableFuture<Void> close = SettableFuture.create();
-        client.disconnect(server.address(), close);
-        close.get(1, TimeUnit.SECONDS);
-      }
-      pause(100); // wait a bit so close could recognized on other side
       exec.shutdownNow();
 
       assertSenderOrder(0, total, received);
       assertSenderOrder(1, total, received);
       assertSenderOrder(2, total, received);
       assertSenderOrder(3, total, received);
+
+      destroyTransport(client);
     }
 
     destroyTransport(client);
