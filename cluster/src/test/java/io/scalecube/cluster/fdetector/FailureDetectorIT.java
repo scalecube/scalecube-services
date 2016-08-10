@@ -412,12 +412,14 @@ public class FailureDetectorIT {
   }
 
   private void destroyTransport(ITransport transport) {
-    SettableFuture<Void> close = SettableFuture.create();
-    transport.stop(close);
-    try {
-      close.get(1, TimeUnit.SECONDS);
-    } catch (Exception ignore) {
-      // ignore
+    if (transport != null && !((Transport) transport).isStopped()) {
+      SettableFuture<Void> close = SettableFuture.create();
+      transport.stop(close);
+      try {
+        close.get(1, TimeUnit.SECONDS);
+      } catch (Exception ignore) {
+        // ignore
+      }
     }
   }
 

@@ -143,6 +143,10 @@ public final class Transport implements ITransport {
     return address;
   }
 
+  public boolean isStopped() {
+    return stopped;
+  }
+
   public EventExecutorGroup getWorkerGroup() {
     return bootstrapFactory.getWorkerGroup();
   }
@@ -318,7 +322,7 @@ public final class Transport implements ITransport {
           if (channelFuture.isSuccess()) {
             LOGGER.info("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
           } else {
-            LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address, channelFuture.cause());
+            LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
             outgoingChannels.delete(address);
           }
         }

@@ -540,7 +540,7 @@ public class TransportTest extends BaseTest {
   }
 
   private void destroyTransport(Transport transport) throws Exception {
-    if (transport != null) {
+    if (transport != null && !transport.isStopped()) {
       SettableFuture<Void> close = SettableFuture.create();
       transport.stop(close);
       close.get(1, TimeUnit.SECONDS);
