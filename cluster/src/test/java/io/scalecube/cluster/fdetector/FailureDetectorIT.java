@@ -1,10 +1,5 @@
 package io.scalecube.cluster.fdetector;
 
-import static com.google.common.collect.ImmutableList.of;
-import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilder;
-import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilderFast;
-import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilderWithPingTime;
-import static io.scalecube.cluster.fdetector.FailureDetectorBuilder.FDBuilderWithPingTimeout;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -14,14 +9,11 @@ import io.scalecube.transport.TransportConfig;
 
 import com.google.common.util.concurrent.SettableFuture;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class FailureDetectorIT {
@@ -82,124 +74,160 @@ public class FailureDetectorIT {
   }
 
   @Test
-  public void testTrustedDifferentPingTiming() throws Exception {
+  public void testBasicSuspected() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilderWithPingTime(a, 100).members(members));
-    builders.add(FDBuilderWithPingTime(b, 300).members(members));
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
+
+    // block all traffic
+    a.block(members);
+    b.block(members);
 
     try {
-      startAll(builders);
-      TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("No suspected members is expected: " + target, 0, target.size());
+      startAll(fdetectors);
+      TimeUnit.SECONDS.sleep(2);
+      assertSuspected(fd_a.getSuspectedMembers(), b.address());
+      assertSuspected(fd_b.getSuspectedMembers(), a.address());
     } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b);
     }
   }
 
   @Test
   public void testAllSuspected() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).members(members).pingMember(b.address()).block(members));
-    builders.add(FDBuilder(b).members(members).pingMember(c.address()).block(members));
-    builders.add(FDBuilder(c).members(members).pingMember(a.address()).block(members));
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_c = createFailureDetector(c, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
+
+    // block all traffic
+    a.block(members);
+    b.block(members);
+    c.block(members);
 
     try {
-      startAll(builders);
+      startAll(fdetectors);
       TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("Expected 3 suspected members: " + target, 3, target.size());
-      assertEquals(b.address(), target.get(a.address()));
-      assertEquals(c.address(), target.get(b.address()));
-      assertEquals(a.address(), target.get(c.address()));
+      assertSuspected(fd_a.getSuspectedMembers(), b.address(), c.address());
+      assertSuspected(fd_b.getSuspectedMembers(), a.address(), c.address());
+      assertSuspected(fd_c.getSuspectedMembers(), a.address(), b.address());
     } finally {
-      destroy(builders);
-    }
-  }
-
-  @Test
-  public void testBasicSuspected() throws Exception {
-    Transport a = Transport.bindAwait(true);
-    Transport b = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address());
-
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).members(members).pingMember(b.address()).block(members));
-    builders.add(FDBuilder(b).members(members).pingMember(a.address()).block(members));
-
-    try {
-      startAll(builders);
-      TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("Expected 2 suspected members: " + target, 2, target.size());
-      assertEquals(b.address(), target.get(a.address()));
-      assertEquals(a.address(), target.get(b.address()));
-    } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b, c);
     }
   }
 
   @Test
   public void testAllTrustedDespiteTrafficIssue() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).members(members).pingMember(b.address()).block(b.address()));
-    builders.add(FDBuilder(b).members(members).pingMember(c.address()));
-    builders.add(FDBuilder(c).members(members).pingMember(a.address()));
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_c = createFailureDetector(c, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
+
+    // Traffic issue
+    a.block(b.address());
 
     try {
-      startAll(builders);
+      startAll(fdetectors);
       TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("No suspected members is expected: " + target, 0, target.size());
+      assertTrue("No suspected members is expected by a", fd_a.getSuspectedMembers().isEmpty());
+      assertTrue("No suspected members is expected by b", fd_b.getSuspectedMembers().isEmpty());
+      assertTrue("No suspected members is expected by c", fd_c.getSuspectedMembers().isEmpty());
     } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b, c);
+    }
+  }
+
+  @Test
+  public void testTrustedDifferentPingTiming() throws Exception {
+    // Create transports
+    Transport a = Transport.bindAwait(true);
+    Transport b = Transport.bindAwait(true);
+    List<Address> members = Arrays.asList(a.address(), b.address());
+
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetectorConfig fd_b_config = FailureDetectorConfig.builder()
+        .pingTime(500)
+        .pingTimeout(300)
+        .build();
+    FailureDetector fd_b = createFailureDetector(b, members, fd_b_config);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
+
+    try {
+      startAll(fdetectors);
+      TimeUnit.SECONDS.sleep(4);
+      assertNoSuspected(fdetectors);
+    } finally {
+      stopAll(fdetectors);
+      destroyTransports(a, b);
     }
   }
 
   @Test
   public void testSingleSuspectedNotAffectOthers() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
     Transport d = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    // a--X-->b and no neighbors
-    builders.add(FDBuilderWithPingTimeout(a, 999).members(members).pingMember(b.address()).block(b.address())
-        .noRandomMembers());
-    builders.add(FDBuilderWithPingTime(b, 100).members(members).pingMember(a.address()).noRandomMembers()); // ping a
-    builders.add(FDBuilderWithPingTime(c, 100).members(members).pingMember(a.address()).noRandomMembers()); // ping a
-    builders.add(FDBuilderWithPingTime(d, 100).members(members).pingMember(a.address()).noRandomMembers()); // ping a
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_d = createFailureDetector(d, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
+
+    // Block member a
+    a.block(members);
 
     try {
-      startAll(builders);
+      startAll(fdetectors);
       TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("Expected 2 suspected members: " + target, 2, target.size());
-      assertEquals(b.address(), target.get(a.address()));
-      assertEquals(a.address(), target.get(b.address()));
+      assertSuspected(fd_a.getSuspectedMembers(), b.address(), c.address(), d.address());
+      assertSuspected(fd_b.getSuspectedMembers(), a.address());
+      assertSuspected(fd_c.getSuspectedMembers(), a.address());
+      assertSuspected(fd_d.getSuspectedMembers(), a.address());
+
+      // Unblock traffic
+      a.unblockAll();
+
+      // Check recovers
+      TimeUnit.SECONDS.sleep(4);
+      assertNoSuspected(fdetectors);
     } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b, c, d);
     }
   }
 
   @Test
   public void testTwoSuspectedNotAffectOthers() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
@@ -207,205 +235,192 @@ public class FailureDetectorIT {
     Transport e = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address(), e.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    // a--X-->b then a--X-->c
-    builders.add(FDBuilderWithPingTimeout(a, 499).members(members).pingMember(b.address()).block(b.address())
-        .randomMembers(of(c.address())).block(c.address()));
-    builders.add(FDBuilderWithPingTime(b, 100).members(members).pingMember(a.address()).noRandomMembers()); // ping a
-    builders.add(FDBuilderWithPingTime(c, 100).members(members).pingMember(a.address()).noRandomMembers()); // ping a
-    builders.add(FDBuilderWithPingTime(d, 100).members(members).pingMember(a.address()).noRandomMembers()); // ping a
-    builders.add(FDBuilderWithPingTime(e, 100).members(members).pingMember(a.address()).noRandomMembers()); // ping a
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_d = createFailureDetector(d, members);
+    FailureDetector fd_e = createFailureDetector(e, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d, fd_e);
+
+    // Block two members a & b
+    a.block(members);
+    b.block(members);
 
     try {
-      startAll(builders);
-      TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("Expected 3 suspected members: " + target, 3, target.size());
-      assertEquals(b.address(), target.get(a.address()));
-      assertEquals(a.address(), target.get(b.address()));
-      assertEquals(a.address(), target.get(c.address()));
+      startAll(fdetectors);
+      TimeUnit.SECONDS.sleep(6);
+      assertSuspected(fd_a.getSuspectedMembers(), b.address(), c.address(), d.address(), e.address());
+      assertSuspected(fd_b.getSuspectedMembers(), a.address(), c.address(), d.address(), e.address());
+      assertSuspected(fd_c.getSuspectedMembers(), a.address(), b.address());
+      assertSuspected(fd_d.getSuspectedMembers(), a.address(), b.address());
+      assertSuspected(fd_e.getSuspectedMembers(), a.address(), b.address());
+
+      // Unblock traffic
+      a.unblockAll();
+      b.unblockAll();
+
+      // Check recovers
+      TimeUnit.SECONDS.sleep(6);
+      assertNoSuspected(fdetectors);
     } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b, c, d, e);
     }
   }
 
   @Test
   public void testSuspectedNetworkPartition() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
     Transport x = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), x.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).members(members).pingMember(x.address()).block(x.address()));
-    builders.add(FDBuilder(b).members(members).pingMember(x.address()).block(x.address()));
-    builders.add(FDBuilder(c).members(members).pingMember(x.address()).block(x.address()));
-    builders.add(FDBuilder(x).members(members).pingMember(a.address()));
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_x = createFailureDetector(x, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_x);
+
+    // Block traffic to x
+    a.block(x.address());
+    b.block(x.address());
+    c.block(x.address());
 
     try {
-      startAll(builders);
+      startAll(fdetectors);
       TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("Expected 4 suspected members: " + target, 4, target.size());
-      assertEquals(x.address(), target.get(a.address()));
-      assertEquals(x.address(), target.get(b.address()));
-      assertEquals(x.address(), target.get(c.address()));
-      assertEquals(a.address(), target.get(x.address()));
+      assertSuspected(fd_x.getSuspectedMembers(), a.address(), b.address(), c.address());
+      assertSuspected(fd_a.getSuspectedMembers(), x.address());
+      assertSuspected(fd_b.getSuspectedMembers(), x.address());
+      assertSuspected(fd_c.getSuspectedMembers(), x.address());
     } finally {
-      destroy(builders);
-    }
-  }
-
-  @Test
-  public void testSuspectedNeighborsHasTrafficIssue() throws Exception {
-    Transport a = Transport.bindAwait(true);
-    Transport b = Transport.bindAwait(true);
-    Transport c = Transport.bindAwait(true);
-    Transport x = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), x.address());
-
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).members(members).pingMember(x.address()).block(x.address()));
-    builders.add(FDBuilder(b).members(members).pingMember(a.address()).block(x.address()));
-    builders.add(FDBuilder(c).members(members).pingMember(a.address()).block(x.address()));
-    builders.add(FDBuilderWithPingTime(x, 100500).members(members).pingMember(b.address()));
-
-    try {
-      startAll(builders);
-      TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> target = getSuspected(builders);
-      assertEquals("Expected 1 suspected members: " + target, 1, target.size());
-      assertEquals(x.address(), target.get(a.address()));
-    } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b, c, x);
     }
   }
 
   @Test
   public void testMemberBecomeTrusted() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilder(a).members(members));
-    builders.add(FDBuilder(b).members(members));
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
 
     // traffic is blocked initially
     a.block(b.address());
     b.block(a.address());
 
     try {
-      startAll(builders);
+      startAll(fdetectors);
       TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> targetSuspect0 = getSuspected(builders);
-      assertEquals("Expected 2 suspected members: " + targetSuspect0, 2, targetSuspect0.size());
-      assertEquals(b.address(), targetSuspect0.get(a.address()));
-      assertEquals(a.address(), targetSuspect0.get(b.address()));
+      assertSuspected(fd_a.getSuspectedMembers(), b.address());
+      assertSuspected(fd_b.getSuspectedMembers(), a.address());
 
       // unblock all traffic
       a.unblockAll();
       b.unblockAll();
 
       TimeUnit.SECONDS.sleep(4);
-
-      Map<Address, Address> targetSuspect1 = getSuspected(builders);
-      assertEquals("No suspected members is expected: " + targetSuspect1, 0, targetSuspect1.size());
+      assertNoSuspected(fdetectors);
     } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b);
     }
   }
 
   @Test
   public void testMemberBecomeSuspected() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport x = Transport.bindAwait(true);
     Transport y = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address(), x.address(), y.address());
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilderFast(a).members(members));
-    builders.add(FDBuilderFast(b).members(members));
-    builders.add(FDBuilderFast(x).members(members));
-    builders.add(FDBuilderFast(y).members(members));
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_x = createFailureDetector(x, members);
+    FailureDetector fd_y = createFailureDetector(y, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_x, fd_y);
 
     try {
-      startAll(builders);
-      TimeUnit.SECONDS.sleep(2);
-      Map<Address, Address> targetSuspect0 = getSuspected(builders);
-      assertEquals("No suspected members is expected: " + targetSuspect0, 0, targetSuspect0.size());
+      startAll(fdetectors);
 
-      destroy(x.address(), builders);
-      destroy(y.address(), builders);
+      TimeUnit.SECONDS.sleep(2);
+      assertNoSuspected(fdetectors);
+
+      // Destroy x and y
+      fd_x.stop();
+      fd_y.stop();
+      destroyTransports(x, y);
 
       TimeUnit.SECONDS.sleep(4);
 
-      List<Address> suspectedByA = getSuspectedBy(a.address(), builders);
-      assertEquals("Expected 2 suspected members: " + suspectedByA, 2, suspectedByA.size());
-      assertTrue(suspectedByA.contains(x.address()));
-      assertTrue(suspectedByA.contains(y.address()));
-
-      List<Address> suspectedByB = getSuspectedBy(b.address(), builders);
-      assertEquals("Expected 2 suspected members: " + suspectedByB, 2, suspectedByB.size());
-      assertTrue(suspectedByB.contains(x.address()));
-      assertTrue(suspectedByB.contains(y.address()));
+      assertSuspected(fd_a.getSuspectedMembers(), x.address(), y.address());
+      assertSuspected(fd_b.getSuspectedMembers(), x.address(), y.address());
     } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      destroyTransports(a, b, x, y);
     }
   }
 
-  // TODO [AK]: Rewrite this test after fix. Incarnation isn't respected by FD!!!
-  @Ignore
   @Test
-  public void testMemberBecomeSuspectedIncarnationRespected() throws Exception {
+  public void testMemberBecomeTrustedAfterRestart() throws Exception {
+    // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport x = Transport.bindAwait(true);
+    Transport xx = null;
     List<Address> members = new ArrayList<>(Arrays.asList(a.address(), b.address(), x.address()));
 
-    List<FailureDetectorBuilder> builders = new ArrayList<>();
-    builders.add(FDBuilderWithPingTime(a, 100).members(members).pingMember(x.address()));
-    builders.add(FDBuilderWithPingTime(b, 100).members(members).pingMember(x.address()));
-    builders.add(FDBuilderWithPingTime(x, 100500).members(members));
+    // Create failure detectors
+    FailureDetector fd_a = createFailureDetector(a, members);
+    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_x = createFailureDetector(x, members);
+    FailureDetector fd_xx = null;
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_x);
 
     try {
-      startAll(builders);
-      TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> targetSuspect0 = getSuspected(builders);
-      assertEquals("No suspected members is expected: " + targetSuspect0, 0, targetSuspect0.size());
+      startAll(fdetectors);
+      TimeUnit.SECONDS.sleep(2);
+      assertNoSuspected(fdetectors);
 
-      destroy(x.address(), builders);
-      TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> targetSuspect1 = getSuspected(builders);
-      assertEquals("Expected 2 suspected members: " + targetSuspect1, 2, targetSuspect1.size());
-      assertEquals(x.address(), targetSuspect1.get(a.address()));
-      assertEquals(x.address(), targetSuspect1.get(b.address()));
+      // stop x
+      fd_x.stop();
+      destroyTransport(x);
 
-      TransportConfig xxConfig = TransportConfig.builder()
+      TimeUnit.SECONDS.sleep(4);
+      assertSuspected(fd_a.getSuspectedMembers(), x.address());
+      assertSuspected(fd_b.getSuspectedMembers(), x.address());
+
+      // restart x (as xx)
+      TransportConfig xx_config = TransportConfig.builder()
           .port(x.address().port())
           .portAutoIncrement(false)
           .useNetworkEmulator(true)
           .build();
-      Transport xx = Transport.bindAwait(xxConfig);
-      members.add(xx.address());
-      FailureDetectorBuilder xxBuilder = FDBuilderWithPingTime(xx, 100).members(members).pingMember(x.address());
-      builders.add(xxBuilder);
-      for (FailureDetectorBuilder builder : builders) {
-        builder.members(members);
-      }
-      {
-        xxBuilder.start();
-      }
+      xx = Transport.bindAwait(xx_config);
+      assertEquals(x.address(), xx.address());
+      fd_xx = createFailureDetector(xx, members);
+      fd_xx.start();
+
       TimeUnit.SECONDS.sleep(4);
-      Map<Address, Address> targetSuspect2 = getSuspected(builders);
-      assertEquals("Expected 3 suspected members: " + targetSuspect2, 3, targetSuspect2.size());
-      assertEquals(x.address(), targetSuspect2.get(a.address()));
-      assertEquals(x.address(), targetSuspect2.get(b.address()));
-      assertEquals(x.address(), targetSuspect2.get(xx.address()));
+      // TODO [AK]: It would be more correct to consider restarted member as a new member, so x is still suspected!
+      assertNoSuspected(fdetectors);
     } finally {
-      destroy(builders);
+      stopAll(fdetectors);
+      fd_xx.stop();
+      destroyTransports(a, b, x, xx);
     }
   }
 
@@ -417,47 +432,14 @@ public class FailureDetectorIT {
         .build();
     FailureDetector failureDetector = new FailureDetector(transport, failureDetectorConfig);
     failureDetector.setMembers(members);
+    return createFailureDetector(transport, members, failureDetectorConfig);
+  }
+
+  private FailureDetector createFailureDetector(Transport transport, List<Address> members,
+      FailureDetectorConfig failureDetectorConfig) {
+    FailureDetector failureDetector = new FailureDetector(transport, failureDetectorConfig);
+    failureDetector.setMembers(members);
     return failureDetector;
-  }
-
-  private Map<Address, Address> getSuspected(Iterable<FailureDetectorBuilder> builders) {
-    Map<Address, Address> target = new HashMap<>();
-    for (FailureDetectorBuilder builder : builders) {
-      List<Address> suspectedMembers = builder.failureDetector.getSuspectedMembers();
-      if (!suspectedMembers.isEmpty()) {
-        Address localAddress = builder.failureDetector.getTransport().address();
-        assertEquals(localAddress + ": " + suspectedMembers, 1, suspectedMembers.size());
-        target.put(localAddress, suspectedMembers.get(0));
-      }
-    }
-    return target;
-  }
-
-  private List<Address> getSuspectedBy(Address address, Iterable<FailureDetectorBuilder> builders) {
-    for (FailureDetectorBuilder builder : builders) {
-      if (builder.failureDetector.getTransport().address() == address) {
-        return builder.failureDetector.getSuspectedMembers();
-      }
-    }
-    throw new IllegalArgumentException("Failure detector with address " + address + " not found");
-  }
-
-  private void destroy(Iterable<FailureDetectorBuilder> builders) {
-    for (FailureDetectorBuilder builder : builders) {
-      builder.failureDetector.stop();
-      destroyTransport((Transport) builder.failureDetector.getTransport());
-    }
-  }
-
-  private void destroy(Address address, Iterable<FailureDetectorBuilder> builders) {
-    for (FailureDetectorBuilder builder : builders) {
-      if (builder.failureDetector.getTransport().address() == address) {
-        builder.failureDetector.stop();
-        destroyTransport((Transport) builder.failureDetector.getTransport());
-        return;
-      }
-    }
-    throw new IllegalArgumentException(address.toString());
   }
 
   private void destroyTransports(Transport... transports) {
@@ -478,9 +460,18 @@ public class FailureDetectorIT {
     }
   }
 
-  private void startAll(Iterable<FailureDetectorBuilder> builders) {
-    for (FailureDetectorBuilder builder : builders) {
-      builder.start();
+  private void assertSuspected(List<Address> actual, Address... expected) {
+    assertEquals("Expected " + expected.length + " suspected members " + Arrays.toString(expected)
+        + ", but actual: " + actual, expected.length, actual.size());
+    for (Address member : expected) {
+      assertTrue("Expected to suspect " + member + ", but actual: " + actual, actual.contains(member));
+    }
+  }
+
+  private void assertNoSuspected(List<FailureDetector> fdetectors) {
+    for (FailureDetector fd : fdetectors) {
+      List<Address> suspectMembers = fd.getSuspectedMembers();
+      assertTrue("No suspected members is expected, but: " + suspectMembers, suspectMembers.isEmpty());
     }
   }
 

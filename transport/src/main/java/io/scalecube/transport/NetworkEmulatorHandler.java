@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -82,6 +83,13 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
   public void block(Address destination) {
     networkSettings.put(destination, new NetworkEmulatorSettings(100, 0));
     LOGGER.debug("Block messages to: {}", destination);
+  }
+
+  public void block(Collection<Address> destinations) {
+    for (Address destination : destinations) {
+      networkSettings.put(destination, new NetworkEmulatorSettings(100, 0));
+    }
+    LOGGER.debug("Block messages to: {}", destinations);
   }
 
   public void unblock(Address destination) {

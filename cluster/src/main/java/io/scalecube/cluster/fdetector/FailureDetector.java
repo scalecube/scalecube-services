@@ -64,8 +64,6 @@ public final class FailureDetector implements IFailureDetector {
   private Subject<FailureDetectorEvent, FailureDetectorEvent> subject = new SerializedSubject(PublishSubject.create());
   private AtomicInteger periodNbr = new AtomicInteger();
   private Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
-  private Address pingMember; // for test purpose only
-  private List<Address> randomMembers; // for test purpose only
   private volatile Subscription fdTask;
 
   /** Listener to PING message and answer with ACK. */
@@ -146,25 +144,8 @@ public final class FailureDetector implements IFailureDetector {
     LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
   }
 
-  public ITransport getTransport() {
-    return transport;
-  }
-
   public List<Address> getSuspectedMembers() {
     return new ArrayList<>(suspectedMembers);
-  }
-
-  /** <b>NOTE:</b> this method is for test purpose only. */
-  void setPingMember(Address member) {
-    checkNotNull(member);
-    checkArgument(member != transport.address());
-    this.pingMember = member;
-  }
-
-  /** <b>NOTE:</b> this method is for test purpose only. */
-  void setRandomMembers(List<Address> randomMembers) {
-    checkNotNull(randomMembers);
-    this.randomMembers = randomMembers;
   }
 
   @Override
@@ -315,18 +296,10 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private Address selectPingMember(List<Address> members) {
-    if (pingMember != null) {
-      return pingMember;
-    }
     return members.isEmpty() ? null : selectRandomMembers(members, 1, null).get(0);
   }
 
-  private List<Address> selectRandomMembers(List<Address> members, int count,
-                                            Address memberToExclude) {
-    if (randomMembers != null) {
-      return randomMembers;
-    }
-
+  private List<Address> selectRandomMembers(List<Address> members, int count, Address memberToExclude) {
     checkArgument(count > 0, "FailureDetector: k is required!");
     count = min(count, 5);
 

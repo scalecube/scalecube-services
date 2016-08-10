@@ -33,6 +33,8 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
@@ -183,6 +185,17 @@ public final class Transport implements ITransport {
       networkEmulatorHandler.block(destination);
     } else {
       LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destination);
+    }
+  }
+
+  /**
+   * Block messages to the given destinations. If network emulator is disabled do nothing.
+   */
+  public void block(Collection<Address> destinations) {
+    if (config.isUseNetworkEmulator()) {
+      networkEmulatorHandler.block(destinations);
+    } else {
+      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destinations);
     }
   }
 
