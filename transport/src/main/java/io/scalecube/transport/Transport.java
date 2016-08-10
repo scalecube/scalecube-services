@@ -1,6 +1,7 @@
 package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
@@ -60,8 +61,9 @@ public final class Transport implements ITransport {
   private final LoggingHandler loggingHandler;
   private final NetworkEmulatorHandler networkEmulatorHandler;
 
-  private Address localAddress;
+  private Address address;
   private ServerChannel serverChannel;
+  private volatile boolean stopped = false;
 
   private Transport(TransportConfig config) {
     checkArgument(config != null);
@@ -115,20 +117,20 @@ public final class Transport implements ITransport {
         AvailablePortFinder.getNextAvailable(config.getPort(), config.getPortCount()) : // Find available port
         config.getPort();
 
-    localAddress = Address.createLocal(bindPort);
+    address = Address.createLocal(bindPort);
 
     ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(localAddress.host(), localAddress.port());
+    ChannelFuture bindFuture = server.bind(address.host(), address.port());
     final SettableFuture<Transport> result = SettableFuture.create();
     bindFuture.addListener(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", localAddress);
+          LOGGER.info("Bound to: {}", address);
           result.set(Transport.this);
         } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", localAddress, channelFuture.cause());
+          LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
           result.setException(channelFuture.cause());
         }
       }
@@ -138,7 +140,7 @@ public final class Transport implements ITransport {
 
   @Override
   public Address address() {
-    return localAddress;
+    return address;
   }
 
   public EventExecutorGroup getWorkerGroup() {
@@ -196,6 +198,8 @@ public final class Transport implements ITransport {
 
   @Override
   public final void stop(@Nullable SettableFuture<Void> promise) {
+    checkState(!stopped, "Transport is stopped");
+    stopped = true;
     // Complete incoming messages observable
     try {
       incomingMessagesSubject.onCompleted();
@@ -206,6 +210,9 @@ public final class Transport implements ITransport {
     // close connected channels
     for (Address address : outgoingChannels.keySet()) {
       ChannelFuture channelFuture = outgoingChannels.getIfExists(address);
+      if (channelFuture == null) {
+        continue;
+      }
       if (channelFuture.isSuccess()) {
         channelFuture.channel().close();
       } else {
@@ -219,17 +226,20 @@ public final class Transport implements ITransport {
       composeFutures(serverChannel.close(), promise);
     }
 
-    // TODO [AK]: shutdown boss/worker threads
+    // TODO [AK]: shutdown boss/worker threads and listen for their futures
+    bootstrapFactory.shutdown();
   }
 
   @Nonnull
   @Override
   public final Observable<Message> listen() {
+    checkState(!stopped, "Transport is stopped");
     return incomingMessagesSubject;
   }
 
   @Override
   public void disconnect(@CheckForNull Address address, @Nullable SettableFuture<Void> promise) {
+    checkState(!stopped, "Transport is stopped");
     checkArgument(address != null);
     ChannelFuture channelFuture = outgoingChannels.remove(address);
     if (channelFuture != null && channelFuture.isSuccess()) {
@@ -249,9 +259,10 @@ public final class Transport implements ITransport {
   @Override
   public void send(@CheckForNull final Address address, @CheckForNull final Message message,
       @Nullable final SettableFuture<Void> promise) {
+    checkState(!stopped, "Transport is stopped");
     checkArgument(address != null);
     checkArgument(message != null);
-    message.setSender(localAddress);
+    message.setSender(this.address);
 
     final ChannelFuture channelFuture = outgoingChannels.get(address);
     if (channelFuture.isSuccess()) {
@@ -305,9 +316,9 @@ public final class Transport implements ITransport {
         @Override
         public void operationComplete(ChannelFuture channelFuture) {
           if (channelFuture.isSuccess()) {
-            LOGGER.info("Connected to: {} {}", address, channelFuture.channel());
+            LOGGER.info("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
           } else {
-            LOGGER.warn("Failed to connect to: {}", address);
+            LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address, channelFuture.cause());
             outgoingChannels.delete(address);
           }
         }

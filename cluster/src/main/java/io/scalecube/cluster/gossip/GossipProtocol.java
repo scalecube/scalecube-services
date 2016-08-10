@@ -107,7 +107,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     Collections.shuffle(list);
     this.members = list;
     this.factor = 32 - Integer.numberOfLeadingZeros(list.size() + 1);
-    LOGGER.debug("Set cluster members: {}", this.members);
+    LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
   }
 
   public ITransport getTransport() {
@@ -130,6 +130,9 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     }
     if (onGossipRequestSubscriber != null) {
       onGossipRequestSubscriber.unsubscribe();
+    }
+    if (executor != null) {
+      executor.shutdown();
     }
   }
 

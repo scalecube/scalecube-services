@@ -45,7 +45,7 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
         ctx.channel().eventLoop().schedule(new Callable<Void>() {
           @Override
           public Void call() throws Exception {
-            NetworkEmulatorHandler.super.write(ctx, msg, promise);
+            ctx.writeAndFlush(msg, promise);
             return null;
           }
         }, delay, TimeUnit.MILLISECONDS);
