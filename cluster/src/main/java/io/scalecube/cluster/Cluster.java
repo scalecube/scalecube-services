@@ -161,8 +161,13 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public IGossipProtocol gossip() {
-    return gossipProtocol;
+  public void spreadGossip(Message message) {
+    gossipProtocol.spread(message);
+  }
+
+  @Override
+  public Observable<Message> listenGossips() {
+    return gossipProtocol.listen();
   }
 
   @Override

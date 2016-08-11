@@ -8,7 +8,7 @@ import static io.scalecube.cluster.ClusterMembershipDataUtils.syncGroupFilter;
 
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
-import io.scalecube.cluster.gossip.IManagedGossipProtocol;
+import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
@@ -74,7 +74,7 @@ public final class ClusterMembership implements IClusterMembership {
   };
 
   private IFailureDetector failureDetector;
-  private IManagedGossipProtocol gossipProtocol;
+  private IGossipProtocol gossipProtocol;
   private int syncTime = 10 * 1000;
   private int syncTimeout = 3 * 1000;
   private int maxSuspectTime = 60 * 1000;
@@ -158,7 +158,7 @@ public final class ClusterMembership implements IClusterMembership {
     this.failureDetector = failureDetector;
   }
 
-  public void setGossipProtocol(IManagedGossipProtocol gossipProtocol) {
+  public void setGossipProtocol(IGossipProtocol gossipProtocol) {
     this.gossipProtocol = gossipProtocol;
   }
 

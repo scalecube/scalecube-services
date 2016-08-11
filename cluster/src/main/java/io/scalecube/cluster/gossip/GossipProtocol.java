@@ -45,7 +45,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class GossipProtocol implements IGossipProtocol, IManagedGossipProtocol {
+public final class GossipProtocol implements IGossipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
   private final String memberId;
