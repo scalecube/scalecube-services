@@ -28,7 +28,6 @@ import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.util.concurrent.EventExecutorGroup;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -167,10 +166,6 @@ public final class Transport implements ITransport {
 
   public boolean isStopped() {
     return stopped;
-  }
-
-  public EventExecutorGroup getWorkerGroup() {
-    return bootstrapFactory.getWorkerGroup();
   }
 
   /**
