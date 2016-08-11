@@ -33,12 +33,12 @@ import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
+
+import java.util.Collection;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -84,14 +84,26 @@ public final class Transport implements ITransport {
     return (logLevel != null && !logLevel.equals("OFF")) ? LogLevel.valueOf(logLevel) : null;
   }
 
+  /**
+   * Init transport with the default configuration synchronously.
+   * Starts to accept connections on local address.
+   */
   public static Transport bindAwait() {
     return bindAwait(TransportConfig.DEFAULT);
   }
 
+  /**
+   * Init transport with the default configuration and network emulator flag synchronously.
+   * Starts to accept connections on local address.
+   */
   public static Transport bindAwait(boolean useNetworkEmulator) {
     return bindAwait(TransportConfig.builder().useNetworkEmulator(useNetworkEmulator).build());
   }
 
+  /**
+   * Init transport with the given configuration synchronously.
+   * Starts to accept connections on local address.
+   */
   public static Transport bindAwait(TransportConfig config) {
     try {
       return bind(config).get();
@@ -100,24 +112,32 @@ public final class Transport implements ITransport {
     }
   }
 
+  /**
+   * Init transport with the default configuration asynchronously.
+   * Starts to accept connections on local address.
+   */
   public static ListenableFuture<Transport> bind() {
     return bind(TransportConfig.DEFAULT);
   }
 
+  /**
+   * Init transport with the given configuration asynchronously.
+   * Starts to accept connections on local address.
+   */
   public static ListenableFuture<Transport> bind(TransportConfig config) {
     return new Transport(config).bind0();
   }
 
   /**
-   * Starts transport to accept connection and connect to other transports.
+   * Starts to accept connections on local address.
    */
   private ListenableFuture<Transport> bind0() {
     incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
     // Resolve bind port
-    int bindPort = config.isPortAutoIncrement() ?
-        AvailablePortFinder.getNextAvailable(config.getPort(), config.getPortCount()) : // Find available port
-        config.getPort();
+    int bindPort = config.isPortAutoIncrement()
+        ? AvailablePortFinder.getNextAvailable(config.getPort(), config.getPortCount()) // Find available port
+        : config.getPort();
 
     address = Address.createLocal(bindPort);
 
