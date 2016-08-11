@@ -3,8 +3,8 @@ package io.scalecube.cluster.fdetector;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.scalecube.transport.Address;
 import io.scalecube.cluster.ClusterMemberStatus;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageHeaders;
@@ -126,14 +126,21 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public void start() {
     onPingRequestSubscriber = Subscribers.create(new OnPingRequestAction());
-    transport.listen().filter(PING_FILTER).filter(targetFilter(transport.localAddress()))
+    transport.listen()
+        .filter(PING_FILTER)
+        .filter(targetFilter(transport.address()))
         .subscribe(onPingRequestSubscriber);
 
     onAskToPingRequestSubscriber = Subscribers.create(new OnAskToPingRequestAction());
-    transport.listen().filter(PING_REQ_FILTER).subscribe(onAskToPingRequestSubscriber);
+    transport.listen()
+        .filter(PING_REQ_FILTER)
+        .subscribe(onAskToPingRequestSubscriber);
 
     onTransitAckRequestSubscriber = Subscribers.create(new OnTransitAckRequestAction());
-    transport.listen().filter(ACK_FILTER).filter(ORIGINAL_ISSUER_FILTER).subscribe(onTransitAckRequestSubscriber);
+    transport.listen()
+        .filter(ACK_FILTER)
+        .filter(ORIGINAL_ISSUER_FILTER)
+        .subscribe(onTransitAckRequestSubscriber);
 
     executorTask = executor.scheduleWithFixedDelay(new FailureDetectorProtocolRunnable(), 0, config.getPingTime(),
         TimeUnit.MILLISECONDS);
@@ -232,7 +239,10 @@ public final class FailureDetector implements IFailureDetector {
     }
 
     Address localAddress = transport.address();
-    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localAddress, pingMember)).take(1)
+    transport.listen()
+        .filter(ackFilter(period))
+        .filter(new CorrelationFilter(localAddress, pingMember))
+        .take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
@@ -304,8 +314,7 @@ public final class FailureDetector implements IFailureDetector {
     return new Func1<Message, Boolean>() {
       @Override
       public Boolean call(Message message) {
-        PingData data = message.data();
-        return data.getTo().equals(address);
+        return message.<PingData>data().getTo().equals(address);
       }
     };
   }

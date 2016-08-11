@@ -234,7 +234,9 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Listen to 'membership' message from GossipProtocol
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction());
-    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(transport.address()))
+    gossipProtocol.listen()
+        .filter(GOSSIP_MEMBERSHIP_FILTER)
+        .map(gossipFilterData(transport.address()))
         .subscribe(onGossipRequestSubscriber);
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
@@ -445,7 +447,7 @@ public final class ClusterMembership implements IClusterMembership {
     @Override
     public void call(Message message) {
       ClusterMembershipData data = message.data();
-      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.localAddress(), data);
+      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.address(), data);
       List<ClusterMember> updates = membership.merge(filteredData);
       Address sender = message.sender();
       if (!updates.isEmpty()) {
