@@ -1,11 +1,11 @@
 package io.scalecube.cluster.gossip;
 
-import java.util.Collection;
-
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import rx.Observable;
+
+import java.util.Collection;
 
 /**
  * Gossip Protocol component responsible for spreading information (gossips) over the cluster members using
