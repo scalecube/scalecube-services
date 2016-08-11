@@ -131,8 +131,8 @@ public final class GossipProtocol implements IGossipProtocol {
     if (executorTask != null) {
       executorTask.cancel(true);
     }
-    subject.onCompleted(); // stop publishing
     executor.shutdownNow(); // shutdown thread
+    subject.onCompleted(); // stop publishing
   }
 
   @Override

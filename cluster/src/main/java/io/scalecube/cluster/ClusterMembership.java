@@ -14,6 +14,8 @@ import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageHeaders;
 import io.scalecube.transport.Transport;
+import io.scalecube.transport.memoizer.Computable;
+import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
@@ -102,10 +104,11 @@ public final class ClusterMembership implements IClusterMembership {
 
   // Scheduled
 
-  private TickingTimer timer;
   private final Scheduler scheduler;
   private ScheduledFuture<?> executorTask;
   private final ScheduledExecutorService executor;
+  private final ScheduledExecutorService suspectedMembersTimer;
+  private final Memoizer<String, ScheduledFuture<?>> suspectedMembersSchedule = new Memoizer<>();
 
   private Function<Message, Void> onSyncAckFunction = new Function<Message, Void>() {
     @Nullable
@@ -121,6 +124,8 @@ public final class ClusterMembership implements IClusterMembership {
     this.transport = transport;
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat("sc-membership-%s").setDaemon(true).build());
+    this.suspectedMembersTimer = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactoryBuilder().setNameFormat("sc-membership-suspectedtimer-%s").setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);
   }
 
@@ -212,10 +217,6 @@ public final class ClusterMembership implements IClusterMembership {
    * Starts running cluster membership protocol. After started it begins to receive and send cluster membership messages
    */
   public ListenableFuture<Void> start() {
-    // Start timer
-    timer = new TickingTimer();
-    timer.start();
-
     // Register itself initially before SYNC/SYNC_ACK
     ClusterMember localMember = new ClusterMember(memberId, transport.address(), TRUSTED, localMetadata);
     List<ClusterMember> updates = membership.merge(localMember);
@@ -275,9 +276,16 @@ public final class ClusterMembership implements IClusterMembership {
     if (executorTask != null) {
       executorTask.cancel(true);
     }
-    timer.stop(); // stop timer
-    subject.onCompleted(); // stop publishing
+    // cancel suspected members schedule
+    for (String memberId : suspectedMembersSchedule.keySet()) {
+      ScheduledFuture<?> future = suspectedMembersSchedule.remove(memberId);
+      if (future != null) {
+        future.cancel(true);
+      }
+    }
+    suspectedMembersTimer.shutdownNow(); // stop suspected timer
     executor.shutdownNow(); // shutdown thread
+    subject.onCompleted(); // stop publishing
   }
 
   private ListenableFuture<Void> doInitialSync(final List<Address> seedMembers) {
@@ -391,29 +399,31 @@ public final class ClusterMembership implements IClusterMembership {
     for (final ClusterMember member : updates) {
       LOGGER.debug("Member {} became {}", member.address(), member.status());
       switch (member.status()) {
-        case SUSPECTED:
+        case SUSPECTED: {
           failureDetector.suspect(member.address());
-          timer.schedule(member.id(), new Runnable() {
-            @Override
-            public void run() {
-              LOGGER.debug("Time to remove SUSPECTED member={} from membership", member.address());
-              processUpdates(membership.remove(member.id()), false/* spread gossip */);
-            }
-          }, maxSuspectTime, TimeUnit.MILLISECONDS);
+          // setup a schedule for suspected member
+          suspectedMembersSchedule.get(member.id(), new ComputableSuspectedMembersSchedule());
           break;
-        case TRUSTED:
+        }
+        case TRUSTED: {
           failureDetector.trust(member.address());
-          timer.cancel(member.id());
+          // clean schedule
+          ScheduledFuture<?> future = suspectedMembersSchedule.remove(member.id());
+          if (future != null) {
+            future.cancel(true);
+          }
           break;
-        case SHUTDOWN:
-          timer.schedule(new Runnable() {
+        }
+        case SHUTDOWN: {
+          suspectedMembersTimer.schedule(new Runnable() {
             @Override
             public void run() {
-              LOGGER.debug("Time to remove SHUTDOWN member={} from membership", member.address());
+              LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
               membership.remove(member.id());
             }
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
           break;
+        }
         default:
           // ignore
       }
@@ -502,6 +512,25 @@ public final class ClusterMembership implements IClusterMembership {
       } catch (Exception cause) {
         LOGGER.error("Unhandled exception: {}", cause, cause);
       }
+    }
+  }
+
+  private class ComputableSuspectedMembersSchedule implements Computable<String, ScheduledFuture<?>> {
+    @Override
+    public ScheduledFuture<?> compute(final String memberId) {
+      return suspectedMembersTimer.schedule(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            LOGGER.debug("Time to remove SUSPECTED member(id={}) from membership table", memberId);
+            processUpdates(membership.remove(memberId), false/* spread gossip */);
+          } catch (Exception cause) {
+            LOGGER.error("Unhandled exception: {}", cause, cause);
+          } finally {
+            suspectedMembersSchedule.remove(memberId);
+          }
+        }
+      }, maxSuspectTime, TimeUnit.MILLISECONDS);
     }
   }
 }
