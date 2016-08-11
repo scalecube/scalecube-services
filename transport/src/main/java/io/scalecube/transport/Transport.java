@@ -1,10 +1,12 @@
 package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -36,6 +38,8 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.util.Collection;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -44,7 +48,6 @@ public final class Transport implements ITransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
 
-  private final Address localAddress;
   private final TransportConfig config;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
@@ -60,12 +63,12 @@ public final class Transport implements ITransport {
   private final LoggingHandler loggingHandler;
   private final NetworkEmulatorHandler networkEmulatorHandler;
 
+  private Address address;
   private ServerChannel serverChannel;
+  private volatile boolean stopped = false;
 
-  private Transport(Address localAddress, TransportConfig config) {
-    checkArgument(localAddress != null);
+  private Transport(TransportConfig config) {
     checkArgument(config != null);
-    this.localAddress = localAddress;
     this.config = config;
     this.serializerHandler = new MessageSerializerHandler();
     this.deserializerHandler = new MessageDeserializerHandler();
@@ -81,13 +84,89 @@ public final class Transport implements ITransport {
     return (logLevel != null && !logLevel.equals("OFF")) ? LogLevel.valueOf(logLevel) : null;
   }
 
-  public static Transport newInstance(Address localAddress, TransportConfig config) {
-    return new Transport(localAddress, config);
+  /**
+   * Init transport with the default configuration synchronously.
+   * Starts to accept connections on local address.
+   */
+  public static Transport bindAwait() {
+    return bindAwait(TransportConfig.DEFAULT);
+  }
+
+  /**
+   * Init transport with the default configuration and network emulator flag synchronously.
+   * Starts to accept connections on local address.
+   */
+  public static Transport bindAwait(boolean useNetworkEmulator) {
+    return bindAwait(TransportConfig.builder().useNetworkEmulator(useNetworkEmulator).build());
+  }
+
+  /**
+   * Init transport with the given configuration synchronously.
+   * Starts to accept connections on local address.
+   */
+  public static Transport bindAwait(TransportConfig config) {
+    try {
+      return bind(config).get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
+  }
+
+  /**
+   * Init transport with the default configuration asynchronously.
+   * Starts to accept connections on local address.
+   */
+  public static ListenableFuture<Transport> bind() {
+    return bind(TransportConfig.DEFAULT);
+  }
+
+  /**
+   * Init transport with the given configuration asynchronously.
+   * Starts to accept connections on local address.
+   */
+  public static ListenableFuture<Transport> bind(TransportConfig config) {
+    return new Transport(config).bind0();
+  }
+
+  /**
+   * Starts to accept connections on local address.
+   */
+  private ListenableFuture<Transport> bind0() {
+    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
+
+    // Resolve bind port
+    int bindPort = config.isPortAutoIncrement()
+        ? AvailablePortFinder.getNextAvailable(config.getPort(), config.getPortCount()) // Find available port
+        : config.getPort();
+
+    address = Address.createLocal(bindPort);
+
+    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
+    ChannelFuture bindFuture = server.bind(address.host(), address.port());
+    final SettableFuture<Transport> result = SettableFuture.create();
+    bindFuture.addListener(new ChannelFutureListener() {
+      @Override
+      public void operationComplete(ChannelFuture channelFuture) throws Exception {
+        if (channelFuture.isSuccess()) {
+          serverChannel = (ServerChannel) channelFuture.channel();
+          LOGGER.info("Bound to: {}", address);
+          result.set(Transport.this);
+        } else {
+          LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
+          result.setException(channelFuture.cause());
+        }
+      }
+    });
+    return result;
   }
 
   @Override
-  public Address localAddress() {
-    return localAddress;
+  public Address address() {
+    return address;
+  }
+
+  public boolean isStopped() {
+    return stopped;
   }
 
   public EventExecutorGroup getWorkerGroup() {
@@ -101,7 +180,8 @@ public final class Transport implements ITransport {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setNetworkSettings(destination, lostPercent, meanDelay);
     } else {
-      LOGGER.warn("Network emulator is disabled: can't set network settings");
+      LOGGER.warn("Noop on 'setNetworkSettings({},{},{})' since network emulator is disabled",
+          destination, lostPercent, meanDelay);
     }
   }
 
@@ -112,18 +192,41 @@ public final class Transport implements ITransport {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
     } else {
-      LOGGER.warn("Network emulator is disabled: can't set default network settings");
+      LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
+          lostPercent, meanDelay);
     }
   }
 
   /**
    * Block messages to given destination. If network emulator is disabled do nothing.
    */
-  public void blockMessagesTo(Address destination) {
+  public void block(Address destination) {
     if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.blockMessagesTo(destination);
+      networkEmulatorHandler.block(destination);
     } else {
-      LOGGER.warn("Network emulator is disabled: can't block messages");
+      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destination);
+    }
+  }
+
+  /**
+   * Block messages to the given destinations. If network emulator is disabled do nothing.
+   */
+  public void block(Collection<Address> destinations) {
+    if (config.isUseNetworkEmulator()) {
+      networkEmulatorHandler.block(destinations);
+    } else {
+      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destinations);
+    }
+  }
+
+  /**
+   * Unblock messages to given destination. If network emulator is disabled do nothing.
+   */
+  public void unblock(Address destination) {
+    if (config.isUseNetworkEmulator()) {
+      networkEmulatorHandler.unblock(destination);
+    } else {
+      LOGGER.warn("Noop on 'unblock({})' since network emulator is disabled", destination);
     }
   }
 
@@ -134,31 +237,8 @@ public final class Transport implements ITransport {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.unblockAll();
     } else {
-      LOGGER.warn("Network emulator is disabled: can't unblock messages");
+      LOGGER.warn("Noop on 'unblockAll()' since network emulator is disabled");
     }
-  }
-
-  @Override
-  public final ListenableFuture<Void> start() {
-    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
-
-    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(localAddress.port());
-    final SettableFuture<Void> result = SettableFuture.create();
-    bindFuture.addListener(new ChannelFutureListener() {
-      @Override
-      public void operationComplete(ChannelFuture channelFuture) throws Exception {
-        if (channelFuture.isSuccess()) {
-          serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", localAddress);
-          result.set(null);
-        } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", localAddress, channelFuture.cause());
-          result.setException(channelFuture.cause());
-        }
-      }
-    });
-    return result;
   }
 
   @Override
@@ -168,6 +248,8 @@ public final class Transport implements ITransport {
 
   @Override
   public final void stop(@Nullable SettableFuture<Void> promise) {
+    checkState(!stopped, "Transport is stopped");
+    stopped = true;
     // Complete incoming messages observable
     try {
       incomingMessagesSubject.onCompleted();
@@ -178,6 +260,9 @@ public final class Transport implements ITransport {
     // close connected channels
     for (Address address : outgoingChannels.keySet()) {
       ChannelFuture channelFuture = outgoingChannels.getIfExists(address);
+      if (channelFuture == null) {
+        continue;
+      }
       if (channelFuture.isSuccess()) {
         channelFuture.channel().close();
       } else {
@@ -191,26 +276,15 @@ public final class Transport implements ITransport {
       composeFutures(serverChannel.close(), promise);
     }
 
-    // TODO [AK]: shutdown boss/worker threads
+    // TODO [AK]: shutdown boss/worker threads and listen for their futures
+    bootstrapFactory.shutdown();
   }
 
   @Nonnull
   @Override
   public final Observable<Message> listen() {
+    checkState(!stopped, "Transport is stopped");
     return incomingMessagesSubject;
-  }
-
-  @Override
-  public void disconnect(@CheckForNull Address address, @Nullable SettableFuture<Void> promise) {
-    checkArgument(address != null);
-    ChannelFuture channelFuture = outgoingChannels.remove(address);
-    if (channelFuture != null && channelFuture.isSuccess()) {
-      composeFutures(channelFuture.channel().close(), promise);
-    } else {
-      if (promise != null) {
-        promise.set(null);
-      }
-    }
   }
 
   @Override
@@ -220,10 +294,11 @@ public final class Transport implements ITransport {
 
   @Override
   public void send(@CheckForNull final Address address, @CheckForNull final Message message,
-                   @Nullable final SettableFuture<Void> promise) {
+      @Nullable final SettableFuture<Void> promise) {
+    checkState(!stopped, "Transport is stopped");
     checkArgument(address != null);
     checkArgument(message != null);
-    message.setSender(localAddress);
+    message.setSender(this.address);
 
     final ChannelFuture channelFuture = outgoingChannels.get(address);
     if (channelFuture.isSuccess()) {
@@ -277,9 +352,9 @@ public final class Transport implements ITransport {
         @Override
         public void operationComplete(ChannelFuture channelFuture) {
           if (channelFuture.isSuccess()) {
-            LOGGER.info("Connected to: {} {}", address, channelFuture.channel());
+            LOGGER.info("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
           } else {
-            LOGGER.warn("Failed to connect to: {}", address);
+            LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
             outgoingChannels.delete(address);
           }
         }

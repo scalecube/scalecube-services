@@ -1,7 +1,6 @@
 package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 import static com.google.common.util.concurrent.Futures.transform;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
@@ -9,8 +8,6 @@ import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.Address;
-import io.scalecube.transport.AvailablePortFinder;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -27,7 +24,6 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
@@ -40,24 +36,14 @@ public final class Cluster implements ICluster {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cluster.class);
 
-  private enum State {
-    INSTANTIATED, JOINING, JOINED, LEAVING, STOPPED
-  }
-
-  // Cluster config
   private final ClusterConfig config;
-
-  // Member
   private final String memberId;
 
   // Cluster components
-  private final Transport transport;
-  private final FailureDetector failureDetector;
-  private final GossipProtocol gossipProtocol;
-  private final ClusterMembership clusterMembership;
-
-  // Cluster state
-  private final AtomicReference<State> state;
+  private Transport transport;
+  private FailureDetector failureDetector;
+  private GossipProtocol gossipProtocol;
+  private ClusterMembership clusterMembership;
 
   private Cluster(ClusterConfig config) {
     checkNotNull(config);
@@ -66,34 +52,7 @@ public final class Cluster implements ICluster {
     checkNotNull(config.failureDetectorConfig);
     checkNotNull(config.membershipConfig);
     this.config = config;
-
-    // Build local member
-    memberId = UUID.randomUUID().toString();
-    Address localAddress = Address.createLocal(config.port);
-
-    // Build transport
-    transport = Transport.newInstance(localAddress, config.transportConfig);
-
-    // Build gossip protocol component
-    gossipProtocol = new GossipProtocol(memberId, transport, config.gossipProtocolConfig);
-
-    // Build failure detector component
-    failureDetector = new FailureDetector(transport, config.failureDetectorConfig);
-
-    // Build cluster membership component
-    clusterMembership = new ClusterMembership(memberId, transport);
-    clusterMembership.setFailureDetector(failureDetector);
-    clusterMembership.setGossipProtocol(gossipProtocol);
-    clusterMembership.setLocalMetadata(config.metadata);
-    clusterMembership.setSeedMembers(config.seedMembers);
-    clusterMembership.setSyncTime(config.membershipConfig.getSyncTime());
-    clusterMembership.setSyncTimeout(config.membershipConfig.getSyncTimeout());
-    clusterMembership.setSyncGroup(config.membershipConfig.getSyncGroup());
-    clusterMembership.setMaxSuspectTime(config.membershipConfig.getMaxSuspectTime());
-    clusterMembership.setMaxShutdownTime(config.membershipConfig.getMaxShutdownTime());
-
-    // Initial state
-    this.state = new AtomicReference<>(State.INSTANTIATED);
+    this.memberId = UUID.randomUUID().toString();
     LOGGER.info("Cluster instance '{}' created with configuration: {}", memberId, config);
   }
 
@@ -105,12 +64,12 @@ public final class Cluster implements ICluster {
     return joinAwait(ClusterConfig.newInstance().port(port));
   }
 
-  public static ICluster joinAwait(int port, String seedMembers) {
-    return joinAwait(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
-  }
-
   public static ICluster joinAwait(String seedMembers) {
     return joinAwait(ClusterConfig.newInstance().seedMembers(seedMembers));
+  }
+
+  public static ICluster joinAwait(int port, String seedMembers) {
+    return joinAwait(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
   }
 
   /**
@@ -141,19 +100,37 @@ public final class Cluster implements ICluster {
   }
 
   public static ListenableFuture<ICluster> join(final ClusterConfig config) {
-    if (config.portAutoIncrement) { // Find available port
-      config.port = AvailablePortFinder.getNextAvailable(config.port, config.portCount);
-    }
     return new Cluster(config).join0();
   }
 
   private ListenableFuture<ICluster> join0() {
-    updateClusterState(State.INSTANTIATED, State.JOINING);
     LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.seedMembers);
-    ListenableFuture<Void> transportFuture = transport.start();
-    ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Void, Void>() {
+    ListenableFuture<Transport> transportFuture = Transport.bind(config.transportConfig);
+    ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Transport, Void>() {
       @Override
-      public ListenableFuture<Void> apply(@Nullable Void param) throws Exception {
+      public ListenableFuture<Void> apply(@Nullable Transport input) throws Exception {
+        // Init transport component
+        transport = input;
+
+        // Init gossip protocol component
+        gossipProtocol = new GossipProtocol(memberId, transport, config.gossipProtocolConfig);
+
+        // Init failure detector component
+        failureDetector = new FailureDetector(transport, config.failureDetectorConfig);
+
+        // Init cluster membership component
+        clusterMembership = new ClusterMembership(memberId, transport);
+        clusterMembership.setFailureDetector(failureDetector);
+        clusterMembership.setGossipProtocol(gossipProtocol);
+        clusterMembership.setLocalMetadata(config.metadata);
+        clusterMembership.setSeedMembers(config.seedMembers);
+        clusterMembership.setSyncTime(config.membershipConfig.getSyncTime());
+        clusterMembership.setSyncTimeout(config.membershipConfig.getSyncTimeout());
+        clusterMembership.setSyncGroup(config.membershipConfig.getSyncGroup());
+        clusterMembership.setMaxSuspectTime(config.membershipConfig.getMaxSuspectTime());
+        clusterMembership.setMaxShutdownTime(config.membershipConfig.getMaxShutdownTime());
+
+        // Starte components
         failureDetector.start();
         gossipProtocol.start();
         return clusterMembership.start();
@@ -162,8 +139,7 @@ public final class Cluster implements ICluster {
     return transform(clusterFuture, new Function<Void, ICluster>() {
       @Override
       public ICluster apply(@Nullable Void param) {
-        updateClusterState(State.JOINING, State.JOINED);
-        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, membership().members());
+        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, clusterMembership.members());
         return Cluster.this;
       }
     });
@@ -171,37 +147,36 @@ public final class Cluster implements ICluster {
 
   @Override
   public void send(ClusterMember member, Message message) {
-    checkJoinedState();
     transport.send(member.address(), message);
   }
 
   @Override
   public void send(ClusterMember member, Message message, SettableFuture<Void> promise) {
-    checkJoinedState();
     transport.send(member.address(), message, promise);
   }
 
   @Override
   public Observable<Message> listen() {
-    checkJoinedState();
     return transport.listen();
   }
 
   @Override
-  public IGossipProtocol gossip() {
-    checkJoinedState();
-    return gossipProtocol;
+  public void spreadGossip(Message message) {
+    gossipProtocol.spread(message);
+  }
+
+  @Override
+  public Observable<Message> listenGossips() {
+    return gossipProtocol.listen();
   }
 
   @Override
   public IClusterMembership membership() {
-    checkJoinedState();
     return clusterMembership;
   }
 
   @Override
   public ListenableFuture<Void> leave() {
-    updateClusterState(State.JOINED, State.LEAVING);
     LOGGER.info("Cluster instance '{}' leaving cluster", memberId);
 
     // Notify cluster members about graceful shutdown of current member
@@ -227,23 +202,10 @@ public final class Cluster implements ICluster {
       @Override
       public Void apply(Void input) {
         stopExecutor.shutdown();
-        updateClusterState(State.LEAVING, State.STOPPED);
         LOGGER.info("Cluster instance '{}' stopped", memberId);
         return input;
       }
     });
-  }
-
-  private void checkJoinedState() {
-    State currentState = state.get();
-    checkState(currentState == State.JOINED, "Illegal operation at state %s. Member should be joined to cluster.",
-        state.get());
-  }
-
-  private void updateClusterState(State expected, State update) {
-    boolean stateUpdated = state.compareAndSet(expected, update);
-    checkState(stateUpdated, "Illegal state transition from %s to %s cluster state. Expected state %s.", state.get(),
-        update, expected);
   }
 
 }

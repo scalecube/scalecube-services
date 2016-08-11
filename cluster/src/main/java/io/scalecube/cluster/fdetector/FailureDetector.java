@@ -2,10 +2,8 @@ package io.scalecube.cluster.fdetector;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
-import static io.scalecube.cluster.fdetector.FailureDetectorEvent.suspected;
-import static io.scalecube.cluster.fdetector.FailureDetectorEvent.trusted;
-import static java.lang.Math.min;
 
+import io.scalecube.cluster.ClusterMemberStatus;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
@@ -54,18 +52,15 @@ public final class FailureDetector implements IFailureDetector {
   private static final MessageHeaders.Filter PING_FILTER = new MessageHeaders.Filter(PING);
   private static final MessageHeaders.Filter PING_REQ_FILTER = new MessageHeaders.Filter(PING_REQ);
 
-  private volatile List<Address> members = new ArrayList<>();
-
   private final ITransport transport;
-  private final Scheduler scheduler;
   private final FailureDetectorConfig config;
+  private final Scheduler scheduler;
+  private final Subject<FailureDetectorEvent, FailureDetectorEvent> subject =
+      new SerializedSubject<>(PublishSubject.<FailureDetectorEvent>create());
+  private final AtomicInteger periodCounter = new AtomicInteger();
+  private final Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
 
-  @SuppressWarnings("unchecked")
-  private Subject<FailureDetectorEvent, FailureDetectorEvent> subject = new SerializedSubject(PublishSubject.create());
-  private AtomicInteger periodNbr = new AtomicInteger();
-  private Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
-  private Address pingMember; // for test purpose only
-  private List<Address> randomMembers; // for test purpose only
+  private volatile List<Address> members = new ArrayList<>();
   private volatile Subscription fdTask;
 
   /** Listener to PING message and answer with ACK. */
@@ -73,7 +68,7 @@ public final class FailureDetector implements IFailureDetector {
     @Override
     public void call(Message message) {
       LOGGER.trace("Received Ping: {}", message);
-      FailureDetectorData data = message.data();
+      PingData data = message.data();
       String correlationId = message.correlationId();
       Message ackMsg = Message.withData(data).qualifier(ACK).correlationId(correlationId).build();
       transport.send(data.getFrom(), ackMsg);
@@ -85,11 +80,11 @@ public final class FailureDetector implements IFailureDetector {
     @Override
     public void call(Message message) {
       LOGGER.trace("Received PingReq: {}", message);
-      FailureDetectorData data = message.data();
+      PingData data = message.data();
       Address target = data.getTo();
       Address originalIssuer = data.getFrom();
       String correlationId = message.correlationId();
-      FailureDetectorData pingReqData = new FailureDetectorData(transport.localAddress(), target, originalIssuer);
+      PingData pingReqData = new PingData(transport.address(), target, originalIssuer);
       Message pingMsg = Message.withData(pingReqData).qualifier(PING).correlationId(correlationId).build();
       transport.send(target, pingMsg);
     }
@@ -103,10 +98,10 @@ public final class FailureDetector implements IFailureDetector {
       .create(new Action1<Message>() {
         @Override
         public void call(Message message) {
-          FailureDetectorData data = message.data();
+          PingData data = message.data();
           Address target = data.getOriginalIssuer();
           String correlationId = message.correlationId();
-          FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
+          PingData originalAckData = new PingData(target, data.getTo());
           Message originalAckMsg =
               Message.withData(originalAckData).qualifier(ACK).correlationId(correlationId).build();
           transport.send(target, originalAckMsg);
@@ -139,42 +134,25 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public void setMembers(Collection<Address> members) {
     Set<Address> set = new HashSet<>(members);
-    set.remove(transport.localAddress());
+    set.remove(transport.address());
     List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
     this.members = list;
-    LOGGER.debug("Set cluster members: {}", this.members);
+    LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
   }
 
-  public ITransport getTransport() {
-    return transport;
-  }
-
-  public List<Address> getSuspectedMembers() {
-    return new ArrayList<>(suspectedMembers);
-  }
-
-  /** <b>NOTE:</b> this method is for test purpose only. */
-  void setPingMember(Address member) {
-    checkNotNull(member);
-    checkArgument(member != transport.localAddress());
-    this.pingMember = member;
-  }
-
-  /** <b>NOTE:</b> this method is for test purpose only. */
-  void setRandomMembers(List<Address> randomMembers) {
-    checkNotNull(randomMembers);
-    this.randomMembers = randomMembers;
+  public Collection<Address> getSuspectedMembers() {
+    return Collections.unmodifiableCollection(suspectedMembers);
   }
 
   @Override
   public void start() {
-    transport.listen().filter(PING_FILTER).filter(targetFilter(transport.localAddress())).subscribe(onPingSubscriber);
+    transport.listen().filter(PING_FILTER).filter(targetFilter(transport.address())).subscribe(onPingSubscriber);
     transport.listen().filter(PING_REQ_FILTER).subscribe(onPingReqSubscriber);
     transport.listen().filter(ACK_FILTER).filter(new Func1<Message, Boolean>() {
       @Override
       public Boolean call(Message message) {
-        FailureDetectorData data = message.data();
+        PingData data = message.data();
         return data.getOriginalIssuer() != null;
       }
     }).subscribe(onAckToOriginalAckSubscriber);
@@ -183,7 +161,7 @@ public final class FailureDetector implements IFailureDetector {
       @Override
       public void call() {
         try {
-          doPing(members);
+          doPing();
         } catch (Exception e) {
           LOGGER.error("Unhandled exception: {}", e, e);
         }
@@ -210,24 +188,28 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public void suspect(Address member) {
     checkNotNull(member);
-    suspectedMembers.add(member);
+    if (suspectedMembers.add(member)) {
+      LOGGER.debug("Member {} marked as SUSPECTED for {}", member, transport.address());
+    }
   }
 
   @Override
   public void trust(Address member) {
     checkNotNull(member);
-    suspectedMembers.remove(member);
+    if (suspectedMembers.remove(member)) {
+      LOGGER.debug("Member {} marked as TRUSTED for {}", member, transport.address());
+    }
   }
 
-  private void doPing(final List<Address> members) {
-    final Address pingMember = selectPingMember(members);
+  private void doPing() {
+    final Address pingMember = selectPingMember();
     if (pingMember == null) {
       return;
     }
 
-    final Address localAddress = transport.localAddress();
-    final String period = Integer.toString(periodNbr.incrementAndGet());
-    FailureDetectorData pingData = new FailureDetectorData(localAddress, pingMember);
+    final Address localAddress = transport.address();
+    final String period = Integer.toString(periodCounter.incrementAndGet());
+    PingData pingData = new PingData(localAddress, pingMember);
     Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(period).build();
     LOGGER.trace("Send Ping from {} to {}", localAddress, pingMember);
 
@@ -244,53 +226,52 @@ public final class FailureDetector implements IFailureDetector {
           public void call(Throwable throwable) {
             LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now",
                 pingMember, config.getPingTimeout());
-            doPingReq(members, pingMember, period);
+            doPingReq(pingMember, period);
           }
         }));
 
     transport.send(pingMember, pingMsg);
   }
 
-  private void doPingReq(List<Address> members, final Address targetMember, String period) {
+  private void doPingReq(final Address pingMember, String period) {
     final int timeout = config.getPingTime() - config.getPingTimeout();
     if (timeout <= 0) {
       LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})",
           config.getPingTime(), config.getPingTimeout());
-      declareSuspected(targetMember);
+      declareSuspected(pingMember);
       return;
     }
 
-    final List<Address> randomMembers =
-        selectRandomMembers(members, config.getMaxMembersToSelect(), targetMember/* exclude */);
-    if (randomMembers.isEmpty()) {
+    final List<Address> pingReqMembers = selectPingReqMembers(pingMember);
+    if (pingReqMembers.isEmpty()) {
       LOGGER.trace("No PingReq occurred, because member selection is empty");
-      declareSuspected(targetMember);
+      declareSuspected(pingMember);
       return;
     }
 
-    Address localAddress = transport.localAddress();
-    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localAddress, targetMember)).take(1)
+    Address localAddress = transport.address();
+    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localAddress, pingMember)).take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
           public void call(Message message) {
-            LOGGER.trace("PingReq OK (pinger={}, target={})", message.sender(), targetMember);
-            declareTrusted(targetMember);
+            LOGGER.trace("PingReq OK (pinger={}, target={})", message.sender(), pingMember);
+            declareTrusted(pingMember);
           }
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})", randomMembers, targetMember,
+            LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})", pingReqMembers, pingMember,
                 timeout);
-            declareSuspected(targetMember);
+            declareSuspected(pingMember);
           }
         }));
 
-    FailureDetectorData pingReqData = new FailureDetectorData(localAddress, targetMember);
+    PingData pingReqData = new PingData(localAddress, pingMember);
     Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(period).build();
-    for (Address randomMember : randomMembers) {
-      LOGGER.trace("Send PingReq from {} to {}", localAddress, randomMember);
-      transport.send(randomMember, pingReqMsg);
+    for (Address pingReqMember : pingReqMembers) {
+      LOGGER.trace("Send PingReq from {} to {}", localAddress, pingReqMember);
+      transport.send(pingReqMember, pingReqMsg);
     }
   }
 
@@ -299,8 +280,8 @@ public final class FailureDetector implements IFailureDetector {
    */
   private void declareSuspected(Address member) {
     if (suspectedMembers.add(member)) {
-      LOGGER.debug("Member {} became SUSPECTED", member);
-      subject.onNext(suspected(member));
+      LOGGER.debug("Member {} detected as SUSPECTED by {}", member, transport.address());
+      subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.SUSPECTED));
     }
   }
 
@@ -309,37 +290,28 @@ public final class FailureDetector implements IFailureDetector {
    */
   private void declareTrusted(Address member) {
     if (suspectedMembers.remove(member)) {
-      LOGGER.debug("Member {} became TRUSTED", member);
-      subject.onNext(trusted(member));
+      LOGGER.debug("Member {} detected as TRUSTED by {}", member, transport.address());
+      subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.TRUSTED));
     }
   }
 
-  private Address selectPingMember(List<Address> members) {
-    if (pingMember != null) {
-      return pingMember;
-    }
-    return members.isEmpty() ? null : selectRandomMembers(members, 1, null).get(0);
+  private Address selectPingMember() {
+    // TODO [AK]: Select ping member not randomly, but sequentially with shuffle after last member selected
+    return !members.isEmpty() ? members.get(ThreadLocalRandom.current().nextInt(members.size())) : null;
   }
 
-  private List<Address> selectRandomMembers(List<Address> members, int count,
-                                            Address memberToExclude) {
-    if (randomMembers != null) {
-      return randomMembers;
+  private List<Address> selectPingReqMembers(Address pingMember) {
+    if (config.getPingReqMembers() <= 0) {
+      return Collections.emptyList();
     }
-
-    checkArgument(count > 0, "FailureDetector: k is required!");
-    count = min(count, 5);
-
-    List<Address> list = new ArrayList<>(members);
-    list.remove(memberToExclude);
-
-    List<Address> target = new ArrayList<>(count);
-    for (; !list.isEmpty() && count != 0; count--) {
-      Address member = list.get(ThreadLocalRandom.current().nextInt(list.size()));
-      target.add(member);
-      list.remove(member);
+    List<Address> candidates = new ArrayList<>(members);
+    candidates.remove(pingMember);
+    if (candidates.isEmpty()) {
+      return Collections.emptyList();
     }
-    return target;
+    Collections.shuffle(candidates);
+    boolean selectAll = candidates.size() < config.getPingReqMembers();
+    return selectAll ? candidates : candidates.subList(0, config.getPingReqMembers());
   }
 
   private Func1<Message, Boolean> ackFilter(String correlationId) {
@@ -350,7 +322,7 @@ public final class FailureDetector implements IFailureDetector {
     return new Func1<Message, Boolean>() {
       @Override
       public Boolean call(Message message) {
-        FailureDetectorData data = message.data();
+        PingData data = message.data();
         return data.getTo().equals(address);
       }
     };
@@ -367,7 +339,7 @@ public final class FailureDetector implements IFailureDetector {
 
     @Override
     public Boolean call(Message message) {
-      FailureDetectorData data = message.data();
+      PingData data = message.data();
       return from.equals(data.getFrom()) && target.equals(data.getTo()) && data.getOriginalIssuer() == null;
     }
   }

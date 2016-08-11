@@ -9,6 +9,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -177,10 +179,8 @@ public class ClusterMembershipIT {
     ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
     ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).init();
 
-    Address restartedC = Address.from("localhost:20125");
-    Address restartedD = Address.from("localhost:20126");
-    ClusterMembershipBuilder cm_rc = CMBuilder(restartedC, a, b);
-    ClusterMembershipBuilder cm_rd = CMBuilder(restartedD, a, b);
+    ClusterMembershipBuilder cm_restartedC = null;
+    ClusterMembershipBuilder cm_restartedD = null;
 
     try {
       pause(3);
@@ -204,20 +204,20 @@ public class ClusterMembershipIT {
       cm_a.assertTrusted(a, b).assertNoSuspected();
       cm_b.assertTrusted(a, b).assertNoSuspected();
 
-      cm_rc.init();
-      cm_rd.init();
+      cm_restartedC = CMBuilder(c, Arrays.asList(a, b)).init();
+      cm_restartedD = CMBuilder(d, Arrays.asList(a, b)).init();
 
       pause(3);
 
-      cm_a.assertTrusted(a, b, restartedC, restartedD).assertNoSuspected();
-      cm_b.assertTrusted(a, b, restartedC, restartedD).assertNoSuspected();
-      cm_rc.assertTrusted(a, b, restartedC, restartedD).assertNoSuspected();
-      cm_rd.assertTrusted(a, b, restartedC, restartedD).assertNoSuspected();
+      cm_restartedC.assertTrusted(a, b, c, d).assertNoSuspected();
+      cm_restartedD.assertTrusted(a, b, c, d).assertNoSuspected();
+      cm_a.assertTrusted(a, b, c, d).assertNoSuspected();
+      cm_b.assertTrusted(a, b, c, d).assertNoSuspected();
     } finally {
       cm_a.destroy();
       cm_b.destroy();
-      cm_rc.destroy();
-      cm_rd.destroy();
+      cm_restartedC.destroy();
+      cm_restartedD.destroy();
     }
   }
 
@@ -229,11 +229,11 @@ public class ClusterMembershipIT {
     Address d = Address.from("localhost:20126");
     Address e = Address.from("localhost:20127");
 
-    ClusterMembershipBuilder cm_a = CMBuilder(a).init();
-    ClusterMembershipBuilder cm_b = CMBuilder(b, a).init();
-    ClusterMembershipBuilder cm_c = CMBuilder(c, a).init();
-    ClusterMembershipBuilder cm_d = CMBuilder(d, b).init();
-    ClusterMembershipBuilder cm_e = CMBuilder(e, b).init();
+    ClusterMembershipBuilder cm_a = CMBuilder(a, Collections.<Address>emptyList()).init();
+    ClusterMembershipBuilder cm_b = CMBuilder(b, Collections.singletonList(a)).init();
+    ClusterMembershipBuilder cm_c = CMBuilder(c, Collections.singletonList(a)).init();
+    ClusterMembershipBuilder cm_d = CMBuilder(d, Collections.singletonList(b)).init();
+    ClusterMembershipBuilder cm_e = CMBuilder(e, Collections.singletonList(b)).init();
 
     try {
       pause(3);

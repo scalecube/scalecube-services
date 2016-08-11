@@ -157,9 +157,9 @@ public final class Message {
 
   @Override
   public String toString() {
-    return "Message{"
-        + "headers=" + headers
-        + ", data=" + (data == null ? "null" : data.getClass().getSimpleName())
+    return "Message{headers=" + headers
+        + ", data=" + data
+        + ", sender=" + sender
         + '}';
   }
 

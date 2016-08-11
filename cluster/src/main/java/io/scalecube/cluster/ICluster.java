@@ -21,7 +21,11 @@ public interface ICluster {
 
   Observable<Message> listen();
 
-  IGossipProtocol gossip();
+  /** Spreads given message between cluster members. */
+  void spreadGossip(Message message);
+
+  /** Listens for gossips from other cluster members. */
+  Observable<Message> listenGossips();
 
   IClusterMembership membership();
 

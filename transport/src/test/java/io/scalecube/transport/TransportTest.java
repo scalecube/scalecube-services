@@ -4,7 +4,6 @@ import static com.google.common.base.Throwables.propagate;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -43,8 +42,8 @@ import java.util.concurrent.TimeoutException;
 public class TransportTest extends BaseTest {
   static final Logger LOGGER = LoggerFactory.getLogger(TransportTest.class);
 
-  Transport client;
-  Transport server;
+  private Transport client;
+  private Transport server;
 
   @After
   public void tearDown() throws Exception {
@@ -54,7 +53,7 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testUnresolvedHostConnection() throws Exception {
-    client = createTransport(clientAddress());
+    client = createTransport();
     // create transport with wrong host
     SettableFuture<Void> sendPromise0 = SettableFuture.create();
     client.send(Address.from("wronghost:49255"), Message.fromData("q"), sendPromise0);
@@ -70,11 +69,11 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testInteractWithNoConnection() throws Exception {
-    Address serverAddress = serverAddress();
+    Address serverAddress = Address.from("localhost:49255");
     for (int i = 0; i < 10; i++) {
       LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
 
-      client = createTransport(clientAddress());
+      client = createTransport();
 
       // create transport and don't wait just send message
       SettableFuture<Void> sendPromise0 = SettableFuture.create();
@@ -107,51 +106,15 @@ public class TransportTest extends BaseTest {
   }
 
   @Test
-  public void testDisconnectAndSendSequentiallySuccess() throws Exception {
-    final Address clientAddress = clientAddress();
-    final Address serverAddress = serverAddress();
-
-    client = createTransport(clientAddress);
-    server = createTransport(serverAddress);
-
-    for (int i = 0; i < 10; i++) {
-      LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
-
-      // Connect and send
-      SettableFuture<Void> sentPromise = SettableFuture.create();
-      client.send(serverAddress, Message.fromData("Hello 0 at #" + i), sentPromise);
-
-      // Wait that message was sent
-      sentPromise.get(1, TimeUnit.SECONDS);
-
-      // Disconnect
-      SettableFuture<Void> disconnectedPromise = SettableFuture.create();
-      client.disconnect(serverAddress, disconnectedPromise);
-
-      // Wait disconnected
-      disconnectedPromise.get(1, TimeUnit.SECONDS);
-
-      // TODO [AK]: Behavior described below is understandable, but undesirable. Need to think about improvement here.
-      // Wait some time until disconnection is detected on a server side and related accepted channel is cleared
-      // otherwise following connect may fail on server with:
-      // i.s.t.TransportBrokenException: Detected duplicate TransportChannel{...} for key=... in accepted_map
-      pause(100);
-    }
-  }
-
-  @Test
   public void testPingPongClientTFListenAndServerTFListen() throws Exception {
-    final Address clientAddress = clientAddress();
-    final Address serverAddress = serverAddress();
-
-    client = createTransport(clientAddress);
-    server = createTransport(serverAddress);
+    client = createTransport();
+    server = createTransport();
 
     server.listen().subscribe(new Action1<Message>() {
       @Override
       public void call(Message message) {
         Address address = message.sender();
-        assertEquals("Expected clientAddress", clientAddress, address);
+        assertEquals("Expected clientAddress", client.address(), address);
         send(server, address, Message.fromQualifier("hi client"));
       }
     });
@@ -165,7 +128,7 @@ public class TransportTest extends BaseTest {
       }
     });
 
-    send(client, serverAddress, Message.fromQualifier("hello server"));
+    send(client, server.address(), Message.fromQualifier("hello server"));
 
     Message result = messageFuture.get(3, TimeUnit.SECONDS);
     assertNotNull("No response from serverAddress", result);
@@ -174,16 +137,13 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testConnectorSendOrder1Thread() throws Exception {
-    Address clientAddress = clientAddress();
-    Address serverAddress = serverAddress();
-
-    client = createTransport(clientAddress);
-    server = createTransport(serverAddress);
+    server = createTransport();
 
     int total = 1000;
     for (int i = 0; i < 10; i++) {
       LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
 
+      client = createTransport();
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(total);
       server.listen().subscribe(new Action1<Message>() {
@@ -196,7 +156,7 @@ public class TransportTest extends BaseTest {
 
       for (int j = 0; j < total; j++) {
         SettableFuture<Void> send = SettableFuture.create();
-        client.send(serverAddress, Message.fromQualifier("q" + j), send);
+        client.send(server.address(), Message.fromQualifier("q" + j), send);
         try {
           send.get(3, TimeUnit.SECONDS);
         } catch (Exception e) {
@@ -206,30 +166,22 @@ public class TransportTest extends BaseTest {
       }
 
       latch.await(20, TimeUnit.SECONDS);
-      {
-        SettableFuture<Void> close = SettableFuture.create();
-        client.disconnect(serverAddress, close);
-        close.get(1, TimeUnit.SECONDS);
-      }
-      pause(100); // wait a bit so close could recognized on other side
-
       assertSendOrder(total, received);
+
+      destroyTransport(client);
     }
   }
 
   @Test
   public void testConnectorSendOrder4Thread() throws Exception {
-    Address clientAddress = clientAddress(49050);
-    Address serverAddress = serverAddress(49060);
-
-    Transport client = createTransport(clientAddress);
-    Transport server = createTransport(serverAddress);
+    Transport server = createTransport();
 
     final int total = 1000;
     for (int i = 0; i < 10; i++) {
       LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
       ExecutorService exec = Executors.newFixedThreadPool(4, new ThreadFactoryBuilder().setDaemon(true).build());
 
+      Transport client = createTransport();
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(4 * total);
       server.listen().subscribe(new Action1<Message>() {
@@ -240,10 +192,10 @@ public class TransportTest extends BaseTest {
         }
       });
 
-      Future<Void> f0 = exec.submit(sender(0, client, serverAddress, total));
-      Future<Void> f1 = exec.submit(sender(1, client, serverAddress, total));
-      Future<Void> f2 = exec.submit(sender(2, client, serverAddress, total));
-      Future<Void> f3 = exec.submit(sender(3, client, serverAddress, total));
+      Future<Void> f0 = exec.submit(sender(0, client, server.address(), total));
+      Future<Void> f1 = exec.submit(sender(1, client, server.address(), total));
+      Future<Void> f2 = exec.submit(sender(2, client, server.address(), total));
+      Future<Void> f3 = exec.submit(sender(3, client, server.address(), total));
 
       latch.await(20, TimeUnit.SECONDS);
 
@@ -252,18 +204,14 @@ public class TransportTest extends BaseTest {
       f2.get(1, TimeUnit.SECONDS);
       f3.get(1, TimeUnit.SECONDS);
 
-      {
-        SettableFuture<Void> close = SettableFuture.create();
-        client.disconnect(serverAddress, close);
-        close.get(1, TimeUnit.SECONDS);
-      }
-      pause(100); // wait a bit so close could recognized on other side
       exec.shutdownNow();
 
       assertSenderOrder(0, total, received);
       assertSenderOrder(1, total, received);
       assertSenderOrder(2, total, received);
       assertSenderOrder(3, total, received);
+
+      destroyTransport(client);
     }
 
     destroyTransport(client);
@@ -272,15 +220,12 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testNetworkSettings() throws InterruptedException {
-    Address clientAddress = clientAddress();
-    Address serverAddress = serverAddress();
-
-    client = createTransport(clientAddress);
-    server = createTransport(serverAddress);
+    client = createTransport();
+    server = createTransport();
 
     int lostPercent = 50;
     int mean = 0;
-    client.setNetworkSettings(serverAddress, lostPercent, mean);
+    client.setNetworkSettings(server.address(), lostPercent, mean);
 
     final List<Message> serverMessageList = new ArrayList<>();
     server.listen().subscribe(new Action1<Message>() {
@@ -292,7 +237,7 @@ public class TransportTest extends BaseTest {
 
     int total = 1000;
     for (int i = 0; i < total; i++) {
-      client.send(serverAddress, Message.fromData("q" + i));
+      client.send(server.address(), Message.fromData("q" + i));
     }
 
     pause(1000);
@@ -304,11 +249,8 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testPingPongOnSingleChannel() throws Exception {
-    Address clientAddress = clientAddress();
-    Address serverAddress = serverAddress();
-
-    server = createTransport(serverAddress);
-    client = createTransport(clientAddress);
+    server = createTransport();
+    client = createTransport();
 
     server.listen().buffer(2).subscribe(new Action1<List<Message>>() {
       @Override
@@ -328,8 +270,8 @@ public class TransportTest extends BaseTest {
       }
     });
 
-    client.send(serverAddress, Message.fromData("q1"));
-    client.send(serverAddress, Message.fromData("q2"));
+    client.send(server.address(), Message.fromData("q1"));
+    client.send(server.address(), Message.fromData("q2"));
 
     List<Message> target = targetFuture.get(1, TimeUnit.SECONDS);
     assertNotNull(target);
@@ -338,11 +280,8 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testPingPongOnSeparateChannel() throws Exception {
-    Address clientAddress = clientAddress();
-    Address serverAddress = serverAddress();
-
-    server = createTransport(serverAddress);
-    client = createTransport(clientAddress);
+    server = createTransport();
+    client = createTransport();
 
     server.listen().buffer(2).subscribe(new Action1<List<Message>>() {
       @Override
@@ -362,8 +301,8 @@ public class TransportTest extends BaseTest {
       }
     });
 
-    client.send(serverAddress, Message.fromData("q1"));
-    client.send(serverAddress, Message.fromData("q2"));
+    client.send(server.address(), Message.fromData("q1"));
+    client.send(server.address(), Message.fromData("q2"));
 
     List<Message> target = targetFuture.get(1, TimeUnit.SECONDS);
     assertNotNull(target);
@@ -372,11 +311,8 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testCompleteObserver() throws Exception {
-    Address clientAddress = clientAddress();
-    Address serverAddress = serverAddress();
-
-    server = createTransport(serverAddress);
-    client = createTransport(clientAddress);
+    server = createTransport();
+    client = createTransport();
 
     final SettableFuture<Boolean> completeLatch = SettableFuture.create();
     final SettableFuture<Message> messageLatch = SettableFuture.create();
@@ -397,7 +333,7 @@ public class TransportTest extends BaseTest {
     });
 
     SettableFuture<Void> send = SettableFuture.create();
-    client.send(serverAddress, Message.fromData("q"), send);
+    client.send(server.address(), Message.fromData("q"), send);
     send.get(1, TimeUnit.SECONDS);
 
     assertNotNull(messageLatch.get(1, TimeUnit.SECONDS));
@@ -411,11 +347,8 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testObserverThrowsException() throws Exception {
-    Address clientAddress = clientAddress();
-    Address serverAddress = serverAddress();
-
-    server = createTransport(serverAddress);
-    client = createTransport(clientAddress);
+    server = createTransport();
+    client = createTransport();
 
     server.listen().subscribe(new Action1<Message>() {
       @Override
@@ -444,7 +377,7 @@ public class TransportTest extends BaseTest {
         messageFuture0.set(message);
       }
     });
-    client.send(serverAddress, Message.fromData("throw"));
+    client.send(server.address(), Message.fromData("throw"));
     Message message0 = null;
     try {
       message0 = messageFuture0.get(1, TimeUnit.SECONDS);
@@ -461,7 +394,7 @@ public class TransportTest extends BaseTest {
         messageFuture1.set(message);
       }
     });
-    client.send(serverAddress, Message.fromData("q"));
+    client.send(server.address(), Message.fromData("q"));
     Message transportMessage1 = null;
     try {
       transportMessage1 = messageFuture1.get(1, TimeUnit.SECONDS);
@@ -473,11 +406,8 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testBlockAndUnblockTraffic() throws Exception {
-    Address clientAddress = clientAddress();
-    Address serverAddress = serverAddress();
-
-    client = createTransport(clientAddress);
-    server = createTransport(serverAddress);
+    client = createTransport();
+    server = createTransport();
 
     server.listen().subscribe(new Action1<Message>() {
       @Override
@@ -495,32 +425,16 @@ public class TransportTest extends BaseTest {
     });
 
     // test at unblocked transport
-    send(client, serverAddress, Message.fromQualifier("q/unblocked"));
+    send(client, server.address(), Message.fromQualifier("q/unblocked"));
 
     // then block client->server messages
     pause(1000);
-    client.blockMessagesTo(serverAddress);
-    send(client, serverAddress, Message.fromQualifier("q/blocked"));
+    client.block(server.address());
+    send(client, server.address(), Message.fromQualifier("q/blocked"));
 
     pause(1000);
     assertEquals(1, resp.size());
     assertEquals("q/unblocked", resp.get(0).header(MessageHeaders.QUALIFIER));
-  }
-
-  private Address serverAddress() {
-    return Address.from("localhost:49255");
-  }
-
-  private Address clientAddress() {
-    return Address.from("localhost:49355");
-  }
-
-  private Address serverAddress(int port) {
-    return Address.from("localhost:" + port);
-  }
-
-  private Address clientAddress(int port) {
-    return Address.from("localhost:" + port);
   }
 
   private void pause(int millis) throws InterruptedException {
@@ -568,39 +482,32 @@ public class TransportTest extends BaseTest {
   }
 
   private void send(final ITransport from, final Address to, final Message msg) {
-    final SettableFuture<Void> f = SettableFuture.create();
-    f.addListener(new Runnable() {
+    final SettableFuture<Void> sendPromise = SettableFuture.create();
+    sendPromise.addListener(new Runnable() {
       @Override
       public void run() {
-        if (f.isDone()) {
+        if (sendPromise.isDone()) {
           try {
-            f.get();
+            sendPromise.get();
           } catch (Exception e) {
             LOGGER.error("Failed to send {} to {} from transport: {}, cause: {}", msg, to, from, e.getCause());
           }
         }
       }
     }, MoreExecutors.directExecutor());
-    from.send(to, msg, f);
+    from.send(to, msg, sendPromise);
   }
 
-  private Transport createTransport(Address address) {
+  private Transport createTransport() {
     TransportConfig config = TransportConfig.builder()
         .connectTimeout(1000)
         .useNetworkEmulator(true)
         .build();
-    Transport transport = Transport.newInstance(address, config);
-    try {
-      transport.start().get();
-    } catch (Exception e) {
-      LOGGER.error("Failed to start transport ", e);
-    }
-
-    return transport;
+    return Transport.bindAwait(config);
   }
 
   private void destroyTransport(Transport transport) throws Exception {
-    if (transport != null) {
+    if (transport != null && !transport.isStopped()) {
       SettableFuture<Void> close = SettableFuture.create();
       transport.stop(close);
       close.get(1, TimeUnit.SECONDS);

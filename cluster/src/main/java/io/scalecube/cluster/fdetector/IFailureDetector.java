@@ -17,7 +17,7 @@ import java.util.Collection;
 public interface IFailureDetector {
 
   /**
-   * Starts running failure detection algorithm. After started it begins to receive and send failure detection messages
+   * Starts running failure detection algorithm. After started it begins to receive and send ping messages.
    */
   void start();
 

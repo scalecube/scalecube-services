@@ -45,7 +45,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class GossipProtocol implements IGossipProtocol, IManagedGossipProtocol {
+public final class GossipProtocol implements IGossipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
   private final String memberId;
@@ -102,12 +102,12 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
   @Override
   public void setMembers(Collection<Address> members) {
     Set<Address> remoteMembers = new HashSet<>(members);
-    remoteMembers.remove(transport.localAddress());
+    remoteMembers.remove(transport.address());
     List<Address> list = new ArrayList<>(remoteMembers);
     Collections.shuffle(list);
     this.members = list;
     this.factor = 32 - Integer.numberOfLeadingZeros(list.size() + 1);
-    LOGGER.debug("Set cluster members: {}", this.members);
+    LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
   }
 
   public ITransport getTransport() {
@@ -131,13 +131,16 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
     if (onGossipRequestSubscriber != null) {
       onGossipRequestSubscriber.unsubscribe();
     }
+    if (executor != null) {
+      executor.shutdown();
+    }
   }
 
   @Override
   public void spread(Message message) {
     String gossipId = generateGossipId();
     Gossip gossip = new Gossip(gossipId, message);
-    GossipTask gossipTask = new GossipTask(gossip, transport.localAddress());
+    GossipTask gossipTask = new GossipTask(gossip, transport.address());
     gossipsQueue.offer(gossipTask);
   }
 
@@ -153,7 +156,7 @@ public final class GossipProtocol implements IGossipProtocol, IManagedGossipProt
       Address origin = gossipTask.getOrigin();
       GossipLocalState gossipLocalState = gossipsMap.get(gossip.getGossipId());
       if (gossipLocalState == null) {
-        boolean isRemote = !origin.equals(transport.localAddress());
+        boolean isRemote = !origin.equals(transport.address());
         LOGGER.debug("Saved new_" + (isRemote ? "remote" : "local") + " {}", gossip);
         gossipLocalState = GossipLocalState.create(gossip, origin, period);
         gossipsMap.put(gossip.getGossipId(), gossipLocalState);

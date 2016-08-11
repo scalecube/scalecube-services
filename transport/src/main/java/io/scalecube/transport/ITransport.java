@@ -16,14 +16,9 @@ import javax.annotation.Nullable;
 public interface ITransport {
 
   /**
-   * Returns {@link Address} on which listens incomming messages this instance of transport.
+   * Returns local {@link Address} on which current instance of transport listens for incoming messages.
    */
-  Address localAddress();
-
-  /**
-   * Starts transport to accept connection and connect to other transports.
-   */
-  ListenableFuture<Void> start();
+  Address address();
 
   /**
    * Stop transport, disconnect all available connections which belong to this transport. <br/>
@@ -42,22 +37,6 @@ public interface ITransport {
    * @param promise promise will be completed with result of closing (void or exception)
    */
   void stop(@Nullable SettableFuture<Void> promise);
-
-  /**
-   * Disconnects existing transport channel to the given address. If there is no connection do nothing and immediately
-   * set provided promise. Close is an async operation it may cause to fail send operations either called before
-   * disconnect (if their promise not set yet) or the following after disconnect since they may be assigned to existing
-   * disconnecting channel instead of creating new channel.
-   *
-   * <p>
-   * If result of operation is not needed leave second parameter null, otherwise pass {@link SettableFuture}.
-   * </p>
-   * 
-   * @param address address to disconnect
-   * @param promise promise will be completed with result of closing (void or exception)
-   * @throws IllegalArgumentException if {@code address} is null
-   */
-  void disconnect(@CheckForNull Address address, @Nullable SettableFuture<Void> promise);
 
   /**
    * Sends message to the given address. It will issue connect in case if no transport channel by given transport

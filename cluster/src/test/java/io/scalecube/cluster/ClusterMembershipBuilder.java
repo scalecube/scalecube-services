@@ -19,7 +19,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -32,8 +31,12 @@ public class ClusterMembershipBuilder {
   final FailureDetector failureDetector;
 
   private ClusterMembershipBuilder(Address localAddress, List<Address> members) {
-    TransportConfig transportConfig = TransportConfig.builder().useNetworkEmulator(true).build();
-    transport = Transport.newInstance(localAddress, transportConfig);
+    TransportConfig transportConfig = TransportConfig.builder()
+        .useNetworkEmulator(true)
+        .portAutoIncrement(false)
+        .port(localAddress.port())
+        .build();
+    transport = Transport.bindAwait(transportConfig);
 
     String memberId = UUID.randomUUID().toString();
 
@@ -60,17 +63,13 @@ public class ClusterMembershipBuilder {
     return new ClusterMembershipBuilder(localAddress, members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(Address localAddress, Address... members) {
-    return new ClusterMembershipBuilder(localAddress, Arrays.asList(members));
-  }
-
   public ClusterMembershipBuilder maxSuspectTime(int maxSuspectTime) {
     membership.setMaxSuspectTime(maxSuspectTime);
     return this;
   }
 
   public ClusterMembershipBuilder block(Address dest) {
-    transport.blockMessagesTo(dest);
+    transport.block(dest);
     return this;
   }
 
@@ -81,7 +80,6 @@ public class ClusterMembershipBuilder {
 
   ClusterMembershipBuilder init() {
     try {
-      transport.start().get();
       failureDetector.start();
       gossipProtocol.start();
       membership.start().get();
@@ -104,10 +102,7 @@ public class ClusterMembershipBuilder {
     try {
       close.get(1, TimeUnit.SECONDS);
     } catch (Exception ignore) {
-    }
-    try {
-      Thread.sleep(10);
-    } catch (InterruptedException ignore) {
+      // ignore
     }
   }
 
