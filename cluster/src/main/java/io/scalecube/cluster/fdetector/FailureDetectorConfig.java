@@ -6,16 +6,16 @@ public final class FailureDetectorConfig {
 
   public static final int DEFAULT_PING_TIME = 2000;
   public static final int DEFAULT_PING_TIMEOUT = 1000;
-  public static final int DEFAULT_MAX_MEMBERS_TO_SELECT = 3;
+  public static final int DEFAULT_PING_REQ_MEMBERS = 3;
 
   private final int pingTime;
   private final int pingTimeout;
-  private final int maxMembersToSelect;
+  private final int pingReqMembers;
 
   private FailureDetectorConfig(Builder builder) {
     this.pingTime = builder.pingTime;
     this.pingTimeout = builder.pingTimeout;
-    this.maxMembersToSelect = builder.maxMembersToSelect;
+    this.pingReqMembers = builder.pingReqMembers;
   }
 
   public static Builder builder() {
@@ -30,15 +30,15 @@ public final class FailureDetectorConfig {
     return pingTimeout;
   }
 
-  public int getMaxMembersToSelect() {
-    return maxMembersToSelect;
+  public int getPingReqMembers() {
+    return pingReqMembers;
   }
 
   @Override
   public String toString() {
     return "FailureDetectorConfig{pingTime=" + pingTime
         + ", pingTimeout=" + pingTimeout
-        + ", maxMembersToSelect=" + maxMembersToSelect
+        + ", pingReqMembers=" + pingReqMembers
         + '}';
   }
 
@@ -46,7 +46,7 @@ public final class FailureDetectorConfig {
 
     private int pingTime = DEFAULT_PING_TIME;
     private int pingTimeout = DEFAULT_PING_TIMEOUT;
-    private int maxMembersToSelect = DEFAULT_MAX_MEMBERS_TO_SELECT;
+    private int pingReqMembers = DEFAULT_PING_REQ_MEMBERS;
 
     private Builder() {}
 
@@ -60,8 +60,8 @@ public final class FailureDetectorConfig {
       return this;
     }
 
-    public Builder maxMembersToSelect(int maxMembersToSelect) {
-      this.maxMembersToSelect = maxMembersToSelect;
+    public Builder pingReqMembers(int pingReqMembers) {
+      this.pingReqMembers = pingReqMembers;
       return this;
     }
 

@@ -5,7 +5,7 @@ import io.scalecube.transport.Address;
 import io.protostuff.Tag;
 
 /** DTO class. Supports FailureDetector messages (Ping, Ack, PingReq). */
-final class FailureDetectorData {
+final class PingData {
   /** Message's source address. */
   @Tag(1)
   private Address from;
@@ -16,12 +16,12 @@ final class FailureDetectorData {
   @Tag(3)
   private Address originalIssuer;
 
-  public FailureDetectorData(Address from, Address to) {
+  public PingData(Address from, Address to) {
     this.from = from;
     this.to = to;
   }
 
-  public FailureDetectorData(Address from, Address to, Address originalIssuer) {
+  public PingData(Address from, Address to, Address originalIssuer) {
     this.from = from;
     this.to = to;
     this.originalIssuer = originalIssuer;

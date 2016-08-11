@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -428,7 +429,7 @@ public class FailureDetectorIT {
     FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder() // faster config for local testing
         .pingTimeout(100)
         .pingTime(200)
-        .maxMembersToSelect(2)
+        .pingReqMembers(2)
         .build();
     FailureDetector failureDetector = new FailureDetector(transport, failureDetectorConfig);
     failureDetector.setMembers(members);
@@ -460,7 +461,7 @@ public class FailureDetectorIT {
     }
   }
 
-  private void assertSuspected(List<Address> actual, Address... expected) {
+  private void assertSuspected(Collection<Address> actual, Address... expected) {
     assertEquals("Expected " + expected.length + " suspected members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
@@ -470,7 +471,7 @@ public class FailureDetectorIT {
 
   private void assertNoSuspected(List<FailureDetector> fdetectors) {
     for (FailureDetector fd : fdetectors) {
-      List<Address> suspectMembers = fd.getSuspectedMembers();
+      Collection<Address> suspectMembers = fd.getSuspectedMembers();
       assertTrue("No suspected members is expected, but: " + suspectMembers, suspectMembers.isEmpty());
     }
   }

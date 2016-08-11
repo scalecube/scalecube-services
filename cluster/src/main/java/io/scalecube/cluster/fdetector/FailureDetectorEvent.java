@@ -12,17 +12,9 @@ public final class FailureDetectorEvent {
   private final Address address;
   private final ClusterMemberStatus status;
 
-  private FailureDetectorEvent(Address address, ClusterMemberStatus status) {
+  FailureDetectorEvent(Address address, ClusterMemberStatus status) {
     this.address = address;
     this.status = status;
-  }
-
-  public static FailureDetectorEvent trusted(Address address) {
-    return new FailureDetectorEvent(address, ClusterMemberStatus.TRUSTED);
-  }
-
-  public static FailureDetectorEvent suspected(Address address) {
-    return new FailureDetectorEvent(address, ClusterMemberStatus.SUSPECTED);
   }
 
   public Address address() {
