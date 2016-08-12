@@ -3,13 +3,7 @@ package io.scalecube.transport;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.base.Strings;
-import com.google.common.base.Throwables;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,8 +14,6 @@ import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public final class Address {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(Address.class);
 
   private static final Pattern ADDRESS_FORMAT = Pattern.compile("(?<host>^.*):(?<port>\\d+$)");
 
@@ -50,9 +42,12 @@ public final class Address {
       throw new IllegalArgumentException();
     }
 
-    String host = resolveHost(matcher.group(1));
+    String host = matcher.group(1);
+    checkArgument(!Strings.isNullOrEmpty(host));
+    String host1 =
+        "localhost".equals(host) || "127.0.0.1".equals(host) ? Addressing.getLocalIpAddress().getHostAddress() : host;
     int port = Integer.parseInt(matcher.group(2));
-    return new Address(host, port);
+    return new Address(host1, port);
   }
 
   /**
@@ -60,37 +55,6 @@ public final class Address {
    */
   public static Address create(String host, int port) {
     return new Address(host, port);
-  }
-
-  /**
-   * Creates local address from port.
-   * <b>NOTE:</b> hostname of created transport will be set to node's public IP address.
-   *
-   * @param port a port to bind to.
-   */
-  public static Address createLocal(int port) {
-    return new Address(getLocalIpAddress().getHostAddress(), port);
-  }
-
-  private static String resolveHost(@CheckForNull String host) {
-    checkArgument(!Strings.isNullOrEmpty(host));
-    return "localhost".equals(host) || "127.0.0.1".equals(host) ? getLocalIpAddress().getHostAddress() : host;
-  }
-
-  /**
-   * Getting local IP address by the address of local host. <b>NOTE:</b> returned IP address is expected to be a
-   * publicly visible IP address.
-   *
-   * @throws RuntimeException wrapped {@link UnknownHostException} in case when local host name couldn't be resolved
-   *         into an address.
-   */
-  public static InetAddress getLocalIpAddress() {
-    try {
-      return InetAddress.getLocalHost();
-    } catch (UnknownHostException e) {
-      LOGGER.error("Unable to determine local hostname, cause: {}", new Object[] {e});
-      throw Throwables.propagate(e);
-    }
   }
 
   /**

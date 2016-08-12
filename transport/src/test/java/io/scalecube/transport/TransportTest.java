@@ -38,7 +38,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@SuppressWarnings({"unchecked", "ThrowFromFinallyBlock"})
 public class TransportTest extends BaseTest {
   static final Logger LOGGER = LoggerFactory.getLogger(TransportTest.class);
 

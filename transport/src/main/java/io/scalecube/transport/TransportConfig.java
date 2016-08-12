@@ -122,8 +122,8 @@ public final class TransportConfig {
 
   public static final class Builder {
 
-    private String listenAddress;
-    private String listenInterface;
+    private String listenAddress = null; // no default value set
+    private String listenInterface = null; // no default value set
     private boolean preferIPv6 = DEFAULT_PREFER_IP6;
     private int port = DEFAULT_PORT;
     private int portCount = DEFAULT_PORT_COUNT;
@@ -148,7 +148,7 @@ public final class TransportConfig {
     }
 
     public Builder preferIPv6(boolean preferIPv6) {
-      this.preferIPv6 = true;
+      this.preferIPv6 = preferIPv6;
       return this;
     }
 
