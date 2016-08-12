@@ -69,12 +69,12 @@ public final class Address {
    * @param port a port to bind to.
    */
   public static Address createLocal(int port) {
-    return new Address(getLocalIpAddress(), port);
+    return new Address(getLocalIpAddress().getHostAddress(), port);
   }
 
   private static String resolveHost(@CheckForNull String host) {
     checkArgument(!Strings.isNullOrEmpty(host));
-    return "localhost".equals(host) || "127.0.0.1".equals(host) ? getLocalIpAddress() : host;
+    return "localhost".equals(host) || "127.0.0.1".equals(host) ? getLocalIpAddress().getHostAddress() : host;
   }
 
   /**
@@ -84,9 +84,9 @@ public final class Address {
    * @throws RuntimeException wrapped {@link UnknownHostException} in case when local host name couldn't be resolved
    *         into an address.
    */
-  public static String getLocalIpAddress() {
+  public static InetAddress getLocalIpAddress() {
     try {
-      return InetAddress.getLocalHost().getHostAddress();
+      return InetAddress.getLocalHost();
     } catch (UnknownHostException e) {
       LOGGER.error("Unable to determine local hostname, cause: {}", new Object[] {e});
       throw Throwables.propagate(e);

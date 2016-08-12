@@ -37,7 +37,14 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Collection;
+import java.util.Enumeration;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -84,24 +91,22 @@ public final class Transport implements ITransport {
   }
 
   /**
-   * Init transport with the default configuration synchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the default configuration synchronously. Starts to accept connections on local address.
    */
   public static Transport bindAwait() {
     return bindAwait(TransportConfig.DEFAULT);
   }
 
   /**
-   * Init transport with the default configuration and network emulator flag synchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the default configuration and network emulator flag synchronously. Starts to accept connections
+   * on local address.
    */
   public static Transport bindAwait(boolean useNetworkEmulator) {
     return bindAwait(TransportConfig.builder().useNetworkEmulator(useNetworkEmulator).build());
   }
 
   /**
-   * Init transport with the given configuration synchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the given configuration synchronously. Starts to accept connections on local address.
    */
   public static Transport bindAwait(TransportConfig config) {
     try {
@@ -112,16 +117,14 @@ public final class Transport implements ITransport {
   }
 
   /**
-   * Init transport with the default configuration asynchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the default configuration asynchronously. Starts to accept connections on local address.
    */
   public static ListenableFuture<Transport> bind() {
     return bind(TransportConfig.DEFAULT);
   }
 
   /**
-   * Init transport with the given configuration asynchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the given configuration asynchronously. Starts to accept connections on local address.
    */
   public static ListenableFuture<Transport> bind(TransportConfig config) {
     return new Transport(config).bind0();
@@ -131,6 +134,27 @@ public final class Transport implements ITransport {
    * Starts to accept connections on local address.
    */
   private ListenableFuture<Transport> bind0() {
+    InetAddress listenAddress;
+    if (config.getListenAddress() != null && config.getListenInterface() != null) {
+      throw new IllegalArgumentException("Not allowed to set both listenAddress and listenInterface, choose one");
+    } else if (config.getListenAddress() != null) {
+      try {
+        listenAddress = InetAddress.getByName(config.getListenAddress());
+      } catch (UnknownHostException e) {
+        throw new IllegalArgumentException("Unknown listenAddress: " + config.getListenAddress());
+      }
+      // account that 0.0.0.0 is not allowed
+      if (listenAddress.isAnyLocalAddress()) {
+        throw new IllegalArgumentException(
+            "listenAddress: " + config.getListenAddress() + " cannot be a wildcard address");
+      }
+    } else if (config.getListenInterface() != null) {
+      listenAddress = getNetworkInterfaceAddress(config.getListenInterface(), config.isPreferIPv6());
+    } else {
+      // fallback to local ip address
+      listenAddress = Address.getLocalIpAddress();
+    }
+
     incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
     // Resolve bind port
@@ -141,17 +165,18 @@ public final class Transport implements ITransport {
     address = Address.createLocal(bindPort);
 
     ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(address.host(), address.port());
+    ChannelFuture bindFuture = server.bind(listenAddress, address.port());
     final SettableFuture<Transport> result = SettableFuture.create();
+    final InetAddress finalListenAddress = listenAddress;
     bindFuture.addListener(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", address);
+          LOGGER.info("Bound to: {}", finalListenAddress);
           result.set(Transport.this);
         } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
+          LOGGER.error("Failed to bind to: {}, cause: {}", finalListenAddress, channelFuture.cause());
           result.setException(channelFuture.cause());
         }
       }
@@ -335,6 +360,40 @@ public final class Transport implements ITransport {
     }
   }
 
+  private static InetAddress getNetworkInterfaceAddress(String intfc, boolean preferIPv6) {
+    try {
+      NetworkInterface ni = NetworkInterface.getByName(intfc);
+      if (ni == null) {
+        throw new IllegalArgumentException("Configured network interface: " + intfc + " could not be found");
+      }
+      if (!ni.isUp()) {
+        throw new IllegalArgumentException("Configured network interface: " + intfc + " is not active");
+      }
+      Enumeration<InetAddress> addrs = ni.getInetAddresses();
+      if (!addrs.hasMoreElements()) {
+        throw new IllegalArgumentException(
+            "Configured network interface: " + intfc + " was found, but had no addresses");
+      }
+      // try to return the first address of the preferred type, otherwise return the first address
+      InetAddress result = null;
+      while (addrs.hasMoreElements()) {
+        InetAddress addr = addrs.nextElement();
+        if (preferIPv6 && addr instanceof Inet6Address) {
+          return addr;
+        }
+        if (!preferIPv6 && addr instanceof Inet4Address) {
+          return addr;
+        }
+        if (result == null) {
+          result = addr;
+        }
+      }
+      return result;
+    } catch (SocketException e) {
+      throw new IllegalArgumentException("Configured network interface: " + intfc + " caused an exception", e);
+    }
+  }
+
   private final class OutgoingChannelComputable implements Computable<Address, ChannelFuture> {
     @Override
     public ChannelFuture compute(final Address address) throws Exception {
@@ -376,7 +435,6 @@ public final class Transport implements ITransport {
 
   @ChannelHandler.Sharable
   private final class OutgoingChannelInitializer extends ChannelInitializer {
-
     private final Address address;
 
     public OutgoingChannelInitializer(Address address) {
@@ -405,6 +463,4 @@ public final class Transport implements ITransport {
       pipeline.addLast(exceptionHandler);
     }
   }
-
-
 }

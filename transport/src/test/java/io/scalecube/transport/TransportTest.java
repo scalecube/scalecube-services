@@ -38,7 +38,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@SuppressWarnings("unchecked")
+@SuppressWarnings({"unchecked", "ThrowFromFinallyBlock"})
 public class TransportTest extends BaseTest {
   static final Logger LOGGER = LoggerFactory.getLogger(TransportTest.class);
 
@@ -49,6 +49,58 @@ public class TransportTest extends BaseTest {
   public void tearDown() throws Exception {
     destroyTransport(client);
     destroyTransport(server);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidListenConfig() {
+    Transport transport = null;
+    try {
+      TransportConfig config = TransportConfig.builder().listenInterface("eth0").listenAddress("10.10.10.10").build();
+      transport = Transport.bindAwait(config);
+    } finally {
+      if (transport != null) {
+        transport.stop();
+      }
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidListenInterface() {
+    Transport transport = null;
+    try {
+      TransportConfig config = TransportConfig.builder().listenInterface("yadayada").build();
+      transport = Transport.bindAwait(config);
+    } finally {
+      if (transport != null) {
+        transport.stop();
+      }
+    }
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidListenAddress() {
+    Transport transport = null;
+    try {
+      TransportConfig config = TransportConfig.builder().listenAddress("0.0.0.0").build();
+      transport = Transport.bindAwait(config);
+    } finally {
+      if (transport != null) {
+        transport.stop();
+      }
+    }
+  }
+
+  @Test
+  public void testValidListenAddress() {
+    Transport transport = null;
+    try {
+      TransportConfig config = TransportConfig.builder().listenAddress("127.0.0.1").build();
+      transport = Transport.bindAwait(config);
+    } finally {
+      if (transport != null) {
+        transport.stop();
+      }
+    }
   }
 
   @Test
