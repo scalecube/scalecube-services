@@ -14,6 +14,8 @@ import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageHeaders;
 import io.scalecube.transport.Transport;
+import io.scalecube.transport.memoizer.Computable;
+import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
@@ -22,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,8 +32,6 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observable.ListenableFutureObservable;
@@ -48,6 +49,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,7 +60,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public final class ClusterMembership implements IClusterMembership {
-
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMembership.class);
 
   // qualifiers
@@ -68,11 +71,14 @@ public final class ClusterMembership implements IClusterMembership {
   private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER = new Func1<Message, Boolean>() {
     @Override
     public Boolean call(Message message) {
-      Object data = message.data();
-      return data != null && ClusterMembershipData.class.equals(data.getClass());
+      return message.data() != null && ClusterMembershipData.class.equals(message.data().getClass());
     }
   };
 
+  // Injected
+
+  private final String memberId;
+  private final ITransport transport;
   private IFailureDetector failureDetector;
   private IGossipProtocol gossipProtocol;
   private int syncTime = 10 * 1000;
@@ -81,64 +87,28 @@ public final class ClusterMembership implements IClusterMembership {
   private int maxShutdownTime = 60 * 1000;
   private String syncGroup = "default";
   private List<Address> seedMembers = new ArrayList<>();
-  private final ITransport transport;
-  private final String memberId;
-  private final Scheduler scheduler;
-  private volatile Subscription cmTask;
-  private TickingTimer timer;
-  private AtomicInteger periodNbr = new AtomicInteger();
-  private ClusterMembershipTable membership = new ClusterMembershipTable();
-  @SuppressWarnings("unchecked")
-  private Subject<ClusterMember, ClusterMember> subject = new SerializedSubject(PublishSubject.create());
   private Map<String, String> localMetadata = new HashMap<>();
 
-  /** Merges incoming SYNC data, merges it and sending back merged data with SYNC_ACK. */
-  private Subscriber<Message> onSyncSubscriber = Subscribers.create(new Action1<Message>() {
-    @Override
-    public void call(Message message) {
-      ClusterMembershipData data = message.data();
-      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.address(), data);
-      List<ClusterMember> updates = membership.merge(filteredData);
-      Address sender = message.sender();
-      if (!updates.isEmpty()) {
-        LOGGER.debug("Received Sync from {}, updates: {}", sender, updates);
-        processUpdates(updates, true/* spread gossip */);
-      } else {
-        LOGGER.debug("Received Sync from {}, no updates", sender);
-      }
-      String correlationId = message.correlationId();
-      ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
-      Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
-      transport.send(sender, syncAckMsg);
-    }
-  });
+  // State
 
-  /** Merges FD updates and processes them. */
-  private Subscriber<FailureDetectorEvent> onFdSubscriber = Subscribers.create(new Action1<FailureDetectorEvent>() {
-    @Override
-    public void call(FailureDetectorEvent input) {
-      List<ClusterMember> updates = membership.merge(input);
-      if (!updates.isEmpty()) {
-        LOGGER.debug("Received FD event {}, updates: {}", input, updates);
-        processUpdates(updates, true/* spread gossip */);
-      }
-    }
-  });
+  private AtomicInteger periodNbr = new AtomicInteger();
+  private ClusterMembershipTable membership = new ClusterMembershipTable();
 
-  /**
-   * Merges gossip's {@link ClusterMembershipData} (not spreading gossip further).
-   */
-  private Subscriber<ClusterMembershipData> onGossipSubscriber = Subscribers
-      .create(new Action1<ClusterMembershipData>() {
-        @Override
-        public void call(ClusterMembershipData data) {
-          List<ClusterMember> updates = membership.merge(data);
-          if (!updates.isEmpty()) {
-            LOGGER.debug("Received gossip, updates: {}", updates);
-            processUpdates(updates, false/* spread gossip */);
-          }
-        }
-      });
+  // Subscriptions
+
+  private Subscriber<Message> onSyncRequestSubscriber;
+  private Subscriber<FailureDetectorEvent> onFdEventSubscriber;
+  private Subscriber<ClusterMembershipData> onGossipRequestSubscriber;
+  private Subject<ClusterMember, ClusterMember> subject =
+      new SerializedSubject<>(PublishSubject.<ClusterMember>create());
+
+  // Scheduled
+
+  private final Scheduler scheduler;
+  private ScheduledFuture<?> executorTask;
+  private final ScheduledExecutorService executor;
+  private final Memoizer<String, ScheduledFuture<?>> suspectedMembersSchedule = new Memoizer<>();
+
   private Function<Message, Void> onSyncAckFunction = new Function<Message, Void>() {
     @Nullable
     @Override
@@ -151,7 +121,9 @@ public final class ClusterMembership implements IClusterMembership {
   ClusterMembership(String memberId, Transport transport) {
     this.memberId = memberId;
     this.transport = transport;
-    this.scheduler = Schedulers.from(transport.getWorkerGroup());
+    this.executor = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactoryBuilder().setNameFormat("sc-membership-%s").setDaemon(true).build());
+    this.scheduler = Schedulers.from(executor);
   }
 
   public void setFailureDetector(IFailureDetector failureDetector) {
@@ -242,27 +214,28 @@ public final class ClusterMembership implements IClusterMembership {
    * Starts running cluster membership protocol. After started it begins to receive and send cluster membership messages
    */
   public ListenableFuture<Void> start() {
-    // Start timer
-    timer = new TickingTimer();
-    timer.start();
-
     // Register itself initially before SYNC/SYNC_ACK
     ClusterMember localMember = new ClusterMember(memberId, transport.address(), TRUSTED, localMetadata);
     List<ClusterMember> updates = membership.merge(localMember);
     processUpdates(updates, false/* spread gossip */);
 
     // Listen to SYNC requests from joining/synchronizing members
+    onSyncRequestSubscriber = Subscribers.create(new OnSyncRequestSubscriber());
     transport.listen()
-        .filter(syncFilter())
+        .filter(SYNC_FILTER)
         .filter(syncGroupFilter(syncGroup))
-        .subscribe(onSyncSubscriber);
+        .subscribe(onSyncRequestSubscriber);
 
     // Listen to 'suspected/trusted' events from FailureDetector
-    failureDetector.listenStatus().subscribe(onFdSubscriber);
+    onFdEventSubscriber = Subscribers.create(new OnFdEventSubscriber());
+    failureDetector.listenStatus().subscribe(onFdEventSubscriber);
 
     // Listen to 'membership' message from GossipProtocol
-    gossipProtocol.listen().filter(GOSSIP_MEMBERSHIP_FILTER).map(gossipFilterData(transport.address()))
-        .subscribe(onGossipSubscriber);
+    onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction());
+    gossipProtocol.listen()
+        .filter(GOSSIP_MEMBERSHIP_FILTER)
+        .map(gossipFilterData(transport.address()))
+        .subscribe(onGossipRequestSubscriber);
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
     // of them
@@ -276,19 +249,7 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Schedule 'running phase': select randomly single seed address, send SYNC and get SYNC_ACK
     if (!seedMembers.isEmpty()) {
-      cmTask = scheduler.createWorker().schedulePeriodically(new Action0() {
-        @Override
-        public void call() {
-          try {
-            // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
-            List<Address> members = selectRandomMembers(seedMembers);
-            LOGGER.debug("Running phase: making Sync (selected_members={}))", members);
-            doSync(members, scheduler);
-          } catch (Exception e) {
-            LOGGER.error("Unhandled exception: {}", e, e);
-          }
-        }
-      }, syncTime, syncTime, TimeUnit.MILLISECONDS);
+      executorTask = executor.scheduleWithFixedDelay(new SyncTask(), syncTime, syncTime, TimeUnit.MILLISECONDS);
     }
     return startFuture;
   }
@@ -297,14 +258,29 @@ public final class ClusterMembership implements IClusterMembership {
    * Stops running cluster membership protocol and releases occupied resources.
    */
   public void stop() {
-    if (cmTask != null) {
-      cmTask.unsubscribe();
+    // stop accepting requests or events
+    if (onSyncRequestSubscriber != null) {
+      onSyncRequestSubscriber.unsubscribe();
     }
-    subject.onCompleted();
-    onGossipSubscriber.unsubscribe();
-    onSyncSubscriber.unsubscribe();
-    onFdSubscriber.unsubscribe();
-    timer.stop();
+    if (onFdEventSubscriber != null) {
+      onFdEventSubscriber.unsubscribe();
+    }
+    if (onGossipRequestSubscriber != null) {
+      onGossipRequestSubscriber.unsubscribe();
+    }
+    // cancel algorithm
+    if (executorTask != null) {
+      executorTask.cancel(true);
+    }
+    // cancel suspected members schedule
+    for (String memberId : suspectedMembersSchedule.keySet()) {
+      ScheduledFuture<?> future = suspectedMembersSchedule.remove(memberId);
+      if (future != null) {
+        future.cancel(true);
+      }
+    }
+    executor.shutdownNow(); // shutdown thread
+    subject.onCompleted(); // stop publishing
   }
 
   private ListenableFuture<Void> doInitialSync(final List<Address> seedMembers) {
@@ -391,7 +367,7 @@ public final class ClusterMembership implements IClusterMembership {
    * <li>iterates on {@code updates}, if {@code update} become {@code SHUTDOWN} -- schedules a timer (
    * {@link #maxShutdownTime}) to remove the member</li>
    * </ul>
-   * 
+   *
    * @param updates list of updates after merge
    * @param spreadGossip flag indicating should updates be gossiped to cluster
    */
@@ -420,23 +396,21 @@ public final class ClusterMembership implements IClusterMembership {
       switch (member.status()) {
         case SUSPECTED:
           failureDetector.suspect(member.address());
-          timer.schedule(member.id(), new Runnable() {
-            @Override
-            public void run() {
-              LOGGER.debug("Time to remove SUSPECTED member={} from membership", member.address());
-              processUpdates(membership.remove(member.id()), false/* spread gossip */);
-            }
-          }, maxSuspectTime, TimeUnit.MILLISECONDS);
+          // setup a schedule for suspected member
+          suspectedMembersSchedule.get(member.id(), new ComputableSuspectedMembersSchedule());
           break;
         case TRUSTED:
-          failureDetector.trust(member.address());
-          timer.cancel(member.id());
+          // clean schedule
+          ScheduledFuture<?> future = suspectedMembersSchedule.remove(member.id());
+          if (future == null || future.cancel(true)) {
+            failureDetector.trust(member.address());
+          }
           break;
         case SHUTDOWN:
-          timer.schedule(new Runnable() {
+          executor.schedule(new Runnable() {
             @Override
             public void run() {
-              LOGGER.debug("Time to remove SHUTDOWN member={} from membership", member.address());
+              LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
               membership.remove(member.id());
             }
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
@@ -463,11 +437,91 @@ public final class ClusterMembership implements IClusterMembership {
     return this.localMember().address().equals(member.address());
   }
 
-  private MessageHeaders.Filter syncFilter() {
-    return SYNC_FILTER;
-  }
-
   private MessageHeaders.Filter syncAckFilter(String correlationId) {
     return new MessageHeaders.Filter(SYNC_ACK, correlationId);
+  }
+
+  /**
+   * Merges incoming SYNC data, merges it and sending back merged data with SYNC_ACK.
+   */
+  private class OnSyncRequestSubscriber implements Action1<Message> {
+    @Override
+    public void call(Message message) {
+      ClusterMembershipData data = message.data();
+      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.address(), data);
+      List<ClusterMember> updates = membership.merge(filteredData);
+      Address sender = message.sender();
+      if (!updates.isEmpty()) {
+        LOGGER.debug("Received Sync from {}, updates: {}", sender, updates);
+        processUpdates(updates, true/* spread gossip */);
+      } else {
+        LOGGER.debug("Received Sync from {}, no updates", sender);
+      }
+      String correlationId = message.correlationId();
+      ClusterMembershipData syncAckData = new ClusterMembershipData(membership.asList(), syncGroup);
+      Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
+      transport.send(sender, syncAckMsg);
+    }
+  }
+
+  /**
+   * Merges FD updates and processes them.
+   */
+  private class OnFdEventSubscriber implements Action1<FailureDetectorEvent> {
+    @Override
+    public void call(FailureDetectorEvent fdEvent) {
+      List<ClusterMember> updates = membership.merge(fdEvent);
+      if (!updates.isEmpty()) {
+        LOGGER.debug("Received FD event {}, updates: {}", fdEvent, updates);
+        processUpdates(updates, true/* spread gossip */);
+      }
+    }
+  }
+
+  /**
+   * Merges gossip's {@link ClusterMembershipData} (not spreading gossip further).
+   */
+  private class OnGossipRequestAction implements Action1<ClusterMembershipData> {
+    @Override
+    public void call(ClusterMembershipData data) {
+      List<ClusterMember> updates = membership.merge(data);
+      if (!updates.isEmpty()) {
+        LOGGER.debug("Received gossip, updates: {}", updates);
+        processUpdates(updates, false/* spread gossip */);
+      }
+    }
+  }
+
+  private class SyncTask implements Runnable {
+    @Override
+    public void run() {
+      try {
+        // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
+        List<Address> members = selectRandomMembers(seedMembers);
+        LOGGER.debug("Running phase: making Sync (selected_members={}))", members);
+        doSync(members, scheduler);
+      } catch (Exception cause) {
+        LOGGER.error("Unhandled exception: {}", cause, cause);
+      }
+    }
+  }
+
+  private class ComputableSuspectedMembersSchedule implements Computable<String, ScheduledFuture<?>> {
+    @Override
+    public ScheduledFuture<?> compute(final String memberId) {
+      return executor.schedule(new Runnable() {
+        @Override
+        public void run() {
+          try {
+            LOGGER.debug("Time to remove SUSPECTED member(id={}) from membership table", memberId);
+            processUpdates(membership.remove(memberId), false/* spread gossip */);
+          } catch (Exception cause) {
+            LOGGER.error("Unhandled exception: {}", cause, cause);
+          } finally {
+            suspectedMembersSchedule.remove(memberId);
+          }
+        }
+      }, maxSuspectTime, TimeUnit.MILLISECONDS);
+    }
   }
 }
