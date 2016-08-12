@@ -142,8 +142,8 @@ public final class FailureDetector implements IFailureDetector {
         .filter(ORIGINAL_ISSUER_FILTER)
         .subscribe(onTransitAckRequestSubscriber);
 
-    executorTask = executor.scheduleWithFixedDelay(new FailureDetectorProtocolRunnable(), 0, config.getPingTime(),
-        TimeUnit.MILLISECONDS);
+    int pingTime = config.getPingTime();
+    executorTask = executor.scheduleWithFixedDelay(new PingTask(), pingTime, pingTime, TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -383,7 +383,7 @@ public final class FailureDetector implements IFailureDetector {
     }
   }
 
-  private class FailureDetectorProtocolRunnable implements Runnable {
+  private class PingTask implements Runnable {
     @Override
     public void run() {
       try {

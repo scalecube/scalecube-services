@@ -117,8 +117,9 @@ public final class GossipProtocol implements IGossipProtocol {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
     transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
 
-    executorTask = executor.scheduleWithFixedDelay(new GossipProtocolRunnable(), config.getGossipTime(),
-        config.getGossipTime(), TimeUnit.MILLISECONDS);
+    int gossipTime = config.getGossipTime();
+    executorTask =
+        executor.scheduleWithFixedDelay(new GossipProtocolRunnable(), gossipTime, gossipTime, TimeUnit.MILLISECONDS);
   }
 
   @Override

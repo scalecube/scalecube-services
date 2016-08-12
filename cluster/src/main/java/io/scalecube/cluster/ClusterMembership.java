@@ -71,7 +71,7 @@ public final class ClusterMembership implements IClusterMembership {
   private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER = new Func1<Message, Boolean>() {
     @Override
     public Boolean call(Message message) {
-      return message.data() != null && ClusterMembershipData.class.isAssignableFrom(message.data().getClass());
+      return message.data() != null && ClusterMembershipData.class.equals(message.data().getClass());
     }
   };
 
@@ -107,7 +107,6 @@ public final class ClusterMembership implements IClusterMembership {
   private final Scheduler scheduler;
   private ScheduledFuture<?> executorTask;
   private final ScheduledExecutorService executor;
-  private final ScheduledExecutorService suspectedMembersTimer;
   private final Memoizer<String, ScheduledFuture<?>> suspectedMembersSchedule = new Memoizer<>();
 
   private Function<Message, Void> onSyncAckFunction = new Function<Message, Void>() {
@@ -124,8 +123,6 @@ public final class ClusterMembership implements IClusterMembership {
     this.transport = transport;
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat("sc-membership-%s").setDaemon(true).build());
-    this.suspectedMembersTimer = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactoryBuilder().setNameFormat("sc-membership-suspectedtimer-%s").setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);
   }
 
@@ -252,8 +249,7 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Schedule 'running phase': select randomly single seed address, send SYNC and get SYNC_ACK
     if (!seedMembers.isEmpty()) {
-      executorTask =
-          executor.scheduleWithFixedDelay(new MembershipProtocolRunnable(), syncTime, syncTime, TimeUnit.MILLISECONDS);
+      executorTask = executor.scheduleWithFixedDelay(new SyncTask(), syncTime, syncTime, TimeUnit.MILLISECONDS);
     }
     return startFuture;
   }
@@ -283,7 +279,6 @@ public final class ClusterMembership implements IClusterMembership {
         future.cancel(true);
       }
     }
-    suspectedMembersTimer.shutdownNow(); // stop suspected timer
     executor.shutdownNow(); // shutdown thread
     subject.onCompleted(); // stop publishing
   }
@@ -399,23 +394,20 @@ public final class ClusterMembership implements IClusterMembership {
     for (final ClusterMember member : updates) {
       LOGGER.debug("Member {} became {}", member.address(), member.status());
       switch (member.status()) {
-        case SUSPECTED: {
+        case SUSPECTED:
           failureDetector.suspect(member.address());
           // setup a schedule for suspected member
           suspectedMembersSchedule.get(member.id(), new ComputableSuspectedMembersSchedule());
           break;
-        }
-        case TRUSTED: {
-          failureDetector.trust(member.address());
+        case TRUSTED:
           // clean schedule
           ScheduledFuture<?> future = suspectedMembersSchedule.remove(member.id());
-          if (future != null) {
-            future.cancel(true);
+          if (future == null || future.cancel(true)) {
+            failureDetector.trust(member.address());
           }
           break;
-        }
-        case SHUTDOWN: {
-          suspectedMembersTimer.schedule(new Runnable() {
+        case SHUTDOWN:
+          executor.schedule(new Runnable() {
             @Override
             public void run() {
               LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
@@ -423,7 +415,6 @@ public final class ClusterMembership implements IClusterMembership {
             }
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
           break;
-        }
         default:
           // ignore
       }
@@ -501,7 +492,7 @@ public final class ClusterMembership implements IClusterMembership {
     }
   }
 
-  private class MembershipProtocolRunnable implements Runnable {
+  private class SyncTask implements Runnable {
     @Override
     public void run() {
       try {
@@ -518,7 +509,7 @@ public final class ClusterMembership implements IClusterMembership {
   private class ComputableSuspectedMembersSchedule implements Computable<String, ScheduledFuture<?>> {
     @Override
     public ScheduledFuture<?> compute(final String memberId) {
-      return suspectedMembersTimer.schedule(new Runnable() {
+      return executor.schedule(new Runnable() {
         @Override
         public void run() {
           try {
