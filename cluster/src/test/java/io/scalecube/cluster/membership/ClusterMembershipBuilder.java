@@ -11,39 +11,34 @@ import io.scalecube.cluster.ClusterMemberStatus;
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
-import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.SettableFuture;
 
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class ClusterMembershipBuilder {
-  final Transport transport;
   final ClusterMembership membership;
   final GossipProtocol gossipProtocol;
   final FailureDetector failureDetector;
 
   private ClusterMembershipBuilder(Transport transport, List<Address> members) {
-    this.transport = transport;
-
-    String memberId = UUID.randomUUID().toString();
-
+    // Generate member id
+    String memberId = "TestMember-localhost:" + transport.address().port();
+    // Create failure detector
     FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
         .pingTime(200)
         .pingTimeout(100)
         .pingReqMembers(2)
         .build();
     failureDetector = new FailureDetector(transport, fdConfig);
-
+    // Create gossip protocol
     gossipProtocol = new GossipProtocol(memberId, transport);
-
+    // Create membership protocol
     MembershipConfig membershipConfig = MembershipConfig.builder()
         .syncTime(1000)
         .syncTimeout(200)
@@ -59,7 +54,7 @@ public class ClusterMembershipBuilder {
     return new ClusterMembershipBuilder(transport, members);
   }
 
-  ClusterMembershipBuilder init() {
+  ClusterMembershipBuilder start() {
     try {
       failureDetector.start();
       gossipProtocol.start();
@@ -70,21 +65,10 @@ public class ClusterMembershipBuilder {
     return this;
   }
 
-  void destroy() {
+  void stop() {
     membership.stop();
     gossipProtocol.stop();
     failureDetector.stop();
-    destroyTransport(transport);
-  }
-
-  private void destroyTransport(ITransport tf) {
-    SettableFuture<Void> close = SettableFuture.create();
-    tf.stop(close);
-    try {
-      close.get(1, TimeUnit.SECONDS);
-    } catch (Exception ignore) {
-      // ignore
-    }
   }
 
   public ClusterMembershipBuilder assertTrusted(Address... members) {

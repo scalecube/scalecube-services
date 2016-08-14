@@ -7,8 +7,6 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.scalecube.transport.TransportConfig;
-
 public class ClusterIT {
 
   @Test
@@ -30,9 +28,9 @@ public class ClusterIT {
     System.out.println("Cluster nodes: " + seedNode.membership().members());
 
     // Shutdown all nodes
-    seedNode.leave().get();
+    seedNode.shutdown().get();
     for (ICluster node : otherNodes) {
-      node.leave().get();
+      node.shutdown().get();
     }
   }
 }

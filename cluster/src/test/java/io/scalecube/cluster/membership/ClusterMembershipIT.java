@@ -6,6 +6,7 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Test;
 
@@ -23,9 +24,9 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
 
     try {
       awaitSeconds(3);
@@ -34,9 +35,10 @@ public class ClusterMembershipIT {
       cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
       cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
     } finally {
-      cm_a.destroy();
-      cm_b.destroy();
-      cm_c.destroy();
+      cm_a.stop();
+      cm_b.stop();
+      cm_c.stop();
+      destroyTransports(a, b, c);
     }
   }
 
@@ -47,9 +49,9 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
 
     // Block traffic
     a.block(members);
@@ -73,9 +75,10 @@ public class ClusterMembershipIT {
       cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
       cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
     } finally {
-      cm_a.destroy();
-      cm_b.destroy();
-      cm_c.destroy();
+      cm_a.stop();
+      cm_b.stop();
+      cm_c.stop();
+      destroyTransports(a, b, c);
     }
   }
 
@@ -86,9 +89,9 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
 
     try {
       awaitSeconds(3);
@@ -117,9 +120,10 @@ public class ClusterMembershipIT {
       cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
       cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
     } finally {
-      cm_a.destroy();
-      cm_b.destroy();
-      cm_c.destroy();
+      cm_a.stop();
+      cm_b.stop();
+      cm_c.stop();
+      destroyTransports(a, b, c);
     }
   }
 
@@ -131,10 +135,10 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
+    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).start();
 
     try {
       awaitSeconds(3);
@@ -163,10 +167,11 @@ public class ClusterMembershipIT {
       cm_c.assertTrusted(c.address(), d.address()).assertNoSuspected();
       cm_d.assertTrusted(c.address(), d.address()).assertNoSuspected();
     } finally {
-      cm_a.destroy();
-      cm_b.destroy();
-      cm_c.destroy();
-      cm_d.destroy();
+      cm_a.stop();
+      cm_b.stop();
+      cm_c.stop();
+      cm_d.stop();
+      destroyTransports(a, b, c, d);
     }
   }
 
@@ -178,10 +183,10 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
+    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).start();
 
     ClusterMembershipBuilder cm_restartedC = null;
     ClusterMembershipBuilder cm_restartedD = null;
@@ -194,8 +199,8 @@ public class ClusterMembershipIT {
       cm_c.assertTrusted(a.address(), b.address(), c.address(), d.address());
       cm_d.assertTrusted(a.address(), b.address(), c.address(), d.address());
 
-      cm_c.destroy();
-      cm_d.destroy();
+      cm_c.stop();
+      cm_d.stop();
 
       awaitSeconds(3);
 
@@ -207,8 +212,8 @@ public class ClusterMembershipIT {
       cm_a.assertTrusted(a.address(), b.address()).assertNoSuspected();
       cm_b.assertTrusted(a.address(), b.address()).assertNoSuspected();
 
-      cm_restartedC = ClusterMembershipBuilder.CMBuilder(c, Arrays.asList(a.address(), b.address())).init();
-      cm_restartedD = ClusterMembershipBuilder.CMBuilder(d, Arrays.asList(a.address(), b.address())).init();
+      cm_restartedC = ClusterMembershipBuilder.CMBuilder(c, Arrays.asList(a.address(), b.address())).start();
+      cm_restartedD = ClusterMembershipBuilder.CMBuilder(d, Arrays.asList(a.address(), b.address())).start();
 
       awaitSeconds(3);
 
@@ -217,10 +222,11 @@ public class ClusterMembershipIT {
       cm_a.assertTrusted(a.address(), b.address(), c.address(), d.address()).assertNoSuspected();
       cm_b.assertTrusted(a.address(), b.address(), c.address(), d.address()).assertNoSuspected();
     } finally {
-      cm_a.destroy();
-      cm_b.destroy();
-      cm_restartedC.destroy();
-      cm_restartedD.destroy();
+      cm_a.stop();
+      cm_b.stop();
+      cm_restartedC.stop();
+      cm_restartedD.stop();
+      destroyTransports(a, b, c, d);
     }
   }
 
@@ -232,11 +238,11 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     Transport e = Transport.bindAwait(true);
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, Collections.<Address>emptyList()).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, Collections.singletonList(a.address())).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, Collections.singletonList(a.address())).init();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, Collections.singletonList(b.address())).init();
-    ClusterMembershipBuilder cm_e = ClusterMembershipBuilder.CMBuilder(e, Collections.singletonList(b.address())).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, Collections.<Address>emptyList()).start();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, Collections.singletonList(a.address())).start();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, Collections.singletonList(a.address())).start();
+    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, Collections.singletonList(b.address())).start();
+    ClusterMembershipBuilder cm_e = ClusterMembershipBuilder.CMBuilder(e, Collections.singletonList(b.address())).start();
 
     try {
       awaitSeconds(3);
@@ -247,11 +253,12 @@ public class ClusterMembershipIT {
       cm_d.assertTrusted(a.address(), b.address(), c.address(), d.address(), e.address()).assertNoSuspected();
       cm_e.assertTrusted(a.address(), b.address(), c.address(), d.address(), e.address()).assertNoSuspected();
     } finally {
-      cm_a.destroy();
-      cm_b.destroy();
-      cm_c.destroy();
-      cm_d.destroy();
-      cm_e.destroy();
+      cm_a.stop();
+      cm_b.stop();
+      cm_c.stop();
+      cm_d.stop();
+      cm_e.stop();
+      destroyTransports(a, b, c, d, e);
     }
   }
 
@@ -260,6 +267,24 @@ public class ClusterMembershipIT {
       TimeUnit.SECONDS.sleep(seconds);
     } catch (InterruptedException e) {
       propagate(e);
+    }
+  }
+
+  private void destroyTransports(Transport... transports) {
+    for (Transport transport : transports) {
+      destroyTransport(transport);
+    }
+  }
+
+  private void destroyTransport(Transport transport) {
+    if (transport != null && !transport.isStopped()) {
+      SettableFuture<Void> close = SettableFuture.create();
+      transport.stop(close);
+      try {
+        close.get(1, TimeUnit.SECONDS);
+      } catch (Exception ignore) {
+        // ignore
+      }
     }
   }
 }

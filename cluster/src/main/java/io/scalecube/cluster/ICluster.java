@@ -35,6 +35,11 @@ public interface ICluster {
 
   IClusterMembership membership();
 
-  ListenableFuture<Void> leave();
+  /**
+   * Member notifies other members of the cluster about leaving and gracefully shutdown and free occupied resources.
+   *
+   * @return Listenable future which is completed once graceful shutdown is finished.
+   */
+  ListenableFuture<Void> shutdown();
 
 }

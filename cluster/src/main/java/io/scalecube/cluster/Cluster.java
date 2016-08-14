@@ -163,7 +163,7 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public ListenableFuture<Void> leave() {
+  public ListenableFuture<Void> shutdown() {
     LOGGER.info("Cluster instance '{}' leaving cluster", memberId);
 
     // Notify cluster members about graceful shutdown of current member
