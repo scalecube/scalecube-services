@@ -12,6 +12,8 @@ public final class TransportConfig {
 
   public static final TransportConfig DEFAULT = builder().build();
 
+  public static final String DEFAULT_LISTEN_ADDRESS = null;
+  public static final String DEFAULT_LISTEN_INTERFACE = null; // Default listen settings fallback to getLocalHost
   public static final boolean DEFAULT_PREFER_IP6 = false;
   public static final int DEFAULT_PORT = 4801;
   public static final int DEFAULT_PORT_COUNT = 100;
@@ -122,8 +124,8 @@ public final class TransportConfig {
 
   public static final class Builder {
 
-    private String listenAddress = null; // no default value set
-    private String listenInterface = null; // no default value set
+    private String listenAddress = DEFAULT_LISTEN_ADDRESS;
+    private String listenInterface = DEFAULT_LISTEN_INTERFACE;
     private boolean preferIPv6 = DEFAULT_PREFER_IP6;
     private int port = DEFAULT_PORT;
     private int portCount = DEFAULT_PORT_COUNT;

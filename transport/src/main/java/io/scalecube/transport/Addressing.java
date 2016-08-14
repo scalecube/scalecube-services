@@ -22,7 +22,7 @@ import java.util.NoSuchElementException;
  * @author Anton Kharenko
  * @author Artem Vysochyn
  */
-class Addressing {
+final class Addressing {
 
   /**
    * The minimum server port number. Set at 1100 to avoid returning privileged port numbers.
@@ -38,17 +38,19 @@ class Addressing {
   private Addressing() {}
 
   /**
-   * Finds next available port starting from given port and incrementing port for port count iterations.
+   * Finds next available port on given local IP address starting from given port and incrementing port for port count
+   * iterations.
    *
+   * @param inetAddress local IP address on which check for port availability
    * @param fromPort starting port
    * @param portCount number of ports to check
    * @return Next available port
    * @throws NoSuchElementException if port wasn't found in the given interval
    */
-  static int getNextAvailable(int fromPort, int portCount) {
+  static int getNextAvailablePort(InetAddress inetAddress, int fromPort, int portCount) {
     int toPort = Math.min(MAX_PORT_NUMBER, fromPort + portCount) - 1;
     for (int port = fromPort; port <= toPort; port++) {
-      if (isAvailable(port)) {
+      if (isAvailablePort(inetAddress, port)) {
         return port;
       }
     }
@@ -60,14 +62,14 @@ class Addressing {
    *
    * @param port the port to check for availability
    */
-  static boolean isAvailable(int port) {
+  static boolean isAvailablePort(InetAddress inetAddress, int port) {
     if (port < MIN_PORT_NUMBER || port > MAX_PORT_NUMBER) {
       throw new IllegalArgumentException("Invalid port number: " + port);
     }
 
     Socket socket = null;
     try {
-      socket = new Socket(getLocalIpAddress(), port);
+      socket = new Socket(inetAddress, port);
 
       // If the code makes it this far without an exception it means
       // something is using the port and has responded.

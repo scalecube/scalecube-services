@@ -130,13 +130,16 @@ public final class Transport implements ITransport {
   private ListenableFuture<Transport> bind0() {
     incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
-    // Resolve bind port
-    int bindPort = config.isPortAutoIncrement()
-        ? Addressing.getNextAvailable(config.getPort(), config.getPortCount()) // Find available port
-        : config.getPort();
-
+    // Resolve listen IP address
     final InetAddress listenAddress =
         Addressing.getLocalIpAddress(config.getListenAddress(), config.getListenInterface(), config.isPreferIPv6());
+
+    // Resolve listen port
+    int bindPort = config.isPortAutoIncrement()
+        ? Addressing.getNextAvailablePort(listenAddress, config.getPort(), config.getPortCount()) // Find available port
+        : config.getPort();
+
+    // Listen address
     address = Address.create(listenAddress.getHostAddress(), bindPort);
 
     ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
