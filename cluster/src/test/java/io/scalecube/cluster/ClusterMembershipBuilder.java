@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
+import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
@@ -19,7 +20,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +30,7 @@ public class ClusterMembershipBuilder {
   final GossipProtocol gossipProtocol;
   final FailureDetector failureDetector;
 
-  private ClusterMembershipBuilder(Address localAddress, List<Address> members) {
+  private ClusterMembershipBuilder(Address localAddress, List<Address> members, int maxSuspectTime) {
     TransportConfig transportConfig = TransportConfig.builder()
         .useNetworkEmulator(true)
         .portAutoIncrement(false)
@@ -40,32 +40,32 @@ public class ClusterMembershipBuilder {
 
     String memberId = UUID.randomUUID().toString();
 
-    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder().pingTime(100).pingTimeout(100).build();
+    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
+        .pingTime(200)
+        .pingTimeout(100)
+        .pingReqMembers(2)
+        .build();
     failureDetector = new FailureDetector(transport, fdConfig);
 
     gossipProtocol = new GossipProtocol(memberId, transport);
 
-
-    membership = new ClusterMembership(memberId, transport);
+    MembershipConfig membershipConfig = MembershipConfig.builder()
+        .syncTime(1000)
+        .syncTimeout(200)
+        .maxSuspectTime(maxSuspectTime)
+        .build();
+    membership = new ClusterMembership(memberId, transport, membershipConfig);
     membership.setFailureDetector(failureDetector);
     membership.setGossipProtocol(gossipProtocol);
-    membership.setLocalMetadata(new HashMap<String, String>() {
-      {
-        put("key", "val");
-      }
-    });
     membership.setSeedMembers(members);
-    membership.setSyncTime(1000);
-    membership.setSyncTimeout(100);
   }
 
   public static ClusterMembershipBuilder CMBuilder(Address localAddress, List<Address> members) {
-    return new ClusterMembershipBuilder(localAddress, members);
+    return new ClusterMembershipBuilder(localAddress, members, MembershipConfig.DEFAULT_MAX_SUSPECT_TIME);
   }
 
-  public ClusterMembershipBuilder maxSuspectTime(int maxSuspectTime) {
-    membership.setMaxSuspectTime(maxSuspectTime);
-    return this;
+  public static ClusterMembershipBuilder CMBuilder(Address localAddress, List<Address> members, int maxSuspectTime) {
+    return new ClusterMembershipBuilder(localAddress, members, maxSuspectTime);
   }
 
   public ClusterMembershipBuilder block(Address dest) {

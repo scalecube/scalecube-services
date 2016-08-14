@@ -104,16 +104,12 @@ public final class Cluster implements ICluster {
         failureDetector = new FailureDetector(transport, config.failureDetectorConfig);
 
         // Init cluster membership component
-        clusterMembership = new ClusterMembership(memberId, transport);
+        clusterMembership = new ClusterMembership(memberId, transport, config.membershipConfig);
         clusterMembership.setFailureDetector(failureDetector);
         clusterMembership.setGossipProtocol(gossipProtocol);
+
         clusterMembership.setLocalMetadata(config.metadata);
         clusterMembership.setSeedMembers(config.seedMembers);
-        clusterMembership.setSyncTime(config.membershipConfig.getSyncTime());
-        clusterMembership.setSyncTimeout(config.membershipConfig.getSyncTimeout());
-        clusterMembership.setSyncGroup(config.membershipConfig.getSyncGroup());
-        clusterMembership.setMaxSuspectTime(config.membershipConfig.getMaxSuspectTime());
-        clusterMembership.setMaxShutdownTime(config.membershipConfig.getMaxShutdownTime());
 
         // Start components
         failureDetector.start();

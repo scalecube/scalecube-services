@@ -126,10 +126,10 @@ public class ClusterMembershipIT {
     Address d = Address.from("localhost:20126");
     List<Address> members = ImmutableList.of(a, b, c, d);
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).maxSuspectTime(3000).init();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).maxSuspectTime(3000).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members, 3000).init();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members, 3000).init();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members, 3000).init();
+    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members, 3000).init();
 
     try {
       pause(3);
@@ -174,8 +174,8 @@ public class ClusterMembershipIT {
     Address d = Address.from("localhost:20126");
     List<Address> members = ImmutableList.of(a, b, c, d);
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).maxSuspectTime(3000).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).maxSuspectTime(3000).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members, 3000).init();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members, 3000).init();
     ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
     ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).init();
 
