@@ -3,6 +3,7 @@ package io.scalecube.examples;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.membership.MembershipConfig;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -34,8 +35,7 @@ public class ClusterJoinExamples {
     ICluster clusterNode3 = Cluster.joinAwait(config);
 
     // Start cluster member in separate cluster (separate sync group)
-    ClusterConfig.MembershipConfig membershipConfig = new ClusterConfig.MembershipConfig();
-    membershipConfig.setSyncGroup("cluster-B");
+    MembershipConfig membershipConfig = MembershipConfig.builder().syncGroup("cluster-B").build();
     ClusterConfig config2 = ClusterConfig.newInstance().seedMembers(seedMember).membershipConfig(membershipConfig);
     ICluster anotherClusterNode = Cluster.joinAwait(config2);
 
