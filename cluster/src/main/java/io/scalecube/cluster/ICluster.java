@@ -1,6 +1,6 @@
 package io.scalecube.cluster;
 
-import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -9,11 +9,16 @@ import com.google.common.util.concurrent.SettableFuture;
 import rx.Observable;
 
 /**
- * Basic cluster interface which allows to join cluster, send message to other member, listen messages, gossip messages.
+ * Facade cluster interface which provides API to interact with cluster members.
  * 
  * @author Anton Kharenko
  */
 public interface ICluster {
+
+  /**
+   * Returns local listen {@link Address} of this cluster instance.
+   */
+  Address localAddress();
 
   void send(ClusterMember member, Message message);
 

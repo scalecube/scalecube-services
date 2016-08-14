@@ -22,8 +22,9 @@ public class MessagingExample {
    * Main method.
    */
   public static void main(String[] args) throws Exception {
-    // Start cluster node that listen on port 3000
-    final ICluster clusterA = Cluster.joinAwait(3000);
+    // Start cluster node A
+    final ICluster clusterA = Cluster.joinAwait();
+    String seedAddress = clusterA.localAddress().toString();
 
     // Listen to greetings messages and respond to them
     clusterA.listen().filter(Greetings.MSG_FILTER).subscribe(new Action1<Message>() {
@@ -40,8 +41,8 @@ public class MessagingExample {
     });
 
 
-    // Start cluster node that listen on port 3001 and point to node A as seed node
-    ICluster clusterB = Cluster.joinAwait(3001, "localhost:3000");
+    // Start cluster node B that joins node A as a seed node
+    ICluster clusterB = Cluster.joinAwait(seedAddress);
 
     // Listen for incoming greeting messages
     clusterB.listen().filter(Greetings.MSG_FILTER).subscribe(new Action1<Message>() {

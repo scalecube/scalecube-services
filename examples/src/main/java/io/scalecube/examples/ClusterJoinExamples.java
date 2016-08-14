@@ -23,9 +23,7 @@ public class ClusterJoinExamples {
     ICluster clusterNode1 = Cluster.joinAwait();
 
     // Define seed member address
-    int port = clusterNode1.membership().localMember().address().port();
-    String host = clusterNode1.membership().localMember().address().host();
-    String seedMember = host + ":" + port;
+    String seedMember = clusterNode1.localAddress().toString();
 
     // Join member to cluster
     ICluster clusterNode2 = Cluster.joinAwait(seedMember);

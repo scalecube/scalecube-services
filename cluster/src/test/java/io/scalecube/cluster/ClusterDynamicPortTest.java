@@ -7,12 +7,14 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.scalecube.transport.TransportConfig;
+
 public class ClusterDynamicPortTest {
 
   @Test
   public void testJoin() throws Exception {
     ICluster seedNode = Cluster.joinAwait();
-    String seedNodeAddress = "localhost:" + ClusterConfig.DEFAULT_PORT;
+    String seedNodeAddress = seedNode.localAddress().toString();
 
     long start = System.currentTimeMillis();
     List<ICluster> otherNodes = new ArrayList<>();

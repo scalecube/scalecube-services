@@ -19,8 +19,8 @@ public class GossipExample {
    * Main method.
    */
   public static void main(String[] args) {
-    // start cluster node that listen on port 3000
-    ICluster clusterA = Cluster.joinAwait(3000);
+    // Start cluster node A
+    ICluster clusterA = Cluster.joinAwait();
     clusterA.listenGossips().subscribe(new Action1<Message>() {
       @Override
       public void call(Message gossip) {
@@ -28,8 +28,9 @@ public class GossipExample {
       }
     });
 
-    // start cluster node that listen on port 3001 and point to node A as seed node
-    ICluster clusterB = Cluster.joinAwait(3001, "localhost:3000");
+    // Start cluster node B that joins node A as seed node
+    String seedMember = clusterA.localAddress().toString();
+    ICluster clusterB = Cluster.joinAwait(seedMember);
     clusterB.spreadGossip(Message.fromData(new Greetings("Greetings from ClusterMember B")));
   }
 }

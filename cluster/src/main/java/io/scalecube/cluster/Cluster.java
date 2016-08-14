@@ -6,6 +6,7 @@ import static com.google.common.util.concurrent.Futures.transform;
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
@@ -60,16 +61,8 @@ public final class Cluster implements ICluster {
     return joinAwait(ClusterConfig.newInstance());
   }
 
-  public static ICluster joinAwait(int port) {
-    return joinAwait(ClusterConfig.newInstance().port(port));
-  }
-
   public static ICluster joinAwait(String seedMembers) {
     return joinAwait(ClusterConfig.newInstance().seedMembers(seedMembers));
-  }
-
-  public static ICluster joinAwait(int port, String seedMembers) {
-    return joinAwait(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
   }
 
   /**
@@ -85,14 +78,6 @@ public final class Cluster implements ICluster {
 
   public static ListenableFuture<ICluster> join() {
     return join(ClusterConfig.newInstance());
-  }
-
-  public static ListenableFuture<ICluster> join(int port) {
-    return join(ClusterConfig.newInstance().port(port));
-  }
-
-  public static ListenableFuture<ICluster> join(int port, String seedMembers) {
-    return join(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
   }
 
   public static ListenableFuture<ICluster> join(String seedMembers) {
@@ -130,7 +115,7 @@ public final class Cluster implements ICluster {
         clusterMembership.setMaxSuspectTime(config.membershipConfig.getMaxSuspectTime());
         clusterMembership.setMaxShutdownTime(config.membershipConfig.getMaxShutdownTime());
 
-        // Starte components
+        // Start components
         failureDetector.start();
         gossipProtocol.start();
         return clusterMembership.start();
@@ -143,6 +128,11 @@ public final class Cluster implements ICluster {
         return Cluster.this;
       }
     });
+  }
+
+  @Override
+  public Address localAddress() {
+    return transport.address();
   }
 
   @Override

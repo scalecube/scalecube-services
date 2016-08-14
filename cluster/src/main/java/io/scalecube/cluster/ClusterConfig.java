@@ -18,15 +18,9 @@ import java.util.Map;
  */
 public class ClusterConfig {
 
-  public static final int DEFAULT_PORT = 4801;
-  public static final int DEFAULT_PORT_COUNT = 100;
-  public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
   public static final MembershipConfig DEFAULT_MEMBERSHIP_CONFIG = new MembershipConfig();
 
   String seedMembers = "";
-  int port = DEFAULT_PORT;
-  int portCount = DEFAULT_PORT_COUNT;
-  boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
   Map<String, String> metadata = new HashMap<>();
   TransportConfig transportConfig = TransportConfig.DEFAULT;
   MembershipConfig membershipConfig = DEFAULT_MEMBERSHIP_CONFIG;
@@ -41,18 +35,6 @@ public class ClusterConfig {
 
   public void setSeedMembers(String seedMembers) {
     this.seedMembers = seedMembers;
-  }
-
-  public void setPort(int port) {
-    this.port = port;
-  }
-
-  public void setPortCount(int portCount) {
-    this.portCount = portCount;
-  }
-
-  public void setPortAutoIncrement(boolean portAutoIncrement) {
-    this.portAutoIncrement = portAutoIncrement;
   }
 
   public void setMetadata(Map<String, String> metadata) {
@@ -85,21 +67,6 @@ public class ClusterConfig {
     return this;
   }
 
-  public ClusterConfig port(int port) {
-    setPort(port);
-    return this;
-  }
-
-  public ClusterConfig portCount(int portCount) {
-    setPortCount(portCount);
-    return this;
-  }
-
-  public ClusterConfig portAutoIncrement(boolean portAutoIncrement) {
-    setPortAutoIncrement(portAutoIncrement);
-    return this;
-  }
-
   public ClusterConfig membershipConfig(MembershipConfig membershipConfig) {
     setMembershipConfig(membershipConfig);
     return this;
@@ -123,9 +90,6 @@ public class ClusterConfig {
   @Override
   public String toString() {
     return "ClusterConfig{seedMembers='" + seedMembers + '\''
-        + ", port=" + port
-        + ", portCount=" + portCount
-        + ", portAutoIncrement=" + portAutoIncrement
         + ", metadata=" + metadata
         + ", transportConfig=" + transportConfig
         + ", membershipConfig=" + membershipConfig
