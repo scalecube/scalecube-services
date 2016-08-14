@@ -9,24 +9,27 @@ import java.util.List;
 
 import io.scalecube.transport.TransportConfig;
 
-public class ClusterDynamicPortTest {
+public class ClusterIT {
 
   @Test
-  public void testJoin() throws Exception {
+  public void testJoinDynamicPort() throws Exception {
+    // Start seed node
     ICluster seedNode = Cluster.joinAwait();
     String seedNodeAddress = seedNode.localAddress().toString();
 
+    // Start other nodes
+    int membersNum = 10;
     long start = System.currentTimeMillis();
     List<ICluster> otherNodes = new ArrayList<>();
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < membersNum; i++) {
       otherNodes.add(Cluster.joinAwait(seedNodeAddress));
     }
     long end = System.currentTimeMillis();
     System.out.println("Time: " + (end - start) + " millis");
-    assertEquals(11, seedNode.membership().members().size());
+    assertEquals(membersNum + 1, seedNode.membership().members().size());
     System.out.println("Cluster nodes: " + seedNode.membership().members());
 
-    // Destroy all nodes
+    // Shutdown all nodes
     seedNode.leave().get();
     for (ICluster node : otherNodes) {
       node.leave().get();

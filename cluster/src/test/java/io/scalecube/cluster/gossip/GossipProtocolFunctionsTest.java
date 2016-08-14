@@ -16,7 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
-public class GossipProtocolFunctionTest {
+public class GossipProtocolFunctionsTest {
 
   private Address remote;
   private Address local;

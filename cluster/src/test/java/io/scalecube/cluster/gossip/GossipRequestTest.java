@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GossipServiceRequestSchemaTest {
+public class GossipRequestTest {
 
   private static final String testDataQualifier = "scalecube/testData";
 
@@ -36,7 +36,7 @@ public class GossipServiceRequestSchemaTest {
   }
 
   @Test
-  public void testProtostuff() throws Exception {
+  public void testSerializationAndDeserialization() throws Exception {
 
     List<Gossip> gossips = getGossips();
 

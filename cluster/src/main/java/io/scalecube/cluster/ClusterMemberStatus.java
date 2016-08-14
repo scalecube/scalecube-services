@@ -1,5 +1,7 @@
 package io.scalecube.cluster;
 
+import io.scalecube.cluster.membership.IClusterMembership;
+
 public enum ClusterMemberStatus {
   /** Member passed direct or indirect heartbeat. */
   TRUSTED,

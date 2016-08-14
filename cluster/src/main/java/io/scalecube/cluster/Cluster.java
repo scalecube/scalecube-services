@@ -5,7 +5,8 @@ import static com.google.common.util.concurrent.Futures.transform;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
-import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.cluster.membership.ClusterMembership;
+import io.scalecube.cluster.membership.IClusterMembership;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;

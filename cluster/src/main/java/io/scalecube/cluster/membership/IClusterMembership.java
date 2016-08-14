@@ -1,5 +1,6 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
+import io.scalecube.cluster.ClusterMember;
 import io.scalecube.transport.Address;
 
 import rx.Observable;

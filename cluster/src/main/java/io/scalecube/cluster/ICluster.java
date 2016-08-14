@@ -1,5 +1,6 @@
 package io.scalecube.cluster;
 
+import io.scalecube.cluster.membership.IClusterMembership;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 

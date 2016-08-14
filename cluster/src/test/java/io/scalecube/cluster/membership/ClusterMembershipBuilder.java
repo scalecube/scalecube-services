@@ -1,4 +1,4 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Collections2.transform;
@@ -6,14 +6,14 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.ClusterMember;
+import io.scalecube.cluster.ClusterMemberStatus;
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
-import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.TransportConfig;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -30,7 +30,7 @@ public class ClusterMembershipBuilder {
   final GossipProtocol gossipProtocol;
   final FailureDetector failureDetector;
 
-  private ClusterMembershipBuilder(Transport transport, List<Address> members, int maxSuspectTime) {
+  private ClusterMembershipBuilder(Transport transport, List<Address> members) {
     this.transport = transport;
 
     String memberId = UUID.randomUUID().toString();
@@ -47,7 +47,7 @@ public class ClusterMembershipBuilder {
     MembershipConfig membershipConfig = MembershipConfig.builder()
         .syncTime(1000)
         .syncTimeout(200)
-        .maxSuspectTime(maxSuspectTime)
+        .maxSuspectTime(5000)
         .build();
     membership = new ClusterMembership(memberId, transport, membershipConfig);
     membership.setFailureDetector(failureDetector);
@@ -56,21 +56,7 @@ public class ClusterMembershipBuilder {
   }
 
   public static ClusterMembershipBuilder CMBuilder(Transport transport, List<Address> members) {
-    return new ClusterMembershipBuilder(transport, members, MembershipConfig.DEFAULT_MAX_SUSPECT_TIME);
-  }
-
-  public static ClusterMembershipBuilder CMBuilder(Transport transpor, List<Address> members, int maxSuspectTime) {
-    return new ClusterMembershipBuilder(transpor, members, maxSuspectTime);
-  }
-
-  public ClusterMembershipBuilder block(Address dest) {
-    transport.block(dest);
-    return this;
-  }
-
-  public ClusterMembershipBuilder unblockAll() {
-    transport.unblockAll();
-    return this;
+    return new ClusterMembershipBuilder(transport, members);
   }
 
   ClusterMembershipBuilder init() {
@@ -85,10 +71,10 @@ public class ClusterMembershipBuilder {
   }
 
   void destroy() {
-    destroyTransport(transport);
-    failureDetector.stop();
-    gossipProtocol.stop();
     membership.stop();
+    gossipProtocol.stop();
+    failureDetector.stop();
+    destroyTransport(transport);
   }
 
   private void destroyTransport(ITransport tf) {

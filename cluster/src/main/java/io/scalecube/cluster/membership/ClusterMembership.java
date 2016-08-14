@@ -1,15 +1,13 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static io.scalecube.cluster.ClusterMemberStatus.SHUTDOWN;
 import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
-import static io.scalecube.cluster.ClusterMembershipDataUtils.gossipFilterData;
-import static io.scalecube.cluster.ClusterMembershipDataUtils.syncGroupFilter;
 
+import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IGossipProtocol;
-import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
@@ -201,7 +199,7 @@ public final class ClusterMembership implements IClusterMembership {
     onSyncRequestSubscriber = Subscribers.create(new OnSyncRequestSubscriber());
     transport.listen()
         .filter(SYNC_FILTER)
-        .filter(syncGroupFilter(config.getSyncGroup()))
+        .filter(ClusterMembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .subscribe(onSyncRequestSubscriber);
 
     // Listen to 'suspected/trusted' events from FailureDetector
@@ -212,7 +210,7 @@ public final class ClusterMembership implements IClusterMembership {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction());
     gossipProtocol.listen()
         .filter(GOSSIP_MEMBERSHIP_FILTER)
-        .map(gossipFilterData(transport.address()))
+        .map(ClusterMembershipDataUtils.gossipFilterData(transport.address()))
         .subscribe(onGossipRequestSubscriber);
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
@@ -267,7 +265,7 @@ public final class ClusterMembership implements IClusterMembership {
     ListenableFuture<Message> future = ListenableFutureObservable.to(
         transport.listen()
             .filter(syncAckFilter(period))
-            .filter(syncGroupFilter(config.getSyncGroup()))
+            .filter(ClusterMembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
             .take(1)
             .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS));
 
@@ -288,7 +286,7 @@ public final class ClusterMembership implements IClusterMembership {
     String period = Integer.toString(periodCounter.incrementAndGet());
     transport.listen()
         .filter(syncAckFilter(period))
-        .filter(syncGroupFilter(config.getSyncGroup()))
+        .filter(ClusterMembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {

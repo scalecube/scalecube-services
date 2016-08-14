@@ -1,9 +1,10 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
 import static io.scalecube.cluster.ClusterMemberStatus.REMOVED;
 import static io.scalecube.cluster.ClusterMemberStatus.SUSPECTED;
 import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
 
+import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.transport.Address;
 

@@ -1,7 +1,8 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
 import static com.google.common.collect.Collections2.filter;
 
+import io.scalecube.cluster.ClusterMember;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Address;
 

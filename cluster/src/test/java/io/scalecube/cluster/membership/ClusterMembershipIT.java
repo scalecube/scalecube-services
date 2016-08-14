@@ -1,4 +1,4 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
 import static com.google.common.base.Throwables.propagate;
 
@@ -47,9 +47,14 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).block(b.address()).block(c.address()).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).block(a.address()).block(c.address()).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).block(a.address()).block(b.address()).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
+
+    // Block traffic
+    a.block(members);
+    b.block(members);
+    c.block(members);
 
     try {
       awaitSeconds(3);
@@ -58,9 +63,9 @@ public class ClusterMembershipIT {
       cm_b.assertTrusted(b.address()).assertNoSuspected();
       cm_c.assertTrusted(c.address()).assertNoSuspected();
 
-      cm_a.unblockAll();
-      cm_b.unblockAll();
-      cm_c.unblockAll();
+      a.unblockAll();
+      b.unblockAll();
+      c.unblockAll();
 
       awaitSeconds(3);
 
@@ -92,9 +97,9 @@ public class ClusterMembershipIT {
       cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
       cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
 
-      cm_a.block(b.address()).block(c.address());
-      cm_b.block(a.address()).block(c.address());
-      cm_c.block(a.address()).block(b.address());
+      a.block(members);
+      b.block(members);
+      c.block(members);
 
       awaitSeconds(3);
 
@@ -102,9 +107,9 @@ public class ClusterMembershipIT {
       cm_b.assertTrusted(b.address()).assertSuspected(a.address(), c.address());
       cm_c.assertTrusted(c.address()).assertSuspected(a.address(), b.address());
 
-      cm_a.unblockAll();
-      cm_b.unblockAll();
-      cm_c.unblockAll();
+      a.unblockAll();
+      b.unblockAll();
+      c.unblockAll();
 
       awaitSeconds(3);
 
@@ -126,10 +131,10 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members, 3000).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members, 3000).init();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members, 3000).init();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members, 3000).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
+    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
+    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).init();
 
     try {
       awaitSeconds(3);
@@ -139,10 +144,10 @@ public class ClusterMembershipIT {
       cm_c.assertTrusted(a.address(), b.address(), c.address(), d.address());
       cm_d.assertTrusted(a.address(), b.address(), c.address(), d.address());
 
-      cm_a.block(c.address()).block(d.address());
-      cm_b.block(c.address()).block(d.address());
-      cm_c.block(a.address()).block(b.address());
-      cm_d.block(a.address()).block(b.address());
+      a.block(Arrays.asList(c.address(), d.address()));
+      b.block(Arrays.asList(c.address(), d.address()));
+      c.block(Arrays.asList(a.address(), b.address()));
+      d.block(Arrays.asList(a.address(), b.address()));
 
       awaitSeconds(3);
 
@@ -151,8 +156,7 @@ public class ClusterMembershipIT {
       cm_c.assertTrusted(c.address(), d.address()).assertSuspected(a.address(), b.address());
       cm_d.assertTrusted(c.address(), d.address()).assertSuspected(a.address(), b.address());
 
-      awaitSeconds(3);
-      awaitSeconds(3);
+      awaitSeconds(3); // 3 + 3 > max suspect time (5)
 
       cm_a.assertTrusted(a.address(), b.address()).assertNoSuspected();
       cm_b.assertTrusted(a.address(), b.address()).assertNoSuspected();
@@ -174,8 +178,8 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members, 3000).init();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members, 3000).init();
+    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).init();
+    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).init();
     ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).init();
     ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).init();
 
@@ -198,8 +202,7 @@ public class ClusterMembershipIT {
       cm_a.assertTrusted(a.address(), b.address()).assertSuspected(c.address(), d.address());
       cm_b.assertTrusted(a.address(), b.address()).assertSuspected(c.address(), d.address());
 
-      awaitSeconds(3);
-      awaitSeconds(3);
+      awaitSeconds(3); // 3 + 3 > max suspect time (5)
 
       cm_a.assertTrusted(a.address(), b.address()).assertNoSuspected();
       cm_b.assertTrusted(a.address(), b.address()).assertNoSuspected();
