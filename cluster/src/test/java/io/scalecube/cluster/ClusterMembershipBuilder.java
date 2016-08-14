@@ -30,13 +30,8 @@ public class ClusterMembershipBuilder {
   final GossipProtocol gossipProtocol;
   final FailureDetector failureDetector;
 
-  private ClusterMembershipBuilder(Address localAddress, List<Address> members, int maxSuspectTime) {
-    TransportConfig transportConfig = TransportConfig.builder()
-        .useNetworkEmulator(true)
-        .portAutoIncrement(false)
-        .port(localAddress.port())
-        .build();
-    transport = Transport.bindAwait(transportConfig);
+  private ClusterMembershipBuilder(Transport transport, List<Address> members, int maxSuspectTime) {
+    this.transport = transport;
 
     String memberId = UUID.randomUUID().toString();
 
@@ -60,12 +55,12 @@ public class ClusterMembershipBuilder {
     membership.setSeedMembers(members);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(Address localAddress, List<Address> members) {
-    return new ClusterMembershipBuilder(localAddress, members, MembershipConfig.DEFAULT_MAX_SUSPECT_TIME);
+  public static ClusterMembershipBuilder CMBuilder(Transport transport, List<Address> members) {
+    return new ClusterMembershipBuilder(transport, members, MembershipConfig.DEFAULT_MAX_SUSPECT_TIME);
   }
 
-  public static ClusterMembershipBuilder CMBuilder(Address localAddress, List<Address> members, int maxSuspectTime) {
-    return new ClusterMembershipBuilder(localAddress, members, maxSuspectTime);
+  public static ClusterMembershipBuilder CMBuilder(Transport transpor, List<Address> members, int maxSuspectTime) {
+    return new ClusterMembershipBuilder(transpor, members, maxSuspectTime);
   }
 
   public ClusterMembershipBuilder block(Address dest) {
