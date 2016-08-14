@@ -12,6 +12,9 @@ public final class TransportConfig {
 
   public static final TransportConfig DEFAULT = builder().build();
 
+  public static final String DEFAULT_LISTEN_ADDRESS = null;
+  public static final String DEFAULT_LISTEN_INTERFACE = null; // Default listen settings fallback to getLocalHost
+  public static final boolean DEFAULT_PREFER_IP6 = false;
   public static final int DEFAULT_PORT = 4801;
   public static final int DEFAULT_PORT_COUNT = 100;
   public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
@@ -22,6 +25,9 @@ public final class TransportConfig {
   public static final int DEFAULT_BOSS_THREADS = 2;
   public static final int DEFAULT_WORKER_THREADS = 0;
 
+  private final String listenAddress;
+  private final String listenInterface;
+  private final boolean preferIPv6;
   private final int port;
   private final int portCount;
   private final boolean portAutoIncrement;
@@ -33,6 +39,9 @@ public final class TransportConfig {
   private final int workerThreads;
 
   private TransportConfig(Builder builder) {
+    this.listenAddress = builder.listenAddress;
+    this.listenInterface = builder.listenInterface;
+    this.preferIPv6 = builder.preferIPv6;
     this.port = builder.port;
     this.portCount = builder.portCount;
     this.portAutoIncrement = builder.portAutoIncrement;
@@ -46,6 +55,18 @@ public final class TransportConfig {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public String getListenAddress() {
+    return listenAddress;
+  }
+
+  public String getListenInterface() {
+    return listenInterface;
+  }
+
+  public boolean isPreferIPv6() {
+    return preferIPv6;
   }
 
   public int getPort() {
@@ -86,7 +107,10 @@ public final class TransportConfig {
 
   @Override
   public String toString() {
-    return "TransportConfig{port=" + port
+    return "TransportConfig{listenAddress=" + listenAddress
+        + ", listenInterface=" + listenInterface
+        + ", preferIPv6=" + preferIPv6
+        + ", port=" + port
         + ", portCount=" + portCount
         + ", portAutoIncrement=" + portAutoIncrement
         + ", connectTimeout=" + connectTimeout
@@ -100,6 +124,9 @@ public final class TransportConfig {
 
   public static final class Builder {
 
+    private String listenAddress = DEFAULT_LISTEN_ADDRESS;
+    private String listenInterface = DEFAULT_LISTEN_INTERFACE;
+    private boolean preferIPv6 = DEFAULT_PREFER_IP6;
     private int port = DEFAULT_PORT;
     private int portCount = DEFAULT_PORT_COUNT;
     private boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
@@ -111,6 +138,21 @@ public final class TransportConfig {
     private int workerThreads = DEFAULT_WORKER_THREADS;
 
     private Builder() {}
+
+    public Builder listenAddress(String listenAddress) {
+      this.listenAddress = listenAddress;
+      return this;
+    }
+
+    public Builder listenInterface(String listenInterface) {
+      this.listenInterface = listenInterface;
+      return this;
+    }
+
+    public Builder preferIPv6(boolean preferIPv6) {
+      this.preferIPv6 = preferIPv6;
+      return this;
+    }
 
     public Builder port(int port) {
       this.port = port;

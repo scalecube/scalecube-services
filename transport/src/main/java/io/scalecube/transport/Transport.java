@@ -37,6 +37,7 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.net.InetAddress;
 import java.util.Collection;
 
 import javax.annotation.CheckForNull;
@@ -84,24 +85,22 @@ public final class Transport implements ITransport {
   }
 
   /**
-   * Init transport with the default configuration synchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the default configuration synchronously. Starts to accept connections on local address.
    */
   public static Transport bindAwait() {
     return bindAwait(TransportConfig.DEFAULT);
   }
 
   /**
-   * Init transport with the default configuration and network emulator flag synchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the default configuration and network emulator flag synchronously. Starts to accept connections
+   * on local address.
    */
   public static Transport bindAwait(boolean useNetworkEmulator) {
     return bindAwait(TransportConfig.builder().useNetworkEmulator(useNetworkEmulator).build());
   }
 
   /**
-   * Init transport with the given configuration synchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the given configuration synchronously. Starts to accept connections on local address.
    */
   public static Transport bindAwait(TransportConfig config) {
     try {
@@ -112,16 +111,14 @@ public final class Transport implements ITransport {
   }
 
   /**
-   * Init transport with the default configuration asynchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the default configuration asynchronously. Starts to accept connections on local address.
    */
   public static ListenableFuture<Transport> bind() {
     return bind(TransportConfig.DEFAULT);
   }
 
   /**
-   * Init transport with the given configuration asynchronously.
-   * Starts to accept connections on local address.
+   * Init transport with the given configuration asynchronously. Starts to accept connections on local address.
    */
   public static ListenableFuture<Transport> bind(TransportConfig config) {
     return new Transport(config).bind0();
@@ -133,25 +130,30 @@ public final class Transport implements ITransport {
   private ListenableFuture<Transport> bind0() {
     incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
-    // Resolve bind port
+    // Resolve listen IP address
+    final InetAddress listenAddress =
+        Addressing.getLocalIpAddress(config.getListenAddress(), config.getListenInterface(), config.isPreferIPv6());
+
+    // Resolve listen port
     int bindPort = config.isPortAutoIncrement()
-        ? AvailablePortFinder.getNextAvailable(config.getPort(), config.getPortCount()) // Find available port
+        ? Addressing.getNextAvailablePort(listenAddress, config.getPort(), config.getPortCount()) // Find available port
         : config.getPort();
 
-    address = Address.createLocal(bindPort);
+    // Listen address
+    address = Address.create(listenAddress.getHostAddress(), bindPort);
 
     ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(address.host(), address.port());
+    ChannelFuture bindFuture = server.bind(listenAddress, address.port());
     final SettableFuture<Transport> result = SettableFuture.create();
     bindFuture.addListener(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", address);
+          LOGGER.info("Bound to: {}", listenAddress);
           result.set(Transport.this);
         } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
+          LOGGER.error("Failed to bind to: {}, cause: {}", listenAddress, channelFuture.cause());
           result.setException(channelFuture.cause());
         }
       }
@@ -376,7 +378,6 @@ public final class Transport implements ITransport {
 
   @ChannelHandler.Sharable
   private final class OutgoingChannelInitializer extends ChannelInitializer {
-
     private final Address address;
 
     public OutgoingChannelInitializer(Address address) {
@@ -405,6 +406,4 @@ public final class Transport implements ITransport {
       pipeline.addLast(exceptionHandler);
     }
   }
-
-
 }
