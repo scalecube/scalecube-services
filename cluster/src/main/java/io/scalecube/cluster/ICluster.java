@@ -1,6 +1,7 @@
 package io.scalecube.cluster;
 
 import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -15,8 +16,11 @@ import rx.Observable;
  */
 public interface ICluster {
 
+
+  void send(Address address, Message message);
   void send(ClusterMember member, Message message);
 
+  void send(Address address, Message message, SettableFuture<Void> promise);
   void send(ClusterMember member, Message message, SettableFuture<Void> promise);
 
   Observable<Message> listen();

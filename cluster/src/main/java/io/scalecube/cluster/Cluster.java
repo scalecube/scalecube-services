@@ -6,6 +6,7 @@ import static com.google.common.util.concurrent.Futures.transform;
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
@@ -146,8 +147,18 @@ public final class Cluster implements ICluster {
   }
 
   @Override
+  public void send(Address address, Message message) {
+    transport.send(address, message);
+  }
+
+  @Override
   public void send(ClusterMember member, Message message) {
     transport.send(member.address(), message);
+  }
+
+  @Override
+  public void send(Address address, Message message, SettableFuture<Void> promise) {
+    transport.send(address, message, promise);
   }
 
   @Override
