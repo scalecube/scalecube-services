@@ -19,12 +19,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
@@ -55,9 +56,9 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // State
 
+  private long period = 0;
   private AtomicLong counter = new AtomicLong(0);
   private Queue<GossipTask> gossipsQueue = new ConcurrentLinkedQueue<>();
-  private long period = 0;
   private volatile int factor = 1;
   private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
   private volatile List<Address> members = new ArrayList<>();
@@ -65,10 +66,11 @@ public final class GossipProtocol implements IGossipProtocol {
   // Subscriptions
 
   private Subscriber<Message> onGossipRequestSubscriber;
-  private Subject<Message, Message> subject = new SerializedSubject<>(PublishSubject.<Message>create());
+  private Subject<Message, Message> subject = PublishSubject.create();
 
   // Scheduled
 
+  private Scheduler scheduler;
   private ScheduledFuture<?> executorTask;
   private final ScheduledExecutorService executor;
 
@@ -95,6 +97,7 @@ public final class GossipProtocol implements IGossipProtocol {
     this.config = config;
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat("sc-gossip-%s").setDaemon(true).build());
+    this.scheduler = Schedulers.from(executor);
   }
 
   @Override
@@ -115,7 +118,7 @@ public final class GossipProtocol implements IGossipProtocol {
   @Override
   public void start() {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
-    transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
+    transport.listen().observeOn(scheduler).filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
 
     int gossipTime = config.getGossipTime();
     executorTask =

@@ -25,7 +25,7 @@ public interface IFailureDetector {
   void stop();
 
   /** Listens for detected cluster members status changes (SUSPECTED/TRUSTED) by failure detector. */
-  Observable<FailureDetectorEvent> listenStatus();
+  Observable<FailureDetectorEvent> listen();
 
   /** Marks given member as SUSPECTED inside FD algorithm internals. */
   void suspect(Address member);
