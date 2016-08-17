@@ -16,15 +16,29 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.reactivex</groupId>
-            <artifactId>rxjava-guava</artifactId>
-        </dependency>
-        <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>scalecube-testlib</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- Other dependencies -->
+        <dependency>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxjava-guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <optional>true</optional>
+        </dependency>
     </dependencies>
 </project>
