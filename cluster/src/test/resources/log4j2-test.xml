@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration status="WARN">
+<Configuration status="warn">
 
     <Appenders>
         <Console name="console" target="SYSTEM_OUT">
@@ -11,8 +11,9 @@
 
     <Loggers>
         <Logger name="io.netty" level="info"/>
+        <Logger name="io.scalecube.transport" level="info"/>
 
-        <Root level="DEBUG">
+        <Root level="debug">
             <AppenderRef ref="console"/>
         </Root>
     </Loggers>

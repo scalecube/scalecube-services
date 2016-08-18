@@ -9,6 +9,7 @@
     </parent>
     <artifactId>scalecube-cluster</artifactId>
     <name>ScaleCube/Cluster</name>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -41,4 +42,5 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
+
 </project>
