@@ -1,32 +1,40 @@
 package io.scalecube.cluster;
 
 import io.scalecube.transport.Address;
+import io.scalecube.transport.IListenable;
 
 import rx.Observable;
+import rx.Scheduler;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * Cluster Membership Protocol component responsible for managing information about existing members of the cluster.
  *
  * @author Anton Kharenko
  */
-public interface IClusterMembership {
+public interface IClusterMembership extends IListenable<ClusterMember> {
 
-  /** Returns current cluster members list. */
+  /**
+   * Returns current cluster members list.
+   */
   List<ClusterMember> members();
 
-  /** Returns cluster member by its id or null if no member with such id exists. */
+  /**
+   * Returns cluster member by its id or null if no member with such id exists.
+   */
   ClusterMember member(String id);
 
-  /** Returns cluster member by its address or null if no member with such address exists. */
+  /**
+   * Returns cluster member by its address or null if no member with such address exists.
+   */
   ClusterMember member(Address address);
 
-  /** Returns local cluster member. */
+  /**
+   * Returns local cluster member.
+   */
   ClusterMember localMember();
-
-  /** Listen status updates on registered cluster members (except local one). */
-  Observable<ClusterMember> listen();
 
   /**
    * Check if a given member is a local member return true in case the ClusterMember is local to the cluster instance.
@@ -36,4 +44,21 @@ public interface IClusterMembership {
    */
   boolean isLocalMember(ClusterMember member);
 
+  /**
+   * Listen status updates on registered cluster members (except local one).
+   */
+  @Override
+  Observable<ClusterMember> listen();
+
+  /**
+   * Listen status updates on registered cluster members (except local one).
+   */
+  @Override
+  Observable<ClusterMember> listen(Executor executor);
+
+  /**
+   * Listen status updates on registered cluster members (except local one).
+   */
+  @Override
+  Observable<ClusterMember> listen(Scheduler scheduler);
 }

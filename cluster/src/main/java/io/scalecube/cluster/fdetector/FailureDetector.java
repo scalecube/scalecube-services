@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -123,21 +124,18 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public void start() {
     onPingRequestSubscriber = Subscribers.create(new OnPingRequestAction());
-    transport.listen()
-        .observeOn(scheduler)
+    transport.listen(scheduler)
         .filter(PING_FILTER)
         .filter(targetFilter(transport.address()))
         .subscribe(onPingRequestSubscriber);
 
     onAskToPingRequestSubscriber = Subscribers.create(new OnAskToPingRequestAction());
-    transport.listen()
-        .observeOn(scheduler)
+    transport.listen(scheduler)
         .filter(PING_REQ_FILTER)
         .subscribe(onAskToPingRequestSubscriber);
 
     onTransitAckRequestSubscriber = Subscribers.create(new OnTransitAckRequestAction());
-    transport.listen()
-        .observeOn(scheduler)
+    transport.listen(scheduler)
         .filter(ACK_FILTER)
         .filter(ORIGINAL_ISSUER_FILTER)
         .subscribe(onTransitAckRequestSubscriber);
@@ -172,6 +170,16 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   @Override
+  public Observable<FailureDetectorEvent> listen(Executor executor) {
+    return listen(Schedulers.from(executor));
+  }
+
+  @Override
+  public Observable<FailureDetectorEvent> listen(Scheduler scheduler) {
+    return listen().observeOn(scheduler);
+  }
+
+  @Override
   public void suspect(Address member) {
     checkNotNull(member);
     if (suspectedMembers.add(member)) {
@@ -199,8 +207,7 @@ public final class FailureDetector implements IFailureDetector {
     Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(cid).build();
     LOGGER.trace("Send Ping from {} to {}", localAddress, pingMember);
 
-    transport.listen()
-        .observeOn(scheduler)
+    transport.listen(scheduler)
         .filter(ackFilter(cid))
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)
@@ -240,8 +247,7 @@ public final class FailureDetector implements IFailureDetector {
     }
 
     Address localAddress = transport.address();
-    transport.listen()
-        .observeOn(scheduler)
+    transport.listen(scheduler)
         .filter(ackFilter(cid))
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)

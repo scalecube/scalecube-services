@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -186,6 +187,16 @@ public final class ClusterMembership implements IClusterMembership {
   }
 
   @Override
+  public Observable<ClusterMember> listen(Executor executor) {
+    return listen(Schedulers.from(executor));
+  }
+
+  @Override
+  public Observable<ClusterMember> listen(Scheduler scheduler) {
+    return listen().observeOn(scheduler);
+  }
+
+  @Override
   public List<ClusterMember> members() {
     return membership.asList();
   }
@@ -218,20 +229,18 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Listen to SYNC requests from joining/synchronizing members
     onSyncRequestSubscriber = Subscribers.create(new OnSyncRequestSubscriber());
-    transport.listen()
-        .observeOn(scheduler)
+    transport.listen(scheduler)
         .filter(SYNC_FILTER)
         .filter(syncGroupFilter(syncGroup))
         .subscribe(onSyncRequestSubscriber);
 
     // Listen to 'suspected/trusted' events from FailureDetector
     onFdEventSubscriber = Subscribers.create(new OnFdEventSubscriber());
-    failureDetector.listen().observeOn(scheduler).subscribe(onFdEventSubscriber);
+    failureDetector.listen(scheduler).subscribe(onFdEventSubscriber);
 
     // Listen to 'membership' message from GossipProtocol
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction());
-    gossipProtocol.listen()
-        .observeOn(scheduler)
+    gossipProtocol.listen(scheduler)
         .filter(GOSSIP_MEMBERSHIP_FILTER)
         .map(gossipFilterData(transport.address()))
         .subscribe(onGossipRequestSubscriber);
@@ -286,8 +295,7 @@ public final class ClusterMembership implements IClusterMembership {
   private ListenableFuture<Void> doInitialSync(final List<Address> seedMembers) {
     String cid = Long.toString(this.period);
     ListenableFuture<Message> future = ListenableFutureObservable.to(
-        transport.listen()
-            .observeOn(scheduler)
+        transport.listen(scheduler)
             .filter(syncAckFilter(cid))
             .filter(syncGroupFilter(syncGroup))
             .take(1)
@@ -308,8 +316,7 @@ public final class ClusterMembership implements IClusterMembership {
 
   private void doSync(final List<Address> members, Scheduler scheduler) {
     String cid = Long.toString(this.period);
-    transport.listen()
-        .observeOn(scheduler)
+    transport.listen(scheduler)
         .filter(syncAckFilter(cid))
         .filter(syncGroupFilter(syncGroup))
         .take(1)
