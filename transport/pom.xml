@@ -9,6 +9,7 @@
     </parent>
     <artifactId>scalecube-transport</artifactId>
     <name>ScaleCube/Transport</name>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -79,4 +80,5 @@
             <artifactId>protobuf-java</artifactId>
         </dependency>
     </dependencies>
+
 </project>

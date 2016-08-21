@@ -9,15 +9,12 @@
     </parent>
     <artifactId>scalecube-cluster</artifactId>
     <name>ScaleCube/Cluster</name>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>scalecube-transport</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.reactivex</groupId>
-            <artifactId>rxjava-guava</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -26,5 +23,14 @@
             <scope>test</scope>
         </dependency>
         <!-- Other dependencies -->
+        <dependency>
+            <groupId>io.reactivex</groupId>
+            <artifactId>rxjava-guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
     </dependencies>
+
 </project>
