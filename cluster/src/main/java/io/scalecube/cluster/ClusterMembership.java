@@ -14,13 +14,12 @@ import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageHeaders;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.memoizer.Computable;
-import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Function;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -105,7 +104,7 @@ public final class ClusterMembership implements IClusterMembership {
   private final Scheduler scheduler;
   private ScheduledFuture<?> executorTask;
   private final ScheduledExecutorService executor;
-  private final Memoizer<String, ScheduledFuture<?>> suspectedMembersSchedule = new Memoizer<>();
+  private final Map<String, ScheduledFuture<?>> suspectedMembersSchedule = Maps.newHashMap();
 
   private Function<Message, Void> onSyncAckFunction = new Function<Message, Void>() {
     @Nullable
@@ -281,15 +280,9 @@ public final class ClusterMembership implements IClusterMembership {
     if (executorTask != null) {
       executorTask.cancel(true);
     }
-    // cancel suspected members schedule
-    for (String memberId : suspectedMembersSchedule.keySet()) {
-      ScheduledFuture<?> future = suspectedMembersSchedule.remove(memberId);
-      if (future != null) {
-        future.cancel(true);
-      }
-    }
     executor.shutdownNow(); // shutdown thread
     subject.onCompleted(); // stop publishing
+    suspectedMembersSchedule.clear(); // clear suspected-schedule
   }
 
   private ListenableFuture<Void> doInitialSync(final List<Address> seedMembers) {
@@ -403,19 +396,30 @@ public final class ClusterMembership implements IClusterMembership {
     for (final ClusterMember member : updates) {
       LOGGER.debug("Member {} became {}", member.address(), member.status());
       switch (member.status()) {
-        case SUSPECTED:
+        case SUSPECTED: {
           failureDetector.suspect(member.address());
-          // setup a schedule for suspected member
-          suspectedMembersSchedule.get(member.id(), new ComputableSuspectedMembersSchedule());
+          // setup suspected-schedule for SUSPECTED member
+          if (suspectedMembersSchedule.get(member.id()) == null) {
+            suspectedMembersSchedule.put(member.id(), executor.schedule(new Runnable() {
+              @Override
+              public void run() {
+                suspectedMembersSchedule.remove(member.id());
+                LOGGER.debug("Time to remove SUSPECTED member(id={}) from membership table", member.id());
+                processUpdates(membership.remove(member.id()), false/* spread gossip */);
+              }
+            }, maxSuspectTime, TimeUnit.MILLISECONDS));
+          }
           break;
-        case TRUSTED:
-          // clean schedule for TRUSTED member
+        }
+        case TRUSTED: {
+          // clean up suspected-schedule for now became TRUSTED member
           ScheduledFuture<?> future = suspectedMembersSchedule.remove(member.id());
           if (future == null || future.cancel(true)) {
             failureDetector.trust(member.address());
           }
           break;
-        case SHUTDOWN:
+        }
+        case SHUTDOWN: {
           // schedule removal of SHUTDOWN member from membership
           executor.schedule(new Runnable() {
             @Override
@@ -425,6 +429,7 @@ public final class ClusterMembership implements IClusterMembership {
             }
           }, maxShutdownTime, TimeUnit.MILLISECONDS);
           break;
+        }
         default:
           // ignore
       }
@@ -514,25 +519,6 @@ public final class ClusterMembership implements IClusterMembership {
       } catch (Exception cause) {
         LOGGER.error("Unhandled exception: {}", cause, cause);
       }
-    }
-  }
-
-  private class ComputableSuspectedMembersSchedule implements Computable<String, ScheduledFuture<?>> {
-    @Override
-    public ScheduledFuture<?> compute(final String memberId) {
-      return executor.schedule(new Runnable() {
-        @Override
-        public void run() {
-          try {
-            LOGGER.debug("Time to remove SUSPECTED member(id={}) from membership table", memberId);
-            processUpdates(membership.remove(memberId), false/* spread gossip */);
-          } catch (Exception cause) {
-            LOGGER.error("Unhandled exception: {}", cause, cause);
-          } finally {
-            suspectedMembersSchedule.remove(memberId);
-          }
-        }
-      }, maxSuspectTime, TimeUnit.MILLISECONDS);
     }
   }
 }
