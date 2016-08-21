@@ -150,10 +150,10 @@ public final class Transport implements ITransport {
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", listenAddress);
+          LOGGER.info("Bound to: {}", address);
           result.set(Transport.this);
         } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", listenAddress, channelFuture.cause());
+          LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
           result.setException(channelFuture.cause());
         }
       }

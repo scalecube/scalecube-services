@@ -126,8 +126,16 @@ public final class ClusterMembership implements IClusterMembership {
     this.failureDetector = failureDetector;
   }
 
+  IFailureDetector getFailureDetector() {
+    return failureDetector;
+  }
+
   public void setGossipProtocol(IGossipProtocol gossipProtocol) {
     this.gossipProtocol = gossipProtocol;
+  }
+
+  IGossipProtocol getGossipProtocol() {
+    return gossipProtocol;
   }
 
   /**

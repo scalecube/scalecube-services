@@ -1,15 +1,23 @@
 package io.scalecube.cluster.membership;
 
-import static com.google.common.base.Throwables.propagate;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.ClusterMember;
+import io.scalecube.cluster.ClusterMemberStatus;
+import io.scalecube.cluster.fdetector.FailureDetector;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
+import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Transport;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -24,20 +32,21 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
+    ClusterMembership cm_a = createMembership(a, members);
+    ClusterMembership cm_b = createMembership(b, members);
+    ClusterMembership cm_c = createMembership(c, members);
 
     try {
-      awaitSeconds(3);
+      awaitSeconds(1);
 
-      cm_a.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
     } finally {
-      cm_a.stop();
-      cm_b.stop();
-      cm_c.stop();
+      stopAll(cm_a, cm_b, cm_c);
       destroyTransports(a, b, c);
     }
   }
@@ -49,9 +58,9 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
+    ClusterMembership cm_a = createMembership(a, members);
+    ClusterMembership cm_b = createMembership(b, members);
+    ClusterMembership cm_c = createMembership(c, members);
 
     // Block traffic
     a.block(members);
@@ -59,11 +68,14 @@ public class ClusterMembershipIT {
     c.block(members);
 
     try {
-      awaitSeconds(3);
+      awaitSeconds(9);
 
-      cm_a.assertTrusted(a.address()).assertNoSuspected();
-      cm_b.assertTrusted(b.address()).assertNoSuspected();
-      cm_c.assertTrusted(c.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, b.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, c.address());
+      assertNoSuspected(cm_c);
 
       a.unblockAll();
       b.unblockAll();
@@ -71,13 +83,14 @@ public class ClusterMembershipIT {
 
       awaitSeconds(3);
 
-      cm_a.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
     } finally {
-      cm_a.stop();
-      cm_b.stop();
-      cm_c.stop();
+      stopAll(cm_a, cm_b, cm_c);
       destroyTransports(a, b, c);
     }
   }
@@ -89,16 +102,19 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
+    ClusterMembership cm_a = createMembership(a, members);
+    ClusterMembership cm_b = createMembership(b, members);
+    ClusterMembership cm_c = createMembership(c, members);
 
     try {
-      awaitSeconds(3);
+      awaitSeconds(1);
 
-      cm_a.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
 
       a.block(members);
       b.block(members);
@@ -106,9 +122,14 @@ public class ClusterMembershipIT {
 
       awaitSeconds(3);
 
-      cm_a.assertTrusted(a.address()).assertSuspected(b.address(), c.address());
-      cm_b.assertTrusted(b.address()).assertSuspected(a.address(), c.address());
-      cm_c.assertTrusted(c.address()).assertSuspected(a.address(), b.address());
+      assertTrusted(cm_a, a.address());
+      assertSuspected(cm_a, b.address(), c.address());
+
+      assertTrusted(cm_b, b.address());
+      assertSuspected(cm_b,a.address(), c.address());
+
+      assertTrusted(cm_c, c.address());
+      assertSuspected(cm_c, a.address(), b.address());
 
       a.unblockAll();
       b.unblockAll();
@@ -116,13 +137,16 @@ public class ClusterMembershipIT {
 
       awaitSeconds(3);
 
-      cm_a.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
-      cm_c.assertTrusted(a.address(), b.address(), c.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
     } finally {
-      cm_a.stop();
-      cm_b.stop();
-      cm_c.stop();
+      stopAll(cm_a, cm_b, cm_c);
       destroyTransports(a, b, c);
     }
   }
@@ -135,42 +159,48 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).start();
+    ClusterMembership cm_a = createMembership(a, members);
+    ClusterMembership cm_b = createMembership(b, members);
+    ClusterMembership cm_c = createMembership(c, members);
+    ClusterMembership cm_d = createMembership(d, members);
 
     try {
-      awaitSeconds(3);
+      awaitSeconds(1);
 
-      cm_a.assertTrusted(a.address(), b.address(), c.address(), d.address());
-      cm_b.assertTrusted(a.address(), b.address(), c.address(), d.address());
-      cm_c.assertTrusted(a.address(), b.address(), c.address(), d.address());
-      cm_d.assertTrusted(a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_a, a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_b, a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_c, a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_d, a.address(), b.address(), c.address(), d.address());
 
       a.block(Arrays.asList(c.address(), d.address()));
       b.block(Arrays.asList(c.address(), d.address()));
+
       c.block(Arrays.asList(a.address(), b.address()));
       d.block(Arrays.asList(a.address(), b.address()));
 
       awaitSeconds(3);
 
-      cm_a.assertTrusted(a.address(), b.address()).assertSuspected(c.address(), d.address());
-      cm_b.assertTrusted(a.address(), b.address()).assertSuspected(c.address(), d.address());
-      cm_c.assertTrusted(c.address(), d.address()).assertSuspected(a.address(), b.address());
-      cm_d.assertTrusted(c.address(), d.address()).assertSuspected(a.address(), b.address());
+      assertTrusted(cm_a, a.address(), b.address());
+      assertSuspected(cm_a, c.address(), d.address());
+      assertTrusted(cm_b, a.address(), b.address());
+      assertSuspected(cm_b, c.address(), d.address());
+      assertTrusted(cm_c, c.address(), d.address());
+      assertSuspected(cm_c, a.address(), b.address());
+      assertTrusted(cm_d, c.address(), d.address());
+      assertSuspected(cm_d, a.address(), b.address());
 
-      awaitSeconds(3); // 3 + 3 > max suspect time (5)
+      awaitSeconds(9); // > max suspect time (5)
 
-      cm_a.assertTrusted(a.address(), b.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address()).assertNoSuspected();
-      cm_c.assertTrusted(c.address(), d.address()).assertNoSuspected();
-      cm_d.assertTrusted(c.address(), d.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address(), b.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, c.address(), d.address());
+      assertNoSuspected(cm_c);
+      assertTrusted(cm_d, c.address(), d.address());
+      assertNoSuspected(cm_d);
     } finally {
-      cm_a.stop();
-      cm_b.stop();
-      cm_c.stop();
-      cm_d.stop();
+      stopAll(cm_a, cm_b, cm_c, cm_d);
       destroyTransports(a, b, c, d);
     }
   }
@@ -183,49 +213,54 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, members).start();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, members).start();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, members).start();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, members).start();
+    ClusterMembership cm_a = createMembership(a, members);
+    ClusterMembership cm_b = createMembership(b, members);
+    ClusterMembership cm_c = createMembership(c, members);
+    ClusterMembership cm_d = createMembership(d, members);
 
-    ClusterMembershipBuilder cm_restartedC = null;
-    ClusterMembershipBuilder cm_restartedD = null;
+    ClusterMembership cm_restartedC = null;
+    ClusterMembership cm_restartedD = null;
 
     try {
-      awaitSeconds(3);
+      awaitSeconds(1);
 
-      cm_a.assertTrusted(a.address(), b.address(), c.address(), d.address());
-      cm_b.assertTrusted(a.address(), b.address(), c.address(), d.address());
-      cm_c.assertTrusted(a.address(), b.address(), c.address(), d.address());
-      cm_d.assertTrusted(a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_a, a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_b, a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_c, a.address(), b.address(), c.address(), d.address());
+      assertTrusted(cm_d, a.address(), b.address(), c.address(), d.address());
 
-      cm_c.stop();
-      cm_d.stop();
-
-      awaitSeconds(3);
-
-      cm_a.assertTrusted(a.address(), b.address()).assertSuspected(c.address(), d.address());
-      cm_b.assertTrusted(a.address(), b.address()).assertSuspected(c.address(), d.address());
-
-      awaitSeconds(3); // 3 + 3 > max suspect time (5)
-
-      cm_a.assertTrusted(a.address(), b.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address()).assertNoSuspected();
-
-      cm_restartedC = ClusterMembershipBuilder.CMBuilder(c, Arrays.asList(a.address(), b.address())).start();
-      cm_restartedD = ClusterMembershipBuilder.CMBuilder(d, Arrays.asList(a.address(), b.address())).start();
+      stop(cm_c);
+      stop(cm_d);
 
       awaitSeconds(3);
 
-      cm_restartedC.assertTrusted(a.address(), b.address(), c.address(), d.address()).assertNoSuspected();
-      cm_restartedD.assertTrusted(a.address(), b.address(), c.address(), d.address()).assertNoSuspected();
-      cm_a.assertTrusted(a.address(), b.address(), c.address(), d.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address(), c.address(), d.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address(), b.address());
+      assertSuspected(cm_a, c.address(), d.address());
+      assertTrusted(cm_b, a.address(), b.address());
+      assertSuspected(cm_b, c.address(), d.address());
+
+      awaitSeconds(9); // > max suspect time (5)
+
+      assertTrusted(cm_a, a.address(), b.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address());
+      assertNoSuspected(cm_b);
+
+      cm_restartedC = createMembership(c, Arrays.asList(a.address(), b.address()));
+      cm_restartedD = createMembership(d, Arrays.asList(a.address(), b.address()));
+
+      awaitSeconds(1);
+
+      assertTrusted(cm_restartedC, a.address(), b.address(), c.address(), d.address());
+      assertNoSuspected(cm_restartedC);
+      assertTrusted(cm_restartedD, a.address(), b.address(), c.address(), d.address());
+      assertNoSuspected(cm_restartedD);
+      assertTrusted(cm_a, a.address(), b.address(), c.address(), d.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address(), d.address());
+      assertNoSuspected(cm_b);
     } finally {
-      cm_a.stop();
-      cm_b.stop();
-      cm_restartedC.stop();
-      cm_restartedD.stop();
+      stopAll(cm_a, cm_b, cm_restartedC, cm_restartedD);
       destroyTransports(a, b, c, d);
     }
   }
@@ -238,26 +273,27 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     Transport e = Transport.bindAwait(true);
 
-    ClusterMembershipBuilder cm_a = ClusterMembershipBuilder.CMBuilder(a, Collections.<Address>emptyList()).start();
-    ClusterMembershipBuilder cm_b = ClusterMembershipBuilder.CMBuilder(b, Collections.singletonList(a.address())).start();
-    ClusterMembershipBuilder cm_c = ClusterMembershipBuilder.CMBuilder(c, Collections.singletonList(a.address())).start();
-    ClusterMembershipBuilder cm_d = ClusterMembershipBuilder.CMBuilder(d, Collections.singletonList(b.address())).start();
-    ClusterMembershipBuilder cm_e = ClusterMembershipBuilder.CMBuilder(e, Collections.singletonList(b.address())).start();
+    ClusterMembership cm_a = createMembership(a, Collections.<Address>emptyList());
+    ClusterMembership cm_b = createMembership(b, Collections.singletonList(a.address()));
+    ClusterMembership cm_c = createMembership(c, Collections.singletonList(a.address()));
+    ClusterMembership cm_d = createMembership(d, Collections.singletonList(b.address()));
+    ClusterMembership cm_e = createMembership(e, Collections.singletonList(b.address()));
 
     try {
       awaitSeconds(3);
 
-      cm_a.assertTrusted(a.address(), b.address(), c.address(), d.address(), e.address()).assertNoSuspected();
-      cm_b.assertTrusted(a.address(), b.address(), c.address(), d.address(), e.address()).assertNoSuspected();
-      cm_c.assertTrusted(a.address(), b.address(), c.address(), d.address(), e.address()).assertNoSuspected();
-      cm_d.assertTrusted(a.address(), b.address(), c.address(), d.address(), e.address()).assertNoSuspected();
-      cm_e.assertTrusted(a.address(), b.address(), c.address(), d.address(), e.address()).assertNoSuspected();
+      assertTrusted(cm_a, a.address(), b.address(), c.address(), d.address(), e.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address(), d.address(), e.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address(), d.address(), e.address());
+      assertNoSuspected(cm_c);
+      assertTrusted(cm_d, a.address(), b.address(), c.address(), d.address(), e.address());
+      assertNoSuspected(cm_d);
+      assertTrusted(cm_e, a.address(), b.address(), c.address(), d.address(), e.address());
+      assertNoSuspected(cm_e);
     } finally {
-      cm_a.stop();
-      cm_b.stop();
-      cm_c.stop();
-      cm_d.stop();
-      cm_e.stop();
+      stopAll(cm_a, cm_b, cm_c, cm_d, cm_e);
       destroyTransports(a, b, c, d, e);
     }
   }
@@ -266,7 +302,7 @@ public class ClusterMembershipIT {
     try {
       TimeUnit.SECONDS.sleep(seconds);
     } catch (InterruptedException e) {
-      propagate(e);
+      Throwables.propagate(e);
     }
   }
 
@@ -286,5 +322,85 @@ public class ClusterMembershipIT {
         // ignore
       }
     }
+  }
+
+  public ClusterMembership createMembership(Transport transport, List<Address> seedMembers) {
+    // Generate member id
+    String memberId = "TestMember-localhost:" + transport.address().port();
+    // Create failure detector
+    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
+        .pingTime(200)
+        .pingTimeout(100)
+        .build();
+    FailureDetector failureDetector = new FailureDetector(transport, fdConfig);
+    // Create gossip protocol
+    GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
+    // Create membership protocol
+    MembershipConfig membershipConfig = MembershipConfig.builder()
+        .syncTime(1000)
+        .syncTimeout(200)
+        .maxSuspectTime(5000)
+        .build();
+    ClusterMembership membership = new ClusterMembership(memberId, transport, membershipConfig);
+    membership.setFailureDetector(failureDetector);
+    membership.setGossipProtocol(gossipProtocol);
+    membership.setSeedMembers(seedMembers);
+
+    try {
+      failureDetector.start();
+      gossipProtocol.start();
+      membership.start().get();
+    } catch (Exception ex) {
+      Throwables.propagate(ex);
+    }
+
+    return membership;
+  }
+
+  public void stopAll(ClusterMembership... memberships) {
+    for (ClusterMembership membership : memberships) {
+      if (membership != null) {
+        stop(membership);
+      }
+    }
+  }
+
+  public void stop(ClusterMembership membership) {
+    membership.stop();
+    membership.getGossipProtocol().stop();
+    membership.getFailureDetector().stop();
+  }
+
+  public void assertTrusted(ClusterMembership membership, Address... expected) {
+    List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.TRUSTED);
+    assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
+        + ", but actual: " + actual, expected.length, actual.size());
+    for (Address member : expected) {
+      assertTrue("Expected to trust " + member + ", but actual: " + actual, actual.contains(member));
+    }
+  }
+
+  public void assertSuspected(ClusterMembership membership, Address... expected) {
+    List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
+    assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
+        + ", but actual: " + actual, expected.length, actual.size());
+    for (Address member : expected) {
+      assertTrue("Expected to suspect " + member + ", but actual: " + actual, actual.contains(member));
+    }
+  }
+
+  public void assertNoSuspected(ClusterMembership membership) {
+    List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
+    assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
+  }
+
+  private List<Address> getAddressesWithStatus(ClusterMembership membership, ClusterMemberStatus status) {
+    List<Address> addresses = new ArrayList<>();
+    for (ClusterMember member : membership.members()) {
+      if (member.status() == status) {
+        addresses.add(member.address());
+      }
+    }
+    return addresses;
   }
 }
