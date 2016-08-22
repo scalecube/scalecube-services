@@ -1,9 +1,11 @@
 package io.scalecube.cluster.gossip;
 
 import io.scalecube.transport.Address;
+import io.scalecube.transport.IListenable;
 import io.scalecube.transport.Message;
 
 import rx.Observable;
+import rx.Scheduler;
 
 import java.util.Collection;
 
@@ -13,21 +15,37 @@ import java.util.Collection;
  *
  * @author Anton Kharenko
  */
-public interface IGossipProtocol {
+public interface IGossipProtocol extends IListenable<Message> {
 
-  /** Starts running gossip protocol. After started it begins to receive and send gossip messages */
+  /**
+   * Starts running gossip protocol. After started it begins to receive and send gossip messages.
+   */
   void start();
 
-  /** Stops running gossip protocol and releases occupied resources. */
+  /**
+   * Stops running gossip protocol and releases occupied resources.
+   */
   void stop();
 
-  /** Spreads given message between cluster members. */
+  /**
+   * Spreads given message between cluster members.
+   */
   void spread(Message message);
 
-  /** Listens for gossips from other cluster members. */
-  Observable<Message> listen();
-
-  /** Updates list of cluster members among which should be spread gossips. */
+  /**
+   * Updates list of cluster members among which should be spread gossips.
+   */
   void setMembers(Collection<Address> members);
 
+  /**
+   * Listens for gossips from other cluster members.
+   */
+  @Override
+  Observable<Message> listen();
+
+  /**
+   * Listens for gossips from other cluster members.
+   */
+  @Override
+  Observable<Message> listen(Scheduler scheduler);
 }

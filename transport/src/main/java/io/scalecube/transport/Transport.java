@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
-import rx.schedulers.Schedulers;
+import rx.Scheduler;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
@@ -41,7 +41,6 @@ import java.net.InetAddress;
 import java.util.Collection;
 
 import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public final class Transport implements ITransport {
@@ -128,8 +127,6 @@ public final class Transport implements ITransport {
    * Starts to accept connections on local address.
    */
   private ListenableFuture<Transport> bind0() {
-    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
-
     // Resolve listen IP address
     final InetAddress listenAddress =
         Addressing.getLocalIpAddress(config.getListenAddress(), config.getListenInterface(), config.isPreferIPv6());
@@ -277,11 +274,15 @@ public final class Transport implements ITransport {
     bootstrapFactory.shutdown();
   }
 
-  @Nonnull
   @Override
-  public final Observable<Message> listen() {
+  public Observable<Message> listen() {
     checkState(!stopped, "Transport is stopped");
     return incomingMessagesSubject;
+  }
+
+  @Override
+  public Observable<Message> listen(Scheduler scheduler) {
+    return listen().observeOn(scheduler);
   }
 
   @Override

@@ -24,7 +24,6 @@ import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
@@ -38,7 +37,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class FailureDetector implements IFailureDetector {
   private static final Logger LOGGER = LoggerFactory.getLogger(FailureDetector.class);
@@ -66,8 +64,8 @@ public final class FailureDetector implements IFailureDetector {
 
   // State
 
+  private long period = 0;
   private volatile List<Address> members = new ArrayList<>();
-  private final AtomicInteger periodCounter = new AtomicInteger();
   private Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
 
   // Subscriptions
@@ -75,8 +73,7 @@ public final class FailureDetector implements IFailureDetector {
   private Subscriber<Message> onPingRequestSubscriber;
   private Subscriber<Message> onAskToPingRequestSubscriber;
   private Subscriber<Message> onTransitAckRequestSubscriber;
-  private Subject<FailureDetectorEvent, FailureDetectorEvent> subject =
-      new SerializedSubject<>(PublishSubject.<FailureDetectorEvent>create());
+  private Subject<FailureDetectorEvent, FailureDetectorEvent> subject = PublishSubject.create();
 
   // Scheduled
 
@@ -126,18 +123,18 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public void start() {
     onPingRequestSubscriber = Subscribers.create(new OnPingRequestAction());
-    transport.listen()
+    transport.listen(scheduler)
         .filter(PING_FILTER)
         .filter(targetFilter(transport.address()))
         .subscribe(onPingRequestSubscriber);
 
     onAskToPingRequestSubscriber = Subscribers.create(new OnAskToPingRequestAction());
-    transport.listen()
+    transport.listen(scheduler)
         .filter(PING_REQ_FILTER)
         .subscribe(onAskToPingRequestSubscriber);
 
     onTransitAckRequestSubscriber = Subscribers.create(new OnTransitAckRequestAction());
-    transport.listen()
+    transport.listen(scheduler)
         .filter(ACK_FILTER)
         .filter(ORIGINAL_ISSUER_FILTER)
         .subscribe(onTransitAckRequestSubscriber);
@@ -167,8 +164,13 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   @Override
-  public Observable<FailureDetectorEvent> listenStatus() {
+  public Observable<FailureDetectorEvent> listen() {
     return subject;
+  }
+
+  @Override
+  public Observable<FailureDetectorEvent> listen(Scheduler scheduler) {
+    return listen().observeOn(scheduler);
   }
 
   @Override
@@ -194,13 +196,13 @@ public final class FailureDetector implements IFailureDetector {
     }
 
     final Address localAddress = transport.address();
-    final String period = Integer.toString(periodCounter.incrementAndGet());
+    final String cid = Long.toString(this.period);
     PingData pingData = new PingData(localAddress, pingMember);
-    Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(period).build();
+    Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(cid).build();
     LOGGER.trace("Send Ping from {} to {}", localAddress, pingMember);
 
-    transport.listen()
-        .filter(ackFilter(period))
+    transport.listen(scheduler)
+        .filter(ackFilter(cid))
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)
         .timeout(config.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
@@ -215,14 +217,14 @@ public final class FailureDetector implements IFailureDetector {
           public void call(Throwable throwable) {
             LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now",
                 pingMember, config.getPingTimeout());
-            doPingReq(pingMember, period);
+            doPingReq(pingMember, cid);
           }
         }));
 
     transport.send(pingMember, pingMsg);
   }
 
-  private void doPingReq(final Address pingMember, String period) {
+  private void doPingReq(final Address pingMember, String cid) {
     final int timeout = config.getPingTime() - config.getPingTimeout();
     if (timeout <= 0) {
       LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})",
@@ -239,8 +241,8 @@ public final class FailureDetector implements IFailureDetector {
     }
 
     Address localAddress = transport.address();
-    transport.listen()
-        .filter(ackFilter(period))
+    transport.listen(scheduler)
+        .filter(ackFilter(cid))
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
@@ -260,7 +262,7 @@ public final class FailureDetector implements IFailureDetector {
         }));
 
     PingData pingReqData = new PingData(localAddress, pingMember);
-    Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(period).build();
+    Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(cid).build();
     for (Address pingReqMember : pingReqMembers) {
       LOGGER.trace("Send PingReq from {} to {}", localAddress, pingReqMember);
       transport.send(pingReqMember, pingReqMsg);
@@ -387,6 +389,7 @@ public final class FailureDetector implements IFailureDetector {
     @Override
     public void run() {
       try {
+        period++;
         doPing();
       } catch (Exception cause) {
         LOGGER.error("Unhandled exception: {}", cause, cause);

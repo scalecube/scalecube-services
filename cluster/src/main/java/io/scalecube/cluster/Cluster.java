@@ -5,7 +5,6 @@ import static com.google.common.util.concurrent.Futures.transform;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
-import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
@@ -19,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.Scheduler;
 
 import java.util.UUID;
 import java.util.concurrent.Executors;
@@ -161,6 +161,11 @@ public final class Cluster implements ICluster {
   }
 
   @Override
+  public Observable<Message> listen(Scheduler scheduler) {
+    return listen().observeOn(scheduler);
+  }
+
+  @Override
   public void spreadGossip(Message message) {
     gossipProtocol.spread(message);
   }
@@ -168,6 +173,11 @@ public final class Cluster implements ICluster {
   @Override
   public Observable<Message> listenGossips() {
     return gossipProtocol.listen();
+  }
+
+  @Override
+  public Observable<Message> listenGossips(Scheduler scheduler) {
+    return listenGossips().observeOn(scheduler);
   }
 
   @Override

@@ -103,10 +103,6 @@ final class BootstrapFactory {
     return envSupportEpoll && config.isEnableEpoll();
   }
 
-  public EventLoopGroup getWorkerGroup() {
-    return workerGroup;
-  }
-
   public void shutdown() {
     this.bossGroup.shutdownGracefully();
     this.workerGroup.shutdownGracefully();
