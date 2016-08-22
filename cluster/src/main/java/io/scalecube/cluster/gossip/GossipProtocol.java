@@ -38,7 +38,6 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -151,11 +150,6 @@ public final class GossipProtocol implements IGossipProtocol {
   @Override
   public Observable<Message> listen() {
     return subject;
-  }
-
-  @Override
-  public Observable<Message> listen(Executor executor) {
-    return listen(Schedulers.from(executor));
   }
 
   @Override

@@ -47,7 +47,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -183,11 +182,6 @@ public final class ClusterMembership implements IClusterMembership {
   @Override
   public Observable<ClusterMember> listen() {
     return subject;
-  }
-
-  @Override
-  public Observable<ClusterMember> listen(Executor executor) {
-    return listen(Schedulers.from(executor));
   }
 
   @Override

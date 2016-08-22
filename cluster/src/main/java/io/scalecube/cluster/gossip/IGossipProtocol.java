@@ -8,7 +8,6 @@ import rx.Observable;
 import rx.Scheduler;
 
 import java.util.Collection;
-import java.util.concurrent.Executor;
 
 /**
  * Gossip Protocol component responsible for spreading information (gossips) over the cluster members using
@@ -43,12 +42,6 @@ public interface IGossipProtocol extends IListenable<Message> {
    */
   @Override
   Observable<Message> listen();
-
-  /**
-   * Listens for gossips from other cluster members.
-   */
-  @Override
-  Observable<Message> listen(Executor executor);
 
   /**
    * Listens for gossips from other cluster members.

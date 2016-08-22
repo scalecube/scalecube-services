@@ -7,7 +7,6 @@ import rx.Observable;
 import rx.Scheduler;
 
 import java.util.Collection;
-import java.util.concurrent.Executor;
 
 /**
  * Failure Detector component responsible for monitoring availability of other members in the cluster. This interface is
@@ -49,12 +48,6 @@ public interface IFailureDetector extends IListenable<FailureDetectorEvent> {
    */
   @Override
   Observable<FailureDetectorEvent> listen();
-
-  /**
-   * Listens for detected cluster members status changes (SUSPECTED/TRUSTED).
-   */
-  @Override
-  Observable<FailureDetectorEvent> listen(Executor executor);
 
   /**
    * Listens for detected cluster members status changes (SUSPECTED/TRUSTED).

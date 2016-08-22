@@ -9,8 +9,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import rx.Observable;
 import rx.Scheduler;
 
-import java.util.concurrent.Executor;
-
 /**
  * Basic cluster interface which allows to join cluster, send message to other member, listen messages, gossip messages.
  * 
@@ -35,11 +33,6 @@ public interface ICluster extends IListenable<Message> {
    * Listens for gossips from other cluster members.
    */
   Observable<Message> listenGossips();
-
-  /**
-   * Listens for gossips from other cluster members.
-   */
-  Observable<Message> listenGossips(Executor executor);
 
   /**
    * Listens for gossips from other cluster members.

@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -167,11 +166,6 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public Observable<FailureDetectorEvent> listen() {
     return subject;
-  }
-
-  @Override
-  public Observable<FailureDetectorEvent> listen(Executor executor) {
-    return listen(Schedulers.from(executor));
   }
 
   @Override

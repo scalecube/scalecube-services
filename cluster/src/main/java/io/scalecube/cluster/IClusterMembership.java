@@ -7,7 +7,6 @@ import rx.Observable;
 import rx.Scheduler;
 
 import java.util.List;
-import java.util.concurrent.Executor;
 
 /**
  * Cluster Membership Protocol component responsible for managing information about existing members of the cluster.
@@ -49,12 +48,6 @@ public interface IClusterMembership extends IListenable<ClusterMember> {
    */
   @Override
   Observable<ClusterMember> listen();
-
-  /**
-   * Listen status updates on registered cluster members (except local one).
-   */
-  @Override
-  Observable<ClusterMember> listen(Executor executor);
 
   /**
    * Listen status updates on registered cluster members (except local one).

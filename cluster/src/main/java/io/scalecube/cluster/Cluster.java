@@ -19,10 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 import rx.Scheduler;
-import rx.schedulers.Schedulers;
 
 import java.util.UUID;
-import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -163,11 +161,6 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public Observable<Message> listen(Executor executor) {
-    return listen(Schedulers.from(executor));
-  }
-
-  @Override
   public Observable<Message> listen(Scheduler scheduler) {
     return listen().observeOn(scheduler);
   }
@@ -180,11 +173,6 @@ public final class Cluster implements ICluster {
   @Override
   public Observable<Message> listenGossips() {
     return gossipProtocol.listen();
-  }
-
-  @Override
-  public Observable<Message> listenGossips(Executor executor) {
-    return listenGossips(Schedulers.from(executor));
   }
 
   @Override

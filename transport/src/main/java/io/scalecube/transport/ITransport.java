@@ -2,7 +2,11 @@ package io.scalecube.transport;
 
 import com.google.common.util.concurrent.SettableFuture;
 
+import rx.Observable;
+import rx.Scheduler;
+
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 /**
@@ -54,4 +58,32 @@ public interface ITransport extends IListenable<Message> {
    * @throws IllegalArgumentException if {@code message} or {@code address} is null
    */
   void send(@CheckForNull Address address, @CheckForNull Message message, @Nullable SettableFuture<Void> promise);
+
+  /**
+   * Returns stream of received messages. For each observers subscribed to the returned observable:
+   * <ul>
+   * <li>{@code rx.Observer#onNext(Object)} will be invoked when some message arrived to current transport</li>
+   * <li>{@code rx.Observer#onCompleted()} will be invoked when there is no possibility that server will receive new
+   * message observable for already closed transport</li>
+   * <li>{@code rx.Observer#onError(Throwable)} will not be invoked</li>
+   * </ul>
+   *
+   * @return Observable which emit received messages or complete event when transport is closed
+   */
+  @Nonnull
+  Observable<Message> listen();
+
+  /**
+   * Returns stream of received messages. For each observers subscribed to the returned observable:
+   * <ul>
+   * <li>{@code rx.Observer#onNext(Object)} will be invoked when some message arrived to current transport</li>
+   * <li>{@code rx.Observer#onCompleted()} will be invoked when there is no possibility that server will receive new
+   * message observable for already closed transport</li>
+   * <li>{@code rx.Observer#onError(Throwable)} will not be invoked</li>
+   * </ul>
+   *
+   * @return Observable which emit received messages or complete event when transport is closed
+   */
+  @Nonnull
+  Observable<Message> listen(Scheduler scheduler);
 }
