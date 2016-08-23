@@ -5,9 +5,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportConfig;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -23,10 +26,10 @@ public final class ClusterConfig {
 
   public static final ClusterConfig DEFAULT = builder().build();
 
-  public static final String DEFAULT_SEED_MEMBERS = "";
+  public static final List<Address> DEFAULT_SEED_MEMBERS = Collections.emptyList();
   public static final Map<String, String> DEFAULT_METADATA = new HashMap<>();
 
-  private final String seedMembers;
+  private final List<Address> seedMembers;
   private final Map<String, String> metadata;
   private final TransportConfig transportConfig;
   private final MembershipConfig membershipConfig;
@@ -46,7 +49,7 @@ public final class ClusterConfig {
     return new Builder();
   }
 
-  public String getSeedMembers() {
+  public List<Address> getSeedMembers() {
     return seedMembers;
   }
 
@@ -83,7 +86,7 @@ public final class ClusterConfig {
 
   public static final class Builder {
 
-    private String seedMembers = DEFAULT_SEED_MEMBERS;
+    private List<Address> seedMembers = DEFAULT_SEED_MEMBERS;
     private Map<String, String> metadata = DEFAULT_METADATA;
 
     private TransportConfig transportConfig = TransportConfig.DEFAULT;
@@ -98,7 +101,7 @@ public final class ClusterConfig {
       return this;
     }
 
-    public Builder seedMembers(String seedMembers) {
+    public Builder seedMembers(List<Address> seedMembers) {
       this.seedMembers = seedMembers;
       return this;
     }

@@ -4,9 +4,12 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.membership.MembershipConfig;
+import io.scalecube.transport.Address;
 
 import com.google.common.collect.ImmutableMap;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -23,20 +26,16 @@ public class ClusterJoinExamples {
     // Start seed member
     ICluster clusterNode1 = Cluster.joinAwait();
 
-    // Define seed member address
-    String seedMember = clusterNode1.address().toString();
-
-    // Join member to cluster
-    ICluster clusterNode2 = Cluster.joinAwait(seedMember);
+    // Join another member to cluster
+    ICluster clusterNode2 = Cluster.joinAwait(clusterNode1.address());
 
     // Start another member with metadata
     Map<String, String> metadata = ImmutableMap.of("alias", "another member");
-    ClusterConfig configWithMetadata = ClusterConfig.builder().seedMembers(seedMember).metadata(metadata).build();
-    ICluster clusterNode3 = Cluster.joinAwait(configWithMetadata);
+    ICluster clusterNode3 = Cluster.joinAwait(metadata, clusterNode1.address());
 
     // Start cluster member in separate cluster (separate sync group)
     ClusterConfig configWithSyncGroup = ClusterConfig.builder()
-        .seedMembers(seedMember)
+        .seedMembers(Collections.singletonList(clusterNode1.address()))
         .membershipConfig(MembershipConfig.builder().syncGroup("cluster-B").build())
         .build();
     ICluster anotherClusterNode = Cluster.joinAwait(configWithSyncGroup);

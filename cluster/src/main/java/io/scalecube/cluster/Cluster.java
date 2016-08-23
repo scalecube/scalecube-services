@@ -11,6 +11,7 @@ import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
 import com.google.common.base.Function;
+import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -21,7 +22,11 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -58,8 +63,12 @@ public final class Cluster implements ICluster {
     return joinAwait(ClusterConfig.DEFAULT);
   }
 
-  public static ICluster joinAwait(String seedMembers) {
-    return joinAwait(ClusterConfig.builder().seedMembers(seedMembers).build());
+  public static ICluster joinAwait(Address... seedMembers) {
+    return joinAwait(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).build());
+  }
+
+  public static ICluster joinAwait(Map<String, String> metadata, Address... seedMembers) {
+    return joinAwait(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).metadata(metadata).build());
   }
 
   /**
@@ -77,8 +86,12 @@ public final class Cluster implements ICluster {
     return join(ClusterConfig.DEFAULT);
   }
 
-  public static ListenableFuture<ICluster> join(String seedMembers) {
-    return join(ClusterConfig.builder().seedMembers(seedMembers).build());
+  public static ListenableFuture<ICluster> join(Address... seedMembers) {
+    return join(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).build());
+  }
+
+  public static ListenableFuture<ICluster> join(Map<String, String> metadata, Address... seedMembers) {
+    return join(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).metadata(metadata).build());
   }
 
   public static ListenableFuture<ICluster> join(final ClusterConfig config) {

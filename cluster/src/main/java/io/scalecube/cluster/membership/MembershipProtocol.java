@@ -144,24 +144,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
     return gossipProtocol;
   }
 
-  /**
-   * Sets seed members from the formatted string. Members are separated by comma and have next format {@code host:port}.
-   * If member format is incorrect it will be skipped.
-   */
-  public void setSeedMembers(String seedMembers) {
-    List<Address> seedMembersList = new ArrayList<>();
-    for (String token : new HashSet<>(Splitter.on(',').splitToList(seedMembers))) {
-      if (token.length() != 0) {
-        try {
-          seedMembersList.add(Address.from(token.trim()));
-        } catch (IllegalArgumentException e) {
-          LOGGER.warn("Skipped setting wellknown_member, caught: " + e);
-        }
-      }
-    }
-    setSeedMembers(seedMembersList);
-  }
-
   public void setSeedMembers(Collection<Address> seedMembers) {
     // filter duplicates and local addresses
     Set<Address> seedMembersSet = new HashSet<>(seedMembers);

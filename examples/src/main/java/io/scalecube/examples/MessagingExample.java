@@ -24,7 +24,6 @@ public class MessagingExample {
   public static void main(String[] args) throws Exception {
     // Start cluster node A
     final ICluster clusterA = Cluster.joinAwait();
-    String seedAddress = clusterA.address().toString();
 
     // Listen to greetings messages and respond to them
     clusterA.listen().filter(Greetings.MSG_FILTER).subscribe(new Action1<Message>() {
@@ -42,7 +41,7 @@ public class MessagingExample {
 
 
     // Start cluster node B that joins node A as a seed node
-    ICluster clusterB = Cluster.joinAwait(seedAddress);
+    ICluster clusterB = Cluster.joinAwait(clusterA.address());
 
     // Listen for incoming greeting messages
     clusterB.listen().filter(Greetings.MSG_FILTER).subscribe(new Action1<Message>() {

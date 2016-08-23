@@ -1,7 +1,6 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
@@ -11,7 +10,7 @@ import com.google.common.collect.ImmutableMap;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-import java.util.List;
+import java.util.Map;
 
 /**
  * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach
@@ -29,7 +28,7 @@ public class ClusterMetadataExample {
   public static final Func1<Message, Boolean> MESSAGE_PREDICATE = new Func1<Message, Boolean>() {
     @Override
     public Boolean call(Message message) {
-      return MESSAGE_DATA.equals(message.data());
+      return MESSAGE_DATA.contains("Joe");
     }
   };
 
@@ -37,34 +36,31 @@ public class ClusterMetadataExample {
    * Main method.
    */
   public static void main(String[] args) throws Exception {
-    // Start seed member
-    ICluster seedCluster = Cluster.joinAwait();
-    String seedAddress = seedCluster.address().toString();
+    // Start seed cluster instance
+    ICluster seedClusterInstance = Cluster.joinAwait();
 
-    // Define the custom configuration meta data with alias field.
-    ClusterConfig config = ClusterConfig.builder()
-        .seedMembers(seedAddress)
-        .metadata(ImmutableMap.of("alias", "Joe"))
-        .build();
+    // Join Joe's cluster instance with metadata to seed cluster instance
+    Map<String, String> metadata = ImmutableMap.of("alias", "Joe");
+    ICluster joeClusterInstance = Cluster.joinAwait(metadata, seedClusterInstance.address());
 
-    // configure cluster 2 with the metadata and attach cluster 2 as Joe and join seed
-    ICluster joeCluster = Cluster.joinAwait(config);
+    // Listen for messages to Joe on Joe's cluster insatnce and print them to system out
+    joeClusterInstance.listen()
+        .filter(new Func1<Message, Boolean>() {
+          @Override
+          public Boolean call(Message message) {
+            return message.data() instanceof String && ((String) message.data()).contains("Joe");
+          }
+        }).subscribe(new Action1<Message>() {
+          @Override
+          public void call(Message message) {
+            System.out.println(message.data());
+          }
+        });
 
-    // filter and subscribe on hello/joe and print the welcome message.
-    joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        System.out.println("Hello Joe");
-      }
-    });
-
-    // get the list of members in the cluster and locate Joe tell Hello/Joe
-    List<ClusterMember> members = seedCluster.members();
-    for (ClusterMember m : members) {
-      if (m.metadata().containsKey("alias")) {
-        if (m.metadata().get("alias").equals("Joe")) {
-          seedCluster.send(m, Message.fromData(MESSAGE_DATA));
-        }
+    // Get the list of members in the cluster, locate Joe and send hello message
+    for (ClusterMember member : seedClusterInstance.otherMembers()) {
+      if ("Joe".equals(member.metadata().get("alias"))) {
+        seedClusterInstance.send(member, Message.fromData("Hello Joe"));
       }
     }
   }

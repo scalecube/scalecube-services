@@ -13,14 +13,13 @@ public class ClusterIT {
   public void testJoinDynamicPort() throws Exception {
     // Start seed node
     ICluster seedNode = Cluster.joinAwait();
-    String seedNodeAddress = seedNode.address().toString();
 
     // Start other nodes
     int membersNum = 10;
     long start = System.currentTimeMillis();
     List<ICluster> otherNodes = new ArrayList<>();
     for (int i = 0; i < membersNum; i++) {
-      otherNodes.add(Cluster.joinAwait(seedNodeAddress));
+      otherNodes.add(Cluster.joinAwait(seedNode.address()));
     }
     long end = System.currentTimeMillis();
     System.out.println("Time: " + (end - start) + " millis");
