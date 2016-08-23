@@ -5,11 +5,13 @@ import static com.google.common.util.concurrent.Futures.transform;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
-import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.cluster.membership.MembershipProtocol;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
 import com.google.common.base.Function;
+import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -20,6 +22,11 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -42,34 +49,26 @@ public final class Cluster implements ICluster {
   // Cluster components
   private Transport transport;
   private FailureDetector failureDetector;
-  private GossipProtocol gossipProtocol;
-  private ClusterMembership clusterMembership;
+  private GossipProtocol gossip;
+  private MembershipProtocol membership;
 
   private Cluster(ClusterConfig config) {
     checkNotNull(config);
-    checkNotNull(config.transportConfig);
-    checkNotNull(config.gossipProtocolConfig);
-    checkNotNull(config.failureDetectorConfig);
-    checkNotNull(config.membershipConfig);
     this.config = config;
     this.memberId = UUID.randomUUID().toString();
     LOGGER.info("Cluster instance '{}' created with configuration: {}", memberId, config);
   }
 
   public static ICluster joinAwait() {
-    return joinAwait(ClusterConfig.newInstance());
+    return joinAwait(ClusterConfig.defaultConfig());
   }
 
-  public static ICluster joinAwait(int port) {
-    return joinAwait(ClusterConfig.newInstance().port(port));
+  public static ICluster joinAwait(Address... seedMembers) {
+    return joinAwait(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).build());
   }
 
-  public static ICluster joinAwait(String seedMembers) {
-    return joinAwait(ClusterConfig.newInstance().seedMembers(seedMembers));
-  }
-
-  public static ICluster joinAwait(int port, String seedMembers) {
-    return joinAwait(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
+  public static ICluster joinAwait(Map<String, String> metadata, Address... seedMembers) {
+    return joinAwait(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).metadata(metadata).build());
   }
 
   /**
@@ -84,19 +83,15 @@ public final class Cluster implements ICluster {
   }
 
   public static ListenableFuture<ICluster> join() {
-    return join(ClusterConfig.newInstance());
+    return join(ClusterConfig.defaultConfig());
   }
 
-  public static ListenableFuture<ICluster> join(int port) {
-    return join(ClusterConfig.newInstance().port(port));
+  public static ListenableFuture<ICluster> join(Address... seedMembers) {
+    return join(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).build());
   }
 
-  public static ListenableFuture<ICluster> join(int port, String seedMembers) {
-    return join(ClusterConfig.newInstance().port(port).seedMembers(seedMembers));
-  }
-
-  public static ListenableFuture<ICluster> join(String seedMembers) {
-    return join(ClusterConfig.newInstance().seedMembers(seedMembers));
+  public static ListenableFuture<ICluster> join(Map<String, String> metadata, Address... seedMembers) {
+    return join(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).metadata(metadata).build());
   }
 
   public static ListenableFuture<ICluster> join(final ClusterConfig config) {
@@ -104,8 +99,8 @@ public final class Cluster implements ICluster {
   }
 
   private ListenableFuture<ICluster> join0() {
-    LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.seedMembers);
-    ListenableFuture<Transport> transportFuture = Transport.bind(config.transportConfig);
+    LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.getSeedMembers());
+    ListenableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
     ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Transport, Void>() {
       @Override
       public ListenableFuture<Void> apply(@Nullable Transport input) throws Exception {
@@ -113,36 +108,37 @@ public final class Cluster implements ICluster {
         transport = input;
 
         // Init gossip protocol component
-        gossipProtocol = new GossipProtocol(memberId, transport, config.gossipProtocolConfig);
+        gossip = new GossipProtocol(memberId, transport, config.getGossipConfig());
 
         // Init failure detector component
-        failureDetector = new FailureDetector(transport, config.failureDetectorConfig);
+        failureDetector = new FailureDetector(transport, config.getFailureDetectorConfig());
 
         // Init cluster membership component
-        clusterMembership = new ClusterMembership(memberId, transport);
-        clusterMembership.setFailureDetector(failureDetector);
-        clusterMembership.setGossipProtocol(gossipProtocol);
-        clusterMembership.setLocalMetadata(config.metadata);
-        clusterMembership.setSeedMembers(config.seedMembers);
-        clusterMembership.setSyncTime(config.membershipConfig.getSyncTime());
-        clusterMembership.setSyncTimeout(config.membershipConfig.getSyncTimeout());
-        clusterMembership.setSyncGroup(config.membershipConfig.getSyncGroup());
-        clusterMembership.setMaxSuspectTime(config.membershipConfig.getMaxSuspectTime());
-        clusterMembership.setMaxShutdownTime(config.membershipConfig.getMaxShutdownTime());
+        membership = new MembershipProtocol(memberId, transport, config.getMembershipConfig());
+        membership.setFailureDetector(failureDetector);
+        membership.setGossipProtocol(gossip);
 
-        // Starte components
+        membership.setLocalMetadata(config.getMetadata());
+        membership.setSeedMembers(config.getSeedMembers());
+
+        // Start components
         failureDetector.start();
-        gossipProtocol.start();
-        return clusterMembership.start();
+        gossip.start();
+        return membership.start();
       }
     });
     return transform(clusterFuture, new Function<Void, ICluster>() {
       @Override
       public ICluster apply(@Nullable Void param) {
-        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, clusterMembership.members());
+        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, membership.members());
         return Cluster.this;
       }
     });
+  }
+
+  @Override
+  public Address address() {
+    return transport.address();
   }
 
   @Override
@@ -151,46 +147,77 @@ public final class Cluster implements ICluster {
   }
 
   @Override
+  public void send(Address address, Message message) {
+    transport.send(address, message);
+  }
+
+  @Override
   public void send(ClusterMember member, Message message, SettableFuture<Void> promise) {
     transport.send(member.address(), message, promise);
   }
 
   @Override
+  public void send(Address address, Message message, SettableFuture<Void> promise) {
+    transport.send(address, message, promise);
+  }
+
+  @Override
   public Observable<Message> listen() {
+    // TODO: Filter system messages (gossips, syncs, pings etc.) so only application level messages will be exposed
     return transport.listen();
   }
 
   @Override
   public void spreadGossip(Message message) {
-    gossipProtocol.spread(message);
+    gossip.spread(message);
   }
 
   @Override
   public Observable<Message> listenGossips() {
-    return gossipProtocol.listen();
+    return gossip.listen();
   }
 
   @Override
-  public IClusterMembership membership() {
-    return clusterMembership;
+  public List<ClusterMember> members() {
+    return membership.members();
   }
 
   @Override
-  public ListenableFuture<Void> leave() {
+  public ClusterMember localMember() {
+    return membership.localMember();
+  }
+
+  @Override
+  public ClusterMember member(String id) {
+    return membership.member(id);
+  }
+
+  @Override
+  public ClusterMember member(Address address) {
+    return membership.member(address);
+  }
+
+  @Override
+  public List<ClusterMember> otherMembers() {
+    return membership.otherMembers();
+  }
+
+  @Override
+  public ListenableFuture<Void> shutdown() {
     LOGGER.info("Cluster instance '{}' leaving cluster", memberId);
 
     // Notify cluster members about graceful shutdown of current member
-    clusterMembership.leave();
+    membership.leave();
 
     // Wait for some time until 'leave' gossip start to spread through the cluster before stopping cluster components
     final SettableFuture<Void> transportStoppedFuture = SettableFuture.create();
     final ScheduledExecutorService stopExecutor = Executors.newSingleThreadScheduledExecutor();
-    long delay = 3 * config.gossipProtocolConfig.getGossipTime(); // wait for 3 gossip periods before stopping
+    long delay = 3 * config.getGossipConfig().getGossipTime(); // wait for 3 gossip periods before stopping
     stopExecutor.schedule(new Runnable() {
       @Override
       public void run() {
-        clusterMembership.stop();
-        gossipProtocol.stop();
+        membership.stop();
+        gossip.stop();
         failureDetector.stop();
         transport.stop(transportStoppedFuture);
       }

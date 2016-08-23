@@ -1,10 +1,16 @@
 package io.scalecube.cluster;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
-import io.scalecube.cluster.gossip.GossipProtocolConfig;
+import io.scalecube.cluster.gossip.GossipConfig;
+import io.scalecube.cluster.membership.MembershipConfig;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportConfig;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,211 +18,123 @@ import java.util.Map;
  * 
  * @see MembershipConfig
  * @see FailureDetectorConfig
- * @see GossipProtocolConfig
+ * @see GossipConfig
  *
  * @author Anton Kharenko
  */
-public class ClusterConfig {
+public final class ClusterConfig {
 
-  public static final int DEFAULT_PORT = 4801;
-  public static final int DEFAULT_PORT_COUNT = 100;
-  public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
-  public static final MembershipConfig DEFAULT_MEMBERSHIP_CONFIG = new MembershipConfig();
+  public static final List<Address> DEFAULT_SEED_MEMBERS = Collections.emptyList();
+  public static final Map<String, String> DEFAULT_METADATA = new HashMap<>();
+  private final List<Address> seedMembers;
+  private final Map<String, String> metadata;
+  private final TransportConfig transportConfig;
+  private final MembershipConfig membershipConfig;
+  private final FailureDetectorConfig failureDetectorConfig;
+  private final GossipConfig gossipConfig;
 
-  String seedMembers = "";
-  int port = DEFAULT_PORT;
-  int portCount = DEFAULT_PORT_COUNT;
-  boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
-  Map<String, String> metadata = new HashMap<>();
-  TransportConfig transportConfig = TransportConfig.DEFAULT;
-  MembershipConfig membershipConfig = DEFAULT_MEMBERSHIP_CONFIG;
-  FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.DEFAULT;
-  GossipProtocolConfig gossipProtocolConfig = GossipProtocolConfig.DEFAULT;
-
-  private ClusterConfig() {}
-
-  public static ClusterConfig newInstance() {
-    return new ClusterConfig();
+  private ClusterConfig(Builder builder) {
+    this.seedMembers = builder.seedMembers;
+    this.metadata = builder.metadata;
+    this.transportConfig = builder.transportConfig;
+    this.membershipConfig = builder.membershipConfig;
+    this.failureDetectorConfig = builder.failureDetectorConfig;
+    this.gossipConfig = builder.gossipConfig;
   }
 
-  public void setSeedMembers(String seedMembers) {
-    this.seedMembers = seedMembers;
+  public static Builder builder() {
+    return new Builder();
   }
 
-  public void setPort(int port) {
-    this.port = port;
+  public static ClusterConfig defaultConfig() {
+    return builder().build();
   }
 
-  public void setPortCount(int portCount) {
-    this.portCount = portCount;
+  public List<Address> getSeedMembers() {
+    return seedMembers;
   }
 
-  public void setPortAutoIncrement(boolean portAutoIncrement) {
-    this.portAutoIncrement = portAutoIncrement;
+  public Map<String, String> getMetadata() {
+    return metadata;
   }
 
-  public void setMetadata(Map<String, String> metadata) {
-    this.metadata = metadata;
+  public TransportConfig getTransportConfig() {
+    return transportConfig;
   }
 
-  public void setMembershipConfig(MembershipConfig membershipConfig) {
-    this.membershipConfig = membershipConfig;
+  public MembershipConfig getMembershipConfig() {
+    return membershipConfig;
   }
 
-  public void setFailureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
-    this.failureDetectorConfig = failureDetectorConfig;
+  public FailureDetectorConfig getFailureDetectorConfig() {
+    return failureDetectorConfig;
   }
 
-  public void setGossipProtocolConfig(GossipProtocolConfig gossipProtocolConfig) {
-    this.gossipProtocolConfig = gossipProtocolConfig;
-  }
-
-  public void setTransportConfig(TransportConfig transportConfig) {
-    this.transportConfig = transportConfig;
-  }
-
-  public ClusterConfig metadata(Map<String, String> metadata) {
-    setMetadata(metadata);
-    return this;
-  }
-
-  public ClusterConfig seedMembers(String seedMembers) {
-    setSeedMembers(seedMembers);
-    return this;
-  }
-
-  public ClusterConfig port(int port) {
-    setPort(port);
-    return this;
-  }
-
-  public ClusterConfig portCount(int portCount) {
-    setPortCount(portCount);
-    return this;
-  }
-
-  public ClusterConfig portAutoIncrement(boolean portAutoIncrement) {
-    setPortAutoIncrement(portAutoIncrement);
-    return this;
-  }
-
-  public ClusterConfig membershipConfig(MembershipConfig membershipConfig) {
-    setMembershipConfig(membershipConfig);
-    return this;
-  }
-
-  public ClusterConfig failureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
-    setFailureDetectorConfig(failureDetectorConfig);
-    return this;
-  }
-
-  public ClusterConfig gossipProtocolConfig(GossipProtocolConfig gossipProtocolConfig) {
-    setGossipProtocolConfig(gossipProtocolConfig);
-    return this;
-  }
-
-  public ClusterConfig transportConfig(TransportConfig transportSetting) {
-    setTransportConfig(transportSetting);
-    return this;
+  public GossipConfig getGossipConfig() {
+    return gossipConfig;
   }
 
   @Override
   public String toString() {
     return "ClusterConfig{seedMembers='" + seedMembers + '\''
-        + ", port=" + port
-        + ", portCount=" + portCount
-        + ", portAutoIncrement=" + portAutoIncrement
         + ", metadata=" + metadata
         + ", transportConfig=" + transportConfig
         + ", membershipConfig=" + membershipConfig
         + ", failureDetectorConfig=" + failureDetectorConfig
-        + ", gossipProtocolConfig=" + gossipProtocolConfig
+        + ", gossipProtocolConfig=" + gossipConfig
         + '}';
   }
 
-  public static class MembershipConfig {
+  public static final class Builder {
 
-    public static final int DEFAULT_SYNC_TIME = 30 * 1000;
-    public static final int DEFAULT_SYNC_TIMEOUT = 3 * 1000;
-    public static final int DEFAULT_MAX_SUSPECT_TIME = 60 * 1000;
-    public static final int DEFAULT_MAX_SHUTDOWN_TIME = 60 * 1000;
-    public static final String DEFAULT_SYNC_GROUP = "default";
+    private List<Address> seedMembers = DEFAULT_SEED_MEMBERS;
+    private Map<String, String> metadata = DEFAULT_METADATA;
 
-    private int syncTime = DEFAULT_SYNC_TIME;
-    private int syncTimeout = DEFAULT_SYNC_TIMEOUT;
-    private int maxSuspectTime = DEFAULT_MAX_SUSPECT_TIME;
-    private int maxShutdownTime = DEFAULT_MAX_SHUTDOWN_TIME;
-    private String syncGroup = DEFAULT_SYNC_GROUP;
+    private TransportConfig transportConfig = TransportConfig.defaultConfig();
+    private MembershipConfig membershipConfig = MembershipConfig.defaultConfig();
+    private FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.defaultConfig();
+    private GossipConfig gossipConfig = GossipConfig.defaultConfig();
 
-    public MembershipConfig() {}
+    private Builder() {}
 
-    /**
-     * Creates new cluster membership settings
-     * 
-     * @param syncTime time interval in milliseconds between two sync messages.
-     * @param syncTimeout waiting time in milliseconds for the response to sync message.
-     * @param maxSuspectTime waiting time interval in milliseconds after suspected event when node will not be removed
-     * @param maxShutdownTime waiting time interval in milliseconds after shutdown event when node will not be removed
-     * @param syncGroup cluster's sync group. Members with different groups will form different clusters.
-     */
-    public MembershipConfig(int syncTime, int syncTimeout, int maxSuspectTime, int maxShutdownTime,
-                            String syncGroup) {
-      this.syncTime = syncTime;
-      this.syncTimeout = syncTimeout;
-      this.maxSuspectTime = maxSuspectTime;
-      this.maxShutdownTime = maxShutdownTime;
-      this.syncGroup = syncGroup;
+    public Builder metadata(Map<String, String> metadata) {
+      this.metadata = metadata;
+      return this;
     }
 
-    public int getSyncTime() {
-      return syncTime;
+    public Builder seedMembers(List<Address> seedMembers) {
+      this.seedMembers = seedMembers;
+      return this;
     }
 
-    public void setSyncTime(int syncTime) {
-      this.syncTime = syncTime;
+    public Builder membershipConfig(MembershipConfig membershipConfig) {
+      checkNotNull(membershipConfig);
+      this.membershipConfig = membershipConfig;
+      return this;
     }
 
-    public int getSyncTimeout() {
-      return syncTimeout;
+    public Builder transportConfig(TransportConfig transportConfig) {
+      checkNotNull(transportConfig);
+      this.transportConfig = transportConfig;
+      return this;
     }
 
-    public void setSyncTimeout(int syncTimeout) {
-      this.syncTimeout = syncTimeout;
+    public Builder gossipConfig(GossipConfig gossipConfig) {
+      checkNotNull(gossipConfig);
+      this.gossipConfig = gossipConfig;
+      return this;
     }
 
-    public int getMaxSuspectTime() {
-      return maxSuspectTime;
+    public Builder failureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
+      checkNotNull(failureDetectorConfig);
+      this.failureDetectorConfig = failureDetectorConfig;
+      return this;
     }
 
-    public void setMaxSuspectTime(int maxSuspectTime) {
-      this.maxSuspectTime = maxSuspectTime;
+    public ClusterConfig build() {
+      return new ClusterConfig(this);
     }
 
-    public int getMaxShutdownTime() {
-      return maxShutdownTime;
-    }
-
-    public void setMaxShutdownTime(int maxShutdownTime) {
-      this.maxShutdownTime = maxShutdownTime;
-    }
-
-    public String getSyncGroup() {
-      return syncGroup;
-    }
-
-    public void setSyncGroup(String syncGroup) {
-      this.syncGroup = syncGroup;
-    }
-
-    @Override
-    public String toString() {
-      return "MembershipConfigF{syncTime=" + syncTime
-          + ", syncTimeout=" + syncTimeout
-          + ", maxSuspectTime=" + maxSuspectTime
-          + ", maxShutdownTime=" + maxShutdownTime
-          + ", syncGroup='" + syncGroup + '\''
-          + '}';
-    }
   }
 
 }

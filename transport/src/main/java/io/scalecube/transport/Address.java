@@ -32,12 +32,12 @@ public final class Address {
    * Parses given string to create address instance. For localhost variant host may come in: {@code 127.0.0.1},
    * {@code localhost}; when localhost case detected then node's public IP address would be resolved.
    *
-   * @param input must come in form {@code host:port}
+   * @param hostAndPort must come in form {@code host:port}
    */
-  public static Address from(@CheckForNull String input) {
-    checkArgument(!Strings.isNullOrEmpty(input));
+  public static Address from(@CheckForNull String hostAndPort) {
+    checkArgument(!Strings.isNullOrEmpty(hostAndPort));
 
-    Matcher matcher = ADDRESS_FORMAT.matcher(input);
+    Matcher matcher = ADDRESS_FORMAT.matcher(hostAndPort);
     if (!matcher.find()) {
       throw new IllegalArgumentException();
     }

@@ -1,8 +1,6 @@
 package io.scalecube.cluster.gossip;
 
-public final class GossipProtocolConfig {
-
-  public static final GossipProtocolConfig DEFAULT = builder().build();
+public final class GossipConfig {
 
   public static final int DEFAULT_MAX_GOSSIP_SENT = 2;
   public static final int DEFAULT_GOSSIP_TIME = 300;
@@ -12,10 +10,14 @@ public final class GossipProtocolConfig {
   private final int gossipTime;
   private final int maxMembersToSelect;
 
-  private GossipProtocolConfig(Builder builder) {
+  private GossipConfig(Builder builder) {
     this.maxGossipSent = builder.maxGossipSent;
     this.gossipTime = builder.gossipTime;
     this.maxMembersToSelect = builder.maxMembersToSelect;
+  }
+
+  public static GossipConfig defaultConfig() {
+    return builder().build();
   }
 
   public static Builder builder() {
@@ -65,8 +67,8 @@ public final class GossipProtocolConfig {
       return this;
     }
 
-    public GossipProtocolConfig build() {
-      return new GossipProtocolConfig(this);
+    public GossipConfig build() {
+      return new GossipConfig(this);
     }
   }
 }

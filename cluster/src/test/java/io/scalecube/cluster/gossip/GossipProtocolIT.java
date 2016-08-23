@@ -21,7 +21,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class GossipEmulationIT {
+public class GossipProtocolIT {
 
   @Test
   public void test10WithoutLostSmallDelay5Sec() throws Exception {

@@ -1,6 +1,5 @@
 package io.scalecube.transport;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import rx.Observable;

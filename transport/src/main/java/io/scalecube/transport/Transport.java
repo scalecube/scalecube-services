@@ -26,8 +26,6 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +48,7 @@ public final class Transport implements ITransport {
 
   private final TransportConfig config;
 
-  private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
+  private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.<Message>create().toSerialized();
   private final Memoizer<Address, ChannelFuture> outgoingChannels;
 
   // Pipeline
@@ -60,7 +58,6 @@ public final class Transport implements ITransport {
   private final MessageToByteEncoder<Message> serializerHandler;
   private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
   private final MessageReceiverHandler messageHandler;
-  private final LoggingHandler loggingHandler;
   private final NetworkEmulatorHandler networkEmulatorHandler;
 
   private Address address;
@@ -72,23 +69,17 @@ public final class Transport implements ITransport {
     this.config = config;
     this.serializerHandler = new MessageSerializerHandler();
     this.deserializerHandler = new MessageDeserializerHandler();
-    LogLevel logLevel = resolveLogLevel(config.getLogLevel());
-    this.loggingHandler = logLevel != null ? new LoggingHandler(logLevel) : null;
     this.networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
     this.messageHandler = new MessageReceiverHandler(incomingMessagesSubject);
     this.bootstrapFactory = new BootstrapFactory(config);
     this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
 
-  private LogLevel resolveLogLevel(String logLevel) {
-    return (logLevel != null && !logLevel.equals("OFF")) ? LogLevel.valueOf(logLevel) : null;
-  }
-
   /**
    * Init transport with the default configuration synchronously. Starts to accept connections on local address.
    */
   public static Transport bindAwait() {
-    return bindAwait(TransportConfig.DEFAULT);
+    return bindAwait(TransportConfig.defaultConfig());
   }
 
   /**
@@ -114,7 +105,7 @@ public final class Transport implements ITransport {
    * Init transport with the default configuration asynchronously. Starts to accept connections on local address.
    */
   public static ListenableFuture<Transport> bind() {
-    return bind(TransportConfig.DEFAULT);
+    return bind(TransportConfig.defaultConfig());
   }
 
   /**
@@ -150,10 +141,10 @@ public final class Transport implements ITransport {
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", listenAddress);
+          LOGGER.info("Bound to: {}", address);
           result.set(Transport.this);
         } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", listenAddress, channelFuture.cause());
+          LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
           result.setException(channelFuture.cause());
         }
       }
@@ -281,7 +272,7 @@ public final class Transport implements ITransport {
   @Override
   public final Observable<Message> listen() {
     checkState(!stopped, "Transport is stopped");
-    return incomingMessagesSubject;
+    return incomingMessagesSubject.asObservable();
   }
 
   @Override
@@ -368,9 +359,6 @@ public final class Transport implements ITransport {
       ChannelPipeline pipeline = channel.pipeline();
       pipeline.addLast(new ProtobufVarint32FrameDecoder());
       pipeline.addLast(deserializerHandler);
-      if (loggingHandler != null) {
-        pipeline.addLast(loggingHandler);
-      }
       pipeline.addLast(messageHandler);
       pipeline.addLast(exceptionHandler);
     }
@@ -397,9 +385,6 @@ public final class Transport implements ITransport {
       });
       pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
       pipeline.addLast(serializerHandler);
-      if (loggingHandler != null) {
-        pipeline.addLast(loggingHandler);
-      }
       if (networkEmulatorHandler != null) {
         pipeline.addLast(networkEmulatorHandler);
       }

@@ -10,8 +10,8 @@
 
     <name>ScaleCube</name>
     <description>
-        ScaleCube is a microservices framework for the rapid development of distributed, resilient, reactive
-        applications that scales.
+        ScaleCube is a lightweight decentralized cluster membership, failure detection, messaging and
+        gossip protocol library for the Java VM.
     </description>
     <inceptionYear>2015</inceptionYear>
     <url>http://scalecube.io</url>
@@ -39,7 +39,7 @@
         <developer>
             <id>scalecube.io</id>
             <name>The ScaleCube Project Contributors</name>
-            <email>a.kharenko@gmail.com</email>
+            <email>info@scalecube.io</email>
             <organization>The ScaleCube Project</organization>
             <organizationUrl>http://scalecube.io/</organizationUrl>
         </developer>
@@ -61,9 +61,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <slf4j.version>1.7.7</slf4j.version>
-        <rxjava.version>1.0.6</rxjava.version>
-        <rxjava-guava.version>1.0.3</rxjava-guava.version>
-        <guava.version>18.0</guava.version>
+        <rxjava.version>1.1.9</rxjava.version>
+        <guava.version>19.0</guava.version>
         <findbugs.version>2.0.3</findbugs.version>
         <netty.version>4.0.40.Final</netty.version>
         <protostuff.version>1.4.4</protostuff.version>
@@ -94,11 +93,6 @@
                 <groupId>io.reactivex</groupId>
                 <artifactId>rxjava</artifactId>
                 <version>${rxjava.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.reactivex</groupId>
-                <artifactId>rxjava-guava</artifactId>
-                <version>${rxjava-guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>

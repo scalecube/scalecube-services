@@ -1,7 +1,6 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
@@ -11,11 +10,11 @@ import com.google.common.collect.ImmutableMap;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-import java.util.List;
+import java.util.Map;
 
 /**
- * Using Cluster metadata: metadata is set of custom paramters that may be used by application developers to attach
- * additional business information and identifications to cluster memebers.
+ * Using Cluster metadata: metadata is set of custom parameters that may be used by application developers to attach
+ * additional business information and identifications to cluster members.
  * 
  * <p>
  * in this example we see how to attach logical alias name to a cluster member we nick name Joe
@@ -25,45 +24,35 @@ import java.util.List;
  */
 public class ClusterMetadataExample {
 
-  private static final String MESSAGE_DATA = "hello/Joe";
-  public static final Func1<Message, Boolean> MESSAGE_PREDICATE = new Func1<Message, Boolean>() {
-    @Override
-    public Boolean call(Message message) {
-      return MESSAGE_DATA.equals(message.data());
-    }
-  };
-
   /**
    * Main method.
    */
   public static void main(String[] args) throws Exception {
+    // Start seed cluster instance
+    ICluster seedClusterInstance = Cluster.joinAwait();
 
-    ICluster seedCluster = Cluster.joinAwait(3000);
+    // Join Joe's cluster instance with metadata to seed cluster instance
+    Map<String, String> metadata = ImmutableMap.of("alias", "Joe");
+    ICluster joeClusterInstance = Cluster.joinAwait(metadata, seedClusterInstance.address());
 
-    // define the custom configuration meta data. and we add alias field.
-    ClusterConfig config = ClusterConfig.newInstance()
-        .port(4004)
-        .seedMembers("localhost:3000")
-        .metadata(ImmutableMap.of("alias", "Joe"));
+    // Listen for messages to Joe on Joe's cluster insatnce and print them to system out
+    joeClusterInstance.listen()
+        .filter(new Func1<Message, Boolean>() {
+          @Override
+          public Boolean call(Message message) {
+            return message.data() instanceof String && ((String) message.data()).contains("Joe");
+          }
+        }).subscribe(new Action1<Message>() {
+          @Override
+          public void call(Message message) {
+            System.out.println(message.data());
+          }
+        });
 
-    // configure cluster 2 with the metadata and attach cluster 2 as Joe and join seed
-    ICluster joeCluster = Cluster.joinAwait(config);
-
-    // filter and subscribe on hello/joe and print the welcome message.
-    joeCluster.listen().filter(MESSAGE_PREDICATE).subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        System.out.println("Hello Joe");
-      }
-    });
-
-    // get the list of members in the cluster and locate Joe tell Hello/Joe
-    List<ClusterMember> members = seedCluster.membership().members();
-    for (ClusterMember m : members) {
-      if (m.metadata().containsKey("alias")) {
-        if (m.metadata().get("alias").equals("Joe")) {
-          seedCluster.send(m, Message.fromData(MESSAGE_DATA));
-        }
+    // Get the list of members in the cluster, locate Joe and send hello message
+    for (ClusterMember member : seedClusterInstance.otherMembers()) {
+      if ("Joe".equals(member.metadata().get("alias"))) {
+        seedClusterInstance.send(member, Message.fromData("Hello Joe"));
       }
     }
   }

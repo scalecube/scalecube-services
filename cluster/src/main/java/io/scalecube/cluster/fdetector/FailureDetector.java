@@ -76,7 +76,7 @@ public final class FailureDetector implements IFailureDetector {
   private Subscriber<Message> onAskToPingRequestSubscriber;
   private Subscriber<Message> onTransitAckRequestSubscriber;
   private Subject<FailureDetectorEvent, FailureDetectorEvent> subject =
-      new SerializedSubject<>(PublishSubject.<FailureDetectorEvent>create());
+      PublishSubject.<FailureDetectorEvent>create().toSerialized();
 
   // Scheduled
 
@@ -90,7 +90,7 @@ public final class FailureDetector implements IFailureDetector {
    * @param transport transport
    */
   public FailureDetector(Transport transport) {
-    this(transport, FailureDetectorConfig.DEFAULT);
+    this(transport, FailureDetectorConfig.defaultConfig());
   }
 
   /**
@@ -168,7 +168,7 @@ public final class FailureDetector implements IFailureDetector {
 
   @Override
   public Observable<FailureDetectorEvent> listenStatus() {
-    return subject;
+    return subject.toSerialized();
   }
 
   @Override

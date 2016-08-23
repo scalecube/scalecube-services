@@ -1,4 +1,6 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
+
+import io.scalecube.cluster.ClusterMember;
 
 import io.protostuff.Tag;
 
@@ -7,7 +9,7 @@ import java.util.Collection;
 import java.util.List;
 
 /** DTO class. Contains a snapshot of cluster members and cluster identifier. */
-final class ClusterMembershipData {
+final class MembershipData {
   /** A snapshot of cluster members. */
   @Tag(1)
   private List<ClusterMember> membership = new ArrayList<>();
@@ -15,7 +17,7 @@ final class ClusterMembershipData {
   @Tag(2)
   private String syncGroup;
 
-  ClusterMembershipData(Collection<ClusterMember> membership, String syncGroup) {
+  MembershipData(Collection<ClusterMember> membership, String syncGroup) {
     this.membership = new ArrayList<>(membership);
     this.syncGroup = syncGroup;
   }
