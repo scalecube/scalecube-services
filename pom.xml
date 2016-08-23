@@ -10,8 +10,8 @@
 
     <name>ScaleCube</name>
     <description>
-        ScaleCube is a microservices framework for the rapid development of distributed, resilient, reactive
-        applications that scales.
+        ScaleCube is a lightweight decentralized cluster membership, failure detection, messaging and
+        gossip protocol library for the Java VM.
     </description>
     <inceptionYear>2015</inceptionYear>
     <url>http://scalecube.io</url>
