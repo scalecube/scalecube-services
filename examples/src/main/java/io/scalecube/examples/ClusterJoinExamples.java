@@ -31,13 +31,15 @@ public class ClusterJoinExamples {
 
     // Start another member with metadata
     Map<String, String> metadata = ImmutableMap.of("alias", "another member");
-    ClusterConfig config = ClusterConfig.newInstance().seedMembers(seedMember).metadata(metadata);
-    ICluster clusterNode3 = Cluster.joinAwait(config);
+    ClusterConfig configWithMetadata = ClusterConfig.builder().seedMembers(seedMember).metadata(metadata).build();
+    ICluster clusterNode3 = Cluster.joinAwait(configWithMetadata);
 
     // Start cluster member in separate cluster (separate sync group)
-    MembershipConfig membershipConfig = MembershipConfig.builder().syncGroup("cluster-B").build();
-    ClusterConfig config2 = ClusterConfig.newInstance().seedMembers(seedMember).membershipConfig(membershipConfig);
-    ICluster anotherClusterNode = Cluster.joinAwait(config2);
+    ClusterConfig configWithSyncGroup = ClusterConfig.builder()
+        .seedMembers(seedMember)
+        .membershipConfig(MembershipConfig.builder().syncGroup("cluster-B").build())
+        .build();
+    ICluster anotherClusterNode = Cluster.joinAwait(configWithSyncGroup);
 
     // Print first cluster members (3 nodes)
     System.out.println("Cluster 1: " + clusterNode1.membership().members());

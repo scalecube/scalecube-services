@@ -51,7 +51,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   private final String memberId;
   private final ITransport transport;
-  private final GossipProtocolConfig config;
+  private final GossipConfig config;
 
   // State
 
@@ -79,7 +79,7 @@ public final class GossipProtocol implements IGossipProtocol {
    * @param transport transport
    */
   public GossipProtocol(String memberId, ITransport transport) {
-    this(memberId, transport, GossipProtocolConfig.DEFAULT);
+    this(memberId, transport, GossipConfig.DEFAULT);
   }
 
   /**
@@ -89,7 +89,7 @@ public final class GossipProtocol implements IGossipProtocol {
    * @param transport transport
    * @param config gossip protocol settings
    */
-  public GossipProtocol(String memberId, ITransport transport, GossipProtocolConfig config) {
+  public GossipProtocol(String memberId, ITransport transport, GossipConfig config) {
     this.memberId = memberId;
     this.transport = transport;
     this.config = config;

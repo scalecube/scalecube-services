@@ -49,21 +49,21 @@ public final class Cluster implements ICluster {
 
   private Cluster(ClusterConfig config) {
     checkNotNull(config);
-    checkNotNull(config.transportConfig);
-    checkNotNull(config.gossipProtocolConfig);
-    checkNotNull(config.failureDetectorConfig);
-    checkNotNull(config.membershipConfig);
+    checkNotNull(config.getTransportConfig());
+    checkNotNull(config.getGossipConfig());
+    checkNotNull(config.getFailureDetectorConfig());
+    checkNotNull(config.getMembershipConfig());
     this.config = config;
     this.memberId = UUID.randomUUID().toString();
     LOGGER.info("Cluster instance '{}' created with configuration: {}", memberId, config);
   }
 
   public static ICluster joinAwait() {
-    return joinAwait(ClusterConfig.newInstance());
+    return joinAwait(ClusterConfig.DEFAULT);
   }
 
   public static ICluster joinAwait(String seedMembers) {
-    return joinAwait(ClusterConfig.newInstance().seedMembers(seedMembers));
+    return joinAwait(ClusterConfig.builder().seedMembers(seedMembers).build());
   }
 
   /**
@@ -78,11 +78,11 @@ public final class Cluster implements ICluster {
   }
 
   public static ListenableFuture<ICluster> join() {
-    return join(ClusterConfig.newInstance());
+    return join(ClusterConfig.DEFAULT);
   }
 
   public static ListenableFuture<ICluster> join(String seedMembers) {
-    return join(ClusterConfig.newInstance().seedMembers(seedMembers));
+    return join(ClusterConfig.builder().seedMembers(seedMembers).build());
   }
 
   public static ListenableFuture<ICluster> join(final ClusterConfig config) {
@@ -90,8 +90,8 @@ public final class Cluster implements ICluster {
   }
 
   private ListenableFuture<ICluster> join0() {
-    LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.seedMembers);
-    ListenableFuture<Transport> transportFuture = Transport.bind(config.transportConfig);
+    LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.getSeedMembers());
+    ListenableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
     ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Transport, Void>() {
       @Override
       public ListenableFuture<Void> apply(@Nullable Transport input) throws Exception {
@@ -99,18 +99,18 @@ public final class Cluster implements ICluster {
         transport = input;
 
         // Init gossip protocol component
-        gossipProtocol = new GossipProtocol(memberId, transport, config.gossipProtocolConfig);
+        gossipProtocol = new GossipProtocol(memberId, transport, config.getGossipConfig());
 
         // Init failure detector component
-        failureDetector = new FailureDetector(transport, config.failureDetectorConfig);
+        failureDetector = new FailureDetector(transport, config.getFailureDetectorConfig());
 
         // Init cluster membership component
-        clusterMembership = new ClusterMembership(memberId, transport, config.membershipConfig);
+        clusterMembership = new ClusterMembership(memberId, transport, config.getMembershipConfig());
         clusterMembership.setFailureDetector(failureDetector);
         clusterMembership.setGossipProtocol(gossipProtocol);
 
-        clusterMembership.setLocalMetadata(config.metadata);
-        clusterMembership.setSeedMembers(config.seedMembers);
+        clusterMembership.setLocalMetadata(config.getMetadata());
+        clusterMembership.setSeedMembers(config.getSeedMembers());
 
         // Start components
         failureDetector.start();
@@ -172,7 +172,7 @@ public final class Cluster implements ICluster {
     // Wait for some time until 'leave' gossip start to spread through the cluster before stopping cluster components
     final SettableFuture<Void> transportStoppedFuture = SettableFuture.create();
     final ScheduledExecutorService stopExecutor = Executors.newSingleThreadScheduledExecutor();
-    long delay = 3 * config.gossipProtocolConfig.getGossipTime(); // wait for 3 gossip periods before stopping
+    long delay = 3 * config.getGossipConfig().getGossipTime(); // wait for 3 gossip periods before stopping
     stopExecutor.schedule(new Runnable() {
       @Override
       public void run() {

@@ -1,63 +1,73 @@
 package io.scalecube.cluster;
 
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
-import io.scalecube.cluster.gossip.GossipProtocolConfig;
+import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.transport.TransportConfig;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Cluster configuration encapsulate settings needed cluster to create and successfully join.
  * 
  * @see MembershipConfig
  * @see FailureDetectorConfig
- * @see GossipProtocolConfig
+ * @see GossipConfig
  *
  * @author Anton Kharenko
  */
-public class ClusterConfig {
+public final class ClusterConfig {
 
-  String seedMembers = "";
-  Map<String, String> metadata = new HashMap<>();
+  public static final ClusterConfig DEFAULT = builder().build();
 
-  TransportConfig transportConfig = TransportConfig.DEFAULT;
-  MembershipConfig membershipConfig = MembershipConfig.DEFAULT;
-  FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.DEFAULT;
-  GossipProtocolConfig gossipProtocolConfig = GossipProtocolConfig.DEFAULT;
+  public static final String DEFAULT_SEED_MEMBERS = "";
+  public static final Map<String, String> DEFAULT_METADATA = new HashMap<>();
 
-  private ClusterConfig() {}
+  private final String seedMembers;
+  private final Map<String, String> metadata;
+  private final TransportConfig transportConfig;
+  private final MembershipConfig membershipConfig;
+  private final FailureDetectorConfig failureDetectorConfig;
+  private final GossipConfig gossipConfig;
 
-  public static ClusterConfig newInstance() {
-    return new ClusterConfig();
+  private ClusterConfig(Builder builder) {
+    this.seedMembers = builder.seedMembers;
+    this.metadata = builder.metadata;
+    this.transportConfig = builder.transportConfig;
+    this.membershipConfig = builder.membershipConfig;
+    this.failureDetectorConfig = builder.failureDetectorConfig;
+    this.gossipConfig = builder.gossipConfig;
   }
 
-  public void setSeedMembers(String seedMembers) {
-    this.seedMembers = seedMembers;
+  public static Builder builder() {
+    return new Builder();
   }
 
-  public void setMetadata(Map<String, String> metadata) {
-    this.metadata = metadata;
+  public String getSeedMembers() {
+    return seedMembers;
   }
 
-  public void setMembershipConfig(MembershipConfig membershipConfig) {
-    this.membershipConfig = membershipConfig;
+  public Map<String, String> getMetadata() {
+    return metadata;
   }
 
-  public ClusterConfig metadata(Map<String, String> metadata) {
-    setMetadata(metadata);
-    return this;
+  public TransportConfig getTransportConfig() {
+    return transportConfig;
   }
 
-  public ClusterConfig seedMembers(String seedMembers) {
-    setSeedMembers(seedMembers);
-    return this;
+  public MembershipConfig getMembershipConfig() {
+    return membershipConfig;
   }
 
-  public ClusterConfig membershipConfig(MembershipConfig membershipConfig) {
-    setMembershipConfig(membershipConfig);
-    return this;
+  public FailureDetectorConfig getFailureDetectorConfig() {
+    return failureDetectorConfig;
+  }
+
+  public GossipConfig getGossipConfig() {
+    return gossipConfig;
   }
 
   @Override
@@ -67,8 +77,60 @@ public class ClusterConfig {
         + ", transportConfig=" + transportConfig
         + ", membershipConfig=" + membershipConfig
         + ", failureDetectorConfig=" + failureDetectorConfig
-        + ", gossipProtocolConfig=" + gossipProtocolConfig
+        + ", gossipProtocolConfig=" + gossipConfig
         + '}';
+  }
+
+  public static final class Builder {
+
+    private String seedMembers = DEFAULT_SEED_MEMBERS;
+    private Map<String, String> metadata = DEFAULT_METADATA;
+
+    private TransportConfig transportConfig = TransportConfig.DEFAULT;
+    private MembershipConfig membershipConfig = MembershipConfig.DEFAULT;
+    private FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.DEFAULT;
+    private GossipConfig gossipConfig = GossipConfig.DEFAULT;
+
+    private Builder() {}
+
+    public Builder metadata(Map<String, String> metadata) {
+      this.metadata = metadata;
+      return this;
+    }
+
+    public Builder seedMembers(String seedMembers) {
+      this.seedMembers = seedMembers;
+      return this;
+    }
+
+    public Builder membershipConfig(MembershipConfig membershipConfig) {
+      checkNotNull(membershipConfig);
+      this.membershipConfig = membershipConfig;
+      return this;
+    }
+
+    public Builder transportConfig(TransportConfig transportConfig) {
+      checkNotNull(transportConfig);
+      this.transportConfig = transportConfig;
+      return this;
+    }
+
+    public Builder gossipConfig(GossipConfig gossipConfig) {
+      checkNotNull(gossipConfig);
+      this.gossipConfig = gossipConfig;
+      return this;
+    }
+
+    public Builder failureDetectorConfig(FailureDetectorConfig failureDetectorConfig) {
+      checkNotNull(failureDetectorConfig);
+      this.failureDetectorConfig = failureDetectorConfig;
+      return this;
+    }
+
+    public ClusterConfig build() {
+      return new ClusterConfig(this);
+    }
+
   }
 
 }

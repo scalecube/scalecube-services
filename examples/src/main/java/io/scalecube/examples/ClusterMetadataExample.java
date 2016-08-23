@@ -42,9 +42,10 @@ public class ClusterMetadataExample {
     String seedAddress = seedCluster.localAddress().toString();
 
     // Define the custom configuration meta data with alias field.
-    ClusterConfig config = ClusterConfig.newInstance()
+    ClusterConfig config = ClusterConfig.builder()
         .seedMembers(seedAddress)
-        .metadata(ImmutableMap.of("alias", "Joe"));
+        .metadata(ImmutableMap.of("alias", "Joe"))
+        .build();
 
     // configure cluster 2 with the metadata and attach cluster 2 as Joe and join seed
     ICluster joeCluster = Cluster.joinAwait(config);
