@@ -35,8 +35,10 @@ public class ClusterJoinExamples {
 
     // Start cluster member in separate cluster (separate sync group)
     ClusterConfig configWithSyncGroup = ClusterConfig.builder()
-        .seedMembers(Collections.singletonList(clusterNode1.address()))
-        .membershipConfig(MembershipConfig.builder().syncGroup("cluster-B").build())
+        .membershipConfig(
+            MembershipConfig.builder()
+                .seedMembers(Collections.singletonList(clusterNode1.address()))
+                .syncGroup("cluster-B").build())
         .build();
     ICluster anotherClusterNode = Cluster.joinAwait(configWithSyncGroup);
 

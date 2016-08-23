@@ -1,6 +1,5 @@
 package io.scalecube.cluster.membership;
 
-import io.scalecube.cluster.ClusterMember;
 import io.scalecube.transport.Address;
 
 import rx.Observable;
@@ -15,29 +14,21 @@ import java.util.List;
 public interface IMembershipProtocol {
 
   /** Returns current cluster members list. */
-  List<ClusterMember> members();
+  List<MembershipRecord> members();
 
   /** Returns current cluster members list excluding local member. */
-  List<ClusterMember> otherMembers();
+  List<MembershipRecord> otherMembers();
 
   /** Returns cluster member by its id or null if no member with such id exists. */
-  ClusterMember member(String id);
+  MembershipRecord member(String id);
 
   /** Returns cluster member by its address or null if no member with such address exists. */
-  ClusterMember member(Address address);
+  MembershipRecord member(Address address);
 
   /** Returns local cluster member. */
-  ClusterMember localMember();
+  MembershipRecord localMember();
 
   /** Listen status updates on registered cluster members (except local one). */
-  Observable<ClusterMember> listenUpdates();
-
-  /**
-   * Check if a given member is a local member return true in case the ClusterMember is local to the cluster instance.
-   *
-   * @param member checks if member is local
-   * @return True if the given cluster member is a local cluster member; false otherwise
-   */
-  boolean isLocalMember(ClusterMember member);
+  Observable<MembershipRecord> listenUpdates();
 
 }

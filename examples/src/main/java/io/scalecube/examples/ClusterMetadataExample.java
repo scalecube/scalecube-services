@@ -1,7 +1,7 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ClusterMember;
+import io.scalecube.cluster.membership.MembershipRecord;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
@@ -50,7 +50,7 @@ public class ClusterMetadataExample {
         });
 
     // Get the list of members in the cluster, locate Joe and send hello message
-    for (ClusterMember member : seedClusterInstance.otherMembers()) {
+    for (MembershipRecord member : seedClusterInstance.otherMembers()) {
       if ("Joe".equals(member.metadata().get("alias"))) {
         seedClusterInstance.send(member, Message.fromData("Hello Joe"));
       }

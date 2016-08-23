@@ -2,16 +2,18 @@ package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Futures.transform;
+import static com.google.common.util.concurrent.Futures.transformAsync;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
+import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipProtocol;
+import io.scalecube.cluster.membership.MembershipRecord;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
 import com.google.common.base.Function;
-import com.google.common.base.Splitter;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -22,9 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -60,15 +60,27 @@ public final class Cluster implements ICluster {
   }
 
   public static ICluster joinAwait() {
-    return joinAwait(ClusterConfig.defaultConfig());
+    try {
+      return join().get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
   }
 
   public static ICluster joinAwait(Address... seedMembers) {
-    return joinAwait(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).build());
+    try {
+      return join(seedMembers).get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
   }
 
   public static ICluster joinAwait(Map<String, String> metadata, Address... seedMembers) {
-    return joinAwait(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).metadata(metadata).build());
+    try {
+      return join(metadata, seedMembers).get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
   }
 
   /**
@@ -87,11 +99,21 @@ public final class Cluster implements ICluster {
   }
 
   public static ListenableFuture<ICluster> join(Address... seedMembers) {
-    return join(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).build());
+    ClusterConfig config = ClusterConfig.builder()
+        .membershipConfig(MembershipConfig.builder().seedMembers(Arrays.asList(seedMembers)).build())
+        .build();
+    return join(config);
   }
 
   public static ListenableFuture<ICluster> join(Map<String, String> metadata, Address... seedMembers) {
-    return join(ClusterConfig.builder().seedMembers(Arrays.asList(seedMembers)).metadata(metadata).build());
+    ClusterConfig config = ClusterConfig.builder()
+        .membershipConfig(
+            MembershipConfig.builder()
+                .seedMembers(Arrays.asList(seedMembers))
+                .metadata(metadata)
+                .build())
+        .build();
+    return join(config);
   }
 
   public static ListenableFuture<ICluster> join(final ClusterConfig config) {
@@ -99,13 +121,14 @@ public final class Cluster implements ICluster {
   }
 
   private ListenableFuture<ICluster> join0() {
-    LOGGER.info("Cluster instance '{}' joining seed members: {}", memberId, config.getSeedMembers());
+    LOGGER.info("Cluster instance '{}' joining seed members: {}",
+        memberId, config.getMembershipConfig().getSeedMembers());
     ListenableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
-    ListenableFuture<Void> clusterFuture = transform(transportFuture, new AsyncFunction<Transport, Void>() {
+    ListenableFuture<Void> clusterFuture = transformAsync(transportFuture, new AsyncFunction<Transport, Void>() {
       @Override
-      public ListenableFuture<Void> apply(@Nullable Transport input) throws Exception {
+      public ListenableFuture<Void> apply(@Nullable Transport boundTransport) throws Exception {
         // Init transport component
-        transport = input;
+        transport = boundTransport;
 
         // Init gossip protocol component
         gossip = new GossipProtocol(memberId, transport, config.getGossipConfig());
@@ -114,12 +137,8 @@ public final class Cluster implements ICluster {
         failureDetector = new FailureDetector(transport, config.getFailureDetectorConfig());
 
         // Init cluster membership component
-        membership = new MembershipProtocol(memberId, transport, config.getMembershipConfig());
-        membership.setFailureDetector(failureDetector);
-        membership.setGossipProtocol(gossip);
-
-        membership.setLocalMetadata(config.getMetadata());
-        membership.setSeedMembers(config.getSeedMembers());
+        membership = new MembershipProtocol(
+            memberId, transport, config.getMembershipConfig(), failureDetector, gossip);
 
         // Start components
         failureDetector.start();
@@ -142,7 +161,7 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public void send(ClusterMember member, Message message) {
+  public void send(MembershipRecord member, Message message) {
     transport.send(member.address(), message);
   }
 
@@ -152,7 +171,7 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public void send(ClusterMember member, Message message, SettableFuture<Void> promise) {
+  public void send(MembershipRecord member, Message message, SettableFuture<Void> promise) {
     transport.send(member.address(), message, promise);
   }
 
@@ -178,27 +197,27 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public List<ClusterMember> members() {
+  public List<MembershipRecord> members() {
     return membership.members();
   }
 
   @Override
-  public ClusterMember localMember() {
+  public MembershipRecord localMember() {
     return membership.localMember();
   }
 
   @Override
-  public ClusterMember member(String id) {
+  public MembershipRecord member(String id) {
     return membership.member(id);
   }
 
   @Override
-  public ClusterMember member(Address address) {
+  public MembershipRecord member(Address address) {
     return membership.member(address);
   }
 
   @Override
-  public List<ClusterMember> otherMembers() {
+  public List<MembershipRecord> otherMembers() {
     return membership.otherMembers();
   }
 

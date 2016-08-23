@@ -2,7 +2,6 @@ package io.scalecube.cluster.membership;
 
 import static com.google.common.collect.Collections2.filter;
 
-import io.scalecube.cluster.ClusterMember;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Address;
 
@@ -19,9 +18,9 @@ final class MembershipDataUtils {
    * {@code localAddress}.
    */
   public static MembershipData filterData(final Address localAddress, MembershipData data) {
-    return new MembershipData(filter(data.getMembership(), new Predicate<ClusterMember>() {
+    return new MembershipData(filter(data.getMembership(), new Predicate<MembershipRecord>() {
       @Override
-      public boolean apply(ClusterMember input) {
+      public boolean apply(MembershipRecord input) {
         return !localAddress.equals(input.address());
       }
     }), data.getSyncGroup());

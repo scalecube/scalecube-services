@@ -3,7 +3,7 @@ package io.scalecube.cluster.fdetector;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.scalecube.cluster.ClusterMemberStatus;
+import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
@@ -24,7 +24,6 @@ import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
@@ -66,9 +65,9 @@ public final class FailureDetector implements IFailureDetector {
 
   // State
 
-  private volatile List<Address> members = new ArrayList<>();
   private final AtomicInteger periodCounter = new AtomicInteger();
-  private Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
+  private volatile List<Address> members = new ArrayList<>();
+  private final Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
 
   // Subscriptions
 
@@ -273,7 +272,7 @@ public final class FailureDetector implements IFailureDetector {
   private void declareSuspected(Address member) {
     if (suspectedMembers.add(member)) {
       LOGGER.debug("Member {} detected as SUSPECTED by {}", member, transport.address());
-      subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.SUSPECTED));
+      subject.onNext(new FailureDetectorEvent(member, MemberStatus.SUSPECTED));
     }
   }
 
@@ -283,7 +282,7 @@ public final class FailureDetector implements IFailureDetector {
   private void declareTrusted(Address member) {
     if (suspectedMembers.remove(member)) {
       LOGGER.debug("Member {} detected as TRUSTED by {}", member, transport.address());
-      subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.TRUSTED));
+      subject.onNext(new FailureDetectorEvent(member, MemberStatus.TRUSTED));
     }
   }
 

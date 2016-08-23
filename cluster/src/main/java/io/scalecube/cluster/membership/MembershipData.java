@@ -1,7 +1,5 @@
 package io.scalecube.cluster.membership;
 
-import io.scalecube.cluster.ClusterMember;
-
 import io.protostuff.Tag;
 
 import java.util.ArrayList;
@@ -12,17 +10,17 @@ import java.util.List;
 final class MembershipData {
   /** A snapshot of cluster members. */
   @Tag(1)
-  private List<ClusterMember> membership = new ArrayList<>();
+  private List<MembershipRecord> membership = new ArrayList<>();
   /** Sort of cluster identifier. Only makes sense at cluster membership SYNC/SYNC_ACK transitions. */
   @Tag(2)
   private String syncGroup;
 
-  MembershipData(Collection<ClusterMember> membership, String syncGroup) {
+  MembershipData(Collection<MembershipRecord> membership, String syncGroup) {
     this.membership = new ArrayList<>(membership);
     this.syncGroup = syncGroup;
   }
 
-  Collection<ClusterMember> getMembership() {
+  Collection<MembershipRecord> getMembership() {
     return new ArrayList<>(membership);
   }
 
@@ -32,6 +30,6 @@ final class MembershipData {
 
   @Override
   public String toString() {
-    return "ClusterMembershipData{" + "membership=" + membership + ", syncGroup='" + syncGroup + '\'' + '}';
+    return "ClusterMembershipData{membership=" + membership + ", syncGroup='" + syncGroup + '\'' + '}';
   }
 }

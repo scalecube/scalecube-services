@@ -1,5 +1,6 @@
 package io.scalecube.cluster;
 
+import io.scalecube.cluster.membership.MembershipRecord;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -22,11 +23,11 @@ public interface ICluster {
    */
   Address address();
 
-  void send(ClusterMember member, Message message);
+  void send(MembershipRecord member, Message message);
 
   void send(Address address, Message message);
 
-  void send(ClusterMember member, Message message, SettableFuture<Void> promise);
+  void send(MembershipRecord member, Message message, SettableFuture<Void> promise);
 
   void send(Address address, Message message, SettableFuture<Void> promise);
 
@@ -45,27 +46,27 @@ public interface ICluster {
   /**
    * Returns list of all members of the joined cluster. This will include all cluster members including local member.
    */
-  List<ClusterMember> members();
+  List<MembershipRecord> members();
 
   /**
    * Returns cluster member which corresponds to this cluster instance.
    */
-  ClusterMember localMember();
+  MembershipRecord localMember();
 
   /**
    * Returns cluster member with given id or null if no member with such id exists at joined cluster.
    */
-  ClusterMember member(String id);
+  MembershipRecord member(String id);
 
   /**
    * Returns cluster member by given address or null if no member with such address exists at joined cluster.
    */
-  ClusterMember member(Address address);
+  MembershipRecord member(Address address);
 
   /**
    * Returns list of all cluster members of the joined cluster excluding local member.
    */
-  List<ClusterMember> otherMembers();
+  List<MembershipRecord> otherMembers();
 
   /**
    * Member notifies other members of the cluster about leaving and gracefully shutdown and free occupied resources.

@@ -3,8 +3,6 @@ package io.scalecube.cluster.membership;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.cluster.ClusterMember;
-import io.scalecube.cluster.ClusterMemberStatus;
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
@@ -337,14 +335,13 @@ public class ClusterMembershipIT {
     GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
     // Create membership protocol
     MembershipConfig membershipConfig = MembershipConfig.builder()
+        .seedMembers(seedMembers)
         .syncTime(1000)
         .syncTimeout(200)
         .maxSuspectTime(5000)
         .build();
-    MembershipProtocol membership = new MembershipProtocol(memberId, transport, membershipConfig);
-    membership.setFailureDetector(failureDetector);
-    membership.setGossipProtocol(gossipProtocol);
-    membership.setSeedMembers(seedMembers);
+    MembershipProtocol membership = new MembershipProtocol(
+        memberId, transport, membershipConfig, failureDetector, gossipProtocol);
 
     try {
       failureDetector.start();
@@ -372,7 +369,7 @@ public class ClusterMembershipIT {
   }
 
   public void assertTrusted(MembershipProtocol membership, Address... expected) {
-    List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.TRUSTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.TRUSTED);
     assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
@@ -381,7 +378,7 @@ public class ClusterMembershipIT {
   }
 
   public void assertSuspected(MembershipProtocol membership, Address... expected) {
-    List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECTED);
     assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
@@ -390,13 +387,13 @@ public class ClusterMembershipIT {
   }
 
   public void assertNoSuspected(MembershipProtocol membership) {
-    List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECTED);
     assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
   }
 
-  private List<Address> getAddressesWithStatus(MembershipProtocol membership, ClusterMemberStatus status) {
+  private List<Address> getAddressesWithStatus(MembershipProtocol membership, MemberStatus status) {
     List<Address> addresses = new ArrayList<>();
-    for (ClusterMember member : membership.members()) {
+    for (MembershipRecord member : membership.members()) {
       if (member.status() == status) {
         addresses.add(member.address());
       }
