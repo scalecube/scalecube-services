@@ -79,7 +79,7 @@ public final class GossipProtocol implements IGossipProtocol {
    * @param transport transport
    */
   public GossipProtocol(String memberId, ITransport transport) {
-    this(memberId, transport, GossipConfig.DEFAULT);
+    this(memberId, transport, GossipConfig.defaultConfig());
   }
 
   /**

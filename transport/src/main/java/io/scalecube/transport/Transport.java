@@ -79,7 +79,7 @@ public final class Transport implements ITransport {
    * Init transport with the default configuration synchronously. Starts to accept connections on local address.
    */
   public static Transport bindAwait() {
-    return bindAwait(TransportConfig.DEFAULT);
+    return bindAwait(TransportConfig.defaultConfig());
   }
 
   /**
@@ -105,7 +105,7 @@ public final class Transport implements ITransport {
    * Init transport with the default configuration asynchronously. Starts to accept connections on local address.
    */
   public static ListenableFuture<Transport> bind() {
-    return bind(TransportConfig.DEFAULT);
+    return bind(TransportConfig.defaultConfig());
   }
 
   /**

@@ -2,8 +2,6 @@ package io.scalecube.cluster.fdetector;
 
 public final class FailureDetectorConfig {
 
-  public static final FailureDetectorConfig DEFAULT = builder().build();
-
   public static final int DEFAULT_PING_TIME = 2000;
   public static final int DEFAULT_PING_TIMEOUT = 1000;
   public static final int DEFAULT_PING_REQ_MEMBERS = 3;
@@ -16,6 +14,10 @@ public final class FailureDetectorConfig {
     this.pingTime = builder.pingTime;
     this.pingTimeout = builder.pingTimeout;
     this.pingReqMembers = builder.pingReqMembers;
+  }
+
+  public static FailureDetectorConfig defaultConfig() {
+    return builder().build();
   }
 
   public static Builder builder() {

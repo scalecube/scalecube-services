@@ -2,8 +2,6 @@ package io.scalecube.cluster.membership;
 
 public final class MembershipConfig {
 
-  public static final MembershipConfig DEFAULT = builder().build();
-
   public static final int DEFAULT_SYNC_TIME = 30 * 1000;
   public static final int DEFAULT_SYNC_TIMEOUT = 3 * 1000;
   public static final int DEFAULT_MAX_SUSPECT_TIME = 60 * 1000;
@@ -22,6 +20,10 @@ public final class MembershipConfig {
     this.maxSuspectTime = builder.maxSuspectTime;
     this.maxShutdownTime = builder.maxShutdownTime;
     this.syncGroup = builder.syncGroup;
+  }
+
+  public static MembershipConfig defaultConfig() {
+    return builder().build();
   }
 
   public static Builder builder() {

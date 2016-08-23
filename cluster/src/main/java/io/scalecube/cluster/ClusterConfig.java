@@ -24,11 +24,8 @@ import java.util.Map;
  */
 public final class ClusterConfig {
 
-  public static final ClusterConfig DEFAULT = builder().build();
-
   public static final List<Address> DEFAULT_SEED_MEMBERS = Collections.emptyList();
   public static final Map<String, String> DEFAULT_METADATA = new HashMap<>();
-
   private final List<Address> seedMembers;
   private final Map<String, String> metadata;
   private final TransportConfig transportConfig;
@@ -47,6 +44,10 @@ public final class ClusterConfig {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public static ClusterConfig defaultConfig() {
+    return builder().build();
   }
 
   public List<Address> getSeedMembers() {
@@ -89,10 +90,10 @@ public final class ClusterConfig {
     private List<Address> seedMembers = DEFAULT_SEED_MEMBERS;
     private Map<String, String> metadata = DEFAULT_METADATA;
 
-    private TransportConfig transportConfig = TransportConfig.DEFAULT;
-    private MembershipConfig membershipConfig = MembershipConfig.DEFAULT;
-    private FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.DEFAULT;
-    private GossipConfig gossipConfig = GossipConfig.DEFAULT;
+    private TransportConfig transportConfig = TransportConfig.defaultConfig();
+    private MembershipConfig membershipConfig = MembershipConfig.defaultConfig();
+    private FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.defaultConfig();
+    private GossipConfig gossipConfig = GossipConfig.defaultConfig();
 
     private Builder() {}
 

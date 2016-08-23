@@ -90,7 +90,7 @@ public final class FailureDetector implements IFailureDetector {
    * @param transport transport
    */
   public FailureDetector(Transport transport) {
-    this(transport, FailureDetectorConfig.DEFAULT);
+    this(transport, FailureDetectorConfig.defaultConfig());
   }
 
   /**

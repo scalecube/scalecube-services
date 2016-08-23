@@ -17,12 +17,12 @@ import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Function;
-import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FutureFallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
@@ -33,11 +33,9 @@ import rx.Scheduler;
 import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func1;
-import rx.observable.ListenableFutureObservable;
 import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
@@ -265,17 +263,29 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private ListenableFuture<Void> doInitialSync(final List<Address> seedMembers) {
     String period = Integer.toString(periodCounter.incrementAndGet());
-    ListenableFuture<Message> future = ListenableFutureObservable.to(
-        transport.listen()
-            .filter(syncAckFilter(period))
-            .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
-            .take(1)
-            .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS));
+    final SettableFuture<Message> syncResponseFuture = SettableFuture.create();
+
+    transport.listen()
+        .filter(syncAckFilter(period))
+        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+        .take(1)
+        .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS)
+        .subscribe(new Action1<Message>() {
+          @Override
+          public void call(Message message) {
+            syncResponseFuture.set(message);
+          }
+        }, new Action1<Throwable>() {
+          @Override
+          public void call(Throwable throwable) {
+            syncResponseFuture.setException(throwable);
+          }
+        });
 
     sendSync(seedMembers, period);
 
     return Futures.withFallback(
-        Futures.transform(future, onSyncAckFunction),
+        Futures.transform(syncResponseFuture, onSyncAckFunction),
         new FutureFallback<Void>() {
           @Override
           public ListenableFuture<Void> create(@Nonnull Throwable throwable) throws Exception {

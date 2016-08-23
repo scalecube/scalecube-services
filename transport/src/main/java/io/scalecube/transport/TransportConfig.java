@@ -10,8 +10,6 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class TransportConfig {
 
-  public static final TransportConfig DEFAULT = builder().build();
-
   public static final String DEFAULT_LISTEN_ADDRESS = null;
   public static final String DEFAULT_LISTEN_INTERFACE = null; // Default listen settings fallback to getLocalHost
   public static final boolean DEFAULT_PREFER_IP6 = false;
@@ -48,6 +46,10 @@ public final class TransportConfig {
     this.enableEpoll = builder.enableEpoll;
     this.bossThreads = builder.bossThreads;
     this.workerThreads = builder.workerThreads;
+  }
+
+  public static TransportConfig defaultConfig() {
+    return builder().build();
   }
 
   public static Builder builder() {

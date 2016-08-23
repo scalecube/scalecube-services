@@ -60,7 +60,7 @@ public final class Cluster implements ICluster {
   }
 
   public static ICluster joinAwait() {
-    return joinAwait(ClusterConfig.DEFAULT);
+    return joinAwait(ClusterConfig.defaultConfig());
   }
 
   public static ICluster joinAwait(Address... seedMembers) {
@@ -83,7 +83,7 @@ public final class Cluster implements ICluster {
   }
 
   public static ListenableFuture<ICluster> join() {
-    return join(ClusterConfig.DEFAULT);
+    return join(ClusterConfig.defaultConfig());
   }
 
   public static ListenableFuture<ICluster> join(Address... seedMembers) {
