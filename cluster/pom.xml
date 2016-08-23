@@ -22,15 +22,6 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Other dependencies -->
-        <dependency>
-            <groupId>io.reactivex</groupId>
-            <artifactId>rxjava-guava</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
     </dependencies>
 
 </project>

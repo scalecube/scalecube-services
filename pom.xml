@@ -61,8 +61,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <slf4j.version>1.7.7</slf4j.version>
-        <rxjava.version>1.0.6</rxjava.version>
-        <guava.version>18.0</guava.version>
+        <rxjava.version>1.1.9</rxjava.version>
+        <guava.version>19.0</guava.version>
         <findbugs.version>2.0.3</findbugs.version>
         <netty.version>4.0.40.Final</netty.version>
         <protostuff.version>1.4.4</protostuff.version>
