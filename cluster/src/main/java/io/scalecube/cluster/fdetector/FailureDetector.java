@@ -76,7 +76,7 @@ public final class FailureDetector implements IFailureDetector {
   private Subscriber<Message> onAskToPingRequestSubscriber;
   private Subscriber<Message> onTransitAckRequestSubscriber;
   private Subject<FailureDetectorEvent, FailureDetectorEvent> subject =
-      new SerializedSubject<>(PublishSubject.<FailureDetectorEvent>create());
+      PublishSubject.<FailureDetectorEvent>create().toSerialized();
 
   // Scheduled
 

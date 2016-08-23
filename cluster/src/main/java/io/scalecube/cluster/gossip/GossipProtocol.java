@@ -65,7 +65,7 @@ public final class GossipProtocol implements IGossipProtocol {
   // Subscriptions
 
   private Subscriber<Message> onGossipRequestSubscriber;
-  private Subject<Message, Message> subject = new SerializedSubject<>(PublishSubject.<Message>create());
+  private Subject<Message, Message> subject = PublishSubject.<Message>create().toSerialized();
 
   // Scheduled
 

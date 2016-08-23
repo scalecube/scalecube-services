@@ -50,7 +50,7 @@ public final class Transport implements ITransport {
 
   private final TransportConfig config;
 
-  private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.create();
+  private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.<Message>create().toSerialized();
   private final Memoizer<Address, ChannelFuture> outgoingChannels;
 
   // Pipeline

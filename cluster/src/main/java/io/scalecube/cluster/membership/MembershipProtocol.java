@@ -94,8 +94,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private Subscriber<Message> onSyncRequestSubscriber;
   private Subscriber<FailureDetectorEvent> onFdEventSubscriber;
   private Subscriber<MembershipData> onGossipRequestSubscriber;
-  private Subject<ClusterMember, ClusterMember> subject =
-      new SerializedSubject<>(PublishSubject.<ClusterMember>create());
+  private Subject<ClusterMember, ClusterMember> subject = PublishSubject.<ClusterMember>create().toSerialized();
 
   // Scheduled
 
