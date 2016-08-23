@@ -168,7 +168,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   @Override
   public Observable<ClusterMember> listenUpdates() {
-    return subject;
+    return subject.asObservable();
   }
 
   @Override

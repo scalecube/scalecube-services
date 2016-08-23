@@ -168,7 +168,7 @@ public final class FailureDetector implements IFailureDetector {
 
   @Override
   public Observable<FailureDetectorEvent> listenStatus() {
-    return subject;
+    return subject.toSerialized();
   }
 
   @Override

@@ -1,5 +1,7 @@
 package io.scalecube.cluster;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
@@ -7,8 +9,6 @@ import io.scalecube.transport.TransportConfig;
 
 import java.util.HashMap;
 import java.util.Map;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Cluster configuration encapsulate settings needed cluster to create and successfully join.

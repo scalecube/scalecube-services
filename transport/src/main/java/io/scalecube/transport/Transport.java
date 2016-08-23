@@ -272,7 +272,7 @@ public final class Transport implements ITransport {
   @Override
   public final Observable<Message> listen() {
     checkState(!stopped, "Transport is stopped");
-    return incomingMessagesSubject;
+    return incomingMessagesSubject.asObservable();
   }
 
   @Override

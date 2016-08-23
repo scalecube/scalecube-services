@@ -146,7 +146,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   @Override
   public Observable<Message> listen() {
-    return subject;
+    return subject.asObservable();
   }
 
   private Collection<GossipLocalState> processGossipQueue() {
