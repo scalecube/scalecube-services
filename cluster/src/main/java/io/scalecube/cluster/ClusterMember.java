@@ -22,10 +22,16 @@ public final class ClusterMember implements Comparable<ClusterMember> {
   private final ClusterMemberStatus status;
   private final long timestamp;
 
+  /**
+   * Instantiates new instance of cluster member with given parameters and current timestamp.
+   */
   public ClusterMember(String id, Address address, ClusterMemberStatus status, Map<String, String> metadata) {
     this(id, address, status, metadata, System.currentTimeMillis());
   }
 
+  /**
+   * Instantiates new instance of cluster member with given parameters.
+   */
   public ClusterMember(String id, Address address, ClusterMemberStatus status, Map<String, String> metadata,
                 long timestamp) {
     checkArgument(id != null);

@@ -6,9 +6,9 @@ import io.scalecube.transport.Message;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
-import java.util.List;
-
 import rx.Observable;
+
+import java.util.List;
 
 /**
  * Facade cluster interface which provides API to interact with cluster members.
@@ -43,8 +43,7 @@ public interface ICluster {
   Observable<Message> listenGossips();
 
   /**
-   * Returns list of all members of the joined cluster.
-   * This will include all cluster members including local member.
+   * Returns list of all members of the joined cluster. This will include all cluster members including local member.
    */
   List<ClusterMember> members();
 

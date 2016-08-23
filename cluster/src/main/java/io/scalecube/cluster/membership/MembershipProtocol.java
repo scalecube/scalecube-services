@@ -112,6 +112,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
   };
 
+  /**
+   * Creates new instantiates of cluster membership protocol with given transport and config.
+   *
+   * @param memberId id of this member
+   * @param transport transport
+   * @param config membership config parameters
+   */
   public MembershipProtocol(String memberId, Transport transport, MembershipConfig config) {
     this.memberId = memberId;
     this.transport = transport;

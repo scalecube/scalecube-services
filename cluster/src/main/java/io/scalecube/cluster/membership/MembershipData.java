@@ -1,7 +1,8 @@
 package io.scalecube.cluster.membership;
 
-import io.protostuff.Tag;
 import io.scalecube.cluster.ClusterMember;
+
+import io.protostuff.Tag;
 
 import java.util.ArrayList;
 import java.util.Collection;
