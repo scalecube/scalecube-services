@@ -12,10 +12,13 @@ import java.util.List;
  *
  * @author Anton Kharenko
  */
-public interface IClusterMembership {
+public interface IMembershipProtocol {
 
   /** Returns current cluster members list. */
   List<ClusterMember> members();
+
+  /** Returns current cluster members list excluding local member. */
+  List<ClusterMember> otherMembers();
 
   /** Returns cluster member by its id or null if no member with such id exists. */
   ClusterMember member(String id);

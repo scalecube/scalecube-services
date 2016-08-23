@@ -58,8 +58,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public final class ClusterMembership implements IClusterMembership {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMembership.class);
+public final class MembershipProtocol implements IMembershipProtocol {
+  private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   // qualifiers
   private static final String SYNC = "io.scalecube.cluster/membership/sync";
@@ -70,7 +70,7 @@ public final class ClusterMembership implements IClusterMembership {
   private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER = new Func1<Message, Boolean>() {
     @Override
     public Boolean call(Message message) {
-      return message.data() != null && ClusterMembershipData.class.equals(message.data().getClass());
+      return message.data() != null && MembershipData.class.equals(message.data().getClass());
     }
   };
 
@@ -87,13 +87,13 @@ public final class ClusterMembership implements IClusterMembership {
   // State
 
   private AtomicInteger periodCounter = new AtomicInteger();
-  private ClusterMembershipTable membershipTable = new ClusterMembershipTable();
+  private MembershipTable membershipTable = new MembershipTable();
 
   // Subscriptions
 
   private Subscriber<Message> onSyncRequestSubscriber;
   private Subscriber<FailureDetectorEvent> onFdEventSubscriber;
-  private Subscriber<ClusterMembershipData> onGossipRequestSubscriber;
+  private Subscriber<MembershipData> onGossipRequestSubscriber;
   private Subject<ClusterMember, ClusterMember> subject =
       new SerializedSubject<>(PublishSubject.<ClusterMember>create());
 
@@ -113,7 +113,7 @@ public final class ClusterMembership implements IClusterMembership {
     }
   };
 
-  public ClusterMembership(String memberId, Transport transport, MembershipConfig config) {
+  public MembershipProtocol(String memberId, Transport transport, MembershipConfig config) {
     this.memberId = memberId;
     this.transport = transport;
     this.config = config;
@@ -178,6 +178,13 @@ public final class ClusterMembership implements IClusterMembership {
   }
 
   @Override
+  public List<ClusterMember> otherMembers() {
+    List<ClusterMember> members = membershipTable.asList();
+    members.remove(localMember());
+    return members;
+  }
+
+  @Override
   public ClusterMember member(String id) {
     checkArgument(!Strings.isNullOrEmpty(id), "Member id can't be null or empty");
     return membershipTable.get(id);
@@ -207,7 +214,7 @@ public final class ClusterMembership implements IClusterMembership {
     onSyncRequestSubscriber = Subscribers.create(new OnSyncRequestSubscriber());
     transport.listen()
         .filter(SYNC_FILTER)
-        .filter(ClusterMembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .subscribe(onSyncRequestSubscriber);
 
     // Listen to 'suspected/trusted' events from FailureDetector
@@ -218,7 +225,7 @@ public final class ClusterMembership implements IClusterMembership {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction());
     gossipProtocol.listen()
         .filter(GOSSIP_MEMBERSHIP_FILTER)
-        .map(ClusterMembershipDataUtils.gossipFilterData(transport.address()))
+        .map(MembershipDataUtils.gossipFilterData(transport.address()))
         .subscribe(onGossipRequestSubscriber);
 
     // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
@@ -273,7 +280,7 @@ public final class ClusterMembership implements IClusterMembership {
     ListenableFuture<Message> future = ListenableFutureObservable.to(
         transport.listen()
             .filter(syncAckFilter(period))
-            .filter(ClusterMembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+            .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
             .take(1)
             .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS));
 
@@ -294,7 +301,7 @@ public final class ClusterMembership implements IClusterMembership {
     String period = Integer.toString(periodCounter.incrementAndGet());
     transport.listen()
         .filter(syncAckFilter(period))
-        .filter(ClusterMembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
@@ -313,7 +320,7 @@ public final class ClusterMembership implements IClusterMembership {
   }
 
   private void sendSync(List<Address> members, String period) {
-    ClusterMembershipData syncData = new ClusterMembershipData(membershipTable.asList(), config.getSyncGroup());
+    MembershipData syncData = new MembershipData(membershipTable.asList(), config.getSyncGroup());
     final Message syncMsg = Message.withData(syncData).qualifier(SYNC).correlationId(period).build();
     for (Address memberAddress : members) {
       transport.send(memberAddress, syncMsg);
@@ -321,8 +328,8 @@ public final class ClusterMembership implements IClusterMembership {
   }
 
   private void onSyncAck(Message message) {
-    ClusterMembershipData data = message.data();
-    ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.address(), data);
+    MembershipData data = message.data();
+    MembershipData filteredData = MembershipDataUtils.filterData(transport.address(), data);
     Address sender = message.sender();
     List<ClusterMember> updates = membershipTable.merge(filteredData);
     if (!updates.isEmpty()) {
@@ -344,7 +351,7 @@ public final class ClusterMembership implements IClusterMembership {
    * <ul>
    * <li>recalculates 'cluster members' for {@link #gossipProtocol} and {@link #failureDetector} by filtering out
    * {@code REMOVED/SHUTDOWN} members</li>
-   * <li>if {@code spreadGossip} was set {@code true} -- converts {@code updates} to {@link ClusterMembershipData} and
+   * <li>if {@code spreadGossip} was set {@code true} -- converts {@code updates} to {@link MembershipData} and
    * send it to cluster via {@link #gossipProtocol}</li>
    * <li>publishes updates locally (see {@link #listenUpdates()})</li>
    * <li>iterates on {@code updates}, if {@code update} become {@code SUSPECTED} -- schedules a timer for
@@ -368,7 +375,7 @@ public final class ClusterMembership implements IClusterMembership {
 
     // Publish updates to cluster
     if (spreadGossip) {
-      gossipProtocol.spread(Message.fromData(new ClusterMembershipData(updates, config.getSyncGroup())));
+      gossipProtocol.spread(Message.fromData(new MembershipData(updates, config.getSyncGroup())));
     }
     // Publish updates locally
     for (ClusterMember update : updates) {
@@ -413,7 +420,7 @@ public final class ClusterMembership implements IClusterMembership {
    */
   public void leave() {
     ClusterMember localMember = new ClusterMember(memberId, transport.address(), SHUTDOWN, localMetadata);
-    ClusterMembershipData msgData = new ClusterMembershipData(ImmutableList.of(localMember), config.getSyncGroup());
+    MembershipData msgData = new MembershipData(ImmutableList.of(localMember), config.getSyncGroup());
     gossipProtocol.spread(Message.fromData(msgData));
   }
 
@@ -433,8 +440,8 @@ public final class ClusterMembership implements IClusterMembership {
   private class OnSyncRequestSubscriber implements Action1<Message> {
     @Override
     public void call(Message message) {
-      ClusterMembershipData data = message.data();
-      ClusterMembershipData filteredData = ClusterMembershipDataUtils.filterData(transport.address(), data);
+      MembershipData data = message.data();
+      MembershipData filteredData = MembershipDataUtils.filterData(transport.address(), data);
       List<ClusterMember> updates = membershipTable.merge(filteredData);
       Address sender = message.sender();
       if (!updates.isEmpty()) {
@@ -444,7 +451,7 @@ public final class ClusterMembership implements IClusterMembership {
         LOGGER.debug("Received Sync from {}, no updates", sender);
       }
       String correlationId = message.correlationId();
-      ClusterMembershipData syncAckData = new ClusterMembershipData(membershipTable.asList(), config.getSyncGroup());
+      MembershipData syncAckData = new MembershipData(membershipTable.asList(), config.getSyncGroup());
       Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
       transport.send(sender, syncAckMsg);
     }
@@ -465,11 +472,11 @@ public final class ClusterMembership implements IClusterMembership {
   }
 
   /**
-   * Merges gossip's {@link ClusterMembershipData} (not spreading gossip further).
+   * Merges gossip's {@link MembershipData} (not spreading gossip further).
    */
-  private class OnGossipRequestAction implements Action1<ClusterMembershipData> {
+  private class OnGossipRequestAction implements Action1<MembershipData> {
     @Override
-    public void call(ClusterMembershipData data) {
+    public void call(MembershipData data) {
       List<ClusterMember> updates = membershipTable.merge(data);
       if (!updates.isEmpty()) {
         LOGGER.debug("Received gossip, updates: {}", updates);

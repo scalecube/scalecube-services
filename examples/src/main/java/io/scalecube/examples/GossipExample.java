@@ -29,7 +29,7 @@ public class GossipExample {
     });
 
     // Start cluster node B that joins node A as seed node
-    String seedMember = clusterA.localAddress().toString();
+    String seedMember = clusterA.address().toString();
     ICluster clusterB = Cluster.joinAwait(seedMember);
     clusterB.spreadGossip(Message.fromData(new Greetings("Greetings from ClusterMember B")));
   }

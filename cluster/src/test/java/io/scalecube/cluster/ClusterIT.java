@@ -13,7 +13,7 @@ public class ClusterIT {
   public void testJoinDynamicPort() throws Exception {
     // Start seed node
     ICluster seedNode = Cluster.joinAwait();
-    String seedNodeAddress = seedNode.localAddress().toString();
+    String seedNodeAddress = seedNode.address().toString();
 
     // Start other nodes
     int membersNum = 10;
@@ -24,8 +24,8 @@ public class ClusterIT {
     }
     long end = System.currentTimeMillis();
     System.out.println("Time: " + (end - start) + " millis");
-    assertEquals(membersNum + 1, seedNode.membership().members().size());
-    System.out.println("Cluster nodes: " + seedNode.membership().members());
+    assertEquals(membersNum + 1, seedNode.members().size());
+    System.out.println("Cluster nodes: " + seedNode.members());
 
     // Shutdown all nodes
     seedNode.shutdown().get();

@@ -32,9 +32,9 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembership cm_a = createMembership(a, members);
-    ClusterMembership cm_b = createMembership(b, members);
-    ClusterMembership cm_c = createMembership(c, members);
+    MembershipProtocol cm_a = createMembership(a, members);
+    MembershipProtocol cm_b = createMembership(b, members);
+    MembershipProtocol cm_c = createMembership(c, members);
 
     try {
       awaitSeconds(1);
@@ -58,9 +58,9 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembership cm_a = createMembership(a, members);
-    ClusterMembership cm_b = createMembership(b, members);
-    ClusterMembership cm_c = createMembership(c, members);
+    MembershipProtocol cm_a = createMembership(a, members);
+    MembershipProtocol cm_b = createMembership(b, members);
+    MembershipProtocol cm_c = createMembership(c, members);
 
     // Block traffic
     a.block(members);
@@ -102,9 +102,9 @@ public class ClusterMembershipIT {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    ClusterMembership cm_a = createMembership(a, members);
-    ClusterMembership cm_b = createMembership(b, members);
-    ClusterMembership cm_c = createMembership(c, members);
+    MembershipProtocol cm_a = createMembership(a, members);
+    MembershipProtocol cm_b = createMembership(b, members);
+    MembershipProtocol cm_c = createMembership(c, members);
 
     try {
       awaitSeconds(1);
@@ -159,10 +159,10 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembership cm_a = createMembership(a, members);
-    ClusterMembership cm_b = createMembership(b, members);
-    ClusterMembership cm_c = createMembership(c, members);
-    ClusterMembership cm_d = createMembership(d, members);
+    MembershipProtocol cm_a = createMembership(a, members);
+    MembershipProtocol cm_b = createMembership(b, members);
+    MembershipProtocol cm_c = createMembership(c, members);
+    MembershipProtocol cm_d = createMembership(d, members);
 
     try {
       awaitSeconds(1);
@@ -213,13 +213,13 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    ClusterMembership cm_a = createMembership(a, members);
-    ClusterMembership cm_b = createMembership(b, members);
-    ClusterMembership cm_c = createMembership(c, members);
-    ClusterMembership cm_d = createMembership(d, members);
+    MembershipProtocol cm_a = createMembership(a, members);
+    MembershipProtocol cm_b = createMembership(b, members);
+    MembershipProtocol cm_c = createMembership(c, members);
+    MembershipProtocol cm_d = createMembership(d, members);
 
-    ClusterMembership cm_restartedC = null;
-    ClusterMembership cm_restartedD = null;
+    MembershipProtocol cm_restartedC = null;
+    MembershipProtocol cm_restartedD = null;
 
     try {
       awaitSeconds(1);
@@ -273,11 +273,11 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     Transport e = Transport.bindAwait(true);
 
-    ClusterMembership cm_a = createMembership(a, Collections.<Address>emptyList());
-    ClusterMembership cm_b = createMembership(b, Collections.singletonList(a.address()));
-    ClusterMembership cm_c = createMembership(c, Collections.singletonList(a.address()));
-    ClusterMembership cm_d = createMembership(d, Collections.singletonList(b.address()));
-    ClusterMembership cm_e = createMembership(e, Collections.singletonList(b.address()));
+    MembershipProtocol cm_a = createMembership(a, Collections.<Address>emptyList());
+    MembershipProtocol cm_b = createMembership(b, Collections.singletonList(a.address()));
+    MembershipProtocol cm_c = createMembership(c, Collections.singletonList(a.address()));
+    MembershipProtocol cm_d = createMembership(d, Collections.singletonList(b.address()));
+    MembershipProtocol cm_e = createMembership(e, Collections.singletonList(b.address()));
 
     try {
       awaitSeconds(3);
@@ -324,7 +324,7 @@ public class ClusterMembershipIT {
     }
   }
 
-  public ClusterMembership createMembership(Transport transport, List<Address> seedMembers) {
+  public MembershipProtocol createMembership(Transport transport, List<Address> seedMembers) {
     // Generate member id
     String memberId = "TestMember-localhost:" + transport.address().port();
     // Create failure detector
@@ -341,7 +341,7 @@ public class ClusterMembershipIT {
         .syncTimeout(200)
         .maxSuspectTime(5000)
         .build();
-    ClusterMembership membership = new ClusterMembership(memberId, transport, membershipConfig);
+    MembershipProtocol membership = new MembershipProtocol(memberId, transport, membershipConfig);
     membership.setFailureDetector(failureDetector);
     membership.setGossipProtocol(gossipProtocol);
     membership.setSeedMembers(seedMembers);
@@ -357,21 +357,21 @@ public class ClusterMembershipIT {
     return membership;
   }
 
-  public void stopAll(ClusterMembership... memberships) {
-    for (ClusterMembership membership : memberships) {
+  public void stopAll(MembershipProtocol... memberships) {
+    for (MembershipProtocol membership : memberships) {
       if (membership != null) {
         stop(membership);
       }
     }
   }
 
-  public void stop(ClusterMembership membership) {
+  public void stop(MembershipProtocol membership) {
     membership.stop();
     membership.getGossipProtocol().stop();
     membership.getFailureDetector().stop();
   }
 
-  public void assertTrusted(ClusterMembership membership, Address... expected) {
+  public void assertTrusted(MembershipProtocol membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.TRUSTED);
     assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
@@ -380,7 +380,7 @@ public class ClusterMembershipIT {
     }
   }
 
-  public void assertSuspected(ClusterMembership membership, Address... expected) {
+  public void assertSuspected(MembershipProtocol membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
     assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
@@ -389,12 +389,12 @@ public class ClusterMembershipIT {
     }
   }
 
-  public void assertNoSuspected(ClusterMembership membership) {
+  public void assertNoSuspected(MembershipProtocol membership) {
     List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
     assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
   }
 
-  private List<Address> getAddressesWithStatus(ClusterMembership membership, ClusterMemberStatus status) {
+  private List<Address> getAddressesWithStatus(MembershipProtocol membership, ClusterMemberStatus status) {
     List<Address> addresses = new ArrayList<>();
     for (ClusterMember member : membership.members()) {
       if (member.status() == status) {

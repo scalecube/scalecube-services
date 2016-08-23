@@ -24,19 +24,19 @@ public class MessagingExample {
   public static void main(String[] args) throws Exception {
     // Start cluster node A
     final ICluster clusterA = Cluster.joinAwait();
-    String seedAddress = clusterA.localAddress().toString();
+    String seedAddress = clusterA.address().toString();
 
     // Listen to greetings messages and respond to them
     clusterA.listen().filter(Greetings.MSG_FILTER).subscribe(new Action1<Message>() {
       @Override
-      public void call(Message message) {
+      public void call(Message request) {
         // Print greeting to console
-        Greetings greetings = message.data();
+        Greetings greetings = request.data();
         System.out.println(greetings);
 
         // Respond with greetings
-        ClusterMember senderMember = clusterA.membership().member(message.sender());
-        clusterA.send(senderMember, Message.fromData(new Greetings("Greetings from ClusterMember A")));
+        Message response = Message.fromData(new Greetings("Greetings from ClusterMember A"));
+        clusterA.send(request.sender(), response);
       }
     });
 
@@ -55,13 +55,10 @@ public class MessagingExample {
     });
 
     // Send greeting message to other cluster members
-    List<ClusterMember> members = clusterB.membership().members();
     Greetings greetings = new Greetings("Greetings from ClusterMember B");
     Message greetingsMessage = Message.fromData(greetings);
-    for (ClusterMember member : members) {
-      if (!clusterB.membership().isLocalMember(member)) {
-        clusterB.send(member, greetingsMessage);
-      }
+    for (ClusterMember member : clusterB.otherMembers()) {
+      clusterB.send(member, greetingsMessage);
     }
   }
 

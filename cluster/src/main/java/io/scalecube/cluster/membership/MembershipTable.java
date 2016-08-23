@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-final class ClusterMembershipTable {
+final class MembershipTable {
 
   private final ConcurrentMap<String, ClusterMember> membership = new ConcurrentHashMap<>();
 
-  public List<ClusterMember> merge(ClusterMembershipData data) {
+  public List<ClusterMember> merge(MembershipData data) {
     List<ClusterMember> updates = new ArrayList<>();
     for (ClusterMember record : data.getMembership()) {
       updates.addAll(merge(record));

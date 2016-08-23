@@ -24,7 +24,7 @@ public class ClusterJoinExamples {
     ICluster clusterNode1 = Cluster.joinAwait();
 
     // Define seed member address
-    String seedMember = clusterNode1.localAddress().toString();
+    String seedMember = clusterNode1.address().toString();
 
     // Join member to cluster
     ICluster clusterNode2 = Cluster.joinAwait(seedMember);
@@ -42,10 +42,10 @@ public class ClusterJoinExamples {
     ICluster anotherClusterNode = Cluster.joinAwait(configWithSyncGroup);
 
     // Print first cluster members (3 nodes)
-    System.out.println("Cluster 1: " + clusterNode1.membership().members());
+    System.out.println("Cluster 1: " + clusterNode1.members());
 
     // Print second cluster members (single node)
-    System.out.println("Cluster 2: " + anotherClusterNode.membership().members());
+    System.out.println("Cluster 2: " + anotherClusterNode.members());
 
   }
 

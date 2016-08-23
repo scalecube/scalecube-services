@@ -39,7 +39,7 @@ public class ClusterMetadataExample {
   public static void main(String[] args) throws Exception {
     // Start seed member
     ICluster seedCluster = Cluster.joinAwait();
-    String seedAddress = seedCluster.localAddress().toString();
+    String seedAddress = seedCluster.address().toString();
 
     // Define the custom configuration meta data with alias field.
     ClusterConfig config = ClusterConfig.builder()
@@ -59,7 +59,7 @@ public class ClusterMetadataExample {
     });
 
     // get the list of members in the cluster and locate Joe tell Hello/Joe
-    List<ClusterMember> members = seedCluster.membership().members();
+    List<ClusterMember> members = seedCluster.members();
     for (ClusterMember m : members) {
       if (m.metadata().containsKey("alias")) {
         if (m.metadata().get("alias").equals("Joe")) {
