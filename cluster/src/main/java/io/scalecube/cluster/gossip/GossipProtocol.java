@@ -55,9 +55,9 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // State
 
+  private long period = 0;
   private AtomicLong counter = new AtomicLong(0);
   private Queue<GossipTask> gossipsQueue = new ConcurrentLinkedQueue<>();
-  private long period = 0;
   private volatile int factor = 1;
   private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
   private volatile List<Address> members = new ArrayList<>();

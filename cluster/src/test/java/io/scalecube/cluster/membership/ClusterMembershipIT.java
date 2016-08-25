@@ -68,7 +68,7 @@ public class ClusterMembershipIT {
     c.block(members);
 
     try {
-      awaitSeconds(9);
+      awaitSeconds(6);
 
       assertTrusted(cm_a, a.address());
       assertNoSuspected(cm_a);
@@ -189,7 +189,7 @@ public class ClusterMembershipIT {
       assertTrusted(cm_d, c.address(), d.address());
       assertSuspected(cm_d, a.address(), b.address());
 
-      awaitSeconds(9); // > max suspect time (5)
+      awaitSeconds(6); // > max suspect time (5)
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
@@ -239,7 +239,7 @@ public class ClusterMembershipIT {
       assertTrusted(cm_b, a.address(), b.address());
       assertSuspected(cm_b, c.address(), d.address());
 
-      awaitSeconds(9); // > max suspect time (5)
+      awaitSeconds(6); // > max suspect time (5)
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
