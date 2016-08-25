@@ -23,8 +23,8 @@ import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
@@ -55,9 +55,9 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // State
 
+  private long period = 0;
   private AtomicLong counter = new AtomicLong(0);
   private Queue<GossipTask> gossipsQueue = new ConcurrentLinkedQueue<>();
-  private long period = 0;
   private volatile int factor = 1;
   private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
   private volatile List<Address> members = new ArrayList<>();
@@ -115,7 +115,9 @@ public final class GossipProtocol implements IGossipProtocol {
   @Override
   public void start() {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
-    transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
+    transport.listen().observeOn(Schedulers.from(executor))
+        .filter(new GossipMessageFilter())
+        .subscribe(onGossipRequestSubscriber);
 
     int gossipTime = config.getGossipTime();
     executorTask =
