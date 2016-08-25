@@ -52,7 +52,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
@@ -100,9 +99,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private final Map<Address, ScheduledFuture<?>> removeMemberTasks = Maps.newHashMap();
 
   private Function<Message, Void> onSyncAckFunction = new Function<Message, Void>() {
-    @Nullable
     @Override
-    public Void apply(@Nullable Message message) {
+    public Void apply(Message message) {
       onSyncAck(message);
       return null;
     }
@@ -138,6 +136,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   IGossipProtocol getGossipProtocol() {
     return gossipProtocol;
+  }
+
+  ITransport getTransport() {
+    return transport;
   }
 
   public void setSeedMembers(Collection<Address> seedMembers) {
