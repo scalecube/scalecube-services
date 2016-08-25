@@ -24,7 +24,6 @@ import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
@@ -126,18 +125,18 @@ public final class FailureDetector implements IFailureDetector {
   @Override
   public void start() {
     onPingRequestSubscriber = Subscribers.create(new OnPingRequestAction());
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(PING_FILTER)
         .filter(targetFilter(transport.address()))
         .subscribe(onPingRequestSubscriber);
 
     onAskToPingRequestSubscriber = Subscribers.create(new OnAskToPingRequestAction());
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(PING_REQ_FILTER)
         .subscribe(onAskToPingRequestSubscriber);
 
     onTransitAckRequestSubscriber = Subscribers.create(new OnTransitAckRequestAction());
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(ACK_FILTER)
         .filter(ORIGINAL_ISSUER_FILTER)
         .subscribe(onTransitAckRequestSubscriber);
@@ -199,7 +198,7 @@ public final class FailureDetector implements IFailureDetector {
     Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(period).build();
     LOGGER.trace("Send Ping from {} to {}", localAddress, pingMember);
 
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(ackFilter(period))
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)
@@ -239,7 +238,7 @@ public final class FailureDetector implements IFailureDetector {
     }
 
     Address localAddress = transport.address();
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(ackFilter(period))
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)

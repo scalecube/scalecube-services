@@ -198,7 +198,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
     // Listen to SYNC requests from joining/synchronizing members
     onSyncRequestSubscriber = Subscribers.create(new OnSyncRequestSubscriber());
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(SYNC_FILTER)
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .subscribe(onSyncRequestSubscriber);
@@ -209,7 +209,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
     // Listen to 'membership' message from GossipProtocol
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction());
-    gossipProtocol.listen()
+    gossipProtocol.listen().observeOn(scheduler)
         .filter(GOSSIP_MEMBERSHIP_FILTER)
         .map(MembershipDataUtils.gossipFilterData(transport.address()))
         .subscribe(onGossipRequestSubscriber);
@@ -265,7 +265,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     String period = Integer.toString(periodCounter.incrementAndGet());
     final SettableFuture<Message> syncResponseFuture = SettableFuture.create();
 
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(syncAckFilter(period))
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
@@ -297,7 +297,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private void doSync(final List<Address> members, Scheduler scheduler) {
     String period = Integer.toString(periodCounter.incrementAndGet());
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(syncAckFilter(period))
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
@@ -349,8 +349,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * <ul>
    * <li>recalculates 'cluster members' for {@link #gossipProtocol} and {@link #failureDetector} by filtering out
    * {@code REMOVED/SHUTDOWN} members</li>
-   * <li>if {@code spreadGossip} was set {@code true} -- converts {@code updates} to {@link MembershipData} and
-   * send it to cluster via {@link #gossipProtocol}</li>
+   * <li>if {@code spreadGossip} was set {@code true} -- converts {@code updates} to {@link MembershipData} and send it
+   * to cluster via {@link #gossipProtocol}</li>
    * <li>publishes updates locally (see {@link #listenUpdates()})</li>
    * <li>iterates on {@code updates}, if {@code update} become {@code SUSPECTED} -- schedules a timer for
    * {@code maxSuspectTime} to remove the member (on {@code TRUSTED} -- cancels the timer)</li>
