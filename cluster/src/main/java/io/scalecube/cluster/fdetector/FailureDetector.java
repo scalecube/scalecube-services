@@ -1,16 +1,13 @@
 package io.scalecube.cluster.fdetector;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.ClusterMemberStatus;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageHeaders;
-import io.scalecube.transport.Transport;
 
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
@@ -66,7 +63,6 @@ public final class FailureDetector implements IFailureDetector {
 
   private long period = 0;
   private volatile List<Address> members = new ArrayList<>();
-  private Set<Address> suspectedMembers = Sets.newConcurrentHashSet();
 
   // Subscriptions
 
@@ -87,7 +83,7 @@ public final class FailureDetector implements IFailureDetector {
    *
    * @param transport transport
    */
-  public FailureDetector(Transport transport) {
+  public FailureDetector(ITransport transport) {
     this(transport, FailureDetectorConfig.defaultConfig());
   }
 
@@ -97,7 +93,7 @@ public final class FailureDetector implements IFailureDetector {
    * @param transport transport
    * @param config failure detector settings
    */
-  public FailureDetector(Transport transport, FailureDetectorConfig config) {
+  public FailureDetector(ITransport transport, FailureDetectorConfig config) {
     checkArgument(transport != null);
     checkArgument(config != null);
     this.transport = transport;
@@ -108,6 +104,20 @@ public final class FailureDetector implements IFailureDetector {
     this.scheduler = Schedulers.from(executor);
   }
 
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
+  ITransport getTransport() {
+    return transport;
+  }
+
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
+  List<Address> getMembers() {
+    return new ArrayList<>(members);
+  }
+
   @Override
   public void setMembers(Collection<Address> members) {
     Set<Address> set = new HashSet<>(members);
@@ -116,10 +126,6 @@ public final class FailureDetector implements IFailureDetector {
     Collections.shuffle(list);
     this.members = list;
     LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
-  }
-
-  public Collection<Address> getSuspectedMembers() {
-    return Collections.unmodifiableCollection(suspectedMembers);
   }
 
   @Override
@@ -172,28 +178,6 @@ public final class FailureDetector implements IFailureDetector {
     return subject.toSerialized();
   }
 
-  @Override
-  public void suspect(Address member) {
-    checkNotNull(member);
-    if (suspectedMembers.add(member)) {
-      LOGGER.debug("Member {} marked as SUSPECTED for {}", member, transport.address());
-    }
-  }
-
-  @Override
-  public void trust(Address member) {
-    checkNotNull(member);
-    if (suspectedMembers.remove(member)) {
-      LOGGER.debug("Member {} marked as TRUSTED for {}", member, transport.address());
-    }
-  }
-
-  @Override
-  public void remove(Address member) {
-    checkNotNull(member);
-    suspectedMembers.remove(member);
-  }
-
   private void doPing() {
     final Address pingMember = selectPingMember();
     if (pingMember == null) {
@@ -230,14 +214,6 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private void doPingReq(final Address pingMember, String cid) {
-    final int timeout = config.getPingTime() - config.getPingTimeout();
-    if (timeout <= 0) {
-      LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})",
-          config.getPingTime(), config.getPingTimeout());
-      declareSuspected(pingMember);
-      return;
-    }
-
     final List<Address> pingReqMembers = selectPingReqMembers(pingMember);
     if (pingReqMembers.isEmpty()) {
       LOGGER.trace("No PingReq occurred, because member selection is empty");
@@ -250,7 +226,7 @@ public final class FailureDetector implements IFailureDetector {
         .filter(ackFilter(cid))
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)
-        .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
+        .timeout(config.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(Subscribers.create(new Action1<Message>() {
           @Override
           public void call(Message message) {
@@ -260,8 +236,8 @@ public final class FailureDetector implements IFailureDetector {
         }, new Action1<Throwable>() {
           @Override
           public void call(Throwable throwable) {
-            LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})", pingReqMembers, pingMember,
-                timeout);
+            LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})",
+                pingReqMembers, pingMember, config.getPingTimeout());
             declareSuspected(pingMember);
           }
         }));
@@ -274,24 +250,14 @@ public final class FailureDetector implements IFailureDetector {
     }
   }
 
-  /**
-   * Adds given member to {@link #suspectedMembers} and emitting state {@code SUSPECTED}.
-   */
   private void declareSuspected(Address member) {
-    if (suspectedMembers.add(member)) {
-      LOGGER.debug("Member {} detected as SUSPECTED by {}", member, transport.address());
-      subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.SUSPECTED));
-    }
+    LOGGER.debug("Member {} detected as SUSPECTED by {}", member, transport.address());
+    subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.SUSPECTED));
   }
 
-  /**
-   * Removes given member from {@link #suspectedMembers} and emitting state {@code TRUSTED}.
-   */
   private void declareTrusted(Address member) {
-    if (suspectedMembers.remove(member)) {
-      LOGGER.debug("Member {} detected as TRUSTED by {}", member, transport.address());
-      subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.TRUSTED));
-    }
+    LOGGER.debug("Member {} detected as TRUSTED by {}", member, transport.address());
+    subject.onNext(new FailureDetectorEvent(member, ClusterMemberStatus.TRUSTED));
   }
 
   private Address selectPingMember() {

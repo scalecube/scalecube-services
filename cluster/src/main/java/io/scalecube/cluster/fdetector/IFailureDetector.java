@@ -32,21 +32,6 @@ public interface IFailureDetector {
   Observable<FailureDetectorEvent> listenStatus();
 
   /**
-   * Marks given member as SUSPECTED inside FD algorithm internals.
-   */
-  void suspect(Address member);
-
-  /**
-   * Marks given member as TRUSTED inside FD algorithm internals.
-   */
-  void trust(Address member);
-
-  /**
-   * Signals to failure detection algorithm to remove member.
-   */
-  void remove(Address member);
-
-  /**
    * Updates list of cluster members among which should work FD algorithm.
    */
   void setMembers(Collection<Address> members);

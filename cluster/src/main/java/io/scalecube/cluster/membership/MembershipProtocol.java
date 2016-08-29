@@ -12,7 +12,6 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageHeaders;
-import io.scalecube.transport.Transport;
 
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
@@ -113,7 +112,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * @param transport transport
    * @param config membership config parameters
    */
-  public MembershipProtocol(String memberId, Transport transport, MembershipConfig config) {
+  public MembershipProtocol(String memberId, ITransport transport, MembershipConfig config) {
     this.memberId = memberId;
     this.transport = transport;
     this.config = config;
@@ -384,7 +383,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
       LOGGER.debug("Member {} became {}", member.address(), member.status());
       switch (member.status()) {
         case SUSPECTED:
-          failureDetector.suspect(member.address());
           // setup a schedule for suspected member
           if (removeMemberTasks.get(member.address()) == null) {
             removeMemberTasks.put(member.address(), executor.schedule(new Runnable() {
@@ -400,13 +398,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
         case TRUSTED:
           // clean schedule
           ScheduledFuture<?> future = removeMemberTasks.remove(member.address());
-          if (future == null || future.cancel(true)) {
-            failureDetector.trust(member.address());
+          if (future != null) {
+            future.cancel(true);
           }
-          break;
-        case REMOVED:
-          // clean up after removed member
-          failureDetector.remove(member.address());
           break;
         case SHUTDOWN:
           executor.schedule(new Runnable() {
