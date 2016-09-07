@@ -71,6 +71,9 @@ public final class Cluster implements ICluster {
     LOGGER.info("Cluster instance '{}' created with configuration: {}", memberId, config);
   }
 
+  /**
+   * Init cluster instance and join cluster synchronously.
+   */
   public static ICluster joinAwait() {
     try {
       return join().get();
@@ -79,6 +82,9 @@ public final class Cluster implements ICluster {
     }
   }
 
+  /**
+   * Init cluster instance with the given seed members and join cluster synchronously.
+   */
   public static ICluster joinAwait(Address... seedMembers) {
     try {
       return join(seedMembers).get();
@@ -87,6 +93,9 @@ public final class Cluster implements ICluster {
     }
   }
 
+  /**
+   * Init cluster instance with the given metadata and seed members and join cluster synchronously.
+   */
   public static ICluster joinAwait(Map<String, String> metadata, Address... seedMembers) {
     try {
       return join(metadata, seedMembers).get();
@@ -106,10 +115,16 @@ public final class Cluster implements ICluster {
     }
   }
 
+  /**
+   * Init cluster instance and join cluster asynchronously.
+   */
   public static ListenableFuture<ICluster> join() {
     return join(ClusterConfig.defaultConfig());
   }
 
+  /**
+   * Init cluster instance with the given seed members and join cluster asynchronously.
+   */
   public static ListenableFuture<ICluster> join(Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
         .membershipConfig(MembershipConfig.builder().seedMembers(Arrays.asList(seedMembers)).build())
@@ -117,6 +132,9 @@ public final class Cluster implements ICluster {
     return join(config);
   }
 
+  /**
+   * Init cluster instance with the given metadata and seed members and join cluster synchronously.
+   */
   public static ListenableFuture<ICluster> join(Map<String, String> metadata, Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
         .membershipConfig(
@@ -128,6 +146,9 @@ public final class Cluster implements ICluster {
     return join(config);
   }
 
+  /**
+   * Init cluster instance with the given configuration and join cluster synchronously.
+   */
   public static ListenableFuture<ICluster> join(final ClusterConfig config) {
     return new Cluster(config).join0();
   }

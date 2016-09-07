@@ -1,9 +1,8 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.Member;
 import io.scalecube.cluster.ICluster;
-import io.scalecube.transport.Address;
+import io.scalecube.cluster.Member;
 import io.scalecube.transport.Message;
 
 import com.google.common.collect.ImmutableMap;
@@ -23,6 +22,9 @@ import java.util.Optional;
  */
 public class ClusterMetadataExample {
 
+  /**
+   * Main method.
+   */
   public static void main(String[] args) throws Exception {
     // Start seed cluster member Alice
     ICluster alice = Cluster.joinAwait();

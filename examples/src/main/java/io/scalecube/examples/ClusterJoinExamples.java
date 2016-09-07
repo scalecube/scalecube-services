@@ -1,5 +1,7 @@
 package io.scalecube.examples;
 
+import static java.util.stream.Collectors.joining;
+
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
@@ -10,8 +12,6 @@ import io.scalecube.transport.TransportConfig;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
-
-import static java.util.stream.Collectors.joining;
 
 /**
  * Example how to create {@link ICluster} instances and join them to cluster.
@@ -69,7 +69,7 @@ public class ClusterJoinExamples {
     System.out.println("Dan (" + dan.address() + ") cluster: "
         + dan.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
 
-    System.out.println("Eve (" + eve.address() + ") cluster: "      // alone in cluster
+    System.out.println("Eve (" + eve.address() + ") cluster: " // alone in cluster
         + eve.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
   }
 
