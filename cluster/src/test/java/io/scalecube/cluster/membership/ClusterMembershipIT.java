@@ -9,6 +9,7 @@ import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 
 import com.google.common.base.Throwables;
@@ -17,9 +18,11 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Test;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +50,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_c);
     } finally {
       stopAll(cm_a, cm_b, cm_c);
-      destroyTransports(a, b, c);
     }
   }
 
@@ -91,7 +93,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_c);
     } finally {
       stopAll(cm_a, cm_b, cm_c);
-      destroyTransports(a, b, c);
     }
   }
 
@@ -126,7 +127,7 @@ public class ClusterMembershipIT {
       assertSuspected(cm_a, b.address(), c.address());
 
       assertTrusted(cm_b, b.address());
-      assertSuspected(cm_b,a.address(), c.address());
+      assertSuspected(cm_b, a.address(), c.address());
 
       assertTrusted(cm_c, c.address());
       assertSuspected(cm_c, a.address(), b.address());
@@ -147,7 +148,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_c);
     } finally {
       stopAll(cm_a, cm_b, cm_c);
-      destroyTransports(a, b, c);
     }
   }
 
@@ -201,7 +201,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_d);
     } finally {
       stopAll(cm_a, cm_b, cm_c, cm_d);
-      destroyTransports(a, b, c, d);
     }
   }
 
@@ -246,6 +245,8 @@ public class ClusterMembershipIT {
       assertTrusted(cm_b, a.address(), b.address());
       assertNoSuspected(cm_b);
 
+      c = Transport.bindAwait(true);
+      d = Transport.bindAwait(true);
       cm_restartedC = createMembership(c, Arrays.asList(a.address(), b.address()));
       cm_restartedD = createMembership(d, Arrays.asList(a.address(), b.address()));
 
@@ -261,7 +262,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_b);
     } finally {
       stopAll(cm_a, cm_b, cm_restartedC, cm_restartedD);
-      destroyTransports(a, b, c, d);
     }
   }
 
@@ -294,7 +294,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_e);
     } finally {
       stopAll(cm_a, cm_b, cm_c, cm_d, cm_e);
-      destroyTransports(a, b, c, d, e);
     }
   }
 
@@ -303,24 +302,6 @@ public class ClusterMembershipIT {
       TimeUnit.SECONDS.sleep(seconds);
     } catch (InterruptedException e) {
       Throwables.propagate(e);
-    }
-  }
-
-  private void destroyTransports(Transport... transports) {
-    for (Transport transport : transports) {
-      destroyTransport(transport);
-    }
-  }
-
-  private void destroyTransport(Transport transport) {
-    if (transport != null && !transport.isStopped()) {
-      SettableFuture<Void> close = SettableFuture.create();
-      transport.stop(close);
-      try {
-        close.get(1, TimeUnit.SECONDS);
-      } catch (Exception ignore) {
-        // ignore
-      }
     }
   }
 
@@ -366,32 +347,41 @@ public class ClusterMembershipIT {
   }
 
   public void stop(MembershipProtocol membership) {
-    membership.stop();
     membership.getGossipProtocol().stop();
     membership.getFailureDetector().stop();
+
+    ITransport transport = membership.getTransport();
+    SettableFuture<Void> future = SettableFuture.create();
+    transport.stop(future);
+    try {
+      future.get(1, TimeUnit.SECONDS);
+    } catch (Exception ignore) {
+    }
+
+    membership.stop();
   }
 
   public void assertTrusted(MembershipProtocol membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.TRUSTED);
-    assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
+    assertEquals(timeNow() + " Expected " + expected.length + " trusted members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
-      assertTrue("Expected to trust " + member + ", but actual: " + actual, actual.contains(member));
+      assertTrue(timeNow() + " Expected to trust " + member + ", but actual: " + actual, actual.contains(member));
     }
   }
 
   public void assertSuspected(MembershipProtocol membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
-    assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
+    assertEquals(timeNow() + " Expected " + expected.length + " suspect members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
-      assertTrue("Expected to suspect " + member + ", but actual: " + actual, actual.contains(member));
+      assertTrue(timeNow() + " Expected to suspect " + member + ", but actual: " + actual, actual.contains(member));
     }
   }
 
   public void assertNoSuspected(MembershipProtocol membership) {
     List<Address> actual = getAddressesWithStatus(membership, ClusterMemberStatus.SUSPECTED);
-    assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
+    assertEquals(timeNow() + " Expected no suspected, but actual: " + actual, 0, actual.size());
   }
 
   private List<Address> getAddressesWithStatus(MembershipProtocol membership, ClusterMemberStatus status) {
@@ -402,5 +392,9 @@ public class ClusterMembershipIT {
       }
     }
     return addresses;
+  }
+
+  private String timeNow() {
+    return new SimpleDateFormat("MMdd-HHmm:ss,SSS").format(new Date());
   }
 }

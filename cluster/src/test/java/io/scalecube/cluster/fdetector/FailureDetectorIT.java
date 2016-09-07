@@ -1,108 +1,41 @@
 package io.scalecube.cluster.fdetector;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.cluster.ClusterMemberStatus.SUSPECTED;
+import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.ClusterMemberStatus;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Test;
+
+import rx.functions.Action1;
+import rx.functions.Func1;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class FailureDetectorIT {
 
   @Test
-  public void testBasicTrusted() throws Exception {
-    // Create transports
-    Transport a = Transport.bindAwait(true);
-    Transport b = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address());
-
-    // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
-
-    try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(2);
-      assertTrue("No suspected members is expected by a", fd_a.getSuspectedMembers().isEmpty());
-      assertTrue("No suspected members is expected by b", fd_b.getSuspectedMembers().isEmpty());
-    } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b);
-    }
-  }
-
-  @Test
-  public void testAllTrusted() throws Exception {
-    // Create transports
-    Transport a = Transport.bindAwait(true);
-    Transport b = Transport.bindAwait(true);
-    Transport c = Transport.bindAwait(true);
-    Transport d = Transport.bindAwait(true);
-    Transport e = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address(), e.address());
-
-    // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_d = createFailureDetector(d, members);
-    FailureDetector fd_e = createFailureDetector(e, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d, fd_e);
-
-    try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(2);
-      assertTrue("No suspected members is expected by a", fd_a.getSuspectedMembers().isEmpty());
-      assertTrue("No suspected members is expected by b", fd_b.getSuspectedMembers().isEmpty());
-      assertTrue("No suspected members is expected by c", fd_c.getSuspectedMembers().isEmpty());
-      assertTrue("No suspected members is expected by d", fd_d.getSuspectedMembers().isEmpty());
-      assertTrue("No suspected members is expected by e", fd_e.getSuspectedMembers().isEmpty());
-    } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b, c, d, e);
-    }
-  }
-
-  @Test
-  public void testBasicSuspected() throws Exception {
-    // Create transports
-    Transport a = Transport.bindAwait(true);
-    Transport b = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address());
-
-    // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
-
-    // block all traffic
-    a.block(members);
-    b.block(members);
-
-    try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(2);
-      assertSuspected(fd_a.getSuspectedMembers(), b.address());
-      assertSuspected(fd_b.getSuspectedMembers(), a.address());
-    } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b);
-    }
-  }
-
-  @Test
-  public void testAllSuspected() throws Exception {
+  public void testTrusted() throws Exception {
     // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
@@ -110,9 +43,38 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
+
+    try {
+      start(fdetectors);
+
+      Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+      Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
+      Future<List<FailureDetectorEvent>> list_c = listenStatus(fd_c);
+
+      assertMember(a.address(), TRUSTED, get(list_a, 2), b.address(), c.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 2), a.address(), c.address());
+      assertMember(c.address(), TRUSTED, get(list_c, 2), a.address(), b.address());
+    } finally {
+      stop(fdetectors);
+    }
+  }
+
+  @Test
+  public void testSuspected() throws Exception {
+    // Create transports
+    Transport a = Transport.bindAwait(true);
+    Transport b = Transport.bindAwait(true);
+    Transport c = Transport.bindAwait(true);
+    List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
+
+    // Create failure detectors
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // block all traffic
@@ -121,19 +83,22 @@ public class FailureDetectorIT {
     c.block(members);
 
     try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(4);
-      assertSuspected(fd_a.getSuspectedMembers(), b.address(), c.address());
-      assertSuspected(fd_b.getSuspectedMembers(), a.address(), c.address());
-      assertSuspected(fd_c.getSuspectedMembers(), a.address(), b.address());
+      start(fdetectors);
+
+      Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+      Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
+      Future<List<FailureDetectorEvent>> list_c = listenStatus(fd_c);
+
+      assertMember(a.address(), SUSPECTED, get(list_a, 2), b.address(), c.address());
+      assertMember(b.address(), SUSPECTED, get(list_b, 2), a.address(), c.address());
+      assertMember(c.address(), SUSPECTED, get(list_c, 2), a.address(), b.address());
     } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b, c);
+      stop(fdetectors);
     }
   }
 
   @Test
-  public void testAllTrustedDespiteTrafficIssue() throws Exception {
+  public void testTrustedDespiteBadNetwork() throws Exception {
     // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
@@ -141,54 +106,61 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
-    // Traffic issue
+    // Traffic issue at connection A -> B
     a.block(b.address());
 
+    Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+    Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
+    Future<List<FailureDetectorEvent>> list_c = listenStatus(fd_c);
+
     try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(4);
-      assertTrue("No suspected members is expected by a", fd_a.getSuspectedMembers().isEmpty());
-      assertTrue("No suspected members is expected by b", fd_b.getSuspectedMembers().isEmpty());
-      assertTrue("No suspected members is expected by c", fd_c.getSuspectedMembers().isEmpty());
+      start(fdetectors);
+
+      assertMember(a.address(), TRUSTED, get(list_a, 2), b.address(), c.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 2), a.address(), c.address());
+      assertMember(c.address(), TRUSTED, get(list_c, 2), a.address(), b.address());
     } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b, c);
+      stop(fdetectors);
     }
   }
 
   @Test
-  public void testTrustedDifferentPingTiming() throws Exception {
+  public void testTrustedDespiteDifferentPingTimings() throws Exception {
     // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address());
+    Transport c = Transport.bindAwait(true);
+    List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetectorConfig fd_b_config = FailureDetectorConfig.builder()
-        .pingTime(500)
-        .pingTimeout(300)
-        .build();
-    FailureDetector fd_b = createFailureDetector(b, members, fd_b_config);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b =
+        createFD(b, members, FailureDetectorConfig.builder().pingTimeout(1000).pingTime(500).build());
+    FailureDetector fd_c = createFD(c, members, FailureDetectorConfig.defaultConfig());
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(4);
-      assertNoSuspected(fdetectors);
+      start(fdetectors);
+
+      Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+      Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
+      Future<List<FailureDetectorEvent>> list_c = listenStatus(fd_c);
+
+      assertMember(a.address(), TRUSTED, get(list_a, 6), b.address(), c.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 6), a.address(), c.address());
+      assertMember(c.address(), TRUSTED, get(list_c, 6), a.address(), b.address());
     } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b);
+      stop(fdetectors);
     }
   }
 
   @Test
-  public void testSingleSuspectedNotAffectOthers() throws Exception {
+  public void testSuspectedMemberWithBadNetworkGetsPartitioned() throws Exception {
     // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
@@ -197,295 +169,310 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_d = createFailureDetector(d, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
+    FailureDetector fd_d = createFD(d, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
-    // Block member a
+    // Block traffic on member A to all cluster members
     a.block(members);
 
     try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(4);
-      assertSuspected(fd_a.getSuspectedMembers(), b.address(), c.address(), d.address());
-      assertSuspected(fd_b.getSuspectedMembers(), a.address());
-      assertSuspected(fd_c.getSuspectedMembers(), a.address());
-      assertSuspected(fd_d.getSuspectedMembers(), a.address());
+      Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+      Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
+      Future<List<FailureDetectorEvent>> list_c = listenStatus(fd_c);
+      Future<List<FailureDetectorEvent>> list_d = listenStatus(fd_d);
 
-      // Unblock traffic
+      start(fdetectors);
+
+      assertMember(a.address(), SUSPECTED, get(list_a, 4), b.address(), c.address(), d.address()); // node A
+                                                                                                   // partitioned
+      assertMember(b.address(), SUSPECTED, get(list_b, 4), a.address());
+      assertMember(c.address(), SUSPECTED, get(list_c, 4), a.address());
+      assertMember(d.address(), SUSPECTED, get(list_d, 4), a.address());
+
+      // Unblock traffic on member A
       a.unblockAll();
-
-      // Check recovers
       TimeUnit.SECONDS.sleep(4);
-      assertNoSuspected(fdetectors);
+
+      list_a = listenStatus(fd_a);
+      list_b = listenStatus(fd_b);
+      list_c = listenStatus(fd_c);
+      list_d = listenStatus(fd_d);
+
+      // Check member A recovers
+
+      assertMember(a.address(), TRUSTED, get(list_a, 4), b.address(), c.address(), d.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 4), a.address(), c.address(), d.address());
+      assertMember(c.address(), TRUSTED, get(list_c, 4), a.address(), b.address(), d.address());
+      assertMember(d.address(), TRUSTED, get(list_d, 4), a.address(), b.address(), c.address());
     } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b, c, d);
+      stop(fdetectors);
     }
   }
 
   @Test
-  public void testTwoSuspectedNotAffectOthers() throws Exception {
+  public void testSuspectedMemberWithNormalNetworkGetsPartitioned() throws Exception {
     // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
     Transport d = Transport.bindAwait(true);
-    Transport e = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address(), e.address());
+    List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_d = createFailureDetector(d, members);
-    FailureDetector fd_e = createFailureDetector(e, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d, fd_e);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
+    FailureDetector fd_d = createFD(d, members);
+    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
-    // Block two members a & b
-    a.block(members);
-    b.block(members);
+    // Block traffic to node D on other members
+    a.block(d.address());
+    b.block(d.address());
+    c.block(d.address());
 
     try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(6);
-      assertSuspected(fd_a.getSuspectedMembers(), b.address(), c.address(), d.address(), e.address());
-      assertSuspected(fd_b.getSuspectedMembers(), a.address(), c.address(), d.address(), e.address());
-      assertSuspected(fd_c.getSuspectedMembers(), a.address(), b.address());
-      assertSuspected(fd_d.getSuspectedMembers(), a.address(), b.address());
-      assertSuspected(fd_e.getSuspectedMembers(), a.address(), b.address());
+      Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+      Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
+      Future<List<FailureDetectorEvent>> list_c = listenStatus(fd_c);
+      Future<List<FailureDetectorEvent>> list_d = listenStatus(fd_d);
 
-      // Unblock traffic
+      start(fdetectors);
+
+      assertMember(a.address(), SUSPECTED, get(list_a, 4), d.address());
+      assertMember(b.address(), SUSPECTED, get(list_b, 4), d.address());
+      assertMember(c.address(), SUSPECTED, get(list_c, 4), d.address());
+      assertMember(d.address(), SUSPECTED, get(list_d, 4), a.address(), b.address(), c.address()); // node D
+                                                                                                   // partitioned
+
+      // Unblock traffic to member D on other members
       a.unblockAll();
       b.unblockAll();
-
-      // Check recovers
-      TimeUnit.SECONDS.sleep(6);
-      assertNoSuspected(fdetectors);
-    } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b, c, d, e);
-    }
-  }
-
-  @Test
-  public void testSuspectedNetworkPartition() throws Exception {
-    // Create transports
-    Transport a = Transport.bindAwait(true);
-    Transport b = Transport.bindAwait(true);
-    Transport c = Transport.bindAwait(true);
-    Transport x = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), x.address());
-
-    // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_x = createFailureDetector(x, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_x);
-
-    // Block traffic to x
-    a.block(x.address());
-    b.block(x.address());
-    c.block(x.address());
-
-    try {
-      startAll(fdetectors);
+      c.unblockAll();
       TimeUnit.SECONDS.sleep(4);
-      assertSuspected(fd_x.getSuspectedMembers(), a.address(), b.address(), c.address());
-      assertSuspected(fd_a.getSuspectedMembers(), x.address());
-      assertSuspected(fd_b.getSuspectedMembers(), x.address());
-      assertSuspected(fd_c.getSuspectedMembers(), x.address());
+
+      list_a = listenStatus(fd_a);
+      list_b = listenStatus(fd_b);
+      list_c = listenStatus(fd_c);
+      list_d = listenStatus(fd_d);
+
+      // Check member D recovers
+
+      assertMember(a.address(), TRUSTED, get(list_a, 4), b.address(), c.address(), d.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 4), a.address(), c.address(), d.address());
+      assertMember(c.address(), TRUSTED, get(list_c, 4), a.address(), b.address(), d.address());
+      assertMember(d.address(), TRUSTED, get(list_d, 4), a.address(), b.address(), c.address());
     } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b, c, x);
+      stop(fdetectors);
     }
   }
 
   @Test
-  public void testMemberBecomeTrusted() throws Exception {
+  public void testMemberStatusChangeAfterNetworkRecovery() throws Exception {
     // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     List<Address> members = Arrays.asList(a.address(), b.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
 
-    // traffic is blocked initially
+    // Traffic is blocked initially on both sides: A--X-->B, B--X-->A
     a.block(b.address());
     b.block(a.address());
 
-    try {
-      startAll(fdetectors);
-      TimeUnit.SECONDS.sleep(4);
-      assertSuspected(fd_a.getSuspectedMembers(), b.address());
-      assertSuspected(fd_b.getSuspectedMembers(), a.address());
+    Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+    Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
 
-      // unblock all traffic
+    try {
+      start(fdetectors);
+
+      assertMember(a.address(), SUSPECTED, get(list_a, 2), b.address());
+      assertMember(b.address(), SUSPECTED, get(list_b, 2), a.address());
+
+      // Unblock A and B members: A-->B, B-->A
       a.unblockAll();
       b.unblockAll();
-
-      TimeUnit.SECONDS.sleep(4);
-      assertNoSuspected(fdetectors);
-    } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b);
-    }
-  }
-
-  @Test
-  public void testMemberBecomeSuspected() throws Exception {
-    // Create transports
-    Transport a = Transport.bindAwait(true);
-    Transport b = Transport.bindAwait(true);
-    Transport x = Transport.bindAwait(true);
-    Transport y = Transport.bindAwait(true);
-    List<Address> members = Arrays.asList(a.address(), b.address(), x.address(), y.address());
-
-    // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_x = createFailureDetector(x, members);
-    FailureDetector fd_y = createFailureDetector(y, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_x, fd_y);
-
-    try {
-      startAll(fdetectors);
-
       TimeUnit.SECONDS.sleep(2);
-      assertNoSuspected(fdetectors);
 
-      // Destroy x and y
-      fd_x.stop();
-      fd_y.stop();
-      destroyTransports(x, y);
+      // Check that members recover
 
-      TimeUnit.SECONDS.sleep(4);
+      list_a = listenStatus(fd_a);
+      list_b = listenStatus(fd_b);
 
-      assertSuspected(fd_a.getSuspectedMembers(), x.address(), y.address());
-      assertSuspected(fd_b.getSuspectedMembers(), x.address(), y.address());
+      assertMember(a.address(), TRUSTED, get(list_a, 2), b.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 2), a.address());
     } finally {
-      stopAll(fdetectors);
-      destroyTransports(a, b, x, y);
+      stop(fdetectors);
     }
   }
 
   @Test
-  public void testMemberBecomeTrustedAfterRestart() throws Exception {
+  public void testStatusChangeAfterMemberRestart() throws Exception {
     // Create transports
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport x = Transport.bindAwait(true);
-    Transport xx = null;
-    List<Address> members = new ArrayList<>(Arrays.asList(a.address(), b.address(), x.address()));
+    List<Address> members = Arrays.asList(a.address(), b.address(), x.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_x = createFailureDetector(x, members);
-    FailureDetector fd_xx = null;
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_x = createFD(x, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_x);
 
+    Future<List<FailureDetectorEvent>> list_a = listenStatus(fd_a);
+    Future<List<FailureDetectorEvent>> list_b = listenStatus(fd_b);
+    Future<List<FailureDetectorEvent>> list_x = listenStatus(fd_x);
+
+    // Restarted member attributes are not initialized
+    Transport xx;
+    FailureDetector fd_xx;
+
     try {
-      startAll(fdetectors);
+      start(fdetectors);
+
+      assertMember(a.address(), TRUSTED, get(list_a, 2), b.address(), x.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 2), a.address(), x.address());
+      assertMember(x.address(), TRUSTED, get(list_x, 2), a.address(), b.address());
+
+      // stop node X
+      stop(Lists.newArrayList(fd_x));
       TimeUnit.SECONDS.sleep(2);
-      assertNoSuspected(fdetectors);
 
-      // stop x
-      fd_x.stop();
-      destroyTransport(x);
-
-      TimeUnit.SECONDS.sleep(4);
-      assertSuspected(fd_a.getSuspectedMembers(), x.address());
-      assertSuspected(fd_b.getSuspectedMembers(), x.address());
-
-      // restart x (as xx)
-      TransportConfig xx_config = TransportConfig.builder()
+      // restart node X as XX
+      xx = Transport.bindAwait(TransportConfig.builder()
           .port(x.address().port())
           .portAutoIncrement(false)
           .useNetworkEmulator(true)
-          .build();
-      xx = Transport.bindAwait(xx_config);
+          .build());
       assertEquals(x.address(), xx.address());
-      fd_xx = createFailureDetector(xx, members);
-      fd_xx.start();
+      fdetectors = Arrays.asList(fd_a, fd_b, fd_xx = createFD(xx, members));
 
-      TimeUnit.SECONDS.sleep(4);
+      // actual restart here
+      fd_xx.start();
+      TimeUnit.SECONDS.sleep(2);
+
+      list_a = listenStatus(fd_a);
+      list_b = listenStatus(fd_b);
+      Future<List<FailureDetectorEvent>> list_xx = listenStatus(fd_xx);
+
       // TODO [AK]: It would be more correct to consider restarted member as a new member, so x is still suspected!
-      assertNoSuspected(fdetectors);
+
+      assertMember(a.address(), TRUSTED, get(list_a, 2), b.address(), xx.address());
+      assertMember(b.address(), TRUSTED, get(list_b, 2), a.address(), xx.address());
+      assertMember(xx.address(), TRUSTED, get(list_xx, 2), a.address(), b.address());
     } finally {
-      stopAll(fdetectors);
-      fd_xx.stop();
-      destroyTransports(a, b, x, xx);
+      stop(fdetectors);
     }
   }
 
-  private FailureDetector createFailureDetector(Transport transport, List<Address> members) {
+  private FailureDetector createFD(Transport transport, List<Address> members) {
     FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder() // faster config for local testing
-        .pingTimeout(100)
-        .pingTime(200)
+        .pingTimeout(500)
+        .pingTime(250)
         .pingReqMembers(2)
         .build();
     FailureDetector failureDetector = new FailureDetector(transport, failureDetectorConfig);
     failureDetector.setMembers(members);
-    return createFailureDetector(transport, members, failureDetectorConfig);
+    return createFD(transport, members, failureDetectorConfig);
   }
 
-  private FailureDetector createFailureDetector(Transport transport, List<Address> members,
-      FailureDetectorConfig failureDetectorConfig) {
-    FailureDetector failureDetector = new FailureDetector(transport, failureDetectorConfig);
+  private FailureDetector createFD(Transport transport, List<Address> members, FailureDetectorConfig config) {
+    FailureDetector failureDetector = new FailureDetector(transport, config);
     failureDetector.setMembers(members);
     return failureDetector;
   }
 
-  private void destroyTransports(Transport... transports) {
-    for (Transport transport : transports) {
-      destroyTransport(transport);
+  private void destroyTransport(ITransport transport) {
+    if (((Transport) transport).isStopped()) {
+      return;
+    }
+    SettableFuture<Void> close = SettableFuture.create();
+    transport.stop(close);
+    try {
+      close.get(1, TimeUnit.SECONDS);
+    } catch (Exception ignore) {
     }
   }
 
-  private void destroyTransport(Transport transport) {
-    if (transport != null && !transport.isStopped()) {
-      SettableFuture<Void> close = SettableFuture.create();
-      transport.stop(close);
-      try {
-        close.get(1, TimeUnit.SECONDS);
-      } catch (Exception ignore) {
-        // ignore
-      }
-    }
-  }
-
-  private void assertSuspected(Collection<Address> actual, Address... expected) {
-    assertEquals("Expected " + expected.length + " suspected members " + Arrays.toString(expected)
-        + ", but actual: " + actual, expected.length, actual.size());
-    for (Address member : expected) {
-      assertTrue("Expected to suspect " + member + ", but actual: " + actual, actual.contains(member));
-    }
-  }
-
-  private void assertNoSuspected(List<FailureDetector> fdetectors) {
-    for (FailureDetector fd : fdetectors) {
-      Collection<Address> suspectMembers = fd.getSuspectedMembers();
-      assertTrue("No suspected members is expected, but: " + suspectMembers, suspectMembers.isEmpty());
-    }
-  }
-
-  private void startAll(List<FailureDetector> fdetectors) {
+  private void start(List<FailureDetector> fdetectors) {
     for (FailureDetector fd : fdetectors) {
       fd.start();
     }
   }
 
-  private void stopAll(List<FailureDetector> fdetectors) {
+  private void stop(List<FailureDetector> fdetectors) {
     for (FailureDetector fd : fdetectors) {
+      destroyTransport(fd.getTransport());
       fd.stop();
     }
   }
 
+  /**
+   * @param address target member to expect on
+   * @param status expected listenStatus
+   * @param actual1 actual collection of member events
+   * @param expected expected members of the given listenStatus
+   */
+  private void assertMember(Address address, final ClusterMemberStatus status, Collection<FailureDetectorEvent> actual1,
+      Address... expected) {
+
+    List<Address> actualAddresses = FluentIterable.from(actual1).filter(new Predicate<FailureDetectorEvent>() {
+      @Override
+      public boolean apply(FailureDetectorEvent input) {
+        return input.status() == status;
+      }
+    }).transform(new Function<FailureDetectorEvent, Address>() {
+      @Override
+      public Address apply(FailureDetectorEvent input) {
+        return input.address();
+      }
+    }).toList();
+
+    String string1 = status == SUSPECTED ? " suspected members " : " trusted members ";
+    String string2 = status == SUSPECTED ? " expected to suspect " : " expected to trust ";
+
+    assertEquals("Node " + address + " expected " + expected.length + string1 + Arrays.toString(expected)
+        + ", but was: " + actual1, expected.length, actualAddresses.size());
+
+    for (Address member : expected) {
+      assertTrue("Node " + address + string2 + member + ", but was: " + actual1, actualAddresses.contains(member));
+    }
+  }
+
+  private Future<List<FailureDetectorEvent>> listenStatus(FailureDetector fd) {
+    List<Address> members = fd.getMembers();
+    checkArgument(!members.isEmpty());
+
+    List<ListenableFuture<FailureDetectorEvent>> resultFuture = new ArrayList<>();
+    for (final Address member : members) {
+      final SettableFuture<FailureDetectorEvent> future = SettableFuture.create();
+      fd.listenStatus()
+          .filter(new Func1<FailureDetectorEvent, Boolean>() {
+            @Override
+            public Boolean call(FailureDetectorEvent event) {
+              return event.address() == member;
+            }
+          })
+          .subscribe(new Action1<FailureDetectorEvent>() {
+            @Override
+            public void call(FailureDetectorEvent event) {
+              future.set(event);
+            }
+          });
+      resultFuture.add(future);
+    }
+
+    return Futures.successfulAsList(resultFuture);
+  }
+
+  private Collection<FailureDetectorEvent> get(Future<List<FailureDetectorEvent>> listFuture, int secs)
+      throws Exception {
+    return listFuture.get(secs, TimeUnit.SECONDS);
+  }
 }
