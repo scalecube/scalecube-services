@@ -58,17 +58,16 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   // qualifiers
-  private static final String SYNC = "io.scalecube.cluster/membership/sync";
-  private static final String SYNC_ACK = "io.scalecube.cluster/membership/syncAck";
+  public static final String SYNC = "io.scalecube.cluster/membership/sync";
+  public static final String SYNC_ACK = "io.scalecube.cluster/membership/syncAck";
 
   // filters
   private static final MessageHeaders.Filter SYNC_FILTER = new MessageHeaders.Filter(SYNC);
-  private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER = new Func1<Message, Boolean>() {
-    @Override
-    public Boolean call(Message message) {
-      return message.data() != null && MembershipData.class.equals(message.data().getClass());
-    }
-  };
+  private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER =
+      msg -> msg.data() != null && MembershipData.class.equals(msg.data().getClass());
+
+  public static final Func1<Message, Boolean> NOT_GOSSIP_MEMBERSHIP_FILTER =
+      msg -> msg.data() == null || !MembershipData.class.equals(msg.data().getClass());
 
   // Injected
 

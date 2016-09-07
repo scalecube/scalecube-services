@@ -3,6 +3,13 @@ package io.scalecube.cluster;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.Futures.transformAsync;
+import static io.scalecube.cluster.fdetector.FailureDetector.ACK;
+import static io.scalecube.cluster.fdetector.FailureDetector.PING;
+import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
+import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
+import static io.scalecube.cluster.membership.MembershipProtocol.NOT_GOSSIP_MEMBERSHIP_FILTER;
+import static io.scalecube.cluster.membership.MembershipProtocol.SYNC;
+import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
@@ -15,6 +22,7 @@ import io.scalecube.transport.Transport;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -27,6 +35,7 @@ import rx.Observable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -43,6 +52,8 @@ import javax.annotation.Nullable;
 public final class Cluster implements ICluster {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cluster.class);
+
+  private static final Set<String> SYS_QUALIFIERS = ImmutableSet.of(PING, PING_REQ, ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
 
   private final ClusterConfig config;
   private final String memberId;
@@ -183,8 +194,8 @@ public final class Cluster implements ICluster {
 
   @Override
   public Observable<Message> listen() {
-    // TODO: Filter system messages (gossips, syncs, pings etc.) so only application level messages will be exposed
-    return transport.listen();
+    return transport.listen()
+        .filter(msg -> !SYS_QUALIFIERS.contains(msg.qualifier())); // filter out system gossips
   }
 
   @Override
@@ -194,7 +205,8 @@ public final class Cluster implements ICluster {
 
   @Override
   public Observable<Message> listenGossips() {
-    return gossip.listen();
+    return gossip.listen()
+        .filter(NOT_GOSSIP_MEMBERSHIP_FILTER); // filter out system gossips
   }
 
   @Override

@@ -23,7 +23,7 @@ public class Member {
     checkArgument(address != null);
     this.id = id;
     this.address = address;
-    this.metadata = metadata != null ? new HashMap<>(metadata) : Collections.<String, String>emptyMap();
+    this.metadata = metadata != null ? new HashMap<>(metadata) : Collections.emptyMap();
   }
 
   public String id() {
@@ -55,8 +55,7 @@ public class Member {
 
   @Override
   public String toString() {
-    return "Member{" +
-        "id='" + id + '\'' +
+    return "Member{id=" + id +
         ", address=" + address +
         ", metadata=" + metadata +
         '}';

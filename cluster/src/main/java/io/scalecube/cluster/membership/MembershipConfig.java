@@ -1,6 +1,7 @@
 package io.scalecube.cluster.membership;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -98,6 +99,11 @@ public final class MembershipConfig {
 
     public Builder metadata(Map<String, String> metadata) {
       this.metadata = new HashMap<>(metadata);
+      return this;
+    }
+
+    public Builder seedMembers(Address... seedMembers) {
+      this.seedMembers = Arrays.asList(seedMembers);
       return this;
     }
 

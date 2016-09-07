@@ -24,7 +24,6 @@ import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
@@ -46,6 +45,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public final class GossipProtocol implements IGossipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
+
+  // qualifiers
+  public static final String GOSSIP_REQ = "io.scalecube.cluster/gossip/req";
 
   // Injected
 
@@ -190,7 +192,9 @@ public final class GossipProtocol implements IGossipProtocol {
         // Transform to actual gossip with incrementing sent count
         List<Gossip> gossipToSend =
             newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
-        transport.send(address, Message.fromData(new GossipRequest(gossipToSend)));
+        GossipRequest gossipData = new GossipRequest(gossipToSend);
+        Message gossipMsg = Message.withData(gossipData).qualifier(GOSSIP_REQ).build();
+        transport.send(address, gossipMsg);
       }
     }
   }

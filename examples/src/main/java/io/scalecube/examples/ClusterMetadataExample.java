@@ -16,34 +16,34 @@ import java.util.Optional;
  * additional business information and identifications to cluster members.
  * 
  * <p>
- * in this example we see how to attach logical alias name to a cluster member we nick name Joe
+ * in this example we see how to attach logical name to a cluster member we nick name Joe
  * </p>
  * 
- * @author ronen_h
+ * @author ronen_h, Anton Kharenko
  */
 public class ClusterMetadataExample {
 
   public static void main(String[] args) throws Exception {
-    // Start seed cluster instance
-    ICluster seedClusterInstance = Cluster.joinAwait();
-    Address seedAddress = seedClusterInstance.address();
+    // Start seed cluster member Alice
+    ICluster alice = Cluster.joinAwait();
 
-    // Join cluster with Joe's cluster instance with metadata
-    Map<String, String> metadata = ImmutableMap.of("alias", "Joe");
-    ICluster joeClusterInstance = Cluster.joinAwait(metadata, seedAddress);
+    // Join Joe to cluster with metadata
+    Map<String, String> metadata = ImmutableMap.of("name", "Joe");
+    ICluster joe = Cluster.joinAwait(metadata, alice.address());
 
-    // Listen for messages to Joe's cluster instance and print them to system out
-    joeClusterInstance.listen()
+    // Subscribe Joe to listen for incoming messages and print them to system out
+    joe.listen()
         .map(Message::data)
         .subscribe(System.out::println);
 
-    // Get the list of members in the cluster and find Joe
-    Optional<Member> joeMemberOptional = seedClusterInstance.otherMembers().stream()
-        .filter(member -> "Joe".equals(member.metadata().get("alias")))
+    // Scan the list of members in the cluster and find Joe there
+    Optional<Member> joeMemberOptional = alice.otherMembers().stream()
+        .filter(member -> "Joe".equals(member.metadata().get("name")))
         .findAny();
+
     // Send hello to Joe
     if (joeMemberOptional.isPresent()) {
-      seedClusterInstance.send(joeMemberOptional.get(), Message.fromData("Hello Joe"));
+      alice.send(joeMemberOptional.get(), Message.fromData("Hello Joe"));
     }
   }
 

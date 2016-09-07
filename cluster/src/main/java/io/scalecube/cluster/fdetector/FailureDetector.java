@@ -43,9 +43,9 @@ public final class FailureDetector implements IFailureDetector {
   private static final Logger LOGGER = LoggerFactory.getLogger(FailureDetector.class);
 
   // qualifiers
-  private static final String PING = "io.scalecube.cluster/fdetector/ping";
-  private static final String PING_REQ = "io.scalecube.cluster/fdetector/pingReq";
-  private static final String ACK = "io.scalecube.cluster/fdetector/ack";
+  public static final String PING = "io.scalecube.cluster/fdetector/ping";
+  public static final String PING_REQ = "io.scalecube.cluster/fdetector/pingReq";
+  public static final String ACK = "io.scalecube.cluster/fdetector/ack";
 
   // filters
   private static final MessageHeaders.Filter ACK_FILTER = new MessageHeaders.Filter(ACK);

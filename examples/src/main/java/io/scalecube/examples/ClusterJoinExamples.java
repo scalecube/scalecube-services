@@ -3,17 +3,18 @@ package io.scalecube.examples;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MembershipConfig;
-import io.scalecube.transport.Address;
+import io.scalecube.transport.TransportConfig;
 
 import com.google.common.collect.ImmutableMap;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Map;
 
+import static java.util.stream.Collectors.joining;
+
 /**
- * Example how to create {@link ICluster} instance and use it.
+ * Example how to create {@link ICluster} instances and join them to cluster.
  * 
  * @author Anton Kharenko
  */
@@ -23,31 +24,53 @@ public class ClusterJoinExamples {
    * Main method.
    */
   public static void main(String[] args) throws Exception {
-    // Start seed member
-    ICluster clusterNode1 = Cluster.joinAwait();
+    // Start seed member Alice
+    ICluster alice = Cluster.joinAwait();
 
-    // Join another member to cluster
-    ICluster clusterNode2 = Cluster.joinAwait(clusterNode1.address());
+    // Join Bob to cluster with Alice
+    ICluster bob = Cluster.joinAwait(alice.address());
 
-    // Start another member with metadata
-    Map<String, String> metadata = ImmutableMap.of("alias", "another member");
-    ICluster clusterNode3 = Cluster.joinAwait(metadata, clusterNode1.address());
+    // Join Carol to cluster with metadata
+    Map<String, String> metadata = ImmutableMap.of("name", "Carol");
+    ICluster carol = Cluster.joinAwait(metadata, alice.address());
 
-    // Start cluster member in separate cluster (separate sync group)
+    // Start Dan on port 3000
+    ClusterConfig configWithFixedPort = ClusterConfig.builder()
+        .membershipConfig(MembershipConfig.builder().seedMembers(alice.address()).build())
+        .transportConfig(
+            TransportConfig.builder()
+                .portAutoIncrement(false)
+                .port(3000)
+                .build())
+        .build();
+    ICluster dan = Cluster.joinAwait(configWithFixedPort);
+
+    // Start Eve in separate cluster (separate sync group)
     ClusterConfig configWithSyncGroup = ClusterConfig.builder()
         .membershipConfig(
             MembershipConfig.builder()
-                .seedMembers(Collections.singletonList(clusterNode1.address()))
-                .syncGroup("cluster-B").build())
+                .seedMembers(alice.address(), bob.address(), carol.address(), dan.address()) // won't join anyway
+                .syncGroup("another cluster")
+                .build())
         .build();
-    ICluster anotherClusterNode = Cluster.joinAwait(configWithSyncGroup);
+    ICluster eve = Cluster.joinAwait(configWithSyncGroup);
 
-    // Print first cluster members (3 nodes)
-    System.out.println("Cluster 1: " + clusterNode1.members());
+    // Print cluster members of each node
 
-    // Print second cluster members (single node)
-    System.out.println("Cluster 2: " + anotherClusterNode.members());
+    System.out.println("Alice (" + alice.address() + ") cluster: "
+        + alice.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
 
+    System.out.println("Bob (" + bob.address() + ") cluster: "
+        + bob.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
+
+    System.out.println("Carol (" + carol.address() + ") cluster: "
+        + carol.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
+
+    System.out.println("Dan (" + dan.address() + ") cluster: "
+        + dan.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
+
+    System.out.println("Eve (" + eve.address() + ") cluster: "      // alone in cluster
+        + eve.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
   }
 
 }
