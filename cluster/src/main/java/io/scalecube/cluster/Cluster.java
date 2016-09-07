@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -161,7 +162,7 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public void send(MembershipRecord member, Message message) {
+  public void send(Member member, Message message) {
     transport.send(member.address(), message);
   }
 
@@ -171,7 +172,7 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public void send(MembershipRecord member, Message message, SettableFuture<Void> promise) {
+  public void send(Member member, Message message, SettableFuture<Void> promise) {
     transport.send(member.address(), message, promise);
   }
 
@@ -197,28 +198,28 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public List<MembershipRecord> members() {
-    return membership.members();
+  public List<Member> members() {
+    return membership.members().stream().map(MembershipRecord::member).collect(Collectors.toList());
   }
 
   @Override
-  public MembershipRecord localMember() {
-    return membership.localMember();
+  public Member member() {
+    return membership.localMember().member();
   }
 
   @Override
-  public MembershipRecord member(String id) {
-    return membership.member(id);
+  public Member member(String id) {
+    return membership.member(id).member();
   }
 
   @Override
-  public MembershipRecord member(Address address) {
-    return membership.member(address);
+  public Member member(Address address) {
+    return membership.member(address).member();
   }
 
   @Override
-  public List<MembershipRecord> otherMembers() {
-    return membership.otherMembers();
+  public List<Member> otherMembers() {
+    return membership.otherMembers().stream().map(MembershipRecord::member).collect(Collectors.toList());
   }
 
   @Override
