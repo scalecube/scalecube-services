@@ -53,7 +53,7 @@ public final class Cluster implements ICluster {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cluster.class);
 
-  private static final Set<String> SYS_QUALIFIERS = ImmutableSet.of(PING, PING_REQ, ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
+  private static final Set<String> SYS_MESSAGES = ImmutableSet.of(PING, PING_REQ, ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
 
   private final ClusterConfig config;
   private final String memberId;
@@ -216,7 +216,7 @@ public final class Cluster implements ICluster {
   @Override
   public Observable<Message> listen() {
     return transport.listen()
-        .filter(msg -> !SYS_QUALIFIERS.contains(msg.qualifier())); // filter out system gossips
+        .filter(msg -> !SYS_MESSAGES.contains(msg.qualifier())); // filter out system gossips
   }
 
   @Override

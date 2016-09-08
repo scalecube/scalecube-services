@@ -16,7 +16,6 @@ import io.scalecube.transport.MessageHeaders;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -28,7 +27,6 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
-import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
@@ -49,8 +47,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Nullable;
-
 public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
@@ -59,7 +55,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
   public static final String SYNC_ACK = "io.scalecube.cluster/membership/syncAck";
 
   // filters
-  private static final MessageHeaders.Filter SYNC_FILTER = new MessageHeaders.Filter(SYNC);
   private static final Func1<Message, Boolean> GOSSIP_MEMBERSHIP_FILTER =
       msg -> msg.data() != null && MembershipData.class.equals(msg.data().getClass());
 
@@ -123,13 +118,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);
-    this.seedMembers = cleanUpSeedMembers(config.getSeedMembers(), transport.address());
+    this.seedMembers = cleanUpSeedMembers(config.getSeedMembers());
   }
 
   // Remove duplicates and local address
-  private List<Address> cleanUpSeedMembers(Collection<Address> seedMembers, Address localAddress) {
-    Set<Address> seedMembersSet = new HashSet<>(seedMembers);
-    seedMembersSet.remove(localAddress);
+  private List<Address> cleanUpSeedMembers(Collection<Address> seedMembers) {
+    Set<Address> seedMembersSet = new HashSet<>(seedMembers); // remove duplicates
+    seedMembersSet.remove(transport.address()); // remove local address
     return Collections.unmodifiableList(new ArrayList<>(seedMembersSet));
   }
 
@@ -188,47 +183,38 @@ public final class MembershipProtocol implements IMembershipProtocol {
     List<MembershipRecord> updates = membershipTable.merge(joinRecord);
     processUpdates(updates, false/* spread gossip */);
 
-    // Listen to SYNC requests from joining/synchronizing members
-    onSyncRequestSubscriber = Subscribers.create(new OnSyncRequestSubscriber());
+    // Listen to incoming SYNC requests from other members
+    onSyncRequestSubscriber = Subscribers.create(this::onSync);
     transport.listen().observeOn(scheduler)
-        .filter(SYNC_FILTER)
+        .filter(msg -> SYNC.equals(msg.qualifier()))
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .subscribe(onSyncRequestSubscriber);
 
-    // Listen to 'suspected/trusted' events from FailureDetector
-    onFdEventSubscriber = Subscribers.create(new OnFdEventSubscriber());
-    failureDetector.listenStatus().subscribe(onFdEventSubscriber);
+    // Listen to events from failure detector
+    onFdEventSubscriber = Subscribers.create(this::onFailureDetectorEvent);
+    failureDetector.listenStatus().observeOn(scheduler)
+        .subscribe(onFdEventSubscriber);
 
-    // Listen to 'membership' message from GossipProtocol
-    onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction());
+    // Listen to membership gossips
+    onGossipRequestSubscriber = Subscribers.create(this::onMembershipGossip);
     gossipProtocol.listen().observeOn(scheduler)
         .filter(GOSSIP_MEMBERSHIP_FILTER)
         .map(MembershipDataUtils.gossipFilterData(transport.address()))
         .subscribe(onGossipRequestSubscriber);
 
-    // Conduct 'initialization phase': take seed addresses, send SYNC to all and get at least one SYNC_ACK from any
-    // of them
-    ListenableFuture<Void> startFuture;
-    if (!seedMembers.isEmpty()) {
-      LOGGER.debug("Initialization phase: making first Sync (wellknown_members={})", seedMembers);
-      startFuture = doInitialSync(seedMembers);
-    } else {
-      startFuture = Futures.immediateFuture(null);
-    }
+    // Schedule sending periodic sync to random sync address
+    int syncTime = config.getSyncTime();
+    syncTask = executor.scheduleWithFixedDelay(this::doSync, syncTime, syncTime, TimeUnit.MILLISECONDS);
 
-    // Schedule 'running phase': select randomly single seed address, send SYNC and get SYNC_ACK
-    if (!seedMembers.isEmpty()) {
-      int syncTime = config.getSyncTime();
-      syncTask = executor.scheduleWithFixedDelay(new SyncTask(), syncTime, syncTime, TimeUnit.MILLISECONDS);
-    }
-    return startFuture;
+    // Make initial sync with all seed members
+    return doInitialSync();
   }
 
   /**
    * Stops running cluster membership protocol and releases occupied resources.
    */
   public void stop() {
-    // Stop accepting requests or events
+    // Stop accepting requests and events
     if (onSyncRequestSubscriber != null) {
       onSyncRequestSubscriber.unsubscribe();
     }
@@ -254,7 +240,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
     subject.onCompleted();
   }
 
-  private ListenableFuture<Void> doInitialSync(final List<Address> seedMembers) {
+  private ListenableFuture<Void> doInitialSync() {
+    LOGGER.debug("Making initial Sync to all seed members: {}", seedMembers);
+    if (seedMembers.isEmpty()) {
+      return Futures.immediateFuture(null);
+    }
+
     String cid = Long.toString(this.period);
     final SettableFuture<Message> syncResponseFuture = SettableFuture.create();
 
@@ -263,60 +254,52 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS)
-        .subscribe(new Action1<Message>() {
-          @Override
-          public void call(Message message) {
-            syncResponseFuture.set(message);
-          }
-        }, new Action1<Throwable>() {
-          @Override
-          public void call(Throwable throwable) {
-            syncResponseFuture.setException(throwable);
-          }
-        });
+        .subscribe(syncResponseFuture::set, syncResponseFuture::setException);
 
-    sendSync(seedMembers, cid);
+    final Message syncMsg = prepareSyncMessage(cid);
+    for (Address memberAddress : seedMembers) {
+      transport.send(memberAddress, syncMsg);
+    }
 
     return Futures.catchingAsync(
         Futures.transform(syncResponseFuture, onSyncAckFunction),
         Throwable.class,
-        new AsyncFunction<Throwable, Void>() {
-          @Override
-          public ListenableFuture<Void> apply(@Nullable Throwable throwable) throws Exception {
+        throwable -> {
             LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
             return Futures.immediateFuture(null);
-          }
-        });
+          });
   }
 
-  private void doSync(final List<Address> members, Scheduler scheduler) {
+  private void doSync() {
+    period++;
+    Address syncMember = selectSyncAddress();
+    if (syncMember == null) {
+      return;
+    }
+
+    LOGGER.debug("Sending Sync to: {}", syncMember);
     String cid = Long.toString(this.period);
     transport.listen()
         .filter(syncAckFilter(cid))
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(Subscribers.create(new Action1<Message>() {
-          @Override
-          public void call(Message message) {
-            onSyncAck(message);
-          }
-        }, new Action1<Throwable>() {
-          @Override
-          public void call(Throwable throwable) {
-            LOGGER.info("Timeout getting SyncAck from members: {}", members);
-          }
-        }));
+        .subscribe(this::onSyncAck, throwable -> {
+            LOGGER.info("Timeout getting SyncAck from: {}", syncMember);
+          });
 
-    sendSync(members, cid);
+    Message syncMsg = prepareSyncMessage(cid);
+    transport.send(syncMember, syncMsg);
   }
 
-  private void sendSync(List<Address> members, String cid) {
+  private Address selectSyncAddress() {
+    // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
+    return !seedMembers.isEmpty() ? seedMembers.get(ThreadLocalRandom.current().nextInt(seedMembers.size())) : null;
+  }
+
+  private Message prepareSyncMessage(String cid) {
     MembershipData syncData = new MembershipData(membershipTable.asList(), config.getSyncGroup());
-    final Message syncMsg = Message.withData(syncData).qualifier(SYNC).correlationId(cid).build();
-    for (Address memberAddress : members) {
-      transport.send(memberAddress, syncMsg);
-    }
+    return Message.withData(syncData).qualifier(SYNC).correlationId(cid).build();
   }
 
   private void onSyncAck(Message message) {
@@ -332,10 +315,46 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
   }
 
-  private List<Address> selectRandomMembers(List<Address> members) {
-    List<Address> list = new ArrayList<>(members);
-    Collections.shuffle(list, ThreadLocalRandom.current());
-    return ImmutableList.of(list.get(ThreadLocalRandom.current().nextInt(list.size())));
+  /**
+   * Merges incoming SYNC data, merges it and sending back merged data with SYNC_ACK.
+   */
+  private void onSync(Message message) {
+    MembershipData data = message.data();
+    MembershipData filteredData = MembershipDataUtils.filterData(transport.address(), data);
+    List<MembershipRecord> updates = membershipTable.merge(filteredData);
+    Address sender = message.sender();
+    if (!updates.isEmpty()) {
+      LOGGER.debug("Received Sync from {}, updates: {}", sender, updates);
+      processUpdates(updates, true/* spread gossip */);
+    } else {
+      LOGGER.debug("Received Sync from {}, no updates", sender);
+    }
+    String correlationId = message.correlationId();
+    MembershipData syncAckData = new MembershipData(membershipTable.asList(), config.getSyncGroup());
+    Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
+    transport.send(sender, syncAckMsg);
+  }
+
+  /**
+   * Merges FD updates and processes them.
+   */
+  private void onFailureDetectorEvent(FailureDetectorEvent fdEvent) {
+    List<MembershipRecord> updates = membershipTable.merge(fdEvent);
+    if (!updates.isEmpty()) {
+      LOGGER.debug("Received FD event {}, updates: {}", fdEvent, updates);
+      processUpdates(updates, true/* spread gossip */);
+    }
+  }
+
+  /**
+   * Merges gossip's {@link MembershipData} (not spreading gossip further).
+   */
+  private void onMembershipGossip(MembershipData data) {
+    List<MembershipRecord> updates = membershipTable.merge(data);
+    if (!updates.isEmpty()) {
+      LOGGER.debug("Received gossip, updates: {}", updates);
+      processUpdates(updates, false/* spread gossip */);
+    }
   }
 
   /**
@@ -369,10 +388,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     if (spreadGossip) {
       gossipProtocol.spread(Message.fromData(new MembershipData(updates, config.getSyncGroup())));
     }
+
     // Publish updates locally
-    for (MembershipRecord update : updates) {
-      subject.onNext(update);
-    }
+    updates.forEach(subject::onNext);
 
     // Check state transition
     for (final MembershipRecord member : updates) {
@@ -427,72 +445,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private MessageHeaders.Filter syncAckFilter(String correlationId) {
     return new MessageHeaders.Filter(SYNC_ACK, correlationId);
-  }
-
-  /**
-   * Merges incoming SYNC data, merges it and sending back merged data with SYNC_ACK.
-   */
-  private class OnSyncRequestSubscriber implements Action1<Message> {
-    @Override
-    public void call(Message message) {
-      MembershipData data = message.data();
-      MembershipData filteredData = MembershipDataUtils.filterData(transport.address(), data);
-      List<MembershipRecord> updates = membershipTable.merge(filteredData);
-      Address sender = message.sender();
-      if (!updates.isEmpty()) {
-        LOGGER.debug("Received Sync from {}, updates: {}", sender, updates);
-        processUpdates(updates, true/* spread gossip */);
-      } else {
-        LOGGER.debug("Received Sync from {}, no updates", sender);
-      }
-      String correlationId = message.correlationId();
-      MembershipData syncAckData = new MembershipData(membershipTable.asList(), config.getSyncGroup());
-      Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
-      transport.send(sender, syncAckMsg);
-    }
-  }
-
-  /**
-   * Merges FD updates and processes them.
-   */
-  private class OnFdEventSubscriber implements Action1<FailureDetectorEvent> {
-    @Override
-    public void call(FailureDetectorEvent fdEvent) {
-      List<MembershipRecord> updates = membershipTable.merge(fdEvent);
-      if (!updates.isEmpty()) {
-        LOGGER.debug("Received FD event {}, updates: {}", fdEvent, updates);
-        processUpdates(updates, true/* spread gossip */);
-      }
-    }
-  }
-
-  /**
-   * Merges gossip's {@link MembershipData} (not spreading gossip further).
-   */
-  private class OnGossipRequestAction implements Action1<MembershipData> {
-    @Override
-    public void call(MembershipData data) {
-      List<MembershipRecord> updates = membershipTable.merge(data);
-      if (!updates.isEmpty()) {
-        LOGGER.debug("Received gossip, updates: {}", updates);
-        processUpdates(updates, false/* spread gossip */);
-      }
-    }
-  }
-
-  private class SyncTask implements Runnable {
-    @Override
-    public void run() {
-      try {
-        period++;
-        // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
-        List<Address> members = selectRandomMembers(seedMembers);
-        LOGGER.debug("Running phase: making Sync (selected_members={}))", members);
-        doSync(members, scheduler);
-      } catch (Exception cause) {
-        LOGGER.error("Unhandled exception: {}", cause, cause);
-      }
-    }
   }
 
 }
