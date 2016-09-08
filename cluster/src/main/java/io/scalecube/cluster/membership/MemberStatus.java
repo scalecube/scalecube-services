@@ -1,6 +1,6 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
-public enum ClusterMemberStatus {
+public enum MemberStatus {
   /**
    * Member is reachable and responding on pings.
    */

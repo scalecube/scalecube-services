@@ -51,16 +51,6 @@ public class GossipProtocolFunctionsTest {
   }
 
   @Test
-  public void testGossipDataToGossip() {
-    Gossip gossip = new Gossip("1", Message.fromData("123"));
-    GossipLocalState info = GossipLocalState.create(gossip, null, 0);
-    GossipProtocol.GossipDataToGossipWithIncrement transform = new GossipProtocol.GossipDataToGossipWithIncrement();
-    Gossip apply = transform.apply(info);
-    Assert.assertEquals(gossip, apply);
-    Assert.assertEquals(1, info.getSent());
-  }
-
-  @Test
   public void testGossipSendPredicate() {
     GossipProtocol.GossipSendPredicate predicate = new GossipProtocol.GossipSendPredicate(remote, 3);
     GossipLocalState info = GossipLocalState.create(new Gossip("1", Message.fromData(Collections.emptyMap())), local, 0);
@@ -76,14 +66,4 @@ public class GossipProtocolFunctionsTest {
 
   }
 
-  @Test
-  public void testGossipSweepPredicate() {
-    GossipProtocol.GossipSweepPredicate predicate = new GossipProtocol.GossipSweepPredicate(100, 10);
-    GossipLocalState info = GossipLocalState.create(new Gossip("1", Message.fromData(Collections.emptyMap())), local, 50);
-    assertTrue(predicate.apply(info));
-    assertFalse(predicate
-        .apply(GossipLocalState.create(new Gossip("1", Message.fromData(Collections.emptyMap())), local, 95)));
-    assertFalse(predicate
-        .apply(GossipLocalState.create(new Gossip("1", Message.fromData(Collections.emptyMap())), local, 90)));
-  }
 }

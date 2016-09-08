@@ -45,7 +45,7 @@ public final class MessageHeaders {
 
     @Override
     public Boolean call(Message message) {
-      boolean q0 = qualifier.equals(message.header(MessageHeaders.QUALIFIER));
+      boolean q0 = qualifier.equals(message.qualifier());
       boolean q1 = correlationId == null || correlationId.equals(message.correlationId());
       return q0 && q1;
     }
