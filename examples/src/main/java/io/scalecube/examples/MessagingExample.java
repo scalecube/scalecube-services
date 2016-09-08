@@ -40,7 +40,7 @@ public class MessagingExample {
         .subscribe(System.out::println);
 
     // Send from Carol greeting message to all other cluster members (which is Alice and Bob)
-    Message greetingMsg = Message.withData("Greetings from Carol").build();
+    Message greetingMsg = Message.fromData("Greetings from Carol");
     carol.otherMembers().stream().forEach(member -> carol.send(member, greetingMsg));
 
     // Avoid exit main thread immediately ]:->

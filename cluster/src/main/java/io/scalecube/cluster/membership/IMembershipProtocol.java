@@ -13,22 +13,34 @@ import java.util.List;
  */
 public interface IMembershipProtocol {
 
-  /** Returns current cluster members list. */
+  /**
+   * Returns current cluster members list.
+   */
   List<MembershipRecord> members();
 
-  /** Returns current cluster members list excluding local member. */
+  /**
+   * Returns current cluster members list excluding local member.
+   */
   List<MembershipRecord> otherMembers();
 
-  /** Returns cluster member by its id or null if no member with such id exists. */
+  /**
+   * Returns cluster member by its id or null if no member with such id exists.
+   */
   MembershipRecord member(String id);
 
-  /** Returns cluster member by its address or null if no member with such address exists. */
+  /**
+   * Returns cluster member by its address or null if no member with such address exists.
+   */
   MembershipRecord member(Address address);
 
-  /** Returns local cluster member. */
+  /**
+   * Returns local cluster member.
+   */
   MembershipRecord localMember();
 
-  /** Listen status updates on registered cluster members (except local one). */
+  /**
+   * Listen status updates on registered cluster members (except local one).
+   */
   Observable<MembershipRecord> listenUpdates();
 
 }

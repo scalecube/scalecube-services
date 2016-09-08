@@ -21,18 +21,18 @@ public interface IFailureDetector {
    */
   void start();
 
-  /** Stops running failure detection algorithm and releases occupied resources. */
+  /**
+   * Stops running failure detection algorithm and releases occupied resources.
+   */
   void stop();
 
-  /** Listens for detected cluster members status changes (SUSPECTED/TRUSTED) by failure detector. */
+  /**
+   * Listens for detected cluster members status changes (SUSPECTED/TRUSTED) by failure detector.
+   */
   Observable<FailureDetectorEvent> listenStatus();
 
-  /** Marks given member as SUSPECTED inside FD algorithm internals. */
-  void suspect(Address member);
-
-  /** Marks given member as TRUSTED inside FD algorithm internals. */
-  void trust(Address member);
-
-  /** Updates list of cluster members among which should work FD algorithm. */
+  /**
+   * Updates list of cluster members among which should work FD algorithm.
+   */
   void setMembers(Collection<Address> members);
 }

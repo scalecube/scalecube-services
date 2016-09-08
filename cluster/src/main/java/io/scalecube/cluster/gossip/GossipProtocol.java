@@ -2,15 +2,11 @@ package io.scalecube.cluster.gossip;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Collections2.filter;
-import static com.google.common.collect.Collections2.transform;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
 
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -23,6 +19,7 @@ import rx.Subscriber;
 import rx.functions.Action1;
 import rx.functions.Func1;
 import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
@@ -42,6 +39,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 public final class GossipProtocol implements IGossipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
@@ -57,9 +55,9 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // State
 
+  private long period = 0;
   private AtomicLong counter = new AtomicLong(0);
   private Queue<GossipTask> gossipsQueue = new ConcurrentLinkedQueue<>();
-  private long period = 0;
   private volatile int factor = 1;
   private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
   private volatile List<Address> members = new ArrayList<>();
@@ -71,7 +69,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // Scheduled
 
-  private ScheduledFuture<?> executorTask;
+  private ScheduledFuture<?> spreadGossipTask;
   private final ScheduledExecutorService executor;
 
   /**
@@ -95,8 +93,9 @@ public final class GossipProtocol implements IGossipProtocol {
     this.memberId = memberId;
     this.transport = transport;
     this.config = config;
+    String nameFormat = "sc-gossip-" + transport.address().toString();
     this.executor = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactoryBuilder().setNameFormat("sc-gossip-%s").setDaemon(true).build());
+        new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
   }
 
   @Override
@@ -117,25 +116,32 @@ public final class GossipProtocol implements IGossipProtocol {
   @Override
   public void start() {
     onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
-    transport.listen().filter(new GossipMessageFilter()).subscribe(onGossipRequestSubscriber);
+    transport.listen().observeOn(Schedulers.from(executor))
+        .filter(new GossipMessageFilter())
+        .subscribe(onGossipRequestSubscriber);
 
     int gossipTime = config.getGossipTime();
-    executorTask =
-        executor.scheduleWithFixedDelay(new GossipProtocolRunnable(), gossipTime, gossipTime, TimeUnit.MILLISECONDS);
+    spreadGossipTask =
+        executor.scheduleWithFixedDelay(new SpreadGossipTask(), gossipTime, gossipTime, TimeUnit.MILLISECONDS);
   }
 
   @Override
   public void stop() {
-    // stop accepting requests
+    // Stop accepting gossip requests
     if (onGossipRequestSubscriber != null) {
       onGossipRequestSubscriber.unsubscribe();
     }
-    // cancel algorithm
-    if (executorTask != null) {
-      executorTask.cancel(true);
+
+    // Stop spreading gossips
+    if (spreadGossipTask != null) {
+      spreadGossipTask.cancel(true);
     }
-    executor.shutdownNow(); // shutdown thread
-    subject.onCompleted(); // stop publishing
+
+    // Shutdown executor
+    executor.shutdownNow();
+
+    // Stop publishing events
+    subject.onCompleted();
   }
 
   @Override
@@ -190,8 +196,12 @@ public final class GossipProtocol implements IGossipProtocol {
       Collection<GossipLocalState> gossipLocalStateNeedSend = filter(gossips, predicate);
       if (!gossipLocalStateNeedSend.isEmpty()) {
         // Transform to actual gossip with incrementing sent count
-        List<Gossip> gossipToSend =
-            newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
+        List<Gossip> gossipToSend = gossipLocalStateNeedSend.stream()
+            .map(gossipLocalState -> {
+                gossipLocalState.incrementSend();
+                return gossipLocalState.gossip();
+              })
+            .collect(Collectors.toList());
         GossipRequest gossipData = new GossipRequest(gossipToSend);
         Message gossipMsg = Message.withData(gossipData).qualifier(GOSSIP_REQ).build();
         transport.send(address, gossipMsg);
@@ -199,12 +209,14 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
-  private void sweep(Collection<GossipLocalState> values, int factor) {
-    Collection<GossipLocalState> filter = newHashSet(filter(values, new GossipSweepPredicate(period, factor * 10)));
-    for (GossipLocalState gossipLocalState : filter) {
-      gossipsMap.remove(gossipLocalState.gossip().getGossipId());
-      LOGGER.debug("Removed {}", gossipLocalState);
-    }
+  private void sweepGossips(Collection<GossipLocalState> gossips, int factor) {
+    final int maxPeriods = factor * 10;
+    gossips.stream()
+        .filter(gossip -> period - (gossip.getPeriod() + maxPeriods) > 0)
+        .forEach(gossip -> {
+            gossipsMap.remove(gossip.gossip().getGossipId());
+            LOGGER.debug("Removed {}", gossip);
+          });
   }
 
   private String generateGossipId() {
@@ -212,8 +224,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private Address getNextRandom(List<Address> members, int maxMembersToSelect, int count) {
-    return members.get((int) (((period * maxMembersToSelect + count) & Integer.MAX_VALUE) % members.size()));
-
+    return members.get((int) ((period * maxMembersToSelect + count) & Integer.MAX_VALUE) % members.size());
   }
 
   static class GossipMessageFilter implements Func1<Message, Boolean> {
@@ -242,15 +253,6 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
-  static class GossipDataToGossipWithIncrement implements Function<GossipLocalState, Gossip> {
-    @Override
-    public Gossip apply(GossipLocalState input) {
-      // side effect
-      input.incrementSend();
-      return input.gossip();
-    }
-  }
-
   static class GossipSendPredicate implements Predicate<GossipLocalState> {
     private final Address address;
     private final int maxCounter;
@@ -263,21 +265,6 @@ public final class GossipProtocol implements IGossipProtocol {
     @Override
     public boolean apply(GossipLocalState input) {
       return !input.containsMember(address) && input.getSent() < maxCounter;
-    }
-  }
-
-  static class GossipSweepPredicate implements Predicate<GossipLocalState> {
-    private long currentPeriod;
-    private int maxPeriods;
-
-    GossipSweepPredicate(long currentPeriod, int maxPeriods) {
-      this.currentPeriod = currentPeriod;
-      this.maxPeriods = maxPeriods;
-    }
-
-    @Override
-    public boolean apply(GossipLocalState input) {
-      return currentPeriod - (input.getPeriod() + maxPeriods) > 0;
     }
   }
 
@@ -321,7 +308,7 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
-  private class GossipProtocolRunnable implements Runnable {
+  private class SpreadGossipTask implements Runnable {
     @Override
     public void run() {
       try {
@@ -330,7 +317,7 @@ public final class GossipProtocol implements IGossipProtocol {
         List<Address> members = GossipProtocol.this.members;
         int factor = GossipProtocol.this.factor;
         sendGossips(members, gossips, factor);
-        sweep(gossips, factor);
+        sweepGossips(gossips, factor);
       } catch (Exception cause) {
         LOGGER.error("Unhandled exception: {}", cause, cause);
       }

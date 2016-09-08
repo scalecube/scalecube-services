@@ -7,6 +7,7 @@ import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 
 import com.google.common.base.Throwables;
@@ -45,7 +46,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_c);
     } finally {
       stopAll(cm_a, cm_b, cm_c);
-      destroyTransports(a, b, c);
     }
   }
 
@@ -89,7 +89,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_c);
     } finally {
       stopAll(cm_a, cm_b, cm_c);
-      destroyTransports(a, b, c);
     }
   }
 
@@ -145,7 +144,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_c);
     } finally {
       stopAll(cm_a, cm_b, cm_c);
-      destroyTransports(a, b, c);
     }
   }
 
@@ -199,7 +197,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_d);
     } finally {
       stopAll(cm_a, cm_b, cm_c, cm_d);
-      destroyTransports(a, b, c, d);
     }
   }
 
@@ -244,6 +241,8 @@ public class ClusterMembershipIT {
       assertTrusted(cm_b, a.address(), b.address());
       assertNoSuspected(cm_b);
 
+      c = Transport.bindAwait(true);
+      d = Transport.bindAwait(true);
       cm_restartedC = createMembership(c, Arrays.asList(a.address(), b.address()));
       cm_restartedD = createMembership(d, Arrays.asList(a.address(), b.address()));
 
@@ -259,7 +258,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_b);
     } finally {
       stopAll(cm_a, cm_b, cm_restartedC, cm_restartedD);
-      destroyTransports(a, b, c, d);
     }
   }
 
@@ -292,7 +290,6 @@ public class ClusterMembershipIT {
       assertNoSuspected(cm_e);
     } finally {
       stopAll(cm_a, cm_b, cm_c, cm_d, cm_e);
-      destroyTransports(a, b, c, d, e);
     }
   }
 
@@ -301,24 +298,6 @@ public class ClusterMembershipIT {
       TimeUnit.SECONDS.sleep(seconds);
     } catch (InterruptedException e) {
       Throwables.propagate(e);
-    }
-  }
-
-  private void destroyTransports(Transport... transports) {
-    for (Transport transport : transports) {
-      destroyTransport(transport);
-    }
-  }
-
-  private void destroyTransport(Transport transport) {
-    if (transport != null && !transport.isStopped()) {
-      SettableFuture<Void> close = SettableFuture.create();
-      transport.stop(close);
-      try {
-        close.get(1, TimeUnit.SECONDS);
-      } catch (Exception ignore) {
-        // ignore
-      }
     }
   }
 
@@ -366,6 +345,15 @@ public class ClusterMembershipIT {
     membership.stop();
     membership.getGossipProtocol().stop();
     membership.getFailureDetector().stop();
+
+    ITransport transport = membership.getTransport();
+    SettableFuture<Void> close = SettableFuture.create();
+    transport.stop(close);
+    try {
+      close.get(1, TimeUnit.SECONDS);
+    } catch (Exception ignore) {
+      // ignore
+    }
   }
 
   public void assertTrusted(MembershipProtocol membership, Address... expected) {
