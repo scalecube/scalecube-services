@@ -2,13 +2,17 @@ package io.scalecube.cluster.gossip;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Collections2.filter;
+import static com.google.common.collect.Collections2.transform;
 
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
@@ -39,7 +43,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 public final class GossipProtocol implements IGossipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
@@ -138,7 +141,7 @@ public final class GossipProtocol implements IGossipProtocol {
     }
 
     // Shutdown executor
-    executor.shutdownNow();
+    executor.shutdown();
 
     // Stop publishing events
     subject.onCompleted();
@@ -196,29 +199,19 @@ public final class GossipProtocol implements IGossipProtocol {
       Collection<GossipLocalState> gossipLocalStateNeedSend = filter(gossips, predicate);
       if (!gossipLocalStateNeedSend.isEmpty()) {
         // Transform to actual gossip with incrementing sent count
-        List<Gossip> gossipToSend = gossipLocalStateNeedSend.stream()
-            .map(gossipLocalState -> {
-                gossipLocalState.incrementSend();
-                return gossipLocalState.gossip();
-              })
-            .collect(Collectors.toList());
-        GossipRequest gossipData = new GossipRequest(gossipToSend);
-        Message gossipMsg = Message.withData(gossipData).qualifier(GOSSIP_REQ).build();
-        transport.send(address, gossipMsg);
+        List<Gossip> gossipToSend =
+            Lists.newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
+        transport.send(address, Message.fromData(new GossipRequest(gossipToSend)));
       }
     }
   }
 
-  private void sweepGossips(Collection<GossipLocalState> gossips, int factor) {
-    int maxPeriods = factor * 10;
-
-    Set<GossipLocalState> gossipsToSweep = gossips.stream()
-        .filter(gossip -> period - (gossip.getPeriod() + maxPeriods) > 0)
-        .collect(Collectors.toSet());
-
-    for (GossipLocalState gossip : gossipsToSweep) {
-      gossipsMap.remove(gossip.gossip().getGossipId());
-      LOGGER.debug("Removed {}", gossip);
+  private void sweep(Collection<GossipLocalState> values, int factor) {
+    Collection<GossipLocalState> filter =
+        Sets.newHashSet(filter(values, new GossipSweepPredicate(period, factor * 10)));
+    for (GossipLocalState gossipLocalState : filter) {
+      gossipsMap.remove(gossipLocalState.gossip().getGossipId());
+      LOGGER.debug("Removed {}", gossipLocalState);
     }
   }
 
@@ -256,6 +249,15 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
+  static class GossipDataToGossipWithIncrement implements Function<GossipLocalState, Gossip> {
+    @Override
+    public Gossip apply(GossipLocalState input) {
+      // side effect
+      input.incrementSend();
+      return input.gossip();
+    }
+  }
+
   static class GossipSendPredicate implements Predicate<GossipLocalState> {
     private final Address address;
     private final int maxCounter;
@@ -268,6 +270,21 @@ public final class GossipProtocol implements IGossipProtocol {
     @Override
     public boolean apply(GossipLocalState input) {
       return !input.containsMember(address) && input.getSent() < maxCounter;
+    }
+  }
+
+  static class GossipSweepPredicate implements Predicate<GossipLocalState> {
+    private long currentPeriod;
+    private int maxPeriods;
+
+    GossipSweepPredicate(long currentPeriod, int maxPeriods) {
+      this.currentPeriod = currentPeriod;
+      this.maxPeriods = maxPeriods;
+    }
+
+    @Override
+    public boolean apply(GossipLocalState input) {
+      return currentPeriod - (input.getPeriod() + maxPeriods) > 0;
     }
   }
 
@@ -320,7 +337,7 @@ public final class GossipProtocol implements IGossipProtocol {
         List<Address> members = GossipProtocol.this.members;
         int factor = GossipProtocol.this.factor;
         sendGossips(members, gossips, factor);
-        sweepGossips(gossips, factor);
+        sweep(gossips, factor);
       } catch (Exception cause) {
         LOGGER.error("Unhandled exception: {}", cause, cause);
       }

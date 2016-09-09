@@ -181,7 +181,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
     // Listen to incomming SYNC ACK responses from other members
     onSyncAckResponseSubscriber = Subscribers.create(this::onSyncAck);
-    transport.listen().subscribeOn(scheduler)
+    transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .subscribe(onSyncAckResponseSubscriber);
@@ -230,7 +230,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Shutdown executor
-    executor.shutdownNow();
+    executor.shutdown();
 
     // Clear suspected-schedule
     removeMemberTasks.clear();
@@ -248,7 +248,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     SettableFuture<Message> syncResponseFuture = SettableFuture.create();
 
     // Listen initial Sync Ack
-    transport.listen()
+    transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
