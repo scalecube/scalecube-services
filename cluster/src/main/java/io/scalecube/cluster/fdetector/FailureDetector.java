@@ -111,21 +111,16 @@ public final class FailureDetector implements IFailureDetector {
     return transport;
   }
 
-  /**
-   * <b>NOTE:</b> this method is for testing purpose only.
-   */
-  List<Address> getMembers() {
-    return new ArrayList<>(members);
-  }
-
   @Override
   public void setMembers(Collection<Address> members) {
     Set<Address> set = new HashSet<>(members);
     set.remove(transport.address());
     List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
-    this.members = list;
-    LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
+    executor.execute(() -> {
+      this.members = list;
+      LOGGER.debug("Updated monitored members[{}]: {}", this.members.size(), this.members);
+    });
   }
 
   @Override
