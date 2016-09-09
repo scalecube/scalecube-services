@@ -403,8 +403,8 @@ public class FailureDetectorIT {
 
   private void stop(List<FailureDetector> fdetectors) {
     for (FailureDetector fd : fdetectors) {
-      destroyTransport(fd.getTransport());
       fd.stop();
+      destroyTransport(fd.getTransport());
     }
   }
 

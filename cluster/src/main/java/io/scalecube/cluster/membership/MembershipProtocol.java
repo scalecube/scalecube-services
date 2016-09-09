@@ -238,7 +238,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Shutdown executor
-    executor.shutdownNow();
+    executor.shutdown();
 
     // Stop publishing events
     subject.onCompleted();
