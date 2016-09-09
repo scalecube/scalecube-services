@@ -141,7 +141,7 @@ public final class GossipProtocol implements IGossipProtocol {
     }
 
     // Shutdown executor
-    executor.shutdown();
+    executor.shutdownNow();
 
     // Stop publishing events
     subject.onCompleted();

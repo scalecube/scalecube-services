@@ -1,6 +1,17 @@
 package io.scalecube.cluster.membership;
 
-import com.google.common.base.Function;
+import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.cluster.membership.MemberStatus.SHUTDOWN;
+import static io.scalecube.cluster.membership.MemberStatus.TRUSTED;
+
+import io.scalecube.cluster.Member;
+import io.scalecube.cluster.fdetector.FailureDetectorEvent;
+import io.scalecube.cluster.fdetector.IFailureDetector;
+import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Message;
+
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
@@ -10,6 +21,15 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import rx.Observable;
+import rx.Scheduler;
+import rx.Subscriber;
+import rx.functions.Func1;
+import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,26 +44,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-
-import io.scalecube.cluster.Member;
-import io.scalecube.cluster.fdetector.FailureDetectorEvent;
-import io.scalecube.cluster.fdetector.IFailureDetector;
-import io.scalecube.cluster.gossip.IGossipProtocol;
-import io.scalecube.transport.Address;
-import io.scalecube.transport.ITransport;
-import io.scalecube.transport.Message;
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.functions.Func1;
-import rx.observers.Subscribers;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static io.scalecube.cluster.membership.MemberStatus.SHUTDOWN;
-import static io.scalecube.cluster.membership.MemberStatus.TRUSTED;
 
 public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
@@ -229,11 +229,16 @@ public final class MembershipProtocol implements IMembershipProtocol {
       syncTask.cancel(true);
     }
 
-    // Shutdown executor
-    executor.shutdown();
+    // Cancel remove members tasks
+    for (String memberId : removeMemberTasks.keySet()) {
+      ScheduledFuture<?> future = removeMemberTasks.remove(memberId);
+      if (future != null) {
+        future.cancel(true);
+      }
+    }
 
-    // Clear suspected-schedule
-    removeMemberTasks.clear();
+    // Shutdown executor
+    executor.shutdownNow();
 
     // Stop publishing events
     subject.onCompleted();
@@ -245,7 +250,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
       return Futures.immediateFuture(null);
     }
 
-    SettableFuture<Message> syncResponseFuture = SettableFuture.create();
+    SettableFuture<Void> syncResponseFuture = SettableFuture.create();
 
     // Listen initial Sync Ack
     transport.listen().observeOn(scheduler)
@@ -253,20 +258,22 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS)
-        .subscribe(syncResponseFuture::set, syncResponseFuture::setException);
+        .subscribe(
+            message -> {
+              onSyncAck(message);
+              syncResponseFuture.set(null);
+            },
+            throwable -> {
+              LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
+              syncResponseFuture.set(null);
+            });
 
     Message syncMsg = prepareSyncMessage();
-    seedMembers.forEach(address -> transport.send(address, syncMsg));
+    for (Address address : seedMembers) {
+      transport.send(address, syncMsg);
+    }
 
-    return Futures.catchingAsync(Futures.transform(syncResponseFuture, (Function<? super Message, ? extends Void>) message -> {
-            onSyncAck(message); // ensure membership update on future completed
-            return null;
-          }),
-        Throwable.class,
-        throwable -> {
-            LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
-            return Futures.immediateFuture(null);
-          });
+    return syncResponseFuture;
   }
 
   private void doSync() {
@@ -375,7 +382,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Publish updates locally
-    updates.forEach(subject::onNext);
+    for (MembershipRecord update : updates) {
+      subject.onNext(update);
+    }
 
     // Check state transition
     for (final MembershipRecord member : updates) {
@@ -387,10 +396,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
             break;
           }
           removeMemberTasks.put(member.id(), executor.schedule(() -> {
-              LOGGER.debug("Time to remove SUSPECTED member={} from membership table", member);
-              removeMemberTasks.remove(member.id());
-              processUpdates(membershipTable.remove(member.id()), false/* spread gossip */);
-            }, config.getMaxSuspectTime(), TimeUnit.MILLISECONDS));
+            LOGGER.debug("Time to remove SUSPECTED member={} from membership table", member);
+            removeMemberTasks.remove(member.id());
+            processUpdates(membershipTable.remove(member.id()), false/* spread gossip */);
+          }, config.getMaxSuspectTime(), TimeUnit.MILLISECONDS));
           break;
         case TRUSTED:
           // clean schedule
@@ -401,9 +410,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
           break;
         case SHUTDOWN:
           executor.schedule(() -> {
-              LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
-              membershipTable.remove(member.id());
-            }, config.getMaxShutdownTime(), TimeUnit.MILLISECONDS);
+            LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
+            membershipTable.remove(member.id());
+          }, config.getMaxShutdownTime(), TimeUnit.MILLISECONDS);
           break;
         default:
           // ignore

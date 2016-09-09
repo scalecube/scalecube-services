@@ -170,7 +170,7 @@ public final class FailureDetector implements IFailureDetector {
     }
 
     // Shutdown executor
-    executor.shutdown();
+    executor.shutdownNow();
 
     // Stop publishing events
     subject.onCompleted();
