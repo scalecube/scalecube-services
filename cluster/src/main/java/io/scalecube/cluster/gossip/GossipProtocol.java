@@ -227,7 +227,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private Address getNextRandom(List<Address> members, int maxMembersToSelect, int count) {
-    return members.get((int) ((period * maxMembersToSelect + count) & Integer.MAX_VALUE) % members.size());
+    return members.get((int) (((period * maxMembersToSelect + count) & Integer.MAX_VALUE) % members.size()));
   }
 
   static class GossipMessageFilter implements Func1<Message, Boolean> {

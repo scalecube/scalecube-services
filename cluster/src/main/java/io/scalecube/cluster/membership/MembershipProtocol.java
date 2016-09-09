@@ -315,9 +315,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
     } else {
       LOGGER.debug("Received Sync from {}, no updates", sender);
     }
-    String correlationId = message.correlationId();
     MembershipData syncAckData = new MembershipData(membershipTable.asList(), config.getSyncGroup());
-    Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).correlationId(correlationId).build();
+    Message syncAckMsg = Message.withData(syncAckData).qualifier(SYNC_ACK).build();
     transport.send(sender, syncAckMsg);
   }
 
