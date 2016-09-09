@@ -210,13 +210,16 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private void sweepGossips(Collection<GossipLocalState> gossips, int factor) {
-    final int maxPeriods = factor * 10;
-    gossips.stream()
+    int maxPeriods = factor * 10;
+
+    Set<GossipLocalState> gossipsToSweep = gossips.stream()
         .filter(gossip -> period - (gossip.getPeriod() + maxPeriods) > 0)
-        .forEach(gossip -> {
-            gossipsMap.remove(gossip.gossip().getGossipId());
-            LOGGER.debug("Removed {}", gossip);
-          });
+        .collect(Collectors.toSet());
+
+    for (GossipLocalState gossip : gossipsToSweep) {
+      gossipsMap.remove(gossip.gossip().getGossipId());
+      LOGGER.debug("Removed {}", gossip);
+    }
   }
 
   private String generateGossipId() {

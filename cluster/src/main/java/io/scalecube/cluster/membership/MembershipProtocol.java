@@ -1,18 +1,5 @@
 package io.scalecube.cluster.membership;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static io.scalecube.cluster.membership.MemberStatus.SHUTDOWN;
-import static io.scalecube.cluster.membership.MemberStatus.TRUSTED;
-
-import io.scalecube.cluster.Member;
-import io.scalecube.cluster.fdetector.FailureDetectorEvent;
-import io.scalecube.cluster.fdetector.IFailureDetector;
-import io.scalecube.cluster.gossip.IGossipProtocol;
-import io.scalecube.transport.Address;
-import io.scalecube.transport.ITransport;
-import io.scalecube.transport.Message;
-import io.scalecube.transport.MessageHeaders;
-
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -23,15 +10,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.functions.Func1;
-import rx.observers.Subscribers;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,6 +24,26 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+
+import io.scalecube.cluster.Member;
+import io.scalecube.cluster.fdetector.FailureDetectorEvent;
+import io.scalecube.cluster.fdetector.IFailureDetector;
+import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Message;
+import rx.Observable;
+import rx.Scheduler;
+import rx.Subscriber;
+import rx.functions.Func1;
+import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.cluster.membership.MemberStatus.SHUTDOWN;
+import static io.scalecube.cluster.membership.MemberStatus.TRUSTED;
 
 public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
@@ -72,7 +70,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   // State
 
-  private long period = 0;
   private final MembershipTable membershipTable = new MembershipTable();
 
   // Subscriptions
@@ -81,9 +78,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
       .toSerialized();
 
   private Subscriber<Message> onSyncRequestSubscriber;
+  private Subscriber<Message> onSyncAckResponseSubscriber;
   private Subscriber<FailureDetectorEvent> onFdEventSubscriber;
   private Subscriber<MembershipData> onGossipRequestSubscriber;
-
 
   // Scheduled
 
@@ -91,14 +88,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private final ScheduledExecutorService executor;
   private ScheduledFuture<?> syncTask;
   private final Map<String, ScheduledFuture<?>> removeMemberTasks = new HashMap<>();
-
-  private Function<Message, Void> onSyncAckFunction = new Function<Message, Void>() {
-    @Override
-    public Void apply(Message message) {
-      onSyncAck(message);
-      return null;
-    }
-  };
 
   /**
    * Creates new instantiates of cluster membership protocol with given transport and config.
@@ -190,6 +179,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .subscribe(onSyncRequestSubscriber);
 
+    // Listen to incomming SYNC ACK responses from other members
+    onSyncAckResponseSubscriber = Subscribers.create(this::onSyncAck);
+    transport.listen().subscribeOn(scheduler)
+        .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
+        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+        .subscribe(onSyncAckResponseSubscriber);
+
     // Listen to events from failure detector
     onFdEventSubscriber = Subscribers.create(this::onFailureDetectorEvent);
     failureDetector.listenStatus().observeOn(scheduler)
@@ -224,6 +220,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     if (onGossipRequestSubscriber != null) {
       onGossipRequestSubscriber.unsubscribe();
     }
+    if (onSyncAckResponseSubscriber != null) {
+      onSyncAckResponseSubscriber.unsubscribe();
+    }
 
     // Stop sending sync
     if (syncTask != null) {
@@ -246,23 +245,23 @@ public final class MembershipProtocol implements IMembershipProtocol {
       return Futures.immediateFuture(null);
     }
 
-    String cid = Long.toString(this.period);
-    final SettableFuture<Message> syncResponseFuture = SettableFuture.create();
+    SettableFuture<Message> syncResponseFuture = SettableFuture.create();
 
+    // Listen initial Sync Ack
     transport.listen()
-        .filter(syncAckFilter(cid))
+        .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS)
         .subscribe(syncResponseFuture::set, syncResponseFuture::setException);
 
-    final Message syncMsg = prepareSyncMessage(cid);
-    for (Address memberAddress : seedMembers) {
-      transport.send(memberAddress, syncMsg);
-    }
+    Message syncMsg = prepareSyncMessage();
+    seedMembers.forEach(address -> transport.send(address, syncMsg));
 
-    return Futures.catchingAsync(
-        Futures.transform(syncResponseFuture, onSyncAckFunction),
+    return Futures.catchingAsync(Futures.transform(syncResponseFuture, (Function<? super Message, ? extends Void>) message -> {
+            onSyncAck(message); // ensure membership update on future completed
+            return null;
+          }),
         Throwable.class,
         throwable -> {
             LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
@@ -271,25 +270,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private void doSync() {
-    period++;
     Address syncMember = selectSyncAddress();
     if (syncMember == null) {
       return;
     }
-
     LOGGER.debug("Sending Sync to: {}", syncMember);
-    String cid = Long.toString(this.period);
-    transport.listen()
-        .filter(syncAckFilter(cid))
-        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
-        .take(1)
-        .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(this::onSyncAck, throwable -> {
-            LOGGER.info("Timeout getting SyncAck from: {}", syncMember);
-          });
-
-    Message syncMsg = prepareSyncMessage(cid);
-    transport.send(syncMember, syncMsg);
+    transport.send(syncMember, prepareSyncMessage());
   }
 
   private Address selectSyncAddress() {
@@ -297,9 +283,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     return !seedMembers.isEmpty() ? seedMembers.get(ThreadLocalRandom.current().nextInt(seedMembers.size())) : null;
   }
 
-  private Message prepareSyncMessage(String cid) {
+  private Message prepareSyncMessage() {
     MembershipData syncData = new MembershipData(membershipTable.asList(), config.getSyncGroup());
-    return Message.withData(syncData).qualifier(SYNC).correlationId(cid).build();
+    return Message.withData(syncData).qualifier(SYNC).build();
   }
 
   private void onSyncAck(Message message) {
@@ -401,14 +387,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
           if (removeMemberTasks.containsKey(member.id())) {
             break;
           }
-          removeMemberTasks.put(member.id(), executor.schedule(new Runnable() {
-            @Override
-            public void run() {
+          removeMemberTasks.put(member.id(), executor.schedule(() -> {
               LOGGER.debug("Time to remove SUSPECTED member={} from membership table", member);
               removeMemberTasks.remove(member.id());
               processUpdates(membershipTable.remove(member.id()), false/* spread gossip */);
-            }
-          }, config.getMaxSuspectTime(), TimeUnit.MILLISECONDS));
+            }, config.getMaxSuspectTime(), TimeUnit.MILLISECONDS));
           break;
         case TRUSTED:
           // clean schedule
@@ -418,13 +401,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
           }
           break;
         case SHUTDOWN:
-          executor.schedule(new Runnable() {
-            @Override
-            public void run() {
+          executor.schedule(() -> {
               LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
               membershipTable.remove(member.id());
-            }
-          }, config.getMaxShutdownTime(), TimeUnit.MILLISECONDS);
+            }, config.getMaxShutdownTime(), TimeUnit.MILLISECONDS);
           break;
         default:
           // ignore
@@ -441,10 +421,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
     MembershipRecord leaveRecord = new MembershipRecord(localMember, SHUTDOWN);
     MembershipData msgData = new MembershipData(ImmutableList.of(leaveRecord), config.getSyncGroup());
     gossipProtocol.spread(Message.fromData(msgData));
-  }
-
-  private MessageHeaders.Filter syncAckFilter(String correlationId) {
-    return new MessageHeaders.Filter(SYNC_ACK, correlationId);
   }
 
 }
