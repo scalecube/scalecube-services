@@ -117,10 +117,8 @@ public final class FailureDetector implements IFailureDetector {
     set.remove(transport.address());
     List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
-    executor.execute(() -> {
-      this.members = list;
-      LOGGER.debug("Updated monitored members[{}]: {}", this.members.size(), this.members);
-    });
+    this.members = list;
+    LOGGER.debug("Updated monitored members[{}]: {}", this.members.size(), this.members);
   }
 
   @Override

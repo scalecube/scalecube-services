@@ -206,9 +206,9 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
-  private void sweep(Collection<GossipLocalState> values, int factor) {
+  private void sweepGossips(Collection<GossipLocalState> gossips, int factor) {
     Collection<GossipLocalState> filter =
-        Sets.newHashSet(filter(values, new GossipSweepPredicate(period, factor * 10)));
+        Sets.newHashSet(filter(gossips, new GossipSweepPredicate(period, factor * 10)));
     for (GossipLocalState gossipLocalState : filter) {
       gossipsMap.remove(gossipLocalState.gossip().getGossipId());
       LOGGER.debug("Removed {}", gossipLocalState);
@@ -337,7 +337,7 @@ public final class GossipProtocol implements IGossipProtocol {
         List<Address> members = GossipProtocol.this.members;
         int factor = GossipProtocol.this.factor;
         sendGossips(members, gossips, factor);
-        sweep(gossips, factor);
+        sweepGossips(gossips, factor);
       } catch (Exception cause) {
         LOGGER.error("Unhandled exception: {}", cause, cause);
       }

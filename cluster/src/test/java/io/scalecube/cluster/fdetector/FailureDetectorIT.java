@@ -31,20 +31,6 @@ import java.util.stream.Collectors;
 
 public class FailureDetectorIT {
 
-  @Before
-  public void awaitBefore() throws InterruptedException {
-    System.out.println("Test started 1");
-    Thread.sleep(3000);
-    System.out.println("Test started 2");
-  }
-
-  @After
-  public void awaitAfter() throws InterruptedException {
-    System.out.println("Test finished 1");
-    Thread.sleep(3000);
-    System.out.println("Test finished 2");
-  }
-
   @Test
   public void testTrusted() {
     // Create transports
