@@ -17,8 +17,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -382,7 +380,8 @@ public class FailureDetectorIT {
     return createFailureDetector(transport, members, failureDetectorConfig);
   }
 
-  private FailureDetector createFailureDetector(Transport transport, List<Address> members, FailureDetectorConfig config) {
+  private FailureDetector createFailureDetector(Transport transport, List<Address> members,
+      FailureDetectorConfig config) {
     FailureDetector failureDetector = new FailureDetector(transport, config);
     failureDetector.setMembers(members);
     return failureDetector;
