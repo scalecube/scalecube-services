@@ -118,7 +118,7 @@ public final class FailureDetector implements IFailureDetector {
     List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
     this.members = list;
-    LOGGER.debug("Updated monitored members[{}]: {}", this.members.size(), this.members);
+    LOGGER.debug("Set cluster members[{}]: {}", this.members.size(), this.members);
   }
 
   @Override
