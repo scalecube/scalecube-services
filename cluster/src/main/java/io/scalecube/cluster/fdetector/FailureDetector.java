@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public final class FailureDetector implements IFailureDetector {
@@ -59,6 +58,8 @@ public final class FailureDetector implements IFailureDetector {
   // State
 
   private long period = 0;
+  private int pingMemberIndex = 0; // index for sequential pingMember selection
+  private List<Address> prevMembers; // previous members (1 period ago)
   private volatile List<Address> members = new ArrayList<>();
 
   // Subscriptions
@@ -172,17 +173,26 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private void doPing() {
+    period++;
+
     // copy state references
-    long period = ++this.period;
     List<Address> members = this.members;
+    if (members.isEmpty()) {
+      return;
+    }
+
+    // setup or check pingMember sequential index
+    if (prevMembers != members) {
+      pingMemberIndex = 0;
+    } else if (pingMemberIndex == members.size()) {
+      pingMemberIndex = 0;
+      Collections.shuffle(members);
+    }
+    prevMembers = members;
 
     // start algorithm
     try {
-      final Address pingMember = selectPingMember(members);
-      if (pingMember == null) {
-        return;
-      }
-
+      final Address pingMember = members.get(pingMemberIndex++);
       final Address localAddress = transport.address();
       final String cid = Long.toString(period);
       PingData pingData = new PingData(localAddress, pingMember);
@@ -260,11 +270,6 @@ public final class FailureDetector implements IFailureDetector {
   private void declareTrusted(Address member) {
     LOGGER.debug("Member {} detected as TRUSTED by {}", member, transport.address());
     subject.onNext(new FailureDetectorEvent(member, MemberStatus.TRUSTED));
-  }
-
-  private Address selectPingMember(List<Address> members) {
-    // TODO [AK]: Select ping member not randomly, but sequentially with shuffle after last member selected
-    return !members.isEmpty() ? members.get(ThreadLocalRandom.current().nextInt(members.size())) : null;
   }
 
   private List<Address> selectPingReqMembers(Address pingMember, List<Address> members) {
