@@ -1,10 +1,9 @@
 package io.scalecube.cluster.membership;
 
-import static io.scalecube.cluster.ClusterMemberStatus.REMOVED;
-import static io.scalecube.cluster.ClusterMemberStatus.SUSPECTED;
-import static io.scalecube.cluster.ClusterMemberStatus.TRUSTED;
+import static io.scalecube.cluster.membership.MemberStatus.REMOVED;
+import static io.scalecube.cluster.membership.MemberStatus.SUSPECTED;
+import static io.scalecube.cluster.membership.MemberStatus.TRUSTED;
 
-import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.transport.Address;
 
@@ -17,23 +16,23 @@ import java.util.concurrent.ConcurrentMap;
 
 final class MembershipTable {
 
-  private final ConcurrentMap<String, ClusterMember> membership = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, MembershipRecord> records = new ConcurrentHashMap<>();
 
-  public List<ClusterMember> merge(MembershipData data) {
-    List<ClusterMember> updates = new ArrayList<>();
-    for (ClusterMember record : data.getMembership()) {
+  public List<MembershipRecord> merge(MembershipData data) {
+    List<MembershipRecord> updates = new ArrayList<>();
+    for (MembershipRecord record : data.getMembership()) {
       updates.addAll(merge(record));
     }
     return updates;
   }
 
-  public List<ClusterMember> merge(ClusterMember r1) {
-    List<ClusterMember> updates = new ArrayList<>(1);
-    ClusterMember r0 = membership.putIfAbsent(r1.id(), r1);
+  public List<MembershipRecord> merge(MembershipRecord r1) {
+    List<MembershipRecord> updates = new ArrayList<>(1);
+    MembershipRecord r0 = records.putIfAbsent(r1.id(), r1);
     if (r0 == null) {
       updates.add(r1);
     } else if (r0.compareTo(r1) < 0) {
-      if (membership.replace(r1.id(), r0, r1)) {
+      if (records.replace(r1.id(), r0, r1)) {
         updates.add(r1);
       } else {
         return merge(r1);
@@ -42,18 +41,18 @@ final class MembershipTable {
     return updates;
   }
 
-  public List<ClusterMember> merge(FailureDetectorEvent event) {
-    ClusterMember r0 = get(event.address());
+  public List<MembershipRecord> merge(FailureDetectorEvent event) {
+    MembershipRecord r0 = get(event.address());
     if (r0 != null) {
-      return merge(new ClusterMember(r0.id(), r0.address(), event.status(), r0.metadata()));
+      return merge(new MembershipRecord(r0.member(), event.status()));
     } else {
       return Collections.emptyList();
     }
   }
 
-  public ClusterMember get(Address address) {
+  public MembershipRecord get(Address address) {
     // TODO [AK]: Temporary solution, should be optimized!!!
-    for (ClusterMember member : membership.values()) {
+    for (MembershipRecord member : records.values()) {
       if (member.address().equals(address)) {
         return member;
       }
@@ -61,21 +60,21 @@ final class MembershipTable {
     return null;
   }
 
-  public ClusterMember get(String id) {
-    return membership.get(id);
+  public MembershipRecord get(String id) {
+    return records.get(id);
   }
 
-  public List<ClusterMember> remove(String id) {
-    List<ClusterMember> updates = new ArrayList<>(1);
-    ClusterMember r0 = membership.remove(id);
+  public List<MembershipRecord> remove(String id) {
+    List<MembershipRecord> updates = new ArrayList<>(1);
+    MembershipRecord r0 = records.remove(id);
     if (r0 != null) {
-      updates.add(new ClusterMember(r0.id(), r0.address(), REMOVED, r0.metadata()));
+      updates.add(new MembershipRecord(r0.member(), REMOVED));
     }
     return updates;
   }
 
-  public List<ClusterMember> asList() {
-    return new ArrayList<>(membership.values());
+  public List<MembershipRecord> asList() {
+    return new ArrayList<>(records.values());
   }
 
   /**
@@ -83,7 +82,7 @@ final class MembershipTable {
    */
   public Collection<Address> getTrustedOrSuspectedMembers() {
     Collection<Address> addresses = new ArrayList<>();
-    for (ClusterMember member : membership.values()) {
+    for (MembershipRecord member : records.values()) {
       if (member.status() == TRUSTED || member.status() == SUSPECTED) {
         addresses.add(member.address());
       }
