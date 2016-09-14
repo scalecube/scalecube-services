@@ -38,9 +38,9 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
@@ -67,9 +67,9 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // block all traffic
@@ -104,9 +104,9 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // Traffic issue at connection A -> B
@@ -136,10 +136,10 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b =
-        createFailureDetector(b, members, FailureDetectorConfig.builder().pingTimeout(500).pingTime(1000).build());
-    FailureDetector fd_c = createFailureDetector(c, members, FailureDetectorConfig.defaultConfig());
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetectorConfig fd_b_config = FailureDetectorConfig.builder().pingTimeout(500).pingTime(1000).build();
+    FailureDetector fd_b = createFD(b, members, fd_b_config);
+    FailureDetector fd_c = createFD(c, members, FailureDetectorConfig.defaultConfig());
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
@@ -167,10 +167,10 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_d = createFailureDetector(d, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
+    FailureDetector fd_d = createFD(d, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic on member A to all cluster members
@@ -220,10 +220,10 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_d = createFailureDetector(d, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
+    FailureDetector fd_d = createFD(d, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic to node D on other members
@@ -275,8 +275,8 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
 
     // Traffic is blocked initially on both sides: A--X-->B, B--X-->A
@@ -318,9 +318,9 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), x.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_x = createFailureDetector(x, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_x = createFD(x, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_x);
 
     Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
@@ -349,7 +349,7 @@ public class FailureDetectorIT {
           .useNetworkEmulator(true)
           .build());
       assertEquals(x.address(), xx.address());
-      fdetectors = Arrays.asList(fd_a, fd_b, fd_xx = createFailureDetector(xx, members));
+      fdetectors = Arrays.asList(fd_a, fd_b, fd_xx = createFD(xx, members));
 
       // actual restart here
       fd_xx.start();
@@ -369,19 +369,16 @@ public class FailureDetectorIT {
     }
   }
 
-  private FailureDetector createFailureDetector(Transport transport, List<Address> members) {
+  private FailureDetector createFD(Transport transport, List<Address> members) {
     FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder() // faster config for local testing
         .pingTimeout(100)
         .pingTime(200)
         .pingReqMembers(2)
         .build();
-    FailureDetector failureDetector = new FailureDetector(transport, failureDetectorConfig);
-    failureDetector.setMembers(members);
-    return createFailureDetector(transport, members, failureDetectorConfig);
+    return createFD(transport, members, failureDetectorConfig);
   }
 
-  private FailureDetector createFailureDetector(Transport transport, List<Address> members,
-      FailureDetectorConfig config) {
+  private FailureDetector createFD(Transport transport, List<Address> members, FailureDetectorConfig config) {
     FailureDetector failureDetector = new FailureDetector(transport, config);
     failureDetector.setMembers(members);
     return failureDetector;
