@@ -115,10 +115,10 @@ public final class FailureDetector implements IFailureDetector {
     List<Address> list = new ArrayList<>(set);
     Collections.shuffle(list);
     executor.execute(() -> {
-      pingMemberIndex = 0;
-      this.members = list;
-      LOGGER.debug("Updated monitored members[{}]: {}", this.members.size(), this.members);
-    });
+        pingMemberIndex = 0;
+        this.members = list;
+        LOGGER.debug("Updated monitored members[{}]: {}", this.members.size(), this.members);
+      });
   }
 
   @Override
@@ -194,16 +194,14 @@ public final class FailureDetector implements IFailureDetector {
           .filter(new CorrelationFilter(localAddress, pingMember))
           .take(1)
           .timeout(config.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
-          .subscribe(
-              message -> {
-                LOGGER.trace("Received PingAck from {}", pingMember);
-                declareTrusted(pingMember);
-              },
-              throwable -> {
-                LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now",
-                    pingMember, config.getPingTimeout());
-                doPingReq(pingMember, cid);
-              });
+          .subscribe(message -> {
+              LOGGER.trace("Received PingAck from {}", pingMember);
+              declareTrusted(pingMember);
+            }, throwable -> {
+              LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now",
+                  pingMember, config.getPingTimeout());
+              doPingReq(pingMember, cid);
+            });
 
       transport.send(pingMember, pingMsg);
     } catch (Exception cause) {
@@ -244,16 +242,14 @@ public final class FailureDetector implements IFailureDetector {
         .filter(new CorrelationFilter(localAddress, pingMember))
         .take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(
-            message -> {
-              LOGGER.trace("PingReq OK (pinger={}, target={})", message.sender(), pingMember);
-              declareTrusted(pingMember);
-            },
-            throwable -> {
-              LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})", pingReqMembers, pingMember,
-                  timeout);
-              declareSuspected(pingMember);
-            });
+        .subscribe(message -> {
+            LOGGER.trace("PingReq OK (pinger={}, target={})", message.sender(), pingMember);
+            declareTrusted(pingMember);
+          }, throwable -> {
+            LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})",
+                pingReqMembers, pingMember, timeout);
+            declareSuspected(pingMember);
+          });
 
     PingData pingReqData = new PingData(localAddress, pingMember);
     Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(cid).build();

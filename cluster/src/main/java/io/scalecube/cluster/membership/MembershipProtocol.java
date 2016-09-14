@@ -258,15 +258,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS)
-        .subscribe(
-            message -> {
-              onSyncAck(message);
-              syncResponseFuture.set(null);
-            },
-            throwable -> {
-              LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
-              syncResponseFuture.set(null);
-            });
+        .subscribe(message -> {
+            onSyncAck(message);
+            syncResponseFuture.set(null);
+          }, throwable -> {
+            LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
+            syncResponseFuture.set(null);
+          });
 
     Message syncMsg = prepareSyncMessage();
     for (Address address : seedMembers) {
@@ -400,10 +398,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
             break;
           }
           removeMemberTasks.put(member.id(), executor.schedule(() -> {
-            LOGGER.debug("Time to remove SUSPECTED member={} from membership table", member);
-            removeMemberTasks.remove(member.id());
-            processUpdates(membershipTable.remove(member.id()), false/* spread gossip */);
-          }, config.getMaxSuspectTime(), TimeUnit.MILLISECONDS));
+              LOGGER.debug("Time to remove SUSPECTED member={} from membership table", member);
+              removeMemberTasks.remove(member.id());
+              processUpdates(membershipTable.remove(member.id()), false/* spread gossip */);
+            }, config.getMaxSuspectTime(), TimeUnit.MILLISECONDS));
           break;
         case TRUSTED:
           // clean schedule
@@ -414,9 +412,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
           break;
         case SHUTDOWN:
           executor.schedule(() -> {
-            LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
-            membershipTable.remove(member.id());
-          }, config.getMaxShutdownTime(), TimeUnit.MILLISECONDS);
+              LOGGER.debug("Time to remove SHUTDOWN member={} from membership table", member.address());
+              membershipTable.remove(member.id());
+            }, config.getMaxShutdownTime(), TimeUnit.MILLISECONDS);
           break;
         default:
           // ignore
