@@ -6,12 +6,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/** DTO class. Contains a snapshot of cluster members and cluster identifier. */
+/**
+ * DTO class. Contains a snapshot of cluster members and cluster identifier.
+ */
 final class MembershipData {
-  /** A snapshot of cluster members. */
+
+  /**
+   * A snapshot of cluster members.
+   */
   @Tag(1)
   private List<MembershipRecord> membership = new ArrayList<>();
-  /** Sort of cluster identifier. Only makes sense at cluster membership SYNC/SYNC_ACK transitions. */
+
+  /**
+   * Sort of cluster identifier. Only makes sense at cluster membership SYNC/SYNC_ACK transitions.
+   */
   @Tag(2)
   private String syncGroup;
 

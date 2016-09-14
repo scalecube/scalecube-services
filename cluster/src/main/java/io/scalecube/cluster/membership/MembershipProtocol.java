@@ -176,14 +176,14 @@ public final class MembershipProtocol implements IMembershipProtocol {
     onSyncRequestSubscriber = Subscribers.create(this::onSync);
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC.equals(msg.qualifier()))
-        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+        .filter(this::checkSyncGroup)
         .subscribe(onSyncRequestSubscriber);
 
     // Listen to incomming SYNC ACK responses from other members
     onSyncAckResponseSubscriber = Subscribers.create(this::onSyncAck);
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
-        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+        .filter(this::checkSyncGroup)
         .subscribe(onSyncAckResponseSubscriber);
 
     // Listen to events from failure detector
@@ -255,9 +255,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     // Listen initial Sync Ack
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
-        .filter(MembershipDataUtils.syncGroupFilter(config.getSyncGroup()))
+        .filter(this::checkSyncGroup)
         .take(1)
-        .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS)
+        .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(message -> {
             onSyncAck(message);
             syncResponseFuture.set(null);
@@ -290,6 +290,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private Address selectSyncAddress() {
     // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
     return !seedMembers.isEmpty() ? seedMembers.get(ThreadLocalRandom.current().nextInt(seedMembers.size())) : null;
+  }
+
+  private boolean checkSyncGroup(Message message) {
+    MembershipData data = message.data();
+    return config.getSyncGroup().equals(data.getSyncGroup());
   }
 
   private Message prepareSyncMessage() {
