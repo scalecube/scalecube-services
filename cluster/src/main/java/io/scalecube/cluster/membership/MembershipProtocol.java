@@ -277,12 +277,16 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private void doSync() {
-    Address syncMember = selectSyncAddress();
-    if (syncMember == null) {
-      return;
+    try {
+      Address syncMember = selectSyncAddress();
+      if (syncMember == null) {
+        return;
+      }
+      LOGGER.debug("Sending Sync to: {}", syncMember);
+      transport.send(syncMember, prepareSyncMessage());
+    } catch (Exception cause) {
+      LOGGER.error("Unhandled exception: {}", cause, cause);
     }
-    LOGGER.debug("Sending Sync to: {}", syncMember);
-    transport.send(syncMember, prepareSyncMessage());
   }
 
   private Address selectSyncAddress() {
