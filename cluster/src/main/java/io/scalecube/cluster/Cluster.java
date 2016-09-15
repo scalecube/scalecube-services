@@ -3,13 +3,9 @@ package io.scalecube.cluster;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.Futures.transformAsync;
-import static io.scalecube.cluster.fdetector.FailureDetector.ACK;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
+import static io.scalecube.cluster.fdetector.FailureDetector.*;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
-import static io.scalecube.cluster.membership.MembershipProtocol.NOT_GOSSIP_MEMBERSHIP_FILTER;
-import static io.scalecube.cluster.membership.MembershipProtocol.SYNC;
-import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
+import static io.scalecube.cluster.membership.MembershipProtocol.*;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
@@ -34,11 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +40,7 @@ import javax.annotation.Nullable;
 
 /**
  * Main ICluster implementation.
- * 
+ *
  * @author Anton Kharenko
  */
 public final class Cluster implements ICluster {
@@ -75,7 +67,7 @@ public final class Cluster implements ICluster {
     leaderElection = RaftLeaderElection.builder(this).build();
     leaderElection.addStateListener(state -> {
       this.leader = leaderElection.leader();
-      LOGGER.info("Cluster member {} at state {} see leader '{}'",memberId ,state, leaderElection.leader());
+      LOGGER.info("Cluster member {} at state {} see leader '{}'", memberId, state, leaderElection.leader());
     });
     LOGGER.info("Cluster instance '{}' created with configuration: {}", memberId, config);
   }
@@ -89,7 +81,7 @@ public final class Cluster implements ICluster {
     } catch (Exception e) {
       throw Throwables.propagate(Throwables.getRootCause(e));
     }
-  }
+    }
 
   /**
    * Init cluster instance with the given seed members and join cluster synchronously.
@@ -100,7 +92,7 @@ public final class Cluster implements ICluster {
     } catch (Exception e) {
       throw Throwables.propagate(Throwables.getRootCause(e));
     }
-  }
+    }
 
   /**
    * Init cluster instance with the given metadata and seed members and join cluster synchronously.
@@ -111,7 +103,7 @@ public final class Cluster implements ICluster {
     } catch (Exception e) {
       throw Throwables.propagate(Throwables.getRootCause(e));
     }
-  }
+    }
 
   /**
    * Init cluster instance with the given configuration and join cluster synchronously.
@@ -122,7 +114,7 @@ public final class Cluster implements ICluster {
     } catch (Exception e) {
       throw Throwables.propagate(Throwables.getRootCause(e));
     }
-  }
+    }
 
   /**
    * Init cluster instance and join cluster asynchronously.

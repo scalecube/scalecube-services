@@ -1,10 +1,12 @@
 package io.scalecube.cluster.leaderelection;
 
-import com.google.common.util.concurrent.SimpleTimeLimiter;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+
+import com.google.common.util.concurrent.SimpleTimeLimiter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +65,10 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
 
     }
 
+  public static RaftLeaderElection.Builder builder(ICluster cluster) {
+    return new RaftLeaderElection.Builder(cluster);
+  }
+
     public void start() {
         selectedLeader = cluster.address();
 
@@ -118,10 +124,6 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
 
         this.leaderHeartbeatTimer.reset();
         transition(StateType.FOLLOWER);
-    }
-
-    public static RaftLeaderElection.Builder builder(ICluster cluster) {
-        return new RaftLeaderElection.Builder(cluster);
     }
 
     @Override
