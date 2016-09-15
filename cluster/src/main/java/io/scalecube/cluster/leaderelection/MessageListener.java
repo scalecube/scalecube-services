@@ -1,6 +1,5 @@
 package io.scalecube.cluster.leaderelection;
 
-import com.sun.istack.internal.NotNull;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 import rx.functions.Action1;
