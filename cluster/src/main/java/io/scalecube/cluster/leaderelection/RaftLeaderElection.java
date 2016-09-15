@@ -1,5 +1,7 @@
 package io.scalecube.cluster.leaderelection;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
@@ -15,8 +17,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Created by ronenn on 9/11/2016.
@@ -84,8 +84,8 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
                     Address candidate = message.data();
                     if (hasConsensus(candidate)) {
                         LOGGER.debug(
-                            "CANDIDATE Node: {} gained Consensus and transition to become leader prev leader was {}",
-                            cluster.address(), selectedLeader);
+                          "CANDIDATE Node: {} gained Consensus and transition to become leader prev leader was {}",
+                          cluster.address(), selectedLeader);
                         transition(StateType.LEADER);
                     }
                 }
@@ -102,7 +102,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
                 leaderHeartbeatTimer.reset();
                 selectedLeader = message.data();
                 LOGGER.debug("{} Node: {} received heartbeat request from  {}", currentState(), cluster.address(),
-                    selectedLeader);
+                  selectedLeader);
                 if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address())))
                     transition(StateType.FOLLOWER);
             }
@@ -113,7 +113,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
             @Override
             protected void onMessage(Message message) {
                 LOGGER.debug("{} Node: {} received vote request from  {}", currentState(), cluster.address(),
-                    message.data());
+                  message.data());
                 vote(message.data());
             }
         }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
@@ -158,7 +158,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         selectedLeader = cluster.address();
         for (Member member : cluster.members()) {
             cluster.send(member.address(),
-                Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(selectedLeader).build());
+              Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(selectedLeader).build());
         }
         this.heartbeatScheduler.schedule();
         onStateChanged(StateType.LEADER);
@@ -174,8 +174,8 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
     private void requestVote() {
         for (Member member : cluster.otherMembers()) {
             cluster.send(member.address(), Message.builder()
-                .qualifier(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE)
-                .data(cluster.address()).build());
+              .qualifier(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE)
+              .data(cluster.address()).build());
         }
         votes.putIfAbsent(cluster.address(), cluster.address());
     }
@@ -187,9 +187,9 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
             return;
         }
         cluster.send(candidate, Message.builder()
-            .qualifier(RaftProtocol.RAFT_PROTOCOL_VOTE)
-            .data(candidate)
-            .build());
+          .qualifier(RaftProtocol.RAFT_PROTOCOL_VOTE)
+          .data(candidate)
+          .build());
     }
 
     private boolean hasConsensus(Address candidate) {

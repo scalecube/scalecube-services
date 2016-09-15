@@ -14,29 +14,29 @@ import java.util.concurrent.TimeUnit;
  */
 public class HeartbeatScheduler {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(HeartbeatScheduler.class);
-    private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
-    public ICluster cluster;
-    long heartbeatInterval;
+  private static final Logger LOGGER = LoggerFactory.getLogger(HeartbeatScheduler.class);
+  private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1);
+  public ICluster cluster;
+  long heartbeatInterval;
 
-    public HeartbeatScheduler(ICluster cluster, long heartbeatInterval) {
-        this.cluster = cluster;
-        this.heartbeatInterval = heartbeatInterval;
-    }
+  public HeartbeatScheduler(ICluster cluster, long heartbeatInterval) {
+    this.cluster = cluster;
+    this.heartbeatInterval = heartbeatInterval;
+  }
 
-    public void schedule() {
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                LOGGER.debug("Leader Node: {} maintain leadership spread {} gossip regards selected leader {}",
-                    cluster.address(), RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, cluster.address());
-                cluster.spreadGossip(
-                    Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(cluster.address()).build());
-            }
-        }, heartbeatInterval, heartbeatInterval, TimeUnit.SECONDS);
-    }
+  public void schedule() {
+    scheduler.scheduleAtFixedRate(new Runnable() {
+      @Override
+      public void run() {
+        LOGGER.debug("Leader Node: {} maintain leadership spread {} gossip regards selected leader {}",
+            cluster.address(), RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, cluster.address());
+        cluster.spreadGossip(
+            Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(cluster.address()).build());
+      }
+    }, heartbeatInterval, heartbeatInterval, TimeUnit.SECONDS);
+  }
 
-    public void stop() {
-        scheduler.getQueue().clear();
-    }
+  public void stop() {
+    scheduler.getQueue().clear();
+  }
 }
