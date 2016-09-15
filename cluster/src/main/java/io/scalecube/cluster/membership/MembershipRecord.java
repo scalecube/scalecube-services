@@ -11,31 +11,24 @@ import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Cluster membership record which represents member, status, and timestamp. Most important, contains -
- * {@link #compareTo(MembershipRecord)} .
+ * Cluster membership record which represents member, status, and incarnation.
  */
 @Immutable
 public final class MembershipRecord implements Comparable<MembershipRecord> {
+
   private final Member member;
   private final MemberStatus status;
-  private final long timestamp;
+  private final long incarnation;
 
   /**
-   * Instantiates new instance of membership record with given member, status and current timestamp.
+   * Instantiates new instance of membership record with given member, status and incarnation.
    */
-  public MembershipRecord(Member member, MemberStatus status) {
-    this(member, status, System.currentTimeMillis());
-  }
-
-  /**
-   * Instantiates new instance of membership record with given member, status and timestamp.
-   */
-  public MembershipRecord(Member member, MemberStatus status, long timestamp) {
+  public MembershipRecord(Member member, MemberStatus status, long incarnation) {
     checkArgument(member != null);
     checkArgument(status != null);
     this.member = member;
     this.status = status;
-    this.timestamp = timestamp;
+    this.incarnation = incarnation;
   }
 
   @Nonnull
@@ -58,12 +51,8 @@ public final class MembershipRecord implements Comparable<MembershipRecord> {
     return status;
   }
 
-  public Map<String, String> metadata() {
-    return member.metadata();
-  }
-
-  public long timestamp() {
-    return timestamp;
+  public long incarnation() {
+    return incarnation;
   }
 
   @Override
@@ -71,18 +60,18 @@ public final class MembershipRecord implements Comparable<MembershipRecord> {
     if (status == r1.status) {
       return 0;
     }
-    if (status == MemberStatus.SHUTDOWN) {
+    if (status == MemberStatus.DEAD) {
       return 1;
     }
-    if (r1.status == MemberStatus.SHUTDOWN) {
+    if (r1.status == MemberStatus.DEAD) {
       return -1;
     }
 
-    int clockCompare = Long.compare(timestamp, r1.timestamp);
+    int clockCompare = Long.compare(incarnation, r1.incarnation);
     if (clockCompare < 0) {
       return -1;
     }
-    if (clockCompare == 0 && (status == MemberStatus.TRUSTED && r1.status == MemberStatus.SUSPECTED)) {
+    if (clockCompare == 0 && (status == MemberStatus.ALIVE && r1.status == MemberStatus.SUSPECT)) {
       return -1;
     }
 
@@ -91,9 +80,9 @@ public final class MembershipRecord implements Comparable<MembershipRecord> {
 
   @Override
   public String toString() {
-    return "ClusterMember{member=" + member
+    return "MembershipRecord{member=" + member
         + ", status=" + status
-        + ", timestamp=" + timestamp
+        + ", incarnation=" + incarnation
         + '}';
   }
 }

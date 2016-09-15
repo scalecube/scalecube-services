@@ -7,7 +7,7 @@ import static io.scalecube.cluster.fdetector.FailureDetector.ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
-import static io.scalecube.cluster.membership.MembershipProtocol.NOT_GOSSIP_MEMBERSHIP_FILTER;
+import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
 import static io.scalecube.cluster.membership.MembershipProtocol.SYNC;
 import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
 
@@ -15,7 +15,6 @@ import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipProtocol;
-import io.scalecube.cluster.membership.MembershipRecord;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
@@ -40,7 +39,6 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
@@ -53,7 +51,8 @@ public final class Cluster implements ICluster {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cluster.class);
 
-  private static final Set<String> SYS_MESSAGES = ImmutableSet.of(PING, PING_REQ, ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
+  private static final Set<String> SYSTEM_MESSAGES = ImmutableSet.of(PING, PING_REQ, ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
+  private static final Set<String> SYSTEM_GOSSIPS = ImmutableSet.of(MEMBERSHIP_GOSSIP);
 
   private final ClusterConfig config;
   private final String memberId;
@@ -170,8 +169,7 @@ public final class Cluster implements ICluster {
         failureDetector = new FailureDetector(transport, config.getFailureDetectorConfig());
 
         // Init cluster membership component
-        membership = new MembershipProtocol(
-            memberId, transport, config.getMembershipConfig(), failureDetector, gossip);
+        membership = new MembershipProtocol(memberId, transport, config.getMembershipConfig(), failureDetector, gossip);
 
         // Start components
         failureDetector.start();
@@ -215,8 +213,7 @@ public final class Cluster implements ICluster {
 
   @Override
   public Observable<Message> listen() {
-    return transport.listen()
-        .filter(msg -> !SYS_MESSAGES.contains(msg.qualifier())); // filter out system gossips
+    return transport.listen().filter(msg -> !SYSTEM_MESSAGES.contains(msg.qualifier())); // filter out system gossips
   }
 
   @Override
@@ -226,66 +223,53 @@ public final class Cluster implements ICluster {
 
   @Override
   public Observable<Message> listenGossips() {
-    return gossip.listen()
-        .filter(NOT_GOSSIP_MEMBERSHIP_FILTER); // filter out system gossips
+    return gossip.listen().filter(msg -> !SYSTEM_GOSSIPS.contains(msg.qualifier())); // filter out system gossips
   }
 
   @Override
   public List<Member> members() {
-    return membership.members().stream().map(MembershipRecord::member).collect(Collectors.toList());
+    return membership.members();
   }
 
   @Override
   public Member member() {
-    return membership.localMember().member();
+    return membership.member();
   }
 
   @Override
   public Member member(String id) {
-    return membership.member(id).member();
+    return membership.member(id);
   }
 
   @Override
   public Member member(Address address) {
-    return membership.member(address).member();
+    return membership.member(address);
   }
 
   @Override
   public List<Member> otherMembers() {
-    return membership.otherMembers().stream().map(MembershipRecord::member).collect(Collectors.toList());
+    return membership.otherMembers();
+  }
+
+  @Override
+  public Observable<MembershipEvent> listenMembership() {
+    return membership.listen();
   }
 
   @Override
   public ListenableFuture<Void> shutdown() {
-    LOGGER.info("Cluster instance '{}' leaving cluster", memberId);
+    LOGGER.info("Cluster instance '{}' is shutting down...", memberId);
 
-    // Notify cluster members about graceful shutdown of current member
-    membership.leave();
+    // stop algorithms
+    membership.stop();
+    gossip.stop();
+    failureDetector.stop();
 
-    // Wait for some time until 'leave' gossip start to spread through the cluster before stopping cluster components
-    final SettableFuture<Void> transportStoppedFuture = SettableFuture.create();
-    final ScheduledExecutorService stopExecutor = Executors.newSingleThreadScheduledExecutor();
-    long delay = 3 * config.getGossipConfig().getGossipTime(); // wait for 3 gossip periods before stopping
-    stopExecutor.schedule(new Runnable() {
-      @Override
-      public void run() {
-        membership.stop();
-        gossip.stop();
-        failureDetector.stop();
-        transport.stop(transportStoppedFuture);
-      }
-    }, delay, TimeUnit.MILLISECONDS);
+    // stop transport
+    SettableFuture<Void> transportStoppedFuture = SettableFuture.create();
+    transport.stop(transportStoppedFuture);
 
-    // Update cluster state to terminal state
-    return transform(transportStoppedFuture, new Function<Void, Void>() {
-      @Nullable
-      @Override
-      public Void apply(Void input) {
-        stopExecutor.shutdown();
-        LOGGER.info("Cluster instance '{}' stopped", memberId);
-        return input;
-      }
-    });
+    return transportStoppedFuture;
   }
 
 }

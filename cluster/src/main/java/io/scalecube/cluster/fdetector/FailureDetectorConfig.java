@@ -1,17 +1,19 @@
 package io.scalecube.cluster.fdetector;
 
+import com.google.common.base.Preconditions;
+
 public final class FailureDetectorConfig {
 
-  public static final int DEFAULT_PING_TIME = 2000;
+  public static final int DEFAULT_PING_INTERVAL = 2000;
   public static final int DEFAULT_PING_TIMEOUT = 1000;
   public static final int DEFAULT_PING_REQ_MEMBERS = 3;
 
-  private final int pingTime;
+  private final int pingInterval;
   private final int pingTimeout;
   private final int pingReqMembers;
 
   private FailureDetectorConfig(Builder builder) {
-    this.pingTime = builder.pingTime;
+    this.pingInterval = builder.pingInterval;
     this.pingTimeout = builder.pingTimeout;
     this.pingReqMembers = builder.pingReqMembers;
   }
@@ -24,8 +26,8 @@ public final class FailureDetectorConfig {
     return new Builder();
   }
 
-  public int getPingTime() {
-    return pingTime;
+  public int getPingInterval() {
+    return pingInterval;
   }
 
   public int getPingTimeout() {
@@ -38,7 +40,7 @@ public final class FailureDetectorConfig {
 
   @Override
   public String toString() {
-    return "FailureDetectorConfig{pingTime=" + pingTime
+    return "FailureDetectorConfig{pingInterval=" + pingInterval
         + ", pingTimeout=" + pingTimeout
         + ", pingReqMembers=" + pingReqMembers
         + '}';
@@ -46,14 +48,14 @@ public final class FailureDetectorConfig {
 
   public static final class Builder {
 
-    private int pingTime = DEFAULT_PING_TIME;
+    private int pingInterval = DEFAULT_PING_INTERVAL;
     private int pingTimeout = DEFAULT_PING_TIMEOUT;
     private int pingReqMembers = DEFAULT_PING_REQ_MEMBERS;
 
     private Builder() {}
 
-    public Builder pingTime(int pingTime) {
-      this.pingTime = pingTime;
+    public Builder pingInterval(int pingInterval) {
+      this.pingInterval = pingInterval;
       return this;
     }
 
@@ -68,6 +70,7 @@ public final class FailureDetectorConfig {
     }
 
     public FailureDetectorConfig build() {
+      Preconditions.checkState(pingTimeout > pingInterval, "Ping timeout can't be bigger than ping interval");
       return new FailureDetectorConfig(this);
     }
   }

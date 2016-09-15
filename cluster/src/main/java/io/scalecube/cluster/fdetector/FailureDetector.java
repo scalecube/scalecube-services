@@ -139,8 +139,8 @@ public final class FailureDetector implements IFailureDetector {
         .filter(ORIGINAL_ISSUER_FILTER)
         .subscribe(onTransitAckRequestSubscriber);
 
-    int pingTime = config.getPingTime();
-    pingTask = executor.scheduleWithFixedDelay(this::doPing, pingTime, pingTime, TimeUnit.MILLISECONDS);
+    pingTask = executor.scheduleWithFixedDelay(
+        this::doPing, config.getPingInterval(), config.getPingInterval(), TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -169,7 +169,7 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   @Override
-  public Observable<FailureDetectorEvent> listenStatus() {
+  public Observable<FailureDetectorEvent> listen() {
     return subject.toSerialized();
   }
 
@@ -221,10 +221,10 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private void doPingReq(final Address pingMember, String cid) {
-    final int timeout = config.getPingTime() - config.getPingTimeout();
+    final int timeout = config.getPingInterval() - config.getPingTimeout();
     if (timeout <= 0) {
       LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})",
-          config.getPingTime(), config.getPingTimeout());
+          config.getPingInterval(), config.getPingTimeout());
       declareSuspected(pingMember);
       return;
     }
@@ -261,12 +261,12 @@ public final class FailureDetector implements IFailureDetector {
 
   private void declareSuspected(Address member) {
     LOGGER.debug("Member {} detected as SUSPECTED by {}", member, transport.address());
-    subject.onNext(new FailureDetectorEvent(member, MemberStatus.SUSPECTED));
+    subject.onNext(new FailureDetectorEvent(member, MemberStatus.SUSPECT));
   }
 
   private void declareTrusted(Address member) {
     LOGGER.debug("Member {} detected as TRUSTED by {}", member, transport.address());
-    subject.onNext(new FailureDetectorEvent(member, MemberStatus.TRUSTED));
+    subject.onNext(new FailureDetectorEvent(member, MemberStatus.ALIVE));
   }
 
   private List<Address> selectPingReqMembers(Address pingMember, List<Address> members) {

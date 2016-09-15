@@ -5,7 +5,8 @@ import io.scalecube.transport.Address;
 
 import javax.annotation.concurrent.Immutable;
 
-/** Tuple class. Contains member address and its status. */
+/**
+ * CLass contains result of ping check. */
 @Immutable
 public final class FailureDetectorEvent {
 

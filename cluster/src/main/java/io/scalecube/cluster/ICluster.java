@@ -68,6 +68,11 @@ public interface ICluster {
   List<Member> otherMembers();
 
   /**
+   * Listen changes in cluster membership.
+   */
+  Observable<MembershipEvent> listenMembership();
+
+  /**
    * Member notifies other members of the cluster about leaving and gracefully shutdown and free occupied resources.
    *
    * @return Listenable future which is completed once graceful shutdown is finished.
