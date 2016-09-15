@@ -19,7 +19,7 @@ public class HeartbeatScheduler {
     public ICluster cluster;
     long heartbeatInterval;
 
-    public HeartbeatScheduler(@NotNull ICluster cluster, @NotNull long heartbeatInterval) {
+    public HeartbeatScheduler(ICluster cluster, long heartbeatInterval) {
         this.cluster = cluster;
         this.heartbeatInterval = heartbeatInterval;
     }

@@ -17,7 +17,7 @@ public abstract class MessageListener {
         this.cluster = cluster;
     }
 
-    void qualifierEquals(@NotNull final String qualifier, @NotNull LISTEN_TYPE type) {
+    void qualifierEquals(final String qualifier, LISTEN_TYPE type) {
         if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
             this.cluster.listen().filter(new Func1<Message, Boolean>() {
                 @Override
@@ -51,7 +51,7 @@ public abstract class MessageListener {
         }
     }
 
-    void qualifierStartsWith(@NotNull final String qualifier, @NotNull LISTEN_TYPE type) {
+    void qualifierStartsWith(final String qualifier, LISTEN_TYPE type) {
         if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
             this.cluster.listen().filter(new Func1<Message, Boolean>() {
                 @Override
