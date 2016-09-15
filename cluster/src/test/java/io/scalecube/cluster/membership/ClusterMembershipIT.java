@@ -269,14 +269,14 @@ public class ClusterMembershipIT {
     Transport d = Transport.bindAwait(true);
     Transport e = Transport.bindAwait(true);
 
-    MembershipProtocol cm_a = createMembership(a, Collections.<Address>emptyList());
+    MembershipProtocol cm_a = createMembership(a, Collections.emptyList());
     MembershipProtocol cm_b = createMembership(b, Collections.singletonList(a.address()));
     MembershipProtocol cm_c = createMembership(c, Collections.singletonList(a.address()));
     MembershipProtocol cm_d = createMembership(d, Collections.singletonList(b.address()));
     MembershipProtocol cm_e = createMembership(e, Collections.singletonList(b.address()));
 
     try {
-      awaitSeconds(3);
+      awaitSeconds(10);
 
       assertTrusted(cm_a, a.address(), b.address(), c.address(), d.address(), e.address());
       assertNoSuspected(cm_a);

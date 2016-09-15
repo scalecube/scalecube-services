@@ -38,17 +38,17 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
       start(fdetectors);
 
-      Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-      Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
-      Future<List<FailureDetectorEvent>> list_c = listenEvents(fd_c);
+      Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+      Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
+      Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
 
       assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), c.address());
       assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), c.address());
@@ -67,9 +67,9 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // block all traffic
@@ -80,14 +80,17 @@ public class FailureDetectorIT {
     try {
       start(fdetectors);
 
-      Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-      Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
-      Future<List<FailureDetectorEvent>> list_c = listenEvents(fd_c);
+      Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+      Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
+      Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
 
       assertStatus(a.address(), SUSPECTED, awaitEvents(list_a), b.address(), c.address());
       assertStatus(b.address(), SUSPECTED, awaitEvents(list_b), a.address(), c.address());
       assertStatus(c.address(), SUSPECTED, awaitEvents(list_c), a.address(), b.address());
     } finally {
+      a.unblockAll();
+      b.unblockAll();
+      c.unblockAll();
       stop(fdetectors);
     }
   }
@@ -101,17 +104,17 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // Traffic issue at connection A -> B
     a.block(b.address());
 
-    Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-    Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
-    Future<List<FailureDetectorEvent>> list_c = listenEvents(fd_c);
+    Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+    Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
+    Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
 
     try {
       start(fdetectors);
@@ -133,18 +136,18 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b =
-        createFailureDetector(b, members, FailureDetectorConfig.builder().pingTimeout(500).pingTime(1000).build());
-    FailureDetector fd_c = createFailureDetector(c, members, FailureDetectorConfig.defaultConfig());
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetectorConfig fd_b_config = FailureDetectorConfig.builder().pingTimeout(500).pingTime(1000).build();
+    FailureDetector fd_b = createFD(b, members, fd_b_config);
+    FailureDetector fd_c = createFD(c, members, FailureDetectorConfig.defaultConfig());
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
       start(fdetectors);
 
-      Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-      Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
-      Future<List<FailureDetectorEvent>> list_c = listenEvents(fd_c);
+      Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+      Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
+      Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
 
       assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), c.address());
       assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), c.address());
@@ -164,20 +167,20 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_d = createFailureDetector(d, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
+    FailureDetector fd_d = createFD(d, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic on member A to all cluster members
     a.block(members);
 
     try {
-      Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-      Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
-      Future<List<FailureDetectorEvent>> list_c = listenEvents(fd_c);
-      Future<List<FailureDetectorEvent>> list_d = listenEvents(fd_d);
+      Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+      Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
+      Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
+      Future<List<FailureDetectorEvent>> list_d = listenNextEventFor(fd_d, members);
 
       start(fdetectors);
 
@@ -191,10 +194,10 @@ public class FailureDetectorIT {
       a.unblockAll();
       TimeUnit.SECONDS.sleep(4);
 
-      list_a = listenEvents(fd_a);
-      list_b = listenEvents(fd_b);
-      list_c = listenEvents(fd_c);
-      list_d = listenEvents(fd_d);
+      list_a = listenNextEventFor(fd_a, members);
+      list_b = listenNextEventFor(fd_b, members);
+      list_c = listenNextEventFor(fd_c, members);
+      list_d = listenNextEventFor(fd_d, members);
 
       // Check member A recovers
 
@@ -217,10 +220,10 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_c = createFailureDetector(c, members);
-    FailureDetector fd_d = createFailureDetector(d, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_c = createFD(c, members);
+    FailureDetector fd_d = createFD(d, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic to node D on other members
@@ -229,10 +232,10 @@ public class FailureDetectorIT {
     c.block(d.address());
 
     try {
-      Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-      Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
-      Future<List<FailureDetectorEvent>> list_c = listenEvents(fd_c);
-      Future<List<FailureDetectorEvent>> list_d = listenEvents(fd_d);
+      Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+      Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
+      Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
+      Future<List<FailureDetectorEvent>> list_d = listenNextEventFor(fd_d, members);
 
       start(fdetectors);
 
@@ -248,10 +251,10 @@ public class FailureDetectorIT {
       c.unblockAll();
       TimeUnit.SECONDS.sleep(4);
 
-      list_a = listenEvents(fd_a);
-      list_b = listenEvents(fd_b);
-      list_c = listenEvents(fd_c);
-      list_d = listenEvents(fd_d);
+      list_a = listenNextEventFor(fd_a, members);
+      list_b = listenNextEventFor(fd_b, members);
+      list_c = listenNextEventFor(fd_c, members);
+      list_d = listenNextEventFor(fd_d, members);
 
       // Check member D recovers
 
@@ -272,16 +275,16 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
 
     // Traffic is blocked initially on both sides: A--X-->B, B--X-->A
     a.block(b.address());
     b.block(a.address());
 
-    Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-    Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
+    Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+    Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
 
     try {
       start(fdetectors);
@@ -296,8 +299,8 @@ public class FailureDetectorIT {
 
       // Check that members recover
 
-      list_a = listenEvents(fd_a);
-      list_b = listenEvents(fd_b);
+      list_a = listenNextEventFor(fd_a, members);
+      list_b = listenNextEventFor(fd_b, members);
 
       assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address());
       assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address());
@@ -315,14 +318,14 @@ public class FailureDetectorIT {
     List<Address> members = Arrays.asList(a.address(), b.address(), x.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFailureDetector(a, members);
-    FailureDetector fd_b = createFailureDetector(b, members);
-    FailureDetector fd_x = createFailureDetector(x, members);
+    FailureDetector fd_a = createFD(a, members);
+    FailureDetector fd_b = createFD(b, members);
+    FailureDetector fd_x = createFD(x, members);
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_x);
 
-    Future<List<FailureDetectorEvent>> list_a = listenEvents(fd_a);
-    Future<List<FailureDetectorEvent>> list_b = listenEvents(fd_b);
-    Future<List<FailureDetectorEvent>> list_x = listenEvents(fd_x);
+    Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
+    Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
+    Future<List<FailureDetectorEvent>> list_x = listenNextEventFor(fd_x, members);
 
     // Restarted member attributes are not initialized
     Transport xx;
@@ -346,15 +349,15 @@ public class FailureDetectorIT {
           .useNetworkEmulator(true)
           .build());
       assertEquals(x.address(), xx.address());
-      fdetectors = Arrays.asList(fd_a, fd_b, fd_xx = createFailureDetector(xx, members));
+      fdetectors = Arrays.asList(fd_a, fd_b, fd_xx = createFD(xx, members));
 
       // actual restart here
       fd_xx.start();
       TimeUnit.SECONDS.sleep(2);
 
-      list_a = listenEvents(fd_a);
-      list_b = listenEvents(fd_b);
-      Future<List<FailureDetectorEvent>> list_xx = listenEvents(fd_xx);
+      list_a = listenNextEventFor(fd_a, members);
+      list_b = listenNextEventFor(fd_b, members);
+      Future<List<FailureDetectorEvent>> list_xx = listenNextEventFor(fd_xx, members);
 
       // TODO [AK]: It would be more correct to consider restarted member as a new member, so x is still suspected!
 
@@ -366,18 +369,16 @@ public class FailureDetectorIT {
     }
   }
 
-  private FailureDetector createFailureDetector(Transport transport, List<Address> members) {
+  private FailureDetector createFD(Transport transport, List<Address> members) {
     FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder() // faster config for local testing
         .pingTimeout(100)
         .pingTime(200)
         .pingReqMembers(2)
         .build();
-    FailureDetector failureDetector = new FailureDetector(transport, failureDetectorConfig);
-    failureDetector.setMembers(members);
-    return createFailureDetector(transport, members, failureDetectorConfig);
+    return createFD(transport, members, failureDetectorConfig);
   }
 
-  private FailureDetector createFailureDetector(Transport transport, List<Address> members, FailureDetectorConfig config) {
+  private FailureDetector createFD(Transport transport, List<Address> members, FailureDetectorConfig config) {
     FailureDetector failureDetector = new FailureDetector(transport, config);
     failureDetector.setMembers(members);
     return failureDetector;
@@ -403,8 +404,10 @@ public class FailureDetectorIT {
 
   private void stop(List<FailureDetector> fdetectors) {
     for (FailureDetector fd : fdetectors) {
-      destroyTransport(fd.getTransport());
       fd.stop();
+    }
+    for (FailureDetector fd : fdetectors) {
+      destroyTransport(fd.getTransport());
     }
   }
 
@@ -431,8 +434,9 @@ public class FailureDetectorIT {
     }
   }
 
-  private Future<List<FailureDetectorEvent>> listenEvents(FailureDetector fd) {
-    List<Address> members = fd.getMembers();
+  private Future<List<FailureDetectorEvent>> listenNextEventFor(FailureDetector fd, List<Address> members) {
+    members = new ArrayList<>(members);
+    members.remove(fd.getTransport().address()); // exclude self
     checkArgument(!members.isEmpty());
 
     List<ListenableFuture<FailureDetectorEvent>> resultFuture = new ArrayList<>();
