@@ -16,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 /**
  * Created by ronenn on 9/11/2016.
  * <p>
@@ -43,185 +45,185 @@ import java.util.concurrent.TimeUnit;
  */
 public class RaftLeaderElection extends RaftStateMachine implements LeaderElection {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RaftLeaderElection.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RaftLeaderElection.class);
 
-  /**
-   *
-   */
-  private final ICluster cluster;
-  private final SimpleTimeLimiter timer = new SimpleTimeLimiter();
-  private HeartbeatScheduler heartbeatScheduler;
-  private Address selectedLeader;
-  private ConcurrentMap<Address, Address> votes = new ConcurrentHashMap();
-  private StopWatch leaderHeartbeatTimer;
-  private int heartbeatInterval;
-  private int leadershipTimeout;
-  private List<IStateListener> handlers = new ArrayList();
+    /**
+     *
+     */
+    private final ICluster cluster;
+    private final SimpleTimeLimiter timer = new SimpleTimeLimiter();
+    private HeartbeatScheduler heartbeatScheduler;
+    private Address selectedLeader;
+    private ConcurrentMap<Address, Address> votes = new ConcurrentHashMap();
+    private StopWatch leaderHeartbeatTimer;
+    private int heartbeatInterval;
+    private int leadershipTimeout;
+    private List<IStateListener> handlers = new ArrayList();
 
-  public RaftLeaderElection(Builder builder) {
+    public RaftLeaderElection(Builder builder) {
+        checkNotNull(builder.cluster);
 
-    this.cluster = builder.cluster;
-    this.heartbeatInterval = builder.heartbeatInterval;
-    this.leadershipTimeout = builder.leadershipTimeout;
+        this.cluster = builder.cluster;
+        this.heartbeatInterval = builder.heartbeatInterval;
+        this.leadershipTimeout = builder.leadershipTimeout;
+    }
 
-  }
+    public static RaftLeaderElection.Builder builder(ICluster cluster) {
+        return new RaftLeaderElection.Builder(cluster);
+    }
 
-  public static RaftLeaderElection.Builder builder(ICluster cluster) {
-    return new RaftLeaderElection.Builder(cluster);
-  }
+    public void start() {
+        selectedLeader = cluster.address();
 
-  public void start() {
-    selectedLeader = cluster.address();
+        // RAFT_PROTOCOL_VOTE
+        new MessageListener(cluster) {
+            @Override
+            protected void onMessage(Message message) {
+                if (currentState().equals(StateType.CANDIDATE)) {
+                    votes.putIfAbsent(message.sender(), message.data());
+                    Address candidate = message.data();
+                    if (hasConsensus(candidate)) {
+                        LOGGER.debug(
+                            "CANDIDATE Node: {} gained Consensus and transition to become leader prev leader was {}",
+                            cluster.address(), selectedLeader);
+                        transition(StateType.LEADER);
+                    }
+                }
+            }
+        }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
+        this.heartbeatScheduler = new HeartbeatScheduler(cluster, this.heartbeatInterval);
 
-    // RAFT_PROTOCOL_VOTE
-    new MessageListener(cluster) {
-      @Override
-      protected void onMessage(Message message) {
-        if (currentState().equals(StateType.CANDIDATE)) {
-          votes.putIfAbsent(message.sender(), message.data());
-          Address candidate = message.data();
-          if (hasConsensus(candidate)) {
-            LOGGER.debug(
-                "CANDIDATE Node: {} gained Consensus and transition to become leader prev leader was {}",
-                cluster.address(), selectedLeader);
-            transition(StateType.LEADER);
-          }
-        }
-      }
-    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
-    this.heartbeatScheduler = new HeartbeatScheduler(cluster, this.heartbeatInterval);
+        // RAFT_PROTOCOL_HEARTBEAT
+        new MessageListener(cluster) {
+            @Override
+            protected void onMessage(Message message) {
 
-    // RAFT_PROTOCOL_HEARTBEAT
-    new MessageListener(cluster) {
-      @Override
-      protected void onMessage(Message message) {
+                votes.clear();
+                leaderHeartbeatTimer.reset();
+                selectedLeader = message.data();
+                LOGGER.debug("{} Node: {} received heartbeat request from  {}", currentState(), cluster.address(),
+                    selectedLeader);
+                if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address())))
+                    transition(StateType.FOLLOWER);
+            }
+        }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
 
-        votes.clear();
+        // RAFT_PROTOCOL_REQUEST_VOTE
+        new MessageListener(cluster) {
+            @Override
+            protected void onMessage(Message message) {
+                LOGGER.debug("{} Node: {} received vote request from  {}", currentState(), cluster.address(),
+                    message.data());
+                vote(message.data());
+            }
+        }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
+
+        this.leaderHeartbeatTimer = new StopWatch(leadershipTimeout, TimeUnit.SECONDS) {
+            @Override
+            public void onTimeout() {
+                transition(StateType.CANDIDATE);
+            }
+        };
+
+        this.leaderHeartbeatTimer.reset();
+        transition(StateType.FOLLOWER);
+    }
+
+    @Override
+    public Address leader() {
+        return selectedLeader;
+    }
+
+    public void addStateListener(IStateListener handler) {
+        handlers.add(handler);
+    }
+
+    @Override
+    protected void becomeFollower() {
+        this.heartbeatScheduler.stop();
         leaderHeartbeatTimer.reset();
-        selectedLeader = message.data();
-        LOGGER.debug("{} Node: {} received heartbeat request from  {}", currentState(), cluster.address(),
-            selectedLeader);
-        if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address())))
-          transition(StateType.FOLLOWER);
-      }
-    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
-
-    // RAFT_PROTOCOL_REQUEST_VOTE
-    new MessageListener(cluster) {
-      @Override
-      protected void onMessage(Message message) {
-        LOGGER.debug("{} Node: {} received vote request from  {}", currentState(), cluster.address(),
-            message.data());
-        vote(message.data());
-      }
-    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
-
-    this.leaderHeartbeatTimer = new StopWatch(leadershipTimeout, TimeUnit.SECONDS) {
-      @Override
-      public void onTimeout() {
-        transition(StateType.CANDIDATE);
-      }
-    };
-
-    this.leaderHeartbeatTimer.reset();
-    transition(StateType.FOLLOWER);
-  }
-
-  @Override
-  public Address leader() {
-    return selectedLeader;
-  }
-
-  public void addStateListener(IStateListener handler) {
-    handlers.add(handler);
-  }
-
-  @Override
-  protected void becomeFollower() {
-    this.heartbeatScheduler.stop();
-    leaderHeartbeatTimer.reset();
-    votes.clear();
-    onStateChanged(StateType.FOLLOWER);
-  }
-
-  @Override
-  protected void becomeCanidate() {
-    selectedLeader = cluster.address();
-    requestVote();
-    onStateChanged(StateType.CANDIDATE);
-  }
-
-  protected void becomeLeader() {
-    votes.clear();
-    selectedLeader = cluster.address();
-    for (Member member : cluster.members()) {
-      cluster.send(member.address(),
-          Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(selectedLeader).build());
-    }
-    this.heartbeatScheduler.schedule();
-    onStateChanged(StateType.LEADER);
-  }
-
-  private void onStateChanged(StateType state) {
-    LOGGER.debug("Node: {} state changed current state {}", cluster.address(), currentState());
-    for (IStateListener handler : handlers) {
-      handler.onState(state);
-    }
-  }
-
-  private void requestVote() {
-    for (Member member : cluster.otherMembers()) {
-      cluster.send(member.address(), Message.builder()
-          .qualifier(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE)
-          .data(cluster.address()).build());
-    }
-    votes.putIfAbsent(cluster.address(), cluster.address());
-  }
-
-  private void vote(Address candidate) {
-    // another leader requesting a vote while current node is a leader
-    if (currentState().equals(StateType.LEADER)) {
-      transition(StateType.FOLLOWER);
-      return;
-    }
-    cluster.send(candidate, Message.builder()
-        .qualifier(RaftProtocol.RAFT_PROTOCOL_VOTE)
-        .data(candidate)
-        .build());
-  }
-
-  private boolean hasConsensus(Address candidate) {
-    if (candidate.equals(cluster.address())) {
-      int consensus = ((cluster.members().size() / 2) + 1);
-      return consensus <= votes.size();
-    } else
-      return false;
-  }
-
-  public static class Builder {
-    public ICluster cluster;
-    private int heartbeatInterval = 5;
-    private int leadershipTimeout = 30;
-
-    public Builder(ICluster cluster) {
-      this.cluster = cluster;
+        votes.clear();
+        onStateChanged(StateType.FOLLOWER);
     }
 
-    public Builder heartbeatInterval(int heartbeatInterval) {
-      this.heartbeatInterval = heartbeatInterval;
-      return this;
+    @Override
+    protected void becomeCanidate() {
+        selectedLeader = cluster.address();
+        requestVote();
+        onStateChanged(StateType.CANDIDATE);
     }
 
-    public Builder leadershipTimeout(int leadershipTimeout) {
-      this.leadershipTimeout = leadershipTimeout;
-      return this;
+    protected void becomeLeader() {
+        votes.clear();
+        selectedLeader = cluster.address();
+        for (Member member : cluster.members()) {
+            cluster.send(member.address(),
+                Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(selectedLeader).build());
+        }
+        this.heartbeatScheduler.schedule();
+        onStateChanged(StateType.LEADER);
     }
 
-    public RaftLeaderElection build() {
-      return new RaftLeaderElection(this);
+    private void onStateChanged(StateType state) {
+        LOGGER.debug("Node: {} state changed current state {}", cluster.address(), currentState());
+        for (IStateListener handler : handlers) {
+            handler.onState(state);
+        }
     }
 
-  }
+    private void requestVote() {
+        for (Member member : cluster.otherMembers()) {
+            cluster.send(member.address(), Message.builder()
+                .qualifier(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE)
+                .data(cluster.address()).build());
+        }
+        votes.putIfAbsent(cluster.address(), cluster.address());
+    }
+
+    private void vote(Address candidate) {
+        // another leader requesting a vote while current node is a leader
+        if (currentState().equals(StateType.LEADER)) {
+            transition(StateType.FOLLOWER);
+            return;
+        }
+        cluster.send(candidate, Message.builder()
+            .qualifier(RaftProtocol.RAFT_PROTOCOL_VOTE)
+            .data(candidate)
+            .build());
+    }
+
+    private boolean hasConsensus(Address candidate) {
+        if (candidate.equals(cluster.address())) {
+            int consensus = ((cluster.members().size() / 2) + 1);
+            return consensus <= votes.size();
+        } else
+            return false;
+    }
+
+    public static class Builder {
+        public ICluster cluster;
+        private int heartbeatInterval = 5;
+        private int leadershipTimeout = 30;
+
+        public Builder(ICluster cluster) {
+            this.cluster = cluster;
+        }
+
+        public Builder heartbeatInterval(int heartbeatInterval) {
+            this.heartbeatInterval = heartbeatInterval;
+            return this;
+        }
+
+        public Builder leadershipTimeout(int leadershipTimeout) {
+            this.leadershipTimeout = leadershipTimeout;
+            return this;
+        }
+
+        public RaftLeaderElection build() {
+            return new RaftLeaderElection(this);
+        }
+
+    }
 
 
 }
