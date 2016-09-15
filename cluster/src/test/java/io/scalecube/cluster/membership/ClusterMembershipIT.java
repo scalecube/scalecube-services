@@ -306,7 +306,7 @@ public class ClusterMembershipIT {
     String memberId = "TestMember-localhost:" + transport.address().port();
     // Create failure detector
     FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
-        .pingTime(200)
+        .pingInterval(200)
         .pingTimeout(100)
         .build();
     FailureDetector failureDetector = new FailureDetector(transport, fdConfig);
@@ -315,9 +315,9 @@ public class ClusterMembershipIT {
     // Create membership protocol
     MembershipConfig membershipConfig = MembershipConfig.builder()
         .seedMembers(seedMembers)
-        .syncTime(1000)
+        .syncInterval(1000)
         .syncTimeout(200)
-        .maxSuspectTime(5000)
+        .suspectTimeout(5000)
         .build();
     MembershipProtocol membership = new MembershipProtocol(
         memberId, transport, membershipConfig, failureDetector, gossipProtocol);
@@ -357,7 +357,7 @@ public class ClusterMembershipIT {
   }
 
   public void assertTrusted(MembershipProtocol membership, Address... expected) {
-    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.TRUSTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.ALIVE);
     assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
@@ -366,7 +366,7 @@ public class ClusterMembershipIT {
   }
 
   public void assertSuspected(MembershipProtocol membership, Address... expected) {
-    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
@@ -375,7 +375,7 @@ public class ClusterMembershipIT {
   }
 
   public void assertNoSuspected(MembershipProtocol membership) {
-    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
   }
 

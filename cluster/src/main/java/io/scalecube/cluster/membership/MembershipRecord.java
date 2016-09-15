@@ -5,8 +5,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 
-import java.util.Map;
-
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 

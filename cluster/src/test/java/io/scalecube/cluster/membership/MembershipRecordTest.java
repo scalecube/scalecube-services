@@ -16,41 +16,29 @@ public class MembershipRecordTest {
 
   @Test
   public void testCompareSameStatus() {
-    assertEquals(0, r0(MemberStatus.SUSPECTED).compareTo(r1(MemberStatus.SUSPECTED)));
-    assertEquals(0, r0(MemberStatus.TRUSTED).compareTo(r1(MemberStatus.TRUSTED)));
-    assertEquals(0, r0(MemberStatus.REMOVED).compareTo(r1(MemberStatus.REMOVED)));
-    assertEquals(0, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.SHUTDOWN)));
-  }
-
-  @Test
-  public void testCompareShutdown() throws Exception {
-    assertEquals(1, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.TRUSTED)));
-    assertEquals(1, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.SUSPECTED)));
-    assertEquals(1, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.REMOVED)));
-
-    assertEquals(-1, r0(MemberStatus.TRUSTED).compareTo(r1(MemberStatus.SHUTDOWN)));
-    assertEquals(-1, r0(MemberStatus.SUSPECTED).compareTo(r1(MemberStatus.SHUTDOWN)));
-    assertEquals(-1, r0(MemberStatus.REMOVED).compareTo(r1(MemberStatus.SHUTDOWN)));
+    assertEquals(0, r0(MemberStatus.SUSPECT).compareTo(r1(MemberStatus.SUSPECT)));
+    assertEquals(0, r0(MemberStatus.ALIVE).compareTo(r1(MemberStatus.ALIVE)));
+    assertEquals(0, r0(MemberStatus.DEAD).compareTo(r1(MemberStatus.DEAD)));
   }
 
   @Test
   public void testCompareWithTimestamp() {
-    assertEquals(1, r0(MemberStatus.SUSPECTED, 1).compareTo(r1(MemberStatus.TRUSTED, 1)));
-    assertEquals(-1, r0(MemberStatus.TRUSTED, 1).compareTo(r1(MemberStatus.SUSPECTED, 1)));
+    assertEquals(1, r0(MemberStatus.SUSPECT, 1).compareTo(r1(MemberStatus.ALIVE, 1)));
+    assertEquals(-1, r0(MemberStatus.ALIVE, 1).compareTo(r1(MemberStatus.SUSPECT, 1)));
 
-    assertEquals(-1, r0(MemberStatus.SUSPECTED, 1).compareTo(r1(MemberStatus.TRUSTED, 2)));
-    assertEquals(1, r0(MemberStatus.SUSPECTED, 2).compareTo(r1(MemberStatus.TRUSTED, 1)));
+    assertEquals(-1, r0(MemberStatus.SUSPECT, 1).compareTo(r1(MemberStatus.ALIVE, 2)));
+    assertEquals(1, r0(MemberStatus.SUSPECT, 2).compareTo(r1(MemberStatus.ALIVE, 1)));
 
-    assertEquals(-1, r0(MemberStatus.TRUSTED, 1).compareTo(r1(MemberStatus.SUSPECTED, 2)));
-    assertEquals(1, r0(MemberStatus.TRUSTED, 2).compareTo(r1(MemberStatus.SUSPECTED, 1)));
+    assertEquals(-1, r0(MemberStatus.ALIVE, 1).compareTo(r1(MemberStatus.SUSPECT, 2)));
+    assertEquals(1, r0(MemberStatus.ALIVE, 2).compareTo(r1(MemberStatus.SUSPECT, 1)));
   }
 
   private MembershipRecord r0(MemberStatus status) {
-    return new MembershipRecord(member0, status);
+    return new MembershipRecord(member0, status, 0);
   }
 
   private MembershipRecord r1(MemberStatus status) {
-    return new MembershipRecord(member1, status);
+    return new MembershipRecord(member1, status, 0);
   }
 
   private MembershipRecord r0(MemberStatus status, long timestamp) {
