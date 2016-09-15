@@ -1,4 +1,4 @@
-package io.scalecube.services.leaderelection;
+package io.scalecube.cluster.leaderelection;
 
 import com.sun.istack.internal.NotNull;
 import io.scalecube.cluster.ICluster;
@@ -13,15 +13,15 @@ public abstract class GossipMessageListener {
 
     public final ICluster cluster;
 
-    public GossipMessageListener(ICluster cluster){
+    public GossipMessageListener(ICluster cluster) {
         this.cluster = cluster;
     }
 
-    void qualifierEquals(@NotNull final String qualifier){
+    void qualifierEquals(@NotNull final String qualifier) {
         this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
             @Override
             public Boolean call(Message message) {
-                if(message !=null && message.qualifier()!=null)
+                if (message != null && message.qualifier() != null)
                     return message.qualifier().equals(qualifier);
                 else return false;
             }
@@ -33,11 +33,11 @@ public abstract class GossipMessageListener {
         });
     }
 
-    void qualifierStartsWith(@NotNull final String qualifier){
+    void qualifierStartsWith(@NotNull final String qualifier) {
         this.cluster.listen().filter(new Func1<Message, Boolean>() {
             @Override
             public Boolean call(Message message) {
-                if(message !=null && message.qualifier()!=null)
+                if (message != null && message.qualifier() != null)
                     return message.qualifier().startsWith(qualifier);
                 else return false;
             }

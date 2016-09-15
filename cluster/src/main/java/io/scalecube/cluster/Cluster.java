@@ -13,6 +13,8 @@ import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
+import io.scalecube.cluster.leaderelection.LeaderElection;
+import io.scalecube.cluster.leaderelection.RaftLeaderElection;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipProtocol;
 import io.scalecube.cluster.membership.MembershipRecord;
@@ -63,11 +65,18 @@ public final class Cluster implements ICluster {
   private FailureDetector failureDetector;
   private GossipProtocol gossip;
   private MembershipProtocol membership;
+  private LeaderElection leaderElection;
+  private Address leader;
 
   private Cluster(ClusterConfig config) {
     checkNotNull(config);
     this.config = config;
     this.memberId = UUID.randomUUID().toString();
+    leaderElection = RaftLeaderElection.builder(this).build();
+    leaderElection.addStateListener(state -> {
+      this.leader = leaderElection.leader();
+      LOGGER.info("Cluster member {} at state {} see leader '{}'",memberId ,state, leaderElection.leader());
+    });
     LOGGER.info("Cluster instance '{}' created with configuration: {}", memberId, config);
   }
 
@@ -176,6 +185,7 @@ public final class Cluster implements ICluster {
         // Start components
         failureDetector.start();
         gossip.start();
+        leaderElection.start();
         return membership.start();
       }
     });
@@ -191,6 +201,11 @@ public final class Cluster implements ICluster {
   @Override
   public Address address() {
     return transport.address();
+  }
+
+  @Override
+  public Address leader() {
+    return leaderElection.leader();
   }
 
   @Override

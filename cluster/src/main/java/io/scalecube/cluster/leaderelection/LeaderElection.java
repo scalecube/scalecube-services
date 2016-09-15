@@ -1,4 +1,4 @@
-package io.scalecube.services.leaderelection;
+package io.scalecube.cluster.leaderelection;
 
 import io.scalecube.transport.Address;
 
@@ -11,4 +11,5 @@ public interface LeaderElection {
 
     void addStateListener(IStateListener handler);
 
+    void start();
 }
