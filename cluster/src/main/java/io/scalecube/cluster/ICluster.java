@@ -22,6 +22,8 @@ public interface ICluster {
    */
   Address address();
 
+  Address leader();
+
   void send(Member member, Message message);
 
   void send(Member member, Message message, SettableFuture<Void> promise);
