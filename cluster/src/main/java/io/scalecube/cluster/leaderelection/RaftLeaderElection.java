@@ -62,7 +62,8 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         this.leadershipTimeout = builder.leadershipTimeout;
 
     }
-    public void start(){
+
+    public void start() {
         selectedLeader = cluster.address();
 
         //      RAFT_PROTOCOL_VOTE
@@ -73,7 +74,9 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
                     votes.putIfAbsent(message.sender(), message.data());
                     Address candidate = message.data();
                     if (hasConsensus(candidate)) {
-                        LOGGER.debug("CANDIDATE Node: {} gained Consensus and transition to become leader prev leader was {}", cluster.address(), selectedLeader);
+                        LOGGER.debug(
+                            "CANDIDATE Node: {} gained Consensus and transition to become leader prev leader was {}",
+                            cluster.address(), selectedLeader);
                         transition(StateType.LEADER);
                     }
                 }
@@ -89,7 +92,8 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
                 votes.clear();
                 leaderHeartbeatTimer.reset();
                 selectedLeader = message.data();
-                LOGGER.debug("{} Node: {} received heartbeat request from  {}", currentState(), cluster.address(), selectedLeader);
+                LOGGER.debug("{} Node: {} received heartbeat request from  {}", currentState(), cluster.address(),
+                    selectedLeader);
                 if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address())))
                     transition(StateType.FOLLOWER);
             }
@@ -99,7 +103,8 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         new MessageListener(cluster) {
             @Override
             protected void onMessage(Message message) {
-                LOGGER.debug("{} Node: {} received vote request from  {}", currentState(), cluster.address(), message.data());
+                LOGGER.debug("{} Node: {} received vote request from  {}", currentState(), cluster.address(),
+                    message.data());
                 vote(message.data());
             }
         }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
@@ -114,6 +119,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         this.leaderHeartbeatTimer.reset();
         transition(StateType.FOLLOWER);
     }
+
     public static RaftLeaderElection.Builder builder(ICluster cluster) {
         return new RaftLeaderElection.Builder(cluster);
     }
@@ -146,7 +152,8 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         votes.clear();
         selectedLeader = cluster.address();
         for (Member member : cluster.members()) {
-            cluster.send(member.address(), Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(selectedLeader).build());
+            cluster.send(member.address(),
+                Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(selectedLeader).build());
         }
         this.heartbeatScheduler.schedule();
         onStateChanged(StateType.LEADER);
@@ -160,26 +167,24 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
     }
 
     private void requestVote() {
-
         for (Member member : cluster.otherMembers()) {
             cluster.send(member.address(), Message.builder()
-                    .qualifier(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE)
-                    .data(cluster.address()).build());
+                .qualifier(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE)
+                .data(cluster.address()).build());
         }
         votes.putIfAbsent(cluster.address(), cluster.address());
     }
 
     private void vote(Address candidate) {
         // another leader requesting a vote while current node is a leader
-        // if cannidate id is bigger become follower
-        if(currentState().equals(StateType.LEADER)){
+        if (currentState().equals(StateType.LEADER)) {
             transition(StateType.FOLLOWER);
             return;
         }
         cluster.send(candidate, Message.builder()
-                .qualifier(RaftProtocol.RAFT_PROTOCOL_VOTE)
-                .data(candidate)
-                .build());
+            .qualifier(RaftProtocol.RAFT_PROTOCOL_VOTE)
+            .data(candidate)
+            .build());
     }
 
     private boolean hasConsensus(Address candidate) {

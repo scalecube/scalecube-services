@@ -23,7 +23,8 @@ public abstract class MessageListener {
                 public Boolean call(Message message) {
                     if (message != null && message.qualifier() != null)
                         return message.qualifier().equals(qualifier);
-                    else return false;
+                    else
+                        return false;
                 }
             }).subscribe(new Action1<Message>() {
                 @Override
@@ -39,7 +40,8 @@ public abstract class MessageListener {
                 public Boolean call(Message message) {
                     if (message != null && message.qualifier() != null)
                         return message.qualifier().equals(qualifier);
-                    else return false;
+                    else
+                        return false;
                 }
             }).subscribe(new Action1<Message>() {
                 @Override
@@ -57,7 +59,8 @@ public abstract class MessageListener {
                 public Boolean call(Message message) {
                     if (message != null && message.qualifier() != null)
                         return message.qualifier().startsWith(qualifier);
-                    else return false;
+                    else
+                        return false;
                 }
             }).subscribe(new Action1<Message>() {
                 @Override
@@ -72,7 +75,8 @@ public abstract class MessageListener {
                 public Boolean call(Message message) {
                     if (message != null && message.qualifier() != null)
                         return message.qualifier().startsWith(qualifier);
-                    else return false;
+                    else
+                        return false;
                 }
             }).subscribe(new Action1<Message>() {
                 @Override

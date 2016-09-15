@@ -27,8 +27,10 @@ public class HeartbeatScheduler {
         scheduler.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                LOGGER.debug("Leader Node: {} maintain leadership spread {} gossip regards selected leader {}", cluster.address(), RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, cluster.address());
-                cluster.spreadGossip(Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(cluster.address()).build());
+                LOGGER.debug("Leader Node: {} maintain leadership spread {} gossip regards selected leader {}",
+                    cluster.address(), RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, cluster.address());
+                cluster.spreadGossip(
+                    Message.builder().qualifier(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT).data(cluster.address()).build());
             }
         }, heartbeatInterval, heartbeatInterval, TimeUnit.SECONDS);
     }
