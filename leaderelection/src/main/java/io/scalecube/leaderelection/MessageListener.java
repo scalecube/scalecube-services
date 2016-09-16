@@ -10,89 +10,89 @@ import rx.functions.Func1;
  */
 public abstract class MessageListener {
 
-    public final ICluster cluster;
+	public final ICluster cluster;
 
-    public MessageListener(ICluster cluster) {
-        this.cluster = cluster;
-    }
+	public MessageListener(ICluster cluster) {
+		this.cluster = cluster;
+	}
 
-    void qualifierEquals(final String qualifier, LISTEN_TYPE type) {
-        if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
-            this.cluster.listen().filter(new Func1<Message, Boolean>() {
-                @Override
-                public Boolean call(Message message) {
-                    if (message != null && message.qualifier() != null)
-                        return message.qualifier().equals(qualifier);
-                    else
-                        return false;
-                }
-            }).subscribe(new Action1<Message>() {
-                @Override
-                public void call(Message message) {
+	void qualifierEquals(final String qualifier, LISTEN_TYPE type) {
+		if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+			this.cluster.listen().filter(new Func1<Message, Boolean>() {
+				@Override
+				public Boolean call(Message message) {
+					if (message != null && message.qualifier() != null)
+						return message.qualifier().equals(qualifier);
+					else
+						return false;
+				}
+			}).subscribe(new Action1<Message>() {
+				@Override
+				public void call(Message message) {
 
-                    onMessage(message);
-                }
-            });
-        }
-        if (type.equals(LISTEN_TYPE.GOSSIP) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
-            this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
-                @Override
-                public Boolean call(Message message) {
-                    if (message != null && message.qualifier() != null)
-                        return message.qualifier().equals(qualifier);
-                    else
-                        return false;
-                }
-            }).subscribe(new Action1<Message>() {
-                @Override
-                public void call(Message message) {
-                    onMessage(message);
-                }
-            });
-        }
-    }
+					onMessage(message);
+				}
+			});
+		}
+		if (type.equals(LISTEN_TYPE.GOSSIP) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+			this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
+				@Override
+				public Boolean call(Message message) {
+					if (message != null && message.qualifier() != null)
+						return message.qualifier().equals(qualifier);
+					else
+						return false;
+				}
+			}).subscribe(new Action1<Message>() {
+				@Override
+				public void call(Message message) {
+					onMessage(message);
+				}
+			});
+		}
+	}
 
-    void qualifierStartsWith(final String qualifier, LISTEN_TYPE type) {
-        if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
-            this.cluster.listen().filter(new Func1<Message, Boolean>() {
-                @Override
-                public Boolean call(Message message) {
-                    if (message != null && message.qualifier() != null)
-                        return message.qualifier().startsWith(qualifier);
-                    else
-                        return false;
-                }
-            }).subscribe(new Action1<Message>() {
-                @Override
-                public void call(Message message) {
-                    onMessage(message);
-                }
-            });
-        }
-        if (type.equals(LISTEN_TYPE.GOSSIP) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
-            this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
-                @Override
-                public Boolean call(Message message) {
-                    if (message != null && message.qualifier() != null)
-                        return message.qualifier().startsWith(qualifier);
-                    else
-                        return false;
-                }
-            }).subscribe(new Action1<Message>() {
-                @Override
-                public void call(Message message) {
-                    onMessage(message);
-                }
-            });
-        }
-    }
+	void qualifierStartsWith(final String qualifier, LISTEN_TYPE type) {
+		if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+			this.cluster.listen().filter(new Func1<Message, Boolean>() {
+				@Override
+				public Boolean call(Message message) {
+					if (message != null && message.qualifier() != null)
+						return message.qualifier().startsWith(qualifier);
+					else
+						return false;
+				}
+			}).subscribe(new Action1<Message>() {
+				@Override
+				public void call(Message message) {
+					onMessage(message);
+				}
+			});
+		}
+		if (type.equals(LISTEN_TYPE.GOSSIP) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+			this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
+				@Override
+				public Boolean call(Message message) {
+					if (message != null && message.qualifier() != null)
+						return message.qualifier().startsWith(qualifier);
+					else
+						return false;
+				}
+			}).subscribe(new Action1<Message>() {
+				@Override
+				public void call(Message message) {
+					onMessage(message);
+				}
+			});
+		}
+	}
 
-    protected abstract void onMessage(Message message);
+	protected abstract void onMessage(Message message);
 
 
-    enum LISTEN_TYPE {
-        GOSSIP, TRANSPORT, GOSSIP_OR_TRANSPORT
+	enum LISTEN_TYPE {
+		GOSSIP, TRANSPORT, GOSSIP_OR_TRANSPORT
 
-    }
+	}
 
 }
