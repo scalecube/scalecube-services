@@ -8,11 +8,11 @@ import io.scalecube.transport.Address;
  */
 public interface LeaderElection {
 
-	Address leader();
+  Address leader();
 
-	void addStateListener(IStateListener handler);
+  void addStateListener(IStateListener handler);
 
-	RaftLeaderElection start();
+  RaftLeaderElection start();
 
-	ICluster cluster();
+  ICluster cluster();
 }

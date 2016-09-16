@@ -9,10 +9,10 @@ import java.util.concurrent.TimeUnit;
  */
 public abstract class StopWatch {
 
-	private final ScheduledThreadPoolExecutor executor;
-	private final int timeout;
-	private final TimeUnit timeUnit;
-	private final Random rnd;
+  private final ScheduledThreadPoolExecutor executor;
+  private final int timeout;
+  private final TimeUnit timeUnit;
+  private final Random rnd;
 
   public StopWatch(int timeout, TimeUnit timeUnit) {
     executor = new ScheduledThreadPoolExecutor(1);
