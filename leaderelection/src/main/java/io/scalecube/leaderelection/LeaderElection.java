@@ -1,6 +1,5 @@
 package io.scalecube.leaderelection;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 

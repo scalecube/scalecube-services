@@ -2,7 +2,6 @@ package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ICluster;
-import io.scalecube.cluster.Member;
 import io.scalecube.leaderelection.IStateListener;
 import io.scalecube.leaderelection.LeaderElection;
 import io.scalecube.leaderelection.RaftLeaderElection;
@@ -12,7 +11,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import unquietcode.tools.esm.StateHandler;
 
 /**
  * Created by ronenn on 9/12/2016.

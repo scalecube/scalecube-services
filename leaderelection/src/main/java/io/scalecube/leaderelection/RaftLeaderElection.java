@@ -2,22 +2,18 @@ package io.scalecube.leaderelection;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.scalecube.cluster.Cluster;
+import com.google.common.util.concurrent.SimpleTimeLimiter;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
-
-import com.google.common.util.concurrent.SimpleTimeLimiter;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Created by ronenn on 9/11/2016.

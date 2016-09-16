@@ -2,7 +2,6 @@ package io.scalecube.leaderelection;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
-
 import rx.functions.Action1;
 import rx.functions.Func1;
 
