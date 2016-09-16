@@ -2,6 +2,7 @@ package io.scalecube.leaderelection;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
+
 import rx.functions.Action1;
 import rx.functions.Func1;
 
@@ -10,14 +11,18 @@ import rx.functions.Func1;
  */
 public abstract class MessageListener {
 
+  enum ListenType {
+    GOSSIP, TRANSPORT, GOSSIP_OR_TRANSPORT
+  }
+  
   public final ICluster cluster;
 
   public MessageListener(ICluster cluster) {
     this.cluster = cluster;
   }
 
-  void qualifierEquals(final String qualifier, LISTEN_TYPE type) {
-    if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+  void qualifierEquals(final String qualifier, ListenType type) {
+    if (type.equals(ListenType.TRANSPORT) || type.equals(ListenType.GOSSIP_OR_TRANSPORT)) {
       this.cluster.listen().filter(new Func1<Message, Boolean>() {
         @Override
         public Boolean call(Message message) {
@@ -29,12 +34,12 @@ public abstract class MessageListener {
       }).subscribe(new Action1<Message>() {
         @Override
         public void call(Message message) {
-
           onMessage(message);
         }
       });
     }
-    if (type.equals(LISTEN_TYPE.GOSSIP) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+    
+    if (type.equals(ListenType.GOSSIP) || type.equals(ListenType.GOSSIP_OR_TRANSPORT)) {
       this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
         @Override
         public Boolean call(Message message) {
@@ -52,8 +57,8 @@ public abstract class MessageListener {
     }
   }
 
-  void qualifierStartsWith(final String qualifier, LISTEN_TYPE type) {
-    if (type.equals(LISTEN_TYPE.TRANSPORT) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+  void qualifierStartsWith(final String qualifier, ListenType type) {
+    if (type.equals(ListenType.TRANSPORT) || type.equals(ListenType.GOSSIP_OR_TRANSPORT)) {
       this.cluster.listen().filter(new Func1<Message, Boolean>() {
         @Override
         public Boolean call(Message message) {
@@ -70,7 +75,7 @@ public abstract class MessageListener {
         }
       });
     }
-    if (type.equals(LISTEN_TYPE.GOSSIP) || type.equals(LISTEN_TYPE.GOSSIP_OR_TRANSPORT)) {
+    if (type.equals(ListenType.GOSSIP) || type.equals(ListenType.GOSSIP_OR_TRANSPORT)) {
       this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
         @Override
         public Boolean call(Message message) {
@@ -90,11 +95,4 @@ public abstract class MessageListener {
   }
 
   protected abstract void onMessage(Message message);
-
-
-  enum LISTEN_TYPE {
-    GOSSIP, TRANSPORT, GOSSIP_OR_TRANSPORT
-
-  }
-
 }

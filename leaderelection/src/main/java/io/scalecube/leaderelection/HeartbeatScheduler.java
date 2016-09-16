@@ -2,10 +2,12 @@ package io.scalecube.leaderelection;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by ronenn on 9/13/2016.

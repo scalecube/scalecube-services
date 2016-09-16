@@ -7,15 +7,16 @@ import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
+import com.google.common.util.concurrent.SimpleTimeLimiter;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.google.common.util.concurrent.SimpleTimeLimiter;
 
 /**
  * 
@@ -90,7 +91,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
           }
         }
       }
-    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
+    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_VOTE, MessageListener.ListenType.GOSSIP_OR_TRANSPORT);
 
     this.heartbeatScheduler = new HeartbeatScheduler(cluster, this.heartbeatInterval);
 
@@ -107,7 +108,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address())))
           transition(StateType.FOLLOWER);
       }
-    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
+    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, MessageListener.ListenType.GOSSIP_OR_TRANSPORT);
 
     // RAFT_PROTOCOL_REQUEST_VOTE
     new MessageListener(cluster) {
@@ -117,7 +118,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
             message.data());
         vote(message.data());
       }
-    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE, MessageListener.LISTEN_TYPE.GOSSIP_OR_TRANSPORT);
+    }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_REQUEST_VOTE, MessageListener.ListenType.GOSSIP_OR_TRANSPORT);
 
     this.leaderHeartbeatTimer = new StopWatch(leadershipTimeout, TimeUnit.SECONDS) {
       @Override
