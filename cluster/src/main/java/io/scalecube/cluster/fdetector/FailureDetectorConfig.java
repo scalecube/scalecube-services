@@ -70,7 +70,7 @@ public final class FailureDetectorConfig {
     }
 
     public FailureDetectorConfig build() {
-      Preconditions.checkState(pingTimeout > pingInterval, "Ping timeout can't be bigger than ping interval");
+      Preconditions.checkState(pingTimeout < pingInterval, "Ping timeout can't be bigger than ping interval");
       return new FailureDetectorConfig(this);
     }
   }

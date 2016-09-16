@@ -381,7 +381,7 @@ public class ClusterMembershipIT {
 
   private List<Address> getAddressesWithStatus(MembershipProtocol membership, MemberStatus status) {
     List<Address> addresses = new ArrayList<>();
-    for (MembershipRecord member : membership.members()) {
+    for (MembershipRecord member : membership.getMembershipRecords()) {
       if (member.status() == status) {
         addresses.add(member.address());
       }

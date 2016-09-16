@@ -12,7 +12,7 @@ import javax.annotation.concurrent.Immutable;
  * Cluster membership record which represents member, status, and incarnation.
  */
 @Immutable
-public final class MembershipRecord implements Comparable<MembershipRecord> {
+final class MembershipRecord implements Comparable<MembershipRecord> {
 
   private final Member member;
   private final MemberStatus status;

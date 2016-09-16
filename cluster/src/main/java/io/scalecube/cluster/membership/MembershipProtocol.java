@@ -125,6 +125,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
     return transport;
   }
 
+  List<MembershipRecord> getMembershipRecords() {
+    return new ArrayList<>(membershipTable.values());
+  }
+
   @Override
   public Observable<MembershipEvent> listen() {
     return subject.asObservable();
