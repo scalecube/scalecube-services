@@ -9,9 +9,6 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-/**
- * Created by ronenn on 9/13/2016.
- */
 public class HeartbeatScheduler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HeartbeatScheduler.class);
