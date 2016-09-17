@@ -105,7 +105,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         selectedLeader = message.data();
         LOGGER.debug("{} Node: {} received heartbeat request from  {}", currentState(), cluster.address(),
             selectedLeader);
-        if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address()))){
+        if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address()))) {
           transition(StateType.FOLLOWER);
         }
       }
@@ -232,7 +232,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
       return this;
     }
     /**
-     * builds and starts a new RaftLeaderElection 
+     * builds and starts a new RaftLeaderElection.
      * @return RaftLeaderElection instance
      */
     public RaftLeaderElection build() {

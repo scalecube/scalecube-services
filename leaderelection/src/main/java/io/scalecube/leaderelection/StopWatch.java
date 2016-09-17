@@ -21,6 +21,9 @@ public abstract class StopWatch {
     rnd = new Random();
   }
 
+  /**
+   * reset the scheduled job and schedule random timeout timeout between timeout/2 to  timeout range. 
+   */
   public void reset() {
 
     executor.getQueue().clear();
