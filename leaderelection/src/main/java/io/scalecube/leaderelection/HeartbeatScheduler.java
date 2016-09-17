@@ -9,6 +9,15 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * 
+ * @author Ronen Nachmias
+ * 
+ * heartbeat scheduler broadcast heartbeats on the cluster to maintain leadership members in the cluster 
+ * expects this heartbeat in case heartbeat does not reach members within X time leader election process 
+ * is initiated 
+ * 
+ */
 public class HeartbeatScheduler {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HeartbeatScheduler.class);

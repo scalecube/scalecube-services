@@ -83,7 +83,7 @@ public abstract class MessageListener {
         public Boolean call(Message message) {
           if (message != null && message.qualifier() != null){
             return message.qualifier().startsWith(qualifier);
-          }else{
+          } else {
             return false;
           }
         }

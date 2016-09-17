@@ -20,8 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 
- * Created by ronenn on 9/11/2016.
- * <p>
+ * Created by Ronen Nachmias on 9/11/2016.
  * 
  * Raft nodes are always in one of three states: follower, candidate, or leader. All nodes initially start out as a
  * follower. In this state, nodes can cast votes. If no entries are received for some time, nodes self-promote to the
@@ -32,7 +31,6 @@ import java.util.concurrent.TimeUnit;
  * point, the algorithem uses random timer timeout and will resolve the situation by one of the nodes taking and
  * maintaining leadership using heartbeats so in this specific case leaders will cancel one another until one of the
  * nodes sends the hearbeats first.
- * <p>
  * 
  * raft leader election algorithm: when a node starts it becomes a follower and set a timer that will trigger after x
  * amount of time and waiting during this time for a leader heartbeats if no leader send heartbeats then the timer is
@@ -43,7 +41,6 @@ import java.util.concurrent.TimeUnit;
  * cluster nodes. a leader node that receives an heartbeat from any other member transition to follower state in the
  * case where several candidates are running for leadership they both cancel the candidate state and next timeout node
  * will become a leader and election process is restarted until there is clear consensus among the cluster
- * <p>
  * 
  * https://raft.github.io/
  */
@@ -105,8 +102,9 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
         selectedLeader = message.data();
         LOGGER.debug("{} Node: {} received heartbeat request from  {}", currentState(), cluster.address(),
             selectedLeader);
-        if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address())))
+        if (currentState().equals(StateType.LEADER) && !(message.data().equals(cluster.address()))){
           transition(StateType.FOLLOWER);
+        }
       }
     }.qualifierEquals(RaftProtocol.RAFT_PROTOCOL_HEARTBEAT, MessageListener.ListenType.GOSSIP_OR_TRANSPORT);
 
