@@ -32,7 +32,7 @@ public abstract class MessageListener {
             return false;
           }
         }
-      }).subscribe(new Action1<Message>() {
+      })  .subscribe(new Action1<Message>() {
         @Override
         public void call(Message message) {
           onMessage(message);
@@ -50,7 +50,7 @@ public abstract class MessageListener {
             return false;
           }
         }
-      }).subscribe(new Action1<Message>() {
+      })  .subscribe(new Action1<Message>() {
         @Override
         public void call(Message message) {
           onMessage(message);
@@ -70,7 +70,7 @@ public abstract class MessageListener {
             return false;
           }
         }
-      }).subscribe(new Action1<Message>() {
+      })  .subscribe(new Action1<Message>() {
         @Override
         public void call(Message message) {
           onMessage(message);
@@ -87,7 +87,7 @@ public abstract class MessageListener {
             return false;
           }
         }
-      }).subscribe(new Action1<Message>() {
+      })  .subscribe(new Action1<Message>() {
         @Override
         public void call(Message message) {
           onMessage(message);
