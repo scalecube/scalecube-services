@@ -93,9 +93,6 @@ final class MembershipRecord {
 
   @Override
   public String toString() {
-    return "MembershipRecord{member=" + member
-        + ", status=" + status
-        + ", incarnation=" + incarnation
-        + '}';
+    return "{" + status + ' ' + member + ", inc=" + incarnation + '}';
   }
 }

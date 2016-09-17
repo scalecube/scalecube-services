@@ -283,8 +283,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
       if (syncMember == null) {
         return;
       }
-      LOGGER.debug("Sending Sync to: {}", syncMember);
-      transport.send(syncMember, prepareSyncDataMsg(SYNC, null));
+      Message syncMsg = prepareSyncDataMsg(SYNC, null);
+      transport.send(syncMember, syncMsg);
+      LOGGER.debug("Send Sync to {}: {}", syncMember, syncMsg);
     } catch (Exception cause) {
       LOGGER.error("Unhandled exception: {}", cause, cause);
     }
@@ -328,7 +329,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
     LOGGER.debug("Received status change on failure detector event: {}", fdEvent);
     MembershipRecord r1 = new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation());
-    updateMembership(r1, true /* spread gossip */);
+    updateMembership(r1, true /* spread gossip */, false /* don't check override */);
   }
 
   /**
@@ -337,18 +338,25 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void onMembershipGossip(Message message) {
     MembershipRecord record = message.data();
     LOGGER.debug("Received membership gossip: {}", record);
-    updateMembership(record, false/* don't spread gossip */);
+    updateMembership(record, false /* don't spread gossip */, true /* check override */);
   }
 
   private Message prepareSyncDataMsg(String qualifier, String cid) {
     List<MembershipRecord> membershipRecords = new ArrayList<>(membershipTable.values());
     SyncData syncData = new SyncData(membershipRecords, config.getSyncGroup());
-    return Message.withData(syncData).qualifier(qualifier).correlationId(cid).build();
+    //if (cid != null) {
+      return Message.withData(syncData).qualifier(qualifier).correlationId(cid).build();
+    //} else {
+     // return Message.withData(syncData).qualifier(qualifier).build();
+    //}
   }
 
   private void syncMembership(SyncData syncData) {
     for (MembershipRecord r1 : syncData.getMembership()) {
-      updateMembership(r1, true/* spread gossip */);
+      MembershipRecord r0 = membershipTable.get(r1.id());
+      if (!r1.equals(r0)) {
+        updateMembership(r1, true/* spread gossip */, true /* check override */);
+      }
     }
   }
 
@@ -358,16 +366,18 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * @param r1 new membership record which compares with existing r0 record
    * @param spreadGossip flag indicating should updates be gossiped to cluster
    */
-  private void updateMembership(MembershipRecord r1, boolean spreadGossip) {
+  private void updateMembership(MembershipRecord r1, boolean spreadGossip, boolean checkOverride) {
     Preconditions.checkArgument(r1 != null, "Membership record can't be null");
 
-    // Check if r1 overrides existing membership record r0
+    // Get current record
     MembershipRecord r0 = membershipTable.get(r1.id());
-    if (!r1.isOverrides(r0)) {
+
+    // Check if r1 overrides existing membership record record
+    if (checkOverride && !r1.isOverrides(r0)) {
       return;
     }
 
-    // If trying to override local member increase incarnation number and spread Alive gossip
+    // If received updated for local member then increase incarnation number and spread Alive gossip
     if (r1.member().equals(member)) {
       int currentIncarnation = Math.max(r0.incarnation(), r1.incarnation());
       MembershipRecord r2 = new MembershipRecord(member, ALIVE, currentIncarnation + 1);
@@ -391,21 +401,26 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Emit membership event
+    boolean membershipChanged = false;
     if (r1.isDead() && r0 != null) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.REMOVED, r1.member());
       subject.onNext(membershipEvent);
+      membershipChanged = true;
     } else if (r0 == null && !r1.isDead()) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.ADDED, r1.member());
       subject.onNext(membershipEvent);
+      membershipChanged = true;
     }
 
     // TODO: Move to observables of membership events !!!
     // Update FailureDetector and Gossip members
-    Collection<Address> members = membershipTable.values().stream()
-        .map(MembershipRecord::address)
-        .collect(Collectors.toList());
-    failureDetector.setMembers(members);
-    gossipProtocol.setMembers(members);
+    if (membershipChanged) {
+      Collection<Address> members = membershipTable.values().stream()
+          .map(MembershipRecord::address)
+          .collect(Collectors.toList());
+      failureDetector.setMembers(members);
+      gossipProtocol.setMembers(members);
+    }
 
     // Spread gossip
     if (spreadGossip) {
@@ -424,7 +439,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
     removeMemberTasks.putIfAbsent(record.id(), executor.schedule(() -> {
       LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
       removeMemberTasks.remove(record.id());
-      updateMembership(new MembershipRecord(record.member(), DEAD, record.incarnation()), true /* spread gossip */);
+      MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
+      updateMembership(deadRecord, true /* spread gossip */, true /* check override */);
     }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
   }
 

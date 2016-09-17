@@ -71,9 +71,6 @@ public class Member {
 
   @Override
   public String toString() {
-    return "Member{id=" + id
-        + ", address=" + address
-        + ", metadata=" + metadata
-        + '}';
+    return "[id: " + id + ", addr: " + address + (metadata.isEmpty() ? "" : ", meta: " + metadata) + ']';
   }
 }
