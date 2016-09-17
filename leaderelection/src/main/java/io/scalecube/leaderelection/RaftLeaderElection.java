@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
  * votes, then it is promoted to a leader. Consensus is fault-tolerant up to the point where quorum is available. If a
  * quorum of nodes is unavailable, it is impossible to reason about peer membership. For example, suppose there are only
  * 2 peers: A and B. The quorum size is also 2. If either A or B fails, it is now impossible to reach quorum. At this
- * point, the algorithem uses random timer timeout and will resolve the situation by one of the nodes taking and
+ * point, the algorithm uses random timer timeout and will resolve the situation by one of the nodes taking and
  * maintaining leadership using heartbeats so in this specific case leaders will cancel one another until one of the
  * nodes sends the hearbeats first.
  * 
