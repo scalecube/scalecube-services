@@ -12,7 +12,5 @@ public interface LeaderElection {
 
   void addStateListener(IStateListener handler);
 
-  RaftLeaderElection start();
-
   ICluster cluster();
 }

@@ -27,7 +27,8 @@ import java.util.concurrent.TimeUnit;
  * 2 peers: A and B. The quorum size is also 2. If either A or B fails, it is now impossible to reach quorum. At this
  * point, the algorithm uses random timer timeout and will resolve the situation by one of the nodes taking and
  * maintaining leadership using heartbeats so in this specific case leaders will cancel one another until one of the
- * nodes sends the hearbeats first raft leader election algorithm: when a node starts it becomes a follower and set a timer that will trigger after x
+ * nodes sends the hearbeats first raft leader election algorithm: when a node starts it becomes a follower and set a 
+ * timer that will trigger after x
  * amount of time and waiting during this time for a leader heartbeats if no leader send heartbeats then the timer is
  * triggered and node transition to a candidate state - once in a candidate state the node gossip vote request to all
  * member nodes nodes that receive a vote request will answer directly to the requesting node with their vote. the
@@ -54,7 +55,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
   private int leadershipTimeout;
   private List<IStateListener> handlers = new ArrayList();
 
-  public RaftLeaderElection(Builder builder) {
+  private RaftLeaderElection(Builder builder) {
     checkNotNull(builder.cluster);
 
     this.cluster = builder.cluster;
@@ -62,11 +63,17 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
     this.leadershipTimeout = builder.leadershipTimeout;
   }
 
+  /**
+   * RaftLeaderElection builder 
+   * @param cluster initiate cluster instance must not be null
+   * @return initiated RaftLeaderElection
+   */
   public static RaftLeaderElection.Builder builder(ICluster cluster) {
+    checkNotNull(cluster);
     return new RaftLeaderElection.Builder(cluster);
   }
 
-  public RaftLeaderElection start() {
+  private RaftLeaderElection start() {
     selectedLeader = cluster.address();
 
     // RAFT_PROTOCOL_VOTE
@@ -131,6 +138,9 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
     return selectedLeader;
   }
 
+  /**
+   * add state listener to follow state changes of leadership
+   */
   public void addStateListener(IStateListener handler) {
     handlers.add(handler);
   }
@@ -198,6 +208,11 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
     }
   }
 
+  /**
+   * Builder of raft leader election
+   * @author Ronen Nachmias
+   *
+   */
   public static class Builder {
     public ICluster cluster;
     private int heartbeatInterval = 5;
@@ -216,9 +231,12 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
       this.leadershipTimeout = leadershipTimeout;
       return this;
     }
-
+    /**
+     * builds and starts a new RaftLeaderElection 
+     * @return RaftLeaderElection instance
+     */
     public RaftLeaderElection build() {
-      return new RaftLeaderElection(this);
+      return new RaftLeaderElection(this).start();
     }
   }
 

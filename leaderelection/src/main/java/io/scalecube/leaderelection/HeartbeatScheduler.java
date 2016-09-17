@@ -27,8 +27,12 @@ public class HeartbeatScheduler {
   public HeartbeatScheduler(ICluster cluster, long heartbeatInterval) {
     this.cluster = cluster;
     this.heartbeatInterval = heartbeatInterval;
-  }
+  }  
 
+  /**
+   * when becoming a leader the leader schedule heatbeats and maintain leadership followers are expecting this heartbeat 
+   * in case the heartbeat will not arrive in X time they will assume no leader
+   */
   public void schedule() {
     scheduler.scheduleAtFixedRate(new Runnable() {
       @Override

@@ -99,7 +99,7 @@ public class LeaderElectionExample {
       }
 
     }
-    el = RaftLeaderElection.builder(node).build().start();
+    el = RaftLeaderElection.builder(node).build();
     el.addStateListener(new IStateListener() {
       @Override
       public void onState(StateType state) {

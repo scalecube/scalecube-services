@@ -26,7 +26,7 @@ public abstract class MessageListener {
       this.cluster.listen().filter(new Func1<Message, Boolean>() {
         @Override
         public Boolean call(Message message) {
-          if (message != null && message.qualifier() != null){
+          if (message != null && message.qualifier() != null) {
             return message.qualifier().equals(qualifier);
           } else {
             return false;
@@ -44,7 +44,7 @@ public abstract class MessageListener {
       this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
         @Override
         public Boolean call(Message message) {
-          if (message != null && message.qualifier() != null){
+          if (message != null && message.qualifier() != null) {
             return message.qualifier().equals(qualifier);
           } else {
             return false;
@@ -81,7 +81,7 @@ public abstract class MessageListener {
       this.cluster.listenGossips().filter(new Func1<Message, Boolean>() {
         @Override
         public Boolean call(Message message) {
-          if (message != null && message.qualifier() != null){
+          if (message != null && message.qualifier() != null) {
             return message.qualifier().startsWith(qualifier);
           } else {
             return false;
