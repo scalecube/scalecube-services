@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
  * cluster nodes. a leader node that receives an heartbeat from any other member transition to follower state in the
  * case where several candidates are running for leadership they both cancel the candidate state and next timeout node
  * will become a leader and election process is restarted until there is clear consensus among the cluster
- * https://raft.github.io/
+ * https://raft.github.io/ 
  * 
  * @author Ronen Nachmias on 9/11/2016.
  */
