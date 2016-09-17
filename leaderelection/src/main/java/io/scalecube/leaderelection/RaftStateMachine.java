@@ -25,16 +25,16 @@ public abstract class RaftStateMachine {
     stateMachine.addTransitions(StateType.LEADER, StateType.STOPPED);
 
     stateMachine.onEntering(StateType.FOLLOWER, state -> {
-      becomeFollower();
-    });
+        becomeFollower();
+      });
 
     stateMachine.onEntering(StateType.CANDIDATE, state -> {
-      becomeCanidate();
-    });
+        becomeCanidate();
+      });
 
     stateMachine.onEntering(StateType.LEADER, state -> {
-      becomeLeader();
-    });
+        becomeLeader();
+      });
   }
 
   public StateType currentState() {
