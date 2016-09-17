@@ -48,7 +48,7 @@ public final class GossipProtocol implements IGossipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
   // qualifiers
-  public static final String GOSSIP_REQ = "io.scalecube.cluster/gossip/req";
+  public static final String GOSSIP_REQ = "sc/gossip/req";
 
   // Injected
 

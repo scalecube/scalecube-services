@@ -38,12 +38,12 @@ public final class FailureDetector implements IFailureDetector {
   private static final Logger LOGGER = LoggerFactory.getLogger(FailureDetector.class);
 
   // qualifiers
-  public static final String PING = "io.scalecube.cluster/fdetector/ping";
-  public static final String PING_REQ = "io.scalecube.cluster/fdetector/pingReq";
-  public static final String ACK = "io.scalecube.cluster/fdetector/ack";
+  public static final String PING = "sc/fdetector/ping";
+  public static final String PING_REQ = "sc/fdetector/pingReq";
+  public static final String PING_ACK = "sc/fdetector/pingAck";
 
   // filters
-  private static final MessageHeaders.Filter ACK_FILTER = new MessageHeaders.Filter(ACK);
+  private static final MessageHeaders.Filter ACK_FILTER = new MessageHeaders.Filter(PING_ACK);
   private static final MessageHeaders.Filter PING_FILTER = new MessageHeaders.Filter(PING);
   private static final MessageHeaders.Filter PING_REQ_FILTER = new MessageHeaders.Filter(PING_REQ);
 
@@ -284,7 +284,7 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   private Func1<Message, Boolean> ackFilter(String correlationId) {
-    return new MessageHeaders.Filter(ACK, correlationId);
+    return new MessageHeaders.Filter(PING_ACK, correlationId);
   }
 
   /**
@@ -298,7 +298,7 @@ public final class FailureDetector implements IFailureDetector {
       return;
     }
     String correlationId = message.correlationId();
-    Message ackMessage = Message.withData(data).qualifier(ACK).correlationId(correlationId).build();
+    Message ackMessage = Message.withData(data).qualifier(PING_ACK).correlationId(correlationId).build();
     transport.send(data.getFrom(), ackMessage);
   }
 
@@ -325,7 +325,7 @@ public final class FailureDetector implements IFailureDetector {
     Address target = data.getOriginalIssuer();
     String correlationId = message.correlationId();
     PingData originalAckData = new PingData(target, data.getTo());
-    Message originalAckMessage = Message.withData(originalAckData).qualifier(ACK).correlationId(correlationId).build();
+    Message originalAckMessage = Message.withData(originalAckData).qualifier(PING_ACK).correlationId(correlationId).build();
     transport.send(target, originalAckMessage);
   }
 

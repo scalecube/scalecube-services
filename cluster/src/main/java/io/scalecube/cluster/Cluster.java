@@ -3,7 +3,7 @@ package io.scalecube.cluster;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.Futures.transformAsync;
-import static io.scalecube.cluster.fdetector.FailureDetector.ACK;
+import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
@@ -36,9 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
@@ -51,7 +48,9 @@ public final class Cluster implements ICluster {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cluster.class);
 
-  private static final Set<String> SYSTEM_MESSAGES = ImmutableSet.of(PING, PING_REQ, ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
+  private static final Set<String> SYSTEM_MESSAGES =
+      ImmutableSet.of(PING, PING_REQ, PING_ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
+
   private static final Set<String> SYSTEM_GOSSIPS = ImmutableSet.of(MEMBERSHIP_GOSSIP);
 
   private final ClusterConfig config;

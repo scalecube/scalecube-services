@@ -53,9 +53,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   // qualifiers
-  public static final String SYNC = "io.scalecube.cluster/membership/sync";
-  public static final String SYNC_ACK = "io.scalecube.cluster/membership/syncAck";
-  public static final String MEMBERSHIP_GOSSIP = "io.scalecube.cluster/membership/gossip";
+  public static final String SYNC = "sc/membership/sync";
+  public static final String SYNC_ACK = "sc/membership/syncAck";
+  public static final String MEMBERSHIP_GOSSIP = "sc/membership/gossip";
 
   // Injected
 
