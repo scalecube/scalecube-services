@@ -13,6 +13,7 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -48,6 +49,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public final class MembershipProtocol implements IMembershipProtocol {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   // qualifiers
@@ -57,7 +59,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   // Injected
 
-  private final Member localMember;
+  private final Member member;
   private final ITransport transport;
   private final MembershipConfig config;
   private final IFailureDetector failureDetector;
@@ -98,7 +100,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     this.config = config;
     this.gossipProtocol = gossipProtocol;
     this.failureDetector = failureDetector;
-    this.localMember = new Member(memberId, transport.address(), config.getMetadata());
+    this.member = new Member(memberId, transport.address(), config.getMetadata());
     String nameFormat = "sc-membership-" + transport.address().toString();
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
@@ -143,7 +145,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   @Override
   public List<Member> otherMembers() {
     List<Member> members = members();
-    members.remove(localMember);
+    members.remove(member);
     return members;
   }
 
@@ -157,22 +159,21 @@ public final class MembershipProtocol implements IMembershipProtocol {
   @Override
   public Member member(Address address) {
     checkArgument(address != null, "Member address can't be null or empty");
-    return findMemberByAddress(address).member();
+    return findRecordByAddress(address).member();
   }
 
   @Override
   public Member member() {
-    return localMember;
+    return member;
   }
 
   /**
    * Starts running cluster membership protocol. After started it begins to receive and send cluster membership messages
    */
   public ListenableFuture<Void> start() {
-    // Register itself initially before SYNC/SYNC_ACK
-    MembershipRecord joinRecord = new MembershipRecord(localMember, ALIVE, 0);
-    List<MembershipRecord> updates = merge(joinRecord);
-    processUpdates(updates, false/* spread gossip */);
+    // Init membership table with local member record
+    MembershipRecord localMemberRecord = new MembershipRecord(member, ALIVE, 0);
+    membershipTable.put(member.id(), localMemberRecord);
 
     // Listen to incoming SYNC requests from other members
     onSyncRequestSubscriber = Subscribers.create(this::onSync);
@@ -181,10 +182,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(this::checkSyncGroup)
         .subscribe(onSyncRequestSubscriber);
 
-    // Listen to incomming SYNC ACK responses from other members
+    // Listen to incoming SYNC ACK responses from other members
     onSyncAckResponseSubscriber = Subscribers.create(this::onSyncAck);
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
+        .filter(msg -> msg.correlationId() == null) // filter out initial sync
         .filter(this::checkSyncGroup)
         .subscribe(onSyncAckResponseSubscriber);
 
@@ -199,7 +201,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(msg -> MEMBERSHIP_GOSSIP.equals(msg.qualifier()))
         .subscribe(onGossipRequestSubscriber);
 
-    // Schedule sending periodic sync to random sync address
+    // Schedule sending periodic sync to random member
     syncTask = executor.scheduleWithFixedDelay(
         this::doSync, config.getSyncInterval(), config.getSyncInterval(), TimeUnit.MILLISECONDS);
 
@@ -254,8 +256,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
     SettableFuture<Void> syncResponseFuture = SettableFuture.create();
 
     // Listen initial Sync Ack
+    String cid = member.id();
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
+        .filter(msg -> cid.equals(msg.correlationId()))
         .filter(this::checkSyncGroup)
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
@@ -267,10 +271,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
             syncResponseFuture.set(null);
           });
 
-    Message syncMsg = prepareSyncMessage(SYNC);
-    for (Address address : seedMembers) {
-      transport.send(address, syncMsg);
-    }
+    Message syncMsg = prepareSyncDataMsg(SYNC, cid);
+    seedMembers.forEach(address -> transport.send(address, syncMsg));
 
     return syncResponseFuture;
   }
@@ -282,7 +284,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
         return;
       }
       LOGGER.debug("Sending Sync to: {}", syncMember);
-      transport.send(syncMember, prepareSyncMessage(SYNC));
+      transport.send(syncMember, prepareSyncDataMsg(SYNC, null));
     } catch (Exception cause) {
       LOGGER.error("Unhandled exception: {}", cause, cause);
     }
@@ -294,171 +296,149 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private boolean checkSyncGroup(Message message) {
-    MembershipData data = message.data();
+    SyncData data = message.data();
     return config.getSyncGroup().equals(data.getSyncGroup());
   }
 
-  private Message prepareSyncMessage(String qualifier) {
-    List<MembershipRecord> membershipRecords = new ArrayList<>(membershipTable.values());
-    MembershipData syncData = new MembershipData(membershipRecords, config.getSyncGroup());
-    return Message.withData(syncData).qualifier(qualifier).build();
-  }
-
-  private void onSyncAck(Message message) {
-    MembershipData data = message.data();
-    List<MembershipRecord> updates = merge(data);
-    LOGGER.debug("Received SyncAck from {}, updates: {}", message.sender(), updates);
-    if (!updates.isEmpty()) {
-      processUpdates(updates, true/* spread gossip */);
-    }
+  private void onSyncAck(Message syncAckMsg) {
+    LOGGER.debug("Received SyncAck: {}", syncAckMsg);
+    syncMembership(syncAckMsg.data());
   }
 
   /**
    * Merges incoming SYNC data, merges it and sending back merged data with SYNC_ACK.
    */
-  private void onSync(Message message) {
-    MembershipData data = message.data();
-    List<MembershipRecord> updates = merge(data);
-    Address sender = message.sender();
-    if (!updates.isEmpty()) {
-      LOGGER.debug("Received Sync from {}, updates: {}", sender, updates);
-      processUpdates(updates, true/* spread gossip */);
-    } else {
-      LOGGER.debug("Received Sync from {}, no updates", sender);
-    }
-    transport.send(sender, prepareSyncMessage(SYNC_ACK));
+  private void onSync(Message syncMsg) {
+    LOGGER.debug("Received Sync: {}", syncMsg);
+    syncMembership(syncMsg.data());
+    Message syncAckMsg = prepareSyncDataMsg(SYNC_ACK, syncMsg.correlationId());
+    transport.send(syncMsg.sender(), syncAckMsg);
   }
 
   /**
    * Merges FD updates and processes them.
    */
   private void onFailureDetectorEvent(FailureDetectorEvent fdEvent) {
-    MembershipRecord r0 = findMemberByAddress(fdEvent.address());
-    if (r0 != null) {
-      List<MembershipRecord> updates = merge(new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation()));
-      if (!updates.isEmpty()) {
-        LOGGER.debug("Received FD event {}, updates: {}", fdEvent, updates);
-        processUpdates(updates, true/* spread gossip */);
-      }
+    MembershipRecord r0 = findRecordByAddress(fdEvent.address()); // TODO: fdEvent should have member
+    if (r0 == null) { // member already removed
+      return;
     }
+    if (r0.status() == fdEvent.status()) { // status not changed
+      return;
+    }
+    LOGGER.debug("Received status change on failure detector event: {}", fdEvent);
+    MembershipRecord r1 = new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation());
+    updateMembership(r1, true /* spread gossip */);
   }
 
   /**
-   * Merges gossip's {@link MembershipData} (not spreading gossip further).
+   * Merges received membership gossip (not spreading gossip further).
    */
   private void onMembershipGossip(Message message) {
-    MembershipData data = message.data();
-    List<MembershipRecord> updates = merge(data);
-    if (!updates.isEmpty()) {
-      LOGGER.debug("Received gossip, updates: {}", updates);
-      processUpdates(updates, false/* spread gossip */);
+    MembershipRecord record = message.data();
+    LOGGER.debug("Received membership gossip: {}", record);
+    updateMembership(record, false/* don't spread gossip */);
+  }
+
+  private Message prepareSyncDataMsg(String qualifier, String cid) {
+    List<MembershipRecord> membershipRecords = new ArrayList<>(membershipTable.values());
+    SyncData syncData = new SyncData(membershipRecords, config.getSyncGroup());
+    return Message.withData(syncData).qualifier(qualifier).correlationId(cid).build();
+  }
+
+  private void syncMembership(SyncData syncData) {
+    for (MembershipRecord r1 : syncData.getMembership()) {
+      updateMembership(r1, true/* spread gossip */);
     }
   }
 
   /**
-   * Takes {@code updates} and process them in next order.
-   * <ul>
-   * <li>recalculates 'cluster members' for {@link #gossipProtocol} and {@link #failureDetector} by filtering out
-   * {@code REMOVED/SHUTDOWN} members</li>
-   * <li>if {@code spreadGossip} was set {@code true} -- converts {@code updates} to {@link MembershipData} and send it
-   * to cluster via {@link #gossipProtocol}</li>
-   * <li>publishes updates locally (see {@link #listen()})</li>
-   * <li>iterates on {@code updates}, if {@code update} become {@code SUSPECTED} -- schedules a timer for
-   * {@code maxSuspectTime} to remove the member (on {@code TRUSTED} -- cancels the timer)</li>
-   * <li>iterates on {@code updates}, if {@code update} become {@code SHUTDOWN} -- schedules a timer for
-   * {@code maxShutdownTime} to remove the member</li>
-   * </ul>
+   * Try to update membership table with the given record.
    *
-   * @param updates list of updates after merge
+   * @param r1 new membership record which compares with existing r0 record
    * @param spreadGossip flag indicating should updates be gossiped to cluster
    */
-  private void processUpdates(List<MembershipRecord> updates, boolean spreadGossip) {
-    if (updates.isEmpty()) {
+  private void updateMembership(MembershipRecord r1, boolean spreadGossip) {
+    Preconditions.checkArgument(r1 != null, "Membership record can't be null");
+
+    // Check if r1 overrides existing membership record r0
+    MembershipRecord r0 = membershipTable.get(r1.id());
+    if (!r1.isOverrides(r0)) {
       return;
     }
 
-    // Reset cluster members on FailureDetector and Gossip
+    // If trying to override local member increase incarnation number and spread Alive gossip
+    if (r1.member().equals(member)) {
+      int currentIncarnation = Math.max(r0.incarnation(), r1.incarnation());
+      MembershipRecord r2 = new MembershipRecord(member, ALIVE, currentIncarnation + 1);
+      membershipTable.put(member.id(), r2);
+      spreadMembershipGossip(r2);
+      return;
+    }
+
+    // Update membership
+    if (r1.isDead()) {
+      membershipTable.remove(r1.id());
+    } else {
+      membershipTable.put(r1.id(), r1);
+    }
+
+    // Update remove member tasks
+    if (r1.isSuspect()) {
+      scheduleRemoveMemberTask(r1);
+    } else {
+      cancelRemoveMemberTask(r1.id());
+    }
+
+    // Emit membership event
+    if (r1.isDead() && r0 != null) {
+      MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.REMOVED, r1.member());
+      subject.onNext(membershipEvent);
+    } else if (r0 == null && !r1.isDead()) {
+      MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.ADDED, r1.member());
+      subject.onNext(membershipEvent);
+    }
+
+    // TODO: Move to observables of membership events !!!
+    // Update FailureDetector and Gossip members
     Collection<Address> members = membershipTable.values().stream()
         .map(MembershipRecord::address)
         .collect(Collectors.toList());
     failureDetector.setMembers(members);
     gossipProtocol.setMembers(members);
 
-    // Publish updates to cluster
+    // Spread gossip
     if (spreadGossip) {
-      MembershipData membershipData = new MembershipData(updates, config.getSyncGroup());
-      Message membershipMsg = Message.withData(membershipData).qualifier(MEMBERSHIP_GOSSIP).build();
-      gossipProtocol.spread(membershipMsg);
-    }
-
-    // Publish updates locally
-    for (MembershipRecord update : updates) {
-      // TODO: Publish only relevant membership events
-      //subject.onNext(update);
-    }
-
-    // Check state transition
-    for (final MembershipRecord record : updates) {
-      LOGGER.debug("Membership update: {}", record);
-      switch (record.status()) {
-        case SUSPECT:
-          // schedule suspected member remove
-          removeMemberTasks.putIfAbsent(record.id(), executor.schedule(() -> {
-              LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
-              removeMemberTasks.remove(record.id());
-              MembershipRecord r0 = membershipTable.remove(record.id());
-              if (r0 != null) {
-                processUpdates(
-                    Collections.singletonList(new MembershipRecord(r0.member(), DEAD, r0.incarnation())),
-                    false/* spread gossip */);
-              }
-            }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
-          break;
-        case ALIVE:
-          // clean schedule
-          ScheduledFuture<?> future = removeMemberTasks.remove(record.id());
-          if (future != null) {
-            future.cancel(true);
-          }
-          break;
-        case DEAD:
-          // TODO: process correctly
-          break;
-      }
+      spreadMembershipGossip(r1);
     }
   }
 
-
-  // TODO: Membership table stuff
-
-  public List<MembershipRecord> merge(MembershipData data) {
-    List<MembershipRecord> updates = new ArrayList<>();
-    for (MembershipRecord record : data.getMembership()) {
-      updates.addAll(merge(record));
+  private void cancelRemoveMemberTask(String memberId) {
+    ScheduledFuture<?> future = removeMemberTasks.remove(memberId);
+    if (future != null) {
+      future.cancel(true);
     }
-    return updates;
   }
 
-  public List<MembershipRecord> merge(MembershipRecord r1) {
-    List<MembershipRecord> updates = new ArrayList<>(1);
-    MembershipRecord r0 = membershipTable.putIfAbsent(r1.id(), r1);
-    if (r0 == null) {
-      updates.add(r1);
-    } else if (r0.compareTo(r1) < 0) {
-      if (membershipTable.replace(r1.id(), r0, r1)) {
-        updates.add(r1);
-      } else {
-        return merge(r1);
-      }
-    }
-    return updates;
+  private void scheduleRemoveMemberTask(MembershipRecord record) {
+    removeMemberTasks.putIfAbsent(record.id(), executor.schedule(() -> {
+      LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
+      removeMemberTasks.remove(record.id());
+      updateMembership(new MembershipRecord(record.member(), DEAD, record.incarnation()), true /* spread gossip */);
+    }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
   }
 
-  public MembershipRecord findMemberByAddress(Address address) {
-    // TODO [AK]: Temporary solution, should be optimized!!!
-    for (MembershipRecord member : membershipTable.values()) {
-      if (member.address().equals(address)) {
-        return member;
+  private void spreadMembershipGossip(MembershipRecord record) {
+    Message membershipMsg = Message.withData(record).qualifier(MEMBERSHIP_GOSSIP).build();
+    gossipProtocol.spread(membershipMsg);
+  }
+
+  // TODO [AK]: Temporary solution, should be removed/optimized
+  public MembershipRecord findRecordByAddress(Address address) {
+
+    for (MembershipRecord record : membershipTable.values()) {
+      if (record.address().equals(address)) {
+        return record;
       }
     }
     return null;

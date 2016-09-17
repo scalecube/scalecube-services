@@ -1,6 +1,8 @@
 package io.scalecube.cluster.membership;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.cluster.membership.MemberStatus.DEAD;
+import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
@@ -12,16 +14,16 @@ import javax.annotation.concurrent.Immutable;
  * Cluster membership record which represents member, status, and incarnation.
  */
 @Immutable
-final class MembershipRecord implements Comparable<MembershipRecord> {
+final class MembershipRecord {
 
   private final Member member;
   private final MemberStatus status;
-  private final long incarnation;
+  private final int incarnation;
 
   /**
    * Instantiates new instance of membership record with given member, status and incarnation.
    */
-  public MembershipRecord(Member member, MemberStatus status, long incarnation) {
+  public MembershipRecord(Member member, MemberStatus status, int incarnation) {
     checkArgument(member != null);
     checkArgument(status != null);
     this.member = member;
@@ -49,31 +51,44 @@ final class MembershipRecord implements Comparable<MembershipRecord> {
     return status;
   }
 
-  public long incarnation() {
+  public boolean isAlive() {
+    return status == MemberStatus.ALIVE;
+  }
+
+  public boolean isSuspect() {
+    return status == MemberStatus.SUSPECT;
+  }
+
+  public boolean isDead() {
+    return status == MemberStatus.DEAD;
+  }
+
+  public int incarnation() {
     return incarnation;
   }
 
-  @Override
-  public int compareTo(@Nonnull MembershipRecord r1) {
-    if (status == r1.status) {
-      return 0;
+  /**
+   * Checks either this record overrides given record.
+   *
+   * @param r0 existing record in membership table
+   * @return true if this record overrides exiting; false otherwise
+   */
+  public boolean isOverrides(MembershipRecord r0) {
+    if (r0 == null) {
+      return true;
     }
-    if (status == MemberStatus.DEAD) {
-      return 1;
+    checkArgument(this.member.equals(r0.member), "Can't compare records for different members");
+    if (r0.status == DEAD) {
+      return false;
     }
-    if (r1.status == MemberStatus.DEAD) {
-      return -1;
+    if (status == DEAD) {
+      return true;
     }
-
-    int clockCompare = Long.compare(incarnation, r1.incarnation);
-    if (clockCompare < 0) {
-      return -1;
+    if (incarnation == r0.incarnation) {
+      return (status != r0.status) && (status == SUSPECT);
+    } else {
+      return incarnation > r0.incarnation;
     }
-    if (clockCompare == 0 && (status == MemberStatus.ALIVE && r1.status == MemberStatus.SUSPECT)) {
-      return -1;
-    }
-
-    return 1;
   }
 
   @Override

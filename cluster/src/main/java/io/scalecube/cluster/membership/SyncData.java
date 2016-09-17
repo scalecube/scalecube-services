@@ -6,24 +6,27 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.annotation.concurrent.Immutable;
+
 /**
  * A class containing full membership table from specific member and used full synchronization between cluster members.
  *
  * @author Anton Kharenko
  */
+@Immutable
 final class SyncData {
 
   /**
    * Full cluster membership table.
    */
   @Tag(1)
-  private List<MembershipRecord> membership = new ArrayList<>();
+  private final List<MembershipRecord> membership;
 
   /**
    * Sort of cluster identifier. Only members in the same sync group allowed to join into cluster.
    */
   @Tag(2)
-  private String syncGroup;
+  private final String syncGroup;
 
   SyncData(Collection<MembershipRecord> membership, String syncGroup) {
     this.membership = new ArrayList<>(membership);

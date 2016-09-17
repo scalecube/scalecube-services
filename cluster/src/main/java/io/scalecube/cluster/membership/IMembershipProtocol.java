@@ -16,14 +16,9 @@ import java.util.List;
 public interface IMembershipProtocol {
 
   /**
-   * Returns current cluster members list.
+   * Returns local cluster member.
    */
-  List<Member> members();
-
-  /**
-   * Returns current cluster members list excluding local member.
-   */
-  List<Member> otherMembers();
+  Member member();
 
   /**
    * Returns cluster member by its id or null if no member with such id exists.
@@ -36,9 +31,14 @@ public interface IMembershipProtocol {
   Member member(Address address);
 
   /**
-   * Returns local cluster member.
+   * Returns current cluster members list.
    */
-  Member member();
+  List<Member> members();
+
+  /**
+   * Returns current cluster members list excluding local member.
+   */
+  List<Member> otherMembers();
 
   /**
    * Listen changes in cluster membership.
