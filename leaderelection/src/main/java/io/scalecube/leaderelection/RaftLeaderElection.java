@@ -64,7 +64,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
   }
 
   /**
-   * RaftLeaderElection builder 
+   * RaftLeaderElection builder.
    * @param cluster initiate cluster instance must not be null
    * @return initiated RaftLeaderElection
    */
@@ -139,7 +139,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
   }
 
   /**
-   * add state listener to follow state changes of leadership
+   * add state listener to follow state changes of leadership.
    */
   public void addStateListener(IStateListener handler) {
     handlers.add(handler);
@@ -209,7 +209,7 @@ public class RaftLeaderElection extends RaftStateMachine implements LeaderElecti
   }
 
   /**
-   * Builder of raft leader election
+   * Builder of raft leader election.
    * @author Ronen Nachmias
    *
    */
