@@ -75,6 +75,7 @@
         <module>testlib</module>
         <module>benchmark</module>
         <module>examples</module>
+        <module>leaderelection</module>
     </modules>
 
     <dependencyManagement>
