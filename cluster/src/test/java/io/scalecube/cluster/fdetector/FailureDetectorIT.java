@@ -380,7 +380,7 @@ public class FailureDetectorIT {
 
   private FailureDetector createFD(Transport transport, List<Address> members, FailureDetectorConfig config) {
     FailureDetector failureDetector = new FailureDetector(transport, config);
-    failureDetector.setMembers(members);
+    failureDetector.setPingMembers(members);
     return failureDetector;
   }
 

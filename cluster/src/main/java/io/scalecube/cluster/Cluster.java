@@ -14,6 +14,7 @@ import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.membership.MembershipConfig;
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.cluster.membership.MembershipProtocol;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
@@ -22,7 +23,6 @@ import io.scalecube.transport.Transport;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -31,11 +31,14 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nullable;
 
@@ -54,7 +57,10 @@ public final class Cluster implements ICluster {
   private static final Set<String> SYSTEM_GOSSIPS = ImmutableSet.of(MEMBERSHIP_GOSSIP);
 
   private final ClusterConfig config;
-  private final String memberId;
+
+  private final ConcurrentMap<String, Member> members = new ConcurrentHashMap<>();
+  private final ConcurrentMap<Address, String> memberAddressIndex = new ConcurrentHashMap<>();
+
 
   // Cluster components
   private Transport transport;
@@ -65,8 +71,6 @@ public final class Cluster implements ICluster {
   private Cluster(ClusterConfig config) {
     checkNotNull(config);
     this.config = config;
-    this.memberId = UUID.randomUUID().toString();
-    LOGGER.info("Cluster instance '{}' created with configuration: {}", memberId, config);
   }
 
   /**
@@ -152,37 +156,45 @@ public final class Cluster implements ICluster {
   }
 
   private ListenableFuture<ICluster> join0() {
-    LOGGER.info("Cluster instance '{}' joining seed members: {}",
-        memberId, config.getMembershipConfig().getSeedMembers());
     ListenableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
-    ListenableFuture<Void> clusterFuture = transformAsync(transportFuture, new AsyncFunction<Transport, Void>() {
-      @Override
-      public ListenableFuture<Void> apply(@Nullable Transport boundTransport) throws Exception {
-        // Init transport component
-        transport = boundTransport;
+    ListenableFuture<Void> clusterFuture = transformAsync(transportFuture, boundTransport -> {
+      // Init components
+      transport = boundTransport;
+      membership = new MembershipProtocol(transport, config.getMembershipConfig());
+      gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
+      failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
+      membership.setFailureDetector(failureDetector);
+      membership.setGossipProtocol(gossip);
 
-        // Init gossip protocol component
-        gossip = new GossipProtocol(memberId, transport, config.getGossipConfig());
+      // Init membership
+      Member localMember = membership.member();
+      onMemberAdded(localMember);
+      membership.listen()
+          .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
+      membership.listen()
+          .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
 
-        // Init failure detector component
-        failureDetector = new FailureDetector(transport, config.getFailureDetectorConfig());
-
-        // Init cluster membership component
-        membership = new MembershipProtocol(memberId, transport, config.getMembershipConfig(), failureDetector, gossip);
-
-        // Start components
-        failureDetector.start();
-        gossip.start();
-        return membership.start();
-      }
+      // Start components
+      failureDetector.start();
+      gossip.start();
+      return membership.start();
     });
     return transform(clusterFuture, new Function<Void, ICluster>() {
       @Override
       public ICluster apply(@Nullable Void param) {
-        LOGGER.info("Cluster instance '{}' joined cluster of members: {}", memberId, membership.members());
         return Cluster.this;
       }
     });
+  }
+
+  private void onMemberAdded(Member member) {
+    memberAddressIndex.put(member.address(), member.id());
+    members.put(member.id(), member);
+  }
+
+  private void onMemberRemoved(Member member) {
+    members.remove(member.id());
+    memberAddressIndex.remove(member.address());
   }
 
   @Override
@@ -226,8 +238,8 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public List<Member> members() {
-    return membership.members();
+  public Collection<Member> members() {
+    return Collections.unmodifiableCollection(members.values());
   }
 
   @Override
@@ -237,17 +249,20 @@ public final class Cluster implements ICluster {
 
   @Override
   public Member member(String id) {
-    return membership.member(id);
+    return members.get(id);
   }
 
   @Override
   public Member member(Address address) {
-    return membership.member(address);
+    String memberId = memberAddressIndex.get(address);
+    return memberId != null ? members.get(memberId) : null;
   }
 
   @Override
-  public List<Member> otherMembers() {
-    return membership.otherMembers();
+  public Collection<Member> otherMembers() {
+    ArrayList<Member> otherMembers = new ArrayList<>(members.values());
+    otherMembers.remove(membership.member());
+    return Collections.unmodifiableCollection(otherMembers);
   }
 
   @Override
@@ -257,7 +272,7 @@ public final class Cluster implements ICluster {
 
   @Override
   public ListenableFuture<Void> shutdown() {
-    LOGGER.info("Cluster instance '{}' is shutting down...", memberId);
+    LOGGER.info("Cluster member {} is shutting down...", membership.member());
 
     // stop algorithms
     membership.stop();

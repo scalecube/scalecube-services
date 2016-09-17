@@ -31,8 +31,4 @@ public interface IFailureDetector {
    */
   Observable<FailureDetectorEvent> listen();
 
-  /**
-   * Updates list of cluster members among which should work FD algorithm.
-   */
-  void setMembers(Collection<Address> members);
 }

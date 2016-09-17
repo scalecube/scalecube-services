@@ -1,11 +1,9 @@
 package io.scalecube.cluster.membership;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 
 import io.scalecube.cluster.Member;
-import io.scalecube.cluster.MembershipEvent;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IGossipProtocol;
@@ -14,7 +12,6 @@ import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -39,8 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -62,13 +57,14 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private final Member member;
   private final ITransport transport;
   private final MembershipConfig config;
-  private final IFailureDetector failureDetector;
-  private final IGossipProtocol gossipProtocol;
   private final List<Address> seedMembers;
+
+  private IFailureDetector failureDetector;
+  private IGossipProtocol gossipProtocol;
 
   // State
 
-  private final ConcurrentMap<String, MembershipRecord> membershipTable = new ConcurrentHashMap<>();
+  private final Map<String, MembershipRecord> membershipTable = new HashMap<>();
 
   // Subscriptions
 
@@ -90,20 +86,18 @@ public final class MembershipProtocol implements IMembershipProtocol {
   /**
    * Creates new instantiates of cluster membership protocol with given transport and config.
    *
-   * @param memberId id of this member
    * @param transport transport
    * @param config membership config parameters
    */
-  public MembershipProtocol(String memberId, ITransport transport, MembershipConfig config,
-      IFailureDetector failureDetector, IGossipProtocol gossipProtocol) {
+  public MembershipProtocol(ITransport transport, MembershipConfig config) {
     this.transport = transport;
     this.config = config;
-    this.gossipProtocol = gossipProtocol;
-    this.failureDetector = failureDetector;
-    this.member = new Member(memberId, transport.address(), config.getMetadata());
+    this.member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
+
     String nameFormat = "sc-membership-" + transport.address().toString();
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
+
     this.scheduler = Schedulers.from(executor);
     this.seedMembers = cleanUpSeedMembers(config.getSeedMembers());
   }
@@ -113,6 +107,14 @@ public final class MembershipProtocol implements IMembershipProtocol {
     Set<Address> seedMembersSet = new HashSet<>(seedMembers); // remove duplicates
     seedMembersSet.remove(transport.address()); // remove local address
     return Collections.unmodifiableList(new ArrayList<>(seedMembersSet));
+  }
+
+  public void setFailureDetector(IFailureDetector failureDetector) {
+    this.failureDetector = failureDetector;
+  }
+
+  public void setGossipProtocol(IGossipProtocol gossipProtocol) {
+    this.gossipProtocol = gossipProtocol;
   }
 
   IFailureDetector getFailureDetector() {
@@ -134,32 +136,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
   @Override
   public Observable<MembershipEvent> listen() {
     return subject.asObservable();
-  }
-
-  @Override
-  public List<Member> members() {
-    List<MembershipRecord> membershipRecords = new ArrayList<>(membershipTable.values());
-    return membershipRecords.stream().map(MembershipRecord::member).collect(Collectors.toList());
-  }
-
-  @Override
-  public List<Member> otherMembers() {
-    List<Member> members = members();
-    members.remove(member);
-    return members;
-  }
-
-  @Override
-  public Member member(String id) {
-    checkArgument(!Strings.isNullOrEmpty(id), "Member id can't be null or empty");
-    MembershipRecord membershipRecord = membershipTable.get(id);
-    return membershipRecord != null ? membershipRecord.member() : null;
-  }
-
-  @Override
-  public Member member(Address address) {
-    checkArgument(address != null, "Member address can't be null or empty");
-    return findRecordByAddress(address).member();
   }
 
   @Override
@@ -200,10 +176,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
     gossipProtocol.listen().observeOn(scheduler)
         .filter(msg -> MEMBERSHIP_GOSSIP.equals(msg.qualifier()))
         .subscribe(onGossipRequestSubscriber);
-
-    // Schedule sending periodic sync to random member
-    syncTask = executor.scheduleWithFixedDelay(
-        this::doSync, config.getSyncInterval(), config.getSyncInterval(), TimeUnit.MILLISECONDS);
 
     // Make initial sync with all seed members
     return doInitialSync();
@@ -265,9 +237,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(message -> {
             onSyncAck(message);
+            schedulePeriodicSync();
             syncResponseFuture.set(null);
           }, throwable -> {
             LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
+            schedulePeriodicSync();
             syncResponseFuture.set(null);
           });
 
@@ -275,6 +249,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
     seedMembers.forEach(address -> transport.send(address, syncMsg));
 
     return syncResponseFuture;
+  }
+
+  private void schedulePeriodicSync() {
+    int syncInterval = config.getSyncInterval();
+    syncTask = executor.scheduleWithFixedDelay(this::doSync, syncInterval, syncInterval, TimeUnit.MILLISECONDS);
   }
 
   private void doSync() {
@@ -320,7 +299,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * Merges FD updates and processes them.
    */
   private void onFailureDetectorEvent(FailureDetectorEvent fdEvent) {
-    MembershipRecord r0 = findRecordByAddress(fdEvent.address()); // TODO: fdEvent should have member
+    MembershipRecord r0 = membershipTable.get(fdEvent.member().id());
     if (r0 == null) { // member already removed
       return;
     }
@@ -418,7 +397,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
       Collection<Address> members = membershipTable.values().stream()
           .map(MembershipRecord::address)
           .collect(Collectors.toList());
-      failureDetector.setMembers(members);
       gossipProtocol.setMembers(members);
     }
 
@@ -447,17 +425,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void spreadMembershipGossip(MembershipRecord record) {
     Message membershipMsg = Message.withData(record).qualifier(MEMBERSHIP_GOSSIP).build();
     gossipProtocol.spread(membershipMsg);
-  }
-
-  // TODO [AK]: Temporary solution, should be removed/optimized
-  public MembershipRecord findRecordByAddress(Address address) {
-
-    for (MembershipRecord record : membershipTable.values()) {
-      if (record.address().equals(address)) {
-        return record;
-      }
-    }
-    return null;
   }
 
 }

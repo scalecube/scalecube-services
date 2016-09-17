@@ -1,6 +1,10 @@
-package io.scalecube.cluster;
+package io.scalecube.cluster.membership;
 
 import javax.annotation.concurrent.Immutable;
+
+import io.scalecube.cluster.Member;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * @author Anton Kharenko
@@ -14,12 +18,22 @@ public class MembershipEvent {
   private final Member member;
 
   public MembershipEvent(Type type, Member member) {
+    checkArgument(type != null);
+    checkArgument(member != null);
     this.type = type;
     this.member = member;
   }
 
   public Type type() {
     return type;
+  }
+
+  public boolean isAdded() {
+    return type == Type.ADDED;
+  }
+
+  public boolean isRemoved() {
+    return type == Type.REMOVED;
   }
 
   public Member member() {

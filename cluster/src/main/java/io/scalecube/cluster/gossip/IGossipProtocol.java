@@ -1,11 +1,8 @@
 package io.scalecube.cluster.gossip;
 
-import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import rx.Observable;
-
-import java.util.Collection;
 
 /**
  * Gossip Protocol component responsible for spreading information (gossips) over the cluster members using
@@ -34,10 +31,5 @@ public interface IGossipProtocol {
    * Listens for gossips from other cluster members.
    */
   Observable<Message> listen();
-
-  /**
-   * Updates list of cluster members among which should be spread gossips.
-   */
-  void setMembers(Collection<Address> members);
 
 }

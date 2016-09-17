@@ -2,13 +2,6 @@ package io.scalecube.cluster.membership;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Test;
-
-import java.util.HashMap;
-
-import io.scalecube.cluster.Member;
-import io.scalecube.transport.Address;
-
 public class MembershipRecordTest {
 
   // TODO: write tests for override method

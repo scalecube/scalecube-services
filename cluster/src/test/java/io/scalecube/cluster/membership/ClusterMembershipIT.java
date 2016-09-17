@@ -319,8 +319,8 @@ public class ClusterMembershipIT {
         .syncTimeout(200)
         .suspectTimeout(5000)
         .build();
-    MembershipProtocol membership = new MembershipProtocol(
-        memberId, transport, membershipConfig, failureDetector, gossipProtocol);
+    MembershipProtocol membership =
+        new MembershipProtocol(transport, membershipConfig, failureDetector, gossipProtocol);
 
     try {
       failureDetector.start();

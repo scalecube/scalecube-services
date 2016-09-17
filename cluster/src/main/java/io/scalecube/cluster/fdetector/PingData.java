@@ -1,5 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
+import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 
 import io.protostuff.Tag;
@@ -8,34 +9,35 @@ import io.protostuff.Tag;
 final class PingData {
   /** Message's source address. */
   @Tag(1)
-  private Address from;
+  private final Member from;
   /** Message's destination address. */
   @Tag(2)
-  private Address to;
+  private final Member to;
   /** Address of member, who originally initiated ping sequence. */
   @Tag(3)
-  private Address originalIssuer;
+  private final Member originalIssuer;
 
-  public PingData(Address from, Address to) {
+  public PingData(Member from, Member to) {
     this.from = from;
     this.to = to;
+    this.originalIssuer = null;
   }
 
-  public PingData(Address from, Address to, Address originalIssuer) {
+  public PingData(Member from, Member to, Member originalIssuer) {
     this.from = from;
     this.to = to;
     this.originalIssuer = originalIssuer;
   }
 
-  public Address getFrom() {
+  public Member getFrom() {
     return from;
   }
 
-  public Address getTo() {
+  public Member getTo() {
     return to;
   }
 
-  public Address getOriginalIssuer() {
+  public Member getOriginalIssuer() {
     return originalIssuer;
   }
 

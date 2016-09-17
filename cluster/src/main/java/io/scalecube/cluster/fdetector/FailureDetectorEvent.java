@@ -1,5 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
+import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.transport.Address;
 
@@ -10,16 +11,16 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class FailureDetectorEvent {
 
-  private final Address address;
+  private final Member member;
   private final MemberStatus status;
 
-  FailureDetectorEvent(Address address, MemberStatus status) {
-    this.address = address;
+  FailureDetectorEvent(Member member, MemberStatus status) {
+    this.member = member;
     this.status = status;
   }
 
-  public Address address() {
-    return address;
+  public Member member() {
+    return member;
   }
 
   public MemberStatus status() {
@@ -28,6 +29,6 @@ public final class FailureDetectorEvent {
 
   @Override
   public String toString() {
-    return "FailureDetectorEvent{address=" + address + ", status=" + status + '}';
+    return "FailureDetectorEvent{member=" + member + ", status=" + status + '}';
   }
 }

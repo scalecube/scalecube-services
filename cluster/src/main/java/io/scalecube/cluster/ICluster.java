@@ -1,5 +1,6 @@
 package io.scalecube.cluster;
 
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -8,7 +9,7 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import rx.Observable;
 
-import java.util.List;
+import java.util.Collection;
 
 /**
  * Facade cluster interface which provides API to interact with cluster members.
@@ -60,12 +61,12 @@ public interface ICluster {
   /**
    * Returns list of all members of the joined cluster. This will include all cluster members including local member.
    */
-  List<Member> members();
+  Collection<Member> members();
 
   /**
    * Returns list of all cluster members of the joined cluster excluding local member.
    */
-  List<Member> otherMembers();
+  Collection<Member> otherMembers();
 
   /**
    * Listen changes in cluster membership.
