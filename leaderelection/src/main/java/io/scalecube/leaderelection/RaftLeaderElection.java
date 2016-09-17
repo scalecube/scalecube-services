@@ -19,9 +19,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 
- * Created by Ronen Nachmias on 9/11/2016.
- * 
  * Raft nodes are always in one of three states: follower, candidate, or leader. All nodes initially start out as a
  * follower. In this state, nodes can cast votes. If no entries are received for some time, nodes self-promote to the
  * candidate state. In the candidate state, nodes request votes from their peers. If a candidate receives a quorum of
@@ -30,9 +27,7 @@ import java.util.concurrent.TimeUnit;
  * 2 peers: A and B. The quorum size is also 2. If either A or B fails, it is now impossible to reach quorum. At this
  * point, the algorithm uses random timer timeout and will resolve the situation by one of the nodes taking and
  * maintaining leadership using heartbeats so in this specific case leaders will cancel one another until one of the
- * nodes sends the hearbeats first.
- * 
- * raft leader election algorithm: when a node starts it becomes a follower and set a timer that will trigger after x
+ * nodes sends the hearbeats first raft leader election algorithm: when a node starts it becomes a follower and set a timer that will trigger after x
  * amount of time and waiting during this time for a leader heartbeats if no leader send heartbeats then the timer is
  * triggered and node transition to a candidate state - once in a candidate state the node gossip vote request to all
  * member nodes nodes that receive a vote request will answer directly to the requesting node with their vote. the
@@ -41,8 +36,9 @@ import java.util.concurrent.TimeUnit;
  * cluster nodes. a leader node that receives an heartbeat from any other member transition to follower state in the
  * case where several candidates are running for leadership they both cancel the candidate state and next timeout node
  * will become a leader and election process is restarted until there is clear consensus among the cluster
- * 
  * https://raft.github.io/
+ * 
+ * @author Ronen Nachmias on 9/11/2016.
  */
 public class RaftLeaderElection extends RaftStateMachine implements LeaderElection {
 

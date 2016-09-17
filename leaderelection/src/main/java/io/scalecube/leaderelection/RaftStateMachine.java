@@ -4,7 +4,9 @@ package io.scalecube.leaderelection;
 import unquietcode.tools.esm.EnumStateMachine;
 
 /**
- * Created by ronenn on 9/14/2016.
+ * RAFT state machine dealing with state transition FOLLOWER, CANNIDATE, LEADER
+ * 
+ * @author Ronen Nachmias
  */
 public abstract class RaftStateMachine {
 
