@@ -7,6 +7,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.Member;
+import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.cluster.membership.MembershipEvent;
@@ -383,31 +384,7 @@ public class FailureDetectorIT {
   }
 
   private FailureDetector createFD(Transport transport, List<Address> addresses, FailureDetectorConfig config) {
-    Member localMember = null;
-    final List<Member> remoteMembers = new ArrayList<>();
-    int count = 0;
-    for (Address address : addresses) {
-      Member member = new Member(Integer.toString(count++), address);
-      if (address.equals(transport.address())) {
-        localMember = member;
-      } else {
-        remoteMembers.add(member);
-      }
-    }
-    final Member resolvedLocalMember = localMember;
-    IMembershipProtocol dummyMembership = new IMembershipProtocol() {
-      @Override
-      public Member member() {
-        return resolvedLocalMember;
-      }
-
-      @Override
-      public Observable<MembershipEvent> listen() {
-        return Observable.from(
-            remoteMembers.stream()
-                .map(member -> new MembershipEvent(MembershipEvent.Type.ADDED, member)).collect(Collectors.toList()));
-      }
-    };
+    IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), addresses);
     return new FailureDetector(transport, dummyMembership, config);
   }
 

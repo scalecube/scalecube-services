@@ -1,5 +1,7 @@
 package io.scalecube.cluster.gossip;
 
+import io.scalecube.cluster.membership.DummyMembershipProtocol;
+import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
@@ -133,7 +135,8 @@ public class GossipProtocolIT {
 
   private GossipProtocol initGossipProtocol(Transport transport, List<Address> members) {
     String memberId = UUID.randomUUID().toString();
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, null); //TODO: provide dummy membership
+    IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), members);
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership);
     gossipProtocol.start();
     return gossipProtocol;
   }
