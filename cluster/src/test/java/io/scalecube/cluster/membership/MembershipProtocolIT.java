@@ -301,10 +301,10 @@ public class MembershipProtocolIT {
     }
   }
 
-  public MembershipProtocol createMembership(Transport transport, List<Address> seedMembers) {
+  public MembershipProtocol createMembership(Transport transport, List<Address> seedAddresses) {
     // Create membership protocol
     MembershipConfig membershipConfig = MembershipConfig.builder()
-        .seedMembers(seedMembers)
+        .seedMembers(seedAddresses)
         .syncInterval(1000)
         .syncTimeout(200)
         .suspectTimeout(5000)

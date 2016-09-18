@@ -348,11 +348,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private Message prepareSyncDataMsg(String qualifier, String cid) {
     List<MembershipRecord> membershipRecords = new ArrayList<>(membershipTable.values());
     SyncData syncData = new SyncData(membershipRecords, config.getSyncGroup());
-    //if (cid != null) {
-      return Message.withData(syncData).qualifier(qualifier).correlationId(cid).build();
-    //} else {
-     // return Message.withData(syncData).qualifier(qualifier).build();
-    //}
+    return Message.withData(syncData).qualifier(qualifier).correlationId(cid).build();
   }
 
   private void syncMembership(SyncData syncData) {

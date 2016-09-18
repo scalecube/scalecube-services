@@ -10,12 +10,10 @@ import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
-import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
-import rx.Observable;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
