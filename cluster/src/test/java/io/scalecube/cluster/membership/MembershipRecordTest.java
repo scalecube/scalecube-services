@@ -1,48 +1,98 @@
 package io.scalecube.cluster.membership;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+
+import io.scalecube.cluster.Member;
+import io.scalecube.transport.Address;
+
+import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
+import static io.scalecube.cluster.membership.MemberStatus.DEAD;
+import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 public class MembershipRecordTest {
 
-  // TODO: write tests for override method
+  private final Member member = new Member("0", Address.from("localhost:1234"));
+  private final Member anotherMember = new Member("1", Address.from("localhost:4567"));
 
-  /*
-  private final Member member0 = new Member("id0", Address.from("localhost:1"), new HashMap<String, String>());
-  private final Member member1 = new Member("id1", Address.from("localhost:2"), new HashMap<String, String>());
+  private final MembershipRecord r0_null = null;
 
-  @Test
-  public void testCompareSameStatus() {
-    assertEquals(0, r0(MemberStatus.SUSPECT).compareTo(r1(MemberStatus.SUSPECT)));
-    assertEquals(0, r0(MemberStatus.ALIVE).compareTo(r1(MemberStatus.ALIVE)));
-    assertEquals(0, r0(MemberStatus.DEAD).compareTo(r1(MemberStatus.DEAD)));
+  private final MembershipRecord r0_alive_0 = new MembershipRecord(member, ALIVE, 0);
+  private final MembershipRecord r0_alive_1 = new MembershipRecord(member, ALIVE, 1);
+  private final MembershipRecord r0_alive_2 = new MembershipRecord(member, ALIVE, 2);
+
+  private final MembershipRecord r0_suspect_0 = new MembershipRecord(member, SUSPECT, 0);
+  private final MembershipRecord r0_suspect_1 = new MembershipRecord(member, SUSPECT, 1);
+  private final MembershipRecord r0_suspect_2 = new MembershipRecord(member, SUSPECT, 2);
+
+  private final MembershipRecord r0_dead_0 = new MembershipRecord(member, DEAD, 0);
+  private final MembershipRecord r0_dead_1 = new MembershipRecord(member, DEAD, 1);
+  private final MembershipRecord r0_dead_2 = new MembershipRecord(member, DEAD, 2);
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testCantCompareDifferentMembers() {
+    MembershipRecord r0 = new MembershipRecord(member, ALIVE, 0);
+    MembershipRecord r1 = new MembershipRecord(anotherMember, ALIVE, 0);
+
+    r1.isOverrides(r0); // throws exception
   }
 
   @Test
-  public void testCompareWithTimestamp() {
-    assertEquals(1, r0(MemberStatus.SUSPECT, 1).compareTo(r1(MemberStatus.ALIVE, 1)));
-    assertEquals(-1, r0(MemberStatus.ALIVE, 1).compareTo(r1(MemberStatus.SUSPECT, 1)));
+  public void testDeadOverride() {
+    MembershipRecord r1_dead_1 = new MembershipRecord(member, DEAD, 1);
 
-    assertEquals(-1, r0(MemberStatus.SUSPECT, 1).compareTo(r1(MemberStatus.ALIVE, 2)));
-    assertEquals(1, r0(MemberStatus.SUSPECT, 2).compareTo(r1(MemberStatus.ALIVE, 1)));
+    assertTrue(r1_dead_1.isOverrides(r0_null));
 
-    assertEquals(-1, r0(MemberStatus.ALIVE, 1).compareTo(r1(MemberStatus.SUSPECT, 2)));
-    assertEquals(1, r0(MemberStatus.ALIVE, 2).compareTo(r1(MemberStatus.SUSPECT, 1)));
+    assertTrue(r1_dead_1.isOverrides(r0_alive_0));
+    assertTrue(r1_dead_1.isOverrides(r0_alive_1));
+    assertTrue(r1_dead_1.isOverrides(r0_alive_2));
+
+    assertTrue(r1_dead_1.isOverrides(r0_suspect_0));
+    assertTrue(r1_dead_1.isOverrides(r0_suspect_1));
+    assertTrue(r1_dead_1.isOverrides(r0_suspect_2));
+
+    assertFalse(r1_dead_1.isOverrides(r0_dead_0));
+    assertFalse(r1_dead_1.isOverrides(r0_dead_1));
+    assertFalse(r1_dead_1.isOverrides(r0_dead_2));
   }
 
-  private MembershipRecord r0(MemberStatus status) {
-    return new MembershipRecord(member0, status, 0);
+  @Test
+  public void testAliveOverride() {
+    MembershipRecord r1_alive_1 = new MembershipRecord(member, ALIVE, 1);
+
+    assertTrue(r1_alive_1.isOverrides(r0_null));
+
+    assertTrue(r1_alive_1.isOverrides(r0_alive_0));
+    assertFalse(r1_alive_1.isOverrides(r0_alive_1));
+    assertFalse(r1_alive_1.isOverrides(r0_alive_2));
+
+    assertTrue(r1_alive_1.isOverrides(r0_suspect_0));
+    assertFalse(r1_alive_1.isOverrides(r0_suspect_1));
+    assertFalse(r1_alive_1.isOverrides(r0_suspect_2));
+
+    assertFalse(r1_alive_1.isOverrides(r0_dead_0));
+    assertFalse(r1_alive_1.isOverrides(r0_dead_1));
+    assertFalse(r1_alive_1.isOverrides(r0_dead_2));
   }
 
-  private MembershipRecord r1(MemberStatus status) {
-    return new MembershipRecord(member1, status, 0);
+  @Test
+  public void testSuspectOverride() {
+    MembershipRecord r1_suspect_1 = new MembershipRecord(member, SUSPECT, 1);
+
+    assertTrue(r1_suspect_1.isOverrides(r0_null));
+
+    assertTrue(r1_suspect_1.isOverrides(r0_alive_0));
+    assertTrue(r1_suspect_1.isOverrides(r0_alive_1));
+    assertFalse(r1_suspect_1.isOverrides(r0_alive_2));
+
+    assertTrue(r1_suspect_1.isOverrides(r0_suspect_0));
+    assertFalse(r1_suspect_1.isOverrides(r0_suspect_1));
+    assertFalse(r1_suspect_1.isOverrides(r0_suspect_2));
+
+    assertFalse(r1_suspect_1.isOverrides(r0_dead_0));
+    assertFalse(r1_suspect_1.isOverrides(r0_dead_1));
+    assertFalse(r1_suspect_1.isOverrides(r0_dead_2));
   }
 
-  private MembershipRecord r0(MemberStatus status, long timestamp) {
-    return new MembershipRecord(member0, status, timestamp);
-  }
-
-  private MembershipRecord r1(MemberStatus status, long timestamp) {
-    return new MembershipRecord(member1, status, timestamp);
-  }
-  */
 }

@@ -46,7 +46,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
-  // qualifiers
+  // Qualifiers
+
   public static final String SYNC = "sc/membership/sync";
   public static final String SYNC_ACK = "sc/membership/syncAck";
   public static final String MEMBERSHIP_GOSSIP = "sc/membership/gossip";
@@ -57,7 +58,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private final ITransport transport;
   private final MembershipConfig config;
   private final List<Address> seedMembers;
-
   private IFailureDetector failureDetector;
   private IGossipProtocol gossipProtocol;
 
@@ -65,10 +65,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private final Map<String, MembershipRecord> membershipTable = new HashMap<>();
 
-  // Subscriptions
+  // Subject
 
   private final Subject<MembershipEvent, MembershipEvent> subject =
       PublishSubject.<MembershipEvent>create().toSerialized();
+
+  // Subscriptions
 
   private Subscriber<Message> onSyncRequestSubscriber;
   private Subscriber<Message> onSyncAckResponseSubscriber;
@@ -79,8 +81,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private final Scheduler scheduler;
   private final ScheduledExecutorService executor;
-  private ScheduledFuture<?> syncTask;
   private final Map<String, ScheduledFuture<?>> removeMemberTasks = new HashMap<>();
+  private ScheduledFuture<?> syncTask;
 
   /**
    * Creates new instantiates of cluster membership protocol with given transport and config.
@@ -116,18 +118,30 @@ public final class MembershipProtocol implements IMembershipProtocol {
     this.gossipProtocol = gossipProtocol;
   }
 
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
   IFailureDetector getFailureDetector() {
     return failureDetector;
   }
 
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
   IGossipProtocol getGossipProtocol() {
     return gossipProtocol;
   }
 
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
   ITransport getTransport() {
     return transport;
   }
 
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
   List<MembershipRecord> getMembershipRecords() {
     return new ArrayList<>(membershipTable.values());
   }
@@ -218,6 +232,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
     subject.onCompleted();
   }
 
+  /* ================================================ *
+   * ============== Action Methods ================== *
+   * ================================================ */
+
   private ListenableFuture<Void> doInitialSync() {
     LOGGER.debug("Making initial Sync to all seed members: {}", seedMembers);
     if (seedMembers.isEmpty()) {
@@ -250,11 +268,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
     return syncResponseFuture;
   }
 
-  private void schedulePeriodicSync() {
-    int syncInterval = config.getSyncInterval();
-    syncTask = executor.scheduleWithFixedDelay(this::doSync, syncInterval, syncInterval, TimeUnit.MILLISECONDS);
-  }
-
   private void doSync() {
     try {
       Address syncMember = selectSyncAddress();
@@ -269,15 +282,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
   }
 
-  private Address selectSyncAddress() {
-    // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
-    return !seedMembers.isEmpty() ? seedMembers.get(ThreadLocalRandom.current().nextInt(seedMembers.size())) : null;
-  }
-
-  private boolean checkSyncGroup(Message message) {
-    SyncData data = message.data();
-    return config.getSyncGroup().equals(data.getSyncGroup());
-  }
+  /* ================================================ *
+   * ============== Event Listeners ================= *
+   * ================================================ */
 
   private void onSyncAck(Message syncAckMsg) {
     LOGGER.debug("Received SyncAck: {}", syncAckMsg);
@@ -317,6 +324,25 @@ public final class MembershipProtocol implements IMembershipProtocol {
     MembershipRecord record = message.data();
     LOGGER.debug("Received membership gossip: {}", record);
     updateMembership(record, false /* don't spread gossip */, true /* check override */);
+  }
+
+  /* ================================================ *
+   * ============== Helper Methods ================== *
+   * ================================================ */
+
+  private Address selectSyncAddress() {
+    // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
+    return !seedMembers.isEmpty() ? seedMembers.get(ThreadLocalRandom.current().nextInt(seedMembers.size())) : null;
+  }
+
+  private boolean checkSyncGroup(Message message) {
+    SyncData data = message.data();
+    return config.getSyncGroup().equals(data.getSyncGroup());
+  }
+
+  private void schedulePeriodicSync() {
+    int syncInterval = config.getSyncInterval();
+    syncTask = executor.scheduleWithFixedDelay(this::doSync, syncInterval, syncInterval, TimeUnit.MILLISECONDS);
   }
 
   private Message prepareSyncDataMsg(String qualifier, String cid) {

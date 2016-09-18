@@ -247,7 +247,7 @@ public final class FailureDetector implements IFailureDetector {
   }
 
   /* ================================================ *
-   * ============= On Event Methods ================= *
+   * ============== Event Listeners ================= *
    * ================================================ */
 
   private void onMemberAdded(Member member) {
