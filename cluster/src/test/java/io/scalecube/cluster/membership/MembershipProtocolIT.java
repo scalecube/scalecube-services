@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class ClusterMembershipIT {
+public class MembershipProtocolIT {
 
   @Test
   public void testInitialPhaseOk() {
@@ -302,17 +302,6 @@ public class ClusterMembershipIT {
   }
 
   public MembershipProtocol createMembership(Transport transport, List<Address> seedMembers) {
-    // Generate member id
-    /*
-    String memberId = "test-member-" + transport.address().port();
-    // Create failure detector
-    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
-        .pingInterval(200)
-        .pingTimeout(100)
-        .build();
-    FailureDetector failureDetector = new FailureDetector(transport, fdConfig);
-    // Create gossip protocol
-    GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
     // Create membership protocol
     MembershipConfig membershipConfig = MembershipConfig.builder()
         .seedMembers(seedMembers)
@@ -320,8 +309,21 @@ public class ClusterMembershipIT {
         .syncTimeout(200)
         .suspectTimeout(5000)
         .build();
-    MembershipProtocol membership =
-        new MembershipProtocol(transport, membershipConfig, failureDetector, gossipProtocol);
+    MembershipProtocol membership = new MembershipProtocol(transport, membershipConfig);
+
+    // Create failure detector
+    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
+        .pingInterval(200)
+        .pingTimeout(100)
+        .build();
+    FailureDetector failureDetector = new FailureDetector(transport, membership, fdConfig);
+
+    // Create gossip protocol
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership);
+
+    // Set membership components
+    membership.setGossipProtocol(gossipProtocol);
+    membership.setFailureDetector(failureDetector);
 
     try {
       failureDetector.start();
@@ -332,8 +334,6 @@ public class ClusterMembershipIT {
     }
 
     return membership;
-    */
-    return null; //TODO
   }
 
   public void stopAll(MembershipProtocol... memberships) {
