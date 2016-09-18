@@ -133,8 +133,7 @@ public class GossipProtocolIT {
 
   private GossipProtocol initGossipProtocol(Transport transport, List<Address> members) {
     String memberId = UUID.randomUUID().toString();
-    GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
-    gossipProtocol.setMembers(members);
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, null); //TODO: provide dummy membership
     gossipProtocol.start();
     return gossipProtocol;
   }

@@ -50,6 +50,7 @@ public class GossipProtocolFunctionsTest {
     assertTrue(gossipQueue.size() == 20);
   }
 
+  /*
   @Test
   public void testGossipSendPredicate() {
     GossipProtocol.GossipSendPredicate predicate = new GossipProtocol.GossipSendPredicate(remote, 3);
@@ -65,5 +66,6 @@ public class GossipProtocolFunctionsTest {
     assertFalse(predicate.apply(anotherInfo));
 
   }
+  */
 
 }

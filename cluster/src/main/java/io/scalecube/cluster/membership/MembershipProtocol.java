@@ -41,7 +41,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public final class MembershipProtocol implements IMembershipProtocol {
 
@@ -380,24 +379,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Emit membership event
-    boolean membershipChanged = false;
     if (r1.isDead() && r0 != null) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.REMOVED, r1.member());
       subject.onNext(membershipEvent);
-      membershipChanged = true;
     } else if (r0 == null && !r1.isDead()) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.ADDED, r1.member());
       subject.onNext(membershipEvent);
-      membershipChanged = true;
-    }
-
-    // TODO: Move to observables of membership events !!!
-    // Update FailureDetector and Gossip members
-    if (membershipChanged) {
-      Collection<Address> members = membershipTable.values().stream()
-          .map(MembershipRecord::address)
-          .collect(Collectors.toList());
-      gossipProtocol.setMembers(members);
     }
 
     // Spread gossip

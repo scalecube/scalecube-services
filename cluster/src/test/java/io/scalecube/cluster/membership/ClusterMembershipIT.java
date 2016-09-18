@@ -303,6 +303,7 @@ public class ClusterMembershipIT {
 
   public MembershipProtocol createMembership(Transport transport, List<Address> seedMembers) {
     // Generate member id
+    /*
     String memberId = "test-member-" + transport.address().port();
     // Create failure detector
     FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
@@ -331,6 +332,8 @@ public class ClusterMembershipIT {
     }
 
     return membership;
+    */
+    return null; //TODO
   }
 
   public void stopAll(MembershipProtocol... memberships) {

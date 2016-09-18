@@ -6,11 +6,15 @@ import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.Member;
+import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
+import rx.Observable;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
@@ -378,10 +382,33 @@ public class FailureDetectorIT {
     return createFD(transport, members, failureDetectorConfig);
   }
 
-  private FailureDetector createFD(Transport transport, List<Address> members, FailureDetectorConfig config) {
-    FailureDetector failureDetector = new FailureDetector(transport, config);
-    failureDetector.setPingMembers(members);
-    return failureDetector;
+  private FailureDetector createFD(Transport transport, List<Address> addresses, FailureDetectorConfig config) {
+    Member localMember = null;
+    final List<Member> remoteMembers = new ArrayList<>();
+    int count = 0;
+    for (Address address : addresses) {
+      Member member = new Member(Integer.toString(count++), address);
+      if (address.equals(transport.address())) {
+        localMember = member;
+      } else {
+        remoteMembers.add(member);
+      }
+    }
+    final Member resolvedLocalMember = localMember;
+    IMembershipProtocol dummyMembership = new IMembershipProtocol() {
+      @Override
+      public Member member() {
+        return resolvedLocalMember;
+      }
+
+      @Override
+      public Observable<MembershipEvent> listen() {
+        return Observable.from(
+            remoteMembers.stream()
+                .map(member -> new MembershipEvent(MembershipEvent.Type.ADDED, member)).collect(Collectors.toList()));
+      }
+    };
+    return new FailureDetector(transport, dummyMembership, config);
   }
 
   private void destroyTransport(ITransport transport) {
@@ -421,7 +448,8 @@ public class FailureDetectorIT {
       Address address, MemberStatus status, Collection<FailureDetectorEvent> events, Address... expected) {
     List<Address> actual = events.stream()
         .filter(event -> event.status() == status)
-        .map(FailureDetectorEvent::address)
+        .map(FailureDetectorEvent::member)
+        .map(Member::address)
         .collect(Collectors.toList());
 
     String msg1 = String.format("Node %s expected %s %s members %s, but was: %s",
@@ -434,16 +462,16 @@ public class FailureDetectorIT {
     }
   }
 
-  private Future<List<FailureDetectorEvent>> listenNextEventFor(FailureDetector fd, List<Address> members) {
-    members = new ArrayList<>(members);
-    members.remove(fd.getTransport().address()); // exclude self
-    checkArgument(!members.isEmpty());
+  private Future<List<FailureDetectorEvent>> listenNextEventFor(FailureDetector fd, List<Address> addresses) {
+    addresses = new ArrayList<>(addresses);
+    addresses.remove(fd.getTransport().address()); // exclude self
+    checkArgument(!addresses.isEmpty());
 
     List<ListenableFuture<FailureDetectorEvent>> resultFuture = new ArrayList<>();
-    for (final Address member : members) {
+    for (final Address member : addresses) {
       final SettableFuture<FailureDetectorEvent> future = SettableFuture.create();
       fd.listen()
-          .filter(event -> event.address() == member)
+          .filter(event -> event.member().address() == member)
           .subscribe(future::set);
       resultFuture.add(future);
     }

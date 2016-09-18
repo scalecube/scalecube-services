@@ -143,7 +143,8 @@ public final class FailureDetector implements IFailureDetector {
 
   private void onMemberAdded(Member member) {
     // insert member into random positions
-    int index = ThreadLocalRandom.current().nextInt(pingMembers.size());
+    int size = pingMembers.size();
+    int index = size > 0 ? ThreadLocalRandom.current().nextInt(size) : 0;
     pingMembers.add(index, member);
   }
 
