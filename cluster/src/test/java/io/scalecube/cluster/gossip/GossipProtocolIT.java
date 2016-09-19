@@ -33,10 +33,15 @@ public class GossipProtocolIT {
   @Parameterized.Parameters(name = "N={0}, Plost={1}%, Tmean={2}ms, T={3}ms")
   public static List<Object[]> data() {
     return Arrays.asList(new Object[][] {
+        { 2  , 0  ,  2   , 1_000  }, // warm up
+        { 2  , 0  ,  2   ,   500  },
+        { 3  , 0  ,  2   ,   500  },
+        { 5  , 0  ,  2   ,   800  },
         { 10 , 0  ,  2   , 1_000  },
-        { 10 , 20 ,  2   , 2_000  },
-        { 50 , 0  ,  2   , 5_000 },
-        { 50 , 5  ,  200 , 10_000 },
+        { 10 , 25 ,  2   , 2_000  },
+        { 10 , 50 ,  2   , 4_000  },
+        { 50 , 0  ,  2   , 5_000  },
+        { 50 , 10  , 300 , 10_000 },
     });
   }
 
@@ -151,7 +156,7 @@ public class GossipProtocolIT {
 
     // Await a bit
     try {
-      Thread.sleep(1000);
+      Thread.sleep(gossipProtocols.size() * 20);
     } catch (InterruptedException ignore) {
       // ignore
     }

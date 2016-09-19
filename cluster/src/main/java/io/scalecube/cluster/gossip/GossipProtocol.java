@@ -169,15 +169,15 @@ public final class GossipProtocol implements IGossipProtocol {
    * ================================================ */
 
   private void doSpreadGossip() {
+    // Increment period
+    period++;
+
+    // Check any gossips to spread
+    if (gossips.isEmpty()) {
+      return;
+    }
+
     try {
-      // Increment period
-      period++;
-
-      // Check any gossips to spread
-      if (gossips.isEmpty()) {
-        return;
-      }
-
       // Spread gossips to random member(s)
       List<Member> gossipMembers = selectGossipMembers();
       for (Member member : gossipMembers) {
@@ -201,7 +201,7 @@ public final class GossipProtocol implements IGossipProtocol {
       // Sweep gossips
       sweepGossips();
     } catch (Exception cause) {
-      LOGGER.error("Unhandled exception: {}", cause, cause);
+      LOGGER.error("Exception on sending GossipReq[{}] exception: {}", period, cause.getMessage(), cause);
     }
   }
 
@@ -243,19 +243,19 @@ public final class GossipProtocol implements IGossipProtocol {
   private List<Gossip> selectGossipsToSend(Member member) {
     return gossips.values().stream()
         .filter(gossipState -> !gossipState.isInfected(member))
-        .filter(gossipState -> gossipState.spreadCount() < config.getMaxGossipSent() * factor())
+        .filter(gossipState -> gossipState.spreadCount() < config.getGossipFanout() * factor())
         .map(GossipState::gossip)
         .collect(Collectors.toList());
   }
 
   private List<Member> selectGossipMembers() {
-    if (remoteMembers.size() < config.getMaxMembersToSelect()) {
+    if (remoteMembers.size() < config.getGossipFanout()) {
       return remoteMembers; // all
-    } else if (config.getMaxMembersToSelect() == 1) {
+    } else if (config.getGossipFanout() == 1) {
       return Collections.singletonList(remoteMembers.get(ThreadLocalRandom.current().nextInt(remoteMembers.size())));
     } else {
       Collections.shuffle(remoteMembers);
-      return remoteMembers.subList(0, config.getMaxMembersToSelect());
+      return remoteMembers.subList(0, config.getGossipFanout());
     }
   }
 
@@ -266,7 +266,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private void sweepGossips() {
-    int maxPeriods = factor() * 10; // why 10?
+    int maxPeriods = (config.getGossipFanout() + 1) * factor();
     Set<GossipState> gossipsToRemove = gossips.values().stream()
         .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriods)
         .collect(Collectors.toSet());
