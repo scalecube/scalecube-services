@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -158,8 +159,35 @@ public final class GossipProtocol implements IGossipProtocol {
 
   private void doSpreadGossip() {
     try {
+      // Increment period
       period++;
-      sendGossips();
+
+      // Check any gossips to spread
+      if (gossips.isEmpty()) {
+        return;
+      }
+
+      // Spread gossips to random member(s)
+      List<Member> gossipMembers = selectGossipMembers();
+      for (Member member : gossipMembers) {
+        // Select gossips to send
+        List<Gossip> gossipsToSend = selectGossipsToSend(member);
+        if (gossipsToSend.isEmpty()) {
+          continue; // nothing to spread
+        }
+
+        // Send gossips
+        sendGossips(member, gossipsToSend);
+
+        // Update gossips states
+        gossipsToSend.forEach(gossip -> {
+            GossipState gossipState = gossips.get(gossip.gossipId());
+            gossipState.incrementSpreadCount();
+            gossipState.addToInfected(member);
+          });
+      }
+
+      // Sweep gossips
       sweepGossips();
     } catch (Exception cause) {
       LOGGER.error("Unhandled exception: {}", cause, cause);
@@ -210,29 +238,10 @@ public final class GossipProtocol implements IGossipProtocol {
     return membership.member().id() + "-" + gossipCounter++;
   }
 
-  private void sendGossips() {
-    if (gossips.isEmpty()) {
-      return;
-    }
-    List<Member> gossipMembers = selectGossipMembers();
-    for (Member member : gossipMembers) {
-      List<Gossip> gossipsToSend = selectGossipsToSend(member);
-      if (!gossipsToSend.isEmpty()) {
-        // Send gossips
-        GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member());
-        Message gossipReqMsg = Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
-        transport.send(member.address(), gossipReqMsg);
-
-        // Increment send count for each sent gossip
-        gossipsToSend.forEach(gossip -> gossips.get(gossip.gossipId()).incrementSend());
-      }
-    }
-  }
-
   private List<Gossip> selectGossipsToSend(Member member) {
     return gossips.values().stream()
         .filter(gossipState -> !gossipState.isInfected(member))
-        .filter(gossipState -> gossipState.getSent() < config.getMaxGossipSent() * factor)
+        .filter(gossipState -> gossipState.spreadCount() < config.getMaxGossipSent() * factor)
         .map(GossipState::gossip)
         .collect(Collectors.toList());
   }
@@ -240,15 +249,24 @@ public final class GossipProtocol implements IGossipProtocol {
   private List<Member> selectGossipMembers() {
     if (remoteMembers.size() < config.getMaxMembersToSelect()) {
       return remoteMembers; // all
+    } else if (config.getMaxMembersToSelect() == 1) {
+      return Collections.singletonList(remoteMembers.get(ThreadLocalRandom.current().nextInt(remoteMembers.size())));
+    } else {
+      Collections.shuffle(remoteMembers);
+      return remoteMembers.subList(0, config.getMaxMembersToSelect());
     }
-    Collections.shuffle(remoteMembers);
-    return remoteMembers.subList(0, config.getMaxMembersToSelect());
+  }
+
+  private void sendGossips(Member to, List<Gossip> gossips) {
+    GossipRequest gossipReqData = new GossipRequest(gossips, membership.member());
+    Message gossipReqMsg = Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
+    transport.send(to.address(), gossipReqMsg);
   }
 
   private void sweepGossips() {
     int maxPeriods = factor * 10;
     Set<GossipState> gossipsToRemove = gossips.values().stream()
-        .filter(gossipState -> period > gossipState.getPeriod() + maxPeriods)
+        .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriods)
         .collect(Collectors.toSet());
     if (!gossipsToRemove.isEmpty()) {
       LOGGER.debug("Sweep gossips: {}", gossipsToRemove);

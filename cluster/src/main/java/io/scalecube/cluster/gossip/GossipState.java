@@ -1,10 +1,8 @@
 package io.scalecube.cluster.gossip;
 
 import io.scalecube.cluster.Member;
-import io.scalecube.transport.Address;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -15,19 +13,27 @@ final class GossipState {
   /** Target gossip. */
   private final Gossip gossip;
 
-  /** Local time when gossip first period occur. */
-  private final long period;
+  /** Local gossip period when gossip was heard for first time. */
+  private final long infectionPeriod;
 
-  /** How many times gossip was sent, increment before each send. */
-  private int sent = 0;
+  /** How many times gossip was sent, incremented on each send. */
+  private int spreadCount = 0;
 
   /** Set of members this gossip was received from or sent to. */
   private Set<Member> infected = new HashSet<>();
 
-  GossipState(Gossip gossip, long period) {
+  GossipState(Gossip gossip, long infectionPeriod) {
     Preconditions.checkArgument(gossip != null);
     this.gossip = gossip;
-    this.period = period;
+    this.infectionPeriod = infectionPeriod;
+  }
+
+  public Gossip gossip() {
+    return gossip;
+  }
+
+  public long infectionPeriod() {
+    return infectionPeriod;
   }
 
   public void addToInfected(Member member) {
@@ -38,24 +44,20 @@ final class GossipState {
     return infected.contains(member);
   }
 
-  public void incrementSend() {
-    sent++;
+  public void incrementSpreadCount() {
+    spreadCount++;
   }
 
-  public Gossip gossip() {
-    return gossip;
-  }
-
-  public int getSent() {
-    return sent;
-  }
-
-  public long getPeriod() {
-    return period;
+  public int spreadCount() {
+    return spreadCount;
   }
 
   @Override
   public String toString() {
-    return "GossipState{gossip=" + gossip + ", sent=" + sent + ", period=" + period + ", members=" + infected + '}';
+    return "GossipState{gossip=" + gossip
+        + ", infectionPeriod=" + infectionPeriod
+        + ", spreadCount=" + spreadCount
+        + ", infected=" + infected
+        + '}';
   }
 }
