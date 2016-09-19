@@ -178,25 +178,8 @@ public final class GossipProtocol implements IGossipProtocol {
     }
 
     try {
-      // Spread gossips to random member(s)
-      List<Member> gossipMembers = selectGossipMembers();
-      for (Member member : gossipMembers) {
-        // Select gossips to send
-        List<Gossip> gossipsToSend = selectGossipsToSend(member);
-        if (gossipsToSend.isEmpty()) {
-          continue; // nothing to spread
-        }
-
-        // Send gossips
-        sendGossips(member, gossipsToSend);
-
-        // Update gossips states
-        gossipsToSend.forEach(gossip -> {
-            GossipState gossipState = gossips.get(gossip.gossipId());
-            gossipState.incrementSpreadCount();
-            gossipState.addToInfected(member);
-          });
-      }
+      // Spread gossips to randomly selected member(s)
+      selectGossipMembers().forEach(this::spreadGossipsTo);
 
       // Sweep gossips
       sweepGossips();
@@ -259,16 +242,30 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
-  private void sendGossips(Member to, List<Gossip> gossips) {
-    GossipRequest gossipReqData = new GossipRequest(gossips, membership.member());
+  private void spreadGossipsTo(Member member) {
+    // Select gossips to send
+    List<Gossip> gossipsToSend = selectGossipsToSend(member);
+    if (gossipsToSend.isEmpty()) {
+      return; // nothing to spread
+    }
+
+    // Send gossip request
+    GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member());
     Message gossipReqMsg = Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
-    transport.send(to.address(), gossipReqMsg);
+    transport.send(member.address(), gossipReqMsg);
+
+    // Update gossip states
+    gossipsToSend.forEach(gossip -> {
+      GossipState gossipState = gossips.get(gossip.gossipId());
+      gossipState.incrementSpreadCount();
+      gossipState.addToInfected(member);
+    });
   }
 
   private void sweepGossips() {
-    int maxPeriods = (config.getGossipFanout() + 1) * factor();
+    int maxPeriodsToKeep = (config.getGossipFanout() + 1) * factor();
     Set<GossipState> gossipsToRemove = gossips.values().stream()
-        .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriods)
+        .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriodsToKeep)
         .collect(Collectors.toSet());
     if (!gossipsToRemove.isEmpty()) {
       LOGGER.debug("Sweep gossips: {}", gossipsToRemove);
