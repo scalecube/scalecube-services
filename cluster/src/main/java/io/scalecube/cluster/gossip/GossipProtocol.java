@@ -51,14 +51,14 @@ public final class GossipProtocol implements IGossipProtocol {
   // Local State
 
   private long period = 0;
-  private int factor = 1;
   private long gossipCounter = 0;
   private Map<String, GossipState> gossips = Maps.newHashMap();
   private List<Member> remoteMembers = new ArrayList<>();
 
   // Subscriptions
 
-  private Subscriber<MembershipEvent> onMembershipEventSubscriber;
+  private Subscriber<Member> onMemberAddedEventSubscriber;
+  private Subscriber<Member> onMemberRemovedEventSubscriber;
   private Subscriber<Message> onGossipRequestSubscriber;
 
   // Subject
@@ -108,9 +108,17 @@ public final class GossipProtocol implements IGossipProtocol {
 
   @Override
   public void start() {
-    onMembershipEventSubscriber = Subscribers.create(this::onMembershipEvent);
+    onMemberAddedEventSubscriber = Subscribers.create(remoteMembers::add);
     membership.listen().observeOn(scheduler)
-        .subscribe(onMembershipEventSubscriber);
+        .filter(MembershipEvent::isAdded)
+        .map(MembershipEvent::member)
+        .subscribe(onMemberAddedEventSubscriber);
+
+    onMemberRemovedEventSubscriber = Subscribers.create(remoteMembers::remove);
+    membership.listen().observeOn(scheduler)
+        .filter(MembershipEvent::isRemoved)
+        .map(MembershipEvent::member)
+        .subscribe(onMemberRemovedEventSubscriber);
 
     onGossipRequestSubscriber = Subscribers.create(this::onGossipReq);
     transport.listen().observeOn(scheduler)
@@ -124,8 +132,11 @@ public final class GossipProtocol implements IGossipProtocol {
   @Override
   public void stop() {
     // Stop accepting gossip requests
-    if (onMembershipEventSubscriber != null) {
-      onMembershipEventSubscriber.unsubscribe();
+    if (onMemberAddedEventSubscriber != null) {
+      onMemberAddedEventSubscriber.unsubscribe();
+    }
+    if (onMemberRemovedEventSubscriber != null) {
+      onMemberRemovedEventSubscriber.unsubscribe();
     }
     if (onGossipRequestSubscriber != null) {
       onGossipRequestSubscriber.unsubscribe();
@@ -198,15 +209,6 @@ public final class GossipProtocol implements IGossipProtocol {
    * ============== Event Listeners ================= *
    * ================================================ */
 
-  private void onMembershipEvent(MembershipEvent event) {
-    if (event.isAdded()) {
-      remoteMembers.add(event.member());
-    } else if (event.isRemoved()) {
-      remoteMembers.remove(event.member());
-    }
-    this.factor = 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1);
-  }
-
   private void onSpreadGossip(Message message) {
     Gossip gossip = new Gossip(generateGossipId(), message);
     GossipState gossipState = new GossipState(gossip, period);
@@ -241,7 +243,7 @@ public final class GossipProtocol implements IGossipProtocol {
   private List<Gossip> selectGossipsToSend(Member member) {
     return gossips.values().stream()
         .filter(gossipState -> !gossipState.isInfected(member))
-        .filter(gossipState -> gossipState.spreadCount() < config.getMaxGossipSent() * factor)
+        .filter(gossipState -> gossipState.spreadCount() < config.getMaxGossipSent() * factor())
         .map(GossipState::gossip)
         .collect(Collectors.toList());
   }
@@ -264,7 +266,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private void sweepGossips() {
-    int maxPeriods = factor * 10;
+    int maxPeriods = factor() * 10; // why 10?
     Set<GossipState> gossipsToRemove = gossips.values().stream()
         .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriods)
         .collect(Collectors.toSet());
@@ -274,6 +276,11 @@ public final class GossipProtocol implements IGossipProtocol {
         gossips.remove(gossipState.gossip().gossipId());
       }
     }
+  }
+
+  private int factor() {
+    // Ceil( Log2(N + 1) )
+    return 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1);
   }
 
 }
