@@ -195,8 +195,10 @@ final class MessageSchema implements Schema<Message> {
     // Write headers
     if (!message.headers().isEmpty()) {
       for (Map.Entry<String, String> headerEntry : message.headers().entrySet()) {
-        output.writeString(HEADER_KEYS_FIELD_NUMBER, headerEntry.getKey(), true);
-        output.writeString(HEADER_VALUES_FIELD_NUMBER, headerEntry.getValue(), true);
+        if (headerEntry.getKey() != null && headerEntry.getValue() != null) {
+          output.writeString(HEADER_KEYS_FIELD_NUMBER, headerEntry.getKey(), true);
+          output.writeString(HEADER_VALUES_FIELD_NUMBER, headerEntry.getValue(), true);
+        }
       }
     }
 

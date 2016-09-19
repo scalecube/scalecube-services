@@ -1,7 +1,5 @@
 package io.scalecube.transport;
 
-import rx.functions.Func1;
-
 /**
  * Static constants for message headers.
  * 
@@ -10,8 +8,8 @@ import rx.functions.Func1;
 public final class MessageHeaders {
 
   /**
-   * This header is supposed to be used by application in case if same data type can be reused for different message
-   * meanings so it will allow to qualify the specific meaning of data.
+   * This header is supposed to be used by application in case if same data type can be reused for several messages
+   * so it will allow to qualify the specific message type.
    */
   public static final String QUALIFIER = "q";
 
@@ -30,24 +28,4 @@ public final class MessageHeaders {
     // Do not instantiate
   }
 
-  public static class Filter implements Func1<Message, Boolean> {
-    final String qualifier;
-    final String correlationId;
-
-    public Filter(String qualifier) {
-      this(qualifier, null);
-    }
-
-    public Filter(String qualifier, String correlationId) {
-      this.qualifier = qualifier;
-      this.correlationId = correlationId;
-    }
-
-    @Override
-    public Boolean call(Message message) {
-      boolean q0 = qualifier.equals(message.qualifier());
-      boolean q1 = correlationId == null || correlationId.equals(message.correlationId());
-      return q0 && q1;
-    }
-  }
 }

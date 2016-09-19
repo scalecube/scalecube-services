@@ -1,41 +1,34 @@
 package io.scalecube.cluster.membership;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.cluster.membership.MemberStatus.DEAD;
+import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
-
-import java.util.Map;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
 /**
- * Cluster membership record which represents member, status, and timestamp. Most important, contains -
- * {@link #compareTo(MembershipRecord)} .
+ * Cluster membership record which represents member, status, and incarnation.
  */
 @Immutable
-public final class MembershipRecord implements Comparable<MembershipRecord> {
+final class MembershipRecord {
+
   private final Member member;
   private final MemberStatus status;
-  private final long timestamp;
+  private final int incarnation;
 
   /**
-   * Instantiates new instance of membership record with given member, status and current timestamp.
+   * Instantiates new instance of membership record with given member, status and incarnation.
    */
-  public MembershipRecord(Member member, MemberStatus status) {
-    this(member, status, System.currentTimeMillis());
-  }
-
-  /**
-   * Instantiates new instance of membership record with given member, status and timestamp.
-   */
-  public MembershipRecord(Member member, MemberStatus status, long timestamp) {
+  public MembershipRecord(Member member, MemberStatus status, int incarnation) {
     checkArgument(member != null);
     checkArgument(status != null);
     this.member = member;
     this.status = status;
-    this.timestamp = timestamp;
+    this.incarnation = incarnation;
   }
 
   @Nonnull
@@ -58,42 +51,48 @@ public final class MembershipRecord implements Comparable<MembershipRecord> {
     return status;
   }
 
-  public Map<String, String> metadata() {
-    return member.metadata();
+  public boolean isAlive() {
+    return status == MemberStatus.ALIVE;
   }
 
-  public long timestamp() {
-    return timestamp;
+  public boolean isSuspect() {
+    return status == MemberStatus.SUSPECT;
   }
 
-  @Override
-  public int compareTo(@Nonnull MembershipRecord r1) {
-    if (status == r1.status) {
-      return 0;
-    }
-    if (status == MemberStatus.SHUTDOWN) {
-      return 1;
-    }
-    if (r1.status == MemberStatus.SHUTDOWN) {
-      return -1;
-    }
+  public boolean isDead() {
+    return status == MemberStatus.DEAD;
+  }
 
-    int clockCompare = Long.compare(timestamp, r1.timestamp);
-    if (clockCompare < 0) {
-      return -1;
-    }
-    if (clockCompare == 0 && (status == MemberStatus.TRUSTED && r1.status == MemberStatus.SUSPECTED)) {
-      return -1;
-    }
+  public int incarnation() {
+    return incarnation;
+  }
 
-    return 1;
+  /**
+   * Checks either this record overrides given record.
+   *
+   * @param r0 existing record in membership table
+   * @return true if this record overrides exiting; false otherwise
+   */
+  public boolean isOverrides(MembershipRecord r0) {
+    if (r0 == null) {
+      return true;
+    }
+    checkArgument(this.member.equals(r0.member), "Can't compare records for different members");
+    if (r0.status == DEAD) {
+      return false;
+    }
+    if (status == DEAD) {
+      return true;
+    }
+    if (incarnation == r0.incarnation) {
+      return (status != r0.status) && (status == SUSPECT);
+    } else {
+      return incarnation > r0.incarnation;
+    }
   }
 
   @Override
   public String toString() {
-    return "ClusterMember{member=" + member
-        + ", status=" + status
-        + ", timestamp=" + timestamp
-        + '}';
+    return "{m: " + member + ", s: " + status + ", inc: " + incarnation + '}';
   }
 }

@@ -17,11 +17,21 @@ import javax.annotation.concurrent.Immutable;
  * @author Anton Kharenko
  */
 @Immutable
-public class Member {
+public final class Member {
 
   private final String id;
   private final Address address;
   private final Map<String, String> metadata;
+
+  /**
+   * Create instance of cluster member with given id, address and empty metadata.
+   *
+   * @param id member id
+   * @param address address on which given member listens for incoming messages
+   */
+  public Member(String id, Address address) {
+    this(id, address, Collections.emptyMap());
+  }
 
   /**
    * Create instance of cluster member with given parameters.
@@ -71,9 +81,6 @@ public class Member {
 
   @Override
   public String toString() {
-    return "Member{id=" + id
-        + ", address=" + address
-        + ", metadata=" + metadata
-        + '}';
+    return id + "@" + address + (metadata.isEmpty() ? "" : metadata);
   }
 }

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
+import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
@@ -22,7 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class ClusterMembershipIT {
+public class MembershipProtocolIT {
 
   @Test
   public void testInitialPhaseOk() {
@@ -66,7 +67,7 @@ public class ClusterMembershipIT {
     c.block(members);
 
     try {
-      awaitSeconds(9);
+      awaitSeconds(6);
 
       assertTrusted(cm_a, a.address());
       assertNoSuspected(cm_a);
@@ -185,7 +186,7 @@ public class ClusterMembershipIT {
       assertTrusted(cm_d, c.address(), d.address());
       assertSuspected(cm_d, a.address(), b.address());
 
-      awaitSeconds(9); // > max suspect time (5)
+      awaitSeconds(6); // > max suspect time (5)
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
@@ -234,7 +235,7 @@ public class ClusterMembershipIT {
       assertTrusted(cm_b, a.address(), b.address());
       assertSuspected(cm_b, c.address(), d.address());
 
-      awaitSeconds(9); // > max suspect time (5)
+      awaitSeconds(6); // > max suspect time (5)
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
@@ -276,7 +277,7 @@ public class ClusterMembershipIT {
     MembershipProtocol cm_e = createMembership(e, Collections.singletonList(b.address()));
 
     try {
-      awaitSeconds(10);
+      awaitSeconds(3);
 
       assertTrusted(cm_a, a.address(), b.address(), c.address(), d.address(), e.address());
       assertNoSuspected(cm_a);
@@ -301,26 +302,29 @@ public class ClusterMembershipIT {
     }
   }
 
-  public MembershipProtocol createMembership(Transport transport, List<Address> seedMembers) {
-    // Generate member id
-    String memberId = "TestMember-localhost:" + transport.address().port();
-    // Create failure detector
-    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
-        .pingTime(200)
-        .pingTimeout(100)
-        .build();
-    FailureDetector failureDetector = new FailureDetector(transport, fdConfig);
-    // Create gossip protocol
-    GossipProtocol gossipProtocol = new GossipProtocol(memberId, transport);
+  public MembershipProtocol createMembership(Transport transport, List<Address> seedAddresses) {
     // Create membership protocol
     MembershipConfig membershipConfig = MembershipConfig.builder()
-        .seedMembers(seedMembers)
-        .syncTime(1000)
+        .seedMembers(seedAddresses)
+        .syncInterval(1000)
         .syncTimeout(200)
-        .maxSuspectTime(5000)
+        .suspectTimeout(5000)
         .build();
-    MembershipProtocol membership = new MembershipProtocol(
-        memberId, transport, membershipConfig, failureDetector, gossipProtocol);
+    MembershipProtocol membership = new MembershipProtocol(transport, membershipConfig);
+
+    // Create failure detector
+    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
+        .pingInterval(200)
+        .pingTimeout(100)
+        .build();
+    FailureDetector failureDetector = new FailureDetector(transport, membership, fdConfig);
+
+    // Create gossip protocol
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership, GossipConfig.defaultConfig());
+
+    // Set membership components
+    membership.setGossipProtocol(gossipProtocol);
+    membership.setFailureDetector(failureDetector);
 
     try {
       failureDetector.start();
@@ -357,7 +361,7 @@ public class ClusterMembershipIT {
   }
 
   public void assertTrusted(MembershipProtocol membership, Address... expected) {
-    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.TRUSTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.ALIVE);
     assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
@@ -366,7 +370,7 @@ public class ClusterMembershipIT {
   }
 
   public void assertSuspected(MembershipProtocol membership, Address... expected) {
-    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
     for (Address member : expected) {
@@ -375,13 +379,13 @@ public class ClusterMembershipIT {
   }
 
   public void assertNoSuspected(MembershipProtocol membership) {
-    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECTED);
+    List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
   }
 
   private List<Address> getAddressesWithStatus(MembershipProtocol membership, MemberStatus status) {
     List<Address> addresses = new ArrayList<>();
-    for (MembershipRecord member : membership.members()) {
+    for (MembershipRecord member : membership.getMembershipRecords()) {
       if (member.status() == status) {
         addresses.add(member.address());
       }

@@ -1,63 +1,98 @@
 package io.scalecube.cluster.membership;
 
-import static org.junit.Assert.assertEquals;
-
 import org.junit.Test;
-
-import java.util.HashMap;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 
+import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
+import static io.scalecube.cluster.membership.MemberStatus.DEAD;
+import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
+
 public class MembershipRecordTest {
 
-  private final Member member0 = new Member("id0", Address.from("localhost:1"), new HashMap<String, String>());
-  private final Member member1 = new Member("id1", Address.from("localhost:2"), new HashMap<String, String>());
+  private final Member member = new Member("0", Address.from("localhost:1234"));
+  private final Member anotherMember = new Member("1", Address.from("localhost:4567"));
 
-  @Test
-  public void testCompareSameStatus() {
-    assertEquals(0, r0(MemberStatus.SUSPECTED).compareTo(r1(MemberStatus.SUSPECTED)));
-    assertEquals(0, r0(MemberStatus.TRUSTED).compareTo(r1(MemberStatus.TRUSTED)));
-    assertEquals(0, r0(MemberStatus.REMOVED).compareTo(r1(MemberStatus.REMOVED)));
-    assertEquals(0, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.SHUTDOWN)));
+  private final MembershipRecord r0_null = null;
+
+  private final MembershipRecord r0_alive_0 = new MembershipRecord(member, ALIVE, 0);
+  private final MembershipRecord r0_alive_1 = new MembershipRecord(member, ALIVE, 1);
+  private final MembershipRecord r0_alive_2 = new MembershipRecord(member, ALIVE, 2);
+
+  private final MembershipRecord r0_suspect_0 = new MembershipRecord(member, SUSPECT, 0);
+  private final MembershipRecord r0_suspect_1 = new MembershipRecord(member, SUSPECT, 1);
+  private final MembershipRecord r0_suspect_2 = new MembershipRecord(member, SUSPECT, 2);
+
+  private final MembershipRecord r0_dead_0 = new MembershipRecord(member, DEAD, 0);
+  private final MembershipRecord r0_dead_1 = new MembershipRecord(member, DEAD, 1);
+  private final MembershipRecord r0_dead_2 = new MembershipRecord(member, DEAD, 2);
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testCantCompareDifferentMembers() {
+    MembershipRecord r0 = new MembershipRecord(member, ALIVE, 0);
+    MembershipRecord r1 = new MembershipRecord(anotherMember, ALIVE, 0);
+
+    r1.isOverrides(r0); // throws exception
   }
 
   @Test
-  public void testCompareShutdown() throws Exception {
-    assertEquals(1, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.TRUSTED)));
-    assertEquals(1, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.SUSPECTED)));
-    assertEquals(1, r0(MemberStatus.SHUTDOWN).compareTo(r1(MemberStatus.REMOVED)));
+  public void testDeadOverride() {
+    MembershipRecord r1_dead_1 = new MembershipRecord(member, DEAD, 1);
 
-    assertEquals(-1, r0(MemberStatus.TRUSTED).compareTo(r1(MemberStatus.SHUTDOWN)));
-    assertEquals(-1, r0(MemberStatus.SUSPECTED).compareTo(r1(MemberStatus.SHUTDOWN)));
-    assertEquals(-1, r0(MemberStatus.REMOVED).compareTo(r1(MemberStatus.SHUTDOWN)));
+    assertTrue(r1_dead_1.isOverrides(r0_null));
+
+    assertTrue(r1_dead_1.isOverrides(r0_alive_0));
+    assertTrue(r1_dead_1.isOverrides(r0_alive_1));
+    assertTrue(r1_dead_1.isOverrides(r0_alive_2));
+
+    assertTrue(r1_dead_1.isOverrides(r0_suspect_0));
+    assertTrue(r1_dead_1.isOverrides(r0_suspect_1));
+    assertTrue(r1_dead_1.isOverrides(r0_suspect_2));
+
+    assertFalse(r1_dead_1.isOverrides(r0_dead_0));
+    assertFalse(r1_dead_1.isOverrides(r0_dead_1));
+    assertFalse(r1_dead_1.isOverrides(r0_dead_2));
   }
 
   @Test
-  public void testCompareWithTimestamp() {
-    assertEquals(1, r0(MemberStatus.SUSPECTED, 1).compareTo(r1(MemberStatus.TRUSTED, 1)));
-    assertEquals(-1, r0(MemberStatus.TRUSTED, 1).compareTo(r1(MemberStatus.SUSPECTED, 1)));
+  public void testAliveOverride() {
+    MembershipRecord r1_alive_1 = new MembershipRecord(member, ALIVE, 1);
 
-    assertEquals(-1, r0(MemberStatus.SUSPECTED, 1).compareTo(r1(MemberStatus.TRUSTED, 2)));
-    assertEquals(1, r0(MemberStatus.SUSPECTED, 2).compareTo(r1(MemberStatus.TRUSTED, 1)));
+    assertTrue(r1_alive_1.isOverrides(r0_null));
 
-    assertEquals(-1, r0(MemberStatus.TRUSTED, 1).compareTo(r1(MemberStatus.SUSPECTED, 2)));
-    assertEquals(1, r0(MemberStatus.TRUSTED, 2).compareTo(r1(MemberStatus.SUSPECTED, 1)));
+    assertTrue(r1_alive_1.isOverrides(r0_alive_0));
+    assertFalse(r1_alive_1.isOverrides(r0_alive_1));
+    assertFalse(r1_alive_1.isOverrides(r0_alive_2));
+
+    assertTrue(r1_alive_1.isOverrides(r0_suspect_0));
+    assertFalse(r1_alive_1.isOverrides(r0_suspect_1));
+    assertFalse(r1_alive_1.isOverrides(r0_suspect_2));
+
+    assertFalse(r1_alive_1.isOverrides(r0_dead_0));
+    assertFalse(r1_alive_1.isOverrides(r0_dead_1));
+    assertFalse(r1_alive_1.isOverrides(r0_dead_2));
   }
 
-  private MembershipRecord r0(MemberStatus status) {
-    return new MembershipRecord(member0, status);
+  @Test
+  public void testSuspectOverride() {
+    MembershipRecord r1_suspect_1 = new MembershipRecord(member, SUSPECT, 1);
+
+    assertTrue(r1_suspect_1.isOverrides(r0_null));
+
+    assertTrue(r1_suspect_1.isOverrides(r0_alive_0));
+    assertTrue(r1_suspect_1.isOverrides(r0_alive_1));
+    assertFalse(r1_suspect_1.isOverrides(r0_alive_2));
+
+    assertTrue(r1_suspect_1.isOverrides(r0_suspect_0));
+    assertFalse(r1_suspect_1.isOverrides(r0_suspect_1));
+    assertFalse(r1_suspect_1.isOverrides(r0_suspect_2));
+
+    assertFalse(r1_suspect_1.isOverrides(r0_dead_0));
+    assertFalse(r1_suspect_1.isOverrides(r0_dead_1));
+    assertFalse(r1_suspect_1.isOverrides(r0_dead_2));
   }
 
-  private MembershipRecord r1(MemberStatus status) {
-    return new MembershipRecord(member1, status);
-  }
-
-  private MembershipRecord r0(MemberStatus status, long timestamp) {
-    return new MembershipRecord(member0, status, timestamp);
-  }
-
-  private MembershipRecord r1(MemberStatus status, long timestamp) {
-    return new MembershipRecord(member1, status, timestamp);
-  }
 }

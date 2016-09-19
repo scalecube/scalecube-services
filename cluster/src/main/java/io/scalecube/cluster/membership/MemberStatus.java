@@ -1,23 +1,21 @@
 package io.scalecube.cluster.membership;
 
 public enum MemberStatus {
+
   /**
-   * Member is reachable and responding on pings.
+   * Member is reachable and responding on messages.
    */
-  TRUSTED,
+  ALIVE,
 
   /**
    * Member can't be reached and marked as suspected to be failed.
    */
-  SUSPECTED,
+  SUSPECT,
 
   /**
-   * Member removed from membership table after being {@link #SUSPECTED} for configured time.
+   * Member declared as dead after being {@link #SUSPECT} for configured time or when node has been gracefully shutdown
+   * and left cluster.
    */
-  REMOVED,
+  DEAD
 
-  /**
-   * Member has been gracefully shutdown and left cluster.
-   */
-  SHUTDOWN
 }

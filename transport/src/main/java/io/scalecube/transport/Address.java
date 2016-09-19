@@ -17,10 +17,8 @@ public final class Address {
 
   private static final Pattern ADDRESS_FORMAT = Pattern.compile("(?<host>^.*):(?<port>\\d+$)");
 
-  private String host;
-  private int port;
-
-  private Address() {}
+  private final String host;
+  private final int port;
 
   private Address(@CheckForNull String host, int port) {
     checkArgument(!Strings.isNullOrEmpty(host));

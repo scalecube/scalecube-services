@@ -2,18 +2,15 @@ package io.scalecube.cluster.gossip;
 
 public final class GossipConfig {
 
-  public static final int DEFAULT_MAX_GOSSIP_SENT = 2;
-  public static final int DEFAULT_GOSSIP_TIME = 300;
-  public static final int DEFAULT_MAX_MEMBERS_TO_SELECT = 3;
+  public static final int DEFAULT_GOSSIP_INTERVAL = 200;
+  public static final int DEFAULT_GOSSIP_FANOUT = 3;
 
-  private final int maxGossipSent;
-  private final int gossipTime;
-  private final int maxMembersToSelect;
+  private final int gossipInterval;
+  private final int gossipFanout;
 
   private GossipConfig(Builder builder) {
-    this.maxGossipSent = builder.maxGossipSent;
-    this.gossipTime = builder.gossipTime;
-    this.maxMembersToSelect = builder.maxMembersToSelect;
+    this.gossipFanout = builder.gossipFanout;
+    this.gossipInterval = builder.gossipInterval;
   }
 
   public static GossipConfig defaultConfig() {
@@ -24,46 +21,33 @@ public final class GossipConfig {
     return new Builder();
   }
 
-  public int getMaxGossipSent() {
-    return maxGossipSent;
+  public int getGossipFanout() {
+    return gossipFanout;
   }
 
-  public int getGossipTime() {
-    return gossipTime;
-  }
-
-  public int getMaxMembersToSelect() {
-    return maxMembersToSelect;
+  public int getGossipInterval() {
+    return gossipInterval;
   }
 
   @Override
   public String toString() {
-    return "GossipProtocolConfig{maxGossipSent=" + maxGossipSent
-        + ", gossipTime=" + gossipTime
-        + ", maxMembersToSelect=" + maxMembersToSelect
-        + '}';
+    return "GossipConfig{gossipInterval=" + gossipInterval + ", gossipFanout=" + gossipFanout + '}';
   }
 
   public static final class Builder {
 
-    private int maxGossipSent = DEFAULT_MAX_GOSSIP_SENT;
-    private int gossipTime = DEFAULT_GOSSIP_TIME;
-    private int maxMembersToSelect = DEFAULT_MAX_MEMBERS_TO_SELECT;
+    private int gossipInterval = DEFAULT_GOSSIP_INTERVAL;
+    private int gossipFanout = DEFAULT_GOSSIP_FANOUT;
 
     private Builder() {}
 
-    public Builder maxGossipSent(int maxGossipSent) {
-      this.maxGossipSent = maxGossipSent;
+    public Builder gossipInterval(int gossipInterval) {
+      this.gossipInterval = gossipInterval;
       return this;
     }
 
-    public Builder gossipTime(int gossipTime) {
-      this.gossipTime = gossipTime;
-      return this;
-    }
-
-    public Builder maxMembersToSelect(int maxMembersToSelect) {
-      this.maxMembersToSelect = maxMembersToSelect;
+    public Builder gossipFanout(int gossipFanout) {
+      this.gossipFanout = gossipFanout;
       return this;
     }
 

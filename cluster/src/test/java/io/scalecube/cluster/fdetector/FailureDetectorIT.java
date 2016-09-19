@@ -1,11 +1,14 @@
 package io.scalecube.cluster.fdetector;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static io.scalecube.cluster.membership.MemberStatus.SUSPECTED;
-import static io.scalecube.cluster.membership.MemberStatus.TRUSTED;
+import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
+import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.Member;
+import io.scalecube.cluster.membership.DummyMembershipProtocol;
+import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
@@ -50,9 +53,9 @@ public class FailureDetectorIT {
       Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
       Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), c.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), c.address());
-      assertStatus(c.address(), TRUSTED, awaitEvents(list_c), a.address(), b.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address(), c.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address(), c.address());
+      assertStatus(c.address(), ALIVE, awaitEvents(list_c), a.address(), b.address());
     } finally {
       stop(fdetectors);
     }
@@ -84,9 +87,9 @@ public class FailureDetectorIT {
       Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
       Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
 
-      assertStatus(a.address(), SUSPECTED, awaitEvents(list_a), b.address(), c.address());
-      assertStatus(b.address(), SUSPECTED, awaitEvents(list_b), a.address(), c.address());
-      assertStatus(c.address(), SUSPECTED, awaitEvents(list_c), a.address(), b.address());
+      assertStatus(a.address(), SUSPECT, awaitEvents(list_a), b.address(), c.address());
+      assertStatus(b.address(), SUSPECT, awaitEvents(list_b), a.address(), c.address());
+      assertStatus(c.address(), SUSPECT, awaitEvents(list_c), a.address(), b.address());
     } finally {
       a.unblockAll();
       b.unblockAll();
@@ -119,9 +122,9 @@ public class FailureDetectorIT {
     try {
       start(fdetectors);
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), c.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), c.address());
-      assertStatus(c.address(), TRUSTED, awaitEvents(list_c), a.address(), b.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address(), c.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address(), c.address());
+      assertStatus(c.address(), ALIVE, awaitEvents(list_c), a.address(), b.address());
     } finally {
       stop(fdetectors);
     }
@@ -137,7 +140,7 @@ public class FailureDetectorIT {
 
     // Create failure detectors
     FailureDetector fd_a = createFD(a, members);
-    FailureDetectorConfig fd_b_config = FailureDetectorConfig.builder().pingTimeout(500).pingTime(1000).build();
+    FailureDetectorConfig fd_b_config = FailureDetectorConfig.builder().pingTimeout(500).pingInterval(1000).build();
     FailureDetector fd_b = createFD(b, members, fd_b_config);
     FailureDetector fd_c = createFD(c, members, FailureDetectorConfig.defaultConfig());
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
@@ -149,9 +152,9 @@ public class FailureDetectorIT {
       Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
       Future<List<FailureDetectorEvent>> list_c = listenNextEventFor(fd_c, members);
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), c.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), c.address());
-      assertStatus(c.address(), TRUSTED, awaitEvents(list_c), a.address(), b.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address(), c.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address(), c.address());
+      assertStatus(c.address(), ALIVE, awaitEvents(list_c), a.address(), b.address());
     } finally {
       stop(fdetectors);
     }
@@ -184,11 +187,11 @@ public class FailureDetectorIT {
 
       start(fdetectors);
 
-      assertStatus(a.address(), SUSPECTED, awaitEvents(list_a), b.address(), c.address(), d.address()); // node A
+      assertStatus(a.address(), SUSPECT, awaitEvents(list_a), b.address(), c.address(), d.address()); // node A
       // partitioned
-      assertStatus(b.address(), SUSPECTED, awaitEvents(list_b), a.address());
-      assertStatus(c.address(), SUSPECTED, awaitEvents(list_c), a.address());
-      assertStatus(d.address(), SUSPECTED, awaitEvents(list_d), a.address());
+      assertStatus(b.address(), SUSPECT, awaitEvents(list_b), a.address());
+      assertStatus(c.address(), SUSPECT, awaitEvents(list_c), a.address());
+      assertStatus(d.address(), SUSPECT, awaitEvents(list_d), a.address());
 
       // Unblock traffic on member A
       a.unblockAll();
@@ -201,10 +204,10 @@ public class FailureDetectorIT {
 
       // Check member A recovers
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), c.address(), d.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), c.address(), d.address());
-      assertStatus(c.address(), TRUSTED, awaitEvents(list_c), a.address(), b.address(), d.address());
-      assertStatus(d.address(), TRUSTED, awaitEvents(list_d), a.address(), b.address(), c.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address(), c.address(), d.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address(), c.address(), d.address());
+      assertStatus(c.address(), ALIVE, awaitEvents(list_c), a.address(), b.address(), d.address());
+      assertStatus(d.address(), ALIVE, awaitEvents(list_d), a.address(), b.address(), c.address());
     } finally {
       stop(fdetectors);
     }
@@ -239,10 +242,10 @@ public class FailureDetectorIT {
 
       start(fdetectors);
 
-      assertStatus(a.address(), SUSPECTED, awaitEvents(list_a), d.address());
-      assertStatus(b.address(), SUSPECTED, awaitEvents(list_b), d.address());
-      assertStatus(c.address(), SUSPECTED, awaitEvents(list_c), d.address());
-      assertStatus(d.address(), SUSPECTED, awaitEvents(list_d), a.address(), b.address(), c.address()); // node D
+      assertStatus(a.address(), SUSPECT, awaitEvents(list_a), d.address());
+      assertStatus(b.address(), SUSPECT, awaitEvents(list_b), d.address());
+      assertStatus(c.address(), SUSPECT, awaitEvents(list_c), d.address());
+      assertStatus(d.address(), SUSPECT, awaitEvents(list_d), a.address(), b.address(), c.address()); // node D
       // partitioned
 
       // Unblock traffic to member D on other members
@@ -258,10 +261,10 @@ public class FailureDetectorIT {
 
       // Check member D recovers
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), c.address(), d.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), c.address(), d.address());
-      assertStatus(c.address(), TRUSTED, awaitEvents(list_c), a.address(), b.address(), d.address());
-      assertStatus(d.address(), TRUSTED, awaitEvents(list_d), a.address(), b.address(), c.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address(), c.address(), d.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address(), c.address(), d.address());
+      assertStatus(c.address(), ALIVE, awaitEvents(list_c), a.address(), b.address(), d.address());
+      assertStatus(d.address(), ALIVE, awaitEvents(list_d), a.address(), b.address(), c.address());
     } finally {
       stop(fdetectors);
     }
@@ -289,8 +292,8 @@ public class FailureDetectorIT {
     try {
       start(fdetectors);
 
-      assertStatus(a.address(), SUSPECTED, awaitEvents(list_a), b.address());
-      assertStatus(b.address(), SUSPECTED, awaitEvents(list_b), a.address());
+      assertStatus(a.address(), SUSPECT, awaitEvents(list_a), b.address());
+      assertStatus(b.address(), SUSPECT, awaitEvents(list_b), a.address());
 
       // Unblock A and B members: A-->B, B-->A
       a.unblockAll();
@@ -302,8 +305,8 @@ public class FailureDetectorIT {
       list_a = listenNextEventFor(fd_a, members);
       list_b = listenNextEventFor(fd_b, members);
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address());
     } finally {
       stop(fdetectors);
     }
@@ -334,9 +337,9 @@ public class FailureDetectorIT {
     try {
       start(fdetectors);
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), x.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), x.address());
-      assertStatus(x.address(), TRUSTED, awaitEvents(list_x), a.address(), b.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address(), x.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address(), x.address());
+      assertStatus(x.address(), ALIVE, awaitEvents(list_x), a.address(), b.address());
 
       // stop node X
       stop(Lists.newArrayList(fd_x));
@@ -361,9 +364,9 @@ public class FailureDetectorIT {
 
       // TODO [AK]: It would be more correct to consider restarted member as a new member, so x is still suspected!
 
-      assertStatus(a.address(), TRUSTED, awaitEvents(list_a), b.address(), xx.address());
-      assertStatus(b.address(), TRUSTED, awaitEvents(list_b), a.address(), xx.address());
-      assertStatus(xx.address(), TRUSTED, awaitEvents(list_xx), a.address(), b.address());
+      assertStatus(a.address(), ALIVE, awaitEvents(list_a), b.address(), xx.address());
+      assertStatus(b.address(), ALIVE, awaitEvents(list_b), a.address(), xx.address());
+      assertStatus(xx.address(), ALIVE, awaitEvents(list_xx), a.address(), b.address());
     } finally {
       stop(fdetectors);
     }
@@ -372,16 +375,15 @@ public class FailureDetectorIT {
   private FailureDetector createFD(Transport transport, List<Address> members) {
     FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder() // faster config for local testing
         .pingTimeout(100)
-        .pingTime(200)
+        .pingInterval(200)
         .pingReqMembers(2)
         .build();
     return createFD(transport, members, failureDetectorConfig);
   }
 
-  private FailureDetector createFD(Transport transport, List<Address> members, FailureDetectorConfig config) {
-    FailureDetector failureDetector = new FailureDetector(transport, config);
-    failureDetector.setMembers(members);
-    return failureDetector;
+  private FailureDetector createFD(Transport transport, List<Address> addresses, FailureDetectorConfig config) {
+    IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), addresses);
+    return new FailureDetector(transport, dummyMembership, config);
   }
 
   private void destroyTransport(ITransport transport) {
@@ -421,7 +423,8 @@ public class FailureDetectorIT {
       Address address, MemberStatus status, Collection<FailureDetectorEvent> events, Address... expected) {
     List<Address> actual = events.stream()
         .filter(event -> event.status() == status)
-        .map(FailureDetectorEvent::address)
+        .map(FailureDetectorEvent::member)
+        .map(Member::address)
         .collect(Collectors.toList());
 
     String msg1 = String.format("Node %s expected %s %s members %s, but was: %s",
@@ -434,16 +437,16 @@ public class FailureDetectorIT {
     }
   }
 
-  private Future<List<FailureDetectorEvent>> listenNextEventFor(FailureDetector fd, List<Address> members) {
-    members = new ArrayList<>(members);
-    members.remove(fd.getTransport().address()); // exclude self
-    checkArgument(!members.isEmpty());
+  private Future<List<FailureDetectorEvent>> listenNextEventFor(FailureDetector fd, List<Address> addresses) {
+    addresses = new ArrayList<>(addresses);
+    addresses.remove(fd.getTransport().address()); // exclude self
+    checkArgument(!addresses.isEmpty());
 
     List<ListenableFuture<FailureDetectorEvent>> resultFuture = new ArrayList<>();
-    for (final Address member : members) {
+    for (final Address member : addresses) {
       final SettableFuture<FailureDetectorEvent> future = SettableFuture.create();
-      fd.listenStatus()
-          .filter(event -> event.address() == member)
+      fd.listen()
+          .filter(event -> event.member().address() == member)
           .subscribe(future::set);
       resultFuture.add(future);
     }

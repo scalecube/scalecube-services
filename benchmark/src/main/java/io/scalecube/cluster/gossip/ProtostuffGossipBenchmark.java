@@ -1,5 +1,7 @@
 package io.scalecube.cluster.gossip;
 
+import io.scalecube.cluster.Member;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.MessageCodec;
 
@@ -54,8 +56,9 @@ public class ProtostuffGossipBenchmark {
    */
   @Setup
   public void setup() {
-    gossipReq = Message.fromData(
-        new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", Message.fromData(PAYLOAD_X32)))));
+    List<Gossip> gossips = ImmutableList.of(new Gossip("ABCDEFGH_0", Message.fromData(PAYLOAD_X32)));
+    Member from = new Member("0", Address.from("localhost:1234"));
+    gossipReq = Message.fromData(new GossipRequest(gossips, from));
     MessageCodec.serialize(gossipReq, gossipReqSer = Unpooled.buffer(1024));
     bbGossipReq = Unpooled.buffer(1024);
     System.err.println("### gossipReqSer=" + gossipReqSer);
@@ -64,7 +67,7 @@ public class ProtostuffGossipBenchmark {
     for (int i = 0; i < 32; i++) {
       list32.add(new Gossip("ABCDEFGH_" + i, Message.fromData(PAYLOAD)));
     }
-    gossipReqx32 = Message.fromData(new GossipRequest(list32));
+    gossipReqx32 = Message.fromData(new GossipRequest(list32, from));
     MessageCodec.serialize(gossipReqx32, gossipReqx32Ser = Unpooled.buffer(1024));
     bbGossipReqx32 = Unpooled.buffer(1024);
     System.err.println("### gossipReqx32Ser=" + gossipReqx32Ser);

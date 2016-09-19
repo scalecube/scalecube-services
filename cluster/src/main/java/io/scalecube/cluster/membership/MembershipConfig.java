@@ -13,27 +13,24 @@ public final class MembershipConfig {
 
   public static final List<Address> DEFAULT_SEED_MEMBERS = Collections.emptyList();
   public static final Map<String, String> DEFAULT_METADATA = Collections.emptyMap();
-  public static final int DEFAULT_SYNC_TIME = 30 * 1000;
-  public static final int DEFAULT_SYNC_TIMEOUT = 3 * 1000;
-  public static final int DEFAULT_MAX_SUSPECT_TIME = 60 * 1000;
-  public static final int DEFAULT_MAX_SHUTDOWN_TIME = 60 * 1000;
+  public static final int DEFAULT_SYNC_INTERVAL = 30_000;
+  public static final int DEFAULT_SYNC_TIMEOUT = 1_000;
+  public static final int DEFAULT_SUSPECT_TIMEOUT = 3_000;
   public static final String DEFAULT_SYNC_GROUP = "default";
 
   private final List<Address> seedMembers;
   private final Map<String, String> metadata;
-  private final int syncTime;
+  private final int syncInterval;
   private final int syncTimeout;
-  private final int maxSuspectTime;
-  private final int maxShutdownTime;
+  private final int suspectTimeout;
   private final String syncGroup;
 
   private MembershipConfig(Builder builder) {
     this.seedMembers = Collections.unmodifiableList(builder.seedMembers);
     this.metadata = Collections.unmodifiableMap(builder.metadata);
-    this.syncTime = builder.syncTime;
+    this.syncInterval = builder.syncInterval;
     this.syncTimeout = builder.syncTimeout;
-    this.maxSuspectTime = builder.maxSuspectTime;
-    this.maxShutdownTime = builder.maxShutdownTime;
+    this.suspectTimeout = builder.suspectTimeout;
     this.syncGroup = builder.syncGroup;
   }
 
@@ -53,20 +50,16 @@ public final class MembershipConfig {
     return metadata;
   }
 
-  public int getSyncTime() {
-    return syncTime;
+  public int getSyncInterval() {
+    return syncInterval;
   }
 
   public int getSyncTimeout() {
     return syncTimeout;
   }
 
-  public int getMaxSuspectTime() {
-    return maxSuspectTime;
-  }
-
-  public int getMaxShutdownTime() {
-    return maxShutdownTime;
+  public int getSuspectTimeout() {
+    return suspectTimeout;
   }
 
   public String getSyncGroup() {
@@ -77,10 +70,9 @@ public final class MembershipConfig {
   public String toString() {
     return "MembershipConfigF{seedMembers='" + seedMembers + '\''
         + ", metadata=" + metadata
-        + ", syncTime=" + syncTime
+        + ", syncInterval=" + syncInterval
         + ", syncTimeout=" + syncTimeout
-        + ", maxSuspectTime=" + maxSuspectTime
-        + ", maxShutdownTime=" + maxShutdownTime
+        + ", suspectTimeout=" + suspectTimeout
         + ", syncGroup='" + syncGroup + '\''
         + '}';
   }
@@ -89,10 +81,9 @@ public final class MembershipConfig {
 
     private List<Address> seedMembers = DEFAULT_SEED_MEMBERS;
     private Map<String, String> metadata = DEFAULT_METADATA;
-    private int syncTime = DEFAULT_SYNC_TIME;
+    private int syncInterval = DEFAULT_SYNC_INTERVAL;
     private int syncTimeout = DEFAULT_SYNC_TIMEOUT;
-    private int maxSuspectTime = DEFAULT_MAX_SUSPECT_TIME;
-    private int maxShutdownTime = DEFAULT_MAX_SHUTDOWN_TIME;
+    private int suspectTimeout = DEFAULT_SUSPECT_TIMEOUT;
     private String syncGroup = DEFAULT_SYNC_GROUP;
 
     private Builder() {}
@@ -112,8 +103,8 @@ public final class MembershipConfig {
       return this;
     }
 
-    public Builder syncTime(int syncTime) {
-      this.syncTime = syncTime;
+    public Builder syncInterval(int syncInterval) {
+      this.syncInterval = syncInterval;
       return this;
     }
 
@@ -122,13 +113,8 @@ public final class MembershipConfig {
       return this;
     }
 
-    public Builder maxSuspectTime(int maxSuspectTime) {
-      this.maxSuspectTime = maxSuspectTime;
-      return this;
-    }
-
-    public Builder maxShutdownTime(int maxShutdownTime) {
-      this.maxShutdownTime = maxShutdownTime;
+    public Builder suspectTimeout(int suspectTimeout) {
+      this.suspectTimeout = suspectTimeout;
       return this;
     }
 

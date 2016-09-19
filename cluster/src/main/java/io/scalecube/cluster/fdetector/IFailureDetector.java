@@ -27,12 +27,8 @@ public interface IFailureDetector {
   void stop();
 
   /**
-   * Listens for detected cluster members status changes (SUSPECTED/TRUSTED) by failure detector.
+   * Listens for results of ping checks (ALIVE/SUSPECT) done periodically by failure detector.
    */
-  Observable<FailureDetectorEvent> listenStatus();
+  Observable<FailureDetectorEvent> listen();
 
-  /**
-   * Updates list of cluster members among which should work FD algorithm.
-   */
-  void setMembers(Collection<Address> members);
 }
