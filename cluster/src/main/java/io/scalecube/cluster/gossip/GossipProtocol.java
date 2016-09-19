@@ -217,7 +217,6 @@ public final class GossipProtocol implements IGossipProtocol {
       return;
     }
     List<Member> gossipMembers = selectGossipMembers();
-    Set<String> sentGossips = new HashSet<>();
     for (Member member : gossipMembers) {
       List<Gossip> gossipsToSend = selectGossipsToSend(member);
       if (!gossipsToSend.isEmpty()) {
@@ -226,13 +225,9 @@ public final class GossipProtocol implements IGossipProtocol {
         Message gossipReqMsg = Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
         transport.send(member.address(), gossipReqMsg);
 
-        // Increment send count
-        sentGossips.addAll(gossipsToSend.stream().map(Gossip::gossipId).collect(Collectors.toSet()));
+        // Increment send count for each sent gossip
+        gossipsToSend.forEach(gossip -> gossips.get(gossip.gossipId()).incrementSend());
       }
-    }
-
-    for (String gossipId : sentGossips) {
-      gossips.get(gossipId).incrementSend();
     }
   }
 

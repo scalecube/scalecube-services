@@ -8,6 +8,8 @@ import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportConfig;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Assert;
@@ -141,21 +143,25 @@ public class GossipProtocolIT {
     for (GossipProtocol gossipProtocol : gossipProtocols) {
       gossipProtocol.stop();
     }
-    // Await a bit
-    try {
-      Thread.sleep(1000);
-    } catch (InterruptedException ignore) {
-      // ignore
-    }
+
     // Stop all transports
+    List<ListenableFuture<Void>> futures = new ArrayList<>();
     for (GossipProtocol gossipProtocol : gossipProtocols) {
       SettableFuture<Void> close = SettableFuture.create();
       gossipProtocol.getTransport().stop(close);
-      try {
-        close.get(3, TimeUnit.SECONDS);
-      } catch (Exception ignore) {
-        System.out.println("Failed to await transport termination");
-      }
+      futures.add(close);
+    }
+    try {
+      Futures.allAsList(futures).get(30, TimeUnit.SECONDS);
+    } catch (Exception ignore) {
+      System.out.println("Failed to await transport termination");
+    }
+
+    // Await a bit
+    try {
+      Thread.sleep(5000);
+    } catch (InterruptedException ignore) {
+      // ignore
     }
   }
 }
