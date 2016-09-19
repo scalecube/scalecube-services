@@ -50,9 +50,8 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // Local State
 
-  private int factor = 1; // TODO: why needed?
-
   private long period = 0;
+  private int factor = 1;
   private long gossipCounter = 0;
   private Map<String, GossipState> gossips = Maps.newHashMap();
   private List<Member> remoteMembers = new ArrayList<>();
