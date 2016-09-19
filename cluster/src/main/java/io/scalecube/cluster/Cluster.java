@@ -158,27 +158,28 @@ public final class Cluster implements ICluster {
   private ListenableFuture<ICluster> join0() {
     ListenableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
     ListenableFuture<Void> clusterFuture = transformAsync(transportFuture, boundTransport -> {
-      // Init components
-      transport = boundTransport;
-      membership = new MembershipProtocol(transport, config.getMembershipConfig());
-      gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
-      failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
-      membership.setFailureDetector(failureDetector);
-      membership.setGossipProtocol(gossip);
+        // Init components
+        transport = boundTransport;
+        membership = new MembershipProtocol(transport, config.getMembershipConfig());
+        gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
+        failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
+        membership.setFailureDetector(failureDetector);
+        membership.setGossipProtocol(gossip);
 
-      // Init membership
-      Member localMember = membership.member();
-      onMemberAdded(localMember);
-      membership.listen()
-          .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
-      membership.listen()
-          .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
+        // Init membership
+        Member localMember = membership.member();
+        onMemberAdded(localMember);
+        membership.listen()
+            .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
+        membership.listen()
+            .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
 
-      // Start components
-      failureDetector.start();
-      gossip.start();
-      return membership.start();
-    });
+        // Start components
+        failureDetector.start();
+        gossip.start();
+        return membership.start();
+      });
+
     return transform(clusterFuture, new Function<Void, ICluster>() {
       @Override
       public ICluster apply(@Nullable Void param) {

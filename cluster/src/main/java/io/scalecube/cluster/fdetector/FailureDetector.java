@@ -195,13 +195,13 @@ public final class FailureDetector implements IFailureDetector {
           .take(1)
           .timeout(config.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
           .subscribe(message -> {
-            LOGGER.trace("Received PingAck[{}] from {}", period, pingMember);
-            publishPingResult(pingMember, MemberStatus.ALIVE);
-          }, throwable -> {
-            LOGGER.trace("Timeout getting PingAck[{}] from {} within {} ms",
-                period, pingMember, config.getPingTimeout());
-            doPingReq(pingMember, cid);
-          });
+              LOGGER.trace("Received PingAck[{}] from {}", period, pingMember);
+              publishPingResult(pingMember, MemberStatus.ALIVE);
+            }, throwable -> {
+              LOGGER.trace("Timeout getting PingAck[{}] from {} within {} ms",
+                  period, pingMember, config.getPingTimeout());
+              doPingReq(pingMember, cid);
+            });
       transport.send(pingMember.address(), pingMsg);
     } catch (Exception cause) {
       LOGGER.error("Exception on sending Ping[{}] to {}: {}", period, pingMember, cause.getMessage(), cause);
@@ -231,13 +231,13 @@ public final class FailureDetector implements IFailureDetector {
         .take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
         .subscribe(message -> {
-          LOGGER.trace("Received transit PingAck[{}] from {} to {}", period, message.sender(), pingMember);
-          publishPingResult(pingMember, MemberStatus.ALIVE);
-        }, throwable -> {
-          LOGGER.trace("Timeout getting transit PingAck[{}] from {} to {} within {} ms",
-              period, pingReqMembers, pingMember, timeout);
-          publishPingResult(pingMember, MemberStatus.SUSPECT);
-        });
+            LOGGER.trace("Received transit PingAck[{}] from {} to {}", period, message.sender(), pingMember);
+            publishPingResult(pingMember, MemberStatus.ALIVE);
+          }, throwable -> {
+            LOGGER.trace("Timeout getting transit PingAck[{}] from {} to {} within {} ms",
+                period, pingReqMembers, pingMember, timeout);
+            publishPingResult(pingMember, MemberStatus.SUSPECT);
+          });
 
     PingData pingReqData = new PingData(localMember, pingMember);
     Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(cid).build();
@@ -303,7 +303,10 @@ public final class FailureDetector implements IFailureDetector {
     Member target = data.getOriginalIssuer();
     String correlationId = message.correlationId();
     PingData originalAckData = new PingData(target, data.getTo());
-    Message originalAckMessage = Message.withData(originalAckData).qualifier(PING_ACK).correlationId(correlationId).build();
+    Message originalAckMessage = Message.withData(originalAckData)
+        .qualifier(PING_ACK)
+        .correlationId(correlationId)
+        .build();
     LOGGER.trace("Resend transit PingAck to {}", target.address());
     transport.send(target.address(), originalAckMessage);
   }

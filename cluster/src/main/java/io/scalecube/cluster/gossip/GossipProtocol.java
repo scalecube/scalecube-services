@@ -24,7 +24,6 @@ import rx.subjects.Subject;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -181,7 +180,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private void onSpreadGossip(Message message) {
-    Gossip gossip = new Gossip(generateGossipId(), membership.member(), message);
+    Gossip gossip = new Gossip(generateGossipId(), message);
     GossipState gossipState = new GossipState(gossip, period);
     gossips.put(gossip.gossipId(), gossipState);
   }

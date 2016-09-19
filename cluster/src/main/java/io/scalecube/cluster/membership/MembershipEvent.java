@@ -1,18 +1,22 @@
 package io.scalecube.cluster.membership;
 
-import javax.annotation.concurrent.Immutable;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.Member;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import javax.annotation.concurrent.Immutable;
 
 /**
+ * Event which is emitted on cluster membership changes when new member added or removed from cluster.
+ *
  * @author Anton Kharenko
  */
 @Immutable
 public class MembershipEvent {
 
-  public enum Type {ADDED, REMOVED}
+  public enum Type {
+    ADDED, REMOVED
+  }
 
   private final Type type;
   private final Member member;

@@ -41,9 +41,7 @@ public class GossipRequestTest {
   public void testSerializationAndDeserialization() throws Exception {
 
     Member from = new Member("0", Address.from("localhost:1234"));
-    List<Gossip> gossips = getGossips(from);
-
-
+    List<Gossip> gossips = getGossips();
     Message message = Message.withData(new GossipRequest(gossips, from)).correlationId("CORR_ID").build();
 
     ByteBuf bb = buffer();
@@ -70,9 +68,9 @@ public class GossipRequestTest {
     assertEquals(testData.getProperties(), ((TestData) msgData).getProperties());
   }
 
-  private List<Gossip> getGossips(Member origin) {
-    Gossip request = new Gossip("idGossip", origin, Message.withData(testData).qualifier(testDataQualifier).build());
-    Gossip request2 = new Gossip("idGossip2", origin, Message.withData(testData).qualifier(testDataQualifier).build());
+  private List<Gossip> getGossips() {
+    Gossip request = new Gossip("idGossip", Message.withData(testData).qualifier(testDataQualifier).build());
+    Gossip request2 = new Gossip("idGossip2", Message.withData(testData).qualifier(testDataQualifier).build());
     List<Gossip> gossips = new ArrayList<>(2);
     gossips.add(request);
     gossips.add(request2);

@@ -424,11 +424,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private void scheduleRemoveMemberTask(MembershipRecord record) {
     removeMemberTasks.putIfAbsent(record.id(), executor.schedule(() -> {
-      LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
-      removeMemberTasks.remove(record.id());
-      MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
-      updateMembership(deadRecord, true /* spread gossip */, true /* check override */);
-    }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+        LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
+        removeMemberTasks.remove(record.id());
+        MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
+        updateMembership(deadRecord, true /* spread gossip */, true /* check override */);
+      }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
   }
 
   private void spreadMembershipGossip(MembershipRecord record) {

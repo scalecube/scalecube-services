@@ -1,7 +1,8 @@
 package io.scalecube.cluster.gossip;
 
-import io.protostuff.Tag;
 import io.scalecube.cluster.Member;
+
+import io.protostuff.Tag;
 
 import java.util.ArrayList;
 import java.util.List;
