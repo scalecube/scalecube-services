@@ -1,19 +1,19 @@
 package io.scalecube.examples;
 
+import io.scalecube.cluster.Cluster;
+import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.fdetector.FailureDetectorConfig;
+import io.scalecube.cluster.membership.MembershipConfig;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ICluster;
-import io.scalecube.cluster.fdetector.FailureDetectorConfig;
-import io.scalecube.cluster.membership.MembershipConfig;
-
 /**
- * Example of subscribing and listening for cluster membership events which is emmited when new member joins
- * or leave cluster.
+ * Example of subscribing and listening for cluster membership events which is emmited when new member joins or leave
+ * cluster.
  *
  * @author Anton Kharenko
  */
