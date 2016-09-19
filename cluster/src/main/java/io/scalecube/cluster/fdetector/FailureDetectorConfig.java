@@ -4,8 +4,8 @@ import com.google.common.base.Preconditions;
 
 public final class FailureDetectorConfig {
 
-  public static final int DEFAULT_PING_INTERVAL = 2000;
-  public static final int DEFAULT_PING_TIMEOUT = 1000;
+  public static final int DEFAULT_PING_INTERVAL = 1000;
+  public static final int DEFAULT_PING_TIMEOUT = 500;
   public static final int DEFAULT_PING_REQ_MEMBERS = 3;
 
   private final int pingInterval;

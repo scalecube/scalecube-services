@@ -43,6 +43,9 @@ final class PingData {
 
   @Override
   public String toString() {
-    return "FailureDetectorData{" + ", from=" + from + ", to=" + to + ", originalIssuer=" + originalIssuer + '}';
+    return "PingData{from=" + from
+        + ", to=" + to
+        + (originalIssuer != null ? ", originalIssuer=" + originalIssuer : "")
+        + '}';
   }
 }
