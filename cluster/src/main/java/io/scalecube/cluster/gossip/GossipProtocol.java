@@ -256,10 +256,10 @@ public final class GossipProtocol implements IGossipProtocol {
 
     // Update gossip states
     gossipsToSend.forEach(gossip -> {
-      GossipState gossipState = gossips.get(gossip.gossipId());
-      gossipState.incrementSpreadCount();
-      gossipState.addToInfected(member);
-    });
+        GossipState gossipState = gossips.get(gossip.gossipId());
+        gossipState.incrementSpreadCount();
+        gossipState.addToInfected(member);
+      });
   }
 
   private void sweepGossips() {
