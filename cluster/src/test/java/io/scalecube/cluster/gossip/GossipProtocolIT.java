@@ -14,8 +14,11 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,49 +27,38 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@RunWith(Parameterized.class)
 public class GossipProtocolIT {
 
-  @Test
-  public void test10WithoutLostSmallDelay5Sec() throws Exception {
-    int membersNum = 10;
-    int lostPercent = 0;
-    int meanDelay = 2;
-    int timeout = 5000;
-    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
+  @Parameterized.Parameters(name = "N={0}, Plost={1}%, Tmean={2}ms, T={3}ms")
+  public static List<Object[]> data() {
+    return Arrays.asList(new Object[][] {
+        { 10 , 0  ,  2   , 2_000  },
+        { 10 , 20 ,  2   , 5_000  },
+        { 50 , 0  ,  2   , 10_000 },
+        { 50 , 5  ,  500 , 20_000 },
+    });
+  }
+
+  private final int membersNum;
+  private final int lostPercent;
+  private final int meanDelay;
+  private final int timeout;
+
+  public GossipProtocolIT(Integer membersNum, Integer lostPercent, Integer meanDelay, Integer timeout) {
+    this.membersNum = membersNum;
+    this.lostPercent = lostPercent;
+    this.meanDelay = meanDelay;
+    this.timeout = timeout;
   }
 
   @Test
-  public void test10Lost20SmallDelay5Sec() throws Exception {
-    int membersNum = 10;
-    int lostPercent = 20;
-    int meanDelay = 2;
-    int timeout = 5000;
-    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
-  }
-
-  @Test
-  public void test50WithoutLostSmallDelay10Sec() throws Exception {
-    int membersNum = 50;
-    int lostPercent = 0;
-    int meanDelay = 2;
-    int timeout = 10000;
-    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
-  }
-
-  @Test
-  public void test50Lost5BigDelay20Sec() throws Exception {
-    int membersNum = 50;
-    int lostPercent = 5;
-    int meanDelay = 500;
-    int timeout = 20000;
-    testGossipProtocol(membersNum, lostPercent, meanDelay, timeout);
-  }
-
-  private void testGossipProtocol(int membersNum, int lostPercent, int delay, int timeout) throws Exception {
+  public void testGossipProtocol() throws Exception {
     // Init gossip protocol instances
-    List<GossipProtocol> gossipProtocols = initGossipProtocols(membersNum, lostPercent, delay);
+    List<GossipProtocol> gossipProtocols = initGossipProtocols(membersNum, lostPercent, meanDelay);
 
     // Subscribe on gossips
+    long time = 0;
     try {
       final String gossipData = "test gossip - " + ThreadLocalRandom.current().nextLong();
       final CountDownLatch latch = new CountDownLatch(membersNum - 1);
@@ -90,14 +82,14 @@ public class GossipProtocolIT {
       long start = System.currentTimeMillis();
       gossipProtocols.get(0).spread(Message.fromData(gossipData));
       latch.await(2 * timeout, TimeUnit.MILLISECONDS); // Await double timeout
-      long time = System.currentTimeMillis() - start;
+      time = System.currentTimeMillis() - start;
       Assert.assertFalse("Delivered gossip twice to same member", doubleDelivery.get());
       Assert.assertEquals("Not all members received gossip", membersNum - 1, receivers.size());
       Assert.assertTrue("Time " + time + "ms is bigger then expected " + timeout + "ms", time < timeout);
-      System.out.println("Time: " + time + "ms");
     } finally {
       // Destroy gossip protocol instances
       destroyGossipProtocols(gossipProtocols);
+      System.out.println("Gossip dissemination time: " + time + " ms");
     }
   }
 
