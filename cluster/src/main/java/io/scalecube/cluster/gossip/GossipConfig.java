@@ -2,17 +2,17 @@ package io.scalecube.cluster.gossip;
 
 public final class GossipConfig {
 
-  public static final int DEFAULT_MAX_GOSSIP_SENT = 2;
-  public static final int DEFAULT_GOSSIP_TIME = 300;
+  public static final int DEFAULT_GOSSIP_INTERVAL = 200;
+  public static final int DEFAULT_MAX_GOSSIP_SENT = 3;
   public static final int DEFAULT_MAX_MEMBERS_TO_SELECT = 3;
 
   private final int maxGossipSent;
-  private final int gossipTime;
+  private final int gossipInterval;
   private final int maxMembersToSelect;
 
   private GossipConfig(Builder builder) {
     this.maxGossipSent = builder.maxGossipSent;
-    this.gossipTime = builder.gossipTime;
+    this.gossipInterval = builder.gossipInterval;
     this.maxMembersToSelect = builder.maxMembersToSelect;
   }
 
@@ -28,8 +28,8 @@ public final class GossipConfig {
     return maxGossipSent;
   }
 
-  public int getGossipTime() {
-    return gossipTime;
+  public int getGossipInterval() {
+    return gossipInterval;
   }
 
   public int getMaxMembersToSelect() {
@@ -38,8 +38,8 @@ public final class GossipConfig {
 
   @Override
   public String toString() {
-    return "GossipProtocolConfig{maxGossipSent=" + maxGossipSent
-        + ", gossipTime=" + gossipTime
+    return "GossipConfig{maxGossipSent=" + maxGossipSent
+        + ", gossipInterval=" + gossipInterval
         + ", maxMembersToSelect=" + maxMembersToSelect
         + '}';
   }
@@ -47,7 +47,7 @@ public final class GossipConfig {
   public static final class Builder {
 
     private int maxGossipSent = DEFAULT_MAX_GOSSIP_SENT;
-    private int gossipTime = DEFAULT_GOSSIP_TIME;
+    private int gossipInterval = DEFAULT_GOSSIP_INTERVAL;
     private int maxMembersToSelect = DEFAULT_MAX_MEMBERS_TO_SELECT;
 
     private Builder() {}
@@ -57,8 +57,8 @@ public final class GossipConfig {
       return this;
     }
 
-    public Builder gossipTime(int gossipTime) {
-      this.gossipTime = gossipTime;
+    public Builder gossipInterval(int gossipInterval) {
+      this.gossipInterval = gossipInterval;
       return this;
     }
 

@@ -1,5 +1,6 @@
 package io.scalecube.cluster.gossip;
 
+import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.transport.Message;
@@ -12,14 +13,12 @@ import com.google.common.util.concurrent.SettableFuture;
 import org.junit.Assert;
 import org.junit.Test;
 
-import rx.functions.Action1;
-
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -44,8 +43,8 @@ public class GossipProtocolIT {
   }
 
   @Test
-  public void test100WithoutLostSmallDelay10Sec() throws Exception {
-    int membersNum = 100;
+  public void test50WithoutLostSmallDelay10Sec() throws Exception {
+    int membersNum = 50;
     int lostPercent = 0;
     int meanDelay = 2;
     int timeout = 10000;
@@ -53,8 +52,8 @@ public class GossipProtocolIT {
   }
 
   @Test
-  public void test100Lost5BigDelay20Sec() throws Exception {
-    int membersNum = 100;
+  public void test50Lost5BigDelay20Sec() throws Exception {
+    int membersNum = 50;
     int lostPercent = 5;
     int meanDelay = 500;
     int timeout = 20000;
@@ -67,22 +66,19 @@ public class GossipProtocolIT {
 
     // Subscribe on gossips
     try {
-      final String gossipData = "test gossip";
+      final String gossipData = "test gossip - " + ThreadLocalRandom.current().nextLong();
       final CountDownLatch latch = new CountDownLatch(membersNum - 1);
-      final Set<Address> receivers = new HashSet<>();
+      final Map<Member, Member> receivers = new ConcurrentHashMap<>();
       final AtomicBoolean doubleDelivery = new AtomicBoolean(false);
       for (final GossipProtocol protocol : gossipProtocols) {
-        protocol.listen().subscribe(new Action1<Message>() {
-          @Override
-          public void call(Message gossip) {
-            if (gossipData.equals(gossip.data())) {
-              boolean firstTimeAdded = receivers.add(protocol.getTransport().address());
-              if (firstTimeAdded) {
-                latch.countDown();
-              } else {
-                System.out.println("Delivered gossip twice to: " + protocol.getTransport().address());
-                doubleDelivery.set(true);
-              }
+        protocol.listen().subscribe(gossip -> {
+          if (gossipData.equals(gossip.data())) {
+            boolean firstTimeAdded = receivers.put(protocol.getMember(), protocol.getMember()) == null;
+            if (firstTimeAdded) {
+              latch.countDown();
+            } else {
+              System.out.println("Delivered gossip twice to: " + protocol.getTransport().address());
+              doubleDelivery.set(true);
             }
           }
         });
@@ -134,9 +130,8 @@ public class GossipProtocolIT {
   }
 
   private GossipProtocol initGossipProtocol(Transport transport, List<Address> members) {
-    String memberId = UUID.randomUUID().toString();
     IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), members);
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership);
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership, GossipConfig.defaultConfig());
     gossipProtocol.start();
     return gossipProtocol;
   }
@@ -148,7 +143,7 @@ public class GossipProtocolIT {
     }
     // Await a bit
     try {
-      Thread.sleep(100);
+      Thread.sleep(1000);
     } catch (InterruptedException ignore) {
       // ignore
     }
@@ -157,9 +152,9 @@ public class GossipProtocolIT {
       SettableFuture<Void> close = SettableFuture.create();
       gossipProtocol.getTransport().stop(close);
       try {
-        close.get(1, TimeUnit.SECONDS);
+        close.get(3, TimeUnit.SECONDS);
       } catch (Exception ignore) {
-        // ignore
+        System.out.println("Failed to await transport termination");
       }
     }
   }

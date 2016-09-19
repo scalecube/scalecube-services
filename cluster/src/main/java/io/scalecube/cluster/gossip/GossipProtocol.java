@@ -1,21 +1,14 @@
 package io.scalecube.cluster.gossip;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Collections2.filter;
-import static com.google.common.collect.Collections2.transform;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
@@ -24,28 +17,25 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
-import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public final class GossipProtocol implements IGossipProtocol {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocol.class);
 
   // Qualifiers
@@ -60,20 +50,20 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // Local State
 
+  private int factor = 1; // TODO: why needed?
+
   private long period = 0;
   private long gossipCounter = 0;
-  private int factor = 1;
-  private Map<String, GossipLocalState> gossipsMap = Maps.newHashMap();
+  private Map<String, GossipState> gossips = Maps.newHashMap();
   private List<Member> remoteMembers = new ArrayList<>();
-
-  // Published State
-
-  private Queue<GossipTask> gossipsQueue = new ConcurrentLinkedQueue<>();
 
   // Subscriptions
 
   private Subscriber<MembershipEvent> onMembershipEventSubscriber;
   private Subscriber<Message> onGossipRequestSubscriber;
+
+  // Subject
+
   private Subject<Message, Message> subject = PublishSubject.<Message>create().toSerialized();
 
   // Scheduled
@@ -83,21 +73,16 @@ public final class GossipProtocol implements IGossipProtocol {
   private ScheduledFuture<?> spreadGossipTask;
 
   /**
-   * Creates new instance of gossip protocol with given memberId, transport and default settings.
-   *
-   * @param transport transport
-   */
-  public GossipProtocol(ITransport transport, IMembershipProtocol membership) {
-    this(transport, membership, GossipConfig.defaultConfig());
-  }
-
-  /**
    * Creates new instance of gossip protocol with given memberId, transport and settings.
    *
    * @param transport transport
+   * @param membership membership protocol
    * @param config gossip protocol settings
    */
   public GossipProtocol(ITransport transport, IMembershipProtocol membership, GossipConfig config) {
+    checkArgument(transport != null);
+    checkArgument(membership != null);
+    checkArgument(config != null);
     this.transport = transport;
     this.membership = membership;
     this.config = config;
@@ -107,18 +92,20 @@ public final class GossipProtocol implements IGossipProtocol {
     this.scheduler = Schedulers.from(executor);
   }
 
-  private void onMembershipEvent(MembershipEvent event) {
-    if (event.type() == MembershipEvent.Type.ADDED) {
-      remoteMembers.add(event.member());
-    } else if (event.type() == MembershipEvent.Type.REMOVED) {
-      remoteMembers.remove(event.member());
-    }
-    this.factor = 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1);
-  }
-
-  public ITransport getTransport() {
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
+  ITransport getTransport() {
     return transport;
   }
+
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
+  Member getMember() {
+    return membership.member();
+  }
+
 
   @Override
   public void start() {
@@ -126,14 +113,13 @@ public final class GossipProtocol implements IGossipProtocol {
     membership.listen().observeOn(scheduler)
         .subscribe(onMembershipEventSubscriber);
 
-    onGossipRequestSubscriber = Subscribers.create(new OnGossipRequestAction(gossipsQueue));
+    onGossipRequestSubscriber = Subscribers.create(this::onGossipReq);
     transport.listen().observeOn(scheduler)
-        .filter(new GossipMessageFilter())
+        .filter(this::isGossipReq)
         .subscribe(onGossipRequestSubscriber);
 
-    int gossipTime = config.getGossipTime();
-    spreadGossipTask =
-        executor.scheduleWithFixedDelay(this::doSpreadGossip, gossipTime, gossipTime, TimeUnit.MILLISECONDS);
+    spreadGossipTask = executor.scheduleWithFixedDelay(this::doSpreadGossip,
+        config.getGossipInterval(), config.getGossipInterval(), TimeUnit.MILLISECONDS);
   }
 
   @Override
@@ -160,10 +146,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   @Override
   public void spread(Message message) {
-    String gossipId = generateGossipId();
-    Gossip gossip = new Gossip(gossipId, message);
-    GossipTask gossipTask = new GossipTask(gossip, transport.address());
-    gossipsQueue.offer(gossipTask);
+    executor.execute(() -> onSpreadGossip(message));
   }
 
   @Override
@@ -171,182 +154,115 @@ public final class GossipProtocol implements IGossipProtocol {
     return subject.asObservable();
   }
 
-  private Collection<GossipLocalState> processGossipQueue() {
-    while (!gossipsQueue.isEmpty()) {
-      GossipTask gossipTask = gossipsQueue.poll();
-      Gossip gossip = gossipTask.getGossip();
-      Address origin = gossipTask.getOrigin();
-      GossipLocalState gossipLocalState = gossipsMap.get(gossip.getGossipId());
-      if (gossipLocalState == null) {
-        boolean isRemote = !origin.equals(transport.address());
-        LOGGER.debug("Saved new_" + (isRemote ? "remote" : "local") + " {}", gossip);
-        gossipLocalState = GossipLocalState.create(gossip, origin, period);
-        gossipsMap.put(gossip.getGossipId(), gossipLocalState);
-        if (isRemote) {
-          subject.onNext(gossip.getMessage());
-        }
-      } else {
-        gossipLocalState.addMember(origin);
-      }
-    }
-    return gossipsMap.values();
-  }
+  /* ================================================ *
+   * ============== Action Methods ================== *
+   * ================================================ */
 
-  private void sendGossips(Collection<GossipLocalState> gossips) {
-    if (gossips.isEmpty()) {
-      return;
-    }
-    if (remoteMembers.isEmpty()) {
-      return;
-    }
-    if (period % remoteMembers.size() == 0) {
-      Collections.shuffle(remoteMembers, ThreadLocalRandom.current());
-    }
-    int maxMembersToSelect = config.getMaxMembersToSelect();
-    for (int i = 0; i < Math.min(maxMembersToSelect, remoteMembers.size()); i++) {
-      Member member = getNextRandom(remoteMembers, maxMembersToSelect, i);
-      // Filter only gossips which should be sent to chosen address
-      GossipSendPredicate predicate = new GossipSendPredicate(member, config.getMaxGossipSent() * factor);
-      Collection<GossipLocalState> gossipLocalStateNeedSend = filter(gossips, predicate);
-      if (!gossipLocalStateNeedSend.isEmpty()) {
-        // Transform to actual gossip with incrementing sent count
-        List<Gossip> gossipToSend =
-            Lists.newArrayList(transform(gossipLocalStateNeedSend, new GossipDataToGossipWithIncrement()));
-        transport.send(member.address(), Message.fromData(new GossipRequest(gossipToSend)));
-      }
+  private void doSpreadGossip() {
+    try {
+      period++;
+      sendGossips();
+      sweepGossips();
+    } catch (Exception cause) {
+      LOGGER.error("Unhandled exception: {}", cause, cause);
     }
   }
 
-  private void sweepGossips(Collection<GossipLocalState> gossips, int factor) {
-    Collection<GossipLocalState> filter =
-        Sets.newHashSet(filter(gossips, new GossipSweepPredicate(period, factor * 10)));
-    for (GossipLocalState gossipLocalState : filter) {
-      gossipsMap.remove(gossipLocalState.gossip().getGossipId());
-      LOGGER.debug("Removed {}", gossipLocalState);
+  /* ================================================ *
+   * ============== Event Listeners ================= *
+   * ================================================ */
+
+  private void onMembershipEvent(MembershipEvent event) {
+    if (event.isAdded()) {
+      remoteMembers.add(event.member());
+    } else if (event.isRemoved()) {
+      remoteMembers.remove(event.member());
     }
+    this.factor = 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1);
+  }
+
+  private void onSpreadGossip(Message message) {
+    Gossip gossip = new Gossip(generateGossipId(), membership.member(), message);
+    GossipState gossipState = new GossipState(gossip, period);
+    gossips.put(gossip.gossipId(), gossipState);
+  }
+
+  private void onGossipReq(Message message) {
+    GossipRequest gossipRequest = message.data();
+    for (Gossip gossip : gossipRequest.gossips()) {
+      GossipState gossipState = gossips.get(gossip.gossipId());
+      if (gossipState == null) { // new gossip
+        gossipState = new GossipState(gossip, period);
+        gossips.put(gossip.gossipId(), gossipState);
+        subject.onNext(gossip.message());
+      }
+      gossipState.addToInfected(gossipRequest.from());
+    }
+  }
+
+  /* ================================================ *
+   * ============== Helper Methods ================== *
+   * ================================================ */
+
+  private boolean isGossipReq(Message message) {
+    return GOSSIP_REQ.equals(message.qualifier());
   }
 
   private String generateGossipId() {
     return membership.member().id() + "-" + gossipCounter++;
   }
 
-  private Member getNextRandom(List<Member> members, int maxMembersToSelect, int count) {
-    return members.get((int) (((period * maxMembersToSelect + count) & Integer.MAX_VALUE) % members.size()));
-  }
+  private void sendGossips() {
+    if (gossips.isEmpty()) {
+      return;
+    }
+    List<Member> gossipMembers = selectGossipMembers();
+    Set<String> sentGossips = new HashSet<>();
+    for (Member member : gossipMembers) {
+      List<Gossip> gossipsToSend = selectGossipsToSend(member);
+      if (!gossipsToSend.isEmpty()) {
+        // Send gossips
+        GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member());
+        Message gossipReqMsg = Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
+        transport.send(member.address(), gossipReqMsg);
 
-  static class GossipMessageFilter implements Func1<Message, Boolean> {
-    @Override
-    public Boolean call(Message message) {
-      Object data = message.data();
-      return data != null && GossipRequest.class.equals(data.getClass());
+        // Increment send count
+        sentGossips.addAll(gossipsToSend.stream().map(Gossip::gossipId).collect(Collectors.toSet()));
+      }
+    }
+
+    for (String gossipId : sentGossips) {
+      gossips.get(gossipId).incrementSend();
     }
   }
 
-  static class OnGossipRequestAction implements Action1<Message> {
-    private Queue<GossipTask> queue;
+  private List<Gossip> selectGossipsToSend(Member member) {
+    return gossips.values().stream()
+        .filter(gossipState -> !gossipState.isInfected(member))
+        .filter(gossipState -> gossipState.getSent() < config.getMaxGossipSent() * factor)
+        .map(GossipState::gossip)
+        .collect(Collectors.toList());
+  }
 
-    OnGossipRequestAction(Queue<GossipTask> queue) {
-      checkArgument(queue != null);
-      this.queue = queue;
+  private List<Member> selectGossipMembers() {
+    if (remoteMembers.size() < config.getMaxMembersToSelect()) {
+      return remoteMembers; // all
     }
+    Collections.shuffle(remoteMembers);
+    return remoteMembers.subList(0, config.getMaxMembersToSelect());
+  }
 
-    @Override
-    public void call(Message message) {
-      GossipRequest gossipRequest = message.data();
-      Address sender = message.sender();
-      for (Gossip gossip : gossipRequest.getGossipList()) {
-        queue.offer(new GossipTask(gossip, sender));
+  private void sweepGossips() {
+    int maxPeriods = factor * 10;
+    Set<GossipState> gossipsToRemove = gossips.values().stream()
+        .filter(gossipState -> period > gossipState.getPeriod() + maxPeriods)
+        .collect(Collectors.toSet());
+    if (!gossipsToRemove.isEmpty()) {
+      LOGGER.debug("Sweep gossips: {}", gossipsToRemove);
+      for (GossipState gossipState : gossipsToRemove) {
+        gossips.remove(gossipState.gossip().gossipId());
       }
     }
   }
 
-  static class GossipDataToGossipWithIncrement implements Function<GossipLocalState, Gossip> {
-    @Override
-    public Gossip apply(GossipLocalState input) {
-      // side effect
-      input.incrementSend();
-      return input.gossip();
-    }
-  }
-
-  static class GossipSendPredicate implements Predicate<GossipLocalState> {
-    private final Member member;
-    private final int maxCounter;
-
-    GossipSendPredicate(Member member, int maxCounter) {
-      this.member = member;
-      this.maxCounter = maxCounter;
-    }
-
-    @Override
-    public boolean apply(GossipLocalState input) {
-      return !input.containsMember(member.address()) && input.getSent() < maxCounter;
-    }
-  }
-
-  static class GossipSweepPredicate implements Predicate<GossipLocalState> {
-    private long currentPeriod;
-    private int maxPeriods;
-
-    GossipSweepPredicate(long currentPeriod, int maxPeriods) {
-      this.currentPeriod = currentPeriod;
-      this.maxPeriods = maxPeriods;
-    }
-
-    @Override
-    public boolean apply(GossipLocalState input) {
-      return currentPeriod - (input.getPeriod() + maxPeriods) > 0;
-    }
-  }
-
-  static class GossipTask {
-    private final Gossip gossip;
-    private final Address origin;
-
-    GossipTask(Gossip gossip, Address origin) {
-      this.gossip = gossip;
-      this.origin = origin;
-    }
-
-    public Gossip getGossip() {
-      return gossip;
-    }
-
-    public Address getOrigin() {
-      return origin;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-      if (this == other) {
-        return true;
-      }
-      if (other == null || getClass() != other.getClass()) {
-        return false;
-      }
-      GossipTask that = (GossipTask) other;
-      return Objects.equals(gossip, that.gossip) && Objects.equals(origin, that.origin);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(gossip, origin);
-    }
-
-    @Override
-    public String toString() {
-      return "GossipTask{" + "gossip=" + gossip + ", origin=" + origin + '}';
-    }
-  }
-
-  private void doSpreadGossip() {
-    try {
-      period++;
-      Collection<GossipLocalState> gossips = processGossipQueue();
-      sendGossips(gossips);
-      sweepGossips(gossips, factor);
-    } catch (Exception cause) {
-      LOGGER.error("Unhandled exception: {}", cause, cause);
-    }
-  }
 }

@@ -2,9 +2,8 @@ package io.scalecube.cluster.gossip;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.cluster.Member;
 import io.scalecube.transport.Message;
-
-import io.protostuff.Tag;
 
 import java.util.Objects;
 
@@ -12,48 +11,49 @@ import java.util.Objects;
  * Data model for gossip, include gossip id, qualifier and object need to disseminate.
  */
 final class Gossip {
-  /** The gossip id. */
-  @Tag(1)
-  private String gossipId;
 
-  /** The gossip message. */
-  @Tag(2)
-  private Message message;
+  private final String gossipId;
+  private final Member origin;
+  private final Message message;
 
-  public Gossip(String gossipId, Message message) {
+  public Gossip(String gossipId, Member origin, Message message) {
     checkArgument(gossipId != null);
+    checkArgument(origin != null);
     checkArgument(message != null);
     this.gossipId = gossipId;
+    this.origin = origin;
     this.message = message;
   }
 
-  public String getGossipId() {
+  public String gossipId() {
     return gossipId;
   }
 
-  public Message getMessage() {
+  public Member origin() {
+    return origin;
+  }
+
+  public Message message() {
     return message;
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (this == other) {
-      return true;
-    }
-    if (other == null || getClass() != other.getClass()) {
-      return false;
-    }
-    Gossip gossip = (Gossip) other;
-    return Objects.equals(gossipId, gossip.gossipId);
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    Gossip gossip = (Gossip) o;
+    return Objects.equals(gossipId, gossip.gossipId) &&
+        Objects.equals(origin, gossip.origin) &&
+        Objects.equals(message, gossip.message);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(gossipId);
+    return Objects.hash(gossipId, origin, message);
   }
 
   @Override
   public String toString() {
-    return "Gossip{" + "gossipId='" + gossipId + '\'' + ", message=" + message + '}';
+    return "Gossip{gossipId=" + gossipId + ", origin=" + origin + ", message=" + message + '}';
   }
 }

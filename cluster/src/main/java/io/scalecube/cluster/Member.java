@@ -81,6 +81,6 @@ public final class Member {
 
   @Override
   public String toString() {
-    return "[id: " + id + ", addr: " + address + (metadata.isEmpty() ? "" : ", meta: " + metadata) + ']';
+    return id + "@" + address + (metadata.isEmpty() ? "" : metadata);
   }
 }

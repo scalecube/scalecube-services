@@ -93,6 +93,6 @@ final class MembershipRecord {
 
   @Override
   public String toString() {
-    return "{" + status + ' ' + member + ", inc=" + incarnation + '}';
+    return "{m: " + member + ", s: " + status + ", inc: " + incarnation + '}';
   }
 }

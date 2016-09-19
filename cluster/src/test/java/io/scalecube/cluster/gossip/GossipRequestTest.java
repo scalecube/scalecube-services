@@ -6,6 +6,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.Member;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import io.netty.buffer.ByteBuf;
@@ -38,9 +40,11 @@ public class GossipRequestTest {
   @Test
   public void testSerializationAndDeserialization() throws Exception {
 
-    List<Gossip> gossips = getGossips();
+    Member from = new Member("0", Address.from("localhost:1234"));
+    List<Gossip> gossips = getGossips(from);
 
-    Message message = Message.withData(new GossipRequest(gossips)).correlationId("CORR_ID").build();
+
+    Message message = Message.withData(new GossipRequest(gossips, from)).correlationId("CORR_ID").build();
 
     ByteBuf bb = buffer();
     MessageCodec.serialize(message, bb);
@@ -57,18 +61,18 @@ public class GossipRequestTest {
 
     GossipRequest gossipRequest = deserializedMessage.data();
     assertNotNull(gossipRequest);
-    assertNotNull(gossipRequest.getGossipList());
-    assertNotNull(gossipRequest.getGossipList().get(0));
+    assertNotNull(gossipRequest.gossips());
+    assertNotNull(gossipRequest.gossips().get(0));
 
-    Object msgData = gossipRequest.getGossipList().get(0).getMessage().data();
+    Object msgData = gossipRequest.gossips().get(0).message().data();
     assertNotNull(msgData);
     assertTrue(msgData.toString(), msgData instanceof TestData);
     assertEquals(testData.getProperties(), ((TestData) msgData).getProperties());
   }
 
-  private List<Gossip> getGossips() {
-    Gossip request = new Gossip("idGossip", Message.withData(testData).qualifier(testDataQualifier).build());
-    Gossip request2 = new Gossip("idGossip2", Message.withData(testData).qualifier(testDataQualifier).build());
+  private List<Gossip> getGossips(Member origin) {
+    Gossip request = new Gossip("idGossip", origin, Message.withData(testData).qualifier(testDataQualifier).build());
+    Gossip request2 = new Gossip("idGossip2", origin, Message.withData(testData).qualifier(testDataQualifier).build());
     List<Gossip> gossips = new ArrayList<>(2);
     gossips.add(request);
     gossips.add(request2);

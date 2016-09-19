@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
+import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
@@ -319,7 +320,7 @@ public class MembershipProtocolIT {
     FailureDetector failureDetector = new FailureDetector(transport, membership, fdConfig);
 
     // Create gossip protocol
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership);
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership, GossipConfig.defaultConfig());
 
     // Set membership components
     membership.setGossipProtocol(gossipProtocol);
