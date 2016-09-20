@@ -7,6 +7,8 @@ import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 
+import java.util.Objects;
+
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
 
@@ -89,6 +91,25 @@ final class MembershipRecord {
     } else {
       return incarnation > r0.incarnation;
     }
+  }
+
+  @Override
+  public boolean equals(Object that) {
+    if (this == that) {
+      return true;
+    }
+    if (that == null || getClass() != that.getClass()) {
+      return false;
+    }
+    MembershipRecord record = (MembershipRecord) that;
+    return incarnation == record.incarnation
+        && Objects.equals(member, record.member)
+        && status == record.status;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(member, status, incarnation);
   }
 
   @Override
