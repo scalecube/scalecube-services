@@ -12,6 +12,7 @@ import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
@@ -141,7 +142,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * <b>NOTE:</b> this method is for testing purpose only.
    */
   List<MembershipRecord> getMembershipRecords() {
-    return new ArrayList<>(membershipTable.values());
+    return ImmutableList.copyOf(membershipTable.values());
   }
 
   @Override
@@ -217,11 +218,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
     // Cancel remove members tasks
     for (String memberId : removeMemberTasks.keySet()) {
-      ScheduledFuture<?> future = removeMemberTasks.remove(memberId);
+      ScheduledFuture<?> future = removeMemberTasks.get(memberId);
       if (future != null) {
         future.cancel(true);
       }
     }
+    removeMemberTasks.clear();
 
     // Shutdown executor
     executor.shutdown();
@@ -311,8 +313,15 @@ public final class MembershipProtocol implements IMembershipProtocol {
       return;
     }
     LOGGER.debug("Received status change on failure detector event: {}", fdEvent);
-    MembershipRecord r1 = new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation());
-    updateMembership(r1, true /* spread gossip */, false /* don't check override */);
+    if (fdEvent.status() == MemberStatus.ALIVE) {
+      // TODO: Consider to make more elegant solution
+      // Alive won't override SUSPECT so issue instead extra sync with member to force it spread alive with inc + 1
+      Message syncMsg = prepareSyncDataMsg(SYNC, null);
+      transport.send(fdEvent.member().address(), syncMsg);
+    } else {
+      MembershipRecord r1 = new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation());
+      updateMembership(r1, true /* spread gossip */);
+    }
   }
 
   /**
@@ -321,7 +330,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void onMembershipGossip(Message message) {
     MembershipRecord record = message.data();
     LOGGER.debug("Received membership gossip: {}", record);
-    updateMembership(record, false /* don't spread gossip */, true /* check override */);
+    updateMembership(record, false /* don't spread gossip */);
   }
 
   /* ================================================ *
@@ -353,7 +362,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     for (MembershipRecord r1 : syncData.getMembership()) {
       MembershipRecord r0 = membershipTable.get(r1.id());
       if (!r1.equals(r0)) {
-        updateMembership(r1, true/* spread gossip */, true /* check override */);
+        updateMembership(r1, true/* spread gossip */);
       }
     }
   }
@@ -364,14 +373,14 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * @param r1 new membership record which compares with existing r0 record
    * @param spreadGossip flag indicating should updates be gossiped to cluster
    */
-  private void updateMembership(MembershipRecord r1, boolean spreadGossip, boolean checkOverride) {
+  private void updateMembership(MembershipRecord r1, boolean spreadGossip) {
     Preconditions.checkArgument(r1 != null, "Membership record can't be null");
 
     // Get current record
     MembershipRecord r0 = membershipTable.get(r1.id());
 
     // Check if r1 overrides existing membership record record
-    if (checkOverride && !r1.isOverrides(r0)) {
+    if (!r1.isOverrides(r0)) {
       return;
     }
 
@@ -380,6 +389,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
       int currentIncarnation = Math.max(r0.incarnation(), r1.incarnation());
       MembershipRecord r2 = new MembershipRecord(member, ALIVE, currentIncarnation + 1);
       membershipTable.put(member.id(), r2);
+      LOGGER.debug("Local membership record r0={}, but received r1={}, spread r2={}", r0, r1, r2);
       spreadMembershipGossip(r2);
       return;
     }
@@ -425,7 +435,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
         LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
         removeMemberTasks.remove(record.id());
         MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
-        updateMembership(deadRecord, true /* spread gossip */, true /* check override */);
+        updateMembership(deadRecord, true /* spread gossip */);
       }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
   }
 

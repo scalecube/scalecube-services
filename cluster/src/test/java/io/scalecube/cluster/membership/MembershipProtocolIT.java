@@ -16,12 +16,12 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class MembershipProtocolIT {
 
@@ -51,7 +51,7 @@ public class MembershipProtocolIT {
   }
 
   @Test
-  public void testInitialPhaseWithNetworkPartitionThenRecovery() {
+  public void testNetworkPartitionThenRecovery() {
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
@@ -80,7 +80,7 @@ public class MembershipProtocolIT {
       b.unblockAll();
       c.unblockAll();
 
-      awaitSeconds(3);
+      awaitSeconds(5);
 
       assertTrusted(cm_a, a.address(), b.address(), c.address());
       assertNoSuspected(cm_a);
@@ -94,7 +94,133 @@ public class MembershipProtocolIT {
   }
 
   @Test
-  public void testRunningPhaseOk() {
+  public void testMemberLostNetworkThenRecover() {
+    Transport a = Transport.bindAwait(true);
+    Transport b = Transport.bindAwait(true);
+    Transport c = Transport.bindAwait(true);
+    List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
+
+    MembershipProtocol cm_a = createMembership(a, members);
+    MembershipProtocol cm_b = createMembership(b, members);
+    MembershipProtocol cm_c = createMembership(c, members);
+
+    try {
+      awaitSeconds(1);
+
+      // Check all trusted
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
+
+      // Node b lost network
+      b.block(Arrays.asList(a.address(), c.address()));
+      a.block(b.address());
+      c.block(b.address());
+
+      awaitSeconds(1);
+
+      // Check partition: {b}, {a, c}
+      assertTrusted(cm_a, a.address(), c.address());
+      assertSuspected(cm_a, b.address());
+      assertTrusted(cm_b, b.address());
+      assertSuspected(cm_b, a.address(), c.address());
+      assertTrusted(cm_c, a.address(), c.address());
+      assertSuspected(cm_c, b.address());
+
+      // Node b recover network
+      a.unblockAll();
+      b.unblockAll();
+      c.unblockAll();
+
+      awaitSeconds(1);
+
+      // Check all trusted again
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
+    } finally {
+      stopAll(cm_a, cm_b, cm_c);
+    }
+  }
+
+  @Test
+  public void testDoublePartitionThenRecover() {
+    Transport a = Transport.bindAwait(true);
+    Transport b = Transport.bindAwait(true);
+    Transport c = Transport.bindAwait(true);
+    List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
+
+    MembershipProtocol cm_a = createMembership(a, members);
+    MembershipProtocol cm_b = createMembership(b, members);
+    MembershipProtocol cm_c = createMembership(c, members);
+
+    try {
+      awaitSeconds(1);
+
+      // Check all trusted
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
+
+      // Node b lost network
+      b.block(Arrays.asList(a.address(), c.address()));
+      a.block(b.address());
+      c.block(b.address());
+
+      awaitSeconds(1);
+
+      // Check partition: {b}, {a, c}
+      assertTrusted(cm_a, a.address(), c.address());
+      assertSuspected(cm_a, b.address());
+      assertTrusted(cm_b, b.address());
+      assertSuspected(cm_b, a.address(), c.address());
+      assertTrusted(cm_c, a.address(), c.address());
+      assertSuspected(cm_c, b.address());
+
+      // Node a and c lost network
+      a.block(c.address());
+      c.block(a.address());
+
+      awaitSeconds(1);
+
+      // Check partition: {a}, {b}, {c}
+      assertTrusted(cm_a, a.address());
+      assertSuspected(cm_a, b.address(), c.address());
+      assertTrusted(cm_b, b.address());
+      assertSuspected(cm_b, a.address(), c.address());
+      assertTrusted(cm_c, c.address());
+      assertSuspected(cm_c, b.address(), a.address());
+
+      // Recover network
+      a.unblockAll();
+      b.unblockAll();
+      c.unblockAll();
+
+      awaitSeconds(1);
+
+      // Check all trusted again
+      assertTrusted(cm_a, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, a.address(), b.address(), c.address());
+      assertNoSuspected(cm_c);
+    } finally {
+      stopAll(cm_a, cm_b, cm_c);
+    }
+  }
+
+  @Test
+  public void testNetworkDisabledThenRecovered() {
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
@@ -118,7 +244,7 @@ public class MembershipProtocolIT {
       b.block(members);
       c.block(members);
 
-      awaitSeconds(3);
+      awaitSeconds(1);
 
       assertTrusted(cm_a, a.address());
       assertSuspected(cm_a, b.address(), c.address());
@@ -133,7 +259,7 @@ public class MembershipProtocolIT {
       b.unblockAll();
       c.unblockAll();
 
-      awaitSeconds(3);
+      awaitSeconds(1);
 
       assertTrusted(cm_a, a.address(), b.address(), c.address());
       assertNoSuspected(cm_a);
@@ -186,7 +312,7 @@ public class MembershipProtocolIT {
       assertTrusted(cm_d, c.address(), d.address());
       assertSuspected(cm_d, a.address(), b.address());
 
-      awaitSeconds(6); // > max suspect time (5)
+      awaitSeconds(5); // > max suspect time (5)
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
@@ -228,14 +354,14 @@ public class MembershipProtocolIT {
       stop(cm_c);
       stop(cm_d);
 
-      awaitSeconds(3);
+      awaitSeconds(1);
 
       assertTrusted(cm_a, a.address(), b.address());
       assertSuspected(cm_a, c.address(), d.address());
       assertTrusted(cm_b, a.address(), b.address());
       assertSuspected(cm_b, c.address(), d.address());
 
-      awaitSeconds(6); // > max suspect time (5)
+      awaitSeconds(5); // > suspect timeout (5)
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
@@ -263,7 +389,7 @@ public class MembershipProtocolIT {
   }
 
   @Test
-  public void testClusterMembersWellknownMembersLimited() {
+  public void testLimitedSeedMembers() {
     Transport a = Transport.bindAwait(true);
     Transport b = Transport.bindAwait(true);
     Transport c = Transport.bindAwait(true);
@@ -384,12 +510,9 @@ public class MembershipProtocolIT {
   }
 
   private List<Address> getAddressesWithStatus(MembershipProtocol membership, MemberStatus status) {
-    List<Address> addresses = new ArrayList<>();
-    for (MembershipRecord member : membership.getMembershipRecords()) {
-      if (member.status() == status) {
-        addresses.add(member.address());
-      }
-    }
-    return addresses;
+    return membership.getMembershipRecords()
+        .stream().filter(member -> member.status() == status)
+        .map(MembershipRecord::address)
+        .collect(Collectors.toList());
   }
 }

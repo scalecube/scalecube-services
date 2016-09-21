@@ -77,6 +77,13 @@ public class MembershipRecordTest {
   }
 
   @Test
+  public void testEqualRecordNotOverriding() {
+    assertFalse(r0_alive_1.isOverrides(r0_alive_1));
+    assertFalse(r0_suspect_1.isOverrides(r0_suspect_1));
+    assertFalse(r0_dead_1.isOverrides(r0_dead_1));
+  }
+
+  @Test
   public void testSuspectOverride() {
     MembershipRecord r1_suspect_1 = new MembershipRecord(member, SUSPECT, 1);
 
