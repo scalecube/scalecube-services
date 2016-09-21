@@ -167,6 +167,8 @@ public final class Transport implements ITransport {
   public void setNetworkSettings(Address destination, int lostPercent, int meanDelay) {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setNetworkSettings(destination, lostPercent, meanDelay);
+      LOGGER.info("Set network settings (loss={}%, mean={}ms) from {} to {}",
+          lostPercent, meanDelay, address, destination);
     } else {
       LOGGER.warn("Noop on 'setNetworkSettings({},{},{})' since network emulator is disabled",
           destination, lostPercent, meanDelay);
@@ -179,6 +181,7 @@ public final class Transport implements ITransport {
   public void setDefaultNetworkSettings(int lostPercent, int meanDelay) {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
+      LOGGER.info("Set default network settings (loss={}%, mean={}ms)");
     } else {
       LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
           lostPercent, meanDelay);
@@ -191,6 +194,7 @@ public final class Transport implements ITransport {
   public void block(Address destination) {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.block(destination);
+      LOGGER.info("Block network from {} to {}", address, destination);
     } else {
       LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destination);
     }
@@ -202,6 +206,7 @@ public final class Transport implements ITransport {
   public void block(Collection<Address> destinations) {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.block(destinations);
+      LOGGER.info("Block network from {} to {}", address, destinations);
     } else {
       LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destinations);
     }
@@ -213,6 +218,7 @@ public final class Transport implements ITransport {
   public void unblock(Address destination) {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.unblock(destination);
+      LOGGER.info("Unblock network from {} to {}", address, destination);
     } else {
       LOGGER.warn("Noop on 'unblock({})' since network emulator is disabled", destination);
     }
@@ -224,6 +230,7 @@ public final class Transport implements ITransport {
   public void unblockAll() {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.unblockAll();
+      LOGGER.info("Unblock all network from {}", address);
     } else {
       LOGGER.warn("Noop on 'unblockAll()' since network emulator is disabled");
     }

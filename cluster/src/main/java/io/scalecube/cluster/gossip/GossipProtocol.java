@@ -225,8 +225,8 @@ public final class GossipProtocol implements IGossipProtocol {
 
   private List<Gossip> selectGossipsToSend(Member member) {
     return gossips.values().stream()
-        .filter(gossipState -> !gossipState.isInfected(member))
-        .filter(gossipState -> gossipState.spreadCount() < config.getGossipFanout() * factor())
+        .filter(gossipState -> !gossipState.isInfected(member)) // already infected
+        .filter(gossipState -> gossipState.infectionPeriod() + factor() >= period) // max rounds
         .map(GossipState::gossip)
         .collect(Collectors.toList());
   }
@@ -263,7 +263,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private void sweepGossips() {
-    int maxPeriodsToKeep = (config.getGossipFanout() + 1) * factor();
+    int maxPeriodsToKeep = 2 * (factor() + 1);
     Set<GossipState> gossipsToRemove = gossips.values().stream()
         .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriodsToKeep)
         .collect(Collectors.toSet());
@@ -276,8 +276,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private int factor() {
-    // Ceil( Log2(N + 1) )
-    return 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1);
+    return 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1) /* log2 */;
   }
 
 }
