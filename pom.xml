@@ -71,6 +71,7 @@
     <modules>
         <module>transport</module>
         <module>cluster</module>
+        <module>leaderelection</module>
         <module>testlib</module>
         <module>benchmark</module>
         <module>examples</module>
