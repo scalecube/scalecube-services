@@ -7,8 +7,6 @@ import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
@@ -37,14 +35,15 @@ import rx.subjects.Subject;
 
 import java.net.InetAddress;
 import java.util.Collection;
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public final class Transport implements ITransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
+  private static final CompletableFuture<Void> COMPLETED_PROMISE = CompletableFuture.completedFuture(null);
 
   private final TransportConfig config;
 
@@ -104,21 +103,21 @@ public final class Transport implements ITransport {
   /**
    * Init transport with the default configuration asynchronously. Starts to accept connections on local address.
    */
-  public static ListenableFuture<Transport> bind() {
+  public static CompletableFuture<Transport> bind() {
     return bind(TransportConfig.defaultConfig());
   }
 
   /**
    * Init transport with the given configuration asynchronously. Starts to accept connections on local address.
    */
-  public static ListenableFuture<Transport> bind(TransportConfig config) {
+  public static CompletableFuture<Transport> bind(TransportConfig config) {
     return new Transport(config).bind0();
   }
 
   /**
    * Starts to accept connections on local address.
    */
-  private ListenableFuture<Transport> bind0() {
+  private CompletableFuture<Transport> bind0() {
     incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
     // Resolve listen IP address
@@ -135,17 +134,17 @@ public final class Transport implements ITransport {
 
     ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
     ChannelFuture bindFuture = server.bind(listenAddress, address.port());
-    final SettableFuture<Transport> result = SettableFuture.create();
+    final CompletableFuture<Transport> result = new CompletableFuture<>();
     bindFuture.addListener(new ChannelFutureListener() {
       @Override
       public void operationComplete(ChannelFuture channelFuture) throws Exception {
         if (channelFuture.isSuccess()) {
           serverChannel = (ServerChannel) channelFuture.channel();
           LOGGER.info("Bound to: {}", address);
-          result.set(Transport.this);
+          result.complete(Transport.this);
         } else {
           LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
-          result.setException(channelFuture.cause());
+          result.completeExceptionally(channelFuture.cause());
         }
       }
     });
@@ -231,12 +230,13 @@ public final class Transport implements ITransport {
 
   @Override
   public final void stop() {
-    stop(null);
+    stop(COMPLETED_PROMISE);
   }
 
   @Override
-  public final void stop(@Nullable SettableFuture<Void> promise) {
+  public final void stop(CompletableFuture<Void> promise) {
     checkState(!stopped, "Transport is stopped");
+    checkArgument(promise != null);
     stopped = true;
     // Complete incoming messages observable
     try {
@@ -277,55 +277,46 @@ public final class Transport implements ITransport {
 
   @Override
   public void send(@CheckForNull Address address, @CheckForNull Message message) {
-    send(address, message, null);
+    send(address, message, COMPLETED_PROMISE);
   }
 
   @Override
   public void send(@CheckForNull final Address address, @CheckForNull final Message message,
-      @Nullable final SettableFuture<Void> promise) {
+      @CheckForNull final CompletableFuture<Void> promise) {
     checkState(!stopped, "Transport is stopped");
     checkArgument(address != null);
     checkArgument(message != null);
+    checkArgument(promise != null);
     message.setSender(this.address);
 
     final ChannelFuture channelFuture = outgoingChannels.get(address);
     if (channelFuture.isSuccess()) {
       composeFutures(channelFuture.channel().writeAndFlush(message), promise);
     } else {
-      channelFuture.addListener(new ChannelFutureListener() {
-        @Override
-        public void operationComplete(ChannelFuture channelFuture) {
-          if (channelFuture.isSuccess()) {
-            composeFutures(channelFuture.channel().writeAndFlush(message), promise);
+      channelFuture.addListener((ChannelFuture chFuture) -> {
+          if (chFuture.isSuccess()) {
+            composeFutures(chFuture.channel().writeAndFlush(message), promise);
           } else {
-            if (promise != null) {
-              promise.setException(channelFuture.cause());
-            }
+            promise.completeExceptionally(chFuture.cause());
           }
-        }
-      });
+        });
     }
   }
 
   /**
-   * Converts netty {@link ChannelFuture} to the given guava {@link SettableFuture}.
+   * Converts netty {@link ChannelFuture} to the given  {@link CompletableFuture}.
    *
    * @param channelFuture netty channel future
    * @param promise guava future; can be null
    */
-  private void composeFutures(ChannelFuture channelFuture, @Nullable final SettableFuture<Void> promise) {
-    if (promise != null) {
-      channelFuture.addListener(new ChannelFutureListener() {
-        @Override
-        public void operationComplete(ChannelFuture channelFuture) throws Exception {
-          if (channelFuture.isSuccess()) {
-            promise.set(channelFuture.get());
-          } else {
-            promise.setException(channelFuture.cause());
-          }
+  private void composeFutures(ChannelFuture channelFuture, @Nonnull final CompletableFuture<Void> promise) {
+    channelFuture.addListener((ChannelFuture future) -> {
+        if (channelFuture.isSuccess()) {
+          promise.complete(channelFuture.get());
+        } else {
+          promise.completeExceptionally(channelFuture.cause());
         }
       });
-    }
   }
 
   private final class OutgoingChannelComputable implements Computable<Address, ChannelFuture> {

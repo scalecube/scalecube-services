@@ -12,9 +12,6 @@ import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
@@ -41,6 +38,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 public final class MembershipProtocol implements IMembershipProtocol {
 
@@ -159,7 +157,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   /**
    * Starts running cluster membership protocol. After started it begins to receive and send cluster membership messages
    */
-  public ListenableFuture<Void> start() {
+  public CompletableFuture<Void> start() {
     // Init membership table with local member record
     MembershipRecord localMemberRecord = new MembershipRecord(member, ALIVE, 0);
     membershipTable.put(member.id(), localMemberRecord);
@@ -236,13 +234,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * ============== Action Methods ================== *
    * ================================================ */
 
-  private ListenableFuture<Void> doInitialSync() {
+  private CompletableFuture<Void> doInitialSync() {
     LOGGER.debug("Making initial Sync to all seed members: {}", seedMembers);
     if (seedMembers.isEmpty()) {
-      return Futures.immediateFuture(null);
+      return CompletableFuture.completedFuture(null);
     }
 
-    SettableFuture<Void> syncResponseFuture = SettableFuture.create();
+    CompletableFuture<Void> syncResponseFuture = new CompletableFuture<>();
 
     // Listen initial Sync Ack
     String cid = member.id();
@@ -255,11 +253,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .subscribe(message -> {
             onSyncAck(message);
             schedulePeriodicSync();
-            syncResponseFuture.set(null);
+            syncResponseFuture.complete(null);
           }, throwable -> {
             LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
             schedulePeriodicSync();
-            syncResponseFuture.set(null);
+            syncResponseFuture.complete(null);
           });
 
     Message syncMsg = prepareSyncDataMsg(SYNC, cid);

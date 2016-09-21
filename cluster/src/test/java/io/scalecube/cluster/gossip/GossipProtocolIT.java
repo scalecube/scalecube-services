@@ -8,10 +8,6 @@ import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportConfig;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RunWith(Parameterized.class)
@@ -142,14 +139,14 @@ public class GossipProtocolIT {
     }
 
     // Stop all transports
-    List<ListenableFuture<Void>> futures = new ArrayList<>();
+    List<CompletableFuture<Void>> futures = new ArrayList<>();
     for (GossipProtocol gossipProtocol : gossipProtocols) {
-      SettableFuture<Void> close = SettableFuture.create();
+      CompletableFuture<Void> close = new CompletableFuture<>();
       gossipProtocol.getTransport().stop(close);
       futures.add(close);
     }
     try {
-      Futures.allAsList(futures).get(30, TimeUnit.SECONDS);
+      CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).get(30, TimeUnit.SECONDS);
     } catch (Exception ignore) {
       System.out.println("Failed to await transport termination");
     }

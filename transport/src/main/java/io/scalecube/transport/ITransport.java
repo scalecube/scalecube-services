@@ -1,16 +1,14 @@
 package io.scalecube.transport;
 
-import com.google.common.util.concurrent.SettableFuture;
-
 import rx.Observable;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Transport is responsible for maintaining existing p2p connections to/from other transports.
- * It allows sending messages and listen incoming messages.
+ * Transport is responsible for maintaining existing p2p connections to/from other transports. It allows sending
+ * messages and listen incoming messages.
  */
 public interface ITransport {
 
@@ -30,12 +28,12 @@ public interface ITransport {
    * Stop transport, disconnect all available connections which belong to this transport. <br/>
    * After transport is stopped it can't be opened again. Observable returned from method {@link #listen()} will
    * immediately emit onComplete event for all subscribers. <br/>
-   * Stop is async operation, if result of operation is not needed leave second parameter null, otherwise pass
-   * {@link SettableFuture}.
+   * Stop is async operation, if result of operation is not needed use {@link ITransport#stop}, otherwise pass
+   * {@link CompletableFuture}.
    *
    * @param promise promise will be completed with result of closing (void or exception)
    */
-  void stop(@Nullable SettableFuture<Void> promise);
+  void stop(@CheckForNull CompletableFuture<Void> promise);
 
   /**
    * Sends message to the given address. It will issue connect in case if no transport channel by given transport
@@ -49,14 +47,15 @@ public interface ITransport {
 
   /**
    * Sends message to the given address. It will issue connect in case if no transport channel by given {@code address}
-   * exists already. Send is an async operation, if result of operation is not needed leave third
-   * parameter null, otherwise pass {@link SettableFuture}.
+   * exists already. Send is an async operation, if result of operation use {@link ITransport#send(Address, Message)},
+   * otherwise pass {@link CompletableFuture}.
    *
    * @param message message to send
    * @param promise promise will be completed with result of sending (void or exception)
    * @throws IllegalArgumentException if {@code message} or {@code address} is null
    */
-  void send(@CheckForNull Address address, @CheckForNull Message message, @Nullable SettableFuture<Void> promise);
+  void send(@CheckForNull Address address, @CheckForNull Message message,
+      @CheckForNull CompletableFuture<Void> promise);
 
   /**
    * Returns stream of received messages. For each observers subscribed to the returned observable:

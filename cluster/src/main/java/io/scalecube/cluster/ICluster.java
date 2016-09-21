@@ -4,12 +4,11 @@ import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-
 import rx.Observable;
 
 import java.util.Collection;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Facade cluster interface which provides API to interact with cluster members.
@@ -25,11 +24,11 @@ public interface ICluster {
 
   void send(Member member, Message message);
 
-  void send(Member member, Message message, SettableFuture<Void> promise);
+  void send(Member member, Message message, CompletableFuture<Void> promise);
 
   void send(Address address, Message message);
 
-  void send(Address address, Message message, SettableFuture<Void> promise);
+  void send(Address address, Message message, CompletableFuture<Void> promise);
 
   Observable<Message> listen();
 
@@ -51,12 +50,12 @@ public interface ICluster {
   /**
    * Returns cluster member with given id or null if no member with such id exists at joined cluster.
    */
-  Member member(String id);
+  Optional<Member> member(String id);
 
   /**
    * Returns cluster member by given address or null if no member with such address exists at joined cluster.
    */
-  Member member(Address address);
+  Optional<Member> member(Address address);
 
   /**
    * Returns list of all members of the joined cluster. This will include all cluster members including local member.
@@ -78,6 +77,6 @@ public interface ICluster {
    *
    * @return Listenable future which is completed once graceful shutdown is finished.
    */
-  ListenableFuture<Void> shutdown();
+  CompletableFuture<Void> shutdown();
 
 }
