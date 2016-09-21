@@ -3,8 +3,8 @@ package io.scalecube.cluster;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.util.concurrent.Futures.transform;
 import static com.google.common.util.concurrent.Futures.transformAsync;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING;
+import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
 import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
@@ -158,27 +158,24 @@ public final class Cluster implements ICluster {
   private ListenableFuture<ICluster> join0() {
     ListenableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
     ListenableFuture<Void> clusterFuture = transformAsync(transportFuture, boundTransport -> {
-        // Init components
-        transport = boundTransport;
-        membership = new MembershipProtocol(transport, config.getMembershipConfig());
-        gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
-        failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
-        membership.setFailureDetector(failureDetector);
-        membership.setGossipProtocol(gossip);
+      transport = boundTransport;
+      membership = new MembershipProtocol(transport, config.getMembershipConfig());
+      gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
+      failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
+      membership.setFailureDetector(failureDetector);
+      membership.setGossipProtocol(gossip);
 
-        // Init membership
-        Member localMember = membership.member();
-        onMemberAdded(localMember);
-        membership.listen()
-            .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
-        membership.listen()
-            .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
+      Member localMember = membership.member();
+      onMemberAdded(localMember);
+      membership.listen()
+          .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
+      membership.listen()
+          .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
 
-        // Start components
-        failureDetector.start();
-        gossip.start();
-        return membership.start();
-      });
+      failureDetector.start();
+      gossip.start();
+      return membership.start();
+    });
 
     return transform(clusterFuture, new Function<Void, ICluster>() {
       @Override

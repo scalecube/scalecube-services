@@ -2,8 +2,8 @@ package io.scalecube.cluster.fdetector;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.Member;
+import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.ITransport;
@@ -37,7 +37,7 @@ public final class FailureDetector implements IFailureDetector {
 
   // Qualifiers
 
-  public static final String PING     = "sc/fdetector/ping";
+  public static final String PING = "sc/fdetector/ping";
   public static final String PING_REQ = "sc/fdetector/pingReq";
   public static final String PING_ACK = "sc/fdetector/pingAck";
 
@@ -168,9 +168,9 @@ public final class FailureDetector implements IFailureDetector {
     return subject.toSerialized();
   }
 
-  /* ================================================ *
-   * ============== Action Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Action Methods ==================
+  // ================================================
 
   private void doPing() {
     // Increment period counter
@@ -194,14 +194,16 @@ public final class FailureDetector implements IFailureDetector {
           .filter(message -> cid.equals(message.correlationId()))
           .take(1)
           .timeout(config.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
-          .subscribe(message -> {
-              LOGGER.trace("Received PingAck[{}] from {}", period, pingMember);
-              publishPingResult(pingMember, MemberStatus.ALIVE);
-            }, throwable -> {
-              LOGGER.trace("Timeout getting PingAck[{}] from {} within {} ms",
-                  period, pingMember, config.getPingTimeout());
-              doPingReq(pingMember, cid);
-            });
+          .subscribe(
+              message -> {
+                LOGGER.trace("Received PingAck[{}] from {}", period, pingMember);
+                publishPingResult(pingMember, MemberStatus.ALIVE);
+              },
+              throwable -> {
+                LOGGER.trace("Timeout getting PingAck[{}] from {} within {} ms",
+                    period, pingMember, config.getPingTimeout());
+                doPingReq(pingMember, cid);
+              });
       transport.send(pingMember.address(), pingMsg);
     } catch (Exception cause) {
       LOGGER.error("Exception on sending Ping[{}] to {}: {}", period, pingMember, cause.getMessage(), cause);
@@ -230,14 +232,16 @@ public final class FailureDetector implements IFailureDetector {
         .filter(message -> cid.equals(message.correlationId()))
         .take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(message -> {
-            LOGGER.trace("Received transit PingAck[{}] from {} to {}", period, message.sender(), pingMember);
-            publishPingResult(pingMember, MemberStatus.ALIVE);
-          }, throwable -> {
-            LOGGER.trace("Timeout getting transit PingAck[{}] from {} to {} within {} ms",
-                period, pingReqMembers, pingMember, timeout);
-            publishPingResult(pingMember, MemberStatus.SUSPECT);
-          });
+        .subscribe(
+            message -> {
+              LOGGER.trace("Received transit PingAck[{}] from {} to {}", period, message.sender(), pingMember);
+              publishPingResult(pingMember, MemberStatus.ALIVE);
+            },
+            throwable -> {
+              LOGGER.trace("Timeout getting transit PingAck[{}] from {} to {} within {} ms",
+                  period, pingReqMembers, pingMember, timeout);
+              publishPingResult(pingMember, MemberStatus.SUSPECT);
+            });
 
     PingData pingReqData = new PingData(localMember, pingMember);
     Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(cid).build();
@@ -247,9 +251,9 @@ public final class FailureDetector implements IFailureDetector {
     }
   }
 
-  /* ================================================ *
-   * ============== Event Listeners ================= *
-   * ================================================ */
+  // ================================================
+  // ============== Event Listeners =================
+  // ================================================
 
   private void onMemberAdded(Member member) {
     // insert member into random positions
@@ -311,9 +315,9 @@ public final class FailureDetector implements IFailureDetector {
     transport.send(target.address(), originalAckMessage);
   }
 
-  /* ================================================ *
-   * ============== Helper Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Helper Methods ==================
+  // ================================================
 
   private Member selectPingMember() {
     if (pingMembers.isEmpty()) {
