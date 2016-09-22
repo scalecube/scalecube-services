@@ -16,9 +16,6 @@ import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
 
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Test;
 
@@ -26,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -390,7 +388,7 @@ public class FailureDetectorIT {
     if (((Transport) transport).isStopped()) {
       return;
     }
-    SettableFuture<Void> close = SettableFuture.create();
+    CompletableFuture<Void> close = new CompletableFuture<>();
     transport.stop(close);
     try {
       close.get(1, TimeUnit.SECONDS);
@@ -442,16 +440,16 @@ public class FailureDetectorIT {
     addresses.remove(fd.getTransport().address()); // exclude self
     checkArgument(!addresses.isEmpty());
 
-    List<ListenableFuture<FailureDetectorEvent>> resultFuture = new ArrayList<>();
+    List<CompletableFuture<FailureDetectorEvent>> resultFuture = new ArrayList<>();
     for (final Address member : addresses) {
-      final SettableFuture<FailureDetectorEvent> future = SettableFuture.create();
+      final CompletableFuture<FailureDetectorEvent> future = new CompletableFuture<>();
       fd.listen()
           .filter(event -> event.member().address() == member)
-          .subscribe(future::set);
+          .subscribe(future::complete);
       resultFuture.add(future);
     }
 
-    return Futures.successfulAsList(resultFuture);
+    return allOf(resultFuture);
   }
 
   private Collection<FailureDetectorEvent> awaitEvents(Future<List<FailureDetectorEvent>> events) {
@@ -460,5 +458,14 @@ public class FailureDetectorIT {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+  private <T> CompletableFuture<List<T>> allOf(List<CompletableFuture<T>> futuresList) {
+    CompletableFuture<Void> allFuturesResult =
+            CompletableFuture.allOf(futuresList.toArray(new CompletableFuture[futuresList.size()]));
+    return allFuturesResult.thenApply(v ->
+            futuresList.stream().
+                    map(CompletableFuture::join).
+                    collect(Collectors.toList())
+    );
   }
 }

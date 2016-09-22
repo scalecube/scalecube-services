@@ -6,10 +6,10 @@ import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.ListenableFuture;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.Future;
 
 /**
  * Example of subscribing and listening for cluster membership events which is emmited when new member joins or leave
@@ -44,7 +44,7 @@ public class MembershipEventsExample {
         .subscribe(event -> System.out.println(now() + " Carol received: " + event));
 
     // Bob leave cluster
-    ListenableFuture<Void> shutdownFuture = bob.shutdown();
+    Future<Void> shutdownFuture = bob.shutdown();
     shutdownFuture.get();
 
     // Avoid exit main thread immediately ]:->

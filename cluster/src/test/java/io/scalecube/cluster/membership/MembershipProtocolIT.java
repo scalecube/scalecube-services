@@ -13,15 +13,15 @@ import io.scalecube.transport.Transport;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class MembershipProtocolIT {
 
@@ -477,7 +477,7 @@ public class MembershipProtocolIT {
     membership.getFailureDetector().stop();
 
     ITransport transport = membership.getTransport();
-    SettableFuture<Void> close = SettableFuture.create();
+    CompletableFuture<Void> close = new CompletableFuture<>();
     transport.stop(close);
     try {
       close.get(1, TimeUnit.SECONDS);
@@ -510,12 +510,9 @@ public class MembershipProtocolIT {
   }
 
   private List<Address> getAddressesWithStatus(MembershipProtocol membership, MemberStatus status) {
-    List<Address> addresses = new ArrayList<>();
-    for (MembershipRecord member : membership.getMembershipRecords()) {
-      if (member.status() == status) {
-        addresses.add(member.address());
-      }
-    }
-    return addresses;
+    return membership.getMembershipRecords()
+        .stream().filter(member -> member.status() == status)
+        .map(MembershipRecord::address)
+        .collect(Collectors.toList());
   }
 }
