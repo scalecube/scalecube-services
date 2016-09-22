@@ -5,7 +5,6 @@ import static io.scalecube.transport.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY
 
 import io.scalecube.transport.memoizer.Memoizer;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 
 import io.protostuff.Input;
@@ -23,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Protostuff schema for {@link Message}.
@@ -49,12 +49,12 @@ final class MessageSchema implements Schema<Message> {
       .put("senderPort", SENDER_PORT_FIELD_NUMBER)
       .build();
 
-  private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>((String className) ->{
+  private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>((String className) -> {
     try {
       Class dataClass = Class.forName(className);
       return Optional.of(dataClass);
     } catch (ClassNotFoundException e) {
-      return Optional.absent();
+      return Optional.empty();
     }
   });
 

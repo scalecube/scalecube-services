@@ -47,8 +47,8 @@ public interface ITransport {
 
   /**
    * Sends message to the given address. It will issue connect in case if no transport channel by given {@code address}
-   * exists already. Send is an async operation, if result of operation use {@link ITransport#send(Address, Message)},
-   * otherwise pass {@link CompletableFuture}.
+   * exists already. Send is an async operation, if result of operation is not needed use
+   * {@link ITransport#send(Address, Message)}, otherwise pass {@link CompletableFuture}.
    *
    * @param message message to send
    * @param promise promise will be completed with result of sending (void or exception)

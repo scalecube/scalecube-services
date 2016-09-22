@@ -301,29 +301,29 @@ public final class Transport implements ITransport {
       composeFutures(channelFuture.channel().writeAndFlush(message), promise);
     } else {
       channelFuture.addListener((ChannelFuture chFuture) -> {
-          if (chFuture.isSuccess()) {
-            composeFutures(chFuture.channel().writeAndFlush(message), promise);
-          } else {
-            promise.completeExceptionally(chFuture.cause());
-          }
-        });
+        if (chFuture.isSuccess()) {
+          composeFutures(chFuture.channel().writeAndFlush(message), promise);
+        } else {
+          promise.completeExceptionally(chFuture.cause());
+        }
+      });
     }
   }
 
   /**
-   * Converts netty {@link ChannelFuture} to the given  {@link CompletableFuture}.
+   * Converts netty {@link ChannelFuture} to the given {@link CompletableFuture}.
    *
    * @param channelFuture netty channel future
    * @param promise guava future; can be null
    */
   private void composeFutures(ChannelFuture channelFuture, @Nonnull final CompletableFuture<Void> promise) {
     channelFuture.addListener((ChannelFuture future) -> {
-        if (channelFuture.isSuccess()) {
-          promise.complete(channelFuture.get());
-        } else {
-          promise.completeExceptionally(channelFuture.cause());
-        }
-      });
+      if (channelFuture.isSuccess()) {
+        promise.complete(channelFuture.get());
+      } else {
+        promise.completeExceptionally(channelFuture.cause());
+      }
+    });
   }
 
   private final class OutgoingChannelComputable implements Function<Address, ChannelFuture> {

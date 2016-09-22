@@ -20,7 +20,6 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 
@@ -157,7 +156,7 @@ public final class Cluster implements ICluster {
 
   private CompletableFuture<ICluster> join0() {
     CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
-    CompletableFuture<Void> clusterFuture =  transportFuture.thenComposeAsync(boundTransport -> {
+    CompletableFuture<Void> clusterFuture =  transportFuture.thenCompose(boundTransport -> {
       transport = boundTransport;
       membership = new MembershipProtocol(transport, config.getMembershipConfig());
       gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
@@ -175,8 +174,8 @@ public final class Cluster implements ICluster {
       failureDetector.start();
       gossip.start();
       return membership.start();
-    }, Runnable::run);
-    return clusterFuture.thenApplyAsync(aVoid -> Cluster.this, Runnable::run);
+    });
+    return clusterFuture.thenApply(aVoid -> Cluster.this);
   }
 
   private void onMemberAdded(Member member) {

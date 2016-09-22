@@ -239,6 +239,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private CompletableFuture<Void> doInitialSync() {
     LOGGER.debug("Making initial Sync to all seed members: {}", seedMembers);
     if (seedMembers.isEmpty()) {
+      schedulePeriodicSync();
       return CompletableFuture.completedFuture(null);
     }
 

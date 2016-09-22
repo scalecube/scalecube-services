@@ -10,7 +10,6 @@ import static org.junit.Assert.fail;
 import io.scalecube.testlib.BaseTest;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.netty.channel.ConnectTimeoutException;
@@ -21,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Subscriber;
-import rx.functions.Action1;
 
 import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
@@ -167,7 +165,6 @@ public class TransportTest extends BaseTest {
       send(server, address, Message.fromQualifier("hi client"));
     });
 
-    // final ValueLatch<Message> latch = new ValueLatch<>();
     CompletableFuture<Message> messageFuture = new CompletableFuture<>();
     client.listen().subscribe(messageFuture::complete);
 
@@ -412,9 +409,7 @@ public class TransportTest extends BaseTest {
     });
 
     final List<Message> resp = new ArrayList<>();
-    client.listen().subscribe(message -> {
-      resp.add(message);
-    });
+    client.listen().subscribe(resp::add);
 
     // test at unblocked transport
     send(client, server.address(), Message.fromQualifier("q/unblocked"));
