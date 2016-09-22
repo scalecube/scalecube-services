@@ -93,8 +93,8 @@ public class RaftLeaderElection implements LeaderElection {
    */
   public static class Builder {
     public ICluster cluster;
-    private int heartbeatInterval = 5;
-    private int leadershipTimeout = 30;
+    private int heartbeatInterval = 500;
+    private int leadershipTimeout = 1500;
 
     public Builder(ICluster cluster) {
       this.cluster = cluster;
@@ -161,39 +161,39 @@ public class RaftLeaderElection implements LeaderElection {
      */
     cluster.listenGossips().observeOn(Schedulers.from(this.executor))
         .filter(msg -> {
-            return msg.qualifier().equals(HEARTBEAT);
-          }).subscribe(message -> {
-            LOGGER.debug("Received RAFT_HEARTBEAT[{}] from {}", HEARTBEAT, message.data());
-            onHeartbeatRecived(message);
-          });
+          return msg.qualifier().equals(HEARTBEAT);
+        }).subscribe(message -> {
+          LOGGER.debug("Received RAFT_HEARTBEAT[{}] from {}", HEARTBEAT, message.data());
+          onHeartbeatRecived(message);
+        });
 
     /*
      * listen on leadership notifications.
      */
     cluster.listenGossips().observeOn(Schedulers.from(this.executor))
         .filter(msg -> {
-            return msg.qualifier().equals(NEW_LEADER_ELECTED);
-          }).subscribe(message -> {
-            LOGGER.debug("Received new leader notification[{}] from {}", NEW_LEADER_ELECTED, message.data());
-            this.subject.onNext(LeadershipEvent.newLeader(message.data()));
-            onHeartbeatRecived(message);
-          });
+          return msg.qualifier().equals(NEW_LEADER_ELECTED);
+        }).subscribe(message -> {
+          LOGGER.debug("Received new leader notification[{}] from {}", NEW_LEADER_ELECTED, message.data());
+          this.subject.onNext(LeadershipEvent.newLeader(message.data()));
+          onHeartbeatRecived(message);
+        });
 
     /*
      * listen on vote requests from followers that elect this node as leader to check if node has concensus.
      */
     cluster.listen().observeOn(Schedulers.from(this.executor))
         .filter(message -> {
-            return VOTE_REQUEST.equals(message.qualifier());
-          }).subscribe(this::vote);
+          return VOTE_REQUEST.equals(message.qualifier());
+        }).subscribe(this::vote);
 
     /*
      * listen on vote requests from candidates and replay with a vote.
      */
     cluster.listen().observeOn(Schedulers.from(this.executor))
         .filter(msg -> {
-            return VOTE_RESPONSE.equals(msg.qualifier());
-          }).subscribe(this::onVoteRecived);
+          return VOTE_RESPONSE.equals(msg.qualifier());
+        }).subscribe(this::onVoteRecived);
 
     /*
      * when node joins the cluster the leader send immediate heartbeat and take ownership on the joining node so the
@@ -201,10 +201,10 @@ public class RaftLeaderElection implements LeaderElection {
      */
     cluster.listenMembership().observeOn(Schedulers.from(this.executor))
         .subscribe(event -> {
-            if (event.isAdded() && currentState().equals(StateType.LEADER)) {
-              leaderSendWelcomeMessage();
-            }
-          });
+          if (event.isAdded() && currentState().equals(StateType.LEADER)) {
+            leaderSendWelcomeMessage();
+          }
+        });
 
 
     transition(StateType.FOLLOWER);
@@ -224,9 +224,9 @@ public class RaftLeaderElection implements LeaderElection {
     cancelHeartbeatTimeout();
     int timeout = randomTimeOut(this.leadershipTimeout);
     ScheduledFuture<?> future = executor.schedule(() -> {
-        LOGGER.debug("Time to become Candidate ", "");
-        transition(StateType.CANDIDATE);
-      }, timeout, TimeUnit.SECONDS);
+      LOGGER.debug("Time to become Candidate ", "");
+      transition(StateType.CANDIDATE);
+    }, timeout, TimeUnit.MILLISECONDS);
 
     heartbeatTask.set(future);
   }
@@ -241,7 +241,6 @@ public class RaftLeaderElection implements LeaderElection {
 
   private void onHeartbeatRecived(Message message) {
     if (!cluster.address().equals(message.data()) && currentState().equals(StateType.LEADER)) {
-      transition(StateType.FOLLOWER);
       this.subject.onNext(LeadershipEvent.newLeader(message.data()));
     } else {
       selectedLeader = message.data();
@@ -249,6 +248,7 @@ public class RaftLeaderElection implements LeaderElection {
           selectedLeader);
       this.resetHeartbeatTimeout();
     }
+    transition(StateType.FOLLOWER);
   }
 
   @Override
@@ -293,13 +293,9 @@ public class RaftLeaderElection implements LeaderElection {
         () -> {
           LOGGER.debug("Candidatation reached timeout {} adter {} secounds", cluster.address(), leadershipTimeout);
           if (currentState().equals(StateType.CANDIDATE)) {
-            if (cluster.otherMembers().size() == 0) {
-              transition(StateType.LEADER);
-            } else {
-              transition(StateType.FOLLOWER);
-            }
+            transition(StateType.FOLLOWER);
           }
-        }, leadershipTimeout, TimeUnit.SECONDS);
+        }, leadershipTimeout, TimeUnit.MILLISECONDS);
   }
 
   protected void becomeLeader() {
@@ -399,16 +395,22 @@ public class RaftLeaderElection implements LeaderElection {
   private void transition(StateType state) {
     switch (state) {
       case FOLLOWER:
-        currentState.set(StateType.FOLLOWER);
-        becomeFollower();
+        if (!currentState.get().equals(StateType.FOLLOWER)) {
+          becomeFollower();
+          currentState.set(StateType.FOLLOWER);
+        }
         break;
       case CANDIDATE:
-        currentState.set(StateType.CANDIDATE);
-        becomeCanidate();
+        if (!currentState.get().equals(StateType.CANDIDATE)) {
+          becomeCanidate();
+          currentState.set(StateType.CANDIDATE);
+        }
         break;
       case LEADER:
-        currentState.set(StateType.LEADER);
-        becomeLeader();
+        if (!currentState.get().equals(StateType.LEADER)) {
+          becomeLeader();
+          currentState.set(StateType.LEADER);
+        }
         break;
       case START: // do nothing for now
         currentState.set(StateType.START);

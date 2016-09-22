@@ -42,7 +42,7 @@ public class HeartbeatScheduler {
     scheduler = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
 
-    scheduler.scheduleAtFixedRate(this::spreadHeartbeat, heartbeatInterval, heartbeatInterval, TimeUnit.SECONDS);
+    scheduler.scheduleAtFixedRate(this::spreadHeartbeat, heartbeatInterval, heartbeatInterval, TimeUnit.MILLISECONDS);
   }
 
   private void spreadHeartbeat() {

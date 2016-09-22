@@ -13,7 +13,7 @@ public class LeadershipEvent {
   public enum Type {
     BECAME_LEADER, LEADERSHIP_REVOKED, NEW_LEADER
   }
-  
+
   private final Type type;
   private final Address address;
 
@@ -25,23 +25,23 @@ public class LeadershipEvent {
   public Type type() {
     return type;
   }
-  
+
   public Address address() {
-    return this.address ;
-  }
-  
-  public static LeadershipEvent becameLeader(Address address) { 
-    return new LeadershipEvent(Type.BECAME_LEADER,address);
-  }
-  
-  public static LeadershipEvent newLeader(Address address) {
-    return new LeadershipEvent(Type.NEW_LEADER,address);
-  }
-  
-  public static LeadershipEvent leadershipRevoked(Address address) {
-    return new LeadershipEvent(Type.LEADERSHIP_REVOKED,address);
+    return this.address;
   }
 
-  
+  public static LeadershipEvent becameLeader(Address address) {
+    return new LeadershipEvent(Type.BECAME_LEADER, address);
+  }
+
+  public static LeadershipEvent newLeader(Address address) {
+    return new LeadershipEvent(Type.NEW_LEADER, address);
+  }
+
+  public static LeadershipEvent leadershipRevoked(Address address) {
+    return new LeadershipEvent(Type.LEADERSHIP_REVOKED, address);
+  }
+
+
 
 }

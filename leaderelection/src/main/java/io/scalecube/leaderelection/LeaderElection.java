@@ -12,9 +12,9 @@ import rx.Observable;
 public interface LeaderElection {
 
   Address leader();
-  
+
   Observable<LeadershipEvent> listen();
-  
+
   ICluster cluster();
   
 }
