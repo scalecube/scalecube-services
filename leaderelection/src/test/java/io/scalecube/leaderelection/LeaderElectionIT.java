@@ -31,12 +31,12 @@ public class LeaderElectionIT {
     // waiting for a leader to be selected
     awaitSeconds(4);
 
-    Member seedLeaderAddress = leaders.peek().leader();
+    Member seedMember = leaders.peek().leader();
 
     for (LeaderElection m : leaders) {
       Member member = m.leader();
-      assertTrue("Expected leader address " + seedLeaderAddress + ", but actual: " + member.address(),
-          member.address().equals(seedLeaderAddress));
+      assertTrue("Expected leader address " + seedMember.address() + ", but actual: " + member.address(),
+          member.equals(seedMember));
     }
 
     teardownCluster(seed, leaders);

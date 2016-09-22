@@ -1,5 +1,6 @@
 package io.scalecube.leaderelection;
 
+import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 
 /**
@@ -15,31 +16,31 @@ public class LeadershipEvent {
   }
 
   private final Type type;
-  private final Address address;
+  private final Member member;
 
-  private LeadershipEvent(Type type, Address who) {
+  private LeadershipEvent(Type type, Member who) {
     this.type = Type.NEW_LEADER;
-    this.address = who;
+    this.member = who;
   }
 
   public Type type() {
     return type;
   }
 
-  public Address address() {
-    return this.address;
+  public Member member() {
+    return this.member;
   }
 
-  public static LeadershipEvent becameLeader(Address address) {
-    return new LeadershipEvent(Type.BECAME_LEADER, address);
+  public static LeadershipEvent becameLeader(Member member) {
+    return new LeadershipEvent(Type.BECAME_LEADER, member);
   }
 
-  public static LeadershipEvent newLeader(Address address) {
-    return new LeadershipEvent(Type.NEW_LEADER, address);
+  public static LeadershipEvent newLeader(Member member) {
+    return new LeadershipEvent(Type.NEW_LEADER, member);
   }
 
-  public static LeadershipEvent leadershipRevoked(Address address) {
-    return new LeadershipEvent(Type.LEADERSHIP_REVOKED, address);
+  public static LeadershipEvent leadershipRevoked(Member member) {
+    return new LeadershipEvent(Type.LEADERSHIP_REVOKED, member);
   }
 
 

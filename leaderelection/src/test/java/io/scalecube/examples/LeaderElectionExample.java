@@ -55,7 +55,7 @@ public class LeaderElectionExample {
           i = Integer.valueOf(index);
         } catch (NumberFormatException ex) {
           System.out.println("invalid input value must be valid index number");
-          };
+        } ;
         if (i >= 0 && i < nodes.size()) {
           createNode(i);
           list();

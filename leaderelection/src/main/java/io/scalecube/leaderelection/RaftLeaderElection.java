@@ -181,9 +181,13 @@ public class RaftLeaderElection implements LeaderElection {
         .filter(msg -> {
           return msg.qualifier().equals(NEW_LEADER_ELECTED);
         }).subscribe(message -> {
-          LOGGER.debug("Received new leader notification[{}] from {}", NEW_LEADER_ELECTED, message.data());
-          this.subject.onNext(LeadershipEvent.newLeader(message.data()));
-          onHeartbeatRecived(message);
+          if (!cluster.address().equals(message.data()) // i didnt send this
+              && !currentState().equals(StateType.LEADER)) { // and i am not a leader
+            
+            LOGGER.debug("Received new leader notification[{}] from {}", NEW_LEADER_ELECTED, message.data());
+            this.subject.onNext(LeadershipEvent.newLeader(message.data()));
+            onHeartbeatRecived(message);
+          }
         });
 
     /*
@@ -249,14 +253,11 @@ public class RaftLeaderElection implements LeaderElection {
   }
 
   private void onHeartbeatRecived(Message message) {
-    if (!cluster.address().equals(message.data()) && currentState().equals(StateType.LEADER)) {
-      this.subject.onNext(LeadershipEvent.newLeader(message.data()));
-    } else {
-      selectedLeader = message.data();
-      LOGGER.debug("{} Node: {} received heartbeat from  {}", currentState(), cluster.address(),
-          selectedLeader);
-      this.resetHeartbeatTimeout();
-    }
+    
+    selectedLeader = message.data();
+    LOGGER.debug("{} Node: {} received heartbeat from  {}", currentState(), cluster.address(),
+        selectedLeader);
+    this.resetHeartbeatTimeout();
     transition(StateType.FOLLOWER);
   }
 
@@ -322,10 +323,10 @@ public class RaftLeaderElection implements LeaderElection {
   private void onStateChanged(StateType state) {
     LOGGER.debug("Node: {} state changed current from {} to {}", cluster.address(), currentState(), state);
     if (StateType.LEADER.equals(currentState()) && !StateType.LEADER.equals(state)) {
-      subject.onNext(LeadershipEvent.leadershipRevoked(cluster.address()));
+      subject.onNext(LeadershipEvent.leadershipRevoked(cluster.member()));
 
     } else if (!StateType.LEADER.equals(currentState()) && StateType.LEADER.equals(state)) {
-      subject.onNext(LeadershipEvent.becameLeader(cluster.address()));
+      subject.onNext(LeadershipEvent.becameLeader(cluster.member()));
     }
   }
 

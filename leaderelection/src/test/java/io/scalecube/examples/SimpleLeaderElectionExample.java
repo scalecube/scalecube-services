@@ -10,26 +10,26 @@ public class SimpleLeaderElectionExample {
 
     RaftLeaderElection alice = RaftLeaderElection.builder(Cluster.joinAwait()).build();
     alice.listen().filter(le -> {
-        return LeadershipEvent.Type.BECAME_LEADER.equals(le.type() );
-      }).subscribe(le -> {
-        System.out.println("Alice became leader.");
-      });
+      return LeadershipEvent.Type.BECAME_LEADER.equals(le.type());
+    }).subscribe(le -> {
+      System.out.println("Alice became leader.");
+    });
 
     RaftLeaderElection bob = RaftLeaderElection.builder(
         Cluster.joinAwait(alice.cluster().address())).build();
 
     bob.listen().filter(le -> {
-      return LeadershipEvent.Type.BECAME_LEADER.equals( le.type() );
+      return LeadershipEvent.Type.BECAME_LEADER.equals(le.type());
     }).subscribe(le -> {
       System.out.println("Bob became leader.");
     });
 
     bob.listen().filter(le -> {
-      return LeadershipEvent.Type.NEW_LEADER.equals( le.type() );
+      return LeadershipEvent.Type.NEW_LEADER.equals(le.type());
     }).subscribe(le -> {
-      System.out.println("Bob follow leader:" + le.address());
+      System.out.println("Bob follow leader:" + le.member());
     });
-    
+
     avoidExit();
   }
 
