@@ -161,39 +161,39 @@ public class RaftLeaderElection implements LeaderElection {
      */
     cluster.listenGossips().observeOn(Schedulers.from(this.executor))
         .filter(msg -> {
-          return msg.qualifier().equals(HEARTBEAT);
-        }).subscribe(message -> {
-          LOGGER.debug("Received RAFT_HEARTBEAT[{}] from {}", HEARTBEAT, message.data());
-          onHeartbeatRecived(message);
-        });
+            return msg.qualifier().equals(HEARTBEAT);
+          }).subscribe(message -> {
+            LOGGER.debug("Received RAFT_HEARTBEAT[{}] from {}", HEARTBEAT, message.data());
+            onHeartbeatRecived(message);
+          });
 
     /*
      * listen on leadership notifications.
      */
     cluster.listenGossips().observeOn(Schedulers.from(this.executor))
         .filter(msg -> {
-          return msg.qualifier().equals(NEW_LEADER_ELECTED);
-        }).subscribe(message -> {
-          LOGGER.debug("Received new leader notification[{}] from {}", NEW_LEADER_ELECTED, message.data());
-          this.subject.onNext(LeadershipEvent.newLeader(message.data()));
-          onHeartbeatRecived(message);
-        });
+            return msg.qualifier().equals(NEW_LEADER_ELECTED);
+          }).subscribe(message -> {
+            LOGGER.debug("Received new leader notification[{}] from {}", NEW_LEADER_ELECTED, message.data());
+            this.subject.onNext(LeadershipEvent.newLeader(message.data()));
+            onHeartbeatRecived(message);
+          });
 
     /*
      * listen on vote requests from followers that elect this node as leader to check if node has concensus.
      */
     cluster.listen().observeOn(Schedulers.from(this.executor))
         .filter(message -> {
-          return VOTE_REQUEST.equals(message.qualifier());
-        }).subscribe(this::vote);
+            return VOTE_REQUEST.equals(message.qualifier());
+          }).subscribe(this::vote);
 
     /*
      * listen on vote requests from candidates and replay with a vote.
      */
     cluster.listen().observeOn(Schedulers.from(this.executor))
         .filter(msg -> {
-          return VOTE_RESPONSE.equals(msg.qualifier());
-        }).subscribe(this::onVoteRecived);
+            return VOTE_RESPONSE.equals(msg.qualifier());
+          }).subscribe(this::onVoteRecived);
 
     /*
      * when node joins the cluster the leader send immediate heartbeat and take ownership on the joining node so the
@@ -201,10 +201,10 @@ public class RaftLeaderElection implements LeaderElection {
      */
     cluster.listenMembership().observeOn(Schedulers.from(this.executor))
         .subscribe(event -> {
-          if (event.isAdded() && currentState().equals(StateType.LEADER)) {
-            leaderSendWelcomeMessage();
-          }
-        });
+            if (event.isAdded() && currentState().equals(StateType.LEADER)) {
+              leaderSendWelcomeMessage();
+            }
+          });
 
 
     transition(StateType.FOLLOWER);
@@ -224,9 +224,9 @@ public class RaftLeaderElection implements LeaderElection {
     cancelHeartbeatTimeout();
     int timeout = randomTimeOut(this.leadershipTimeout);
     ScheduledFuture<?> future = executor.schedule(() -> {
-      LOGGER.debug("Time to become Candidate ", "");
-      transition(StateType.CANDIDATE);
-    }, timeout, TimeUnit.SECONDS);
+        LOGGER.debug("Time to become Candidate ", "");
+        transition(StateType.CANDIDATE);
+      }, timeout, TimeUnit.SECONDS);
 
     heartbeatTask.set(future);
   }
@@ -289,16 +289,17 @@ public class RaftLeaderElection implements LeaderElection {
   }
 
   private ScheduledFuture<?> waitForVotesUtilTimeout() {
-    return executor.schedule(() -> {
-      LOGGER.debug("Candidatation reached timeout {} adter {} secounds", cluster.address(), leadershipTimeout);
-      if (currentState().equals(StateType.CANDIDATE)) {
-        if (cluster.otherMembers().size() == 0) {
-          transition(StateType.LEADER);
-        } else {
-          transition(StateType.FOLLOWER);
-        }
-      }
-    }, leadershipTimeout, TimeUnit.SECONDS);
+    return executor.schedule(
+        () -> {
+          LOGGER.debug("Candidatation reached timeout {} adter {} secounds", cluster.address(), leadershipTimeout);
+          if (currentState().equals(StateType.CANDIDATE)) {
+            if (cluster.otherMembers().size() == 0) {
+              transition(StateType.LEADER);
+            } else {
+              transition(StateType.FOLLOWER);
+            }
+          }
+        }, leadershipTimeout, TimeUnit.SECONDS);
   }
 
   protected void becomeLeader() {
