@@ -3,6 +3,7 @@ package io.scalecube.cluster;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING;
+import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
 import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
@@ -43,7 +44,7 @@ import javax.annotation.Nullable;
 
 /**
  * Main ICluster implementation.
- *
+ * 
  * @author Anton Kharenko
  */
 public final class Cluster implements ICluster {
@@ -156,27 +157,25 @@ public final class Cluster implements ICluster {
 
   private CompletableFuture<ICluster> join0() {
     CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
-    CompletableFuture<Void> clusterFuture = transportFuture.thenComposeAsync(boundTransport -> {
-        transport = boundTransport;
-        membership = new MembershipProtocol(transport, config.getMembershipConfig());
-        gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
-        failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
-        membership.setFailureDetector(failureDetector);
-        membership.setGossipProtocol(gossip);
+    CompletableFuture<Void> clusterFuture =  transportFuture.thenComposeAsync(boundTransport -> {
+      transport = boundTransport;
+      membership = new MembershipProtocol(transport, config.getMembershipConfig());
+      gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
+      failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
+      membership.setFailureDetector(failureDetector);
+      membership.setGossipProtocol(gossip);
 
-        // Init membership
-        Member localMember = membership.member();
-        onMemberAdded(localMember);
-        membership.listen()
-            .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
-        membership.listen()
-            .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
+      Member localMember = membership.member();
+      onMemberAdded(localMember);
+      membership.listen()
+          .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
+      membership.listen()
+          .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
 
-        // Start components
-        failureDetector.start();
-        gossip.start();
-        return membership.start();
-      }, Runnable::run);
+      failureDetector.start();
+      gossip.start();
+      return membership.start();
+    }, Runnable::run);
     return clusterFuture.thenApplyAsync(aVoid -> Cluster.this, Runnable::run);
   }
 

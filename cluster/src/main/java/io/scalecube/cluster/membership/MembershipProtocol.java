@@ -1,7 +1,7 @@
 package io.scalecube.cluster.membership;
 
-import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
+import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
@@ -232,9 +232,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     subject.onCompleted();
   }
 
-  /* ================================================ *
-   * ============== Action Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Action Methods ==================
+  // ================================================
 
   private CompletableFuture<Void> doInitialSync() {
     LOGGER.debug("Making initial Sync to all seed members: {}", seedMembers);
@@ -252,15 +252,17 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(this::checkSyncGroup)
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(message -> {
-            onSyncAck(message);
-            schedulePeriodicSync();
-            syncResponseFuture.complete(null);
-          }, throwable -> {
-            LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
-            schedulePeriodicSync();
-            syncResponseFuture.complete(null);
-          });
+        .subscribe(
+            message -> {
+              onSyncAck(message);
+              schedulePeriodicSync();
+              syncResponseFuture.complete(null);
+            },
+            throwable -> {
+              LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
+              schedulePeriodicSync();
+              syncResponseFuture.complete(null);
+            });
 
     Message syncMsg = prepareSyncDataMsg(SYNC, cid);
     seedMembers.forEach(address -> transport.send(address, syncMsg));
@@ -282,9 +284,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
   }
 
-  /* ================================================ *
-   * ============== Event Listeners ================= *
-   * ================================================ */
+  // ================================================
+  // ============== Event Listeners =================
+  // ================================================
 
   private void onSyncAck(Message syncAckMsg) {
     LOGGER.debug("Received SyncAck: {}", syncAckMsg);
@@ -333,9 +335,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     updateMembership(record, false /* don't spread gossip */);
   }
 
-  /* ================================================ *
-   * ============== Helper Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Helper Methods ==================
+  // ================================================
 
   private Address selectSyncAddress() {
     // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
@@ -432,11 +434,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private void scheduleRemoveMemberTask(MembershipRecord record) {
     removeMemberTasks.putIfAbsent(record.id(), executor.schedule(() -> {
-        LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
-        removeMemberTasks.remove(record.id());
-        MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
-        updateMembership(deadRecord, true /* spread gossip */);
-      }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+      LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
+      removeMemberTasks.remove(record.id());
+      MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
+      updateMembership(deadRecord, true /* spread gossip */);
+    }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
   }
 
   private void spreadMembershipGossip(MembershipRecord record) {
