@@ -3,7 +3,6 @@ package io.scalecube.transport;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Throwables;
@@ -36,6 +35,7 @@ import rx.subjects.Subject;
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -326,9 +326,9 @@ public final class Transport implements ITransport {
       });
   }
 
-  private final class OutgoingChannelComputable implements Computable<Address, ChannelFuture> {
+  private final class OutgoingChannelComputable implements Function<Address, ChannelFuture> {
     @Override
-    public ChannelFuture compute(final Address address) throws Exception {
+    public ChannelFuture apply(Address address) {
       OutgoingChannelInitializer channelInitializer = new OutgoingChannelInitializer(address);
       Bootstrap client = bootstrapFactory.clientBootstrap().handler(channelInitializer);
       ChannelFuture connectFuture = client.connect(address.host(), address.port());

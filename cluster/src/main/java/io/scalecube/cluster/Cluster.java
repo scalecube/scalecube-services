@@ -176,8 +176,8 @@ public final class Cluster implements ICluster {
         failureDetector.start();
         gossip.start();
         return membership.start();
-      }, MoreExecutors.directExecutor());
-    return clusterFuture.thenApplyAsync(aVoid -> Cluster.this, MoreExecutors.directExecutor());
+      }, Runnable::run);
+    return clusterFuture.thenApplyAsync(aVoid -> Cluster.this, Runnable::run);
   }
 
   private void onMemberAdded(Member member) {

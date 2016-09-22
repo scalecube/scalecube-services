@@ -3,7 +3,6 @@ package io.scalecube.transport;
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.scalecube.transport.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
-import io.scalecube.transport.memoizer.Computable;
 import io.scalecube.transport.memoizer.Memoizer;
 
 import com.google.common.base.Optional;
@@ -50,18 +49,15 @@ final class MessageSchema implements Schema<Message> {
       .put("senderPort", SENDER_PORT_FIELD_NUMBER)
       .build();
 
-  private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>(
-      new Computable<String, Optional<Class>>() {
-        @Override
-        public Optional<Class> compute(String className) {
-          try {
-            Class dataClass = Class.forName(className);
-            return Optional.of(dataClass);
-          } catch (ClassNotFoundException e) {
-            return Optional.absent();
-          }
-        }
-      });
+  private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>((String className) ->{
+    try {
+      Class dataClass = Class.forName(className);
+      return Optional.of(dataClass);
+    } catch (ClassNotFoundException e) {
+      return Optional.absent();
+    }
+  });
+
 
   @Override
   public String getFieldName(int number) {
