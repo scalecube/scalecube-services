@@ -50,13 +50,13 @@ public class LeaderElectionExample {
         list();
       } else if (command.startsWith("join")) {
         String index = scanner.next();
-        int i=-2;
-        try{
+        int i = -2;
+        try {
           i = Integer.valueOf(index);
-        }catch(NumberFormatException ex){
+        } catch (NumberFormatException ex) {
           System.out.println("invalid input value must be valid index number");
-        };
-        if(i>=0 && i<nodes.size()){
+          };
+        if (i >= 0 && i < nodes.size()) {
           createNode(i);
           list();
         }
@@ -73,6 +73,7 @@ public class LeaderElectionExample {
         list();
       }
     }
+    scanner.close();
   }
 
   private static void list() {
@@ -100,8 +101,10 @@ public class LeaderElectionExample {
 
     }
     el = RaftLeaderElection.builder(node).build();
-    el.listen().subscribe(s->{System.out.println("State Changed: " + s);});
-    
+    el.listen().subscribe(s -> {
+      System.out.println("State Changed: " + s);
+    });
+
 
     nodes.add(node);
     leaders.put(node, el);

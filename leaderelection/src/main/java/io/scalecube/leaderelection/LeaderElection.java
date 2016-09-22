@@ -1,7 +1,7 @@
 package io.scalecube.leaderelection;
 
 import io.scalecube.cluster.ICluster;
-import io.scalecube.transport.Address;
+import io.scalecube.cluster.Member;
 
 import rx.Observable;
 
@@ -11,7 +11,7 @@ import rx.Observable;
  */
 public interface LeaderElection {
 
-  Address leader();
+  Member leader();
 
   Observable<LeadershipEvent> listen();
 

@@ -4,14 +4,13 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
 
 import com.google.common.base.Throwables;
 
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
@@ -30,14 +29,14 @@ public class LeaderElectionIT {
     Queue<LeaderElection> leaders = createCluster(seed, NUM_OF_NODES);
 
     // waiting for a leader to be selected
-    awaitSeconds(1);
+    awaitSeconds(4);
 
-    Address seedLeaderAddress = leaders.peek().leader();
+    Member seedLeaderAddress = leaders.peek().leader();
 
     for (LeaderElection m : leaders) {
-      Address memberLeaderAddress = m.leader();
-      assertTrue("Expected leader address " + seedLeaderAddress + ", but actual: " + memberLeaderAddress,
-          memberLeaderAddress.equals(seedLeaderAddress));
+      Member member = m.leader();
+      assertTrue("Expected leader address " + seedLeaderAddress + ", but actual: " + member.address(),
+          member.address().equals(seedLeaderAddress));
     }
 
     teardownCluster(seed, leaders);
@@ -51,19 +50,19 @@ public class LeaderElectionIT {
     Queue<LeaderElection> leaders = createCluster(seed, NUM_OF_NODES);
 
     // waiting for a leader to be selected
-    awaitSeconds(1);
+    awaitSeconds(3);
 
     killTheLeader(leaders, seedLeader.leader());
 
     // waiting for a leader to be selected
-    awaitSeconds(1);
+    awaitSeconds(3);
 
-    Address newLeader = leaders.peek().leader();
+    Member newLeader = leaders.peek().leader();
 
     for (LeaderElection m : leaders) {
-      Address memberLeaderAddress = m.leader();
-      assertTrue("Expected leader address " + newLeader + ", but actual: " + memberLeaderAddress,
-          memberLeaderAddress.equals(newLeader));
+      Address memberLeaderAddress = m.leader().address();
+      assertTrue("Expected leader address " + newLeader.address() + ", but actual: " + memberLeaderAddress,
+          memberLeaderAddress.equals(newLeader.address()));
     }
 
     teardownCluster(seed, leaders);
@@ -79,7 +78,7 @@ public class LeaderElectionIT {
   }
 
 
-  private void killTheLeader(Queue<LeaderElection> leaders, Address leader) {
+  private void killTheLeader(Queue<LeaderElection> leaders, Member leader) {
     LeaderElection rm = null;
     for (LeaderElection m : leaders) {
       if (leader.equals(m.cluster().address())) {
@@ -102,7 +101,8 @@ public class LeaderElectionIT {
           leaders.add(createLeaderElection(member));
         }
       });
-      awaitSeconds(2);
+      // avoid port collision.
+      awaitSeconds(3);
     }
     return leaders;
   }
@@ -110,8 +110,6 @@ public class LeaderElectionIT {
 
   private LeaderElection createLeaderElection(ICluster cluster) {
     LeaderElection el = RaftLeaderElection.builder(cluster)
-        .leadershipTimeout(7)
-        .heartbeatInterval(1)
         .build();
     return el;
   }

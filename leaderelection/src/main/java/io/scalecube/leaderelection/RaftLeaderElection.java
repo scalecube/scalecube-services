@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
-import io.scalecube.leaderelection.LeadershipEvent.Type;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -18,9 +17,6 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -166,6 +162,17 @@ public class RaftLeaderElection implements LeaderElection {
           LOGGER.debug("Received RAFT_HEARTBEAT[{}] from {}", HEARTBEAT, message.data());
           onHeartbeatRecived(message);
         });
+    
+    /*
+     * listen on welcome heartbeat from leaders - leaders are sending heartbeats to maintain leadership.
+     */
+    cluster.listen().observeOn(Schedulers.from(this.executor))
+        .filter(msg -> {
+          return msg.qualifier().equals(HEARTBEAT);
+        }).subscribe(message -> {
+          LOGGER.debug("Received WELCOME [{}] from {}", HEARTBEAT, message.data());
+          onHeartbeatRecived(message);
+        });
 
     /*
      * listen on leadership notifications.
@@ -202,7 +209,7 @@ public class RaftLeaderElection implements LeaderElection {
     cluster.listenMembership().observeOn(Schedulers.from(this.executor))
         .subscribe(event -> {
           if (event.isAdded() && currentState().equals(StateType.LEADER)) {
-            leaderSendWelcomeMessage();
+            leaderSendWelcomeMessage(event.member().address());
           }
         });
 
@@ -212,19 +219,21 @@ public class RaftLeaderElection implements LeaderElection {
     return this;
   }
 
-  private void leaderSendWelcomeMessage() {
-    cluster.spreadGossip(Message.builder()
+  private void leaderSendWelcomeMessage(Address address) {
+    cluster.send(address, Message.builder()
         .qualifier(HEARTBEAT)
         .data(cluster.address())
         .build());
   }
 
   private void resetHeartbeatTimeout() {
-
     cancelHeartbeatTimeout();
+    
     int timeout = randomTimeOut(this.leadershipTimeout);
     ScheduledFuture<?> future = executor.schedule(() -> {
-      LOGGER.debug("Time to become Candidate ", "");
+      LOGGER.debug("Heartbeat timeout exeeds while waiting for a leader heartbeat after ()ms "
+          + "-> tranistion candidate.", timeout);
+      
       transition(StateType.CANDIDATE);
     }, timeout, TimeUnit.MILLISECONDS);
 
@@ -252,20 +261,20 @@ public class RaftLeaderElection implements LeaderElection {
   }
 
   @Override
-  public Address leader() {
-    return selectedLeader;
+  public Member leader() {
+    return cluster.member(selectedLeader).get();
   }
 
   private void onVoteRecived(Message message) {
 
     Address candidate = message.data();
     LOGGER.debug("CANDIDATE Member {} reviced vote from {}", cluster.address(), candidate);
-    if (!this.cluster.address().equals(candidate)) {
+    if (!this.cluster.address().equals(candidate) && !candidate.equals(selectedLeader)) {
       if (currentState().equals(StateType.CANDIDATE)) {
         votes.putIfAbsent(candidate, candidate);
         if (hasConsensus(candidate)) {
           LOGGER.debug(
-              "CANDIDATE Node: {} gained Consensus and transition to become leader prev leader was {}",
+              "CANDIDATE -> LEADER Node: {} gained Consensus and transition to become leader prev leader was {}",
               cluster.address(), selectedLeader);
           transition(StateType.LEADER);
         }
@@ -291,7 +300,7 @@ public class RaftLeaderElection implements LeaderElection {
   private ScheduledFuture<?> waitForVotesUtilTimeout() {
     return executor.schedule(
         () -> {
-          LOGGER.debug("Candidatation reached timeout {} adter {} secounds", cluster.address(), leadershipTimeout);
+          LOGGER.debug("Candidatation reached timeout {} adter {} MILLISECONDS", cluster.address(), leadershipTimeout);
           if (currentState().equals(StateType.CANDIDATE)) {
             transition(StateType.FOLLOWER);
           }
