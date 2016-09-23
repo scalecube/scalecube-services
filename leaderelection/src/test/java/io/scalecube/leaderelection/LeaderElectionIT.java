@@ -20,11 +20,9 @@ import java.util.concurrent.TimeUnit;
 public class LeaderElectionIT {
 
   /**
-   * planned tests to develop.
-   * -------------------------
-   * Test case when you select leader then disable network from/to this leader, check that in the rest of the cluster
-   * new leader elected, also what will happen with this current leader? then enable network againfor this leader and
-   * check that this previous leader will agree on new one.
+   * planned tests to develop. ------------------------- Test case when you select leader then disable network from/to
+   * this leader, check that in the rest of the cluster new leader elected, also what will happen with this current
+   * leader? then enable network againfor this leader and check that this previous leader will agree on new one.
    * 
    * Split cluster on two partitions one is quorum and another isn't. Check that quorum part will select leader, what
    * will be with non quorum? then join cluster again and check that leader is stable.
@@ -33,7 +31,7 @@ public class LeaderElectionIT {
    * with some more creative test cases
    * 
    */
-  
+
   private static final int NUM_OF_NODES = 10;
   Executor exec = Executors.newCachedThreadPool();
 
@@ -110,7 +108,7 @@ public class LeaderElectionIT {
     Queue<LeaderElection> leaders = new ConcurrentLinkedQueue<LeaderElection>();
     ICluster member = Cluster.joinAwait(seed.address());
     leaders.add(createLeaderElection(member));
-    
+
     return leaders;
   }
 

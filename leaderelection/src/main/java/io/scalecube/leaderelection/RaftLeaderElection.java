@@ -63,26 +63,25 @@ public class RaftLeaderElection implements LeaderElection {
 
   private static final String NEW_LEADER_ELECTED = "sc/raft/new/leader/notification";
   private static final String WELCOME = "sc/raft/welcome";
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(RaftLeaderElection.class);
 
   private Member electedLeader;
-  
+
   private final ICluster cluster;
-  private final AtomicInteger currentTerm ;
+  private final AtomicInteger currentTerm;
   private final AtomicReference<StateType> currentState;
-  
+
   private ConcurrentMap<String, Member> votes = new ConcurrentHashMap<String, Member>();
-  
+
   private final ScheduledExecutorService executor;
   private AtomicReference<ScheduledFuture<?>> heartbeatTask;
   private ScheduledThreadPoolExecutor heartbeatScheduler = new ScheduledThreadPoolExecutor(1);
-  
+
   private Subject<LeadershipEvent, LeadershipEvent> subject;
-  
+
   private int heartbeatInterval;
   private int electionTimeout;
-
 
 
 
@@ -127,9 +126,9 @@ public class RaftLeaderElection implements LeaderElection {
     this.cluster = builder.cluster;
     this.heartbeatInterval = builder.heartbeatInterval;
     this.electionTimeout = builder.electionTimeout;
-    
+
     this.currentTerm = new AtomicInteger(0);
-    
+
     this.currentState = new AtomicReference<StateType>(StateType.START);
     heartbeatTask = new AtomicReference<>();
     String nameFormat = "sc-leaderelection-" + cluster.address().toString();
@@ -167,7 +166,7 @@ public class RaftLeaderElection implements LeaderElection {
           LOGGER.debug("Received RAFT_HEARTBEAT[{}] from {}", AppendEntriesRequest.QUALIFIER, message.data());
           onHeartbeatRecived(message.data());
         });
-    
+
     /*
      * listen on welcome heartbeat from leaders - leaders are sending heartbeats to maintain leadership.
      */
@@ -188,7 +187,7 @@ public class RaftLeaderElection implements LeaderElection {
         }).subscribe(message -> {
           if (!cluster.address().equals(message.data()) // i didnt send this
               && !currentState().equals(StateType.LEADER)) { // and i am not a leader
-            
+
             LOGGER.debug("Received new leader notification[{}] from {}", NEW_LEADER_ELECTED, message.data());
             this.subject.onNext(LeadershipEvent.newLeader(message.data()));
             onHeartbeatRecived(message.data());
@@ -211,7 +210,7 @@ public class RaftLeaderElection implements LeaderElection {
     cluster.listen().observeOn(Schedulers.from(this.executor))
         .filter(msg -> {
           return VoteResponse.QUALIFIER.equals(msg.qualifier());
-        }).subscribe(message->{
+        }).subscribe(message -> {
           onVoteRecived(message.data());
         });
 
@@ -232,31 +231,31 @@ public class RaftLeaderElection implements LeaderElection {
     return this;
   }
 
-  /* 
-   *       STATE TRANSITION HANDLERS
+  /*
+   * STATE TRANSITION HANDLERS
    */
-  
+
   private void becomeFollower() {
     stopHeartbeating();
     waitForAppendEntriesTimeout();
     onStateChanged(StateType.FOLLOWER);
   }
-  
+
   private void becomeCanidate() {
     stopWaitingAppendEntries();
     stopHeartbeating();
-    
+
     voteForSelf();
     requestVotes(currentTerm.incrementAndGet());
-    
+
     waitForVotesUtilTimeout();
     onStateChanged(StateType.CANDIDATE);
   }
-  
+
   protected void becomeLeader() {
     LOGGER.debug("Member: {} become leader current state {} ", cluster.address(), currentState());
     stopWaitingAppendEntries();
-    
+
     this.votes.clear();
     this.electedLeader = cluster.member();
     this.cluster
@@ -264,20 +263,20 @@ public class RaftLeaderElection implements LeaderElection {
             .qualifier(AppendEntriesRequest.QUALIFIER)
             .data(new AppendEntriesRequest(currentTerm.get(), electedLeader.id()))
             .build());
-    
+
     scheduleHeartbeats();
     onStateChanged(StateType.LEADER);
 
   }
 
-  /* 
-   *       ON RECIVED REQUESTS
+  /*
+   * ON RECIVED REQUESTS
    */
   private void onHeartbeatRecived(AppendEntriesRequest req) {
-    if(req.term() > currentTerm.get() ){
+    if (req.term() > currentTerm.get()) {
       currentTerm.set(req.term());
       transition(StateType.FOLLOWER);
-      electedLeader = cluster.member( req.leaderId()).get();
+      electedLeader = cluster.member(req.leaderId()).get();
       LOGGER.debug("{} Node: {} received heartbeat from  {}", currentState(), cluster.address(),
           electedLeader);
     }
@@ -286,8 +285,8 @@ public class RaftLeaderElection implements LeaderElection {
 
   private void onVoteRecived(VoteResponse response) {
     Member candidate = cluster.member(response.electorId()).get();
-    if (response.granted() && currentState().equals(StateType.CANDIDATE) ) {
-      LOGGER.debug("CANDIDATE Member {} reviced vote from {} {}", cluster.address(), candidate,response);
+    if (response.granted() && currentState().equals(StateType.CANDIDATE)) {
+      LOGGER.debug("CANDIDATE Member {} reviced vote from {} {}", cluster.address(), candidate, response);
       collectVoteFor(candidate);
       if (hasConsensus(candidate)) {
         LOGGER.debug(
@@ -297,7 +296,7 @@ public class RaftLeaderElection implements LeaderElection {
       }
     }
   }
-  
+
   /**
    * vote for requesting memeber but first check if this member is a leader if yes then become follower else vote for
    * the requesting memeber.
@@ -316,7 +315,7 @@ public class RaftLeaderElection implements LeaderElection {
     }
   }
 
-  
+
   private void leaderSendWelcomeMessage(Member toMember) {
     cluster.send(toMember, Message.builder()
         .qualifier(WELCOME)
@@ -326,12 +325,12 @@ public class RaftLeaderElection implements LeaderElection {
 
   private void waitForAppendEntriesTimeout() {
     stopWaitingAppendEntries();
-    
+
     int timeout = randomTimeOut(this.electionTimeout);
     ScheduledFuture<?> future = executor.schedule(() -> {
       LOGGER.debug("Heartbeat timeout exeeds while waiting for a leader heartbeat after ()ms "
           + "-> tranistion candidate.", timeout);
-      
+
       transition(StateType.CANDIDATE);
     }, timeout, TimeUnit.MILLISECONDS);
 
@@ -346,13 +345,13 @@ public class RaftLeaderElection implements LeaderElection {
     }
   }
 
-  
+
   @Override
   public Member leader() {
     return electedLeader;
   }
 
-  
+
 
   private void collectVoteFor(Member candidate) {
     votes.putIfAbsent(candidate.id(), candidate);
@@ -365,9 +364,9 @@ public class RaftLeaderElection implements LeaderElection {
   private ScheduledFuture<?> waitForVotesUtilTimeout() {
     return executor.schedule(
         () -> {
-          LOGGER.debug("Candidatation reached timeout {} adter {} MILLISECONDS", 
+          LOGGER.debug("Candidatation reached timeout {} adter {} MILLISECONDS",
               cluster.address(), electionTimeout);
-          
+
           if (cluster.members().size() > 1 && currentState().equals(StateType.CANDIDATE)) {
             LOGGER.debug("cannidate timeout reached - became flower since: cluster size {} "
                 + "and cuttent state",
@@ -382,7 +381,7 @@ public class RaftLeaderElection implements LeaderElection {
         }, electionTimeout, TimeUnit.MILLISECONDS);
   }
 
-  
+
   private void onStateChanged(StateType state) {
     LOGGER.debug("Node: {} state changed current from {} to {}", cluster.address(), currentState(), state);
     if (StateType.LEADER.equals(currentState()) && !StateType.LEADER.equals(state)) {
@@ -407,7 +406,7 @@ public class RaftLeaderElection implements LeaderElection {
     }
   }
 
-  
+
 
   private boolean hasConsensus(Member candidate) {
     if (!cluster.member().equals(candidate)) {
@@ -478,26 +477,26 @@ public class RaftLeaderElection implements LeaderElection {
         break;
     }
   }
-  
-  
+
+
   /**
    * when becoming a leader the leader schedule heatbeats and maintain leadership followers are expecting this heartbeat
    * in case the heartbeat will not arrive in X time they will assume no leader.
    */
   public void scheduleHeartbeats() {
-    heartbeatScheduler.scheduleAtFixedRate(this::spreadHeartbeat, 
+    heartbeatScheduler.scheduleAtFixedRate(this::spreadHeartbeat,
         heartbeatInterval, heartbeatInterval, TimeUnit.MILLISECONDS);
   }
-  
+
   private void spreadHeartbeat() {
     LOGGER.debug("Leader Node: {} maintain leadership spread {} gossip regards selected leader {}",
         cluster.address(), AppendEntriesRequest.QUALIFIER, cluster.address());
-    
-      cluster.spreadGossip(Message.builder()
-          .qualifier(AppendEntriesRequest.QUALIFIER)
-          .data(new AppendEntriesRequest(currentTerm.get(), cluster.member().id()))
-          .build());
-    
+
+    cluster.spreadGossip(Message.builder()
+        .qualifier(AppendEntriesRequest.QUALIFIER)
+        .data(new AppendEntriesRequest(currentTerm.get(), cluster.member().id()))
+        .build());
+
   }
 
   /**
