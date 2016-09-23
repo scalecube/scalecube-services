@@ -43,6 +43,8 @@ public class LeadershipEvent {
     return new LeadershipEvent(Type.LEADERSHIP_REVOKED, member);
   }
 
-
-
+  @Override
+  public String toString() {
+    return "LeadershipEvent [type=" + type + ", member=" + member + "]";
+  }
 }
