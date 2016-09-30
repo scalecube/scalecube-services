@@ -10,7 +10,7 @@ Web Site: [http://scalecube.io](http://scalecube.io/)
 
 ## Project Status
 
-This is an alpha version of the project and it is **not** stable or production ready as for now. 
+This is now a beta version of the project. 
 Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
 
 ## Maven
