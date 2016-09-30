@@ -1,6 +1,7 @@
 package io.scalecube.cluster;
 
-import io.scalecube.cluster.gossip.IGossipProtocol;
+import io.scalecube.cluster.membership.MembershipEvent;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -8,27 +9,75 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import rx.Observable;
 
+import java.util.Collection;
+
 /**
- * Basic cluster interface which allows to join cluster, send message to other member, listen messages, gossip messages.
+ * Facade cluster interface which provides API to interact with cluster members.
  * 
  * @author Anton Kharenko
  */
 public interface ICluster {
 
-  void send(ClusterMember member, Message message);
+  /**
+   * Returns local listen {@link Address} of this cluster instance.
+   */
+  Address address();
 
-  void send(ClusterMember member, Message message, SettableFuture<Void> promise);
+  void send(Member member, Message message);
+
+  void send(Member member, Message message, SettableFuture<Void> promise);
+
+  void send(Address address, Message message);
+
+  void send(Address address, Message message, SettableFuture<Void> promise);
 
   Observable<Message> listen();
 
-  IGossipProtocol gossip();
+  /**
+   * Spreads given message between cluster members using gossiping protocol.
+   */
+  void spreadGossip(Message message);
 
-  IClusterMembership membership();
+  /**
+   * Listens for gossips from other cluster members.
+   */
+  Observable<Message> listenGossips();
 
-  ListenableFuture<ICluster> join();
+  /**
+   * Returns local cluster member which corresponds to this cluster instance.
+   */
+  Member member();
 
-  ICluster joinAwait();
+  /**
+   * Returns cluster member with given id or null if no member with such id exists at joined cluster.
+   */
+  Member member(String id);
 
-  ListenableFuture<Void> leave();
+  /**
+   * Returns cluster member by given address or null if no member with such address exists at joined cluster.
+   */
+  Member member(Address address);
+
+  /**
+   * Returns list of all members of the joined cluster. This will include all cluster members including local member.
+   */
+  Collection<Member> members();
+
+  /**
+   * Returns list of all cluster members of the joined cluster excluding local member.
+   */
+  Collection<Member> otherMembers();
+
+  /**
+   * Listen changes in cluster membership.
+   */
+  Observable<MembershipEvent> listenMembership();
+
+  /**
+   * Member notifies other members of the cluster about leaving and gracefully shutdown and free occupied resources.
+   *
+   * @return Listenable future which is completed once graceful shutdown is finished.
+   */
+  ListenableFuture<Void> shutdown();
 
 }

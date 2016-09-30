@@ -7,8 +7,6 @@ import java.lang.annotation.Target;
 
 /**
  * Indicates that an annotated class is an Service Fabric service object.
- * 
- * @author Anton Kharenko
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

@@ -4,21 +4,15 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.transport.Message;
 
-import io.protostuff.Tag;
-
 import java.util.Objects;
 
 /**
  * Data model for gossip, include gossip id, qualifier and object need to disseminate.
  */
 final class Gossip {
-  /** The gossip id. */
-  @Tag(1)
-  private String gossipId;
 
-  /** The gossip message. */
-  @Tag(2)
-  private Message message;
+  private final String gossipId;
+  private final Message message;
 
   public Gossip(String gossipId, Message message) {
     checkArgument(gossipId != null);
@@ -27,33 +21,34 @@ final class Gossip {
     this.message = message;
   }
 
-  public String getGossipId() {
+  public String gossipId() {
     return gossipId;
   }
 
-  public Message getMessage() {
+  public Message message() {
     return message;
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (this == other) {
+  public boolean equals(Object that) {
+    if (this == that) {
       return true;
     }
-    if (other == null || getClass() != other.getClass()) {
+    if (that == null || getClass() != that.getClass()) {
       return false;
     }
-    Gossip gossip = (Gossip) other;
-    return Objects.equals(gossipId, gossip.gossipId);
+    Gossip gossip = (Gossip) that;
+    return Objects.equals(gossipId, gossip.gossipId)
+        && Objects.equals(message, gossip.message);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(gossipId);
+    return Objects.hash(gossipId, message);
   }
 
   @Override
   public String toString() {
-    return "Gossip{" + "gossipId='" + gossipId + '\'' + ", message=" + message + '}';
+    return "Gossip{gossipId=" + gossipId + ", message=" + message + '}';
   }
 }

@@ -13,7 +13,7 @@ public final class Message {
 
   private Map<String, String> headers = Collections.emptyMap();
   private Object data;
-  private TransportEndpoint sender;
+  private Address sender;
 
   /**
    * Instantiates empty message for deserialization purpose.
@@ -21,47 +21,72 @@ public final class Message {
   Message() {}
 
   private Message(Builder builder) {
-    this(builder.data, builder.headers);
+    this.data = builder.data;
+    this.headers = builder.headers;
   }
 
   /**
    * Instantiates a new message with the given data and without headers.
    */
-  public Message(Object data) {
-    setData(data);
+  public static Message fromData(Object data) {
+    return withData(data).build();
   }
+
+  /**
+   * Instantiates a new message builder with the given data and without headers.
+   */
+  public static Builder withData(Object data) {
+    return builder().data(data);
+  }
+
 
   /**
    * Instantiates a new message with the given headers and with empty data.
    */
-  public Message(Map<String, String> headers) {
-    setHeaders(headers);
+  public static Message fromHeaders(Map<String, String> headers) {
+    return withHeaders(headers).build();
   }
 
   /**
-   * Instantiates new messages with given qualifier, data and correlationId.
+   * Instantiates a new message builder with the given headers and with empty data.
    */
-  public Message(Object data, Map<String, String> headers) {
-    setData(data);
-    setHeaders(headers);
+  public static Builder withHeaders(Map<String, String> headers) {
+    return builder().headers(headers);
   }
 
+  /**
+   * Instantiates a new message with the given qualifier header and with empty data.
+   */
+  public static Message fromQualifier(String qualifier) {
+    return withQualifier(qualifier).build();
+  }
+
+  /**
+   * Instantiates a new message builder with the given qualifier header and with empty data.
+   */
+  public static Builder withQualifier(String qualifier) {
+    return builder().qualifier(qualifier);
+  }
+
+  /**
+   * Instantiates new message with the same data and headers as at given message.
+   */
+  public static Message from(Message message) {
+    return with(message).build();
+  }
+
+  /**
+   * Instantiates new message builder with the same data and headers as at given message.
+   */
+  public static Builder with(Message message) {
+    return withData(message.data).headers(message.headers);
+  }
+
+  /**
+   * Instantiates new empty message builder.
+   */
   public static Builder builder() {
     return new Builder();
-  }
-
-  /**
-   * Instantiates new message with the given data and headers. Headers passed a sequence of key-value pairs.
-   */
-  public Message(Object data, String... headers) {
-    checkArgument(headers != null);
-    checkArgument(headers.length % 2 == 0, "");
-    Map<String, String> headersMap = new HashMap<>(headers.length / 2);
-    for (int i = 0; i < headers.length; i += 2) {
-      headersMap.put(headers[i], headers[i + 1]);
-    }
-    this.headers = Collections.unmodifiableMap(headersMap);
-    setData(data);
   }
 
   /**
@@ -84,13 +109,11 @@ public final class Message {
   }
 
   /**
-   * Sets sender and used by transport pipeline. Actual sender not passed via network in the message, but resolved on
-   * the receiveing side.
+   * Sets sender and used by transport send method.
    * 
-   * @param sender endpoint from where message was received
+   * @param sender address from where message was sent
    */
-  void setSender(TransportEndpoint sender) {
-    checkArgument(sender != null);
+  void setSender(Address sender) {
     this.sender = sender;
   }
 
@@ -106,16 +129,16 @@ public final class Message {
   /**
    * Returns the message header by given header name.
    */
-  public String header(String headerName) {
-    return headers.get(headerName);
+  public String header(String name) {
+    return headers.get(name);
   }
 
   public String qualifier() {
-    return header(TransportHeaders.QUALIFIER);
+    return header(MessageHeaders.QUALIFIER);
   }
 
   public String correlationId() {
-    return header(TransportHeaders.CORRELATION_ID);
+    return header(MessageHeaders.CORRELATION_ID);
   }
 
   /**
@@ -128,16 +151,13 @@ public final class Message {
     return (T) data;
   }
 
-  public TransportEndpoint sender() {
+  public Address sender() {
     return sender;
   }
 
   @Override
   public String toString() {
-    return "Message{"
-        + "headers=" + headers
-        + ", data=" + (data == null ? "null" : data.getClass().getSimpleName())
-        + '}';
+    return "Message {headers: " + headers + ", sender: " + sender + ", data: " + data + '}';
   }
 
   public static class Builder {
@@ -148,14 +168,13 @@ public final class Message {
     private Builder() {
     }
 
-    public Builder fillWith(Message message) {
-      this.data = message.data;
-      this.headers.putAll(message.headers);
+    public Builder data(Object data) {
+      this.data = data;
       return this;
     }
 
-    public Builder data(Object data) {
-      this.data = data;
+    public Builder headers(Map<String, String> headers) {
+      this.headers.putAll(headers);
       return this;
     }
 
@@ -165,11 +184,11 @@ public final class Message {
     }
 
     public Builder qualifier(String qualifier) {
-      return header(TransportHeaders.QUALIFIER, qualifier);
+      return header(MessageHeaders.QUALIFIER, qualifier);
     }
 
     public Builder correlationId(String correlationId) {
-      return header(TransportHeaders.CORRELATION_ID, correlationId);
+      return header(MessageHeaders.CORRELATION_ID, correlationId);
     }
 
     public Message build() {

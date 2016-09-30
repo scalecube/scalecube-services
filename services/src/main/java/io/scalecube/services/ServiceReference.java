@@ -1,17 +1,11 @@
 package io.scalecube.services;
 
-import com.google.common.base.Preconditions;
-
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 import javax.annotation.concurrent.Immutable;
 
-/**
- * @author Anton Kharenko
- */
+import com.google.common.base.Preconditions;
+
 @Immutable
 public class ServiceReference {
 
@@ -19,15 +13,11 @@ public class ServiceReference {
 
   private final String serviceName;
 
-  private final Set<String> methodNames;
-
-  public ServiceReference(String memberId, String serviceName, Set<String> methodNames) {
+  public ServiceReference(String memberId, String serviceName) {
     Preconditions.checkNotNull(memberId);
     Preconditions.checkNotNull(serviceName);
-    Preconditions.checkNotNull(methodNames);
     this.memberId = memberId;
     this.serviceName = serviceName;
-    this.methodNames = new HashSet<>(methodNames);
   }
 
   public String memberId() {
@@ -38,23 +28,18 @@ public class ServiceReference {
     return serviceName;
   }
 
-  public Set<String> methodNames() {
-    return Collections.unmodifiableSet(methodNames);
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     ServiceReference that = (ServiceReference) o;
     return Objects.equals(memberId, that.memberId) &&
-        Objects.equals(serviceName, that.serviceName) &&
-        Objects.equals(methodNames, that.methodNames);
+        Objects.equals(serviceName, that.serviceName);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(memberId, serviceName, methodNames);
+    return Objects.hash(memberId, serviceName);
   }
 
   @Override
@@ -62,7 +47,6 @@ public class ServiceReference {
     return "ServiceReference{" +
         "memberId='" + memberId + '\'' +
         ", serviceName='" + serviceName + '\'' +
-        ", methodNames=" + methodNames +
         '}';
   }
 }

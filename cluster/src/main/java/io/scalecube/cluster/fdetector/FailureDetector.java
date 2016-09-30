@@ -1,17 +1,15 @@
 package io.scalecube.cluster.fdetector;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static io.scalecube.cluster.fdetector.FailureDetectorEvent.suspected;
-import static io.scalecube.cluster.fdetector.FailureDetectorEvent.trusted;
-import static java.lang.Math.min;
 
+import io.scalecube.cluster.membership.IMembershipProtocol;
+import io.scalecube.cluster.Member;
+import io.scalecube.cluster.membership.MemberStatus;
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.TransportEndpoint;
-import io.scalecube.transport.TransportHeaders;
 
-import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,362 +17,347 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
-import rx.Subscription;
-import rx.functions.Action0;
-import rx.functions.Action1;
-import rx.functions.Func1;
 import rx.observers.Subscribers;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
-import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public final class FailureDetector implements IFailureDetector {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FailureDetector.class);
 
-  // qualifiers
-  private static final String PING = "io.scalecube.cluster/fdetector/ping";
-  private static final String PING_REQ = "io.scalecube.cluster/fdetector/pingReq";
-  private static final String ACK = "io.scalecube.cluster/fdetector/ack";
+  // Qualifiers
 
-  // filters
-  private static final TransportHeaders.Filter ACK_FILTER = new TransportHeaders.Filter(ACK);
-  private static final TransportHeaders.Filter PING_FILTER = new TransportHeaders.Filter(PING);
-  private static final TransportHeaders.Filter PING_REQ_FILTER = new TransportHeaders.Filter(PING_REQ);
+  public static final String PING     = "sc/fdetector/ping";
+  public static final String PING_REQ = "sc/fdetector/pingReq";
+  public static final String PING_ACK = "sc/fdetector/pingAck";
 
-  private volatile List<TransportEndpoint> members = new ArrayList<>();
-  private ITransport transport;
-  private final TransportEndpoint localEndpoint;
+  // Injected
+
+  private final ITransport transport;
+  private final IMembershipProtocol membership;
+  private final FailureDetectorConfig config;
+
+  // State
+
+  private long period = 0;
+  private List<Member> pingMembers = new ArrayList<>();
+  private int pingMemberIndex = 0; // index for sequential ping member selection
+
+  // Subscriptions
+
+  private Subscriber<Member> onMemberAddedSubscriber;
+  private Subscriber<Member> onMemberRemovedSubscriber;
+  private Subscriber<Message> onPingRequestSubscriber;
+  private Subscriber<Message> onAskToPingRequestSubscriber;
+  private Subscriber<Message> onTransitPingAckRequestSubscriber;
+
+  // Subject
+
+  private Subject<FailureDetectorEvent, FailureDetectorEvent> subject =
+      PublishSubject.<FailureDetectorEvent>create().toSerialized();
+
+  // Scheduled
+
+  private final ScheduledExecutorService executor;
   private final Scheduler scheduler;
-  @SuppressWarnings("unchecked")
-  private Subject<FailureDetectorEvent, FailureDetectorEvent> subject = new SerializedSubject(PublishSubject.create());
-  private AtomicInteger periodNbr = new AtomicInteger();
-  private Set<TransportEndpoint> suspectedMembers = Sets.newConcurrentHashSet();
-  private TransportEndpoint pingMember; // for test purpose only
-  private List<TransportEndpoint> randomMembers; // for test purpose only
-  private int pingTime = 2000;
-  private int pingTimeout = 1000;
-  private int maxEndpointsToSelect = 3;
-  private volatile Subscription fdTask;
-
-  /** Listener to PING message and answer with ACK. */
-  private Subscriber<Message> onPingSubscriber = Subscribers.create(new Action1<Message>() {
-    @Override
-    public void call(Message message) {
-      LOGGER.trace("Received Ping: {}", message);
-      FailureDetectorData data = message.data();
-      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
-      send(data.getFrom(), new Message(data, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
-          correlationId));
-    }
-  });
-
-  /** Listener to PING_REQ message and send PING to requested cluster member. */
-  private Subscriber<Message> onPingReqSubscriber = Subscribers.create(new Action1<Message>() {
-    @Override
-    public void call(Message message) {
-      LOGGER.trace("Received PingReq: {}", message);
-      FailureDetectorData data = message.data();
-      TransportEndpoint target = data.getTo();
-      TransportEndpoint originalIssuer = data.getFrom();
-      String correlationId = message.header(TransportHeaders.CORRELATION_ID);
-      FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, target, originalIssuer);
-      send(target, new Message(pingReqData, TransportHeaders.QUALIFIER, PING, TransportHeaders.CORRELATION_ID,
-          correlationId));
-    }
-  });
+  private ScheduledFuture<?> pingTask;
 
   /**
-   * Listener to ACK with message containing ORIGINAL_ISSUER then convert message to plain ACK and send it to
-   * ORIGINAL_ISSUER.
+   * Creates new instance of failure detector with given transport and settings.
+   *
+   * @param transport transport
+   * @param membership membership protocol
+   * @param config failure detector settings
    */
-  private Subscriber<Message> onAckToOriginalAckSubscriber = Subscribers
-      .create(new Action1<Message>() {
-        @Override
-        public void call(Message message) {
-          FailureDetectorData data = message.data();
-          TransportEndpoint target = data.getOriginalIssuer();
-          String correlationId = message.header(TransportHeaders.CORRELATION_ID);
-          FailureDetectorData originalAckData = new FailureDetectorData(target, data.getTo());
-          Message originalAckMessage =
-              new Message(originalAckData, TransportHeaders.QUALIFIER, ACK, TransportHeaders.CORRELATION_ID,
-                  correlationId);
-          send(target, originalAckMessage);
-        }
-      });
-
-  public FailureDetector(TransportEndpoint localEndpoint, Scheduler scheduler) {
-    checkArgument(localEndpoint != null);
-    checkArgument(scheduler != null);
-    this.localEndpoint = localEndpoint;
-    this.scheduler = scheduler;
-  }
-
-  public void setPingTime(int pingTime) {
-    this.pingTime = pingTime;
-  }
-
-  public void setPingTimeout(int pingTimeout) {
-    this.pingTimeout = pingTimeout;
-  }
-
-  public void setMaxEndpointsToSelect(int maxEndpointsToSelect) {
-    this.maxEndpointsToSelect = maxEndpointsToSelect;
-  }
-
-  @Override
-  public void setClusterEndpoints(Collection<TransportEndpoint> members) {
-    Set<TransportEndpoint> set = new HashSet<>(members);
-    set.remove(localEndpoint);
-    List<TransportEndpoint> list = new ArrayList<>(set);
-    Collections.shuffle(list);
-    this.members = list;
-    LOGGER.debug("Set cluster members: {}", this.members);
-  }
-
-  public void setTransport(ITransport transport) {
+  public FailureDetector(ITransport transport, IMembershipProtocol membership, FailureDetectorConfig config) {
+    checkArgument(transport != null);
+    checkArgument(membership != null);
+    checkArgument(config != null);
     this.transport = transport;
+    this.membership = membership;
+    this.config = config;
+    String nameFormat = "sc-fdetector-" + transport.address().toString();
+    this.executor = Executors.newSingleThreadScheduledExecutor(
+        new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
+    this.scheduler = Schedulers.from(executor);
   }
 
-  public ITransport getTransport() {
+  /**
+   * <b>NOTE:</b> this method is for testing purpose only.
+   */
+  ITransport getTransport() {
     return transport;
-  }
-
-  public TransportEndpoint getLocalEndpoint() {
-    return localEndpoint;
-  }
-
-  public List<TransportEndpoint> getSuspectedMembers() {
-    return new ArrayList<>(suspectedMembers);
-  }
-
-  /** <b>NOTE:</b> this method is for test purpose only. */
-  void setPingMember(TransportEndpoint member) {
-    checkNotNull(member);
-    checkArgument(member != localEndpoint);
-    this.pingMember = member;
-  }
-
-  /** <b>NOTE:</b> this method is for test purpose only. */
-  void setRandomMembers(List<TransportEndpoint> randomMembers) {
-    checkNotNull(randomMembers);
-    this.randomMembers = randomMembers;
   }
 
   @Override
   public void start() {
-    transport.listen().filter(PING_FILTER).filter(targetFilter(localEndpoint)).subscribe(onPingSubscriber);
-    transport.listen().filter(PING_REQ_FILTER).subscribe(onPingReqSubscriber);
-    transport.listen().filter(ACK_FILTER).filter(new Func1<Message, Boolean>() {
-      @Override
-      public Boolean call(Message message) {
-        FailureDetectorData data = message.data();
-        return data.getOriginalIssuer() != null;
-      }
-    }).subscribe(onAckToOriginalAckSubscriber);
+    onMemberAddedSubscriber = Subscribers.create(this::onMemberAdded);
+    membership.listen().observeOn(scheduler)
+        .filter(MembershipEvent::isAdded)
+        .map(MembershipEvent::member)
+        .subscribe(onMemberAddedSubscriber);
 
-    fdTask = scheduler.createWorker().schedulePeriodically(new Action0() {
-      @Override
-      public void call() {
-        try {
-          doPing(members);
-        } catch (Exception e) {
-          LOGGER.error("Unhandled exception: {}", e, e);
-        }
-      }
-    }, 0, pingTime, TimeUnit.MILLISECONDS);
+    onMemberRemovedSubscriber = Subscribers.create(this::onMemberRemoved);
+    membership.listen().observeOn(scheduler)
+        .filter(MembershipEvent::isRemoved)
+        .map(MembershipEvent::member)
+        .subscribe(onMemberRemovedSubscriber);
+
+    onPingRequestSubscriber = Subscribers.create(this::onPing);
+    transport.listen().observeOn(scheduler)
+        .filter(this::isPing)
+        .subscribe(onPingRequestSubscriber);
+
+    onAskToPingRequestSubscriber = Subscribers.create(this::onPingReq);
+    transport.listen().observeOn(scheduler)
+        .filter(this::isPingReq)
+        .subscribe(onAskToPingRequestSubscriber);
+
+    onTransitPingAckRequestSubscriber = Subscribers.create(this::onTransitPingAck);
+    transport.listen().observeOn(scheduler)
+        .filter(this::isTransitPingAck)
+        .subscribe(onTransitPingAckRequestSubscriber);
+
+    pingTask = executor.scheduleWithFixedDelay(
+        this::doPing, config.getPingInterval(), config.getPingInterval(), TimeUnit.MILLISECONDS);
   }
 
   @Override
   public void stop() {
-    if (fdTask != null) {
-      fdTask.unsubscribe();
+    // Stop accepting requests
+    if (onMemberAddedSubscriber != null) {
+      onMemberAddedSubscriber.unsubscribe();
     }
+    if (onMemberRemovedSubscriber != null) {
+      onMemberRemovedSubscriber.unsubscribe();
+    }
+    if (onPingRequestSubscriber != null) {
+      onPingRequestSubscriber.unsubscribe();
+    }
+    if (onAskToPingRequestSubscriber != null) {
+      onAskToPingRequestSubscriber.unsubscribe();
+    }
+    if (onTransitPingAckRequestSubscriber != null) {
+      onTransitPingAckRequestSubscriber.unsubscribe();
+    }
+
+    // Stop sending pings
+    if (pingTask != null) {
+      pingTask.cancel(true);
+    }
+
+    // Shutdown executor
+    executor.shutdown();
+
+    // Stop publishing events
     subject.onCompleted();
-    onPingReqSubscriber.unsubscribe();
-    onPingReqSubscriber.unsubscribe();
-    onAckToOriginalAckSubscriber.unsubscribe();
   }
 
   @Override
-  public Observable<FailureDetectorEvent> listenStatus() {
-    return subject;
+  public Observable<FailureDetectorEvent> listen() {
+    return subject.toSerialized();
   }
 
-  @Override
-  public void suspect(TransportEndpoint member) {
-    checkNotNull(member);
-    suspectedMembers.add(member);
-  }
+  /* ================================================ *
+   * ============== Action Methods ================== *
+   * ================================================ */
 
-  @Override
-  public void trust(TransportEndpoint member) {
-    checkNotNull(member);
-    suspectedMembers.remove(member);
-  }
+  private void doPing() {
+    // Increment period counter
+    period++;
 
-  private void doPing(final List<TransportEndpoint> members) {
-    final TransportEndpoint pingMember = selectPingMember(members);
+    // Select ping member
+    Member pingMember = selectPingMember();
     if (pingMember == null) {
       return;
     }
 
-    final String period = "" + periodNbr.incrementAndGet();
-    FailureDetectorData pingData = new FailureDetectorData(localEndpoint, pingMember);
-    Message message = new Message(pingData, TransportHeaders.QUALIFIER, PING,
-        TransportHeaders.CORRELATION_ID, period/* correlationId */);
-    LOGGER.trace("Send Ping from {} to {}", localEndpoint, pingMember);
-
-    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, pingMember)).take(1)
-        .timeout(pingTimeout, TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(Subscribers.create(new Action1<Message>() {
-          @Override
-          public void call(Message transportMessage) {
-            LOGGER.trace("Received PingAck from {}", pingMember);
-            declareTrusted(pingMember);
-          }
-        }, new Action1<Throwable>() {
-          @Override
-          public void call(Throwable throwable) {
-            LOGGER.trace("No PingAck from {} within {}ms; about to make PingReq now", pingMember, pingTimeout);
-            doPingReq(members, pingMember, period);
-          }
-        }));
-
-    send(pingMember, message);
+    // Send ping
+    Member localMember = membership.member();
+    String cid = localMember.id() + "-" + Long.toString(period);
+    PingData pingData = new PingData(localMember, pingMember);
+    Message pingMsg = Message.withData(pingData).qualifier(PING).correlationId(cid).build();
+    try {
+      LOGGER.trace("Send Ping[{}] to {}", period, pingMember);
+      transport.listen().observeOn(scheduler)
+          .filter(this::isPingAck)
+          .filter(message -> cid.equals(message.correlationId()))
+          .take(1)
+          .timeout(config.getPingTimeout(), TimeUnit.MILLISECONDS, scheduler)
+          .subscribe(message -> {
+              LOGGER.trace("Received PingAck[{}] from {}", period, pingMember);
+              publishPingResult(pingMember, MemberStatus.ALIVE);
+            }, throwable -> {
+              LOGGER.trace("Timeout getting PingAck[{}] from {} within {} ms",
+                  period, pingMember, config.getPingTimeout());
+              doPingReq(pingMember, cid);
+            });
+      transport.send(pingMember.address(), pingMsg);
+    } catch (Exception cause) {
+      LOGGER.error("Exception on sending Ping[{}] to {}: {}", period, pingMember, cause.getMessage(), cause);
+    }
   }
 
-  private void doPingReq(List<TransportEndpoint> members, final TransportEndpoint targetMember, String period) {
-    final int timeout = pingTime - pingTimeout;
+  private void doPingReq(final Member pingMember, String cid) {
+    final int timeout = config.getPingInterval() - config.getPingTimeout();
     if (timeout <= 0) {
-      LOGGER.trace("No PingReq occurred, because no time left (pingTime={}, pingTimeout={})", pingTime, pingTimeout);
-      declareSuspected(targetMember);
+      LOGGER.trace("No PingReq[{}] occurred, because no time left (pingInterval={}, pingTimeout={})",
+          period, config.getPingInterval(), config.getPingTimeout());
+      publishPingResult(pingMember, MemberStatus.SUSPECT);
       return;
     }
 
-    final List<TransportEndpoint> randomMembers =
-        selectRandomMembers(members, maxEndpointsToSelect, targetMember/* exclude */);
-    if (randomMembers.isEmpty()) {
-      LOGGER.trace("No PingReq occurred, because member selection is empty");
-      declareSuspected(targetMember);
+    final List<Member> pingReqMembers = selectPingReqMembers(pingMember);
+    if (pingReqMembers.isEmpty()) {
+      LOGGER.trace("No PingReq[{}] occurred, because member selection is empty", period);
+      publishPingResult(pingMember, MemberStatus.SUSPECT);
       return;
     }
 
-    transport.listen().filter(ackFilter(period)).filter(new CorrelationFilter(localEndpoint, targetMember)).take(1)
+    Member localMember = membership.member();
+    transport.listen().observeOn(scheduler)
+        .filter(this::isPingAck)
+        .filter(message -> cid.equals(message.correlationId()))
+        .take(1)
         .timeout(timeout, TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(Subscribers.create(new Action1<Message>() {
-          @Override
-          public void call(Message message) {
-            LOGGER.trace("PingReq OK (pinger={}, target={})", message.sender(), targetMember);
-            declareTrusted(targetMember);
-          }
-        }, new Action1<Throwable>() {
-          @Override
-          public void call(Throwable throwable) {
-            LOGGER.trace("No PingAck on PingReq within {}ms (pingers={}, target={})", randomMembers, targetMember,
-                timeout);
-            declareSuspected(targetMember);
-          }
-        }));
+        .subscribe(message -> {
+            LOGGER.trace("Received transit PingAck[{}] from {} to {}", period, message.sender(), pingMember);
+            publishPingResult(pingMember, MemberStatus.ALIVE);
+          }, throwable -> {
+            LOGGER.trace("Timeout getting transit PingAck[{}] from {} to {} within {} ms",
+                period, pingReqMembers, pingMember, timeout);
+            publishPingResult(pingMember, MemberStatus.SUSPECT);
+          });
 
-    FailureDetectorData pingReqData = new FailureDetectorData(localEndpoint, targetMember);
-    Message message = new Message(pingReqData, TransportHeaders.QUALIFIER, PING_REQ,
-        TransportHeaders.CORRELATION_ID, period/* correlationId */);
-    for (TransportEndpoint randomMember : randomMembers) {
-      LOGGER.trace("Send PingReq from {} to {}", localEndpoint, randomMember);
-      send(randomMember, message);
+    PingData pingReqData = new PingData(localMember, pingMember);
+    Message pingReqMsg = Message.withData(pingReqData).qualifier(PING_REQ).correlationId(cid).build();
+    LOGGER.trace("Send PingReq[{}] to {} for {}", period, pingReqMembers, pingMember);
+    for (Member pingReqMember : pingReqMembers) {
+      transport.send(pingReqMember.address(), pingReqMsg);
     }
+  }
+
+  /* ================================================ *
+   * ============== Event Listeners ================= *
+   * ================================================ */
+
+  private void onMemberAdded(Member member) {
+    // insert member into random positions
+    int size = pingMembers.size();
+    int index = size > 0 ? ThreadLocalRandom.current().nextInt(size) : 0;
+    pingMembers.add(index, member);
+  }
+
+  private void onMemberRemoved(Member member) {
+    pingMembers.remove(member);
   }
 
   /**
-   * Adds given member to {@link #suspectedMembers} and emitting state {@code SUSPECTED}.
+   * Listens to PING message and answers with ACK.
    */
-  private void declareSuspected(TransportEndpoint member) {
-    if (suspectedMembers.add(member)) {
-      LOGGER.debug("Member {} became SUSPECTED", member);
-      subject.onNext(suspected(member));
+  private void onPing(Message message) {
+    LOGGER.trace("Received Ping: {}", message);
+    PingData data = message.data();
+    if (!data.getTo().equals(membership.member())) {
+      LOGGER.warn("Received Ping to {}, but local member is {}", data.getTo(), transport.address());
+      return;
     }
+    String correlationId = message.correlationId();
+    Message ackMessage = Message.withData(data).qualifier(PING_ACK).correlationId(correlationId).build();
+    LOGGER.trace("Send PingAck to {}", data.getFrom().address());
+    transport.send(data.getFrom().address(), ackMessage);
   }
 
   /**
-   * Removes given member from {@link #suspectedMembers} and emitting state {@code TRUSTED}.
+   * Listens to PING_REQ message and sends PING to requested cluster member.
    */
-  private void declareTrusted(TransportEndpoint member) {
-    if (suspectedMembers.remove(member)) {
-      LOGGER.debug("Member {} became TRUSTED", member);
-      subject.onNext(trusted(member));
-    }
+  private void onPingReq(Message message) {
+    LOGGER.trace("Received PingReq: {}", message);
+    PingData data = message.data();
+    Member target = data.getTo();
+    Member originalIssuer = data.getFrom();
+    String correlationId = message.correlationId();
+    PingData pingReqData = new PingData(membership.member(), target, originalIssuer);
+    Message pingMessage = Message.withData(pingReqData).qualifier(PING).correlationId(correlationId).build();
+    LOGGER.trace("Send transit Ping to {}", target.address());
+    transport.send(target.address(), pingMessage);
   }
 
-  private void send(TransportEndpoint endpoint, Message message) {
-    transport.send(endpoint, message);
+  /**
+   * Listens to ACK with message containing ORIGINAL_ISSUER then converts message to plain ACK and sends it to
+   * ORIGINAL_ISSUER.
+   */
+  private void onTransitPingAck(Message message) {
+    LOGGER.trace("Received transit PingAck: {}", message);
+    PingData data = message.data();
+    Member target = data.getOriginalIssuer();
+    String correlationId = message.correlationId();
+    PingData originalAckData = new PingData(target, data.getTo());
+    Message originalAckMessage = Message.withData(originalAckData)
+        .qualifier(PING_ACK)
+        .correlationId(correlationId)
+        .build();
+    LOGGER.trace("Resend transit PingAck to {}", target.address());
+    transport.send(target.address(), originalAckMessage);
   }
 
-  private TransportEndpoint selectPingMember(List<TransportEndpoint> members) {
-    if (pingMember != null) {
-      return pingMember;
+  /* ================================================ *
+   * ============== Helper Methods ================== *
+   * ================================================ */
+
+  private Member selectPingMember() {
+    if (pingMembers.isEmpty()) {
+      return null;
     }
-    return members.isEmpty() ? null : selectRandomMembers(members, 1, null).get(0);
+    if (pingMemberIndex >= pingMembers.size()) {
+      pingMemberIndex = 0;
+      Collections.shuffle(pingMembers);
+    }
+    return pingMembers.get(pingMemberIndex++);
   }
 
-  private List<TransportEndpoint> selectRandomMembers(List<TransportEndpoint> members, int count,
-      TransportEndpoint memberToExclude) {
-    if (randomMembers != null) {
-      return randomMembers;
+  private List<Member> selectPingReqMembers(Member pingMember) {
+    if (config.getPingReqMembers() <= 0) {
+      return Collections.emptyList();
     }
-
-    checkArgument(count > 0, "FailureDetector: k is required!");
-    count = min(count, 5);
-
-    List<TransportEndpoint> list = new ArrayList<>(members);
-    list.remove(memberToExclude);
-
-    List<TransportEndpoint> target = new ArrayList<>(count);
-    for (; !list.isEmpty() && count != 0; count--) {
-      TransportEndpoint member = list.get(ThreadLocalRandom.current().nextInt(list.size()));
-      target.add(member);
-      list.remove(member);
+    List<Member> candidates = new ArrayList<>(pingMembers);
+    candidates.remove(pingMember);
+    if (candidates.isEmpty()) {
+      return Collections.emptyList();
     }
-    return target;
+    Collections.shuffle(candidates);
+    boolean selectAll = candidates.size() < config.getPingReqMembers();
+    return selectAll ? candidates : candidates.subList(0, config.getPingReqMembers());
   }
 
-  private Func1<Message, Boolean> ackFilter(String correlationId) {
-    return new TransportHeaders.Filter(ACK, correlationId);
+  private void publishPingResult(Member member, MemberStatus status) {
+    LOGGER.debug("Member {} detected as {}", member, status);
+    subject.onNext(new FailureDetectorEvent(member, status));
   }
 
-  private Func1<Message, Boolean> targetFilter(final TransportEndpoint endpoint) {
-    return new Func1<Message, Boolean>() {
-      @Override
-      public Boolean call(Message message) {
-        FailureDetectorData data = message.data();
-        return data.getTo().equals(endpoint);
-      }
-    };
+  private boolean isPing(Message message) {
+    return PING.equals(message.qualifier());
   }
 
-  private static class CorrelationFilter implements Func1<Message, Boolean> {
-    final TransportEndpoint from;
-    final TransportEndpoint target;
+  private boolean isPingReq(Message message) {
+    return PING_REQ.equals(message.qualifier());
+  }
 
-    CorrelationFilter(TransportEndpoint from, TransportEndpoint target) {
-      this.from = from;
-      this.target = target;
-    }
+  private boolean isPingAck(Message message) {
+    return PING_ACK.equals(message.qualifier()) && message.<PingData>data().getOriginalIssuer() == null;
+  }
 
-    @Override
-    public Boolean call(Message message) {
-      FailureDetectorData data = message.data();
-      return from.equals(data.getFrom()) && target.equals(data.getTo()) && data.getOriginalIssuer() == null;
-    }
+  private boolean isTransitPingAck(Message message) {
+    return PING_ACK.equals(message.qualifier()) && message.<PingData>data().getOriginalIssuer() != null;
   }
 }

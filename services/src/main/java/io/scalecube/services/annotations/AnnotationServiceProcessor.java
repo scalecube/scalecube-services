@@ -8,6 +8,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceProcessor;
@@ -29,12 +33,18 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   }
 
   @Override
-  public ServiceDefinition introspectServiceInterface(Class<?> serviceInterface) {
+  public ConcurrentMap<String, ServiceDefinition> introspectServiceInterface(Class<?> serviceInterface) {
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     checkArgument(serviceAnnotation != null, "Not a service interface: %s", serviceInterface);
     String serviceName = Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
     Map<String, Method> methods = parseServiceMethods(serviceInterface);
-    return new ServiceDefinition(serviceInterface, serviceName, methods);
+    
+    ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap();
+    
+    for(Entry<String, Method> method : methods.entrySet()){
+      serviceDefinitions.put(method.getKey(), new ServiceDefinition(serviceInterface, serviceName + "/" + method.getKey(), method.getValue()));
+    }
+    return serviceDefinitions;
   }
 
   private Map<String, Method> parseServiceMethods(Class<?> serviceInterface) {

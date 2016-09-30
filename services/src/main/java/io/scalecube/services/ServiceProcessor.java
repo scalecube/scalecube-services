@@ -1,14 +1,13 @@
 package io.scalecube.services;
 
 import java.util.Collection;
+import java.util.concurrent.ConcurrentMap;
 
-/**
- * @author Anton Kharenko
- */
+
 public interface ServiceProcessor {
 
   Collection<Class<?>> extractServiceInterfaces(Object serviceObject);
 
-  ServiceDefinition introspectServiceInterface(Class<?> serviceInterface);
+  ConcurrentMap<String, ServiceDefinition> introspectServiceInterface(Class<?> serviceInterface);
 
 }

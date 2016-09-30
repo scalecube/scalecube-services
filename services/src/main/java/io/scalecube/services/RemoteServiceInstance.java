@@ -1,28 +1,36 @@
 package io.scalecube.services;
 
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.google.common.util.concurrent.SettableFuture;
 
-import java.util.Set;
-import java.util.UUID;
-
-import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
-import io.scalecube.transport.TransportHeaders;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import rx.Subscription;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-/**
- * @author Anton Kharenko
- */
 public class RemoteServiceInstance implements ServiceInstance {
+
+  @Override
+  public String toString() {
+    return "RemoteServiceInstance [cluster=" + cluster + ", serviceReference=" + serviceReference + ", address="
+        + address + ", memberId=" + memberId + "]";
+  }
 
   private final ICluster cluster;
   private final ServiceReference serviceReference;
-
+  private final Address address;
+  private final String memberId;
+  
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
     this.cluster = cluster;
     this.serviceReference = serviceReference;
+    // Send request
+    address = cluster.member(serviceReference.memberId()).address();
+    this.memberId = serviceReference.memberId();
   }
 
   @Override
@@ -30,11 +38,10 @@ public class RemoteServiceInstance implements ServiceInstance {
     return serviceReference.serviceName();
   }
 
-  @Override
-  public Set<String> methodNames() {
-    return serviceReference.methodNames();
+  public ServiceReference serviceReference(){
+    return this.serviceReference;
   }
-
+  
   @Override
   public Object invoke(String methodName, Message request) throws Exception {
     // Try to call via messaging
@@ -42,29 +49,34 @@ public class RemoteServiceInstance implements ServiceInstance {
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
     final SettableFuture<Object> responseFuture = SettableFuture.create();
     Message requestMessage = Message.builder()
-        .fillWith(request)
+        .data(request.data())
         .header("service", serviceName())
         .header("serviceMethod", methodName)
         .correlationId(correlationId)
         .build();
-
+    
+    final AtomicReference<Subscription>  subscriber = new AtomicReference<Subscription>(null);
     // Listen response
-    cluster.listen().filter(new Func1<Message, Boolean>() {
+    subscriber.set(cluster.listen().filter(new Func1<Message, Boolean>() {
       @Override
       public Boolean call(Message message) {
-        return correlationId.equals(message.header(TransportHeaders.CORRELATION_ID));
+        return correlationId.equals(message.correlationId());
       }
     }).subscribe(new Action1<Message>() {
       @Override
       public void call(Message message) {
         responseFuture.set(message);
+        subscriber.get().unsubscribe();
       }
-    });
-
-    // Send request
-    ClusterMember member = cluster.membership().member(serviceReference.memberId());
-    cluster.send(member, requestMessage);
+    }));
+    
+    cluster.send(address, requestMessage);
 
     return responseFuture;
+  }
+
+  @Override
+  public String memberId() {
+    return this.memberId;
   }
 }

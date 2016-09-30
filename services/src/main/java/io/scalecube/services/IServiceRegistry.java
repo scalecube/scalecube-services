@@ -5,8 +5,6 @@ import java.util.Collection;
 /**
  * Service registry interface provides API to register/unregister services in the system and make services
  * lookup by service name.
- *
- * @author Anton Kharenko
  */
 public interface IServiceRegistry {
 
@@ -16,8 +14,11 @@ public interface IServiceRegistry {
 
   Collection<ServiceReference> serviceLookup(String serviceName);
 
-  ServiceInstance serviceInstance(ServiceReference serviceReference);
+  ServiceInstance serviceInstance(ServiceReference reference);
 
   ServiceInstance localServiceInstance(String serviceName);
+
+  ServiceInstance findRemoteInstance(String serviceName);
+
 
 }

@@ -1,9 +1,9 @@
 package io.scalecube.cluster.gossip;
 
+import io.scalecube.cluster.Member;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.MessageDeserializer;
-import io.scalecube.transport.MessageSerializer;
-import io.scalecube.transport.ProtostuffProtocol;
+import io.scalecube.transport.MessageCodec;
 
 import com.google.common.collect.ImmutableList;
 
@@ -43,9 +43,6 @@ public class ProtostuffGossipBenchmark {
           + "RF2Mx9EDR9OMhYw6hoijdfgd23EXz8WkTkYz42kQkK99rNxyIXVMVyRPzLHBclYaYKlcmoN8f7hq6aiv3VxlPPchZ6xWmjOlGJY9P7"
           + "nINtChd2spMUkhAeznajS4VW";
 
-  MessageSerializer ser;
-  MessageDeserializer deser;
-
   Message gossipReq;
   ByteBuf gossipReqSer;
   ByteBuf bbGossipReq;
@@ -59,42 +56,40 @@ public class ProtostuffGossipBenchmark {
    */
   @Setup
   public void setup() {
-    ProtostuffProtocol protocol = new ProtostuffProtocol();
-    ser = protocol.getMessageSerializer();
-    deser = protocol.getMessageDeserializer();
-
-    gossipReq = new Message(new GossipRequest(ImmutableList.of(new Gossip("ABCDEFGH_0", new Message(PAYLOAD_X32)))));
-    ser.serialize(gossipReq, gossipReqSer = Unpooled.buffer(1024));
+    List<Gossip> gossips = ImmutableList.of(new Gossip("ABCDEFGH_0", Message.fromData(PAYLOAD_X32)));
+    Member from = new Member("0", Address.from("localhost:1234"));
+    gossipReq = Message.fromData(new GossipRequest(gossips, from));
+    MessageCodec.serialize(gossipReq, gossipReqSer = Unpooled.buffer(1024));
     bbGossipReq = Unpooled.buffer(1024);
     System.err.println("### gossipReqSer=" + gossipReqSer);
 
     List<Gossip> list32 = new ArrayList<>();
     for (int i = 0; i < 32; i++) {
-      list32.add(new Gossip("ABCDEFGH_" + i, new Message(PAYLOAD)));
+      list32.add(new Gossip("ABCDEFGH_" + i, Message.fromData(PAYLOAD)));
     }
-    gossipReqx32 = new Message(new GossipRequest(list32));
-    ser.serialize(gossipReqx32, gossipReqx32Ser = Unpooled.buffer(1024));
+    gossipReqx32 = Message.fromData(new GossipRequest(list32, from));
+    MessageCodec.serialize(gossipReqx32, gossipReqx32Ser = Unpooled.buffer(1024));
     bbGossipReqx32 = Unpooled.buffer(1024);
     System.err.println("### gossipReqx32Ser=" + gossipReqx32Ser);
   }
 
   @Benchmark
   public void ser() {
-    ser.serialize(gossipReq, bbGossipReq.resetWriterIndex());
+    MessageCodec.serialize(gossipReq, bbGossipReq.resetWriterIndex());
   }
 
   @Benchmark
   public void deser() {
-    deser.deserialize(gossipReqSer.resetReaderIndex());
+    MessageCodec.deserialize(gossipReqSer.resetReaderIndex());
   }
 
   @Benchmark
   public void ser_x32() {
-    ser.serialize(gossipReqx32, bbGossipReqx32.resetWriterIndex());
+    MessageCodec.serialize(gossipReqx32, bbGossipReqx32.resetWriterIndex());
   }
 
   @Benchmark
   public void deser_x32() {
-    deser.deserialize(gossipReqx32Ser.resetReaderIndex());
+    MessageCodec.deserialize(gossipReqx32Ser.resetReaderIndex());
   }
 }

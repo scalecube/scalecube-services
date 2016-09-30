@@ -1,6 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
-import io.scalecube.transport.TransportEndpoint;
+import io.scalecube.transport.Address;
 
 import rx.Observable;
 
@@ -17,22 +17,18 @@ import java.util.Collection;
 public interface IFailureDetector {
 
   /**
-   * Starts running failure detection algorithm. After started it begins to receive and send failure detection messages
+   * Starts running failure detection algorithm. After started it begins to receive and send ping messages.
    */
   void start();
 
-  /** Stops running failure detection algorithm and releases occupied resources. */
+  /**
+   * Stops running failure detection algorithm and releases occupied resources.
+   */
   void stop();
 
-  /** Listens for detected cluster members status changes (SUSPECTED/TRUSTED) by failure detector. */
-  Observable<FailureDetectorEvent> listenStatus();
+  /**
+   * Listens for results of ping checks (ALIVE/SUSPECT) done periodically by failure detector.
+   */
+  Observable<FailureDetectorEvent> listen();
 
-  /** Marks given member as SUSPECTED inside FD algorithm internals. */
-  void suspect(TransportEndpoint member);
-
-  /** Marks given member as TRUSTED inside FD algorithm internals. */
-  void trust(TransportEndpoint member);
-
-  /** Updates list of cluster members among which should work FD algorithm. */
-  void setClusterEndpoints(Collection<TransportEndpoint> members);
 }

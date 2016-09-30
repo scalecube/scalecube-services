@@ -1,20 +1,16 @@
 package io.scalecube.services;
 
+import javax.annotation.Nonnull;
+
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import javax.annotation.Nonnull;
-
-import io.scalecube.cluster.ClusterMember;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 import rx.functions.Action1;
 import rx.functions.Func1;
 
-/**
- * @author Anton Kharenko
- */
 public class ServiceDispatcher {
 
   private final ICluster cluster;
@@ -38,23 +34,23 @@ public class ServiceDispatcher {
         // TODO: check if not null
         ServiceInstance serviceInstance = serviceRegistry.localServiceInstance(serviceName);
 
+        if(serviceInstance==null){
+          serviceInstance =serviceRegistry.remoteServiceInstance(serviceName);
+        }
         try {
           Object result = serviceInstance.invoke(serviceMethod, message);
 
           if (result == null) {
             // Do nothing - fire and forget method
           } else if (result instanceof ListenableFuture) {
-            ListenableFuture futureResult = (ListenableFuture)  result;
+            ListenableFuture<Message> futureResult = (ListenableFuture<Message>) result;
             Futures.addCallback(futureResult, new FutureCallback<Object>() {
               @Override
               public void onSuccess(Object result) {
                 Message serviceResponseMsg = (Message) result;
-                ClusterMember senderMember = cluster.membership().member(message.sender().id()); // TODO: API can be better
-                Message responseMsg = Message.builder()
-                    .fillWith(serviceResponseMsg)
-                    .correlationId(message.correlationId())
-                    .build();
-                cluster.send(senderMember, responseMsg);
+                Message responseMsg = Message.builder().data(serviceResponseMsg)
+                    .correlationId(message.correlationId()).build();
+                cluster.send(message.sender(), responseMsg);
               }
 
               @Override
@@ -73,8 +69,5 @@ public class ServiceDispatcher {
       }
     });
   }
-
-
-
 
 }

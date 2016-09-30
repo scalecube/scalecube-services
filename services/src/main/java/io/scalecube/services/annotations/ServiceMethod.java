@@ -7,8 +7,6 @@ import java.lang.annotation.Target;
 
 /**
  * Indicates that an annotated method is a service method available via Service Fabric framework.
- * 
- * @author Anton Kharenko
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
