@@ -10,8 +10,6 @@ import static org.junit.Assert.fail;
 import io.scalecube.testlib.BaseTest;
 
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import io.netty.channel.ConnectTimeoutException;
@@ -22,7 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Subscriber;
-import rx.functions.Action1;
 
 import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
@@ -36,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 
 public class TransportTest extends BaseTest {
@@ -106,7 +104,7 @@ public class TransportTest extends BaseTest {
   public void testUnresolvedHostConnection() throws Exception {
     client = createTransport();
     // create transport with wrong host
-    SettableFuture<Void> sendPromise0 = SettableFuture.create();
+    CompletableFuture<Void> sendPromise0 = new CompletableFuture<>();
     client.send(Address.from("wronghost:49255"), Message.fromData("q"), sendPromise0);
     try {
       sendPromise0.get(5, TimeUnit.SECONDS);
@@ -127,7 +125,7 @@ public class TransportTest extends BaseTest {
       client = createTransport();
 
       // create transport and don't wait just send message
-      SettableFuture<Void> sendPromise0 = SettableFuture.create();
+      CompletableFuture<Void> sendPromise0 = new CompletableFuture<>();
       client.send(serverAddress, Message.fromData("q"), sendPromise0);
       try {
         sendPromise0.get(3, TimeUnit.SECONDS);
@@ -140,7 +138,7 @@ public class TransportTest extends BaseTest {
       }
 
       // send second message: no connection yet and it's clear that there's no connection
-      SettableFuture<Void> sendPromise1 = SettableFuture.create();
+      CompletableFuture<Void> sendPromise1 = new CompletableFuture<>();
       client.send(serverAddress, Message.fromData("q"), sendPromise1);
       try {
         sendPromise1.get(3, TimeUnit.SECONDS);
@@ -161,23 +159,14 @@ public class TransportTest extends BaseTest {
     client = createTransport();
     server = createTransport();
 
-    server.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        Address address = message.sender();
-        assertEquals("Expected clientAddress", client.address(), address);
-        send(server, address, Message.fromQualifier("hi client"));
-      }
+    server.listen().subscribe(message -> {
+      Address address = message.sender();
+      assertEquals("Expected clientAddress", client.address(), address);
+      send(server, address, Message.fromQualifier("hi client"));
     });
 
-    // final ValueLatch<Message> latch = new ValueLatch<>();
-    final SettableFuture<Message> messageFuture = SettableFuture.create();
-    client.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        messageFuture.set(message);
-      }
-    });
+    CompletableFuture<Message> messageFuture = new CompletableFuture<>();
+    client.listen().subscribe(messageFuture::complete);
 
     send(client, server.address(), Message.fromQualifier("hello server"));
 
@@ -197,16 +186,13 @@ public class TransportTest extends BaseTest {
       client = createTransport();
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(total);
-      server.listen().subscribe(new Action1<Message>() {
-        @Override
-        public void call(Message message) {
-          received.add(message);
-          latch.countDown();
-        }
+      server.listen().subscribe(message -> {
+        received.add(message);
+        latch.countDown();
       });
 
       for (int j = 0; j < total; j++) {
-        SettableFuture<Void> send = SettableFuture.create();
+        CompletableFuture<Void> send = new CompletableFuture<>();
         client.send(server.address(), Message.fromQualifier("q" + j), send);
         try {
           send.get(3, TimeUnit.SECONDS);
@@ -235,12 +221,9 @@ public class TransportTest extends BaseTest {
       Transport client = createTransport();
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(4 * total);
-      server.listen().subscribe(new Action1<Message>() {
-        @Override
-        public void call(Message message) {
-          received.add(message);
-          latch.countDown();
-        }
+      server.listen().subscribe(message -> {
+        received.add(message);
+        latch.countDown();
       });
 
       Future<Void> f0 = exec.submit(sender(0, client, server.address(), total));
@@ -279,12 +262,7 @@ public class TransportTest extends BaseTest {
     client.setNetworkSettings(server.address(), lostPercent, mean);
 
     final List<Message> serverMessageList = new ArrayList<>();
-    server.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        serverMessageList.add(message);
-      }
-    });
+    server.listen().subscribe(serverMessageList::add);
 
     int total = 1000;
     for (int i = 0; i < total; i++) {
@@ -303,23 +281,15 @@ public class TransportTest extends BaseTest {
     server = createTransport();
     client = createTransport();
 
-    server.listen().buffer(2).subscribe(new Action1<List<Message>>() {
-      @Override
-      public void call(List<Message> messages) {
-        for (Message message : messages) {
-          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
-          server.send(message.sender(), echo);
-        }
+    server.listen().buffer(2).subscribe(messages -> {
+      for (Message message : messages) {
+        Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
+        server.send(message.sender(), echo);
       }
     });
 
-    final SettableFuture<List<Message>> targetFuture = SettableFuture.create();
-    client.listen().buffer(2).subscribe(new Action1<List<Message>>() {
-      @Override
-      public void call(List<Message> messages) {
-        targetFuture.set(messages);
-      }
-    });
+    final CompletableFuture<List<Message>> targetFuture = new CompletableFuture<>();
+    client.listen().buffer(2).subscribe(targetFuture::complete);
 
     client.send(server.address(), Message.fromData("q1"));
     client.send(server.address(), Message.fromData("q2"));
@@ -334,23 +304,15 @@ public class TransportTest extends BaseTest {
     server = createTransport();
     client = createTransport();
 
-    server.listen().buffer(2).subscribe(new Action1<List<Message>>() {
-      @Override
-      public void call(List<Message> messages) {
-        for (Message message : messages) {
-          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
-          server.send(message.sender(), echo, null);
-        }
+    server.listen().buffer(2).subscribe(messages -> {
+      for (Message message : messages) {
+        Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
+        server.send(message.sender(), echo);
       }
     });
 
-    final SettableFuture<List<Message>> targetFuture = SettableFuture.create();
-    client.listen().buffer(2).subscribe(new Action1<List<Message>>() {
-      @Override
-      public void call(List<Message> messages) {
-        targetFuture.set(messages);
-      }
-    });
+    final CompletableFuture<List<Message>> targetFuture = new CompletableFuture<>();
+    client.listen().buffer(2).subscribe(targetFuture::complete);
 
     client.send(server.address(), Message.fromData("q1"));
     client.send(server.address(), Message.fromData("q2"));
@@ -365,13 +327,13 @@ public class TransportTest extends BaseTest {
     server = createTransport();
     client = createTransport();
 
-    final SettableFuture<Boolean> completeLatch = SettableFuture.create();
-    final SettableFuture<Message> messageLatch = SettableFuture.create();
+    final CompletableFuture<Boolean> completeLatch = new CompletableFuture<>();
+    final CompletableFuture<Message> messageLatch = new CompletableFuture<>();
 
     server.listen().subscribe(new Subscriber<Message>() {
       @Override
       public void onCompleted() {
-        completeLatch.set(true);
+        completeLatch.complete(true);
       }
 
       @Override
@@ -379,17 +341,17 @@ public class TransportTest extends BaseTest {
 
       @Override
       public void onNext(Message message) {
-        messageLatch.set(message);
+        messageLatch.complete(message);
       }
     });
 
-    SettableFuture<Void> send = SettableFuture.create();
+    CompletableFuture<Void> send = new CompletableFuture<>();
     client.send(server.address(), Message.fromData("q"), send);
     send.get(1, TimeUnit.SECONDS);
 
     assertNotNull(messageLatch.get(1, TimeUnit.SECONDS));
 
-    SettableFuture<Void> close = SettableFuture.create();
+    CompletableFuture<Void> close = new CompletableFuture<>();
     server.stop(close);
     close.get();
 
@@ -401,33 +363,20 @@ public class TransportTest extends BaseTest {
     server = createTransport();
     client = createTransport();
 
-    server.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        String qualifier = message.data();
-        if (qualifier.startsWith("throw")) {
-          throw new RuntimeException("" + message);
-        }
-        if (qualifier.startsWith("q")) {
-          Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
-          server.send(message.sender(), echo);
-        }
+    server.listen().subscribe(message -> {
+      String qualifier = message.data();
+      if (qualifier.startsWith("throw")) {
+        throw new RuntimeException("" + message);
       }
-    }, new Action1<Throwable>() {
-      @Override
-      public void call(Throwable throwable) {
-        throwable.printStackTrace();
+      if (qualifier.startsWith("q")) {
+        Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
+        server.send(message.sender(), echo);
       }
-    });
+    }, Throwable::printStackTrace);
 
     // send "throw" and raise exception on server subscriber
-    final SettableFuture<Message> messageFuture0 = SettableFuture.create();
-    client.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        messageFuture0.set(message);
-      }
-    });
+    final CompletableFuture<Message> messageFuture0 = new CompletableFuture<>();
+    client.listen().subscribe(messageFuture0::complete);
     client.send(server.address(), Message.fromData("throw"));
     Message message0 = null;
     try {
@@ -438,13 +387,8 @@ public class TransportTest extends BaseTest {
     assertNull(message0);
 
     // send normal message and check whether server subscriber is broken (no response)
-    final SettableFuture<Message> messageFuture1 = SettableFuture.create();
-    client.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        messageFuture1.set(message);
-      }
-    });
+    final CompletableFuture<Message> messageFuture1 = new CompletableFuture<>();
+    client.listen().subscribe(messageFuture1::complete);
     client.send(server.address(), Message.fromData("q"));
     Message transportMessage1 = null;
     try {
@@ -460,20 +404,12 @@ public class TransportTest extends BaseTest {
     client = createTransport();
     server = createTransport();
 
-    server.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        server.send(message.sender(), message);
-      }
+    server.listen().subscribe(message -> {
+      server.send(message.sender(), message);
     });
 
     final List<Message> resp = new ArrayList<>();
-    client.listen().subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        resp.add(message);
-      }
-    });
+    client.listen().subscribe(resp::add);
 
     // test at unblocked transport
     send(client, server.address(), Message.fromQualifier("q/unblocked"));
@@ -502,21 +438,19 @@ public class TransportTest extends BaseTest {
 
   private Callable<Void> sender(final int id, final Transport client, final Address address,
       final int total) {
-    return new Callable<Void>() {
-      public Void call() throws Exception {
-        for (int j = 0; j < total; j++) {
-          String correlationId = id + "/" + j;
-          SettableFuture<Void> sendPromise = SettableFuture.create();
-          client.send(address, Message.withQualifier("q").correlationId(correlationId).build(), sendPromise);
-          try {
-            sendPromise.get(3, TimeUnit.SECONDS);
-          } catch (Exception e) {
-            LOGGER.error("Failed to send message: j = {} id = {}", j, id, e);
-            propagate(e);
-          }
+    return () -> {
+      for (int j = 0; j < total; j++) {
+        String correlationId = id + "/" + j;
+        CompletableFuture<Void> sendPromise = new CompletableFuture<>();
+        client.send(address, Message.withQualifier("q").correlationId(correlationId).build(), sendPromise);
+        try {
+          sendPromise.get(3, TimeUnit.SECONDS);
+        } catch (Exception e) {
+          LOGGER.error("Failed to send message: j = {} id = {}", j, id, e);
+          propagate(e);
         }
-        return null;
       }
+      return null;
     };
   }
 
@@ -533,20 +467,17 @@ public class TransportTest extends BaseTest {
   }
 
   private void send(final ITransport from, final Address to, final Message msg) {
-    final SettableFuture<Void> sendPromise = SettableFuture.create();
-    sendPromise.addListener(new Runnable() {
-      @Override
-      public void run() {
-        if (sendPromise.isDone()) {
-          try {
-            sendPromise.get();
-          } catch (Exception e) {
-            LOGGER.error("Failed to send {} to {} from transport: {}, cause: {}", msg, to, from, e.getCause());
-          }
+    final CompletableFuture<Void> promise = new CompletableFuture<>();
+    promise.thenAccept(aVoid -> {
+      if (promise.isDone()) {
+        try {
+          promise.get();
+        } catch (Exception e) {
+          LOGGER.error("Failed to send {} to {} from transport: {}, cause: {}", msg, to, from, e.getCause());
         }
       }
-    }, MoreExecutors.directExecutor());
-    from.send(to, msg, sendPromise);
+    });
+    from.send(to, msg, promise);
   }
 
   private Transport createTransport() {
@@ -559,7 +490,7 @@ public class TransportTest extends BaseTest {
 
   private void destroyTransport(Transport transport) throws Exception {
     if (transport != null && !transport.isStopped()) {
-      SettableFuture<Void> close = SettableFuture.create();
+      CompletableFuture<Void> close = new CompletableFuture<>();
       transport.stop(close);
       close.get(1, TimeUnit.SECONDS);
     }

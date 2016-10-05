@@ -1,7 +1,7 @@
 package io.scalecube.cluster.membership;
 
-import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
+import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
@@ -13,9 +13,6 @@ import io.scalecube.transport.Message;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
@@ -42,6 +39,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 public final class MembershipProtocol implements IMembershipProtocol {
 
@@ -160,7 +158,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   /**
    * Starts running cluster membership protocol. After started it begins to receive and send cluster membership messages
    */
-  public ListenableFuture<Void> start() {
+  public CompletableFuture<Void> start() {
     // Init membership table with local member record
     MembershipRecord localMemberRecord = new MembershipRecord(member, ALIVE, 0);
     membershipTable.put(member.id(), localMemberRecord);
@@ -234,17 +232,18 @@ public final class MembershipProtocol implements IMembershipProtocol {
     subject.onCompleted();
   }
 
-  /* ================================================ *
-   * ============== Action Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Action Methods ==================
+  // ================================================
 
-  private ListenableFuture<Void> doInitialSync() {
+  private CompletableFuture<Void> doInitialSync() {
     LOGGER.debug("Making initial Sync to all seed members: {}", seedMembers);
     if (seedMembers.isEmpty()) {
-      return Futures.immediateFuture(null);
+      schedulePeriodicSync();
+      return CompletableFuture.completedFuture(null);
     }
 
-    SettableFuture<Void> syncResponseFuture = SettableFuture.create();
+    CompletableFuture<Void> syncResponseFuture = new CompletableFuture<>();
 
     // Listen initial Sync Ack
     String cid = member.id();
@@ -254,15 +253,17 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .filter(this::checkSyncGroup)
         .take(1)
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
-        .subscribe(message -> {
-            onSyncAck(message);
-            schedulePeriodicSync();
-            syncResponseFuture.set(null);
-          }, throwable -> {
-            LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
-            schedulePeriodicSync();
-            syncResponseFuture.set(null);
-          });
+        .subscribe(
+            message -> {
+              onSyncAck(message);
+              schedulePeriodicSync();
+              syncResponseFuture.complete(null);
+            },
+            throwable -> {
+              LOGGER.info("Timeout getting initial SyncAck from seed members: {}", seedMembers);
+              schedulePeriodicSync();
+              syncResponseFuture.complete(null);
+            });
 
     Message syncMsg = prepareSyncDataMsg(SYNC, cid);
     seedMembers.forEach(address -> transport.send(address, syncMsg));
@@ -284,9 +285,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
   }
 
-  /* ================================================ *
-   * ============== Event Listeners ================= *
-   * ================================================ */
+  // ================================================
+  // ============== Event Listeners =================
+  // ================================================
 
   private void onSyncAck(Message syncAckMsg) {
     LOGGER.debug("Received SyncAck: {}", syncAckMsg);
@@ -335,9 +336,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
     updateMembership(record, false /* don't spread gossip */);
   }
 
-  /* ================================================ *
-   * ============== Helper Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Helper Methods ==================
+  // ================================================
 
   private Address selectSyncAddress() {
     // TODO [AK]: During running phase it should send to both seed or not seed members (issue #38)
@@ -434,11 +435,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private void scheduleRemoveMemberTask(MembershipRecord record) {
     removeMemberTasks.putIfAbsent(record.id(), executor.schedule(() -> {
-        LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
-        removeMemberTasks.remove(record.id());
-        MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
-        updateMembership(deadRecord, true /* spread gossip */);
-      }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+      LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
+      removeMemberTasks.remove(record.id());
+      MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
+      updateMembership(deadRecord, true /* spread gossip */);
+    }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
   }
 
   private void spreadMembershipGossip(MembershipRecord record) {

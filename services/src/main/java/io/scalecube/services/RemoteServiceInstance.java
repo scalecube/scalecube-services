@@ -29,7 +29,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.cluster = cluster;
     this.serviceReference = serviceReference;
     // Send request
-    address = cluster.member(serviceReference.memberId()).address();
+    address = cluster.member(serviceReference.memberId()).get().address();
     this.memberId = serviceReference.memberId();
   }
 

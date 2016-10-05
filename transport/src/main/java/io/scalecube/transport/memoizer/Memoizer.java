@@ -1,24 +1,20 @@
 package io.scalecube.transport.memoizer;
 
-import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableFutureTask;
-import com.google.common.util.concurrent.MoreExecutors;
-
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.Executor;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 
 public class Memoizer<A, V> {
 
-  private final ConcurrentMap<A, ListenableFuture<V>> cache = new ConcurrentHashMap<>();
+  private final ConcurrentMap<A, CompletableFuture<V>> cache = new ConcurrentHashMap<>();
 
-  private final Computable<A, V> defaultComputable;
+  private final Function<A, V> defaultComputable;
 
   /**
    * Instantiates a new memoizer without default computable.
@@ -32,7 +28,7 @@ public class Memoizer<A, V> {
    *
    * @param defaultComputable the default computable
    */
-  public Memoizer(Computable<A, V> defaultComputable) {
+  public Memoizer(Function<A, V> defaultComputable) {
     this.defaultComputable = defaultComputable;
   }
 
@@ -44,18 +40,18 @@ public class Memoizer<A, V> {
     return get(arg, defaultComputable, executor);
   }
 
-  public V get(final A arg, final Computable<A, V> computable) throws MemoizerExecutionException {
-    return get(arg, computable, MoreExecutors.directExecutor());
+  public V get(final A arg, final Function<A, V> computable) throws MemoizerExecutionException {
+    return get(arg, computable, Runnable::run);
   }
 
   /**
    * Returns the value to which the specified key is mapped, or run computable to compute the value if absent. NOTE:
    * This is blocking call
    */
-  public V get(final A arg, final Computable<A, V> computable, final Executor executor)
+  public V get(final A arg, final Function<A, V> computable, final Executor executor)
       throws MemoizerExecutionException {
     while (true) {
-      ListenableFuture<V> future = getAsync(arg, computable, executor);
+      Future<V> future = getAsync(arg, computable, executor);
       try {
         return future.get();
       } catch (CancellationException | InterruptedException e) {
@@ -68,7 +64,7 @@ public class Memoizer<A, V> {
     }
   }
 
-  public ListenableFuture<V> getAsync(final A arg, final Executor executor) {
+  public CompletableFuture<V> getAsync(final A arg, final Executor executor) {
     return getAsync(arg, defaultComputable, executor);
   }
 
@@ -76,26 +72,17 @@ public class Memoizer<A, V> {
    * Returns the value's future for the the specified key. It will run computable to compute the value if absent
    * asynchronously at the given executor.
    */
-  public ListenableFuture<V> getAsync(final A arg, final Computable<A, V> computable, final Executor executor) {
-    ListenableFuture<V> future = cache.get(arg);
+  public CompletableFuture<V> getAsync(final A arg, final Function<A, V> computable, final Executor executor) {
+    CompletableFuture<V> future = cache.get(arg);
     if (future == null) {
-      Callable<V> eval = new Callable<V>() {
-        @Override
-        public V call() throws Exception {
-          Preconditions.checkArgument(computable != null, "Computable is null");
-          return computable.compute(arg);
-        }
-      };
-      final ListenableFutureTask<V> futureTask = ListenableFutureTask.create(eval);
-      future = cache.putIfAbsent(arg, futureTask);
+      final CompletableFuture<V> compute = new CompletableFuture<>();
+      future = cache.putIfAbsent(arg, compute);
       if (future == null) {
-        future = futureTask;
-        executor.execute(new Runnable() {
-          @Override
-          public void run() {
-            futureTask.run();
-          }
-        });
+        future = CompletableFuture.supplyAsync(() -> computable.apply(arg), executor)
+            .thenCompose(x -> {
+              compute.complete(x);
+              return compute;
+            });
       }
     }
     return future;

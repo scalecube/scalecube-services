@@ -75,7 +75,7 @@ public class ServiceClientFactory {
   private ServiceInstance selectServiceInstance(Collection<ServiceReference> serviceReferences) {
     List<ServiceInstance> instances = new ArrayList<ServiceInstance>();
     for (ServiceReference serviceReference : serviceReferences) {
-      Member member = cluster.member(serviceReference.memberId());
+      Member member = cluster.member(serviceReference.memberId()).get();
       if (member != null) {
         instances.add(serviceRegistry.serviceInstance(serviceReference));
       }

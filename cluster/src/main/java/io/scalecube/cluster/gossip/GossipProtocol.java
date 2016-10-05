@@ -164,9 +164,9 @@ public final class GossipProtocol implements IGossipProtocol {
     return subject.asObservable();
   }
 
-  /* ================================================ *
-   * ============== Action Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Action Methods ==================
+  // ================================================
 
   private void doSpreadGossip() {
     // Increment period
@@ -188,9 +188,9 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
-  /* ================================================ *
-   * ============== Event Listeners ================= *
-   * ================================================ */
+  // ================================================
+  // ============== Event Listeners =================
+  // ================================================
 
   private void onSpreadGossip(Message message) {
     Gossip gossip = new Gossip(generateGossipId(), message);
@@ -211,9 +211,9 @@ public final class GossipProtocol implements IGossipProtocol {
     }
   }
 
-  /* ================================================ *
-   * ============== Helper Methods ================== *
-   * ================================================ */
+  // ================================================
+  // ============== Helper Methods ==================
+  // ================================================
 
   private boolean isGossipReq(Message message) {
     return GOSSIP_REQ.equals(message.qualifier());
@@ -256,10 +256,10 @@ public final class GossipProtocol implements IGossipProtocol {
 
     // Update gossip states
     gossipsToSend.forEach(gossip -> {
-        GossipState gossipState = gossips.get(gossip.gossipId());
-        gossipState.incrementSpreadCount();
-        gossipState.addToInfected(member);
-      });
+      GossipState gossipState = gossips.get(gossip.gossipId());
+      gossipState.incrementSpreadCount();
+      gossipState.addToInfected(member);
+    });
   }
 
   private void sweepGossips() {

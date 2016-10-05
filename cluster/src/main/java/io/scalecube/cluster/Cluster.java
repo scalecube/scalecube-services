@@ -1,15 +1,15 @@
 package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.util.concurrent.Futures.transform;
-import static com.google.common.util.concurrent.Futures.transformAsync;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING;
+import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
 import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
 import static io.scalecube.cluster.membership.MembershipProtocol.SYNC;
 import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
+
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
@@ -20,11 +20,8 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +34,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -120,14 +119,14 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance and join cluster asynchronously.
    */
-  public static ListenableFuture<ICluster> join() {
+  public static CompletableFuture<ICluster> join() {
     return join(ClusterConfig.defaultConfig());
   }
 
   /**
    * Init cluster instance with the given seed members and join cluster asynchronously.
    */
-  public static ListenableFuture<ICluster> join(Address... seedMembers) {
+  public static CompletableFuture<ICluster> join(Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
         .membershipConfig(MembershipConfig.builder().seedMembers(Arrays.asList(seedMembers)).build())
         .build();
@@ -137,7 +136,7 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance with the given metadata and seed members and join cluster synchronously.
    */
-  public static ListenableFuture<ICluster> join(Map<String, String> metadata, Address... seedMembers) {
+  public static CompletableFuture<ICluster> join(Map<String, String> metadata, Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
         .membershipConfig(
             MembershipConfig.builder()
@@ -151,41 +150,32 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance with the given configuration and join cluster synchronously.
    */
-  public static ListenableFuture<ICluster> join(final ClusterConfig config) {
+  public static CompletableFuture<ICluster> join(final ClusterConfig config) {
     return new Cluster(config).join0();
   }
 
-  private ListenableFuture<ICluster> join0() {
-    ListenableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
-    ListenableFuture<Void> clusterFuture = transformAsync(transportFuture, boundTransport -> {
-        // Init components
-        transport = boundTransport;
-        membership = new MembershipProtocol(transport, config.getMembershipConfig());
-        gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
-        failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
-        membership.setFailureDetector(failureDetector);
-        membership.setGossipProtocol(gossip);
+  private CompletableFuture<ICluster> join0() {
+    CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
+    CompletableFuture<Void> clusterFuture =  transportFuture.thenCompose(boundTransport -> {
+      transport = boundTransport;
+      membership = new MembershipProtocol(transport, config.getMembershipConfig());
+      gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
+      failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
+      membership.setFailureDetector(failureDetector);
+      membership.setGossipProtocol(gossip);
 
-        // Init membership
-        Member localMember = membership.member();
-        onMemberAdded(localMember);
-        membership.listen()
-            .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
-        membership.listen()
-            .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
+      Member localMember = membership.member();
+      onMemberAdded(localMember);
+      membership.listen()
+          .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
+      membership.listen()
+          .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
 
-        // Start components
-        failureDetector.start();
-        gossip.start();
-        return membership.start();
-      });
-
-    return transform(clusterFuture, new Function<Void, ICluster>() {
-      @Override
-      public ICluster apply(@Nullable Void param) {
-        return Cluster.this;
-      }
+      failureDetector.start();
+      gossip.start();
+      return membership.start();
     });
+    return clusterFuture.thenApply(aVoid -> Cluster.this);
   }
 
   private void onMemberAdded(Member member) {
@@ -214,12 +204,12 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public void send(Member member, Message message, SettableFuture<Void> promise) {
+  public void send(Member member, Message message, CompletableFuture<Void> promise) {
     transport.send(member.address(), message, promise);
   }
 
   @Override
-  public void send(Address address, Message message, SettableFuture<Void> promise) {
+  public void send(Address address, Message message, CompletableFuture<Void> promise) {
     transport.send(address, message, promise);
   }
 
@@ -249,14 +239,15 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public Member member(String id) {
-    return members.get(id);
+  public Optional<Member> member(String id) {
+    return Optional.ofNullable(members.get(id));
   }
 
   @Override
-  public Member member(Address address) {
-    String memberId = memberAddressIndex.get(address);
-    return memberId != null ? members.get(memberId) : null;
+  public Optional<Member> member(Address address) {
+    return Optional.ofNullable(memberAddressIndex.get(address)).flatMap(memberId ->
+        Optional.ofNullable(members.get(memberId))
+    );
   }
 
   @Override
@@ -272,7 +263,7 @@ public final class Cluster implements ICluster {
   }
 
   @Override
-  public ListenableFuture<Void> shutdown() {
+  public CompletableFuture<Void> shutdown() {
     LOGGER.info("Cluster member {} is shutting down...", membership.member());
 
     // stop algorithms
@@ -281,7 +272,7 @@ public final class Cluster implements ICluster {
     failureDetector.stop();
 
     // stop transport
-    SettableFuture<Void> transportStoppedFuture = SettableFuture.create();
+    CompletableFuture<Void> transportStoppedFuture = new CompletableFuture<>();
     transport.stop(transportStoppedFuture);
 
     return transportStoppedFuture;
