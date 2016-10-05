@@ -3,8 +3,15 @@ package io.scalecube.transport;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import io.scalecube.transport.memoizer.Computable;
-import io.scalecube.transport.memoizer.Memoizer;
+import java.net.InetAddress;
+import java.util.Collection;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -26,21 +33,12 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.scalecube.transport.memoizer.Computable;
+import io.scalecube.transport.memoizer.Memoizer;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
-
-import java.net.InetAddress;
-import java.util.Collection;
-
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public final class Transport implements ITransport {
 
