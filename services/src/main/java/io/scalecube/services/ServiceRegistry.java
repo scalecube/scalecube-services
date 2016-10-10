@@ -1,11 +1,11 @@
 package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -17,26 +17,19 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Sets;
-
 import io.scalecube.cluster.ICluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 
 public class ServiceRegistry implements IServiceRegistry {
 
-  // TODO [AK]: Add logging
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
 
   private final ICluster cluster;
   private final ServiceProcessor serviceProcessor;
   private ConsulServiceRegistry consul;
 
-  // Local indexes
-  private final ConcurrentMap<String, Collection<ServiceReference>> servicesByNameIndex = new ConcurrentHashMap<>();
-  private final ConcurrentMap<String, ServiceInstance> localServiceInstancesByName = new ConcurrentHashMap<>();
-  
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
-  
+
   ScheduledExecutorService exec;
 
   public ServiceRegistry(ICluster cluster) {
@@ -59,7 +52,6 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private void loadServices() {
     for (RemoteServiceInstance instancef : consul.getRemoteServices()) {
-      addServiceByNameIndex(instancef.serviceReference());
       serviceInstances.put(instancef.serviceReference(), instancef);
     }
     registerServices();
@@ -79,27 +71,24 @@ public class ServiceRegistry implements IServiceRegistry {
   public void registerService(Object serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
-    Set<ServiceReference> registeredServiceReferences = new HashSet<>();
+
+    String memberId = cluster.member().id();
+
     for (Class<?> serviceInterface : serviceInterfaces) {
       // Process service interface
       ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
-      for (ServiceDefinition serviceDefinition : serviceDefinitions.values()) {
-        ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
-        ServiceInstance serviceInstance = new LocalServiceInstance(serviceObject, serviceDefinition, cluster.member().id());
 
-        // Update local indexes
-        ServiceInstance prev = localServiceInstancesByName.putIfAbsent(serviceInstance.serviceName(), serviceInstance);
-        checkState(prev == null, "Service with name %s was already registered", serviceInstance.serviceName());
-        serviceInstances.put(serviceReference, serviceInstance);
-        addServiceByNameIndex(serviceReference);
+      serviceDefinitions.entrySet().stream().forEach(entry -> {
+        serviceInstances.putIfAbsent(
+            ServiceReference.create(entry.getValue(), memberId),
+            new LocalServiceInstance(serviceObject, entry.getValue(), memberId));
 
-        registeredServiceReferences.add(serviceReference);
-        consul.registerService(cluster.member().id(),
-            serviceReference.serviceName(),
+
+        consul.registerService(memberId, entry.getValue().serviceName(),
             cluster.member().address().host(),
             cluster.member().address().port());
-      }
+      });
     }
   }
 
@@ -115,10 +104,6 @@ public class ServiceRegistry implements IServiceRegistry {
       for (ServiceDefinition serviceDefinition : serviceDefinitions.values()) {
         ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
 
-        // Update local indexes
-        // TODO [AK]: check that it was not removed before
-        removeServiceByNameIndex(serviceReference);
-        localServiceInstancesByName.remove(serviceReference.serviceName());
         serviceInstances.remove(serviceReference);
 
         unregisteredServiceReferences.add(serviceReference);
@@ -131,52 +116,57 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   @Override
-  public Collection<ServiceReference> serviceLookup(final String serviceName) {
+  public Collection<ServiceInstance> serviceLookup(final String serviceName) {
     checkArgument(serviceName != null, "Service name can't be null");
-    Collection<ServiceReference> services = servicesByNameIndex.get(serviceName);
-    
-    return services == null ? Collections.<ServiceReference>emptySet() : Collections.unmodifiableCollection(services);
+
+    List<ServiceInstance> results = new ArrayList<>();
+
+    serviceInstances.entrySet().stream()
+        .filter(entry -> isValid(entry.getKey(), serviceName))
+        .forEach(entry -> results.add(entry.getValue()));
+
+    return results;
+  }
+
+  @Override
+  public ServiceInstance getLocalInstance(String serviceName) {
+
+    List<ServiceInstance> results = new ArrayList<>();
+
+    serviceInstances.entrySet().stream()
+        .filter(entry -> entry.getValue().isLocal())
+        .forEach(entry -> results.add(entry.getValue()));
+
+    return results.stream().findFirst().get();
+
+  }
+
+  private boolean isValid(ServiceReference reference, String serviceName) {
+    if (reference.serviceName().equals(serviceName)) {
+      return cluster.member(reference.memberId()).isPresent();
+    }
+    return false;
   }
 
   public ServiceInstance serviceInstance(ServiceReference reference) {
     return serviceInstances.get(reference);
   }
 
-  @Override
-  public ServiceInstance localServiceInstance(String serviceName) {
-    return localServiceInstancesByName.get(serviceName);
-  }
 
-  private void addServiceByNameIndex(ServiceReference service) {
-    String serviceName = service.serviceName();
-    Collection<ServiceReference> services = getOrCreateServicesByNameIndex(serviceName);
-    services.add(service);
-  }
-
-  private void removeServiceByNameIndex(ServiceReference service) {
-    String serviceName = service.serviceName();
-    Collection<ServiceReference> services = getOrCreateServicesByNameIndex(serviceName);
-    services.remove(service);
-  }
-
-  private Collection<ServiceReference> getOrCreateServicesByNameIndex(String serviceName) {
-    Collection<ServiceReference> services = servicesByNameIndex.get(serviceName);
-    if (services == null) {
-      services = Sets.newConcurrentHashSet();
-      Collection<ServiceReference> fasterServices = servicesByNameIndex.putIfAbsent(serviceName, services);
-      if (fasterServices != null) {
-        services = fasterServices;
-      }
-    }
-    return services;
-  }
 
   public ServiceInstance remoteServiceInstance(String serviceName) {
     return serviceInstances.get(serviceName);
   }
 
   @Override
-  public ServiceInstance findRemoteInstance(String serviceName) {
-    return serviceInstances.get(serviceName);
+  public List<RemoteServiceInstance> findRemoteInstance(String serviceName) {
+    return consul.serviceLookup(serviceName);
   }
+
+  public Collection<ServiceInstance> services() {
+    return serviceInstances.values();
+  }
+
+
+
 }

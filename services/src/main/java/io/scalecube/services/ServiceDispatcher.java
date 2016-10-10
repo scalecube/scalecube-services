@@ -14,11 +14,11 @@ import rx.functions.Func1;
 public class ServiceDispatcher {
 
   private final ICluster cluster;
-  private final ServiceRegistry serviceRegistry;
+  private final IServiceRegistry registry;
 
-  public ServiceDispatcher(final ICluster cluster, final ServiceRegistry serviceRegistry) {
+  public ServiceDispatcher(final ICluster cluster, final IServiceRegistry registry) {
     this.cluster = cluster;
-    this.serviceRegistry = serviceRegistry;
+    this.registry = registry;
 
     cluster.listen().filter(new Func1<Message, Boolean>() {
       @Override
@@ -31,12 +31,9 @@ public class ServiceDispatcher {
         final String serviceName = message.header("service");
         final String serviceMethod = message.header("serviceMethod");
 
-        // TODO: check if not null
-        ServiceInstance serviceInstance = serviceRegistry.localServiceInstance(serviceName);
+        
+        ServiceInstance serviceInstance = registry.getLocalInstance(serviceName);
 
-        if(serviceInstance==null){
-          serviceInstance =serviceRegistry.remoteServiceInstance(serviceName);
-        }
         try {
           Object result = serviceInstance.invoke(serviceMethod, message);
 

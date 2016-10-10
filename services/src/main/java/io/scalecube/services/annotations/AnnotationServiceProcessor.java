@@ -42,7 +42,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap();
     
     for(Entry<String, Method> method : methods.entrySet()){
-      serviceDefinitions.put(method.getKey(), new ServiceDefinition(serviceInterface, serviceName + "/" + method.getKey(), method.getValue()));
+      serviceDefinitions.put(method.getKey(), new ServiceDefinition(serviceInterface, serviceName + "." + method.getKey(), method.getValue()));
     }
     return serviceDefinitions;
   }

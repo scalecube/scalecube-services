@@ -49,4 +49,8 @@ public class ServiceReference {
         ", serviceName='" + serviceName + '\'' +
         '}';
   }
+
+  public static ServiceReference create(ServiceDefinition serviceDefinition, String memberId) {
+    return new ServiceReference(memberId, serviceDefinition.serviceName());
+  }
 }

@@ -8,6 +8,7 @@ public interface ServiceInstance {
 
   Object invoke(String methodName, Message request) throws Exception;
 
-  Object memberId();
+  String memberId();
 
+  Boolean isLocal();
 }

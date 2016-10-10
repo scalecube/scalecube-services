@@ -24,13 +24,15 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final ServiceReference serviceReference;
   private final Address address;
   private final String memberId;
+  private final Boolean isLocal;
   
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
     this.cluster = cluster;
     this.serviceReference = serviceReference;
     // Send request
-    address = cluster.member(serviceReference.memberId()).get().address();
+    this.address = cluster.member(serviceReference.memberId()).get().address();
     this.memberId = serviceReference.memberId();
+    this.isLocal = false;
   }
 
   @Override
@@ -78,5 +80,10 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public String memberId() {
     return this.memberId;
+  }
+
+  @Override
+  public Boolean isLocal() {
+    return this.isLocal;
   }
 }

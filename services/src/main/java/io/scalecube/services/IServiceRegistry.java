@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Service registry interface provides API to register/unregister services in the system and make services
@@ -12,13 +13,13 @@ public interface IServiceRegistry {
 
   void unregisterService(Object serviceObject);
 
-  Collection<ServiceReference> serviceLookup(String serviceName);
+  Collection<ServiceInstance> serviceLookup(String serviceName);
 
   ServiceInstance serviceInstance(ServiceReference reference);
 
-  ServiceInstance localServiceInstance(String serviceName);
+  List<RemoteServiceInstance> findRemoteInstance(String serviceName);
 
-  ServiceInstance findRemoteInstance(String serviceName);
+  ServiceInstance getLocalInstance(String serviceName);
 
 
 }

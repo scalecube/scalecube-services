@@ -12,6 +12,7 @@ public class LocalServiceInstance implements ServiceInstance {
   private final Object serviceObject;
   private final ServiceDefinition serviceDefinition;
   private final String memberId;
+  private final Boolean isLocal;
   
   public LocalServiceInstance(Object serviceObject, ServiceDefinition serviceDefinition, String memberId) {
     checkArgument(serviceObject != null);
@@ -19,6 +20,7 @@ public class LocalServiceInstance implements ServiceInstance {
     this.serviceObject = serviceObject;
     this.serviceDefinition = serviceDefinition;
     this.memberId = memberId;
+    this.isLocal = true;
   }
 
   public String serviceName() {
@@ -36,8 +38,13 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Object memberId() {
+  public String memberId() {
     return this.memberId;
+  }
+
+  @Override
+  public Boolean isLocal() {
+    return isLocal;
   }
 
 }
