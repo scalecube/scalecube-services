@@ -7,16 +7,17 @@ import java.util.concurrent.ConcurrentMap;
 import com.google.common.reflect.Reflection;
 import com.google.common.util.concurrent.Futures;
 
+import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
 public class ServiceProxytFactory {
 
-  private final IRouter router;
   private final ServiceProcessor serviceProcessor;
   private ConcurrentMap<String, ServiceDefinition> serviceDefinitions;
+  private RouterFactory routerFactory;
 
-  public ServiceProxytFactory(IRouter router, ServiceProcessor serviceProcessor) {
-    this.router = router;
+  public ServiceProxytFactory(ServiceRegistry serviceRegistry,ServiceProcessor serviceProcessor) {
+    this.routerFactory = new RouterFactory(serviceRegistry);
     this.serviceProcessor = serviceProcessor;
   } 
 
@@ -46,7 +47,8 @@ public class ServiceProxytFactory {
 
       private ServiceInstance findInstance(Method method) {
         ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
-        return router.route(serviceDefinition.serviceName());
+        Router router = routerFactory.getRouter(serviceDefinition);
+        return router.route(serviceDefinition);
       }
     });
   }

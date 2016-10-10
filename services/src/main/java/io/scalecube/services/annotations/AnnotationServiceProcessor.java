@@ -42,7 +42,9 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap();
     
     for(Entry<String, Method> method : methods.entrySet()){
-      serviceDefinitions.put(method.getKey(), new ServiceDefinition(serviceInterface, serviceName + "." + method.getKey(), method.getValue()));
+     ServiceMethod anno = method.getValue().getAnnotation(ServiceMethod.class);
+     
+     serviceDefinitions.put(method.getKey(), new ServiceDefinition(serviceInterface, serviceName + "." + method.getKey(), method.getValue(),anno.routing()));
     }
     return serviceDefinitions;
   }
@@ -54,6 +56,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
         ServiceMethod serviceMethodAnnotation = method.getAnnotation(ServiceMethod.class);
         String methodName = Strings.isNullOrEmpty(serviceMethodAnnotation.value()) ? method.getName() :
             serviceMethodAnnotation.value();
+        
         if (methods.containsKey(methodName)) {
           throw new IllegalStateException("Service method with name " + methodName + " already exists");
         }

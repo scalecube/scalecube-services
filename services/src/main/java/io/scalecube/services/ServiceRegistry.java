@@ -2,10 +2,10 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,22 +52,21 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   private void loadServices() {
-    for (RemoteServiceInstance instancef : consul.getRemoteServices()) {
-      serviceInstances.put(instancef.serviceReference(), instancef);
-    }
+    consul.getRemoteServices().forEach(ref -> serviceInstances.put(ref.serviceReference(), ref));
     registerServices();
   }
 
   private void registerServices() {
-    for (Entry<ServiceReference, ServiceInstance> entry : serviceInstances.entrySet()) {
-      if (cluster.member().id().equals(entry.getValue().memberId())) {
-        consul.registerService(cluster.member().id(),
-            entry.getKey().serviceName(),
-            cluster.member().address().host(),
-            cluster.member().address().port());
-      }
-    }
+    serviceInstances.entrySet().stream()
+        .filter(entry -> cluster.member().id().equals(entry.getValue().memberId()))
+        .forEach(entry -> {
+          consul.registerService(cluster.member().id(),
+              entry.getKey().serviceName(),
+              cluster.member().address().host(),
+              cluster.member().address().port());
+        });
   }
+
 
   public void registerService(Object serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
@@ -74,7 +74,7 @@ public class ServiceRegistry implements IServiceRegistry {
 
     String memberId = cluster.member().id();
 
-    for (Class<?> serviceInterface : serviceInterfaces) {
+    serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
       ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
@@ -89,26 +89,26 @@ public class ServiceRegistry implements IServiceRegistry {
             cluster.member().address().host(),
             cluster.member().address().port());
       });
-    }
+    });
   }
 
   @Override
   public void unregisterService(Object serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
-    Set<ServiceReference> unregisteredServiceReferences = new HashSet<>();
-    for (Class<?> serviceInterface : serviceInterfaces) {
+
+    serviceInterfaces.forEach(serviceInterface -> {
+
       // Process service interface
       ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
-      for (ServiceDefinition serviceDefinition : serviceDefinitions.values()) {
+
+      serviceDefinitions.values().forEach(serviceDefinition -> {
         ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
-
         serviceInstances.remove(serviceReference);
+      });
 
-        unregisteredServiceReferences.add(serviceReference);
-      }
-    }
+    });
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
@@ -119,26 +119,20 @@ public class ServiceRegistry implements IServiceRegistry {
   public Collection<ServiceInstance> serviceLookup(final String serviceName) {
     checkArgument(serviceName != null, "Service name can't be null");
 
-    List<ServiceInstance> results = new ArrayList<>();
-
-    serviceInstances.entrySet().stream()
+    return serviceInstances.entrySet().stream()
         .filter(entry -> isValid(entry.getKey(), serviceName))
-        .forEach(entry -> results.add(entry.getValue()));
-
-    return results;
+        .map(Map.Entry::getValue)
+        .collect(Collectors.toList());
   }
+
 
   @Override
   public ServiceInstance getLocalInstance(String serviceName) {
 
-    List<ServiceInstance> results = new ArrayList<>();
-
-    serviceInstances.entrySet().stream()
+    return serviceInstances.entrySet().stream()
         .filter(entry -> entry.getValue().isLocal())
-        .forEach(entry -> results.add(entry.getValue()));
-
-    return results.stream().findFirst().get();
-
+        .map(Map.Entry::getValue)
+        .findFirst().get();
   }
 
   private boolean isValid(ServiceReference reference, String serviceName) {

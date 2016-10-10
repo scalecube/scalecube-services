@@ -1,0 +1,35 @@
+package io.scalecube.services.routing;
+
+import java.util.Collection;
+import java.util.concurrent.ThreadLocalRandom;
+
+import io.scalecube.services.IServiceRegistry;
+import io.scalecube.services.ServiceDefinition;
+import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.ServiceRegistry;
+
+public class RandomServiceRouter implements Router{
+
+  private final IServiceRegistry serviceRegistry;
+
+  public RandomServiceRouter(ServiceRegistry serviceRegistry) {
+    this.serviceRegistry = serviceRegistry;
+  }
+
+  private int random(int min, int max) {
+    return ThreadLocalRandom.current().nextInt(min, max);
+  }
+
+  @Override
+  public ServiceInstance route(ServiceDefinition serviceDefinition) {
+    
+    Collection<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.serviceName());
+    if (serviceInstances.isEmpty()) {
+      return null;
+    } else {
+      int rnd = random(0, serviceInstances.size());
+      return (ServiceInstance) serviceInstances.toArray()[rnd];
+    }
+  }
+  
+}

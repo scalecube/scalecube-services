@@ -8,11 +8,17 @@ public class ServiceDefinition {
   private final Class<?> serviceInterface;
   private final String serviceName;
   private final Method method;
+  private final Class<?> routing;
   
-  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method) {
+  public Class<?> routing() {
+    return routing;
+  }
+
+  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method, Class<?> routing) {
     this.serviceInterface = serviceInterface;
     this.serviceName = serviceName;
     this.method = method;
+    this.routing = routing;
   }
 
   public Class<?> serviceInterface() {

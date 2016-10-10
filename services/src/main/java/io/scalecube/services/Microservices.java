@@ -10,14 +10,12 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
   private final ServiceProxytFactory serviceClientFactory;
   private final ServiceProcessor serviceProcessor;
-  private final IRouter router;
   private final ServiceDispatcher localDispatcher;
   
   public Microservices(ICluster cluster) {
     this.serviceProcessor = new AnnotationServiceProcessor();
     this.serviceRegistry = new ServiceRegistry(cluster, serviceProcessor);
-    this.router = new RandomServiceRouter(serviceRegistry);
-    this.serviceClientFactory = new ServiceProxytFactory(router, serviceProcessor);
+    this.serviceClientFactory = new ServiceProxytFactory(serviceRegistry,serviceProcessor);
     localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
     serviceRegistry.start();
   }
