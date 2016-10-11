@@ -24,7 +24,7 @@ To add a dependency on ScaleCube using Maven, use the following:
 <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-cluster</artifactId>
-  <version>0.0.5</version>
+  <version>0.9.1-SNAPSHOT</version>
 </dependency>
 ```
 
