@@ -47,6 +47,8 @@ public class ClusterMetadataExample {
     if (joeMemberOptional.isPresent()) {
       alice.send(joeMemberOptional.get(), Message.fromData("Hello Joe"));
     }
+
+    TimeUnit.SECONDS.sleep(3);
   }
 
 }
