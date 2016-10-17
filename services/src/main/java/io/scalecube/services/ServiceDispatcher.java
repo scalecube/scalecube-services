@@ -23,13 +23,13 @@ public class ServiceDispatcher {
     cluster.listen().filter(new Func1<Message, Boolean>() {
       @Override
       public Boolean call(Message message) {
-        return message.header("service") != null;
+        return message.qualifier() != null;
       }
     }).subscribe(new Action1<Message>() {
       @Override
       public void call(final Message message) {
         final String serviceName = message.header("service");
-        
+
         ServiceInstance serviceInstance = registry.getLocalInstance(serviceName);
 
         try {
@@ -39,13 +39,24 @@ public class ServiceDispatcher {
             // Do nothing - fire and forget method
           } else if (result instanceof ListenableFuture) {
             ListenableFuture<Message> futureResult = (ListenableFuture<Message>) result;
+            
             Futures.addCallback(futureResult, new FutureCallback<Object>() {
               @Override
               public void onSuccess(Object result) {
-                Message serviceResponseMsg = (Message) result;
-                Message responseMsg = Message.builder().data(serviceResponseMsg)
-                    .correlationId(message.correlationId()).build();
-                cluster.send(message.sender(), responseMsg);
+                Message futureMessage =null;
+                if (result instanceof Message) {
+                  Message serviceResponseMsg = (Message) result;
+                  futureMessage = Message.builder()
+                      .data(serviceResponseMsg.data())
+                      .correlationId(message.correlationId())
+                      .build();
+                }else{
+                  futureMessage = Message.builder()
+                      .data(result)
+                      .correlationId(message.correlationId())
+                      .build();
+                }
+                cluster.send(message.sender(), futureMessage);
               }
 
               @Override

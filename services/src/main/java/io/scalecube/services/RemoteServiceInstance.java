@@ -25,7 +25,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Address address;
   private final String memberId;
   private final Boolean isLocal;
-  
+
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
     this.cluster = cluster;
     this.serviceReference = serviceReference;
@@ -40,10 +40,10 @@ public class RemoteServiceInstance implements ServiceInstance {
     return serviceReference.serviceName();
   }
 
-  public ServiceReference serviceReference(){
+  public ServiceReference serviceReference() {
     return this.serviceReference;
   }
-  
+
   @Override
   public Object invoke(Message request) throws Exception {
     // Try to call via messaging
@@ -52,11 +52,11 @@ public class RemoteServiceInstance implements ServiceInstance {
     final SettableFuture<Object> responseFuture = SettableFuture.create();
     Message requestMessage = Message.builder()
         .data(request.data())
-        .header("service", qualifier())
+        .qualifier(serviceReference.serviceName())
         .correlationId(correlationId)
         .build();
-    
-    final AtomicReference<Subscription>  subscriber = new AtomicReference<Subscription>(null);
+
+    final AtomicReference<Subscription> subscriber = new AtomicReference<Subscription>(null);
     // Listen response
     subscriber.set(cluster.listen().filter(new Func1<Message, Boolean>() {
       @Override
@@ -66,11 +66,15 @@ public class RemoteServiceInstance implements ServiceInstance {
     }).subscribe(new Action1<Message>() {
       @Override
       public void call(Message message) {
-        responseFuture.set(message);
+        if (isFutureClassTypeEqualsMessage(responseFuture)) {
+          responseFuture.set(message);
+        } else {
+          responseFuture.set(message.data());
+        }
         subscriber.get().unsubscribe();
       }
     }));
-    
+
     cluster.send(address, requestMessage);
 
     return responseFuture;
@@ -84,5 +88,9 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public Boolean isLocal() {
     return this.isLocal;
+  }
+  
+  private boolean isFutureClassTypeEqualsMessage(final SettableFuture<Object> responseFuture) {
+    return responseFuture.getClass().getGenericSuperclass().getClass().equals(Message.class);
   }
 }

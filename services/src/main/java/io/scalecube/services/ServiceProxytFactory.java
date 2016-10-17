@@ -33,7 +33,12 @@ public class ServiceProxytFactory {
           ServiceInstance serviceInstance = findInstance(method);
 
           if (serviceInstance != null) {
-            return serviceInstance.invoke((Message) args[0]);
+            ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
+            
+            return serviceInstance.invoke(Message.builder()
+                .data(args[0])
+                .qualifier(serviceDefinition.qualifier())
+                .build() );
           } else {
             return Futures
                 .immediateFailedFuture(new IllegalStateException("No reachable member with such service"));
