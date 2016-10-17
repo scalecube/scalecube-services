@@ -36,7 +36,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public String serviceName() {
+  public String qualifier() {
     return serviceReference.serviceName();
   }
 
@@ -45,15 +45,14 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
   
   @Override
-  public Object invoke(String methodName, Message request) throws Exception {
+  public Object invoke(Message request) throws Exception {
     // Try to call via messaging
     // Request message
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
     final SettableFuture<Object> responseFuture = SettableFuture.create();
     Message requestMessage = Message.builder()
         .data(request.data())
-        .header("service", serviceName())
-        .header("serviceMethod", methodName)
+        .header("service", qualifier())
         .correlationId(correlationId)
         .build();
     

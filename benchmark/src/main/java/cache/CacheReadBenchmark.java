@@ -1,6 +1,7 @@
 package cache;
 
-import io.scalecube.transport.memoizer.Memoizer;
+import io.scalecube.transport.utils.memoization.Computable;
+import io.scalecube.transport.utils.memoization.Memoizer;
 
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
@@ -50,14 +51,18 @@ public class CacheReadBenchmark {
         }
       });
 
-  Memoizer<String, Optional<Class>> memoizer = new Memoizer<>( (String className) -> {
-    try {
-      Class dataClass = Class.forName(className);
-      return Optional.of(dataClass);
-    } catch (ClassNotFoundException e) {
-      return Optional.absent();
-    }
-  });
+  Memoizer<String, Optional<Class>> memoizer = new Memoizer<>(
+      new Computable<String, Optional<Class>>() {
+        @Override
+        public Optional<Class> compute(String className) {
+          try {
+            Class dataClass = Class.forName(className);
+            return Optional.of(dataClass);
+          } catch (ClassNotFoundException e) {
+            return Optional.absent();
+          }
+        }
+      });
 
   @Benchmark
   public void readFromGuavaCache() {

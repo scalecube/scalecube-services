@@ -1,6 +1,7 @@
 package io.scalecube.services.routing;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,18 +11,18 @@ import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
 
-public class RoundRubinServiceRouter implements Router {
+public class RoundRubinSelectionStrategy implements RouteSelectionStrategy {
 
   private final IServiceRegistry serviceRegistry;
 
   private final ConcurrentMap<ServiceDefinition, AtomicInteger> roundrubin = new ConcurrentHashMap<>();
 
-  public RoundRubinServiceRouter(ServiceRegistry serviceRegistry) {
+  public RoundRubinSelectionStrategy(ServiceRegistry serviceRegistry) {
     this.serviceRegistry = serviceRegistry;
   }
 
   @Override
-  public ServiceInstance route(ServiceDefinition serviceDefinition) {
+  public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition) {
 
     Collection<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.qualifier());
 
@@ -32,10 +33,10 @@ public class RoundRubinServiceRouter implements Router {
       }
       ServiceInstance ref = (ServiceInstance) serviceInstances.stream().toArray()[index.get()];
       index.incrementAndGet();
-      return ref;
       
+      return Optional.ofNullable(ref);
     } else {
-      return null;
+      return Optional.ofNullable(null);
     }
   }
 

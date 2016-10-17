@@ -51,6 +51,6 @@ public class ServiceReference {
   }
 
   public static ServiceReference create(ServiceDefinition serviceDefinition, String memberId) {
-    return new ServiceReference(memberId, serviceDefinition.serviceName());
+    return new ServiceReference(memberId, serviceDefinition.qualifier());
   }
 }

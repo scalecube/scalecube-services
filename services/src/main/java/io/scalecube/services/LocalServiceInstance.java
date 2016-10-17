@@ -23,16 +23,16 @@ public class LocalServiceInstance implements ServiceInstance {
     this.isLocal = true;
   }
 
-  public String serviceName() {
-    return serviceDefinition.serviceName();
+  public String qualifier() {
+    return serviceDefinition.qualifier();
   }
 
-  public Object invoke(String methodName, Message data) throws InvocationTargetException, IllegalAccessException {
+  public Object invoke(Message data) throws InvocationTargetException, IllegalAccessException {
     // TODO: safety checks
     // TODO: consider to return ListenableFuture (result, immediate or failed with corresponding exceptions)
     Method method = serviceDefinition.method();
     
-    checkArgument(method != null, "Unknown method name %s", methodName);
+    checkArgument(method != null, "Unknown method name %s", method.getName());
     Object result = method.invoke(serviceObject, data);
     return result;
   }

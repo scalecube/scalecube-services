@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent</artifactId>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>0.0.6-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>ScaleCube</name>
     <description>
-        ScaleCube is a lightweight decentralized cluster membership, failure detection, messaging and
-        gossip protocol library for the Java VM.
+        ScaleCube is a microservices framework for the rapid development of distributed, resilient, reactive
+        applications that scales.
     </description>
     <inceptionYear>2015</inceptionYear>
     <url>http://scalecube.io</url>
@@ -38,7 +39,7 @@
         <developer>
             <id>scalecube.io</id>
             <name>The ScaleCube Project Contributors</name>
-            <email>info@scalecube.io</email>
+            <email>a.kharenko@gmail.com</email>
             <organization>The ScaleCube Project</organization>
             <organizationUrl>http://scalecube.io/</organizationUrl>
         </developer>
@@ -60,18 +61,18 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <slf4j.version>1.7.7</slf4j.version>
-        <rxjava.version>1.1.9</rxjava.version>
-        <guava.version>19.0</guava.version>
+        <rxjava.version>1.0.6</rxjava.version>
+        <rxjava-guava.version>1.0.3</rxjava-guava.version>
+        <guava.version>18.0</guava.version>
         <findbugs.version>2.0.3</findbugs.version>
-        <netty.version>4.0.40.Final</netty.version>
-        <protostuff.version>1.4.4</protostuff.version>
+        <netty.version>4.0.28.Final</netty.version>
+        <protostuff.version>1.3.2</protostuff.version>
         <protobuf.version>2.4.1</protobuf.version>
     </properties>
 
     <modules>
         <module>transport</module>
         <module>cluster</module>
-        <module>leaderelection</module>
         <module>testlib</module>
         <module>benchmark</module>
         <module>examples</module>
@@ -96,6 +97,11 @@
                 <version>${rxjava.version}</version>
             </dependency>
             <dependency>
+                <groupId>io.reactivex</groupId>
+                <artifactId>rxjava-guava</artifactId>
+                <version>${rxjava-guava.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.code.findbugs</groupId>
                 <artifactId>jsr305</artifactId>
                 <version>${findbugs.version}</version>
@@ -113,16 +119,6 @@
             <dependency>
                 <groupId>io.protostuff</groupId>
                 <artifactId>protostuff-core</artifactId>
-                <version>${protostuff.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.protostuff</groupId>
-                <artifactId>protostuff-runtime-registry</artifactId>
-                <version>${protostuff.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.protostuff</groupId>
-                <artifactId>protostuff-collectionschema</artifactId>
                 <version>${protostuff.version}</version>
             </dependency>
             <dependency>
@@ -153,12 +149,6 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-transport</artifactId>
-                <version>${netty.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.netty</groupId>
-                <artifactId>netty-transport-native-epoll</artifactId>
-                <classifier>linux-x86_64</classifier>
                 <version>${netty.version}</version>
             </dependency>
         </dependencies>
@@ -194,8 +184,9 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.3</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <compilerVersion>1.7</compilerVersion>
+                    <source>1.7</source>
+                    <target>1.7</target>
                     <compilerArgs>
                         <arg>-proc:none</arg>
                         <arg>-Xlint:unchecked</arg>
@@ -210,7 +201,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.17</version>
+                <version>2.16</version>
                 <executions>
                     <execution>
                         <id>checkstyle</id>

@@ -29,13 +29,11 @@ public class ServiceDispatcher {
       @Override
       public void call(final Message message) {
         final String serviceName = message.header("service");
-        final String serviceMethod = message.header("serviceMethod");
-
         
         ServiceInstance serviceInstance = registry.getLocalInstance(serviceName);
 
         try {
-          Object result = serviceInstance.invoke(serviceMethod, message);
+          Object result = serviceInstance.invoke(message);
 
           if (result == null) {
             // Do nothing - fire and forget method

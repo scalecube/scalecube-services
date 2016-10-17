@@ -85,7 +85,7 @@ public class ServiceRegistry implements IServiceRegistry {
             new LocalServiceInstance(serviceObject, entry.getValue(), memberId));
 
 
-        consul.registerService(memberId, entry.getValue().serviceName(),
+        consul.registerService(memberId, entry.getValue().qualifier(),
             cluster.member().address().host(),
             cluster.member().address().port());
       });
@@ -112,7 +112,7 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName());
+    return new ServiceReference(cluster.member().id(), serviceDefinition.qualifier());
   }
 
   @Override

@@ -29,3 +29,5 @@
 
 # JVM crash logs
 hs_err_pid*.log
+/leaderelection/
+/benchmark/

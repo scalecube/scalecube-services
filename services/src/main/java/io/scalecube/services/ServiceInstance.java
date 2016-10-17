@@ -4,9 +4,9 @@ import io.scalecube.transport.Message;
 
 public interface ServiceInstance {
 
-  String serviceName();
+  String qualifier();
 
-  Object invoke(String methodName, Message request) throws Exception;
+  Object invoke(Message request) throws Exception;
 
   String memberId();
 
