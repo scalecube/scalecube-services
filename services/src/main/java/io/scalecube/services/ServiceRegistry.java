@@ -27,7 +27,7 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private final ICluster cluster;
   private final ServiceProcessor serviceProcessor;
-  private ConsulServiceRegistry consul;
+  private ServiceDiscovery discovery;
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
 
@@ -44,15 +44,15 @@ public class ServiceRegistry implements IServiceRegistry {
     this.serviceProcessor = serviceProcessor;
   }
 
-  public void start() {
-    consul = new ConsulServiceRegistry(cluster, "localhost");
+  public void start(ServiceDiscovery discovery) {
+    this.discovery = discovery;
     loadServices();
-    exec = Executors.newScheduledThreadPool(1);
-    exec.scheduleAtFixedRate(() -> loadServices(), 10, 10, TimeUnit.SECONDS);
+    this.exec = Executors.newScheduledThreadPool(1);
+    this.exec.scheduleAtFixedRate(() -> loadServices(), 10, 10, TimeUnit.SECONDS);
   }
 
   private void loadServices() {
-    consul.getRemoteServices().forEach(ref -> serviceInstances.put(ref.serviceReference(), ref));
+    discovery.getRemoteServices().forEach(ref -> serviceInstances.put(ref.serviceReference(), ref));
     registerServices();
   }
 
@@ -60,10 +60,11 @@ public class ServiceRegistry implements IServiceRegistry {
     serviceInstances.entrySet().stream()
         .filter(entry -> cluster.member().id().equals(entry.getValue().memberId()))
         .forEach(entry -> {
-          consul.registerService(cluster.member().id(),
+
+          discovery.registerService(ServiceRegistration.create(cluster.member().id(),
               entry.getKey().serviceName(),
               cluster.member().address().host(),
-              cluster.member().address().port());
+              cluster.member().address().port()));
         });
   }
 
@@ -84,10 +85,10 @@ public class ServiceRegistry implements IServiceRegistry {
             ServiceReference.create(entry.getValue(), memberId),
             new LocalServiceInstance(serviceObject, entry.getValue(), memberId));
 
-
-        consul.registerService(memberId, entry.getValue().qualifier(),
+        discovery.registerService(ServiceRegistration.create(
+            memberId, entry.getValue().qualifier(),
             cluster.member().address().host(),
-            cluster.member().address().port());
+            cluster.member().address().port()));
       });
     });
   }
@@ -146,15 +147,13 @@ public class ServiceRegistry implements IServiceRegistry {
     return serviceInstances.get(reference);
   }
 
-
-
   public ServiceInstance remoteServiceInstance(String serviceName) {
     return serviceInstances.get(serviceName);
   }
 
   @Override
   public List<RemoteServiceInstance> findRemoteInstance(String serviceName) {
-    return consul.serviceLookup(serviceName);
+    return discovery.serviceLookup(serviceName);
   }
 
   public Collection<ServiceInstance> services() {

@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package org.consul.registry.integration;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,29 +11,34 @@ import com.orbitz.consul.model.agent.Registration;
 import com.orbitz.consul.model.health.Service;
 
 import io.scalecube.cluster.ICluster;
+import io.scalecube.services.RemoteServiceInstance;
+import io.scalecube.services.ServiceDiscovery;
+import io.scalecube.services.ServiceReference;
+import io.scalecube.services.ServiceRegistration;
 
-public class ConsulServiceRegistry {
+public class ConsulServiceRegistry implements ServiceDiscovery{
   final Consul consul;
 
   final AgentClient agentClient;
 
   private ICluster cluster;
 
-  public ConsulServiceRegistry(ICluster cluster , String consulIp) {
+  
+  public ConsulServiceRegistry() {
     consul = Consul.builder()
-
+        //.withHostAndPort(HostAndPort.fromString(AppConfig.consulAddress()))
         .build();
     agentClient = consul.agentClient();
     this.cluster = cluster;
   }
 
-  public void registerService(String memberId, String serviceName, String ip, int port) {
+  public void registerService(ServiceRegistration registration) {
 
     Registration reg = ImmutableRegistration.builder()
-        .address(ip)
-        .port(port)
-        .name(serviceName)
-        .id(memberId)
+        .address(registration.ip())
+        .port(registration.port())
+        .name(registration.serviceName())
+        .id(registration.memberId())
         .build();
 
     // register new service
@@ -67,5 +72,10 @@ public class ConsulServiceRegistry {
       }
     }
     return services;
+  }
+
+  @Override
+  public void cluster(ICluster cluster) {
+    this.cluster = cluster;
   }
 }
