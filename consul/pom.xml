@@ -9,8 +9,8 @@
 		<version>0.9.1-SNAPSHOT</version>
 	</parent>
 	
-	<artifactId>consul-registry-integration</artifactId>
-	<name>ScaleCube/ConsulExtension</name>
+	<artifactId>scalecube-consul</artifactId>
+	<name>ScaleCube/Consul</name>
 	
 	<dependencies>
 		<dependency>
