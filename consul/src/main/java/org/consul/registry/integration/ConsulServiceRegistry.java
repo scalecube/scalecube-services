@@ -3,6 +3,8 @@ package org.consul.registry.integration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import com.orbitz.consul.AgentClient;
 import com.orbitz.consul.Consul;
@@ -16,17 +18,18 @@ import io.scalecube.services.ServiceDiscovery;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.ServiceRegistration;
 
-public class ConsulServiceRegistry implements ServiceDiscovery{
+public class ConsulServiceRegistry implements ServiceDiscovery {
   final Consul consul;
 
   final AgentClient agentClient;
 
   private ICluster cluster;
 
+  private ConcurrentMap<String,Registration> registrations = new ConcurrentHashMap<>();
   
   public ConsulServiceRegistry() {
     consul = Consul.builder()
-        //.withHostAndPort(HostAndPort.fromString(AppConfig.consulAddress()))
+        // .withHostAndPort(HostAndPort.fromString(AppConfig.consulAddress()))
         .build();
     agentClient = consul.agentClient();
     this.cluster = cluster;
@@ -43,6 +46,10 @@ public class ConsulServiceRegistry implements ServiceDiscovery{
 
     // register new service
     agentClient.register(reg);
+    
+    registrations.put(reg.getId(), reg);
+    
+    
   }
 
   public List<RemoteServiceInstance> getRemoteServices() {
@@ -61,14 +68,14 @@ public class ConsulServiceRegistry implements ServiceDiscovery{
     }
     return services;
   }
-  
+
   public List<RemoteServiceInstance> serviceLookup(String serviceName) {
     List<RemoteServiceInstance> services = new ArrayList();
     for (Map.Entry<String, Service> service : consul.agentClient().getServices().entrySet()) {
       if (service.getValue().getService().equals(serviceName)) {
-        if(!service.getValue().getId().equals(cluster.member().id()))
+        if (!service.getValue().getId().equals(cluster.member().id()))
           services.add(new RemoteServiceInstance(cluster,
-                new ServiceReference(service.getValue().getId(), serviceName)));
+              new ServiceReference(service.getValue().getId(), serviceName)));
       }
     }
     return services;
