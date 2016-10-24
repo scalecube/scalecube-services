@@ -33,7 +33,6 @@ public class RoundRubinServiceRouter implements Router {
       ServiceInstance ref = (ServiceInstance) serviceInstances.stream().toArray()[index.get()];
       index.incrementAndGet();
       return ref;
-      
     } else {
       return null;
     }

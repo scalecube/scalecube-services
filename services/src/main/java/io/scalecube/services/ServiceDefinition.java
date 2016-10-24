@@ -8,17 +8,11 @@ public class ServiceDefinition {
   private final Class<?> serviceInterface;
   private final String qualifier;
   private final Method method;
-  private final Class<?> routing;
-  
-  public Class<?> routing() {
-    return routing;
-  }
 
-  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method, Class<?> routing) {
+  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method) {
     this.serviceInterface = serviceInterface;
     this.qualifier = serviceName;
     this.method = method;
-    this.routing = routing;
   }
 
   public Class<?> serviceInterface() {
@@ -28,13 +22,25 @@ public class ServiceDefinition {
   public String qualifier() {
     return qualifier;
   }
-  
-  public Method method(){
+
+  public Method method() {
     return this.method;
   }
 
   @Override
   public String toString() {
-    return "{service='" + qualifier + "\'"  + '}';
+    return "ServiceDefinition [serviceInterface=" + serviceInterface +
+        ", qualifier=" + qualifier +
+        ", method=" + method
+        + "]";
+  }
+
+  public static ServiceInstance toLocalServiceInstance(ServiceDefinition def, Object serviceObject, String memberId,String[] tags) {
+    return new LocalServiceInstance(serviceObject,
+        memberId,
+        def.serviceInterface(),
+        def.qualifier(),
+        def.method(),
+        tags);
   }
 }

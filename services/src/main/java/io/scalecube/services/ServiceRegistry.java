@@ -3,15 +3,11 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -20,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
+import io.scalecube.services.annotations.ServiceProcessor;
 
 public class ServiceRegistry implements IServiceRegistry {
 
@@ -30,8 +27,6 @@ public class ServiceRegistry implements IServiceRegistry {
   private ServiceDiscovery discovery;
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
-
-  ScheduledExecutorService exec;
 
   public ServiceRegistry(ICluster cluster) {
     this(cluster, new AnnotationServiceProcessor());
@@ -47,29 +42,42 @@ public class ServiceRegistry implements IServiceRegistry {
   public void start(ServiceDiscovery discovery) {
     this.discovery = discovery;
     loadServices();
-    this.exec = Executors.newScheduledThreadPool(1);
-    this.exec.scheduleAtFixedRate(() -> loadServices(), 10, 10, TimeUnit.SECONDS);
+
+    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
+        () -> loadServices(), 10, 10, TimeUnit.SECONDS);
+
+    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
+        () -> discovery.cleanup(), 60, 60, TimeUnit.SECONDS);
   }
 
   private void loadServices() {
-    discovery.getRemoteServices().forEach(ref -> serviceInstances.put(ref.serviceReference(), ref));
-    registerServices();
+    try {
+      registerServices();
+
+      discovery.getRemoteServices().forEach(ref -> {
+        serviceInstances.put(new ServiceReference(ref.memberId(), 
+            ref.qualifier(), 
+            ref.address(), 
+            ref.tags()), ref);
+      });
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
   }
 
   private void registerServices() {
-    serviceInstances.entrySet().stream()
-        .filter(entry -> cluster.member().id().equals(entry.getValue().memberId()))
-        .forEach(entry -> {
-
+    serviceInstances.keySet().stream()
+        .filter(entry -> {
+          return cluster.member().id().equals(entry.memberId());
+        }).forEach(entry -> {
           discovery.registerService(ServiceRegistration.create(cluster.member().id(),
-              entry.getKey().serviceName(),
+              entry.serviceName(),
               cluster.member().address().host(),
               cluster.member().address().port()));
         });
   }
 
-
-  public void registerService(Object serviceObject) {
+  public void registerService(Object serviceObject, String[] tags) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
 
@@ -80,15 +88,16 @@ public class ServiceRegistry implements IServiceRegistry {
       ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
-      serviceDefinitions.entrySet().stream().forEach(entry -> {
+      serviceDefinitions.values().stream().forEach(definition -> {
         serviceInstances.putIfAbsent(
-            ServiceReference.create(entry.getValue(), memberId),
-            new LocalServiceInstance(serviceObject, entry.getValue(), memberId));
+            ServiceReference.create(definition, memberId, cluster.address(),tags),
+            ServiceDefinition.toLocalServiceInstance(definition, serviceObject, memberId,tags));
 
-        discovery.registerService(ServiceRegistration.create(
-            memberId, entry.getValue().qualifier(),
-            cluster.member().address().host(),
-            cluster.member().address().port()));
+        if(discovery!=null) discovery.registerService(
+            ServiceRegistration.create(memberId, definition.qualifier(),
+                cluster.member().address().host(),
+                cluster.member().address().port(),
+                tags));
       });
     });
   }
@@ -105,15 +114,11 @@ public class ServiceRegistry implements IServiceRegistry {
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
       serviceDefinitions.values().forEach(serviceDefinition -> {
-        ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
+        ServiceReference serviceReference = toLocalServiceReference(serviceDefinition,null);
         serviceInstances.remove(serviceReference);
       });
 
     });
-  }
-
-  private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(cluster.member().id(), serviceDefinition.qualifier());
   }
 
   @Override
@@ -136,13 +141,6 @@ public class ServiceRegistry implements IServiceRegistry {
         .findFirst().get();
   }
 
-  private boolean isValid(ServiceReference reference, String serviceName) {
-    if (reference.serviceName().equals(serviceName)) {
-      return cluster.member(reference.memberId()).isPresent();
-    }
-    return false;
-  }
-
   public ServiceInstance serviceInstance(ServiceReference reference) {
     return serviceInstances.get(reference);
   }
@@ -160,6 +158,15 @@ public class ServiceRegistry implements IServiceRegistry {
     return serviceInstances.values();
   }
 
-
-
+  private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition, String[] tags) {
+    return new ServiceReference(cluster.member().id(),
+        serviceDefinition.qualifier(),
+        cluster.address(),
+        tags
+        );
+  }
+  
+  private boolean isValid(ServiceReference reference, String serviceName) {
+    return reference.serviceName().equals(serviceName);
+  }
 }

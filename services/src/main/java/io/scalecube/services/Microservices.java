@@ -4,37 +4,38 @@ import java.util.Collection;
 import java.util.Optional;
 
 import io.scalecube.cluster.ICluster;
+import io.scalecube.services.Microservices.RegistrationContext;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
+import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.services.routing.RoundRubinServiceRouter;
+import io.scalecube.services.routing.Router;
 
 public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
-  private final ServiceProxytFactory serviceClientFactory;
+  private final ServiceProxytFactory proxyFactory;
   private final ServiceProcessor serviceProcessor;
   private final ServiceDispatcher localDispatcher;
-  
-  private Microservices(ICluster cluster, Optional <ServiceDiscovery> discovery) {
+
+  private Microservices(ICluster cluster, Optional<ServiceDiscovery> discovery) {
     this.serviceProcessor = new AnnotationServiceProcessor();
     this.serviceRegistry = new ServiceRegistry(cluster, serviceProcessor);
-    this.serviceClientFactory = new ServiceProxytFactory(serviceRegistry,serviceProcessor);
+    this.proxyFactory = new ServiceProxytFactory(serviceRegistry, serviceProcessor);
+
     localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
-    
-    if(discovery.isPresent()){
+
+    if (discovery.isPresent()) {
       discovery.get().cluster(cluster);
       serviceRegistry.start(discovery.get());
     }
-  }
-
-  public void registerService(Object serviceObject) {
-    serviceRegistry.registerService(serviceObject);
   }
 
   public void unregisterService(Object serviceObject) {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  public <T> T createProxy(Class<T> serviceInterface) {
-    return serviceClientFactory.createProxy(serviceInterface);
+  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router) {
+    return proxyFactory.createProxy(serviceInterface, router);
   }
 
   public Collection<ServiceInstance> services() {
@@ -44,8 +45,8 @@ public class Microservices {
   public Collection<ServiceInstance> serviceLookup(String serviceName) {
     return serviceRegistry.serviceLookup(serviceName);
   }
-  
-  public static final class Builder{
+
+  public static final class Builder {
     private ICluster cluster;
     private ServiceDiscovery discovery;
 
@@ -63,9 +64,93 @@ public class Microservices {
       return new Microservices(cluster, Optional.ofNullable(discovery));
     }
   }
-  
+
   public static Builder builder() {
     return new Builder();
+  }
+
+  public RegistrationContext registry() {
+    return new RegistrationContext();
+  }
+
+
+  public class RegistrationContext {
+    
+    private Object service;
+
+    public Object service() {
+      return service;
+    }
+
+    private Router router;
+
+    public Router router() {
+      return router;
+    }
+
+    private String[] tags = {};
+
+    public String[] tags() {
+      return tags;
+    }
+    
+    public RegistrationContext tags(String... tags) {
+      this.tags = tags;
+      return this;
+    }
+
+    public RegistrationContext service(Object service) {
+      this.service = service;
+      return this;
+    }
+
+    public RegistrationContext router(Router router) {
+      this.router = router;
+      return this;
+    }
+
+    public void register() {
+      serviceRegistry.registerService(this.service, tags);
+    }
+
+
+  }
+
+  public ProxyContext proxy() {
+    return new ProxyContext();
+  }
+
+  public class ProxyContext {
+
+    private Class<?> api;
+
+    public Class<?> api() {
+      return api;
+    }
+
+    private Class<? extends Router> router = RoundRubinServiceRouter.class;
+
+    public Class<? extends Router> router() {
+      return router;
+    }
+
+    public <T> ProxyContext api(Class<T> api) {
+      this.api = api;
+      return this;
+    }
+
+    public ProxyContext router(Class<? extends Router> router) {
+      this.router = router;
+      return this;
+    }
+
+    public <T> T create() {
+      return (T) createProxy(this.api, router);
+    }
+  }
+
+  public ICluster cluster() {
+    return this.cluster();
   }
 
 }

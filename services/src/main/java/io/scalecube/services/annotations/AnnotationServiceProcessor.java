@@ -1,6 +1,6 @@
 package io.scalecube.services.annotations;
 
-import com.google.common.base.Strings;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -9,14 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import io.scalecube.services.ServiceDefinition;
-import io.scalecube.services.ServiceProcessor;
+import com.google.common.base.Strings;
 
-import static com.google.common.base.Preconditions.*;
+import io.scalecube.services.AppConfig;
+import io.scalecube.services.ServiceDefinition;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
@@ -44,7 +43,9 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     for(Entry<String, Method> method : methods.entrySet()){
      ServiceMethod anno = method.getValue().getAnnotation(ServiceMethod.class);
      
-     serviceDefinitions.put(method.getKey(), new ServiceDefinition(serviceInterface, serviceName + "." + method.getKey(), method.getValue(),anno.routing()));
+     serviceDefinitions.put(method.getKey(), new ServiceDefinition(
+         serviceInterface, serviceName + "-" + method.getKey(),
+         method.getValue()));
     }
     return serviceDefinitions;
   }
@@ -56,6 +57,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
         ServiceMethod serviceMethodAnnotation = method.getAnnotation(ServiceMethod.class);
         String methodName = Strings.isNullOrEmpty(serviceMethodAnnotation.value()) ? method.getName() :
             serviceMethodAnnotation.value();
+        
         
         if (methods.containsKey(methodName)) {
           throw new IllegalStateException("Service method with name " + methodName + " already exists");

@@ -14,4 +14,6 @@ public interface ServiceDiscovery {
 
   void cluster(ICluster cluster);
 
+  void cleanup();
+
 }

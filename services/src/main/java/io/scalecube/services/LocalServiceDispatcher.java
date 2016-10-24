@@ -37,7 +37,6 @@ public class LocalServiceDispatcher {
                   Message serviceResponseMsg = (Message) result;
                   Message responseMsg = Message.builder().data(serviceResponseMsg)
                       .correlationId(message.correlationId()).build();
-                  
                   cluster.send(message.sender(), responseMsg);
                 }
 

@@ -70,6 +70,11 @@ public class ServiceDispatcher {
           }
 
         } catch (Exception e) {
+          cluster.send(message.sender(), Message.builder()
+              .data(e)
+              .header("exception", "true")
+              .correlationId(message.correlationId())
+              .build());
           e.printStackTrace();
         }
       }

@@ -1,47 +1,36 @@
 package io.scalecube.services;
 
+import java.util.Arrays;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.util.concurrent.SettableFuture;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
-import rx.Subscription;
-import rx.functions.Action1;
-import rx.functions.Func1;
 
 public class RemoteServiceInstance implements ServiceInstance {
 
-  @Override
-  public String toString() {
-    return "RemoteServiceInstance [cluster=" + cluster + ", serviceReference=" + serviceReference + ", address="
-        + address + ", memberId=" + memberId + "]";
-  }
 
   private final ICluster cluster;
-  private final ServiceReference serviceReference;
   private final Address address;
   private final String memberId;
   private final Boolean isLocal;
+  private final String[] tags;
+  private final String qualifier;
 
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
+    this.qualifier = serviceReference.serviceName();
     this.cluster = cluster;
-    this.serviceReference = serviceReference;
-    // Send request
-    this.address = cluster.member(serviceReference.memberId()).get().address();
+    this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
+    this.tags = serviceReference.tags();
     this.isLocal = false;
   }
 
   @Override
   public String qualifier() {
-    return serviceReference.serviceName();
-  }
-
-  public ServiceReference serviceReference() {
-    return this.serviceReference;
+    return qualifier;
   }
 
   @Override
@@ -50,30 +39,25 @@ public class RemoteServiceInstance implements ServiceInstance {
     // Request message
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
     final SettableFuture<Object> responseFuture = SettableFuture.create();
+
     Message requestMessage = Message.builder()
         .data(request.data())
-        .qualifier(serviceReference.serviceName())
+        .qualifier(qualifier())
         .correlationId(correlationId)
         .build();
 
-    final AtomicReference<Subscription> subscriber = new AtomicReference<Subscription>(null);
     // Listen response
-    subscriber.set(cluster.listen().filter(new Func1<Message, Boolean>() {
-      @Override
-      public Boolean call(Message message) {
-        return correlationId.equals(message.correlationId());
+    cluster.listen().filter(message -> {
+      return correlationId.equals(message.correlationId());
+    }).subscribe(message -> {
+      if (message.header("exception") != null) {
+        responseFuture.setException(message.data());
+      } else if (isFutureClassTypeEqualsMessage(responseFuture)) {
+        responseFuture.set(message);
+      } else {
+        responseFuture.set(message.data());
       }
-    }).subscribe(new Action1<Message>() {
-      @Override
-      public void call(Message message) {
-        if (isFutureClassTypeEqualsMessage(responseFuture)) {
-          responseFuture.set(message);
-        } else {
-          responseFuture.set(message.data());
-        }
-        subscriber.get().unsubscribe();
-      }
-    }));
+    });
 
     cluster.send(address, requestMessage);
 
@@ -85,12 +69,33 @@ public class RemoteServiceInstance implements ServiceInstance {
     return this.memberId;
   }
 
+  public Address address() {
+    return address;
+  }
+  
+  @Override
+  public String[] tags() {
+    return tags;
+  }
+  
   @Override
   public Boolean isLocal() {
     return this.isLocal;
   }
-  
+
+  public boolean isReachable() {
+    return cluster.member(this.memberId).isPresent();
+  }
+
   private boolean isFutureClassTypeEqualsMessage(final SettableFuture<Object> responseFuture) {
     return responseFuture.getClass().getGenericSuperclass().getClass().equals(Message.class);
   }
+
+  
+  @Override
+  public String toString() {
+    return "RemoteServiceInstance [address=" + address + ", memberId=" + memberId + ", isLocal=" + isLocal + ", tags=" + Arrays.toString(tags) + "]";
+  }
+
+
 }

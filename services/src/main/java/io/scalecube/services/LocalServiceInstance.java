@@ -9,38 +9,56 @@ import io.scalecube.transport.Message;
 
 public class LocalServiceInstance implements ServiceInstance {
 
-  private final Object serviceObject;
-  private final ServiceDefinition serviceDefinition;
-  private final String memberId;
-  private final Boolean isLocal;
-  
-  public LocalServiceInstance(Object serviceObject, ServiceDefinition serviceDefinition, String memberId) {
-    checkArgument(serviceObject != null);
-    checkArgument(serviceDefinition != null);
-    this.serviceObject = serviceObject;
-    this.serviceDefinition = serviceDefinition;
-    this.memberId = memberId;
-    this.isLocal = true;
+  @Override
+  public String toString() {
+    return "LocalServiceInstance [serviceObject=" + serviceObject + ", memberId=" + memberId + ", isLocal=" + isLocal + "]";
   }
 
+  private final Object serviceObject;
+  private final String memberId;
+  
+  private final String qualifier;
+  private final Method method;
+  
+  private final Boolean isLocal;
+  private String[] tags;
+  
+  public LocalServiceInstance(Object serviceObject, String memberId, Class<?> serviceInterface, 
+      String qualifier, 
+      Method method, 
+      String[] tags) {
+    
+    checkArgument(serviceObject != null);
+    this.serviceObject = serviceObject;
+    this.memberId = memberId;
+    this.isLocal = true;
+    this.qualifier = qualifier;
+    this.method = method;
+    this.tags = tags;
+  }
+
+  public String[] tags() {
+    return tags;
+  }
+  
   public String qualifier() {
-    return serviceDefinition.qualifier();
+    return qualifier;
   }
 
   public Object invoke(Message message) throws InvocationTargetException, IllegalAccessException {
     // TODO: safety checks
     // TODO: consider to return ListenableFuture (result, immediate or failed with corresponding exceptions)
-    Method method = serviceDefinition.method();
+    Method method = this.method;
     
-    checkArgument(method != null, "Unknown method name %s", method.getName());
     Object result = null;
-    if(method.getParameters().length > 0 && method.getParameters()[0].getType().equals(Message.class)){
+    
+    if (method.getParameters().length == 0) {
+      result = method.invoke(serviceObject); 
+    } else if (method.getParameters().length > 0 && method.getParameters()[0].getType().equals(Message.class)){
       result = method.invoke(serviceObject, message);
-    }else if(method.getParameters().length > 0){
-      result = method.invoke(serviceObject,  new Object[]{message.data()});
-    }else{
-      result = method.invoke(serviceObject);
-    }
+    }else { 
+      result = method.invoke(serviceObject,  new Object[]{message.data()}); 
+    } 
     return result;
   }
 
@@ -54,4 +72,8 @@ public class LocalServiceInstance implements ServiceInstance {
     return isLocal;
   }
 
+  @Override
+  public boolean isReachable() {
+    return true;
+  }
 }
