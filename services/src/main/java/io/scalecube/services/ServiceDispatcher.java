@@ -33,7 +33,7 @@ public class ServiceDispatcher {
         ServiceInstance serviceInstance = registry.getLocalInstance(serviceName);
 
         try {
-          Object result = serviceInstance.invoke(message);
+          Object result = serviceInstance.invoke(message,Object.class);
 
           if (result == null) {
             // Do nothing - fire and forget method
@@ -64,9 +64,12 @@ public class ServiceDispatcher {
                 t.printStackTrace();
               }
             });
-          } else {
-            // TODO: unsupported result type logic ?
-            throw new IllegalArgumentException();
+          } else { // this is a sync request response call 
+            Message responseMessage = Message.builder()
+                .data(result)
+                .correlationId(message.correlationId())
+                .build();
+            cluster.send(message.sender(), responseMessage);
           }
 
         } catch (Exception e) {

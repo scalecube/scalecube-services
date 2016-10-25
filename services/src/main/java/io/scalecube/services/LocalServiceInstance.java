@@ -45,7 +45,7 @@ public class LocalServiceInstance implements ServiceInstance {
     return qualifier;
   }
 
-  public Object invoke(Message message) throws InvocationTargetException, IllegalAccessException {
+  public Object invoke(Message message, Class<?> returnType) throws InvocationTargetException, IllegalAccessException {
     // TODO: safety checks
     // TODO: consider to return ListenableFuture (result, immediate or failed with corresponding exceptions)
     Method method = this.method;

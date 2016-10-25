@@ -1,4 +1,4 @@
-package io.scalecube.examples;
+package io.scalecube.cluster.examples;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ICluster;

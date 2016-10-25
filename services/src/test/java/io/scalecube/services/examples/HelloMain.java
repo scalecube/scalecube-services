@@ -16,7 +16,7 @@ public class HelloMain {
 
     // introduce a service instance by registering it.
     microservices.registry()
-        .service(new HelloWorld())
+        .service(new HelloWorldComponent())
         .register();
 
     // get a proxy to the service api.

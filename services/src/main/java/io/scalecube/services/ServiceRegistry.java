@@ -89,6 +89,7 @@ public class ServiceRegistry implements IServiceRegistry {
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
       serviceDefinitions.values().stream().forEach(definition -> {
+        
         serviceInstances.putIfAbsent(
             ServiceReference.create(definition, memberId, cluster.address(),tags),
             ServiceDefinition.toLocalServiceInstance(definition, serviceObject, memberId,tags));

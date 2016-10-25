@@ -3,6 +3,9 @@ package org.consul.registry.integration;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.orbitz.consul.AgentClient;
 import com.orbitz.consul.Consul;
 import com.orbitz.consul.model.agent.ImmutableRegistration;
@@ -17,6 +20,8 @@ import io.scalecube.services.ServiceRegistration;
 import io.scalecube.transport.Address;
 
 public class ConsulServiceDiscovery implements ServiceDiscovery {
+  
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConsulServiceDiscovery.class);
   
   private static final String CONSUL = "consul";
 
@@ -36,19 +41,28 @@ public class ConsulServiceDiscovery implements ServiceDiscovery {
   }
 
   public void registerService(ServiceRegistration registration) {
-    Registration reg = ImmutableRegistration.builder()
-        .address(registration.ip())
-        .port(registration.port())
-        .name(registration.serviceName())
-        .id(registration.memberId())
-        .addTags(registration.tags())
-        .build();
-
-    // register new service
-    agentClient.register(reg);
+    List<Service> serviesList = agentClient.getServices().values().stream()
+      .filter(service->service.getId().equals(registration.memberId()))
+      .filter(service->service.getService().equals(registration.qualifier()))
+      .collect(Collectors.toList());
+    
+    if(serviesList.size()==0){ 
+      Registration reg = ImmutableRegistration.builder()
+          .id(registration.qualifier() + "@" +registration.memberId())
+          .name(registration.qualifier())
+          .address(registration.ip())
+          .port(registration.port())
+          .addTags(registration.tags())
+          .build();
+  
+      // register new service
+      agentClient.register(reg);
+      LOGGER.debug("consul discovery registered service [{}}",reg);
+    }
   }
 
   public List<RemoteServiceInstance> getRemoteServices() {
+    
     return consul.agentClient().getServices().values().stream()
         .filter(entry -> isValidService(entry))
         .map(service -> toServiceInstance(
@@ -77,7 +91,7 @@ public class ConsulServiceDiscovery implements ServiceDiscovery {
     if (service.getService().equals(CONSUL)) {
       return false;
     }
-    if (!service.getId().equals(cluster.member().id()) && service.getTags().contains(MICROSERVICE)) {
+    if (!service.getId().equals(service.getService() + "@" + cluster.member().id()) && service.getTags().contains(MICROSERVICE)) {
       return true;
     } else {
       return false;

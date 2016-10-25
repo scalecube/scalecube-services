@@ -34,7 +34,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Object invoke(Message request) throws Exception {
+  public Object invoke(Message request, Class<?> returnType) throws Exception {
     // Try to call via messaging
     // Request message
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
@@ -61,7 +61,14 @@ public class RemoteServiceInstance implements ServiceInstance {
 
     cluster.send(address, requestMessage);
 
-    return responseFuture;
+    if(isFutureResponse(returnType))
+      return responseFuture;
+    else
+      return responseFuture.get();
+  }
+
+  private boolean isFutureResponse(Class<?> returnType) {
+    return returnType.isAssignableFrom(SettableFuture.class);
   }
 
   @Override
@@ -90,6 +97,8 @@ public class RemoteServiceInstance implements ServiceInstance {
   private boolean isFutureClassTypeEqualsMessage(final SettableFuture<Object> responseFuture) {
     return responseFuture.getClass().getGenericSuperclass().getClass().equals(Message.class);
   }
+  
+  
 
   
   @Override

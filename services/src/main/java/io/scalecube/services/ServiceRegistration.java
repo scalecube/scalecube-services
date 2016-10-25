@@ -6,7 +6,7 @@ import java.util.List;
 public class ServiceRegistration {
 
   private final String memberId;
-  private final String serviceName;
+  private final String qualifier;
   private final String ip;
   private final int port;
   private final List<String> tags = Arrays.asList("microservice");
@@ -15,8 +15,8 @@ public class ServiceRegistration {
     return memberId;
   }
 
-  public String serviceName() {
-    return serviceName;
+  public String qualifier() {
+    return qualifier;
   }
 
   public String ip() {
@@ -27,9 +27,9 @@ public class ServiceRegistration {
     return port;
   }
 
-  private ServiceRegistration(String memberId, String serviceName, String ip, int port, String... tags) {
+  private ServiceRegistration(String memberId, String qualifier, String ip, int port, String... tags) {
     this.memberId = memberId;
-    this.serviceName = serviceName;
+    this.qualifier = qualifier;
     this.ip = ip;
     this.port = port;
 
@@ -39,8 +39,8 @@ public class ServiceRegistration {
     }
   }
 
-  public static ServiceRegistration create(String memberId, String serviceName, String ip, int port, String... tags) {
-    return new ServiceRegistration(memberId, serviceName, ip, port, tags);
+  public static ServiceRegistration create(String memberId, String qualifier, String ip, int port, String... tags) {
+    return new ServiceRegistration(memberId, qualifier, ip, port, tags);
   }
 
   public String[] tags() {

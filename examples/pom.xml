@@ -9,6 +9,18 @@
     <name>ScaleCube/Examples</name>
 
     <dependencies>
+    	<dependency>
+			<groupId>io.scalecube</groupId>
+			<artifactId>scalecube-services</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.scalecube</groupId>
+			<artifactId>scalecube-consul</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>scalecube-cluster</artifactId>

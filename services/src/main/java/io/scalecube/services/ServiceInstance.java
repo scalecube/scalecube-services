@@ -6,7 +6,7 @@ public interface ServiceInstance {
 
   String qualifier();
 
-  Object invoke(Message request) throws Exception;
+  Object invoke(Message request, Class<?> returnType) throws Exception;
 
   String memberId();
 

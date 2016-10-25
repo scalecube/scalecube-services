@@ -3,6 +3,8 @@ package io.scalecube.services;
 import java.util.Collection;
 import java.util.Optional;
 
+import com.google.common.collect.Lists;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.services.Microservices.RegistrationContext;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
@@ -88,7 +90,7 @@ public class Microservices {
       return router;
     }
 
-    private String[] tags = {};
+    private String[] tags = {"microservice"};
 
     public String[] tags() {
       return tags;

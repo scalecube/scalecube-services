@@ -25,7 +25,7 @@ public class LocalServiceDispatcher {
           ServiceInstance serviceInstance = this.registry.getLocalInstance(serviceName);
 
           try {
-            Object result = serviceInstance.invoke(message);
+            Object result = serviceInstance.invoke(message,Object.class);
 
             if (result == null) {
               // Do nothing - fire and forget method
