@@ -2,8 +2,9 @@ package io.scalecube.services;
 
 import java.util.Arrays;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
@@ -33,42 +34,77 @@ public class RemoteServiceInstance implements ServiceInstance {
     return qualifier;
   }
 
+  private CompletableFuture<Message> futureInvokeWithMessage(Message request) throws Exception{
+    final CompletableFuture<Message> messageFuture = new CompletableFuture<>();
+    
+    final String correlationId = "rpc-" + UUID.randomUUID().toString();
+   
+    Message requestMessage = composeRequest(request,correlationId);
+    // Listen response
+    cluster.listen().filter(message -> {
+      return correlationId.equals(message.correlationId());
+    }).subscribe(message -> {
+      if (message.header("exception") == null) {
+        messageFuture.complete(message);
+      } else {
+        messageFuture.completeExceptionally(message.data());
+      }
+    });
+    cluster.send(address, requestMessage);
+    return messageFuture;
+  }
+
+  private <T> CompletableFuture<T> futureInvokeWithUserObject(Message request) throws Exception{
+    final CompletableFuture<T> messageFuture = new CompletableFuture<>();
+    
+    final String correlationId = "rpc-" + UUID.randomUUID().toString();
+    
+    Message requestMessage = composeRequest(request,correlationId);
+    // Listen response
+    cluster.listen().filter(message -> {
+      return correlationId.equals(message.correlationId());
+    }).subscribe(message -> {
+      if (message.header("exception") == null) {
+        messageFuture.complete(message.data());
+      } else {
+        messageFuture.completeExceptionally(message.data());
+      }
+    });
+    cluster.send(address, requestMessage);
+    return messageFuture;
+  }
+  
   @Override
-  public Object invoke(Message request, Class<?> returnType) throws Exception {
+  public <T> Object invoke(Message request, Class<T> returnType) throws Exception {
+    
     // Try to call via messaging
     // Request message
-    final String correlationId = "rpc-" + UUID.randomUUID().toString();
-    final SettableFuture<Object> responseFuture = SettableFuture.create();
+    if(isFutureResponse(returnType)){
+      if(returnType.isAssignableFrom(Message.class)){
+        return futureInvokeWithMessage(request);
+      }else{
+        return futureInvokeWithUserObject(request);
+      }
+    }else{
+      CompletableFuture<T> future = futureInvokeWithUserObject(request);
+      Object o= future.get();
+      return o;
+    }
+  }
 
+  private Message composeRequest(Message request,final String correlationId) {
+    
     Message requestMessage = Message.builder()
         .data(request.data())
         .qualifier(qualifier())
         .correlationId(correlationId)
         .build();
-
-    // Listen response
-    cluster.listen().filter(message -> {
-      return correlationId.equals(message.correlationId());
-    }).subscribe(message -> {
-      if (message.header("exception") != null) {
-        responseFuture.setException(message.data());
-      } else if (isFutureClassTypeEqualsMessage(responseFuture)) {
-        responseFuture.set(message);
-      } else {
-        responseFuture.set(message.data());
-      }
-    });
-
-    cluster.send(address, requestMessage);
-
-    if(isFutureResponse(returnType))
-      return responseFuture;
-    else
-      return responseFuture.get();
-  }
-
+    
+    return requestMessage;
+  } 
+  
   private boolean isFutureResponse(Class<?> returnType) {
-    return returnType.isAssignableFrom(SettableFuture.class);
+    return returnType.isAssignableFrom(CompletableFuture.class);
   }
 
   @Override
@@ -93,13 +129,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   public boolean isReachable() {
     return cluster.member(this.memberId).isPresent();
   }
-
-  private boolean isFutureClassTypeEqualsMessage(final SettableFuture<Object> responseFuture) {
-    return responseFuture.getClass().getGenericSuperclass().getClass().equals(Message.class);
-  }
-  
-  
-
   
   @Override
   public String toString() {

@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import java.util.concurrent.CompletableFuture;
+
 import javax.annotation.Nonnull;
 
 import com.google.common.util.concurrent.FutureCallback;
@@ -25,26 +27,29 @@ public class LocalServiceDispatcher {
           ServiceInstance serviceInstance = this.registry.getLocalInstance(serviceName);
 
           try {
-            Object result = serviceInstance.invoke(message,Object.class);
+            Object result = serviceInstance.invoke(message, Object.class);
 
             if (result == null) {
               // Do nothing - fire and forget method
-            } else if (result instanceof ListenableFuture) {
-              ListenableFuture<Message> futureResult = (ListenableFuture<Message>) result;
-              Futures.addCallback(futureResult, new FutureCallback<Object>() {
-                @Override
-                public void onSuccess(Object result) {
+            } else if (result instanceof CompletableFuture) {
+              CompletableFuture<?> futureResult = (CompletableFuture<?>) result;
+
+              futureResult.whenComplete((success, error) -> {
+                if (error == null) {
                   Message serviceResponseMsg = (Message) result;
                   Message responseMsg = Message.builder().data(serviceResponseMsg)
                       .correlationId(message.correlationId()).build();
                   cluster.send(message.sender(), responseMsg);
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                  t.printStackTrace();
+                } else {
+                  Message responseMsg = Message.builder()
+                      .data(error)
+                      .correlationId(message.correlationId())
+                      .header("exception", "true")
+                      .build();
+                  cluster.send(message.sender(), responseMsg);
                 }
               });
+
             } else {
               // TODO: unsupported result type logic ?
               throw new IllegalArgumentException();

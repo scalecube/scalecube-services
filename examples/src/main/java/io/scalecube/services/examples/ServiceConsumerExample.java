@@ -1,14 +1,11 @@
 package io.scalecube.services.examples;
 
-import org.consul.registry.integration.ConsulServiceDiscovery;
+import java.util.concurrent.CompletableFuture;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import org.consul.registry.integration.ConsulServiceDiscovery;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.services.Microservices;
-
 import io.scalecube.services.routing.RoundRubinServiceRouter;
 import io.scalecube.transport.Address;
 
@@ -27,21 +24,17 @@ public class ServiceConsumerExample {
         .api(GreetingService.class)
         .router(RoundRubinServiceRouter.class)
         .create();
-
     
     // example-1:  call the service. (non-blocking call)
-    ListenableFuture<GreetingResponse> futureResult = service.asyncGreeting(new GreetingRequest("joe"));
+    CompletableFuture<GreetingResponse> futureResult = service.asyncGreeting(new GreetingRequest("joe"));
 
-    Futures.addCallback(futureResult, new FutureCallback<GreetingResponse>() {
-
-      @Override
-      public void onSuccess(GreetingResponse result) {
+    futureResult.whenComplete((success,error)->{
+      if(error==null){
         // print the greeting.
-        System.out.println("non-blocking call result: " + result.greeting());
-      }
-
-      @Override
-      public void onFailure(Throwable t) {}
+        System.out.println("non-blocking call result: " + success.greeting());
+      } else {
+        
+      }   
     });
     
     

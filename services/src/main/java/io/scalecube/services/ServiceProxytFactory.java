@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.reflect.Reflection;
@@ -41,13 +42,14 @@ public class ServiceProxytFactory {
                 .build()
                 ,method.getReturnType());
           } else {
-            return Futures
-                .immediateFailedFuture(new IllegalStateException("No reachable member with such service"));
+              CompletableFuture<T> f = new CompletableFuture<T>();
+              f.completeExceptionally(new IllegalStateException("No reachable member with such service"));
+              return f;
           }
         } catch (RuntimeException e) {
-          e.printStackTrace();
-          return Futures
-              .immediateFailedFuture(new IllegalStateException("No reachable member with such service"));
+          CompletableFuture<T> f = new CompletableFuture<T>();
+          f.completeExceptionally(new IllegalStateException("No reachable member with such service",e));
+          return f;
         }
       }
 

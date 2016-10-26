@@ -1,11 +1,11 @@
 package io.scalecube.services.examples;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.CompletableFuture;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 
-@Service
+@Service("io-sc-greeting")
 public interface GreetingService {
 
   @ServiceMethod
@@ -13,6 +13,6 @@ public interface GreetingService {
  
   
   @ServiceMethod
-  ListenableFuture<GreetingResponse> asyncGreeting(GreetingRequest name);
+  CompletableFuture<GreetingResponse> asyncGreeting(GreetingRequest name);
  
 }

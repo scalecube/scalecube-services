@@ -1,10 +1,6 @@
 package io.scalecube.services;
 
-import javax.annotation.Nonnull;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.CompletableFuture;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
@@ -28,43 +24,38 @@ public class ServiceDispatcher {
     }).subscribe(new Action1<Message>() {
       @Override
       public void call(final Message message) {
-        final String serviceName = message.header("service");
+        final String serviceName = message.qualifier();
 
-        ServiceInstance serviceInstance = registry.getLocalInstance(serviceName);
+        ServiceInstance serviceInstance = registry.getLocalInstance(message.qualifier());
 
         try {
-          Object result = serviceInstance.invoke(message,Object.class);
+          Object result = serviceInstance.invoke(message, Object.class);
 
           if (result == null) {
             // Do nothing - fire and forget method
-          } else if (result instanceof ListenableFuture) {
-            ListenableFuture<Message> futureResult = (ListenableFuture<Message>) result;
-            
-            Futures.addCallback(futureResult, new FutureCallback<Object>() {
-              @Override
-              public void onSuccess(Object result) {
-                Message futureMessage =null;
+          } else if (result instanceof CompletableFuture) {
+            CompletableFuture<Message> futureResult = (CompletableFuture<Message>) result;
+
+            futureResult.whenComplete((success, error) -> {
+              Message futureMessage = null;
+              if (error == null) {
                 if (result instanceof Message) {
                   Message serviceResponseMsg = (Message) result;
                   futureMessage = Message.builder()
                       .data(serviceResponseMsg.data())
                       .correlationId(message.correlationId())
                       .build();
-                }else{
+                } else {
                   futureMessage = Message.builder()
                       .data(result)
                       .correlationId(message.correlationId())
                       .build();
                 }
-                cluster.send(message.sender(), futureMessage);
-              }
 
-              @Override
-              public void onFailure(@Nonnull Throwable t) {
-                t.printStackTrace();
-              }
+                cluster.send(message.sender(), futureMessage);
+              } ;
             });
-          } else { // this is a sync request response call 
+          } else { // this is a sync request response call
             Message responseMessage = Message.builder()
                 .data(result)
                 .correlationId(message.correlationId())

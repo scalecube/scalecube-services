@@ -136,9 +136,9 @@ public class ServiceRegistry implements IServiceRegistry {
   @Override
   public ServiceInstance getLocalInstance(String serviceName) {
 
-    return serviceInstances.entrySet().stream()
-        .filter(entry -> entry.getValue().isLocal())
-        .map(Map.Entry::getValue)
+    return serviceInstances.values().stream()
+        .filter(entry -> entry.isLocal())
+        .filter(entry ->entry.qualifier().equals(serviceName))
         .findFirst().get();
   }
 

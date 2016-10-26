@@ -1,18 +1,19 @@
 package io.scalecube.services.examples;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.CompletableFuture;
 
 public class HelloWorldComponent implements GreetingService{
 
   @Override
   public GreetingResponse greeting(GreetingRequest req) {
+    System.out.println("greeting call accepted");
     return new GreetingResponse(" hello to: " + req.name());
   }
 
   @Override
-  public ListenableFuture<GreetingResponse> asyncGreeting(GreetingRequest req) {
-    return Futures.immediateFuture(new GreetingResponse(" hello to: " + req.name()));
+  public CompletableFuture<GreetingResponse> asyncGreeting(GreetingRequest req) {
+    System.out.println("asyncGreeting call accepted");
+    return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + req.name()));
   }
   
 }
