@@ -1,9 +1,16 @@
 package io.scalecube.services.examples;
 
-public class HelloWorldComponent implements GreetingService{
+import java.util.concurrent.CompletableFuture;
 
-  public String greeting(String name){
-    return " hello to: " + name;
-  }
-  
+public class HelloWorldComponent implements GreetingService {
+	@Override
+	public String greeting(String name) {
+		return " hello to: " + name;
+	}
+
+	@Override
+	public CompletableFuture<String> asyncGreeting(String name) {
+		return CompletableFuture.completedFuture(" hello to: " + name);
+	}
+
 }
