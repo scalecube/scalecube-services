@@ -3,6 +3,8 @@ package io.scalecube.services.annotations;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,10 +46,19 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     methods.entrySet().forEach(method -> {
       serviceDefinitions.put(method.getKey(), new ServiceDefinition(
           serviceInterface, serviceName + METHOD_NAME_DELIMITER + method.getKey(),
-          method.getValue()));
+          method.getValue(), method.getValue().getReturnType(),
+          extractReturnType(method.getValue().getGenericReturnType())));
     });
 
     return serviceDefinitions;
+  }
+
+  private Type extractReturnType(Type type) {
+    if (type instanceof ParameterizedType) {
+      return ((ParameterizedType) type).getActualTypeArguments()[0];
+    }
+    else 
+      return Object.class;
   }
 
   private Map<String, Method> parseServiceMethods(Class<?> serviceInterface) {

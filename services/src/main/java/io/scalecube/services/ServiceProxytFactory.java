@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -35,13 +36,14 @@ public class ServiceProxytFactory {
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         try {
 
-          ServiceInstance serviceInstance = findInstance(method, routerType);
+          ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
+          ServiceInstance serviceInstance = findInstance(serviceDefinition, routerType);
 
           if (serviceInstance != null) {
             return serviceInstance.invoke(Message.builder()
                 .data(args[0])
                 .qualifier(serviceInstance.qualifier())
-                .build(), method.getReturnType());
+                .build(),Optional.of(serviceDefinition));
 
           } else {
             CompletableFuture<T> f = new CompletableFuture<T>();
@@ -55,8 +57,8 @@ public class ServiceProxytFactory {
         }
       }
 
-      private ServiceInstance findInstance(Method method, final Class<? extends Router> routerType) {
-        ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
+      private ServiceInstance findInstance(ServiceDefinition serviceDefinition, final Class<? extends Router> routerType) {
+        
         Router router = routerFactory.getRouter(routerType);
         return router.route(serviceDefinition);
       }

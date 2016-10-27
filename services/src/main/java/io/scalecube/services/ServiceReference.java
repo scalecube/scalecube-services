@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import java.lang.reflect.Type;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -19,15 +20,18 @@ public class ServiceReference {
 
   private String[] tags;
 
+  private final Type returnType;
 
 
-  public ServiceReference(String memberId, String serviceName, Address address, String[] tags) {
+
+  public ServiceReference(String memberId, String serviceName, Address address, String[] tags,Type returnType) {
     Preconditions.checkNotNull(memberId);
     Preconditions.checkNotNull(serviceName);
     this.memberId = memberId;
     this.serviceName = serviceName;
     this.address = address;
     this.tags = tags;
+    this.returnType = returnType;
   }
 
   public String[] tags() {
@@ -72,6 +76,10 @@ public class ServiceReference {
 
   public static ServiceReference create(ServiceDefinition serviceDefinition, String memberId, Address address,
       String[] tags) {
-    return new ServiceReference(memberId, serviceDefinition.qualifier(), address, tags);
+    return new ServiceReference(memberId, serviceDefinition.qualifier(), address, tags,serviceDefinition.returnType());
+  }
+
+  public Type returnType() {
+    return returnType;
   }
 }

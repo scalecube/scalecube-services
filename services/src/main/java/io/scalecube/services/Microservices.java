@@ -37,7 +37,7 @@ public class Microservices {
   private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router,
       int timeOut, TimeUnit timeUnit) {
 
-    return proxyFactory.createProxy(serviceInterface, router, timeOut, timeUnit);
+    return (T) proxyFactory.createProxy(serviceInterface, router, timeOut, timeUnit);
   }
 
   public Collection<ServiceInstance> services() {

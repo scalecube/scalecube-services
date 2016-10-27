@@ -58,7 +58,9 @@ public class ServiceRegistry implements IServiceRegistry {
         serviceInstances.put(new ServiceReference(ref.memberId(),
             ref.qualifier(),
             ref.address(),
-            ref.tags()), ref);
+            ref.tags()
+            ,ref.returnType()), 
+            ref);
       });
     } catch (Exception ex) {
       ex.printStackTrace();
@@ -92,7 +94,7 @@ public class ServiceRegistry implements IServiceRegistry {
 
         serviceInstances.putIfAbsent(
             ServiceReference.create(definition, memberId, cluster.address(), tags),
-            ServiceDefinition.toLocalServiceInstance(definition, serviceObject, memberId, tags));
+            ServiceDefinition.toLocalServiceInstance(definition, serviceObject, memberId, tags, definition.returnType()));
 
         if (discovery != null)
           discovery.registerService(
@@ -164,7 +166,8 @@ public class ServiceRegistry implements IServiceRegistry {
     return new ServiceReference(cluster.member().id(),
         serviceDefinition.qualifier(),
         cluster.address(),
-        tags);
+        tags,
+        serviceDefinition.returnType());
   }
 
   private boolean isValid(ServiceReference reference, String serviceName) {

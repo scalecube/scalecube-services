@@ -1,6 +1,9 @@
 package io.scalecube.services;
 
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -17,6 +20,8 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Boolean isLocal;
   private final String[] tags;
   private final String qualifier;
+  private final Type returnType;
+  private Object parameterizedType;
 
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
     this.qualifier = serviceReference.serviceName();
@@ -24,6 +29,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = serviceReference.tags();
+    this.returnType = serviceReference.returnType();
     this.isLocal = false;
   }
 
@@ -32,7 +38,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     return qualifier;
   }
 
-  private CompletableFuture<Message> futureInvokeWithMessage(Message request) throws Exception {
+  private CompletableFuture<Message> futureInvokeMessage(final Message request) throws Exception {
     final CompletableFuture<Message> messageFuture = new CompletableFuture<>();
 
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
@@ -52,7 +58,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     return messageFuture;
   }
 
-  private <T> CompletableFuture<T> futureInvokeWithUserObject(final Message request) throws Exception {
+  private <T> CompletableFuture<T> futureInvokeGeneric(final Message request) throws Exception {
     final CompletableFuture<T> messageFuture = new CompletableFuture<>();
 
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
@@ -84,23 +90,32 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public <T> Object invoke(Message request, Class<T> returnType) throws Exception {
-
+  public <T> Object invoke(Message request, Optional<ServiceDefinition> definition) throws Exception {
+    
     // Try to call via messaging
     // Request message
-    if (isFutureResponse(returnType)) {
-      if (returnType.isAssignableFrom(Message.class)) {
-        return futureInvokeWithMessage(request);
+    
+    if (definition.get().returnType().equals(CompletableFuture.class)) {
+      if (definition.get().parameterizedType().equals(Message.class)) {
+        return futureInvokeMessage(request);
       } else {
-        return futureInvokeWithUserObject(request);
+        return futureInvokeGeneric(request);
       }
     } else {
-      CompletableFuture<T> future = futureInvokeWithUserObject(request);
+      CompletableFuture<T> future = futureInvokeGeneric(request);
       Object o = future.get();
       return o;
     }
   }
 
+  private Type extractReturnType(Type type) {
+    if (type instanceof ParameterizedType) {
+      return ((ParameterizedType) type).getActualTypeArguments()[0];
+    }
+    else 
+      return Object.class;
+  }
+  
   private Message composeRequest(Message request, final String correlationId) {
 
     Message requestMessage = Message.builder()
@@ -144,6 +159,11 @@ public class RemoteServiceInstance implements ServiceInstance {
   public String toString() {
     return "RemoteServiceInstance [address=" + address + ", memberId=" + memberId + ", isLocal=" + isLocal + ", tags="
         + Arrays.toString(tags) + "]";
+  }
+
+  @Override
+  public Type returnType() {
+    return returnType;
   }
 
 

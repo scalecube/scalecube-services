@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import io.scalecube.cluster.ICluster;
@@ -9,12 +10,7 @@ import rx.functions.Func1;
 
 public class ServiceDispatcher {
 
-  private final ICluster cluster;
-  private final IServiceRegistry registry;
-
   public ServiceDispatcher(final ICluster cluster, final IServiceRegistry registry) {
-    this.cluster = cluster;
-    this.registry = registry;
 
     cluster.listen().filter(new Func1<Message, Boolean>() {
       @Override
@@ -28,7 +24,7 @@ public class ServiceDispatcher {
         ServiceInstance serviceInstance = registry.getLocalInstance(message.qualifier());
 
         try {
-          Object result = serviceInstance.invoke(message, Object.class);
+          Object result = serviceInstance.invoke(message,Optional.empty());
 
           if (result == null) {
             // Do nothing - fire and forget method

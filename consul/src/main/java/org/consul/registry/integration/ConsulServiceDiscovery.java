@@ -71,6 +71,7 @@ public class ConsulServiceDiscovery implements ServiceDiscovery {
             service.getAddress(),
             service.getPort(),
             service.getTags().toArray(new String[service.getTags().size()])
+            
             ))
         .collect(Collectors.toList());
   }
@@ -90,8 +91,8 @@ public class ConsulServiceDiscovery implements ServiceDiscovery {
   private boolean isValidService(Service service) {
     if (service.getService().equals(CONSUL)) {
       return false;
-    }
-    if (!service.getId().equals(service.getService() + "@" + cluster.member().id()) && service.getTags().contains(MICROSERVICE)) {
+    }else if (!service.getId().equals(service.getService() + "@" + cluster.member().id()) 
+        && service.getTags().contains(MICROSERVICE)) {
       return true;
     } else {
       return false;
@@ -99,7 +100,7 @@ public class ConsulServiceDiscovery implements ServiceDiscovery {
   }
 
   private RemoteServiceInstance toServiceInstance(String id, String service, String host, int port,String[] tags) {
-    return new RemoteServiceInstance(cluster, new ServiceReference(id, service,Address.create(host, port), tags));
+    return new RemoteServiceInstance(cluster, new ServiceReference(id, service,Address.create(host, port), tags,Object.class));
   }
 
   @Override

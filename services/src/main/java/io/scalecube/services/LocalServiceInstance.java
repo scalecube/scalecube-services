@@ -4,10 +4,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.Optional;
 
 import io.scalecube.transport.Message;
 
-public class LocalServiceInstance implements ServiceInstance {
+public class LocalServiceInstance<T> implements ServiceInstance {
 
   @Override
   public String toString() {
@@ -23,11 +25,13 @@ public class LocalServiceInstance implements ServiceInstance {
 
   private final Boolean isLocal;
   private String[] tags;
+  private Type returnType;
 
   public LocalServiceInstance(Object serviceObject, String memberId, Class<?> serviceInterface,
       String qualifier,
       Method method,
-      String[] tags) {
+      String[] tags,
+      Type returnType) {
 
     checkArgument(serviceObject != null);
     this.serviceObject = serviceObject;
@@ -36,6 +40,7 @@ public class LocalServiceInstance implements ServiceInstance {
     this.qualifier = qualifier;
     this.method = method;
     this.tags = tags;
+    this.returnType = returnType;
   }
 
   public String[] tags() {
@@ -46,7 +51,8 @@ public class LocalServiceInstance implements ServiceInstance {
     return qualifier;
   }
 
-  public <T> Object invoke(Message message, Class<T> returnType)
+  @Override
+  public <T> Object invoke(Message message, Optional<ServiceDefinition> definition)
       throws InvocationTargetException, IllegalAccessException {
     // TODO: safety checks
     // TODO: consider to return ListenableFuture (result, immediate or failed with corresponding exceptions)
@@ -77,5 +83,10 @@ public class LocalServiceInstance implements ServiceInstance {
   @Override
   public boolean isReachable() {
     return true;
+  }
+
+  @Override
+  public Type returnType() {
+    return returnType;
   }
 }
