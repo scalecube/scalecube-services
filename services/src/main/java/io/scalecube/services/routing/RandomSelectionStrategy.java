@@ -9,7 +9,7 @@ import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
 
-public class RandomSelectionStrategy implements RouteSelectionStrategy{
+public class RandomSelectionStrategy implements RouteSelectionStrategy {
 
   private final IServiceRegistry serviceRegistry;
 
@@ -23,14 +23,14 @@ public class RandomSelectionStrategy implements RouteSelectionStrategy{
 
   @Override
   public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition) {
-    
+
     Collection<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.qualifier());
     if (serviceInstances.isEmpty()) {
       return null;
     } else {
       int rnd = random(0, serviceInstances.size());
-      return Optional.ofNullable( ( (ServiceInstance) serviceInstances.toArray()[rnd]));
+      return Optional.ofNullable(((ServiceInstance) serviceInstances.toArray()[rnd]));
     }
   }
-  
+
 }

@@ -8,7 +8,7 @@ import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
 
-public class RandomServiceRouter implements Router{
+public class RandomServiceRouter implements Router {
 
   private final IServiceRegistry serviceRegistry;
 
@@ -22,7 +22,7 @@ public class RandomServiceRouter implements Router{
 
   @Override
   public ServiceInstance route(ServiceDefinition serviceDefinition) {
-    
+
     Collection<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.qualifier());
     if (serviceInstances.isEmpty()) {
       return null;
@@ -31,5 +31,5 @@ public class RandomServiceRouter implements Router{
       return (ServiceInstance) serviceInstances.toArray()[rnd];
     }
   }
-  
+
 }

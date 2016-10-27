@@ -34,10 +34,10 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, 
-      int timeOut,TimeUnit timeUnit) {
-    
-    return proxyFactory.createProxy(serviceInterface, router,timeOut,timeUnit);
+  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router,
+      int timeOut, TimeUnit timeUnit) {
+
+    return proxyFactory.createProxy(serviceInterface, router, timeOut, timeUnit);
   }
 
   public Collection<ServiceInstance> services() {
@@ -77,7 +77,7 @@ public class Microservices {
 
 
   public class RegistrationContext {
-    
+
     private Object service;
 
     public Object service() {
@@ -95,7 +95,7 @@ public class Microservices {
     public String[] tags() {
       return tags;
     }
-    
+
     public RegistrationContext tags(String... tags) {
       this.tags = tags;
       return this;
@@ -149,7 +149,7 @@ public class Microservices {
     }
 
     public <T> T create() {
-      return (T) createProxy(this.api, router,timeOut,timeUnit);
+      return (T) createProxy(this.api, router, timeOut, timeUnit);
     }
 
     public ProxyContext timeout(int timeOut, TimeUnit timeUnit) {

@@ -55,9 +55,9 @@ public class ServiceRegistry implements IServiceRegistry {
       registerServices();
 
       discovery.getRemoteServices().forEach(ref -> {
-        serviceInstances.put(new ServiceReference(ref.memberId(), 
-            ref.qualifier(), 
-            ref.address(), 
+        serviceInstances.put(new ServiceReference(ref.memberId(),
+            ref.qualifier(),
+            ref.address(),
             ref.tags()), ref);
       });
     } catch (Exception ex) {
@@ -89,16 +89,17 @@ public class ServiceRegistry implements IServiceRegistry {
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
       serviceDefinitions.values().stream().forEach(definition -> {
-        
-        serviceInstances.putIfAbsent(
-            ServiceReference.create(definition, memberId, cluster.address(),tags),
-            ServiceDefinition.toLocalServiceInstance(definition, serviceObject, memberId,tags));
 
-        if(discovery!=null) discovery.registerService(
-            ServiceRegistration.create(memberId, definition.qualifier(),
-                cluster.member().address().host(),
-                cluster.member().address().port(),
-                tags));
+        serviceInstances.putIfAbsent(
+            ServiceReference.create(definition, memberId, cluster.address(), tags),
+            ServiceDefinition.toLocalServiceInstance(definition, serviceObject, memberId, tags));
+
+        if (discovery != null)
+          discovery.registerService(
+              ServiceRegistration.create(memberId, definition.qualifier(),
+                  cluster.member().address().host(),
+                  cluster.member().address().port(),
+                  tags));
       });
     });
   }
@@ -115,7 +116,7 @@ public class ServiceRegistry implements IServiceRegistry {
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
       serviceDefinitions.values().forEach(serviceDefinition -> {
-        ServiceReference serviceReference = toLocalServiceReference(serviceDefinition,null);
+        ServiceReference serviceReference = toLocalServiceReference(serviceDefinition, null);
         serviceInstances.remove(serviceReference);
       });
 
@@ -138,7 +139,7 @@ public class ServiceRegistry implements IServiceRegistry {
 
     return serviceInstances.values().stream()
         .filter(entry -> entry.isLocal())
-        .filter(entry ->entry.qualifier().equals(serviceName))
+        .filter(entry -> entry.qualifier().equals(serviceName))
         .findFirst().get();
   }
 
@@ -163,10 +164,9 @@ public class ServiceRegistry implements IServiceRegistry {
     return new ServiceReference(cluster.member().id(),
         serviceDefinition.qualifier(),
         cluster.address(),
-        tags
-        );
+        tags);
   }
-  
+
   private boolean isValid(ServiceReference reference, String serviceName) {
     return reference.serviceName().equals(serviceName);
   }

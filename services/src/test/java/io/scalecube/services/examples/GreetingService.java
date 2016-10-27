@@ -13,6 +13,6 @@ public interface GreetingService {
 
   @ServiceMethod
   CompletableFuture<String> asyncGreeting(String string);
-  
+
 
 }

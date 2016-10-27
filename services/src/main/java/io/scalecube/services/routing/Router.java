@@ -6,5 +6,5 @@ import io.scalecube.services.ServiceInstance;
 public interface Router {
 
   ServiceInstance route(ServiceDefinition serviceDefinition);
-  
+
 }

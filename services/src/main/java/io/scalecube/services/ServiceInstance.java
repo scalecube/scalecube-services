@@ -11,8 +11,8 @@ public interface ServiceInstance {
   String memberId();
 
   Boolean isLocal();
-  
+
   boolean isReachable();
-  
+
   String[] tags();
 }

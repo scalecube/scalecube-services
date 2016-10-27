@@ -33,7 +33,7 @@ public class RoundRubinSelectionStrategy implements RouteSelectionStrategy {
       }
       ServiceInstance ref = (ServiceInstance) serviceInstances.stream().toArray()[index.get()];
       index.incrementAndGet();
-      
+
       return Optional.ofNullable(ref);
     } else {
       return Optional.ofNullable(null);

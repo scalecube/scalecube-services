@@ -35,7 +35,8 @@ public class ServiceDefinition {
         + "]";
   }
 
-  public static ServiceInstance toLocalServiceInstance(ServiceDefinition def, Object serviceObject, String memberId,String[] tags) {
+  public static ServiceInstance toLocalServiceInstance(ServiceDefinition def, Object serviceObject, String memberId,
+      String[] tags) {
     return new LocalServiceInstance(serviceObject,
         memberId,
         def.serviceInterface(),

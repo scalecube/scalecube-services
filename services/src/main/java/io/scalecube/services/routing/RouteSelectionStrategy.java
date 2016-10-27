@@ -8,5 +8,5 @@ import io.scalecube.services.ServiceInstance;
 public interface RouteSelectionStrategy {
 
   Optional<ServiceInstance> route(ServiceDefinition serviceDefinition);
-  
+
 }

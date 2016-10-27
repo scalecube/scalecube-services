@@ -19,9 +19,9 @@ public class ServiceReference {
 
   private String[] tags;
 
-  
 
-  public ServiceReference(String memberId, String serviceName,Address address, String[] tags) {
+
+  public ServiceReference(String memberId, String serviceName, Address address, String[] tags) {
     Preconditions.checkNotNull(memberId);
     Preconditions.checkNotNull(serviceName);
     this.memberId = memberId;
@@ -33,11 +33,11 @@ public class ServiceReference {
   public String[] tags() {
     return tags;
   }
-  
+
   public Address address() {
     return address;
   }
-  
+
   public String memberId() {
     return memberId;
   }
@@ -48,8 +48,10 @@ public class ServiceReference {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    if (this == o)
+      return true;
+    if (o == null || getClass() != o.getClass())
+      return false;
     ServiceReference that = (ServiceReference) o;
     return Objects.equals(memberId, that.memberId) &&
         Objects.equals(serviceName, that.serviceName);
@@ -68,7 +70,8 @@ public class ServiceReference {
         '}';
   }
 
-  public static ServiceReference create(ServiceDefinition serviceDefinition, String memberId, Address address, String[] tags) {
-    return new ServiceReference(memberId, serviceDefinition.qualifier(),address,tags);
+  public static ServiceReference create(ServiceDefinition serviceDefinition, String memberId, Address address,
+      String[] tags) {
+    return new ServiceReference(memberId, serviceDefinition.qualifier(), address, tags);
   }
 }

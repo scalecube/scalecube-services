@@ -8,16 +8,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import com.google.common.base.Strings;
 
-import io.scalecube.services.AppConfig;
 import io.scalecube.services.ServiceDefinition;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
+
+  private static final String METHOD_NAME_DELIMITER = "-";
 
   @Override
   public Collection<Class<?>> extractServiceInterfaces(Object serviceObject) {
@@ -35,18 +35,18 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   public ConcurrentMap<String, ServiceDefinition> introspectServiceInterface(Class<?> serviceInterface) {
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     checkArgument(serviceAnnotation != null, "Not a service interface: %s", serviceInterface);
-    String serviceName = Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
+    String serviceName =
+        Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
     Map<String, Method> methods = parseServiceMethods(serviceInterface);
-    
+
     ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap();
-    
-    for(Entry<String, Method> method : methods.entrySet()){
-     ServiceMethod anno = method.getValue().getAnnotation(ServiceMethod.class);
-     
-     serviceDefinitions.put(method.getKey(), new ServiceDefinition(
-         serviceInterface, serviceName + "-" + method.getKey(),
-         method.getValue()));
-    }
+
+    methods.entrySet().forEach(method -> {
+      serviceDefinitions.put(method.getKey(), new ServiceDefinition(
+          serviceInterface, serviceName + METHOD_NAME_DELIMITER + method.getKey(),
+          method.getValue()));
+    });
+
     return serviceDefinitions;
   }
 
@@ -55,10 +55,10 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     for (Method method : serviceInterface.getMethods()) {
       if (method.isAnnotationPresent(ServiceMethod.class)) {
         ServiceMethod serviceMethodAnnotation = method.getAnnotation(ServiceMethod.class);
-        String methodName = Strings.isNullOrEmpty(serviceMethodAnnotation.value()) ? method.getName() :
-            serviceMethodAnnotation.value();
-        
-        
+        String methodName =
+            Strings.isNullOrEmpty(serviceMethodAnnotation.value()) ? method.getName() : serviceMethodAnnotation.value();
+
+
         if (methods.containsKey(methodName)) {
           throw new IllegalStateException("Service method with name " + methodName + " already exists");
         }

@@ -29,16 +29,16 @@ public class AsyncHelloMain {
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
 
-    future.whenComplete((result,ex) ->{
-    	if(ex==null){
-    		// print the greeting.
-    	    System.out.println(result);
-    	} else {
-    		// print the greeting.
-    	    System.out.println(ex);
-    	}
+    future.whenComplete((result, ex) -> {
+      if (ex == null) {
+        // print the greeting.
+        System.out.println(result);
+      } else {
+        // print the greeting.
+        System.out.println(ex);
+      }
     }).join();
-    
+
 
   }
 

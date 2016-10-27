@@ -34,7 +34,7 @@ public class ServiceDispatcher {
             // Do nothing - fire and forget method
           } else if (result instanceof CompletableFuture) {
             CompletableFuture<?> futureResult = (CompletableFuture<?>) result;
-            
+
             futureResult.whenComplete((success, error) -> {
               Message futureMessage = null;
               if (error == null) {

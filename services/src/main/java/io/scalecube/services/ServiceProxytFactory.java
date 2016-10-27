@@ -26,7 +26,7 @@ public class ServiceProxytFactory {
 
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
       final int timeOut, final TimeUnit timeUnit) {
-    
+
     this.serviceDefinitions = serviceProcessor.introspectServiceInterface(serviceInterface);
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
@@ -35,28 +35,27 @@ public class ServiceProxytFactory {
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         try {
 
-          ServiceInstance serviceInstance = findInstance(method,routerType);
+          ServiceInstance serviceInstance = findInstance(method, routerType);
 
           if (serviceInstance != null) {
             return serviceInstance.invoke(Message.builder()
                 .data(args[0])
                 .qualifier(serviceInstance.qualifier())
-                .build()
-                ,method.getReturnType());
-            
+                .build(), method.getReturnType());
+
           } else {
-              CompletableFuture<T> f = new CompletableFuture<T>();
-              f.completeExceptionally(new IllegalStateException("No reachable member with such service"));
-              return f;
+            CompletableFuture<T> f = new CompletableFuture<T>();
+            f.completeExceptionally(new IllegalStateException("No reachable member with such service"));
+            return f;
           }
         } catch (RuntimeException e) {
           CompletableFuture<T> f = new CompletableFuture<T>();
-          f.completeExceptionally(new IllegalStateException("No reachable member with such service",e));
+          f.completeExceptionally(new IllegalStateException("No reachable member with such service", e));
           return f;
         }
       }
 
-      private ServiceInstance findInstance(Method method,final Class<? extends Router> routerType) {
+      private ServiceInstance findInstance(Method method, final Class<? extends Router> routerType) {
         ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
         Router router = routerFactory.getRouter(routerType);
         return router.route(serviceDefinition);

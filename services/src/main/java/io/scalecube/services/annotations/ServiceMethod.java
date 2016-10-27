@@ -5,8 +5,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import io.scalecube.services.routing.RoundRubinServiceRouter;
-
 /**
  * Indicates that an annotated method is a service method available via Service Fabric framework.
  */
@@ -19,7 +17,5 @@ public @interface ServiceMethod {
    * can override method name so it won't depend on specific name in the code.
    */
   String value() default "";
-
-  Class<?> routing() default RoundRubinServiceRouter.class;
 
 }
