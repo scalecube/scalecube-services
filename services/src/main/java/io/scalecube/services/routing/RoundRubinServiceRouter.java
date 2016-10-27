@@ -26,7 +26,7 @@ public class RoundRubinServiceRouter implements Router {
     Collection<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.qualifier());
 
     if (!serviceInstances.isEmpty()) {
-      AtomicInteger index = roundrubin.computeIfAbsent(serviceDefinition, k -> f());
+      AtomicInteger index = roundrubin.computeIfAbsent(serviceDefinition, or -> compute());
       if (index.get() > serviceInstances.size() - 1) {
         index.set(0);
       }
@@ -38,7 +38,7 @@ public class RoundRubinServiceRouter implements Router {
     }
   }
 
-  private AtomicInteger f() {
+  private AtomicInteger compute() {
     return new AtomicInteger(0);
   }
 }

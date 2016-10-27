@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import java.lang.reflect.Type;
 import java.util.Optional;
 
 import io.scalecube.transport.Message;
@@ -18,7 +17,4 @@ public interface ServiceInstance {
   boolean isReachable();
 
   String[] tags();
-  
-  Type returnType();
-
 }

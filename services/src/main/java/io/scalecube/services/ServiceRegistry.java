@@ -58,8 +58,7 @@ public class ServiceRegistry implements IServiceRegistry {
         serviceInstances.put(new ServiceReference(ref.memberId(),
             ref.qualifier(),
             ref.address(),
-            ref.tags()
-            ,ref.returnType()), 
+            ref.tags()), 
             ref);
       });
     } catch (Exception ex) {
@@ -166,8 +165,7 @@ public class ServiceRegistry implements IServiceRegistry {
     return new ServiceReference(cluster.member().id(),
         serviceDefinition.qualifier(),
         cluster.address(),
-        tags,
-        serviceDefinition.returnType());
+        tags);
   }
 
   private boolean isValid(ServiceReference reference, String serviceName) {

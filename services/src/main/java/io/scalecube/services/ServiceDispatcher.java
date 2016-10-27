@@ -5,21 +5,15 @@ import java.util.concurrent.CompletableFuture;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
-import rx.functions.Action1;
-import rx.functions.Func1;
 
 public class ServiceDispatcher {
 
   public ServiceDispatcher(final ICluster cluster, final IServiceRegistry registry) {
 
-    cluster.listen().filter(new Func1<Message, Boolean>() {
-      @Override
-      public Boolean call(Message message) {
+    cluster.listen().filter(message -> {
         return message.qualifier() != null;
       }
-    }).subscribe(new Action1<Message>() {
-      @Override
-      public void call(final Message message) {
+    ).subscribe( message-> {
 
         ServiceInstance serviceInstance = registry.getLocalInstance(message.qualifier());
 
@@ -66,7 +60,6 @@ public class ServiceDispatcher {
               .build());
           e.printStackTrace();
         }
-      }
     });
   }
 

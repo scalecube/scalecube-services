@@ -78,6 +78,8 @@ public class Microservices {
 
   public class RegistrationContext {
 
+    public static final String TAG_MICROSERVICE = "microservice";
+    
     private Object service;
 
     public Object service() {
@@ -90,7 +92,7 @@ public class Microservices {
       return router;
     }
 
-    private String[] tags = {"microservice"};
+    private String[] tags = {TAG_MICROSERVICE};
 
     public String[] tags() {
       return tags;

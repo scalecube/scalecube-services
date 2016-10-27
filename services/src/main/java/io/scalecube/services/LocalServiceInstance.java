@@ -25,7 +25,6 @@ public class LocalServiceInstance<T> implements ServiceInstance {
 
   private final Boolean isLocal;
   private String[] tags;
-  private Type returnType;
 
   public LocalServiceInstance(Object serviceObject, String memberId, Class<?> serviceInterface,
       String qualifier,
@@ -40,7 +39,6 @@ public class LocalServiceInstance<T> implements ServiceInstance {
     this.qualifier = qualifier;
     this.method = method;
     this.tags = tags;
-    this.returnType = returnType;
   }
 
   public String[] tags() {
@@ -83,10 +81,5 @@ public class LocalServiceInstance<T> implements ServiceInstance {
   @Override
   public boolean isReachable() {
     return true;
-  }
-
-  @Override
-  public Type returnType() {
-    return returnType;
   }
 }

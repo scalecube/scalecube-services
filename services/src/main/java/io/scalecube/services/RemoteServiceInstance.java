@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import rx.Subscription;
 
 public class RemoteServiceInstance implements ServiceInstance {
 
@@ -20,8 +21,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Boolean isLocal;
   private final String[] tags;
   private final String qualifier;
-  private final Type returnType;
-  private Object parameterizedType;
 
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
     this.qualifier = serviceReference.serviceName();
@@ -29,7 +28,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = serviceReference.tags();
-    this.returnType = serviceReference.returnType();
     this.isLocal = false;
   }
 
@@ -47,7 +45,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     // Listen response
     this.cluster.listen().filter(message -> {
       return correlationId.equals(message.correlationId());
-    }).subscribe(message -> {
+    }).first().subscribe(message -> {
       if (message.header("exception") == null) {
         messageFuture.complete(message);
       } else {
@@ -64,12 +62,13 @@ public class RemoteServiceInstance implements ServiceInstance {
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
 
     Message requestMessage = composeRequest(request, correlationId);
+   
     // Listen response
     this.cluster.listen().filter(message -> {
       return correlationId.equals(message.correlationId());
-    }).subscribe(message -> {
+    }).first().subscribe(message -> {
       if (message.header("exception") == null) {
-        messageFuture.complete(message.data());
+        messageFuture.complete(message.data());  
       } else {
         messageFuture.completeExceptionally(message.data());
       }
@@ -108,14 +107,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     }
   }
 
-  private Type extractReturnType(Type type) {
-    if (type instanceof ParameterizedType) {
-      return ((ParameterizedType) type).getActualTypeArguments()[0];
-    }
-    else 
-      return Object.class;
-  }
-  
   private Message composeRequest(Message request, final String correlationId) {
 
     Message requestMessage = Message.builder()
@@ -126,10 +117,6 @@ public class RemoteServiceInstance implements ServiceInstance {
         .build();
 
     return requestMessage;
-  }
-
-  private boolean isFutureResponse(Class<?> returnType) {
-    return returnType.isAssignableFrom(CompletableFuture.class);
   }
 
   @Override
@@ -160,11 +147,4 @@ public class RemoteServiceInstance implements ServiceInstance {
     return "RemoteServiceInstance [address=" + address + ", memberId=" + memberId + ", isLocal=" + isLocal + ", tags="
         + Arrays.toString(tags) + "]";
   }
-
-  @Override
-  public Type returnType() {
-    return returnType;
-  }
-
-
 }

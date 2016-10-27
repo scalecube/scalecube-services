@@ -100,7 +100,7 @@ public class ConsulServiceDiscovery implements ServiceDiscovery {
   }
 
   private RemoteServiceInstance toServiceInstance(String id, String service, String host, int port,String[] tags) {
-    return new RemoteServiceInstance(cluster, new ServiceReference(id, service,Address.create(host, port), tags,Object.class));
+    return new RemoteServiceInstance(cluster, new ServiceReference(id, service,Address.create(host, port), tags));
   }
 
   @Override

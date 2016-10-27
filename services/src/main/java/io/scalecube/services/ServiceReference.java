@@ -20,18 +20,13 @@ public class ServiceReference {
 
   private String[] tags;
 
-  private final Type returnType;
-
-
-
-  public ServiceReference(String memberId, String serviceName, Address address, String[] tags,Type returnType) {
+  public ServiceReference(String memberId, String serviceName, Address address, String[] tags) {
     Preconditions.checkNotNull(memberId);
     Preconditions.checkNotNull(serviceName);
     this.memberId = memberId;
     this.serviceName = serviceName;
     this.address = address;
     this.tags = tags;
-    this.returnType = returnType;
   }
 
   public String[] tags() {
@@ -76,10 +71,6 @@ public class ServiceReference {
 
   public static ServiceReference create(ServiceDefinition serviceDefinition, String memberId, Address address,
       String[] tags) {
-    return new ServiceReference(memberId, serviceDefinition.qualifier(), address, tags,serviceDefinition.returnType());
-  }
-
-  public Type returnType() {
-    return returnType;
+    return new ServiceReference(memberId, serviceDefinition.qualifier(), address, tags);
   }
 }
