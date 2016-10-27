@@ -2,11 +2,9 @@ package io.scalecube.services;
 
 import java.util.Collection;
 import java.util.Optional;
-
-import com.google.common.collect.Lists;
+import java.util.concurrent.TimeUnit;
 
 import io.scalecube.cluster.ICluster;
-import io.scalecube.services.Microservices.RegistrationContext;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRubinServiceRouter;
@@ -36,8 +34,10 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router) {
-    return proxyFactory.createProxy(serviceInterface, router);
+  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, 
+      int timeOut,TimeUnit timeUnit) {
+    
+    return proxyFactory.createProxy(serviceInterface, router,timeOut,timeUnit);
   }
 
   public Collection<ServiceInstance> services() {
@@ -131,6 +131,8 @@ public class Microservices {
     }
 
     private Class<? extends Router> router = RoundRubinServiceRouter.class;
+    private int timeOut = 10;
+    private TimeUnit timeUnit = TimeUnit.SECONDS;
 
     public Class<? extends Router> router() {
       return router;
@@ -147,7 +149,13 @@ public class Microservices {
     }
 
     public <T> T create() {
-      return (T) createProxy(this.api, router);
+      return (T) createProxy(this.api, router,timeOut,timeUnit);
+    }
+
+    public ProxyContext timeout(int timeOut, TimeUnit timeUnit) {
+      this.timeOut = timeOut;
+      this.timeUnit = timeUnit;
+      return this;
     }
   }
 

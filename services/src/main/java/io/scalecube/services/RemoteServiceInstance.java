@@ -4,8 +4,6 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
@@ -41,7 +39,7 @@ public class RemoteServiceInstance implements ServiceInstance {
    
     Message requestMessage = composeRequest(request,correlationId);
     // Listen response
-    cluster.listen().filter(message -> {
+    this.cluster.listen().filter(message -> {
       return correlationId.equals(message.correlationId());
     }).subscribe(message -> {
       if (message.header("exception") == null) {
@@ -50,18 +48,18 @@ public class RemoteServiceInstance implements ServiceInstance {
         messageFuture.completeExceptionally(message.data());
       }
     });
-    cluster.send(address, requestMessage);
+    sendRemote(requestMessage,messageFuture);
     return messageFuture;
   }
 
-  private <T> CompletableFuture<T> futureInvokeWithUserObject(Message request) throws Exception{
+  private <T> CompletableFuture<T> futureInvokeWithUserObject(final Message request) throws Exception{
     final CompletableFuture<T> messageFuture = new CompletableFuture<>();
     
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
     
     Message requestMessage = composeRequest(request,correlationId);
     // Listen response
-    cluster.listen().filter(message -> {
+    this.cluster.listen().filter(message -> {
       return correlationId.equals(message.correlationId());
     }).subscribe(message -> {
       if (message.header("exception") == null) {
@@ -70,8 +68,19 @@ public class RemoteServiceInstance implements ServiceInstance {
         messageFuture.completeExceptionally(message.data());
       }
     });
-    cluster.send(address, requestMessage);
+    
+    sendRemote(requestMessage,messageFuture);
     return messageFuture;
+  }
+
+  private void sendRemote(Message requestMessage, CompletableFuture<?> future) {
+    final CompletableFuture<Void> messageFuture = new CompletableFuture<>();
+    this.cluster.send(address, requestMessage,messageFuture);
+    messageFuture.whenComplete((success,error)->{
+      if(error!=null){
+        future.completeExceptionally(error);
+      }
+    });
   }
   
   @Override
@@ -96,6 +105,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     
     Message requestMessage = Message.builder()
         .data(request.data())
+        .header("service", qualifier())
         .qualifier(qualifier())
         .correlationId(correlationId)
         .build();

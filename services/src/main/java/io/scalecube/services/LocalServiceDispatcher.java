@@ -2,12 +2,6 @@ package io.scalecube.services;
 
 import java.util.concurrent.CompletableFuture;
 
-import javax.annotation.Nonnull;
-
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
@@ -39,14 +33,14 @@ public class LocalServiceDispatcher {
                   Message serviceResponseMsg = (Message) result;
                   Message responseMsg = Message.builder().data(serviceResponseMsg)
                       .correlationId(message.correlationId()).build();
-                  cluster.send(message.sender(), responseMsg);
+                  this.cluster.send(message.sender(), responseMsg);
                 } else {
                   Message responseMsg = Message.builder()
                       .data(error)
                       .correlationId(message.correlationId())
                       .header("exception", "true")
                       .build();
-                  cluster.send(message.sender(), responseMsg);
+                  this.cluster.send(message.sender(), responseMsg);
                 }
               });
 

@@ -4,9 +4,9 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.reflect.Reflection;
-import com.google.common.util.concurrent.Futures;
 
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.Router;
@@ -24,7 +24,9 @@ public class ServiceProxytFactory {
     this.serviceProcessor = serviceProcessor;
   }
 
-  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType) {
+  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
+      final int timeOut, final TimeUnit timeUnit) {
+    
     this.serviceDefinitions = serviceProcessor.introspectServiceInterface(serviceInterface);
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
@@ -41,6 +43,7 @@ public class ServiceProxytFactory {
                 .qualifier(serviceInstance.qualifier())
                 .build()
                 ,method.getReturnType());
+            
           } else {
               CompletableFuture<T> f = new CompletableFuture<T>();
               f.completeExceptionally(new IllegalStateException("No reachable member with such service"));
