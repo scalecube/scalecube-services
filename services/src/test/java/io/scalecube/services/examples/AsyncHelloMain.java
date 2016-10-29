@@ -13,14 +13,9 @@ public class AsyncHelloMain {
 
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
-        .cluster(Cluster.joinAwait())
+        .services(new HelloWorldComponent())
         .build();
-
-    // introduce a service instance by registering it.
-    microservices.registry()
-        .service(new HelloWorldComponent())
-        .register();
-
+    
     // get a proxy to the service api.
     GreetingService service = microservices.proxy()
         .api(GreetingService.class)

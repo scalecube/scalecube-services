@@ -1,7 +1,6 @@
 package io.scalecube.services.examples;
 
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.services.Microservices;
 
 public class HelloMain {
@@ -11,13 +10,8 @@ public class HelloMain {
 
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
-        .cluster(Cluster.joinAwait())
+        .services(new HelloWorldComponent())
         .build();
-
-    // introduce a service instance by registering it.
-    microservices.registry()
-        .service(new HelloWorldComponent())
-        .register();
 
     // get a proxy to the service api.
     GreetingService service = microservices.proxy()
