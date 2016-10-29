@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Member;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 
@@ -37,7 +38,43 @@ public class ServiceRegistry implements IServiceRegistry {
     checkArgument(serviceProcessor != null);
     this.cluster = cluster;
     this.serviceProcessor = serviceProcessor;
+    listenCluster();
   }
+
+  private void listenCluster() {
+    cluster.listenMembership().subscribe(event -> {
+      loadMemberServices(event.isAdded(), event.member());
+    });
+    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
+        () -> loadClusterServices(), 10, 10, TimeUnit.SECONDS);
+
+  }
+
+  private void loadClusterServices() {
+    cluster.otherMembers().forEach(member -> {
+      loadMemberServices(true, member);
+    });
+  }
+
+  private void loadMemberServices(boolean added, Member member) {
+    System.out.println("event:" + added + " - " + member + " ->>> ");
+    member.metadata().entrySet().stream().forEach(qualifier -> {
+      ServiceReference serviceRef = new ServiceReference(
+          member.id(),
+          qualifier.getKey(),
+          member.address(),
+          new String[0]);
+
+      if (added) {
+        System.out.println("is added: " + serviceRef);
+        serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
+      } else {
+        System.out.println("is removed: " + serviceRef);
+        serviceInstances.remove(serviceRef);
+      }
+    });
+  }
+
 
   public void start(ServiceDiscovery discovery) {
     this.discovery = discovery;
@@ -48,6 +85,8 @@ public class ServiceRegistry implements IServiceRegistry {
 
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
         () -> discovery.cleanup(), 60, 60, TimeUnit.SECONDS);
+
+
   }
 
   private void loadServices() {
@@ -58,7 +97,7 @@ public class ServiceRegistry implements IServiceRegistry {
         serviceInstances.put(new ServiceReference(ref.memberId(),
             ref.qualifier(),
             ref.address(),
-            ref.tags()), 
+            ref.tags()),
             ref);
       });
     } catch (Exception ex) {
@@ -71,8 +110,9 @@ public class ServiceRegistry implements IServiceRegistry {
         .filter(entry -> {
           return cluster.member().id().equals(entry.memberId());
         }).forEach(entry -> {
+          LOGGER.debug("discovery register services {}", entry);
           discovery.registerService(ServiceRegistration.create(cluster.member().id(),
-              entry.serviceName(),
+              entry.qualifier(),
               cluster.member().address().host(),
               cluster.member().address().port()));
         });
@@ -91,9 +131,13 @@ public class ServiceRegistry implements IServiceRegistry {
 
       serviceDefinitions.values().stream().forEach(definition -> {
 
-        serviceInstances.putIfAbsent(
-            ServiceReference.create(definition, memberId, cluster.address(), tags),
-            ServiceDefinition.toLocalServiceInstance(definition, serviceObject, memberId, tags, definition.returnType()));
+        ServiceReference serviceRef = ServiceReference.create(
+            definition, memberId, cluster.address(), tags);
+
+        ServiceInstance serviceDef = ServiceDefinition.toLocalServiceInstance(
+            definition, serviceObject, memberId, tags, definition.returnType());
+
+        serviceInstances.putIfAbsent(serviceRef, serviceDef);
 
         if (discovery != null)
           discovery.registerService(
@@ -125,11 +169,11 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   @Override
-  public Collection<ServiceInstance> serviceLookup(final String serviceName) {
-    checkArgument(serviceName != null, "Service name can't be null");
+  public Collection<ServiceInstance> serviceLookup(final String qualifier) {
+    checkArgument(qualifier != null, "Service name can't be null");
 
     return serviceInstances.entrySet().stream()
-        .filter(entry -> isValid(entry.getKey(), serviceName))
+        .filter(entry -> isValid(entry.getKey(), qualifier))
         .map(Map.Entry::getValue)
         .collect(Collectors.toList());
   }
@@ -168,7 +212,7 @@ public class ServiceRegistry implements IServiceRegistry {
         tags);
   }
 
-  private boolean isValid(ServiceReference reference, String serviceName) {
-    return reference.serviceName().equals(serviceName);
+  private boolean isValid(ServiceReference reference, String qualifier) {
+    return reference.qualifier().equals(qualifier);
   }
 }

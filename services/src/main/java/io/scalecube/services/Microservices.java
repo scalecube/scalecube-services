@@ -1,24 +1,37 @@
 package io.scalecube.services;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.scalecube.cluster.Cluster;
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRubinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.TransportConfig;
 
 public class Microservices {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+  private final static ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
+
   private final ServiceRegistry serviceRegistry;
   private final ServiceProxytFactory proxyFactory;
-  private final ServiceProcessor serviceProcessor;
+
   private final ServiceDispatcher localDispatcher;
 
   private Microservices(ICluster cluster, Optional<ServiceDiscovery> discovery) {
-    this.serviceProcessor = new AnnotationServiceProcessor();
     this.serviceRegistry = new ServiceRegistry(cluster, serviceProcessor);
     this.proxyFactory = new ServiceProxytFactory(serviceRegistry, serviceProcessor);
 
@@ -27,6 +40,8 @@ public class Microservices {
     if (discovery.isPresent()) {
       discovery.get().cluster(cluster);
       serviceRegistry.start(discovery.get());
+    } else {
+      LOGGER.warn("no service discovery was found this node services will not be discovered out-side of this process");
     }
   }
 
@@ -34,10 +49,9 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router,
-      int timeOut, TimeUnit timeUnit) {
+  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router) {
 
-    return (T) proxyFactory.createProxy(serviceInterface, router, timeOut, timeUnit);
+    return (T) proxyFactory.createProxy(serviceInterface, router);
   }
 
   public Collection<ServiceInstance> services() {
@@ -51,6 +65,9 @@ public class Microservices {
   public static final class Builder {
     private ICluster cluster;
     private ServiceDiscovery discovery;
+    private Integer port = null;
+    private Address[] seeds;
+    private Object[] services;
 
     public Builder cluster(ICluster cluster) {
       this.cluster = cluster;
@@ -63,7 +80,48 @@ public class Microservices {
     }
 
     public Microservices build() {
-      return new Microservices(cluster, Optional.ofNullable(discovery));
+      
+      ClusterConfig cfg = getClusterConfig();
+      
+      this.cluster = Cluster.joinAwait(cfg);
+
+      Microservices microserices = new Microservices(cluster, Optional.ofNullable(discovery));
+      for (Object service : services) {
+        microserices.registry()
+          .service(service)
+          .register();
+      }
+      return microserices;
+    }
+
+    private ClusterConfig getClusterConfig() {
+      Map<String, String> metadata = Microservices.metadata(services);
+      ClusterConfig cfg;      
+      if(port !=null && seeds!=null){
+        cfg = ConfigAssist.create(port,seeds,metadata);
+      }else if (seeds!=null){
+        cfg = ConfigAssist.create(seeds,metadata);
+      }else if(port!=null){
+        cfg = ConfigAssist.create(port,metadata);
+      }else{
+        cfg = ConfigAssist.create(metadata);
+      }
+      return cfg;
+    }
+
+    public Builder port(int port) {
+      this.port = port;
+      return this;
+    }
+
+    public Builder seeds(Address[] seeds) {
+      this.seeds = seeds;
+      return this;
+    }
+
+    public Builder services(Object... services) {
+      this.services = services;
+      return this;
     }
   }
 
@@ -79,7 +137,7 @@ public class Microservices {
   public class RegistrationContext {
 
     public static final String TAG_MICROSERVICE = "microservice";
-    
+
     private Object service;
 
     public Object service() {
@@ -114,7 +172,8 @@ public class Microservices {
     }
 
     public void register() {
-      serviceRegistry.registerService(this.service, tags);
+      LOGGER.debug("register service {} tags {}", this.service, this.tags);
+      serviceRegistry.registerService(this.service, this.tags);
     }
 
 
@@ -151,7 +210,8 @@ public class Microservices {
     }
 
     public <T> T create() {
-      return (T) createProxy(this.api, router, timeOut, timeUnit);
+      LOGGER.debug("create service api {} router {}", this.api, router);
+      return (T) createProxy(this.api, router);
     }
 
     public ProxyContext timeout(int timeOut, TimeUnit timeUnit) {
@@ -163,6 +223,22 @@ public class Microservices {
 
   public ICluster cluster() {
     return this.cluster();
+  }
+
+  public static Map<String, String> metadata(Object... services) {
+    Map<String, String> result = new HashMap<>();
+
+    for (Object service : services) {
+      Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service);
+      for (Class<?> serviceInterface : serviceInterfaces) {
+        ConcurrentMap<String, ServiceDefinition> defs = serviceProcessor.introspectServiceInterface(serviceInterface);
+        defs.entrySet().stream().forEach(entry -> {
+          result.put(entry.getValue().qualifier(), entry.getValue().method().getName());
+        });
+      }
+    }
+
+    return result;
   }
 
 }

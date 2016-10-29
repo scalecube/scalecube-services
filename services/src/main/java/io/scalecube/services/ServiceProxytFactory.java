@@ -5,7 +5,9 @@ import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.reflect.Reflection;
 
@@ -15,6 +17,7 @@ import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
 
 public class ServiceProxytFactory {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxytFactory.class);
 
   private final ServiceProcessor serviceProcessor;
   private ConcurrentMap<String, ServiceDefinition> serviceDefinitions;
@@ -25,8 +28,7 @@ public class ServiceProxytFactory {
     this.serviceProcessor = serviceProcessor;
   }
 
-  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
-      final int timeOut, final TimeUnit timeUnit) {
+  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType) {
 
     this.serviceDefinitions = serviceProcessor.introspectServiceInterface(serviceInterface);
 
@@ -37,30 +39,36 @@ public class ServiceProxytFactory {
         try {
 
           ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
-          ServiceInstance serviceInstance = findInstance(serviceDefinition, routerType);
+
+          Router router = routerFactory.getRouter(routerType);
+          ServiceInstance serviceInstance = router.route(serviceDefinition);
 
           if (serviceInstance != null) {
             return serviceInstance.invoke(Message.builder()
                 .data(args[0])
                 .qualifier(serviceInstance.qualifier())
-                .build(),Optional.of(serviceDefinition));
+                .build(),
+                Optional.of(serviceDefinition));
 
           } else {
+            LOGGER.error(
+                "Faild  to invoke service, No reachable member with such service definition [{}], args [{}]",
+                serviceDefinition, args);
             CompletableFuture<T> f = new CompletableFuture<T>();
-            f.completeExceptionally(new IllegalStateException("No reachable member with such service"));
+            f.completeExceptionally(
+                new IllegalStateException("No reachable member with such service: " + method.getName()));
             return f;
           }
+
         } catch (RuntimeException e) {
+          LOGGER.error(
+              "Faild  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
+              method, args, e);
           CompletableFuture<T> f = new CompletableFuture<T>();
-          f.completeExceptionally(new IllegalStateException("No reachable member with such service", e));
+          f.completeExceptionally(
+              new IllegalStateException("No reachable member with such service: " + method.getName(), e));
           return f;
         }
-      }
-
-      private ServiceInstance findInstance(ServiceDefinition serviceDefinition, final Class<? extends Router> routerType) {
-        
-        Router router = routerFactory.getRouter(routerType);
-        return router.route(serviceDefinition);
       }
     });
   }

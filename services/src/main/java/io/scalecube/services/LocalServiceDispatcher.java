@@ -2,11 +2,15 @@ package io.scalecube.services;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
 public class LocalServiceDispatcher {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceDispatcher.class);
+  
   private final ICluster cluster;
   private final IServiceRegistry registry;
 

@@ -3,13 +3,18 @@ package io.scalecube.services;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
 public class ServiceDispatcher {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDispatcher.class);
+  
   public ServiceDispatcher(final ICluster cluster, final IServiceRegistry registry) {
-
+   
     cluster.listen().filter(message -> {
         return message.qualifier() != null;
       }
@@ -58,7 +63,7 @@ public class ServiceDispatcher {
               .header("exception", "true")
               .correlationId(message.correlationId())
               .build());
-          e.printStackTrace();
+          
         }
     });
   }

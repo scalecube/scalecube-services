@@ -7,9 +7,13 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.scalecube.transport.Message;
 
-public class LocalServiceInstance<T> implements ServiceInstance {
+public class LocalServiceInstance implements ServiceInstance {
+  private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceInstance.class);
 
   @Override
   public String toString() {
@@ -18,13 +22,13 @@ public class LocalServiceInstance<T> implements ServiceInstance {
   }
 
   private final Object serviceObject;
-  private final String memberId;
-
-  private final String qualifier;
   private final Method method;
 
-  private final Boolean isLocal;
+  private final String qualifier;
   private String[] tags;
+
+  private final String memberId;
+  private final Boolean isLocal;
 
   public LocalServiceInstance(Object serviceObject, String memberId, Class<?> serviceInterface,
       String qualifier,
@@ -33,12 +37,37 @@ public class LocalServiceInstance<T> implements ServiceInstance {
       Type returnType) {
 
     checkArgument(serviceObject != null);
+    checkArgument(memberId != null);
+    checkArgument(qualifier != null);
+    checkArgument(method != null);
+
     this.serviceObject = serviceObject;
-    this.memberId = memberId;
-    this.isLocal = true;
     this.qualifier = qualifier;
     this.method = method;
     this.tags = tags;
+    this.memberId = memberId;
+
+    this.isLocal = true;
+  }
+
+
+  @Override
+  public <T> Object invoke(Message message, Optional<ServiceDefinition> definition)
+      throws InvocationTargetException, IllegalAccessException {
+    checkArgument(message != null);
+
+    Method method = this.method;
+
+    Object result = null;
+
+    if (method.getParameters().length == 0) {
+      result = method.invoke(serviceObject);
+    } else if (method.getParameters()[0].getType().equals(Message.class)) {
+      result = method.invoke(serviceObject, message);
+    } else {
+      result = method.invoke(serviceObject, new Object[] {message.data()});
+    }
+    return result;
   }
 
   public String[] tags() {
@@ -47,25 +76,6 @@ public class LocalServiceInstance<T> implements ServiceInstance {
 
   public String qualifier() {
     return qualifier;
-  }
-
-  @Override
-  public <T> Object invoke(Message message, Optional<ServiceDefinition> definition)
-      throws InvocationTargetException, IllegalAccessException {
-    // TODO: safety checks
-    // TODO: consider to return ListenableFuture (result, immediate or failed with corresponding exceptions)
-    Method method = this.method;
-
-    Object result = null;
-
-    if (method.getParameters().length == 0) {
-      result = method.invoke(serviceObject);
-    } else if (method.getParameters().length > 0 && method.getParameters()[0].getType().equals(Message.class)) {
-      result = method.invoke(serviceObject, message);
-    } else {
-      result = method.invoke(serviceObject, new Object[] {message.data()});
-    }
-    return result;
   }
 
   @Override

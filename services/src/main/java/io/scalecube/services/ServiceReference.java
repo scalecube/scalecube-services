@@ -14,17 +14,17 @@ public class ServiceReference {
 
   private final String memberId;
 
-  private final String serviceName;
+  private final String qualifier;
 
   private final Address address;
 
   private String[] tags;
 
-  public ServiceReference(String memberId, String serviceName, Address address, String[] tags) {
+  public ServiceReference(String memberId, String qualifier, Address address, String[] tags) {
     Preconditions.checkNotNull(memberId);
-    Preconditions.checkNotNull(serviceName);
+    Preconditions.checkNotNull(qualifier);
     this.memberId = memberId;
-    this.serviceName = serviceName;
+    this.qualifier = qualifier;
     this.address = address;
     this.tags = tags;
   }
@@ -41,8 +41,8 @@ public class ServiceReference {
     return memberId;
   }
 
-  public String serviceName() {
-    return serviceName;
+  public String qualifier() {
+    return qualifier;
   }
 
   @Override
@@ -53,19 +53,19 @@ public class ServiceReference {
       return false;
     ServiceReference that = (ServiceReference) o;
     return Objects.equals(memberId, that.memberId) &&
-        Objects.equals(serviceName, that.serviceName);
+        Objects.equals(qualifier, that.qualifier);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(memberId, serviceName);
+    return Objects.hash(memberId, qualifier);
   }
 
   @Override
   public String toString() {
     return "ServiceReference{" +
         "memberId='" + memberId + '\'' +
-        ", serviceName='" + serviceName + '\'' +
+        ", qualifier='" + qualifier + '\'' +
         '}';
   }
 

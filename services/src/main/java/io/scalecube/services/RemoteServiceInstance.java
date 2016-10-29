@@ -1,19 +1,19 @@
 package io.scalecube.services;
 
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
-import rx.Subscription;
 
 public class RemoteServiceInstance implements ServiceInstance {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
 
   private final ICluster cluster;
   private final Address address;
@@ -23,7 +23,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String qualifier;
 
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
-    this.qualifier = serviceReference.serviceName();
+    this.qualifier = serviceReference.qualifier();
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
@@ -49,10 +49,20 @@ public class RemoteServiceInstance implements ServiceInstance {
       if (message.header("exception") == null) {
         messageFuture.complete(message);
       } else {
+        LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
         messageFuture.completeExceptionally(message.data());
       }
     });
-    sendRemote(requestMessage, messageFuture);
+
+    // check that send operation completed successfully else report an error
+    CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
+    sendFuture.whenComplete((success, error) -> {
+      if (error != null) {
+        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}", requestMessage.correlationId(),
+            requestMessage, error);
+        messageFuture.completeExceptionally(error);
+      }
+    });
     return messageFuture;
   }
 
@@ -62,38 +72,43 @@ public class RemoteServiceInstance implements ServiceInstance {
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
 
     Message requestMessage = composeRequest(request, correlationId);
-   
+
     // Listen response
     this.cluster.listen().filter(message -> {
       return correlationId.equals(message.correlationId());
     }).first().subscribe(message -> {
       if (message.header("exception") == null) {
-        messageFuture.complete(message.data());  
+        messageFuture.complete(message.data());
       } else {
         messageFuture.completeExceptionally(message.data());
       }
     });
 
-    sendRemote(requestMessage, messageFuture);
+    // check that send operation completed successfully else report an error
+    CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
+    sendFuture.whenComplete((success, error) -> {
+      if (error != null) {
+        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}", requestMessage.correlationId(),
+            requestMessage, error);
+        messageFuture.completeExceptionally(error);
+      }
+    });
     return messageFuture;
   }
 
-  private void sendRemote(Message requestMessage, CompletableFuture<?> future) {
+  private CompletableFuture<Void> sendRemote(Message requestMessage) {
     final CompletableFuture<Void> messageFuture = new CompletableFuture<>();
+    LOGGER.debug("cid [{}] send remote service request message {}", requestMessage.correlationId(), requestMessage);
     this.cluster.send(address, requestMessage, messageFuture);
-    messageFuture.whenComplete((success, error) -> {
-      if (error != null) {
-        future.completeExceptionally(error);
-      }
-    });
+    return messageFuture;
   }
 
   @Override
   public <T> Object invoke(Message request, Optional<ServiceDefinition> definition) throws Exception {
-    
+
     // Try to call via messaging
     // Request message
-    
+
     if (definition.get().returnType().equals(CompletableFuture.class)) {
       if (definition.get().parameterizedType().equals(Message.class)) {
         return futureInvokeMessage(request);

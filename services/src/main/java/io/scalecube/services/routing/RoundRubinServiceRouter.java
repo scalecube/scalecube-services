@@ -5,13 +5,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.scalecube.services.IServiceRegistry;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
 
 public class RoundRubinServiceRouter implements Router {
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(RoundRubinServiceRouter.class);
+  
   private final IServiceRegistry serviceRegistry;
 
   private final ConcurrentMap<ServiceDefinition, AtomicInteger> roundrubin = new ConcurrentHashMap<>();
@@ -34,6 +38,7 @@ public class RoundRubinServiceRouter implements Router {
       index.incrementAndGet();
       return ref;
     } else {
+      LOGGER.warn("route selection return null since no service instance was found for {}", serviceDefinition);
       return null;
     }
   }
