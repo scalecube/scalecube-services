@@ -46,13 +46,13 @@ public class ServiceReference {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) {
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
-    }else if (o == null || getClass() != o.getClass()) {
+    } else if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    ServiceReference that = (ServiceReference) o;
+    ServiceReference that = (ServiceReference) obj;
     return Objects.equals(memberId, that.memberId) && Objects.equals(qualifier, that.qualifier);
   }
 

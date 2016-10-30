@@ -54,11 +54,11 @@ public class ServiceProxytFactory {
             LOGGER.error(
                 "Faild  to invoke service, No reachable member with such service definition [{}], args [{}]",
                 serviceDefinition, args);
-            CompletableFuture<T> f = new CompletableFuture<T>();
-            f.completeExceptionally(
+            CompletableFuture<T> future = new CompletableFuture<T>();
+            future.completeExceptionally(
                 new IllegalStateException("No reachable member with such service: " + method.getName()));
             if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
-              return f;
+              return future;
             } else {
               return null;
             }
@@ -68,10 +68,10 @@ public class ServiceProxytFactory {
           LOGGER.error(
               "Faild  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
               method, args, e);
-          CompletableFuture<T> f = new CompletableFuture<T>();
-          f.completeExceptionally(
+          CompletableFuture<T> future = new CompletableFuture<T>();
+          future.completeExceptionally(
               new IllegalStateException("No reachable member with such service: " + method.getName(), e));
-          return f;
+          return future;
         }
       }
     });

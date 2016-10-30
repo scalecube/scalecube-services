@@ -34,8 +34,9 @@ public class ServiceRegistration {
     this.port = port;
 
     for (String tag : tags) {
-      if (!this.tags.contains(tag))
+      if (!this.tags.contains(tag)) {
         this.tags.add(tag);
+      }
     }
   }
 

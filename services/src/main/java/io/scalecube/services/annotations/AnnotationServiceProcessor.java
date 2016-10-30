@@ -60,8 +60,9 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   private Type extractReturnType(Type type) {
     if (type instanceof ParameterizedType) {
       return ((ParameterizedType) type).getActualTypeArguments()[0];
-    } else
+    } else {
       return Object.class;
+    }
   }
 
   private Map<String, Method> parseServiceMethods(Class<?> serviceInterface) {

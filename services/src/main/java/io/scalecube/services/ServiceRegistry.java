@@ -42,7 +42,8 @@ public class ServiceRegistry implements IServiceRegistry {
     if (!isSeed && cluster.otherMembers().isEmpty()) {
       try {
         future.get();
-      } catch (Exception e) {
+      } catch (Exception ex) {
+        LOGGER.error("error while waiting to join the cluster members event",ex);
       }
     } else {
       loadClusterServices();
