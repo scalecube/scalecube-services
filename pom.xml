@@ -77,7 +77,6 @@
         <module>benchmark</module>
         <module>examples</module>
         <module>services</module>
-        <module>Consul</module>
     </modules>
 
     <dependencyManagement>
