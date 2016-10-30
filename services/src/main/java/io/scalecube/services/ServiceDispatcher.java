@@ -67,7 +67,8 @@ public class ServiceDispatcher {
               .correlationId(message.correlationId())
               .build();
         }
-        cluster.send(message.sender(), futureMessage); } ;
+        cluster.send(message.sender(), futureMessage); 
+      } ;
     });
   }
 
