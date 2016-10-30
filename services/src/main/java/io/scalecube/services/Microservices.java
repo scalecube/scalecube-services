@@ -28,27 +28,24 @@ public class Microservices {
   private final ServiceProxytFactory proxyFactory;
 
   private final ServiceDispatcher localDispatcher;
+  private final ICluster cluster;
 
-  private Microservices(ICluster cluster, Optional<ServiceDiscovery> discovery) {
-    this.serviceRegistry = new ServiceRegistry(cluster, serviceProcessor);
+  private Microservices(ICluster cluster, Optional<Object[]> services,boolean isSeed) {
+    this.cluster = cluster;
+    this.serviceRegistry = new ServiceRegistry(cluster,services, serviceProcessor,isSeed);
     this.proxyFactory = new ServiceProxytFactory(serviceRegistry, serviceProcessor);
-
     localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
-
-    if (discovery.isPresent()) {
-      discovery.get().cluster(cluster);
-      serviceRegistry.start(discovery.get());
-    } else {
-      LOGGER.warn("no service discovery was found this node services will not be discovered out-side of this process");
-    }
   }
 
+  public ICluster cluster() {
+    return this.cluster;
+  }
+  
   public void unregisterService(Object serviceObject) {
     serviceRegistry.unregisterService(serviceObject);
   }
 
   private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router) {
-
     return (T) proxyFactory.createProxy(serviceInterface, router);
   }
 
@@ -61,36 +58,17 @@ public class Microservices {
   }
 
   public static final class Builder {
-    private ICluster cluster;
-    private ServiceDiscovery discovery;
+   
     private Integer port = null;
     private Address[] seeds;
     private Optional<Object[]> services = Optional.empty();
 
-    public Builder cluster(ICluster cluster) {
-      this.cluster = cluster;
-      return this;
-    }
-
-    public Builder discovery(ServiceDiscovery discovery) {
-      this.discovery = discovery;
-      return this;
-    }
-
     public Microservices build() {
 
       ClusterConfig cfg = getClusterConfig();
-
-      this.cluster = Cluster.joinAwait(cfg);
-
-      Microservices microserices = new Microservices(cluster, Optional.ofNullable(discovery));
-      if (services.isPresent()) {
-        for (Object service : services.get()) {
-          microserices.registry()
-              .service(service)
-              .register();
-        }
-      }
+      
+      Microservices microserices = new Microservices(Cluster.joinAwait(cfg),services,seeds==null);
+      
       return microserices;
     }
 
@@ -226,9 +204,7 @@ public class Microservices {
     }
   }
 
-  public ICluster cluster() {
-    return this.cluster();
-  }
+  
 
   public static Map<String, String> metadata(Object... services) {
     Map<String, String> result = new HashMap<>();

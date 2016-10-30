@@ -32,23 +32,26 @@ public class SyncHelloMain {
 
   private static void distributedBlockingCallExample() {
     // Create microservices cluster.
-    Microservices.builder()
-        .port(4015)
+    Microservices a = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
 
-    GreetingService service = Microservices.builder()
-        .seeds(Address.create("localhost", 4015)) // join cluster on specific port
-        .build()
-        .proxy()
+    Microservices m = Microservices.builder()
+        .seeds(a.cluster().address()) // join cluster on specific port
+        .build();
+    
+    GreetingService service = m.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
         .create();
 
-    
-    String result = service.greeting("joe");
+    m.cluster().listenMembership().subscribe(event->{
+      if(event.isAdded()){
+        String result = service.greeting("joe");
 
-    // print the greeting.
-    System.out.println(result);
+        // print the greeting.
+        System.out.println(result);
+      }
+    });
   }
 
 

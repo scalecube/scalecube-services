@@ -17,8 +17,6 @@ public interface IServiceRegistry {
 
   ServiceInstance serviceInstance(ServiceReference reference);
 
-  List<RemoteServiceInstance> findRemoteInstance(String serviceName);
-
   ServiceInstance getLocalInstance(String serviceName);
 
 

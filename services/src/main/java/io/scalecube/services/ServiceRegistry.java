@@ -3,8 +3,9 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
@@ -16,7 +17,6 @@ import org.slf4j.LoggerFactory;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
-import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 
 public class ServiceRegistry implements IServiceRegistry {
@@ -25,34 +25,46 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private final ICluster cluster;
   private final ServiceProcessor serviceProcessor;
-  private ServiceDiscovery discovery;
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
 
-  public ServiceRegistry(ICluster cluster) {
-    this(cluster, new AnnotationServiceProcessor());
-  }
-
-  public ServiceRegistry(ICluster cluster, ServiceProcessor serviceProcessor) {
+  public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceprocessor, boolean isSeed) {
     checkArgument(cluster != null);
-    checkArgument(serviceProcessor != null);
+    this.serviceProcessor = serviceprocessor;
     this.cluster = cluster;
-    this.serviceProcessor = serviceProcessor;
-    listenCluster();
+    CompletableFuture<Void> future = listenCluster();
+    if (services.isPresent()) {
+      for (Object service : services.get()) {
+        registerService(service, null);
+      }
+    }
+    if(!isSeed && cluster.otherMembers().isEmpty()){
+      try {
+        future.get();
+      } catch (Exception e) {}
+    }else{
+      loadClusterServices();
+    }
   }
 
-  private void listenCluster() {
+  private CompletableFuture<Void> listenCluster() {
+    CompletableFuture<Void> future = new CompletableFuture<>();
+    
     cluster.listenMembership().subscribe(event -> {
       if(event.isAdded()){
         loadMemberServices(DiscoveryType.ADDED, event.member());
       } else if (event.isRemoved()){
         loadMemberServices(DiscoveryType.RMOVED, event.member());
       }
+      if(!cluster.members().isEmpty()){
+        future.complete(null);
+      }
     });
     
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
         () -> loadClusterServices(), 10, 10, TimeUnit.SECONDS);
-
+    
+    return future;
   }
 
   private void loadClusterServices() {
@@ -82,48 +94,7 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
 
-  public void start(ServiceDiscovery discovery) {
-    this.discovery = discovery;
-    loadServices();
-
-    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
-        () -> loadServices(), 10, 10, TimeUnit.SECONDS);
-
-    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
-        () -> discovery.cleanup(), 60, 60, TimeUnit.SECONDS);
-
-
-  }
-
-  private void loadServices() {
-    try {
-      registerServices();
-
-      discovery.getRemoteServices().forEach(ref -> {
-        serviceInstances.put(new ServiceReference(ref.memberId(),
-            ref.qualifier(),
-            ref.address(),
-            ref.tags()),
-            ref);
-      });
-    } catch (Exception ex) {
-      ex.printStackTrace();
-    }
-  }
-
-  private void registerServices() {
-    serviceInstances.keySet().stream()
-        .filter(entry -> {
-          return cluster.member().id().equals(entry.memberId());
-        }).forEach(entry -> {
-          LOGGER.debug("discovery register services {}", entry);
-          discovery.registerService(ServiceRegistration.create(cluster.member().id(),
-              entry.qualifier(),
-              cluster.member().address().host(),
-              cluster.member().address().port()));
-        });
-  }
-
+ 
   public void registerService(Object serviceObject, String[] tags) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
@@ -145,12 +116,6 @@ public class ServiceRegistry implements IServiceRegistry {
 
         serviceInstances.putIfAbsent(serviceRef, serviceDef);
 
-        if (discovery != null)
-          discovery.registerService(
-              ServiceRegistration.create(memberId, definition.qualifier(),
-                  cluster.member().address().host(),
-                  cluster.member().address().port(),
-                  tags));
       });
     });
   }
@@ -200,11 +165,6 @@ public class ServiceRegistry implements IServiceRegistry {
 
   public ServiceInstance remoteServiceInstance(String serviceName) {
     return serviceInstances.get(serviceName);
-  }
-
-  @Override
-  public List<RemoteServiceInstance> findRemoteInstance(String serviceName) {
-    return discovery.serviceLookup(serviceName);
   }
 
   public Collection<ServiceInstance> services() {
