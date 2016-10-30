@@ -2,7 +2,6 @@ package io.scalecube.services.examples.helloworld;
 
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingService;

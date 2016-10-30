@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import java.lang.reflect.Type;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;

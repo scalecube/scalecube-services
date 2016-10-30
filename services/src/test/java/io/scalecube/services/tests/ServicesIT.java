@@ -1,6 +1,6 @@
 package io.scalecube.services.tests;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CompletableFuture;
 
