@@ -28,6 +28,13 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
 
+  /**
+   * the ServiceRegistry constructor to register and lookup cluster instances.
+   * @param cluster the cluster instance related to the service registry.
+   * @param services optional services if relevant to this instance.
+   * @param serviceprocessor - service processor.
+   * @param isSeed indication if this member is seed.
+   */
   public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceprocessor,
       boolean isSeed) {
     checkArgument(cluster != null);
@@ -98,7 +105,9 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
 
-
+  /**
+   * register a service instance at the cluster.
+   */
   public void registerService(Object serviceObject, String[] tags) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);

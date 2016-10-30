@@ -17,6 +17,11 @@ public class RouterFactory {
     this.serviceRegistry = serviceRegistry;
   }
 
+  /**
+   * get router instance by a given router class.
+   * @param routing the type of the Router.
+   * @return instance of the Router.
+   */
   public Router getRouter(Class<? extends Router> routing) {
     try {
       return routers.computeIfAbsent(routing, k -> create(k));

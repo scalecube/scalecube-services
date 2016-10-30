@@ -20,6 +20,13 @@ public class ServiceReference {
 
   private String[] tags;
 
+  /**
+   * constructor of ServiceReference, a reference for local or remote service instance.
+   * @param memberId the memberId of the requested service.
+   * @param qualifier the fully qualified name of the service.
+   * @param address the address of the service.
+   * @param tags optional tags of the service.
+   */
   public ServiceReference(String memberId, String qualifier, Address address, String[] tags) {
     Preconditions.checkNotNull(memberId);
     Preconditions.checkNotNull(qualifier);

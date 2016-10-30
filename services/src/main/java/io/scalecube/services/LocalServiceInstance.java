@@ -15,12 +15,6 @@ import java.util.Optional;
 public class LocalServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceInstance.class);
 
-  @Override
-  public String toString() {
-    return "LocalServiceInstance [serviceObject=" + serviceObject + ", memberId=" + memberId + ", isLocal=" + isLocal
-        + "]";
-  }
-
   private final Object serviceObject;
   private final Method method;
 
@@ -30,6 +24,16 @@ public class LocalServiceInstance implements ServiceInstance {
   private final String memberId;
   private final Boolean isLocal;
 
+  /**
+   * LocalServiceInstance instance constructor. 
+   * @param serviceObject the instance of the service object. 
+   * @param memberId the Cluster memberId of this instance. 
+   * @param serviceInterface the service interface class of the service.
+   * @param qualifier the qulifier name of the service.
+   * @param method the java method of the service.
+   * @param tags optional tags of the service.
+   * @param returnType the return type class of the service method.
+   */
   public LocalServiceInstance(Object serviceObject, String memberId, Class<?> serviceInterface,
       String qualifier,
       Method method,
@@ -95,5 +99,11 @@ public class LocalServiceInstance implements ServiceInstance {
   @Override
   public boolean isReachable() {
     return true;
+  }
+  
+  @Override
+  public String toString() {
+    return "LocalServiceInstance [serviceObject=" + serviceObject + ", memberId=" + memberId + ", isLocal=" + isLocal
+        + "]";
   }
 }
