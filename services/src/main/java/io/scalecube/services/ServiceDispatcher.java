@@ -17,7 +17,7 @@ public class ServiceDispatcher {
 
     cluster.listen().filter(message -> {
       return message.qualifier() != null;
-    }).subscribe(message -> {
+    })  .subscribe(message -> {
 
       ServiceInstance serviceInstance = registry.getLocalInstance(message.qualifier());
 
@@ -45,8 +45,7 @@ public class ServiceDispatcher {
                     .build();
               }
 
-              cluster.send(message.sender(), futureMessage);
-            } ;
+              cluster.send(message.sender(), futureMessage); } ;
           });
         } else { // this is a sync request response call
           Message responseMessage = Message.builder()
