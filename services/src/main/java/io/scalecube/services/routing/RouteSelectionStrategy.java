@@ -1,9 +1,9 @@
 package io.scalecube.services.routing;
 
-import java.util.Optional;
-
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
+
+import java.util.Optional;
 
 public interface RouteSelectionStrategy {
 

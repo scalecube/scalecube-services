@@ -1,11 +1,11 @@
 package io.scalecube.services;
 
-import java.util.Map;
-
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportConfig;
+
+import java.util.Map;
 
 public class ConfigAssist {
 

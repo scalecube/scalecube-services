@@ -2,16 +2,16 @@ package io.scalecube.services.tests;
 
 import static org.junit.Assert.assertTrue;
 
-import java.util.concurrent.CompletableFuture;
-
-import org.junit.Test;
-
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.HelloWorldComponent;
 import io.scalecube.transport.Message;
+
+import org.junit.Test;
+
+import java.util.concurrent.CompletableFuture;
 
 public class ServicesIT {
 

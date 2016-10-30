@@ -1,11 +1,11 @@
 package io.scalecube.services.routing;
 
-import java.util.concurrent.ConcurrentHashMap;
+import io.scalecube.services.ServiceRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.scalecube.services.ServiceRegistry;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class RouterFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(RouterFactory.class);

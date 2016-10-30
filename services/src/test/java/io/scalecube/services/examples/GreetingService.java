@@ -1,10 +1,10 @@
 package io.scalecube.services.examples;
 
-import java.util.concurrent.CompletableFuture;
-
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.transport.Message;
+
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public interface GreetingService {

@@ -1,20 +1,20 @@
 package io.scalecube.services;
 
+import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.transport.Message;
+
+import com.google.common.reflect.Reflection;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.reflect.Reflection;
-
-import io.scalecube.services.annotations.ServiceProcessor;
-import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.transport.Message;
 
 public class ServiceProxytFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxytFactory.class);

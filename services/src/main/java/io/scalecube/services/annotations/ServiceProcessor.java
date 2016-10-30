@@ -1,9 +1,9 @@
 package io.scalecube.services.annotations;
 
+import io.scalecube.services.ServiceDefinition;
+
 import java.util.Collection;
 import java.util.concurrent.ConcurrentMap;
-
-import io.scalecube.services.ServiceDefinition;
 
 
 public interface ServiceProcessor {

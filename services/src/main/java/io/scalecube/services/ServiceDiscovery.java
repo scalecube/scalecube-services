@@ -1,8 +1,8 @@
 package io.scalecube.services;
 
-import java.util.List;
-
 import io.scalecube.cluster.ICluster;
+
+import java.util.List;
 
 public interface ServiceDiscovery {
 

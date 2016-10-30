@@ -1,14 +1,5 @@
 package io.scalecube.services;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
@@ -17,6 +8,15 @@ import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRubinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentMap;
 
 public class Microservices {
 

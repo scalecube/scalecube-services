@@ -1,8 +1,8 @@
 package io.scalecube.services.examples;
 
-import java.util.concurrent.CompletableFuture;
-
 import io.scalecube.transport.Message;
+
+import java.util.concurrent.CompletableFuture;
 
 public class HelloWorldComponent implements GreetingService {
   @Override

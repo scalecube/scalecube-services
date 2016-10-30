@@ -1,16 +1,16 @@
 package io.scalecube.services;
 
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import io.scalecube.cluster.ICluster;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.scalecube.cluster.ICluster;
-import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);

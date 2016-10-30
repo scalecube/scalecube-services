@@ -1,12 +1,12 @@
 package io.scalecube.services;
 
-import java.util.Objects;
-
-import javax.annotation.concurrent.Immutable;
+import io.scalecube.transport.Address;
 
 import com.google.common.base.Preconditions;
 
-import io.scalecube.transport.Address;
+import java.util.Objects;
+
+import javax.annotation.concurrent.Immutable;
 
 @Immutable
 public class ServiceReference {

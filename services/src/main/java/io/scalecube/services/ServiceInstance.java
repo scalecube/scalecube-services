@@ -1,8 +1,8 @@
 package io.scalecube.services;
 
-import java.util.Optional;
-
 import io.scalecube.transport.Message;
+
+import java.util.Optional;
 
 public interface ServiceInstance {
 

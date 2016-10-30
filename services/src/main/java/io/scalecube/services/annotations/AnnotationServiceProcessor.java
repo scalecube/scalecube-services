@@ -2,6 +2,13 @@ package io.scalecube.services.annotations;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.services.ServiceDefinition;
+
+import com.google.common.base.Strings;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -12,13 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Strings;
-
-import io.scalecube.services.ServiceDefinition;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
   private static final Logger LOGGER = LoggerFactory.getLogger(AnnotationServiceProcessor.class);

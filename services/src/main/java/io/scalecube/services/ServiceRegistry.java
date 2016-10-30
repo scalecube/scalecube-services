@@ -2,6 +2,13 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Member;
+import io.scalecube.services.annotations.ServiceProcessor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -11,13 +18,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import io.scalecube.cluster.ICluster;
-import io.scalecube.cluster.Member;
-import io.scalecube.services.annotations.ServiceProcessor;
 
 public class ServiceRegistry implements IServiceRegistry {
 

@@ -1,17 +1,17 @@
 package io.scalecube.services.routing;
 
-import java.util.Collection;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.scalecube.services.IServiceRegistry;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoundRubinServiceRouter implements Router {
   private static final Logger LOGGER = LoggerFactory.getLogger(RoundRubinServiceRouter.class);

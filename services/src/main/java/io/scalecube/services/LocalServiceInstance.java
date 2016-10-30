@@ -2,15 +2,15 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.util.Optional;
+import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.scalecube.transport.Message;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.util.Optional;
 
 public class LocalServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceInstance.class);

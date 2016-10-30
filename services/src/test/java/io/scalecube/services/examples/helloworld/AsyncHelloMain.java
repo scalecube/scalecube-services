@@ -1,11 +1,11 @@
 package io.scalecube.services.examples.helloworld;
 
 
-import java.util.concurrent.CompletableFuture;
-
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.HelloWorldComponent;
+
+import java.util.concurrent.CompletableFuture;
 
 public class AsyncHelloMain {
 
