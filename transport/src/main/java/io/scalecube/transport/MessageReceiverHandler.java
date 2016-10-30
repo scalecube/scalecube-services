@@ -33,7 +33,6 @@ final class MessageReceiverHandler extends ChannelInboundHandlerAdapter {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Received: {}", message);
     }
-    if(message!=null)
-      incomingMessagesSubject.onNext(message);
+    incomingMessagesSubject.onNext(message);
   }
 }

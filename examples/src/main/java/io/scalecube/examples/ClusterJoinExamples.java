@@ -1,4 +1,4 @@
-package io.scalecube.cluster.examples;
+package io.scalecube.examples;
 
 import static java.util.stream.Collectors.joining;
 
