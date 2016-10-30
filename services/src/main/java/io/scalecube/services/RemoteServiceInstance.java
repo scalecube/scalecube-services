@@ -45,7 +45,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     // Listen response
     this.cluster.listen().filter(message -> {
       return correlationId.equals(message.correlationId());
-    }).first().subscribe(message -> {
+    })  .first().subscribe(message -> {
       if (message.header("exception") == null) {
         messageFuture.complete(message);
       } else {
@@ -77,7 +77,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     // Listen response
     this.cluster.listen().filter(message -> {
       return correlationId.equals(message.correlationId());
-    }).first().subscribe(message -> {
+    })  .first().subscribe(message -> {
       if (message.header("exception") == null) {
         messageFuture.complete(message.data());
       } else {
@@ -119,8 +119,8 @@ public class RemoteServiceInstance implements ServiceInstance {
       }
     } else {
       CompletableFuture<T> future = futureInvokeGeneric(request);
-      Object o = future.get();
-      return o;
+      Object obj = future.get();
+      return obj;
     }
   }
 

@@ -63,9 +63,9 @@ public class LocalServiceInstance implements ServiceInstance {
     if (method.getParameters().length == 0) {
       result = method.invoke(serviceObject);
     } else if (method.getParameters()[0].getType().isAssignableFrom(Message.class)) {
-      if (message.data().getClass().isAssignableFrom(Message.class))
+      if (message.data().getClass().isAssignableFrom(Message.class)) {
         result = method.invoke(serviceObject, (Message) message.data());
-      else {
+      } else {
         result = method.invoke(serviceObject, message);
       }
     } else {

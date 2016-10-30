@@ -46,9 +46,7 @@ public class ServiceDefinition {
 
   @Override
   public String toString() {
-    return "ServiceDefinition [serviceInterface=" + serviceInterface +
-        ", qualifier=" + qualifier +
-        ", method=" + method
+    return "ServiceDefinition [serviceInterface=" + serviceInterface + ", qualifier=" + qualifier + ", method=" + method
         + "]";
   }
 

@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentMap;
 public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
-  private final static ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
+  private static final ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
 
   private final ICluster cluster;
 
@@ -131,13 +131,13 @@ public class Microservices {
       return api;
     }
 
-    public Class<? extends Router> router() {
-      return router;
-    }
-
     public <T> ProxyContext api(Class<T> api) {
       this.api = api;
       return this;
+    }
+
+    public Class<? extends Router> router() {
+      return router;
     }
 
     public ProxyContext router(Class<? extends Router> router) {
