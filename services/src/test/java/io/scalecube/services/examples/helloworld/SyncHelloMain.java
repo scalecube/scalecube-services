@@ -4,7 +4,6 @@ package io.scalecube.services.examples.helloworld;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingService;
 import io.scalecube.services.examples.HelloWorldComponent;
-import io.scalecube.transport.Address;
 
 public class SyncHelloMain {
 
@@ -16,12 +15,12 @@ public class SyncHelloMain {
   }
 
   private static void simpleBlockingCallExample() {
-    // Create microservices cluster.
-    Microservices microservices = Microservices.builder()
+    // Create microservices instance.
+    GreetingService service = Microservices.builder()
         .services(new HelloWorldComponent())
-        .build();
-    
-    GreetingService service = microservices.proxy().api(GreetingService.class).create();
+        .build()
+        .proxy().api(GreetingService.class)
+        .create();
 
     // call the service.
     String result = service.greeting("joe");
@@ -32,26 +31,22 @@ public class SyncHelloMain {
 
   private static void distributedBlockingCallExample() {
     // Create microservices cluster.
-    Microservices a = Microservices.builder()
+    Microservices provider = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
 
-    Microservices m = Microservices.builder()
-        .seeds(a.cluster().address()) // join cluster on specific port
-        .build();
-    
-    GreetingService service = m.proxy()
+    GreetingService service = Microservices.builder()
+        .seeds(provider.cluster().address()) // join provider cluster
+        .build().proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
         .create();
 
-    m.cluster().listenMembership().subscribe(event->{
-      if(event.isAdded()){
-        String result = service.greeting("joe");
+    String result = service.greeting("joe");
 
-        // print the greeting.
-        System.out.println(result);
-      }
-    });
+    // print the greeting.
+    System.out.println(result);
+
+    System.exit(0);
   }
 
 

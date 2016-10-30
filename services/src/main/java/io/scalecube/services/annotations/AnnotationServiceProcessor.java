@@ -75,7 +75,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
 
         if (methods.containsKey(methodName)) {
-          throw new IllegalStateException("Service method with name " + methodName + " already exists");
+          throw new IllegalStateException("Service method with result " + methodName + " already exists");
         }
         methods.put(methodName, method);
       }

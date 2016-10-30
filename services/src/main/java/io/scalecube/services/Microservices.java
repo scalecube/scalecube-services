@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,13 +22,15 @@ public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
   private final static ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
-
-  private final ServiceRegistry serviceRegistry;
-  private final ServiceProxytFactory proxyFactory;
-
-  private final ServiceDispatcher localDispatcher;
+  
   private final ICluster cluster;
-
+  
+  private final ServiceRegistry serviceRegistry;
+  
+  private final ServiceProxytFactory proxyFactory;
+  
+  private final ServiceDispatcher localDispatcher;
+  
   private Microservices(ICluster cluster, Optional<Object[]> services,boolean isSeed) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistry(cluster,services, serviceProcessor,isSeed);
@@ -53,10 +54,6 @@ public class Microservices {
     return serviceRegistry.services();
   }
 
-  public Collection<ServiceInstance> serviceLookup(String serviceName) {
-    return serviceRegistry.serviceLookup(serviceName);
-  }
-
   public static final class Builder {
    
     private Integer port = null;
@@ -67,7 +64,10 @@ public class Microservices {
 
       ClusterConfig cfg = getClusterConfig();
       
-      Microservices microserices = new Microservices(Cluster.joinAwait(cfg),services,seeds==null);
+      Microservices microserices = new Microservices(
+          Cluster.joinAwait(cfg),
+          services,
+          seeds==null);
       
       return microserices;
     }
@@ -112,71 +112,24 @@ public class Microservices {
     return new Builder();
   }
 
-  public RegistrationContext registry() {
-    return new RegistrationContext();
-  }
-
-
-  public class RegistrationContext {
-
-    public static final String TAG_MICROSERVICE = "microservice";
-
-    private Object service;
-
-    public Object service() {
-      return service;
-    }
-
-    private Router router;
-
-    public Router router() {
-      return router;
-    }
-
-    private String[] tags = {TAG_MICROSERVICE};
-
-    public String[] tags() {
-      return tags;
-    }
-
-    public RegistrationContext tags(String... tags) {
-      this.tags = tags;
-      return this;
-    }
-
-    public RegistrationContext service(Object service) {
-      this.service = service;
-      return this;
-    }
-
-    public RegistrationContext router(Router router) {
-      this.router = router;
-      return this;
-    }
-
-    public void register() {
-      LOGGER.debug("register service {} tags {}", this.service, this.tags);
-      serviceRegistry.registerService(this.service, this.tags);
-    }
-
-
-  }
-
+  
   public ProxyContext proxy() {
     return new ProxyContext();
   }
 
   public class ProxyContext {
-
     private Class<?> api;
 
+    private Class<? extends Router> router = RoundRubinServiceRouter.class;
+    
+    public <T> T create() {
+      LOGGER.debug("create service api {} router {}", this.api, router);
+      return (T) createProxy(this.api, router);
+    }
+    
     public Class<?> api() {
       return api;
     }
-
-    private Class<? extends Router> router = RoundRubinServiceRouter.class;
-    private int timeOut = 10;
-    private TimeUnit timeUnit = TimeUnit.SECONDS;
 
     public Class<? extends Router> router() {
       return router;
@@ -190,23 +143,10 @@ public class Microservices {
     public ProxyContext router(Class<? extends Router> router) {
       this.router = router;
       return this;
-    }
-
-    public <T> T create() {
-      LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, router);
-    }
-
-    public ProxyContext timeout(int timeOut, TimeUnit timeUnit) {
-      this.timeOut = timeOut;
-      this.timeUnit = timeUnit;
-      return this;
-    }
+    }  
   }
 
-  
-
-  public static Map<String, String> metadata(Object... services) {
+  private static Map<String, String> metadata(Object... services) {
     Map<String, String> result = new HashMap<>();
 
     for (Object service : services) {
@@ -218,7 +158,6 @@ public class Microservices {
         });
       }
     }
-
     return result;
   }
 

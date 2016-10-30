@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
 public @interface Service {
 
   /**
-   * Name of the service. If not specified service class name will be used.
+   * Name of the service. If not specified service class result will be used.
    */
   String value() default "";
 
