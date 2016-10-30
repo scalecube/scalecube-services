@@ -12,11 +12,13 @@ import io.scalecube.transport.Message;
 import org.junit.Test;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServicesIT {
 
   private static AtomicInteger port = new AtomicInteger(4000);
+
   /**
    * NATIVE TESTING
    */
@@ -39,7 +41,7 @@ public class ServicesIT {
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         assertTrue(result.equals(" hello to: joe"));
-     // print the greeting.
+        // print the greeting.
         System.out.println("simpleAsyncInvoke :" + result);
       } else {
         // print the greeting.
@@ -359,4 +361,49 @@ public class ServicesIT {
     assertTrue(result.data().equals(" hello to: joe"));
 
   }
+
+  @Test
+  public void testRoundRubinLogic() {
+    // Create gateway cluster instance.
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    // Create microservices instance cluster.
+    Microservices provider1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(new HelloWorldComponent())
+        .build();
+
+    // Create microservices instance cluster.
+    Microservices provider2 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(new HelloWorldComponent())
+        .build();
+
+    GreetingService service = gateway.proxy()
+        .api(GreetingService.class) // create proxy for GreetingService API
+        .create();
+
+    CompletableFuture<Message> result1 = service.asyncGreetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<Message> result2 = service.asyncGreetingMessage(Message.builder().data("joe").build());
+
+    CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
+    combined.whenComplete((v, x) -> {
+      try {
+        // print the greeting.
+        System.out.println("messageDistributedSyncBlockingCallExample :" + result1.get());
+        System.out.println("messageDistributedSyncBlockingCallExample :" + result2.get());
+ 
+        boolean success = !result1.get().sender().equals(result2.get().sender());
+        assertTrue(success);
+      } catch (Throwable e) {
+        // TODO Auto-generated catch block
+        e.printStackTrace();
+      }
+    });
+  }
+
 }
