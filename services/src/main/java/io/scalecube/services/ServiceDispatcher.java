@@ -13,6 +13,11 @@ public class ServiceDispatcher {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDispatcher.class);
 
+  /**
+   * ServiceDispatcher constructor to listen on incoming network service request.
+   * @param cluster instance to listen on events.
+   * @param registry service registry instance for dispatching.
+   */
   public ServiceDispatcher(final ICluster cluster, final IServiceRegistry registry) {
 
     cluster.listen().filter(message -> {
