@@ -4,6 +4,7 @@ import io.scalecube.transport.Address;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Arrays;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -46,13 +47,13 @@ public class ServiceReference {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (o == null || getClass() != o.getClass())
+    }else if (o == null || getClass() != o.getClass()) {
       return false;
+    }
     ServiceReference that = (ServiceReference) o;
-    return Objects.equals(memberId, that.memberId) &&
-        Objects.equals(qualifier, that.qualifier);
+    return Objects.equals(memberId, that.memberId) && Objects.equals(qualifier, that.qualifier);
   }
 
   @Override
@@ -60,16 +61,14 @@ public class ServiceReference {
     return Objects.hash(memberId, qualifier);
   }
 
-  @Override
-  public String toString() {
-    return "ServiceReference{" +
-        "memberId='" + memberId + '\'' +
-        ", qualifier='" + qualifier + '\'' +
-        '}';
-  }
-
   public static ServiceReference create(ServiceDefinition serviceDefinition, String memberId, Address address,
       String[] tags) {
     return new ServiceReference(memberId, serviceDefinition.qualifier(), address, tags);
+  }
+  
+  @Override
+  public String toString() {
+    return "ServiceReference [memberId=" + memberId + ", qualifier=" + qualifier + ", address=" + address + ", tags="
+        + Arrays.toString(tags) + "]";
   }
 }
