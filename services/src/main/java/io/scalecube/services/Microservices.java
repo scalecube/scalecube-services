@@ -22,18 +22,18 @@ public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
   private final static ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
-  
+
   private final ICluster cluster;
-  
+
   private final ServiceRegistry serviceRegistry;
-  
+
   private final ServiceProxytFactory proxyFactory;
-  
+
   private final ServiceDispatcher localDispatcher;
-  
-  private Microservices(ICluster cluster, Optional<Object[]> services,boolean isSeed) {
+
+  private Microservices(ICluster cluster, Optional<Object[]> services, boolean isSeed) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistry(cluster,services, serviceProcessor,isSeed);
+    this.serviceRegistry = new ServiceRegistry(cluster, services, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxytFactory(serviceRegistry, serviceProcessor);
     localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
   }
@@ -41,7 +41,7 @@ public class Microservices {
   public ICluster cluster() {
     return this.cluster;
   }
-  
+
   public void unregisterService(Object serviceObject) {
     serviceRegistry.unregisterService(serviceObject);
   }
@@ -55,7 +55,7 @@ public class Microservices {
   }
 
   public static final class Builder {
-   
+
     private Integer port = null;
     private Address[] seeds;
     private Optional<Object[]> services = Optional.empty();
@@ -63,22 +63,22 @@ public class Microservices {
     public Microservices build() {
 
       ClusterConfig cfg = getClusterConfig();
-      
+
       Microservices microserices = new Microservices(
           Cluster.joinAwait(cfg),
           services,
-          seeds==null);
-      
+          seeds == null);
+
       return microserices;
     }
 
     private ClusterConfig getClusterConfig() {
       Map<String, String> metadata = new HashMap<String, String>();
-      
+
       if (services.isPresent()) {
         metadata = Microservices.metadata(services.get());
       }
-      
+
       ClusterConfig cfg;
       if (port != null && seeds != null) {
         cfg = ConfigAssist.create(port, seeds, metadata);
@@ -112,7 +112,7 @@ public class Microservices {
     return new Builder();
   }
 
-  
+
   public ProxyContext proxy() {
     return new ProxyContext();
   }
@@ -121,12 +121,12 @@ public class Microservices {
     private Class<?> api;
 
     private Class<? extends Router> router = RoundRubinServiceRouter.class;
-    
+
     public <T> T create() {
       LOGGER.debug("create service api {} router {}", this.api, router);
       return (T) createProxy(this.api, router);
     }
-    
+
     public Class<?> api() {
       return api;
     }
@@ -143,7 +143,7 @@ public class Microservices {
     public ProxyContext router(Class<? extends Router> router) {
       this.router = router;
       return this;
-    }  
+    }
   }
 
   private static Map<String, String> metadata(Object... services) {

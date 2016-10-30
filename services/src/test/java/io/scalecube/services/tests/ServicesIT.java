@@ -24,7 +24,7 @@ public class ServicesIT {
     Microservices microservices = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = microservices.proxy()
         .api(GreetingService.class)
@@ -37,28 +37,28 @@ public class ServicesIT {
       if (ex == null) {
         assertTrue(result.equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("simpleAsyncInvoke :" +  result);
+        System.out.println("simpleAsyncInvoke :" + result);
       } else {
         // print the greeting.
         System.out.println(ex);
       }
     });
-    
+
     microservices.cluster().shutdown();
   }
-  
+
   @Test
   public void distributedAsyncInvoke() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = consumer.proxy()
         .api(GreetingService.class)
@@ -77,7 +77,7 @@ public class ServicesIT {
       }
     });
   }
-  
+
   @Test
   public void simpleSyncBlockingCallExample() {
     // Create microservices instance.
@@ -92,7 +92,7 @@ public class ServicesIT {
 
     // print the greeting.
     System.out.println("simpleSyncBlockingCallExample :" + result);
-    
+
     assertTrue(result.equals(" hello to: joe"));
   }
 
@@ -117,8 +117,8 @@ public class ServicesIT {
     assertTrue(result.equals(" hello to: joe"));
 
   }
-  
-  
+
+
   /**
    * POJO TESTING
    */
@@ -128,7 +128,7 @@ public class ServicesIT {
     Microservices microservices = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = microservices.proxy()
         .api(GreetingService.class)
@@ -141,28 +141,28 @@ public class ServicesIT {
       if (ex == null) {
         assertTrue(result.result().equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("simpleAsyncInvoke :" +  result);
+        System.out.println("simpleAsyncInvoke :" + result);
       } else {
         // print the greeting.
         System.out.println(ex);
       }
     });
-    
+
     microservices.cluster().shutdown();
   }
-  
+
   @Test
   public void pojoDistributedAsyncInvoke() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = consumer.proxy()
         .api(GreetingService.class)
@@ -181,7 +181,7 @@ public class ServicesIT {
       }
     });
   }
-  
+
   @Test
   public void pojoSyncBlockingCallExample() {
     // Create microservices instance.
@@ -196,7 +196,7 @@ public class ServicesIT {
 
     // print the greeting.
     System.out.println("simpleSyncBlockingCallExample :" + result.result());
-    
+
     assertTrue(result.result().equals(" hello to: joe"));
   }
 
@@ -221,11 +221,9 @@ public class ServicesIT {
     assertTrue(result.result().equals(" hello to: joe"));
 
   }
-  
-  
-  
-  
-  
+
+
+
   /**
    * MESSAGE TESTING
    */
@@ -235,7 +233,7 @@ public class ServicesIT {
     Microservices microservices = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = microservices.proxy()
         .api(GreetingService.class)
@@ -248,28 +246,28 @@ public class ServicesIT {
       if (ex == null) {
         assertTrue(result.data().equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("simpleAsyncInvoke :" +  result);
+        System.out.println("simpleAsyncInvoke :" + result);
       } else {
         // print the greeting.
         System.out.println(ex);
       }
     });
-    
+
     microservices.cluster().shutdown();
   }
-  
+
   @Test
   public void messageDistributedAsyncInvoke() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = consumer.proxy()
         .api(GreetingService.class)
@@ -288,7 +286,7 @@ public class ServicesIT {
       }
     });
   }
-  
+
   @Test
   public void messageSyncBlockingCallExample() {
     // Create microservices instance.
@@ -303,7 +301,7 @@ public class ServicesIT {
 
     // print the greeting.
     System.out.println("simpleSyncBlockingCallExample :" + result.data());
-    
+
     assertTrue(result.data().equals(" hello to: joe"));
   }
 

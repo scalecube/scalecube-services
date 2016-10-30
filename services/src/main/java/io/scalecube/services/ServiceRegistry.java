@@ -28,7 +28,8 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
 
-  public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceprocessor, boolean isSeed) {
+  public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceprocessor,
+      boolean isSeed) {
     checkArgument(cluster != null);
     this.serviceProcessor = serviceprocessor;
     this.cluster = cluster;
@@ -38,32 +39,33 @@ public class ServiceRegistry implements IServiceRegistry {
         registerService(service, null);
       }
     }
-    if(!isSeed && cluster.otherMembers().isEmpty()){
+    if (!isSeed && cluster.otherMembers().isEmpty()) {
       try {
         future.get();
-      } catch (Exception e) {}
-    }else{
+      } catch (Exception e) {
+      }
+    } else {
       loadClusterServices();
     }
   }
 
   private CompletableFuture<Void> listenCluster() {
     CompletableFuture<Void> future = new CompletableFuture<>();
-    
+
     cluster.listenMembership().subscribe(event -> {
-      if(event.isAdded()){
+      if (event.isAdded()) {
         loadMemberServices(DiscoveryType.ADDED, event.member());
-      } else if (event.isRemoved()){
+      } else if (event.isRemoved()) {
         loadMemberServices(DiscoveryType.RMOVED, event.member());
       }
-      if(!cluster.members().isEmpty()){
+      if (!cluster.members().isEmpty()) {
         future.complete(null);
       }
     });
-    
+
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
         () -> loadClusterServices(), 10, 10, TimeUnit.SECONDS);
-    
+
     return future;
   }
 
@@ -73,28 +75,29 @@ public class ServiceRegistry implements IServiceRegistry {
     });
   }
 
-  private enum DiscoveryType{
+  private enum DiscoveryType {
     ADDED, RMOVED, DISCOVERED
-  } 
+  }
+
   private void loadMemberServices(DiscoveryType type, Member member) {
-    
+
     member.metadata().entrySet().stream().forEach(qualifier -> {
       ServiceReference serviceRef = new ServiceReference(
           member.id(),
           qualifier.getKey(),
           member.address(),
           new String[0]);
-      LOGGER.debug("Member: {} is {} : {}", member,type, serviceRef );
+      LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
       if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
         serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
-      } else if(type.equals(DiscoveryType.RMOVED)){
+      } else if (type.equals(DiscoveryType.RMOVED)) {
         serviceInstances.remove(serviceRef);
       }
     });
   }
 
 
- 
+
   public void registerService(Object serviceObject, String[] tags) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);

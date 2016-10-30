@@ -13,8 +13,8 @@ import java.lang.annotation.Target;
 public @interface ServiceMethod {
 
   /**
-   * Name of the method. In case if not provided will be used the result of annotated method, but with this annotation you
-   * can override method result so it won't depend on specific result in the code.
+   * Name of the method. In case if not provided will be used the result of annotated method, but with this annotation
+   * you can override method result so it won't depend on specific result in the code.
    */
   String value() default "";
 

@@ -57,9 +57,9 @@ public class ServiceProxytFactory {
             CompletableFuture<T> f = new CompletableFuture<T>();
             f.completeExceptionally(
                 new IllegalStateException("No reachable member with such service: " + method.getName()));
-            if(method.getReturnType().isAssignableFrom(CompletableFuture.class)){
+            if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
               return f;
-            }else{
+            } else {
               return null;
             }
           }

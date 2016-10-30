@@ -6,15 +6,16 @@ import java.lang.reflect.Type;
 
 public class ServiceDefinition {
 
-  
+
   private final Class<?> serviceInterface;
   private final String qualifier;
   private final Method method;
- 
+
   private final Type returnType;
   private final Type parameterizedType;
 
-  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method,Type returnType, Type parameterizedType) {
+  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method, Type returnType,
+      Type parameterizedType) {
     this.serviceInterface = serviceInterface;
     this.qualifier = serviceName;
     this.method = method;
@@ -25,12 +26,12 @@ public class ServiceDefinition {
   public Type returnType() {
     return returnType;
   }
- 
+
   public Type parameterizedType() {
     return parameterizedType;
   }
- 
-  
+
+
   public Class<?> serviceInterface() {
     return serviceInterface;
   }
@@ -52,7 +53,7 @@ public class ServiceDefinition {
   }
 
   public static ServiceInstance toLocalServiceInstance(ServiceDefinition def, Object serviceObject, String memberId,
-      String[] tags,Type returnType) {
+      String[] tags, Type returnType) {
     return new LocalServiceInstance(serviceObject,
         memberId,
         def.serviceInterface(),
@@ -63,5 +64,5 @@ public class ServiceDefinition {
   }
 
 
-  
+
 }

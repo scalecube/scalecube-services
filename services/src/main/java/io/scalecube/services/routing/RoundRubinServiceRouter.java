@@ -15,7 +15,7 @@ import io.scalecube.services.ServiceRegistry;
 
 public class RoundRubinServiceRouter implements Router {
   private static final Logger LOGGER = LoggerFactory.getLogger(RoundRubinServiceRouter.class);
-  
+
   private final IServiceRegistry serviceRegistry;
 
   private final ConcurrentMap<ServiceDefinition, AtomicInteger> roundrubin = new ConcurrentHashMap<>();

@@ -10,7 +10,7 @@ import io.scalecube.transport.Message;
 
 public class LocalServiceDispatcher {
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceDispatcher.class);
-  
+
   private final ICluster cluster;
   private final IServiceRegistry registry;
 

@@ -28,15 +28,13 @@ public class HelloWorldComponent implements GreetingService {
   @Override
   public Message greetingMessage(Message request) {
     return Message.builder().data(
-        " hello to: " + request.data() 
-        ).build();
+        " hello to: " + request.data()).build();
   }
 
   @Override
-  public CompletableFuture<Message> asyncGreetingMessage(Message request) { 
+  public CompletableFuture<Message> asyncGreetingMessage(Message request) {
     return CompletableFuture.completedFuture(
-        Message.builder().data(" hello to: " + request.data()).build()
-        );
+        Message.builder().data(" hello to: " + request.data()).build());
   }
 
 }

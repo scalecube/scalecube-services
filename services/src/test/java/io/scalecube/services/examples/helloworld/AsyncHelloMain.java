@@ -13,9 +13,9 @@ public class AsyncHelloMain {
   public static void main(String[] args) {
 
     simpleAsyncInvoke();
-    
+
     distributedAsyncInvoke();
-    
+
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
@@ -27,7 +27,7 @@ public class AsyncHelloMain {
     Microservices microservices = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = microservices.proxy()
         .api(GreetingService.class)
@@ -45,22 +45,22 @@ public class AsyncHelloMain {
         System.out.println(ex);
       }
     });
-    
+
     microservices.cluster().shutdown();
   }
-  
-  
+
+
   private static void distributedAsyncInvoke() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .services(new HelloWorldComponent())
         .build();
-    
+
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
         .build();
-    
+
     // get a proxy to the service api.
     GreetingService service = consumer.proxy()
         .api(GreetingService.class)
@@ -77,10 +77,10 @@ public class AsyncHelloMain {
         // print the greeting.
         System.out.println(ex);
       }
-      
+
       System.exit(0);
     });
   }
 
- 
+
 }

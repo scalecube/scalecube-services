@@ -58,7 +58,8 @@ public class RemoteServiceInstance implements ServiceInstance {
     CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
     sendFuture.whenComplete((success, error) -> {
       if (error != null) {
-        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}", requestMessage.correlationId(),
+        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
+            requestMessage.correlationId(),
             requestMessage, error);
         messageFuture.completeExceptionally(error);
       }
@@ -88,7 +89,8 @@ public class RemoteServiceInstance implements ServiceInstance {
     CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
     sendFuture.whenComplete((success, error) -> {
       if (error != null) {
-        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}", requestMessage.correlationId(),
+        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
+            requestMessage.correlationId(),
             requestMessage, error);
         messageFuture.completeExceptionally(error);
       }

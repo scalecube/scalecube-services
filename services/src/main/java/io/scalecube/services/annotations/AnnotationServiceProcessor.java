@@ -22,7 +22,7 @@ import io.scalecube.services.ServiceDefinition;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
   private static final Logger LOGGER = LoggerFactory.getLogger(AnnotationServiceProcessor.class);
-  
+
   private static final String METHOD_NAME_DELIMITER = "-";
 
   @Override
@@ -60,8 +60,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   private Type extractReturnType(Type type) {
     if (type instanceof ParameterizedType) {
       return ((ParameterizedType) type).getActualTypeArguments()[0];
-    }
-    else 
+    } else
       return Object.class;
   }
 
