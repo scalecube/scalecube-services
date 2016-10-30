@@ -9,6 +9,12 @@ import java.util.Map;
 
 public class ConfigAssist {
 
+  /**
+   * creates ClusterConfig instance by given port, metadata.
+   * @param port provided port requested in the config.
+   * @param metadata provided metatadata requested in the config.
+   * @return newly created ClusterConfig.
+   */
   public static ClusterConfig create(Integer port, Map<String, String> metadata) {
     return ClusterConfig.builder()
         .transportConfig(
@@ -24,6 +30,11 @@ public class ConfigAssist {
     return ClusterConfig.builder().build();
   }
 
+  /**
+   * creates ClusterConfig instance by given metadata.
+   * @param metadata provided metatadata requested in the config.
+   * @return newly created ClusterConfig.
+   */
   public static ClusterConfig create(Map<String, String> metadata) {
     return ClusterConfig.builder()
         .membershipConfig(MembershipConfig.builder()
@@ -32,6 +43,12 @@ public class ConfigAssist {
         .build();
   }
 
+  /**
+   * creates ClusterConfig instance by given seeds, metadata.
+   * @param seeds provided seeds requested in the config.
+   * @param metadata provided metatadata requested in the config.
+   * @return newly created ClusterConfig.
+   */
   public static ClusterConfig create(Address[] seeds, Map<String, String> metadata) {
     return ClusterConfig.builder()
         .membershipConfig(MembershipConfig.builder()
@@ -40,7 +57,14 @@ public class ConfigAssist {
             .build())
         .build();
   }
-
+  
+  /**
+   * creates ClusterConfig instance by given port, seeds, metadata.
+   * @param port provided port requested in the config.
+   * @param seeds provided seeds requested in the config.
+   * @param metadata provided metatadata requested in the config.
+   * @return newly created ClusterConfig.
+   */
   public static ClusterConfig create(int port, Address[] seeds, Map<String, String> metadata) {
     return ClusterConfig.builder()
         .transportConfig(

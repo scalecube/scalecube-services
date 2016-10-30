@@ -22,6 +22,11 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String[] tags;
   private final String qualifier;
 
+  /**
+   * RemoteServiceinstance constructor to initiate instance.
+   * @param cluster to be used for instance context.
+   * @param serviceReference service reference of this instance.
+   */
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
     this.qualifier = serviceReference.qualifier();
     this.cluster = cluster;

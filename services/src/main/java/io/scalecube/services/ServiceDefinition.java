@@ -14,6 +14,14 @@ public class ServiceDefinition {
   private final Type returnType;
   private final Type parameterizedType;
 
+  /**
+   * Constructor of service definition instance.
+   * @param serviceInterface the class of the service interface.
+   * @param serviceName - the qualifier of the service.
+   * @param method - the method to invoke the service.
+   * @param returnType the type of the expected result.
+   * @param parameterizedType the type of the generic class of the result (if any).
+   */
   public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method, Type returnType,
       Type parameterizedType) {
     this.serviceInterface = serviceInterface;

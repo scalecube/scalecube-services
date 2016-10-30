@@ -59,7 +59,11 @@ public class Microservices {
     private Integer port = null;
     private Address[] seeds;
     private Optional<Object[]> services = Optional.empty();
-
+    
+    /**
+     * microsrrvices instance builder.
+     * @return Microservices instance.
+     */
     public Microservices build() {
 
       ClusterConfig cfg = getClusterConfig();

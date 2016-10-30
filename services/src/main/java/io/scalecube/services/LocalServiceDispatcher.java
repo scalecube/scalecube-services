@@ -14,6 +14,11 @@ public class LocalServiceDispatcher {
   private final ICluster cluster;
   private final IServiceRegistry registry;
 
+  /**
+   * constructor initiating LocalServiceDispatcher provided cluster and service registry.
+   * @param cluster to be used for this dispacher.
+   * @param registry to be used for this dispacher.
+   */
   public LocalServiceDispatcher(final ICluster cluster, final IServiceRegistry registry) {
     this.cluster = cluster;
     this.registry = registry;
