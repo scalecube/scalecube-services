@@ -45,7 +45,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
         Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
     Map<String, Method> methods = parseServiceMethods(serviceInterface);
 
-    ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap();
+    ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap<>();
 
     methods.entrySet().forEach(method -> {
       serviceDefinitions.put(method.getKey(), new ServiceDefinition(
