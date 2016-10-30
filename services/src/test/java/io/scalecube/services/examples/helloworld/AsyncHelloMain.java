@@ -1,10 +1,11 @@
-package io.scalecube.services.examples;
+package io.scalecube.services.examples.helloworld;
 
 
 import java.util.concurrent.CompletableFuture;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.examples.GreetingService;
+import io.scalecube.services.examples.HelloWorldComponent;
 
 public class AsyncHelloMain {
 
@@ -32,7 +33,7 @@ public class AsyncHelloMain {
         // print the greeting.
         System.out.println(ex);
       }
-    }).join();
+    });
 
 
   }

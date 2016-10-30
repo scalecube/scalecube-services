@@ -43,8 +43,13 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private void listenCluster() {
     cluster.listenMembership().subscribe(event -> {
-      loadMemberServices(event.isAdded(), event.member());
+      if(event.isAdded()){
+        loadMemberServices(DiscoveryType.ADDED, event.member());
+      } else if (event.isRemoved()){
+        loadMemberServices(DiscoveryType.RMOVED, event.member());
+      }
     });
+    
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
         () -> loadClusterServices(), 10, 10, TimeUnit.SECONDS);
 
@@ -52,24 +57,25 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private void loadClusterServices() {
     cluster.otherMembers().forEach(member -> {
-      loadMemberServices(true, member);
+      loadMemberServices(DiscoveryType.DISCOVERED, member);
     });
   }
 
-  private void loadMemberServices(boolean added, Member member) {
-    System.out.println("event:" + added + " - " + member + " ->>> ");
+  private enum DiscoveryType{
+    ADDED, RMOVED, DISCOVERED
+  } 
+  private void loadMemberServices(DiscoveryType type, Member member) {
+    
     member.metadata().entrySet().stream().forEach(qualifier -> {
       ServiceReference serviceRef = new ServiceReference(
           member.id(),
           qualifier.getKey(),
           member.address(),
           new String[0]);
-
-      if (added) {
-        System.out.println("is added: " + serviceRef);
+      LOGGER.debug("Member: {} is {} : {}", member,type, serviceRef );
+      if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
         serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
-      } else {
-        System.out.println("is removed: " + serviceRef);
+      } else if(type.equals(DiscoveryType.RMOVED)){
         serviceInstances.remove(serviceRef);
       }
     });
@@ -170,7 +176,7 @@ public class ServiceRegistry implements IServiceRegistry {
 
   @Override
   public Collection<ServiceInstance> serviceLookup(final String qualifier) {
-    checkArgument(qualifier != null, "Service name can't be null");
+    checkArgument(qualifier != null, "Service qualifier can't be null");
 
     return serviceInstances.entrySet().stream()
         .filter(entry -> isValid(entry.getKey(), qualifier))

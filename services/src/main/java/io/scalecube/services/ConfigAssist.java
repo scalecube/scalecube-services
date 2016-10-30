@@ -23,7 +23,7 @@ public class ConfigAssist {
   public static ClusterConfig create() {
     return ClusterConfig.builder().build();
   }
-  
+
   public static ClusterConfig create(Map<String, String> metadata) {
     return ClusterConfig.builder()
         .membershipConfig(MembershipConfig.builder()
@@ -31,8 +31,8 @@ public class ConfigAssist {
             .build())
         .build();
   }
-  
-  public static ClusterConfig create(Address[] seeds,Map<String, String> metadata) {
+
+  public static ClusterConfig create(Address[] seeds, Map<String, String> metadata) {
     return ClusterConfig.builder()
         .membershipConfig(MembershipConfig.builder()
             .seedMembers(seeds)
@@ -40,11 +40,12 @@ public class ConfigAssist {
             .build())
         .build();
   }
-  
-  public static ClusterConfig create(int port,Address[] seeds, Map<String, String> metadata) {
+
+  public static ClusterConfig create(int port, Address[] seeds, Map<String, String> metadata) {
     return ClusterConfig.builder()
         .transportConfig(
-            TransportConfig.builder().port(port)
+            TransportConfig.builder()
+                .port(port)
                 .build())
         .membershipConfig(MembershipConfig.builder()
             .seedMembers(seeds)
@@ -53,5 +54,5 @@ public class ConfigAssist {
         .build();
   }
 
-  
+
 }

@@ -13,13 +13,11 @@ import org.slf4j.LoggerFactory;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
-import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRubinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.TransportConfig;
 
 public class Microservices {
 
@@ -67,7 +65,7 @@ public class Microservices {
     private ServiceDiscovery discovery;
     private Integer port = null;
     private Address[] seeds;
-    private Object[] services;
+    private Optional<Object[]> services = Optional.empty();
 
     public Builder cluster(ICluster cluster) {
       this.cluster = cluster;
@@ -80,30 +78,37 @@ public class Microservices {
     }
 
     public Microservices build() {
-      
+
       ClusterConfig cfg = getClusterConfig();
-      
+
       this.cluster = Cluster.joinAwait(cfg);
 
       Microservices microserices = new Microservices(cluster, Optional.ofNullable(discovery));
-      for (Object service : services) {
-        microserices.registry()
-          .service(service)
-          .register();
+      if (services.isPresent()) {
+        for (Object service : services.get()) {
+          microserices.registry()
+              .service(service)
+              .register();
+        }
       }
       return microserices;
     }
 
     private ClusterConfig getClusterConfig() {
-      Map<String, String> metadata = Microservices.metadata(services);
-      ClusterConfig cfg;      
-      if(port !=null && seeds!=null){
-        cfg = ConfigAssist.create(port,seeds,metadata);
-      }else if (seeds!=null){
-        cfg = ConfigAssist.create(seeds,metadata);
-      }else if(port!=null){
-        cfg = ConfigAssist.create(port,metadata);
-      }else{
+      Map<String, String> metadata = new HashMap<String, String>();
+      
+      if (services.isPresent()) {
+        metadata = Microservices.metadata(services.get());
+      }
+      
+      ClusterConfig cfg;
+      if (port != null && seeds != null) {
+        cfg = ConfigAssist.create(port, seeds, metadata);
+      } else if (seeds != null) {
+        cfg = ConfigAssist.create(seeds, metadata);
+      } else if (port != null) {
+        cfg = ConfigAssist.create(port, metadata);
+      } else {
         cfg = ConfigAssist.create(metadata);
       }
       return cfg;
@@ -114,13 +119,13 @@ public class Microservices {
       return this;
     }
 
-    public Builder seeds(Address[] seeds) {
+    public Builder seeds(Address... seeds) {
       this.seeds = seeds;
       return this;
     }
 
     public Builder services(Object... services) {
-      this.services = services;
+      this.services = Optional.of(services);
       return this;
     }
   }
