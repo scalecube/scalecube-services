@@ -24,35 +24,12 @@ public class ServiceDispatcher {
       try {
         Object result = serviceInstance.invoke(message, Optional.empty());
 
-        if (result == null) {
-          // Do nothing - fire and forget method
-        } else if (result instanceof CompletableFuture) {
-          CompletableFuture<?> futureResult = (CompletableFuture<?>) result;
-
-          futureResult.whenComplete((success, error) -> {
-            Message futureMessage = null;
-            if (error == null) {
-              if (success instanceof Message) {
-                Message successMessage = (Message) success;
-                futureMessage = Message.builder()
-                    .data(successMessage.data())
-                    .correlationId(message.correlationId())
-                    .build();
-              } else {
-                futureMessage = Message.builder()
-                    .data(success)
-                    .correlationId(message.correlationId())
-                    .build();
-              }
-
-              cluster.send(message.sender(), futureMessage); } ;
-          });
-        } else { // this is a sync request response call
-          Message responseMessage = Message.builder()
-              .data(result)
-              .correlationId(message.correlationId())
-              .build();
-          cluster.send(message.sender(), responseMessage);
+        if (result != null) {
+          if (result instanceof CompletableFuture) {
+            handleComputeable(cluster, message, result);
+          } else { // this is a sync request response call
+            handleSync(cluster, message, result);
+          }
         }
       } catch (Exception e) {
         cluster.send(message.sender(), Message.builder()
@@ -61,6 +38,36 @@ public class ServiceDispatcher {
             .correlationId(message.correlationId())
             .build());
       }
+    });
+  }
+
+  private void handleSync(final ICluster cluster, Message message, Object result) {
+    Message responseMessage = Message.builder()
+        .data(result)
+        .correlationId(message.correlationId())
+        .build();
+    cluster.send(message.sender(), responseMessage);
+  }
+
+  private void handleComputeable(final ICluster cluster, Message message, Object result) {
+    CompletableFuture<?> futureResult = (CompletableFuture<?>) result;
+ 
+    futureResult.whenComplete((success, error) -> {
+      Message futureMessage = null;
+      if (error == null) {
+        if (success instanceof Message) {
+          Message successMessage = (Message) success;
+          futureMessage = Message.builder()
+              .data(successMessage.data())
+              .correlationId(message.correlationId())
+              .build();
+        } else {
+          futureMessage = Message.builder()
+              .data(success)
+              .correlationId(message.correlationId())
+              .build();
+        }
+        cluster.send(message.sender(), futureMessage); } ;
     });
   }
 
