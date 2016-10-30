@@ -17,7 +17,7 @@ public class ServiceDispatcher {
 
     cluster.listen().filter(message -> {
       return message.qualifier() != null;
-    })  .subscribe(message -> {
+    }).subscribe(message -> {
 
       ServiceInstance serviceInstance = registry.getLocalInstance(message.qualifier());
 
@@ -45,7 +45,9 @@ public class ServiceDispatcher {
                     .build();
               }
 
-              cluster.send(message.sender(), futureMessage); };});
+              cluster.send(message.sender(), futureMessage);
+            } ;
+          });
         } else { // this is a sync request response call
           Message responseMessage = Message.builder()
               .data(result)
@@ -53,14 +55,12 @@ public class ServiceDispatcher {
               .build();
           cluster.send(message.sender(), responseMessage);
         }
-
       } catch (Exception e) {
         cluster.send(message.sender(), Message.builder()
             .data(e)
             .header("exception", "true")
             .correlationId(message.correlationId())
             .build());
-
       }
     });
   }
