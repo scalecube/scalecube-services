@@ -30,6 +30,7 @@ public class ServiceRegistry implements IServiceRegistry {
 
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
+   * 
    * @param cluster the cluster instance related to the service registry.
    * @param services optional services if relevant to this instance.
    * @param serviceprocessor - service processor.
@@ -50,7 +51,7 @@ public class ServiceRegistry implements IServiceRegistry {
       try {
         future.get();
       } catch (Exception ex) {
-        LOGGER.error("error while waiting to join the cluster members event",ex);
+        LOGGER.error("error while waiting to join the cluster members event", ex);
       }
     } else {
       loadClusterServices();
@@ -88,20 +89,21 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   private void loadMemberServices(DiscoveryType type, Member member) {
-
-    member.metadata().entrySet().stream().forEach(qualifier -> {
-      ServiceReference serviceRef = new ServiceReference(
-          member.id(),
-          qualifier.getKey(),
-          member.address(),
-          new String[0]);
-      LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
-      if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-        serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
-      } else if (type.equals(DiscoveryType.RMOVED)) {
-        serviceInstances.remove(serviceRef);
-      }
-    });
+    member.metadata().entrySet().stream()
+        .filter(entry -> "service".equals(entry.getValue())) // filter service tags
+        .forEach(entry -> {
+          ServiceReference serviceRef = new ServiceReference(
+              member.id(),
+              entry.getKey(),
+              member.address(),
+              new String[0]);
+          LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
+          if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
+            serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
+          } else if (type.equals(DiscoveryType.RMOVED)) {
+            serviceInstances.remove(serviceRef);
+          }
+        });
   }
 
 

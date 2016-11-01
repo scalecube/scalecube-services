@@ -158,7 +158,7 @@ public class Microservices {
       for (Class<?> serviceInterface : serviceInterfaces) {
         ConcurrentMap<String, ServiceDefinition> defs = serviceProcessor.introspectServiceInterface(serviceInterface);
         defs.entrySet().stream().forEach(entry -> {
-          result.put(entry.getValue().qualifier(), entry.getValue().method().getName());
+          result.put(entry.getValue().qualifier(), "service");
         });
       }
     }
