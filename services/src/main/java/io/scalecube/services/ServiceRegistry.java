@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -23,6 +24,8 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
 
+  private enum DiscoveryType {ADDED, REMOVED, DISCOVERED}
+
   private final ICluster cluster;
   private final ServiceProcessor serviceProcessor;
 
@@ -30,16 +33,16 @@ public class ServiceRegistry implements IServiceRegistry {
 
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
-   * 
+   *
    * @param cluster the cluster instance related to the service registry.
    * @param services optional services if relevant to this instance.
-   * @param serviceprocessor - service processor.
+   * @param serviceProcessor - service processor.
    * @param isSeed indication if this member is seed.
    */
-  public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceprocessor,
+  public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceProcessor,
       boolean isSeed) {
     checkArgument(cluster != null);
-    this.serviceProcessor = serviceprocessor;
+    this.serviceProcessor = serviceProcessor;
     this.cluster = cluster;
     CompletableFuture<Void> future = listenCluster();
     if (services.isPresent()) {
@@ -65,15 +68,14 @@ public class ServiceRegistry implements IServiceRegistry {
       if (event.isAdded()) {
         loadMemberServices(DiscoveryType.ADDED, event.member());
       } else if (event.isRemoved()) {
-        loadMemberServices(DiscoveryType.RMOVED, event.member());
+        loadMemberServices(DiscoveryType.REMOVED, event.member());
       }
       if (!cluster.members().isEmpty()) {
         future.complete(null);
       }
     });
 
-    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(
-        () -> loadClusterServices(), 10, 10, TimeUnit.SECONDS);
+    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
 
     return future;
   }
@@ -82,10 +84,6 @@ public class ServiceRegistry implements IServiceRegistry {
     cluster.otherMembers().forEach(member -> {
       loadMemberServices(DiscoveryType.DISCOVERED, member);
     });
-  }
-
-  private enum DiscoveryType {
-    ADDED, RMOVED, DISCOVERED
   }
 
   private void loadMemberServices(DiscoveryType type, Member member) {
@@ -100,12 +98,11 @@ public class ServiceRegistry implements IServiceRegistry {
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
-          } else if (type.equals(DiscoveryType.RMOVED)) {
+          } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
           }
         });
   }
-
 
   /**
    * register a service instance at the cluster.
@@ -121,11 +118,8 @@ public class ServiceRegistry implements IServiceRegistry {
       ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
-      serviceDefinitions.values().stream().forEach(definition -> {
-
-        ServiceReference serviceRef = ServiceReference.create(
-            definition, memberId, cluster.address(), tags);
-
+      serviceDefinitions.values().forEach(definition -> {
+        ServiceReference serviceRef = new ServiceReference(memberId, definition.qualifier(), cluster.address(), tags);
         ServiceInstance serviceDef = ServiceDefinition.toLocalServiceInstance(
             definition, serviceObject, memberId, tags, definition.returnType());
 
@@ -141,7 +135,6 @@ public class ServiceRegistry implements IServiceRegistry {
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
 
     serviceInterfaces.forEach(serviceInterface -> {
-
       // Process service interface
       ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
@@ -150,36 +143,29 @@ public class ServiceRegistry implements IServiceRegistry {
         ServiceReference serviceReference = toLocalServiceReference(serviceDefinition, null);
         serviceInstances.remove(serviceReference);
       });
-
     });
   }
 
   @Override
-  public Collection<ServiceInstance> serviceLookup(final String qualifier) {
-    checkArgument(qualifier != null, "Service qualifier can't be null");
-
+  public List<ServiceInstance> serviceLookup(final String serviceName) {
+    checkArgument(serviceName != null, "Service name can't be null");
     return serviceInstances.entrySet().stream()
-        .filter(entry -> isValid(entry.getKey(), qualifier))
+        .filter(entry -> isValid(entry.getKey(), serviceName))
         .map(Map.Entry::getValue)
         .collect(Collectors.toList());
   }
 
-
   @Override
   public ServiceInstance getLocalInstance(String serviceName) {
-
     return serviceInstances.values().stream()
-        .filter(entry -> entry.isLocal())
-        .filter(entry -> entry.qualifier().equals(serviceName))
-        .findFirst().get();
+        .filter(ServiceInstance::isLocal)
+        .filter(serviceInstance -> serviceInstance.serviceName().equals(serviceName))
+        .findFirst()
+        .orElse(null); //TODO [AK]: Return from method Optional<ServiceInstance> instead
   }
 
   public ServiceInstance serviceInstance(ServiceReference reference) {
     return serviceInstances.get(reference);
-  }
-
-  public ServiceInstance remoteServiceInstance(String serviceName) {
-    return serviceInstances.get(serviceName);
   }
 
   public Collection<ServiceInstance> services() {
@@ -187,13 +173,10 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition, String[] tags) {
-    return new ServiceReference(cluster.member().id(),
-        serviceDefinition.qualifier(),
-        cluster.address(),
-        tags);
+    return new ServiceReference(cluster.member().id(), serviceDefinition.qualifier(), cluster.address(), tags);
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {
-    return reference.qualifier().equals(qualifier);
+    return reference.serviceName().equals(qualifier);
   }
 }

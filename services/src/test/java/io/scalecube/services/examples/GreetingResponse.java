@@ -2,7 +2,7 @@ package io.scalecube.services.examples;
 
 public class GreetingResponse {
 
-  String result;
+  private final String result;
 
   public GreetingResponse(String result) {
     this.result = result;

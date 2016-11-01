@@ -16,13 +16,13 @@ public interface GreetingService {
   CompletableFuture<String> asyncGreeting(String string);
 
 
-  @ServiceMethod()
+  @ServiceMethod
   GreetingResponse greetingRequest(GreetingRequest request);
 
   @ServiceMethod
   CompletableFuture<GreetingResponse> asyncGreetingRequest(GreetingRequest string);
 
-  @ServiceMethod()
+  @ServiceMethod
   Message greetingMessage(Message request);
 
   @ServiceMethod

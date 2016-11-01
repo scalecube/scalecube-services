@@ -2,7 +2,7 @@ package io.scalecube.services.examples;
 
 public class GreetingRequest {
 
-  String name;
+  private final String name;
 
   public GreetingRequest(String name) {
     this.name = name;

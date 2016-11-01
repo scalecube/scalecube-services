@@ -18,27 +18,25 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final ICluster cluster;
   private final Address address;
   private final String memberId;
-  private final Boolean isLocal;
   private final String[] tags;
-  private final String qualifier;
+  private final String serviceName;
 
   /**
-   * RemoteServiceinstance constructor to initiate instance.
+   * Remote service instance constructor to initiate instance.
    * @param cluster to be used for instance context.
    * @param serviceReference service reference of this instance.
    */
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
-    this.qualifier = serviceReference.qualifier();
+    this.serviceName = serviceReference.serviceName();
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = serviceReference.tags();
-    this.isLocal = false;
   }
 
   @Override
-  public String qualifier() {
-    return qualifier;
+  public String serviceName() {
+    return serviceName;
   }
 
   private CompletableFuture<Message> futureInvokeMessage(final Message request) throws Exception {
@@ -111,34 +109,29 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public <T> Object invoke(Message request, Optional<ServiceDefinition> definition) throws Exception {
+  public Object invoke(Message request, Optional<ServiceDefinition> definition) throws Exception {
 
     // Try to call via messaging
     // Request message
 
     if (definition.get().returnType().equals(CompletableFuture.class)) {
-      if (definition.get().parameterizedType().equals(Message.class)) {
+      if (definition.get().parametrizedType().equals(Message.class)) {
         return futureInvokeMessage(request);
       } else {
         return futureInvokeGeneric(request);
       }
     } else {
-      CompletableFuture<T> future = futureInvokeGeneric(request);
-      Object obj = future.get();
-      return obj;
+      CompletableFuture<?> future = futureInvokeGeneric(request);
+      return future.get();
     }
   }
 
   private Message composeRequest(Message request, final String correlationId) {
-
-    Message requestMessage = Message.builder()
-        .data(request.data())
-        .header("service", qualifier())
-        .qualifier(qualifier())
+    return Message.withData(request.data())
+        .header("service", serviceName)
+        .qualifier(serviceName)
         .correlationId(correlationId)
         .build();
-
-    return requestMessage;
   }
 
   @Override
@@ -157,7 +150,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public Boolean isLocal() {
-    return this.isLocal;
+    return false;
   }
 
   public boolean isReachable() {
@@ -166,7 +159,9 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public String toString() {
-    return "RemoteServiceInstance [address=" + address + ", memberId=" + memberId + ", isLocal=" + isLocal + ", tags="
-        + Arrays.toString(tags) + "]";
+    return "RemoteServiceInstance [address=" + address
+        + ", memberId=" + memberId
+        + ", tags=" + Arrays.toString(tags)
+        + "]";
   }
 }

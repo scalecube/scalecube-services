@@ -1,9 +1,9 @@
-package io.scalecube.services.examples.helloworld;
+package io.scalecube.services.examples;
 
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingService;
-import io.scalecube.services.examples.HelloWorldComponent;
+import io.scalecube.services.examples.GreetingServiceImpl;
 
 public class SyncHelloMain {
 
@@ -17,7 +17,7 @@ public class SyncHelloMain {
   private static void simpleBlockingCallExample() {
     // Create microservices instance.
     GreetingService service = Microservices.builder()
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build()
         .proxy().api(GreetingService.class)
         .create();
@@ -32,7 +32,7 @@ public class SyncHelloMain {
   private static void distributedBlockingCallExample() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     GreetingService service = Microservices.builder()

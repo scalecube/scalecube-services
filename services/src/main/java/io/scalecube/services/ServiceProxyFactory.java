@@ -16,14 +16,14 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
-public class ServiceProxytFactory {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxytFactory.class);
+public class ServiceProxyFactory {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
 
   private final ServiceProcessor serviceProcessor;
   private ConcurrentMap<String, ServiceDefinition> serviceDefinitions;
   private RouterFactory routerFactory;
 
-  public ServiceProxytFactory(ServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
+  public ServiceProxyFactory(ServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
     this.routerFactory = new RouterFactory(serviceRegistry);
     this.serviceProcessor = serviceProcessor;
   }
@@ -52,15 +52,15 @@ public class ServiceProxytFactory {
           if (serviceInstance != null) {
             return serviceInstance.invoke(Message.builder()
                 .data(args[0])
-                .qualifier(serviceInstance.qualifier())
+                .qualifier(serviceInstance.serviceName())
                 .build(),
                 Optional.of(serviceDefinition));
 
           } else {
             LOGGER.error(
-                "Faild  to invoke service, No reachable member with such service definition [{}], args [{}]",
+                "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
                 serviceDefinition, args);
-            CompletableFuture<T> future = new CompletableFuture<T>();
+            CompletableFuture<T> future = new CompletableFuture<>();
             future.completeExceptionally(
                 new IllegalStateException("No reachable member with such service: " + method.getName()));
             if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
@@ -72,9 +72,9 @@ public class ServiceProxytFactory {
 
         } catch (RuntimeException e) {
           LOGGER.error(
-              "Faild  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
+              "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
               method, args, e);
-          CompletableFuture<T> future = new CompletableFuture<T>();
+          CompletableFuture<T> future = new CompletableFuture<>();
           future.completeExceptionally(
               new IllegalStateException("No reachable member with such service: " + method.getName(), e));
           return future;

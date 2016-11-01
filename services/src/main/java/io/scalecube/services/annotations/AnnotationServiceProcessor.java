@@ -1,13 +1,10 @@
 package io.scalecube.services.annotations;
 
+import com.google.common.base.Strings;
+
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServiceDefinition;
-
-import com.google.common.base.Strings;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -21,9 +18,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
-  private static final Logger LOGGER = LoggerFactory.getLogger(AnnotationServiceProcessor.class);
 
-  private static final String METHOD_NAME_DELIMITER = "-";
+  private static final String METHOD_NAME_DELIMITER = "/";
 
   @Override
   public Collection<Class<?>> extractServiceInterfaces(Object serviceObject) {
@@ -41,28 +37,21 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   public ConcurrentMap<String, ServiceDefinition> introspectServiceInterface(Class<?> serviceInterface) {
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     checkArgument(serviceAnnotation != null, "Not a service interface: %s", serviceInterface);
-    String serviceName =
-        Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
-    Map<String, Method> methods = parseServiceMethods(serviceInterface);
+
+    String serviceName = Strings.isNullOrEmpty(serviceAnnotation.value())
+        ? serviceInterface.getName()
+        : serviceAnnotation.value();
 
     ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap<>();
-
-    methods.entrySet().forEach(method -> {
-      serviceDefinitions.put(method.getKey(), new ServiceDefinition(
-          serviceInterface, serviceName + METHOD_NAME_DELIMITER + method.getKey(),
-          method.getValue(), method.getValue().getReturnType(),
-          extractReturnType(method.getValue().getGenericReturnType())));
+    Map<String, Method> methods = parseServiceMethods(serviceInterface);
+    methods.entrySet().forEach(entry -> {
+      String qualifier = serviceName + METHOD_NAME_DELIMITER + entry.getKey();
+      ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, qualifier, entry.getValue());
+      // TODO [AK]: Is it really supposed to be methodName -> methodDefinition?
+      serviceDefinitions.put(entry.getKey(), serviceDefinition);
     });
 
     return serviceDefinitions;
-  }
-
-  private Type extractReturnType(Type type) {
-    if (type instanceof ParameterizedType) {
-      return ((ParameterizedType) type).getActualTypeArguments()[0];
-    } else {
-      return Object.class;
-    }
   }
 
   private Map<String, Method> parseServiceMethods(Class<?> serviceInterface) {
@@ -70,12 +59,11 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     for (Method method : serviceInterface.getMethods()) {
       if (method.isAnnotationPresent(ServiceMethod.class)) {
         ServiceMethod serviceMethodAnnotation = method.getAnnotation(ServiceMethod.class);
-        String methodName =
-            Strings.isNullOrEmpty(serviceMethodAnnotation.value()) ? method.getName() : serviceMethodAnnotation.value();
-
-
+        String methodName = Strings.isNullOrEmpty(serviceMethodAnnotation.value())
+            ? method.getName()
+            : serviceMethodAnnotation.value();
         if (methods.containsKey(methodName)) {
-          throw new IllegalStateException("Service method with result " + methodName + " already exists");
+          throw new IllegalStateException("Service method with name '" + methodName + "' already exists");
         }
         methods.put(methodName, method);
       }

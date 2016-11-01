@@ -6,13 +6,12 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
-import io.scalecube.services.examples.HelloWorldComponent;
+import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServicesIT {
@@ -27,7 +26,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // get a proxy to the service api.
@@ -57,7 +56,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // Create microservices cluster.
@@ -94,7 +93,7 @@ public class ServicesIT {
     // Create microservices instance.
     GreetingService service = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build()
         .proxy().api(GreetingService.class)
         .create();
@@ -113,7 +112,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     GreetingService service = Microservices.builder()
@@ -142,7 +141,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // get a proxy to the service api.
@@ -172,7 +171,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // Create microservices cluster.
@@ -209,7 +208,7 @@ public class ServicesIT {
     // Create microservices instance.
     GreetingService service = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build()
         .proxy().api(GreetingService.class)
         .create();
@@ -228,7 +227,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     GreetingService service = Microservices.builder()
@@ -258,7 +257,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // get a proxy to the service api.
@@ -288,7 +287,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // Create microservices cluster.
@@ -324,7 +323,7 @@ public class ServicesIT {
     // Create microservices instance.
     GreetingService service = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build()
         .proxy().api(GreetingService.class)
         .create();
@@ -343,7 +342,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     GreetingService service = Microservices.builder()
@@ -373,14 +372,14 @@ public class ServicesIT {
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     GreetingService service = gateway.proxy()

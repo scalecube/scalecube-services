@@ -5,7 +5,7 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
-import io.scalecube.services.routing.RoundRubinServiceRouter;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
 
@@ -27,15 +27,15 @@ public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
 
-  private final ServiceProxytFactory proxyFactory;
+  private final ServiceProxyFactory proxyFactory;
 
   private final ServiceDispatcher localDispatcher;
 
   private Microservices(ICluster cluster, Optional<Object[]> services, boolean isSeed) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistry(cluster, services, serviceProcessor, isSeed);
-    this.proxyFactory = new ServiceProxytFactory(serviceRegistry, serviceProcessor);
-    localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
+    this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
+    this.localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
   }
 
   public ICluster cluster() {
@@ -47,7 +47,7 @@ public class Microservices {
   }
 
   private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router) {
-    return (T) proxyFactory.createProxy(serviceInterface, router);
+    return proxyFactory.createProxy(serviceInterface, router);
   }
 
   public Collection<ServiceInstance> services() {
@@ -65,19 +65,12 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-
       ClusterConfig cfg = getClusterConfig();
-
-      Microservices microserices = new Microservices(
-          Cluster.joinAwait(cfg),
-          services,
-          seeds == null);
-
-      return microserices;
+      return new Microservices(Cluster.joinAwait(cfg), services, seeds == null);
     }
 
     private ClusterConfig getClusterConfig() {
-      Map<String, String> metadata = new HashMap<String, String>();
+      Map<String, String> metadata = new HashMap<>();
 
       if (services.isPresent()) {
         metadata = Microservices.metadata(services.get());
@@ -124,7 +117,7 @@ public class Microservices {
   public class ProxyContext {
     private Class<?> api;
 
-    private Class<? extends Router> router = RoundRubinServiceRouter.class;
+    private Class<? extends Router> router = RoundRobinServiceRouter.class;
 
     public <T> T create() {
       LOGGER.debug("create service api {} router {}", this.api, router);

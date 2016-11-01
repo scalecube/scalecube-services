@@ -1,44 +1,47 @@
 package io.scalecube.services;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 
 public class ServiceDefinition {
 
-
   private final Class<?> serviceInterface;
   private final String qualifier;
   private final Method method;
-
   private final Type returnType;
-  private final Type parameterizedType;
+  private final Type parametrizedType;
 
   /**
    * Constructor of service definition instance.
    * @param serviceInterface the class of the service interface.
-   * @param serviceName - the qualifier of the service.
+   * @param qualifier - the qualifier of the service.
    * @param method - the method to invoke the service.
-   * @param returnType the type of the expected result.
-   * @param parameterizedType the type of the generic class of the result (if any).
    */
-  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Method method, Type returnType,
-      Type parameterizedType) {
+  public ServiceDefinition(Class<?> serviceInterface, String qualifier, Method method) {
     this.serviceInterface = serviceInterface;
-    this.qualifier = serviceName;
+    this.qualifier = qualifier;
     this.method = method;
-    this.returnType = returnType;
-    this.parameterizedType = parameterizedType;
+    this.returnType = method.getReturnType();
+    this.parametrizedType = method.getGenericReturnType();
+  }
+
+  private Type extractReturnType(Type type) {
+    if (type instanceof ParameterizedType) {
+      return ((ParameterizedType) type).getActualTypeArguments()[0];
+    } else {
+      return Object.class;
+    }
   }
 
   public Type returnType() {
     return returnType;
   }
 
-  public Type parameterizedType() {
-    return parameterizedType;
+  public Type parametrizedType() {
+    return parametrizedType;
   }
-
 
   public Class<?> serviceInterface() {
     return serviceInterface;
@@ -52,12 +55,6 @@ public class ServiceDefinition {
     return this.method;
   }
 
-  @Override
-  public String toString() {
-    return "ServiceDefinition [serviceInterface=" + serviceInterface + ", qualifier=" + qualifier + ", method=" + method
-        + "]";
-  }
-
   /**
    * helper method to create a local service instance. 
    * @param def ServiceDefinition of the requested instance.
@@ -67,8 +64,8 @@ public class ServiceDefinition {
    * @param returnType the return type of the service instance.
    * @return newly created service instance.
    */
-  public static ServiceInstance toLocalServiceInstance(ServiceDefinition def, Object serviceObject, String memberId,
-      String[] tags, Type returnType) {
+  public static ServiceInstance toLocalServiceInstance(
+      ServiceDefinition def, Object serviceObject, String memberId, String[] tags, Type returnType) {
     return new LocalServiceInstance(serviceObject,
         memberId,
         def.serviceInterface(),
@@ -78,6 +75,12 @@ public class ServiceDefinition {
         returnType);
   }
 
-
+  @Override
+  public String toString() {
+    return "ServiceDefinition [serviceInterface=" + serviceInterface
+        + ", serviceName=" + qualifier
+        + ", method=" + method
+        + "]";
+  }
 
 }
