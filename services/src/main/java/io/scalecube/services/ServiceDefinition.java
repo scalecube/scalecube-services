@@ -24,7 +24,7 @@ public class ServiceDefinition {
     this.qualifier = qualifier;
     this.method = method;
     this.returnType = method.getReturnType();
-    this.parametrizedType = method.getGenericReturnType();
+    this.parametrizedType = extractReturnType(method.getGenericReturnType());
   }
 
   private Type extractReturnType(Type type) {

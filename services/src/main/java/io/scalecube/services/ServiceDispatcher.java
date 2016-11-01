@@ -3,7 +3,6 @@ package io.scalecube.services;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class ServiceDispatcher {
@@ -31,7 +30,7 @@ public class ServiceDispatcher {
     ServiceInstance serviceInstance = registry.getLocalInstance(message.qualifier());
     // TODO [AK]: serviceInstance can be null, need to process this case or next call will throw NPE
     try {
-      Object result = serviceInstance.invoke(message, Optional.empty());
+      Object result = serviceInstance.invoke(message, null);
 
       if (result != null) {
         if (result instanceof CompletableFuture) {

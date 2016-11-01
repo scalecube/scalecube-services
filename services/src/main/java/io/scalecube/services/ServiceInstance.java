@@ -8,7 +8,7 @@ public interface ServiceInstance {
 
   String serviceName();
 
-  Object invoke(Message request, Optional<ServiceDefinition> definition) throws Exception;
+  Object invoke(Message request, ServiceDefinition definition) throws Exception;
 
   String memberId();
 

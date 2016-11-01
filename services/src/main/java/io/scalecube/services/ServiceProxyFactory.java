@@ -50,11 +50,10 @@ public class ServiceProxyFactory {
           ServiceInstance serviceInstance = router.route(serviceDefinition);
 
           if (serviceInstance != null) {
-            return serviceInstance.invoke(Message.builder()
-                .data(args[0])
+            Message reqMsg = Message.withData(args[0])
                 .qualifier(serviceInstance.serviceName())
-                .build(),
-                Optional.of(serviceDefinition));
+                .build();
+            return serviceInstance.invoke(reqMsg, serviceDefinition);
 
           } else {
             LOGGER.error(

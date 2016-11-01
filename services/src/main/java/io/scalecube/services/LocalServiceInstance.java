@@ -50,7 +50,7 @@ public class LocalServiceInstance implements ServiceInstance {
 
 
   @Override
-  public Object invoke(Message message, Optional<ServiceDefinition> definition)
+  public Object invoke(Message message, ServiceDefinition definition)
       throws InvocationTargetException, IllegalAccessException {
     checkArgument(message != null);
 
@@ -66,7 +66,7 @@ public class LocalServiceInstance implements ServiceInstance {
         result = method.invoke(serviceObject, message);
       }
     } else {
-      result = method.invoke(serviceObject, message.data());
+      result = method.invoke(serviceObject, new Object[] {message.data()});
     }
     return result;
   }
