@@ -6,9 +6,9 @@ import java.util.Optional;
 
 public interface ServiceInstance {
 
-  String qualifier();
+  String serviceName();
 
-  <T> Object invoke(Message request, Optional<ServiceDefinition> definition) throws Exception;
+  Object invoke(Message request, ServiceDefinition definition) throws Exception;
 
   String memberId();
 

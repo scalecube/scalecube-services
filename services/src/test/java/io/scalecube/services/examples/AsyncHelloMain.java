@@ -1,31 +1,25 @@
-package io.scalecube.services.examples.helloworld;
+package io.scalecube.services.examples;
 
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingService;
-import io.scalecube.services.examples.HelloWorldComponent;
+import io.scalecube.services.examples.GreetingServiceImpl;
 
 import java.util.concurrent.CompletableFuture;
 
 public class AsyncHelloMain {
 
 
-  public static void main(String[] args) {
-
+  public static void main(String[] args) throws Exception {
     simpleAsyncInvoke();
-
     distributedAsyncInvoke();
-
-    try {
-      Thread.sleep(1000);
-    } catch (InterruptedException e) {
-    }
+    Thread.sleep(1000);
   }
 
   private static void simpleAsyncInvoke() {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // get a proxy to the service api.
@@ -53,7 +47,7 @@ public class AsyncHelloMain {
   private static void distributedAsyncInvoke() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .services(new HelloWorldComponent())
+        .services(new GreetingServiceImpl())
         .build();
 
     // Create microservices cluster.

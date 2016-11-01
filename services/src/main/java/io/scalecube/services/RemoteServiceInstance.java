@@ -4,11 +4,12 @@ import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
+import com.google.common.base.Preconditions;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -18,27 +19,26 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final ICluster cluster;
   private final Address address;
   private final String memberId;
-  private final Boolean isLocal;
   private final String[] tags;
-  private final String qualifier;
+  private final String serviceName;
 
   /**
-   * RemoteServiceinstance constructor to initiate instance.
+   * Remote service instance constructor to initiate instance.
+   * 
    * @param cluster to be used for instance context.
    * @param serviceReference service reference of this instance.
    */
   public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
-    this.qualifier = serviceReference.qualifier();
+    this.serviceName = serviceReference.serviceName();
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = serviceReference.tags();
-    this.isLocal = false;
   }
 
   @Override
-  public String qualifier() {
-    return qualifier;
+  public String serviceName() {
+    return serviceName;
   }
 
   private CompletableFuture<Message> futureInvokeMessage(final Message request) throws Exception {
@@ -48,16 +48,16 @@ public class RemoteServiceInstance implements ServiceInstance {
 
     Message requestMessage = composeRequest(request, correlationId);
     // Listen response
-    this.cluster.listen().filter(message -> {
-      return correlationId.equals(message.correlationId());
-    })  .first().subscribe(message -> {
-      if (message.header("exception") == null) {
-        messageFuture.complete(message);
-      } else {
-        LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
-        messageFuture.completeExceptionally(message.data());
-      }
-    });
+    this.cluster.listen()
+        .filter(message -> correlationId.equals(message.correlationId()))
+        .first().subscribe(message -> {
+          if (message.header("exception") == null) {
+            messageFuture.complete(message);
+          } else {
+            LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
+            messageFuture.completeExceptionally(message.data());
+          }
+        });
 
     // check that send operation completed successfully else report an error
     CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
@@ -72,23 +72,22 @@ public class RemoteServiceInstance implements ServiceInstance {
     return messageFuture;
   }
 
-  private <T> CompletableFuture<T> futureInvokeGeneric(final Message request) throws Exception {
-    final CompletableFuture<T> messageFuture = new CompletableFuture<>();
+  private CompletableFuture<Object> futureInvokeGeneric(final Message request) throws Exception {
+    final CompletableFuture<Object> messageFuture = new CompletableFuture<>();
 
     final String correlationId = "rpc-" + UUID.randomUUID().toString();
-
     Message requestMessage = composeRequest(request, correlationId);
-
     // Listen response
-    this.cluster.listen().filter(message -> {
-      return correlationId.equals(message.correlationId());
-    })  .first().subscribe(message -> {
-      if (message.header("exception") == null) {
-        messageFuture.complete(message.data());
-      } else {
-        messageFuture.completeExceptionally(message.data());
-      }
-    });
+    this.cluster.listen()
+        .filter(message -> correlationId.equals(message.correlationId()))
+        .first()
+        .subscribe(message -> {
+          if (message.header("exception") == null) {
+            messageFuture.complete(message.data());
+          } else {
+            messageFuture.completeExceptionally(message.data());
+          }
+        });
 
     // check that send operation completed successfully else report an error
     CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
@@ -111,34 +110,30 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public <T> Object invoke(Message request, Optional<ServiceDefinition> definition) throws Exception {
+  public Object invoke(Message request, ServiceDefinition definition) throws Exception {
+    Preconditions.checkArgument(definition != null, "Service definition can't be null");
 
     // Try to call via messaging
     // Request message
 
-    if (definition.get().returnType().equals(CompletableFuture.class)) {
-      if (definition.get().parameterizedType().equals(Message.class)) {
+    if (definition.returnType().equals(CompletableFuture.class)) {
+      if (definition.parametrizedType().equals(Message.class)) {
         return futureInvokeMessage(request);
       } else {
         return futureInvokeGeneric(request);
       }
     } else {
-      CompletableFuture<T> future = futureInvokeGeneric(request);
-      Object obj = future.get();
-      return obj;
+      CompletableFuture<Object> future = futureInvokeGeneric(request);
+      return future.get();
     }
   }
 
   private Message composeRequest(Message request, final String correlationId) {
-
-    Message requestMessage = Message.builder()
-        .data(request.data())
-        .header("service", qualifier())
-        .qualifier(qualifier())
+    return Message.withData(request.data())
+        .header("service", serviceName)
+        .qualifier(serviceName)
         .correlationId(correlationId)
         .build();
-
-    return requestMessage;
   }
 
   @Override
@@ -157,7 +152,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public Boolean isLocal() {
-    return this.isLocal;
+    return false;
   }
 
   public boolean isReachable() {
@@ -166,7 +161,9 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public String toString() {
-    return "RemoteServiceInstance [address=" + address + ", memberId=" + memberId + ", isLocal=" + isLocal + ", tags="
-        + Arrays.toString(tags) + "]";
+    return "RemoteServiceInstance [address=" + address
+        + ", memberId=" + memberId
+        + ", tags=" + Arrays.toString(tags)
+        + "]";
   }
 }

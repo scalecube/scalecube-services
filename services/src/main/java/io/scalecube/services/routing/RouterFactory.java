@@ -1,5 +1,6 @@
 package io.scalecube.services.routing;
 
+import io.scalecube.services.IServiceRegistry;
 import io.scalecube.services.ServiceRegistry;
 
 import org.slf4j.Logger;
@@ -10,10 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RouterFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(RouterFactory.class);
 
-  ConcurrentHashMap<Class<? extends Router>, Router> routers = new ConcurrentHashMap<>();
-  private final ServiceRegistry serviceRegistry;
+  private final ConcurrentHashMap<Class<? extends Router>, Router> routers = new ConcurrentHashMap<>();
+  private final IServiceRegistry serviceRegistry;
 
-  public RouterFactory(ServiceRegistry serviceRegistry) {
+  public RouterFactory(IServiceRegistry serviceRegistry) {
     this.serviceRegistry = serviceRegistry;
   }
 
@@ -24,7 +25,7 @@ public class RouterFactory {
    */
   public Router getRouter(Class<? extends Router> routing) {
     try {
-      return routers.computeIfAbsent(routing, k -> create(k));
+      return routers.computeIfAbsent(routing, this::create);
     } catch (Exception ex) {
       LOGGER.error("get router type: {} failed: {}", routing, ex);
     }
@@ -33,7 +34,7 @@ public class RouterFactory {
 
   private Router create(Class<? extends Router> routing) {
     try {
-      return (Router) routing.getDeclaredConstructor(ServiceRegistry.class).newInstance(serviceRegistry);
+      return routing.getDeclaredConstructor(IServiceRegistry.class).newInstance(serviceRegistry);
     } catch (Exception ex) {
       LOGGER.error("create router type: {} failed: {}", routing, ex);
       return null;
