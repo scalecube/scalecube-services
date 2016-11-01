@@ -1,10 +1,10 @@
 package io.scalecube.services;
 
-import com.google.common.base.Preconditions;
-
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+
+import com.google.common.base.Preconditions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

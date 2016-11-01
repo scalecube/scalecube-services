@@ -1,14 +1,12 @@
 package io.scalecube.services.annotations;
 
-import com.google.common.base.Strings;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServiceDefinition;
 
+import com.google.common.base.Strings;
+
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
