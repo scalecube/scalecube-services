@@ -21,7 +21,7 @@ public class AsyncHelloMain {
     Microservices microservices = Microservices.builder()
         .services(new GreetingServiceImpl())
         .build();
-
+ 
     // get a proxy to the service api.
     GreetingService service = microservices.proxy()
         .api(GreetingService.class)

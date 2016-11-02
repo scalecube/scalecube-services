@@ -4,11 +4,7 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
-import io.scalecube.services.annotations.Service;
-import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProcessor;
-import io.scalecube.services.examples.GreetingService;
-import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -20,7 +16,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -56,15 +51,21 @@ import java.util.concurrent.ConcurrentMap;
  * <pre>
  * 
  * <b><font color="green">//Define a serivce interface and implement it.</font></b>
- *   {@code
- *     <b>{@literal @}Service</b>
- *     <b><font color="9b0d9b">public interface</font></b> GreetingService {  
- * 
- *          <b>{@literal @}ServiceMethod</b>
- *          CompletableFuture<String> asyncGreeting(String string);
+ * {@code
+ *    <b>{@literal @}Service</b>
+ *    <b><font color="9b0d9b">public interface</font></b> GreetingService {  
+ *
+ *         <b>{@literal @}ServiceMethod</b>
+ *         CompletableFuture<String> asyncGreeting(String string);
  *     }
- * 
- *     
+ *    
+ *     <b><font color="9b0d9b">public class</font></b> GreetingServiceImpl implements GreetingService {
+ *
+ *       {@literal @}Override
+ *       <b><font color="9b0d9b">public</font></b> CompletableFuture<String> asyncGreeting(String name) {
+ *         <b><font color="9b0d9b">return</font></b> CompletableFuture.completedFuture(" hello to: " + name);
+ *       }
+ *     }
  *     <b><font color="green">//Build a microservices cluster instance.</font></b>
  *     Microservices microservices = Microservices.builder()
  *       <b><font color="green">//Introduce GreetingServiceImpl pojo as a micro-service.</font></b>
@@ -89,7 +90,7 @@ import java.util.concurrent.ConcurrentMap;
  *         System.<b><font color="9b0d9b">out</font></b>.println(ex);
  *       }
  *     });
- *}
+ * }
  * </pre>
  */
 public class Microservices {
