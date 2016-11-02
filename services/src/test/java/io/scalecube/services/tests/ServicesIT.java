@@ -399,8 +399,7 @@ public class ServicesIT {
         boolean success = !result1.get().sender().equals(result2.get().sender());
         assertTrue(success);
       } catch (Throwable e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        assertTrue(false);
       }
     });
   }

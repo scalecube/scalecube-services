@@ -156,12 +156,12 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   @Override
-  public ServiceInstance getLocalInstance(String serviceName) {
-    return serviceInstances.values().stream()
+  public Optional<ServiceInstance> getLocalInstance(String serviceName) {
+    return Optional.ofNullable(serviceInstances.values().stream()
         .filter(ServiceInstance::isLocal)
         .filter(serviceInstance -> serviceInstance.serviceName().equals(serviceName))
         .findFirst()
-        .orElse(null); //TODO [AK]: Return from method Optional<ServiceInstance> instead
+        .orElse(null)); //TODO [AK]: Return from method Optional<ServiceInstance> instead
   }
 
   public ServiceInstance serviceInstance(ServiceReference reference) {
