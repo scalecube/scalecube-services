@@ -4,7 +4,11 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
+import io.scalecube.services.annotations.Service;
+import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.services.examples.GreetingService;
+import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -16,8 +20,75 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * 
+ * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
+ * provides Reactive application development platform for building distributed applications Using microservices and fast
+ * data on a message-driven runtime that scales transparently on multi-core, multi-process and/or multi-machines Most
+ * microservices frameworks focus on making it easy to build individual microservices. ScaleCube allows developers to
+ * run a whole system of microservices from a single command. removing most of the boilerplate code, ScaleCube-Services
+ * focuses development on the essence of the service and makes it easy to create explicit and typed protocols that
+ * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
+ * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilience and elasticity
+ * <p>
+ * ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated regards
+ * how you build the service component itself. the Service component is simply java class that implements the service
+ * Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive
+ * and streaming patters but does not force application developers to it.
+ * <p>
+ * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * <li>location transparency and discovery of service instances.</li>
+ * <li>fault tolerance using gossip and failure detection.</li>
+ * <li>share nothing - fully distributed and decentralized architecture.</li>
+ * <li>Provides fluent, java 8 lamda apis.</li>
+ * <li>embeddable and lightweight.</li>
+ * <li>utilizes completable futures but primitives and messages can be used as well completable futures gives the
+ * advantage of composing and chaining service calls and service results. or implementing SEDA architecture. tested
+ * basic performance roundtrip (request/response) latency</li>
+ * <li>low latency</li>
+ * <li>supports routing extensible strategies when selecting service endpoints</li>
+ * </p>
+ * <b>basic usage example:</b>
+ * 
+ * <pre>
+ * <b><font color="green">//Define a serivce interface and implement it.</font></b>
+ * <b>{@literal @}Service</b>
+ * <b><font color="9b0d9b">public interface</font></b> GreetingService {  
+ * 
+ *      <b>{@literal @}ServiceMethod</b>
+ *      CompletableFuture<String> asyncGreeting(String string);
+ * }
+ * 
+ *     
+ *     <b><font color="green">//Build a microservices cluster instance.</font></b>
+ *     Microservices microservices = Microservices.builder()
+ *       <b><font color="green">//Introduce GreetingServiceImpl pojo as a micro-service.</font></b>
+ *         .services(<b><font color="9b0d9b">new</font></b> GreetingServiceImpl())
+ *         .build();
+ * 
+ *     <b><font color="green">//Create microservice proxy to GreetingService.class interface.</font></b>
+ *     GreetingService service = microservices.proxy()
+ *         .api(GreetingService.class)
+ *         .create();
+ * 
+ *     <b><font color="green">//Invoke the greeting service async.</font></b>
+ *     CompletableFuture<String> future = service.asyncGreeting("joe");
+ * 
+ *     <b><font color="green">//handle completable success or error.</font></b>
+ *     future.whenComplete((result, ex) -> {
+ *      if (ex == <b><font color="9b0d9b">null</font></b>) {
+ *        // print the greeting.
+ *         System.<b><font color="9b0d9b">out</font></b>.println(result);
+ *       } else {
+ *         // print the greeting.
+ *         System.<b><font color="9b0d9b">out</font></b>.println(ex);
+ *       }
+ *     });
+ * </pre>
+ */
 public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
@@ -59,9 +130,10 @@ public class Microservices {
     private Integer port = null;
     private Address[] seeds;
     private Optional<Object[]> services = Optional.empty();
-    
+
     /**
      * microsrrvices instance builder.
+     * 
      * @return Microservices instance.
      */
     public Microservices build() {
