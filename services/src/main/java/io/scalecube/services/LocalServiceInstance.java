@@ -7,14 +7,18 @@ import io.scalecube.transport.Message;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.Optional;
+import java.util.List;
 
+/**
+ * Local service instance invokes the service instance hosted on this local process.
+ * 
+ *
+ */
 public class LocalServiceInstance implements ServiceInstance {
 
   private final Object serviceObject;
   private final Method method;
   private final String serviceName;
-  private String[] tags;
   private final String memberId;
 
   /**
@@ -33,7 +37,6 @@ public class LocalServiceInstance implements ServiceInstance {
       Class<?> serviceInterface,
       String serviceName,
       Method method,
-      String[] tags,
       Type returnType) {
 
     checkArgument(serviceObject != null);
@@ -44,7 +47,6 @@ public class LocalServiceInstance implements ServiceInstance {
     this.serviceObject = serviceObject;
     this.serviceName = serviceName;
     this.method = method;
-    this.tags = tags;
     this.memberId = memberId;
   }
 
@@ -71,10 +73,6 @@ public class LocalServiceInstance implements ServiceInstance {
     return result;
   }
 
-  public String[] tags() {
-    return tags;
-  }
-
   public String serviceName() {
     return serviceName;
   }
@@ -89,11 +87,6 @@ public class LocalServiceInstance implements ServiceInstance {
     return true;
   }
 
-  @Override
-  public boolean isReachable() {
-    return true;
-  }
-  
   @Override
   public String toString() {
     return "LocalServiceInstance [serviceObject=" + serviceObject + ", memberId=" + memberId + "]";

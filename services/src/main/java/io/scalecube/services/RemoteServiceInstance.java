@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,7 +20,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final ICluster cluster;
   private final Address address;
   private final String memberId;
-  private final String[] tags;
   private final String serviceName;
 
   /**
@@ -33,7 +33,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
-    this.tags = serviceReference.tags();
   }
 
   @Override
@@ -146,11 +145,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public String[] tags() {
-    return tags;
-  }
-
-  @Override
   public Boolean isLocal() {
     return false;
   }
@@ -163,7 +157,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   public String toString() {
     return "RemoteServiceInstance [address=" + address
         + ", memberId=" + memberId
-        + ", tags=" + Arrays.toString(tags)
         + "]";
   }
 }

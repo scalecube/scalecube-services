@@ -9,7 +9,7 @@ import java.util.Optional;
  */
 public interface IServiceRegistry {
 
-  void registerService(Object serviceObject, String[] tags);
+  void registerService(Object serviceObject);
 
   void unregisterService(Object serviceObject);
 

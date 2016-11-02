@@ -3,6 +3,7 @@ package io.scalecube.services;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.List;
 
 
 public class ServiceDefinition {
@@ -65,13 +66,12 @@ public class ServiceDefinition {
    * @return newly created service instance.
    */
   public static ServiceInstance toLocalServiceInstance(
-      ServiceDefinition def, Object serviceObject, String memberId, String[] tags, Type returnType) {
+      ServiceDefinition def, Object serviceObject, String memberId, Type returnType) {
     return new LocalServiceInstance(serviceObject,
         memberId,
         def.serviceInterface(),
         def.qualifier(),
         def.method(),
-        tags,
         returnType);
   }
 

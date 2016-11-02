@@ -2,8 +2,6 @@ package io.scalecube.services;
 
 import io.scalecube.transport.Message;
 
-import java.util.Optional;
-
 public interface ServiceInstance {
 
   String serviceName();
@@ -14,7 +12,4 @@ public interface ServiceInstance {
 
   Boolean isLocal();
 
-  boolean isReachable();
-
-  String[] tags();
 }

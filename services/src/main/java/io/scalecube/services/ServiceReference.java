@@ -3,8 +3,10 @@ package io.scalecube.services;
 import io.scalecube.transport.Address;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import javax.annotation.concurrent.Immutable;
@@ -15,7 +17,7 @@ public class ServiceReference {
   private final String memberId;
   private final String serviceName;
   private final Address address;
-  private final String[] tags; //TODO: Replace with some immutable collection since array is mutable
+
 
   /**
    * constructor of ServiceReference, a reference for local or remote service instance.
@@ -24,17 +26,12 @@ public class ServiceReference {
    * @param address the address of the service.
    * @param tags optional tags of the service.
    */
-  public ServiceReference(String memberId, String serviceName, Address address, String[] tags) {
+  public ServiceReference(String memberId, String serviceName, Address address) {
     Preconditions.checkNotNull(memberId);
     Preconditions.checkNotNull(serviceName);
     this.memberId = memberId;
     this.serviceName = serviceName;
-    this.address = address;
-    this.tags = tags;
-  }
-
-  public String[] tags() {
-    return tags;
+    this.address = address;    
   }
 
   public Address address() {
@@ -70,7 +67,6 @@ public class ServiceReference {
     return "ServiceReference [memberId=" + memberId
         + ", qualifier=" + serviceName
         + ", address=" + address
-        + ", tags=" + Arrays.toString(tags)
         + "]";
   }
 }
