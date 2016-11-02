@@ -400,8 +400,62 @@ public class ServicesIT {
         assertTrue(success);
       } catch (Throwable e) {
         assertTrue(false);
-      }
+      } 
     });
+    
+    provider1.cluster().shutdown();
+    provider2.cluster().shutdown();    
+    gateway.cluster().shutdown();
   }
+  
+  @Test
+  public void testAsyncGreetingErrorCase() {
+    // Create gateway cluster instance.
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
 
+    // Create microservices instance cluster.
+    Microservices provider1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .build();
+    
+    GreetingService service = gateway.proxy()
+        .api(GreetingService.class) // create proxy for GreetingService API
+        .create();
+    
+   CompletableFuture<String> future = service.asyncGreeting("hello");
+   future.whenComplete((success,error)->{
+     assertTrue(error.getMessage().equals("No reachable member with such service: asyncGreeting"));
+   }); 
+   gateway.cluster().shutdown();
+   provider1.cluster().shutdown();
+  }
+  
+  @Test
+  public void testGreetingErrorCase() {
+    // Create gateway cluster instance.
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    // Create microservices instance cluster.
+    Microservices provider1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .build();
+    
+    GreetingService service = gateway.proxy()
+        .api(GreetingService.class) // create proxy for GreetingService API
+        .create();
+   try{
+     service.greeting("hello");
+   } catch(Throwable th) {
+     assertTrue(th.getCause().getMessage().equals("java.lang.IllegalStateException: No reachable member with such service: greeting"));
+   }
+   
+   gateway.cluster().shutdown();
+   provider1.cluster().shutdown();
+  }
 }
