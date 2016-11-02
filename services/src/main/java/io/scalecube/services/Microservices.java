@@ -28,10 +28,10 @@ import java.util.concurrent.ConcurrentMap;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  * 
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated regards
- * how you build the service component itself. the Service component is simply java class that implements the service
- * Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive
- * and streaming patters but does not force application developers to it.
+ * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated 
+ * regards how you build the service component itself. the Service component is simply java class that implements the 
+ * service Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and 
+ * reactive and streaming patters but does not force application developers to it.
  * 
  * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
