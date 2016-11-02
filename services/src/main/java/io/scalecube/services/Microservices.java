@@ -28,12 +28,13 @@ import java.util.concurrent.ConcurrentMap;
  * focuses development on the essence of the service and makes it easy to create explicit and typed protocols that
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilience and elasticity
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated regards
+ * <p>
+ * ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated regards
  * how you build the service component itself. the Service component is simply java class that implements the service
  * Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive
  * and streaming patters but does not force application developers to it.
- * 
- * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * <p>
+ * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -44,8 +45,9 @@ import java.util.concurrent.ConcurrentMap;
  * basic performance roundtrip (request/response) latency</li>
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service endpoints</li>
+ * </p>
+ * <b>basic usage example:</b>
  * 
- * </p><b>basic usage example:</b>
  * <pre>
  * 
  * <b><font color="green">//Define a serivce interface and implement it.</font></b>
