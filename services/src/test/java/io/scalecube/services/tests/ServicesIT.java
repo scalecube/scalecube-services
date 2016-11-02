@@ -30,9 +30,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = microservices.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
@@ -66,9 +64,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(consumer);
 
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
@@ -145,9 +141,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = microservices.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
@@ -181,9 +175,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(consumer);
 
     // call the service.
     CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
@@ -261,9 +253,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = microservices.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
@@ -297,9 +287,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(consumer);
 
     // call the service.
     CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
@@ -363,10 +351,7 @@ public class ServicesIT {
 
   @Test
   public void testRoundRubinLogic() {
-    // Create gateway cluster instance.
-    Microservices gateway = Microservices.builder()
-        .port(port.incrementAndGet())
-        .build();
+    Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
     Microservices provider1 = Microservices.builder()
@@ -382,9 +367,7 @@ public class ServicesIT {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = gateway.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .create();
+    GreetingService service = createProxy(gateway);
 
     CompletableFuture<Message> result1 = service.asyncGreetingMessage(Message.builder().data("joe").build());
     CompletableFuture<Message> result2 = service.asyncGreetingMessage(Message.builder().data("joe").build());
@@ -410,20 +393,12 @@ public class ServicesIT {
   
   @Test
   public void testAsyncGreetingErrorCase() {
-    // Create gateway cluster instance.
-    Microservices gateway = Microservices.builder()
-        .port(port.incrementAndGet())
-        .build();
+    Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
-    Microservices provider1 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
-        .build();
+    Microservices provider1 = createProvider(gateway);
     
-    GreetingService service = gateway.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .create();
+    GreetingService service = createProxy(gateway);
     
    CompletableFuture<String> future = service.asyncGreeting("hello");
    future.whenComplete((success,error)->{
@@ -436,19 +411,12 @@ public class ServicesIT {
   @Test
   public void testGreetingErrorCase() {
     // Create gateway cluster instance.
-    Microservices gateway = Microservices.builder()
-        .port(port.incrementAndGet())
-        .build();
+    Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
-    Microservices provider1 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
-        .build();
+    Microservices provider1 = createProvider(gateway);
     
-    GreetingService service = gateway.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .create();
+    GreetingService service = createProxy(gateway);
    try{
      service.greeting("hello");
    } catch(Throwable th) {
@@ -457,5 +425,25 @@ public class ServicesIT {
    
    gateway.cluster().shutdown();
    provider1.cluster().shutdown();
+  }
+
+  private GreetingService createProxy(Microservices gateway) {
+    return gateway.proxy()
+        .api(GreetingService.class) // create proxy for GreetingService API
+        .create();
+  }
+
+  private Microservices createProvider(Microservices gateway) {
+    return Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .build();
+  }
+
+  private Microservices createSeed() {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+    return gateway;
   }
 }
