@@ -47,13 +47,13 @@ public class ServiceProxyFactory {
           ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
 
           Router router = routerFactory.getRouter(routerType);
-          ServiceInstance serviceInstance = router.route(serviceDefinition);
+          Optional<ServiceInstance> serviceInstance = router.route(serviceDefinition);
 
-          if (serviceInstance != null) {
+          if (serviceInstance.isPresent()) {
             Message reqMsg = Message.withData(args[0])
-                .qualifier(serviceInstance.serviceName())
+                .qualifier(serviceInstance.get().serviceName())
                 .build();
-            return serviceInstance.invoke(reqMsg, serviceDefinition);
+            return serviceInstance.get().invoke(reqMsg, serviceDefinition);
 
           } else {
             LOGGER.error(

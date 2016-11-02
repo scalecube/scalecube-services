@@ -161,7 +161,7 @@ public class ServiceRegistry implements IServiceRegistry {
         .filter(ServiceInstance::isLocal)
         .filter(serviceInstance -> serviceInstance.serviceName().equals(serviceName))
         .findFirst()
-        .orElse(null)); //TODO [AK]: Return from method Optional<ServiceInstance> instead
+        .orElse(null));
   }
 
   public ServiceInstance serviceInstance(ServiceReference reference) {

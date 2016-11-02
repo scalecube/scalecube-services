@@ -43,15 +43,15 @@ public class ServiceDispatcher {
         repleyWithError(message,
             new IllegalStateException("no local service instance was found for service request: [" + message + "]"));
       }
-    } catch (Exception e) {
-      repleyWithError(message, e);
+    } catch (Exception ex) {
+      repleyWithError(message, ex);
     }
 
   }
 
-  private void repleyWithError(Message message, Exception e) {
+  private void repleyWithError(Message message, Exception ex) {
     Message errorResponseMsg = Message.builder()
-        .data(e)
+        .data(ex)
         .header("exception", "true")
         .correlationId(message.correlationId())
         .build();
