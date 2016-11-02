@@ -1,4 +1,4 @@
-package io.scalecube.services.examples;
+package io.scalecube.examples;
 
 
 import io.scalecube.services.Microservices;
