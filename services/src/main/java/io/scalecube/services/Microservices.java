@@ -54,13 +54,15 @@ import java.util.concurrent.ConcurrentMap;
  * <b>basic usage example:</b>
  * 
  * <pre>
- * <b><font color="green">//Define a serivce interface and implement it.</font></b>
- * <b>{@literal @}Service</b>
- * <b><font color="9b0d9b">public interface</font></b> GreetingService {  
  * 
- *      <b>{@literal @}ServiceMethod</b>
- *      CompletableFuture<String> asyncGreeting(String string);
- * }
+ * <b><font color="green">//Define a serivce interface and implement it.</font></b>
+ *   {@code
+ *     <b>{@literal @}Service</b>
+ *     <b><font color="9b0d9b">public interface</font></b> GreetingService {  
+ * 
+ *          <b>{@literal @}ServiceMethod</b>
+ *          CompletableFuture<String> asyncGreeting(String string);
+ *     }
  * 
  *     
  *     <b><font color="green">//Build a microservices cluster instance.</font></b>
@@ -87,6 +89,7 @@ import java.util.concurrent.ConcurrentMap;
  *         System.<b><font color="9b0d9b">out</font></b>.println(ex);
  *       }
  *     });
+ *}
  * </pre>
  */
 public class Microservices {
