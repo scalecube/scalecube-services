@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class ServiceDispatcher {
@@ -27,26 +28,34 @@ public class ServiceDispatcher {
   }
 
   private void onServiceRequest(Message message) {
-    ServiceInstance serviceInstance = registry.getLocalInstance(message.qualifier());
-    // TODO [AK]: serviceInstance can be null, need to process this case or next call will throw NPE
+    Optional<ServiceInstance> serviceInstance = registry.getLocalInstance(message.qualifier());
     try {
-      Object result = serviceInstance.invoke(message, null);
-
-      if (result != null) {
-        if (result instanceof CompletableFuture) {
-          handleComputable(cluster, message, result);
-        } else { // this is a sync request response call
-          handleSync(cluster, message, result);
+      if (serviceInstance.isPresent()) {
+        Object result = serviceInstance.get().invoke(message, null);
+        if (result != null) {
+          if (result instanceof CompletableFuture) {
+            handleComputable(cluster, message, result);
+          } else { // this is a sync request response call
+            handleSync(cluster, message, result);
+          }
         }
+      } else {
+        repleyWithError(message,
+            new IllegalStateException("no local service instance was found for service request: [" + message + "]"));
       }
-    } catch (Exception e) {
-      Message errorResponseMsg = Message.builder()
-          .data(e)
-          .header("exception", "true")
-          .correlationId(message.correlationId())
-          .build();
-      cluster.send(message.sender(), errorResponseMsg);
+    } catch (Exception ex) {
+      repleyWithError(message, ex);
     }
+
+  }
+
+  private void repleyWithError(Message message, Exception ex) {
+    Message errorResponseMsg = Message.builder()
+        .data(ex)
+        .header("exception", "true")
+        .correlationId(message.correlationId())
+        .build();
+    cluster.send(message.sender(), errorResponseMsg);
   }
 
   private void handleSync(final ICluster cluster, Message message, Object result) {
@@ -59,7 +68,7 @@ public class ServiceDispatcher {
 
   private void handleComputable(final ICluster cluster, Message message, Object result) {
     CompletableFuture<?> futureResult = (CompletableFuture<?>) result;
- 
+
     futureResult.whenComplete((success, error) -> {
       Message futureMessage = null;
       if (error == null) {

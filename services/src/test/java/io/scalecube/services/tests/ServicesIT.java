@@ -2,11 +2,11 @@ package io.scalecube.services.tests;
 
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.services.GreetingRequest;
+import io.scalecube.services.GreetingResponse;
+import io.scalecube.services.GreetingService;
+import io.scalecube.services.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.examples.GreetingRequest;
-import io.scalecube.services.examples.GreetingResponse;
-import io.scalecube.services.examples.GreetingService;
-import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
@@ -30,9 +30,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = microservices.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
@@ -66,9 +64,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(consumer);
 
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
@@ -145,9 +141,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = microservices.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
@@ -181,9 +175,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(consumer);
 
     // call the service.
     CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
@@ -261,9 +253,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = microservices.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
@@ -297,9 +287,7 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = createProxy(consumer);
 
     // call the service.
     CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
@@ -363,10 +351,7 @@ public class ServicesIT {
 
   @Test
   public void testRoundRubinLogic() {
-    // Create gateway cluster instance.
-    Microservices gateway = Microservices.builder()
-        .port(port.incrementAndGet())
-        .build();
+    Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
     Microservices provider1 = Microservices.builder()
@@ -382,9 +367,7 @@ public class ServicesIT {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = gateway.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .create();
+    GreetingService service = createProxy(gateway);
 
     CompletableFuture<Message> result1 = service.asyncGreetingMessage(Message.builder().data("joe").build());
     CompletableFuture<Message> result2 = service.asyncGreetingMessage(Message.builder().data("joe").build());
@@ -399,10 +382,68 @@ public class ServicesIT {
         boolean success = !result1.get().sender().equals(result2.get().sender());
         assertTrue(success);
       } catch (Throwable e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
-      }
+        assertTrue(false);
+      } 
     });
+    
+    provider1.cluster().shutdown();
+    provider2.cluster().shutdown();    
+    gateway.cluster().shutdown();
+  }
+  
+  @Test
+  public void testAsyncGreetingErrorCase() {
+    Microservices gateway = createSeed();
+
+    // Create microservices instance cluster.
+    Microservices provider1 = createProvider(gateway);
+    
+    GreetingService service = createProxy(gateway);
+    
+   CompletableFuture<String> future = service.asyncGreeting("hello");
+   future.whenComplete((success,error)->{
+     assertTrue(error.getMessage().equals("No reachable member with such service: asyncGreeting"));
+   }); 
+   gateway.cluster().shutdown();
+   provider1.cluster().shutdown();
+  }
+  
+  @Test
+  public void testGreetingErrorCase() {
+    // Create gateway cluster instance.
+    Microservices gateway = createSeed();
+
+    // Create microservices instance cluster.
+    Microservices provider1 = createProvider(gateway);
+    
+    GreetingService service = createProxy(gateway);
+   try{
+     service.greeting("hello");
+   } catch(Throwable th) {
+     assertTrue(th.getCause().getMessage().equals("java.lang.IllegalStateException: No reachable member with such service: greeting"));
+   }
+   
+   gateway.cluster().shutdown();
+   provider1.cluster().shutdown();
   }
 
+  private GreetingService createProxy(Microservices gateway) {
+    return gateway.proxy()
+        .api(GreetingService.class) // create proxy for GreetingService API
+        .create();
+  }
+
+  private Microservices createProvider(Microservices gateway) {
+    return Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .build();
+  }
+
+  private Microservices createSeed() {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+    return gateway;
+  }
 }

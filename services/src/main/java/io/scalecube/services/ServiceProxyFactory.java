@@ -47,37 +47,41 @@ public class ServiceProxyFactory {
           ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
 
           Router router = routerFactory.getRouter(routerType);
-          ServiceInstance serviceInstance = router.route(serviceDefinition);
+          Optional<ServiceInstance> serviceInstance = router.route(serviceDefinition);
 
-          if (serviceInstance != null) {
+          if (serviceInstance.isPresent()) {
             Message reqMsg = Message.withData(args[0])
-                .qualifier(serviceInstance.serviceName())
+                .qualifier(serviceInstance.get().serviceName())
                 .build();
-            return serviceInstance.invoke(reqMsg, serviceDefinition);
+            return serviceInstance.get().invoke(reqMsg, serviceDefinition);
 
           } else {
             LOGGER.error(
                 "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
                 serviceDefinition, args);
-            CompletableFuture<T> future = new CompletableFuture<>();
-            future.completeExceptionally(
+            CompletableFuture<T> future = completeExcptionally(
                 new IllegalStateException("No reachable member with such service: " + method.getName()));
+            
             if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
               return future;
             } else {
-              return null;
+              return future.get();
             }
           }
 
-        } catch (RuntimeException e) {
+        } catch (RuntimeException ex) {
           LOGGER.error(
               "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
-              method, args, e);
-          CompletableFuture<T> future = new CompletableFuture<>();
-          future.completeExceptionally(
-              new IllegalStateException("No reachable member with such service: " + method.getName(), e));
-          return future;
+              method, args, ex);
+          return completeExcptionally(
+              new IllegalStateException("No reachable member with such service: " + method.getName(), ex));
         }
+      }
+
+      private <T> CompletableFuture<T> completeExcptionally(IllegalStateException ex) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        future.completeExceptionally(ex);
+        return future;
       }
     });
   }

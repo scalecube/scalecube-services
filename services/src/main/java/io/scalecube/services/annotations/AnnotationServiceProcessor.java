@@ -46,6 +46,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
       String qualifier = serviceName + METHOD_NAME_DELIMITER + entry.getKey();
       ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, qualifier, entry.getValue());
       // TODO [AK]: Is it really supposed to be methodName -> methodDefinition?
+      // TODO [RN]: i don't see reason why not.
       serviceDefinitions.put(entry.getKey(), serviceDefinition);
     });
 

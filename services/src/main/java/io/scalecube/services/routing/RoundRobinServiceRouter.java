@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,16 +25,16 @@ public class RoundRobinServiceRouter implements Router {
   }
 
   @Override
-  public ServiceInstance route(ServiceDefinition serviceDefinition) {
+  public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition) {
     List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.qualifier());
     if (!serviceInstances.isEmpty()) {
       AtomicInteger counter = counterByServiceName
           .computeIfAbsent(serviceDefinition.qualifier(), or -> new AtomicInteger());
       int index = counter.incrementAndGet() % serviceInstances.size();
-      return serviceInstances.get(index);
+      return Optional.of(serviceInstances.get(index));
     } else {
       LOGGER.warn("route selection return null since no service instance was found for {}", serviceDefinition);
-      return null; // TODO AK: Return Optional<ServiceInstance> instead
+      return Optional.empty(); 
     }
   }
 

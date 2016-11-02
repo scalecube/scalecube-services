@@ -3,8 +3,10 @@ package io.scalecube.services.routing;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 
+import java.util.Optional;
+
 public interface Router {
 
-  ServiceInstance route(ServiceDefinition serviceDefinition);
+  Optional<ServiceInstance> route(ServiceDefinition serviceDefinition);
 
 }
