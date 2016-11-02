@@ -7,7 +7,6 @@ import io.scalecube.transport.Message;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.List;
 
 /**
  * Local service instance invokes the service instance hosted on this local process.
