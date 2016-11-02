@@ -24,7 +24,6 @@ public class ServiceReference {
    * @param memberId the memberId of the requested service.
    * @param serviceName the fully qualified name of the service.
    * @param address the address of the service.
-   * @param tags optional tags of the service.
    */
   public ServiceReference(String memberId, String serviceName, Address address) {
     Preconditions.checkNotNull(memberId);

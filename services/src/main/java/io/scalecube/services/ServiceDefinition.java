@@ -61,7 +61,6 @@ public class ServiceDefinition {
    * @param def ServiceDefinition of the requested instance.
    * @param serviceObject the service object instance of the service.
    * @param memberId the Cluster memberId of this instance.
-   * @param tags optional tags of the service.
    * @param returnType the return type of the service instance.
    * @return newly created service instance.
    */

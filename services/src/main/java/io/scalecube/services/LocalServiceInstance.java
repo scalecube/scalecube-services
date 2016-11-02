@@ -28,7 +28,6 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param serviceInterface the service interface class of the service.
    * @param serviceName the qulifier name of the service.
    * @param method the java method of the service.
-   * @param tags optional tags of the service.
    * @param returnType the return type class of the service method.
    */
   public LocalServiceInstance(
