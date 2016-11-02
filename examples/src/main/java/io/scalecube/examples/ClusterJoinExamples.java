@@ -61,7 +61,7 @@ public class ClusterJoinExamples {
         + alice.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
 
     System.out.println("Bob (" + bob.address() + ") cluster: "
-        + bob.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
+         + bob.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));
 
     System.out.println("Carol (" + carol.address() + ") cluster: "
         + carol.members().stream().map(Member::toString).collect(joining("\n", "\n", "\n")));

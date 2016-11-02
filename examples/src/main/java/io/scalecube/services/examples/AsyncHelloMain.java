@@ -2,18 +2,26 @@ package io.scalecube.services.examples;
 
 
 import io.scalecube.services.Microservices;
-import io.scalecube.services.examples.GreetingService;
-import io.scalecube.services.examples.GreetingServiceImpl;
 
 import java.util.concurrent.CompletableFuture;
 
 public class AsyncHelloMain {
 
-
+  /**
+   * Example of scalecube services invoking a service async.
+   * simpleAsyncInvoke - invoke the service within single cluster node.
+   * distributedAsyncInvoke -invoke a service utilizing 2 cluster nodes
+   * 
+   * <p>the requests are async (none-blocking) utilizing completeble future.
+   * @param args N/A
+   * @throws Exception runtime exception.
+   */
   public static void main(String[] args) throws Exception {
+
     simpleAsyncInvoke();
+
     distributedAsyncInvoke();
-    Thread.sleep(1000);
+
   }
 
   private static void simpleAsyncInvoke() {

@@ -65,7 +65,7 @@ public class ServiceProxyFactory {
             if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
               return future;
             } else {
-              return null;
+              return future.get();
             }
           }
 
