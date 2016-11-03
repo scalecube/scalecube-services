@@ -2,11 +2,11 @@ package io.scalecube.services.tests;
 
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.services.GreetingRequest;
+import io.scalecube.services.GreetingResponse;
+import io.scalecube.services.GreetingService;
+import io.scalecube.services.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.examples.GreetingRequest;
-import io.scalecube.services.examples.GreetingResponse;
-import io.scalecube.services.examples.GreetingService;
-import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;

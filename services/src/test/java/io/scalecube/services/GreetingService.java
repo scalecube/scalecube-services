@@ -1,4 +1,4 @@
-package io.scalecube.services.examples;
+package io.scalecube.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
