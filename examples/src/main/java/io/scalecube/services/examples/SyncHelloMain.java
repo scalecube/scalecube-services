@@ -10,7 +10,7 @@ import io.scalecube.services.examples.GreetingServiceImpl;
  * 
  * <p>the requests are Sync (blocking) meaning requester waits for a result.
  * @param args N/A
- * @throws Exception
+ * @throws Exception runtime exception.
  */
 public class SyncHelloMain {
 
