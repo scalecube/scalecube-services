@@ -8,8 +8,7 @@ import io.scalecube.services.examples.GreetingServiceImpl;
  * simpleSyncInvoke - invoke the service within single cluster node.
  * distributedAsyncInvoke -invoke a service utilizing 2 cluster nodes
  * 
- * the requests are Sync (blocking) meaning requester waits for a result.
- * 
+ * <p>the requests are Sync (blocking) meaning requester waits for a result.
  * @param args N/A
  * @throws Exception
  */

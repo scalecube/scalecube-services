@@ -12,8 +12,7 @@ public class AsyncHelloMain {
    * simpleAsyncInvoke - invoke the service within single cluster node.
    * distributedAsyncInvoke -invoke a service utilizing 2 cluster nodes
    * 
-   * the requests are async (none-blocking) utilizing completeble future.
-   * 
+   * <p>the requests are async (none-blocking) utilizing completeble future.
    * @param args N/A
    * @throws Exception
    */
