@@ -111,6 +111,7 @@ public class Microservices {
     this.serviceRegistry = new ServiceRegistry(cluster, services, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
     this.localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
+  
   }
 
   public ICluster cluster() {

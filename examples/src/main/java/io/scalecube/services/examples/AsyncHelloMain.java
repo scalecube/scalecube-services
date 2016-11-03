@@ -8,13 +8,13 @@ import java.util.concurrent.CompletableFuture;
 public class AsyncHelloMain {
 
   /**
-   * Example of scalecube services invoking a service async
+   * Example of scalecube services invoking a service async.
    * simpleAsyncInvoke - invoke the service within single cluster node.
    * distributedAsyncInvoke -invoke a service utilizing 2 cluster nodes
    * 
    * <p>the requests are async (none-blocking) utilizing completeble future.
    * @param args N/A
-   * @throws Exception
+   * @throws Exception runtime exception.
    */
   public static void main(String[] args) throws Exception {
 
