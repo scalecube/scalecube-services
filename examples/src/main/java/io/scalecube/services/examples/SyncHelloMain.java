@@ -3,6 +3,16 @@ package io.scalecube.services.examples;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.GreetingServiceImpl;
 
+/**
+ * Example of scalecube services invoking a service sync
+ * simpleSyncInvoke - invoke the service within single cluster node.
+ * distributedAsyncInvoke -invoke a service utilizing 2 cluster nodes
+ * 
+ * the requests are Sync (blocking) meaning requester waits for a result.
+ * 
+ * @param args N/A
+ * @throws Exception
+ */
 public class SyncHelloMain {
 
   public static void main(String[] args) {
