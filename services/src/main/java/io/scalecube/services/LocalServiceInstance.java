@@ -40,25 +40,28 @@ public class LocalServiceInstance implements ServiceInstance {
 
 
   @Override
-  public Object invoke(Message message, ServiceDefinition definition)
-      throws InvocationTargetException, IllegalAccessException {
+  public Object invoke(Message message, ServiceDefinition definition) throws Exception {
     checkArgument(message != null);
 
-    Method method = this.method;
-    Object result;
+    try {
+      Method method = this.method;
+      Object result;
 
-    if (method.getParameters().length == 0) {
-      result = method.invoke(serviceObject);
-    } else if (method.getParameters()[0].getType().isAssignableFrom(Message.class)) {
-      if (message.data().getClass().isAssignableFrom(Message.class)) {
-        result = method.invoke(serviceObject, (Message) message.data());
+      if (method.getParameters().length == 0) {
+        result = method.invoke(serviceObject);
+      } else if (method.getParameters()[0].getType().isAssignableFrom(Message.class)) {
+        if (message.data().getClass().isAssignableFrom(Message.class)) {
+          result = method.invoke(serviceObject, (Message) message.data());
+        } else {
+          result = method.invoke(serviceObject, message);
+        }
       } else {
-        result = method.invoke(serviceObject, message);
+        result = method.invoke(serviceObject, new Object[] {message.data()});
       }
-    } else {
-      result = method.invoke(serviceObject, new Object[] {message.data()});
+      return result;
+    } catch (Exception ex) {
+      return ex;
     }
-    return result;
   }
 
   public String serviceName() {

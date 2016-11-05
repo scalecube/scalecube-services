@@ -38,6 +38,26 @@ public class RemoteServiceInstance implements ServiceInstance {
     return serviceName;
   }
 
+  @Override
+  public Object invoke(Message request, ServiceDefinition definition) throws Exception {
+    Preconditions.checkArgument(definition != null, "Service definition can't be null");
+
+    // Try to call via messaging
+    // Request message
+    if (definition.returnType().equals(CompletableFuture.class)) {
+      if (definition.parametrizedType().equals(Message.class)) {
+        return futureInvokeMessage(request);
+      } else {
+        return futureInvokeGeneric(request);
+      }
+    } else {
+      CompletableFuture<Object> future = futureInvokeGeneric(request);
+      Object result = future.get();
+      return result;
+    }
+  }
+
+  
   private CompletableFuture<Message> futureInvokeMessage(final Message request) throws Exception {
     final CompletableFuture<Message> messageFuture = new CompletableFuture<>();
 
@@ -82,7 +102,8 @@ public class RemoteServiceInstance implements ServiceInstance {
           if (message.header("exception") == null) {
             messageFuture.complete(message.data());
           } else {
-            messageFuture.completeExceptionally(message.data());
+        	Exception ex = message.data();
+            messageFuture.completeExceptionally(ex);
           }
         });
 
@@ -106,24 +127,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     return messageFuture;
   }
 
-  @Override
-  public Object invoke(Message request, ServiceDefinition definition) throws Exception {
-    Preconditions.checkArgument(definition != null, "Service definition can't be null");
-
-    // Try to call via messaging
-    // Request message
-
-    if (definition.returnType().equals(CompletableFuture.class)) {
-      if (definition.parametrizedType().equals(Message.class)) {
-        return futureInvokeMessage(request);
-      } else {
-        return futureInvokeGeneric(request);
-      }
-    } else {
-      CompletableFuture<Object> future = futureInvokeGeneric(request);
-      return future.get();
-    }
-  }
 
   private Message composeRequest(Message request, final String correlationId) {
     return Message.withData(request.data())

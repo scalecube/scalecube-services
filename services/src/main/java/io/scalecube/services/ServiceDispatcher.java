@@ -33,7 +33,9 @@ public class ServiceDispatcher {
       if (serviceInstance.isPresent()) {
         Object result = serviceInstance.get().invoke(message, null);
         if (result != null) {
-          if (result instanceof CompletableFuture) {
+          if(result instanceof Throwable) {
+            repleyWithError(message, Throwable.class.cast(result) );
+          } else if (result instanceof CompletableFuture) {
             handleComputable(cluster, message, result);
           } else { // this is a sync request response call
             handleSync(cluster, message, result);
@@ -49,7 +51,7 @@ public class ServiceDispatcher {
 
   }
 
-  private void repleyWithError(Message message, Exception ex) {
+  private void repleyWithError(Message message, Throwable ex) {
     Message errorResponseMsg = Message.builder()
         .data(ex)
         .header("exception", "true")
@@ -84,8 +86,15 @@ public class ServiceDispatcher {
               .correlationId(message.correlationId())
               .build();
         }
-        cluster.send(message.sender(), futureMessage);
       }
+      else{
+        futureMessage = Message.builder()
+            .data(error)
+            .header("exception", "true")
+            .correlationId(message.correlationId())
+            .build();
+      }
+      cluster.send(message.sender(), futureMessage);
     });
   }
 

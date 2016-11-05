@@ -66,16 +66,21 @@ public class ServiceProxyFactory {
             if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
               return future;
             } else {
-              return future.get();
+              T result = future.get();
+              return result;
             }
           }
 
-        } catch (RuntimeException ex) {
+        } catch (Throwable ex) {
           LOGGER.error(
               "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
               method, args, ex);
-          return completeExcptionally(
-              new IllegalStateException("No reachable member with such service: " + method.getName(), ex));
+          if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
+            return completeExcptionally(
+                new IllegalStateException("No reachable member with such service: " + method.getName(), ex));
+          } else {
+            throw ex;
+          }
         }
       }
 
