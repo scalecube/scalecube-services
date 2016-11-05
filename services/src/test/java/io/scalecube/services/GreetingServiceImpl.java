@@ -4,7 +4,7 @@ import io.scalecube.transport.Message;
 
 import java.util.concurrent.CompletableFuture;
 
-public class GreetingServiceImpl implements GreetingService {
+final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public String greeting(String name) {
@@ -18,12 +18,12 @@ public class GreetingServiceImpl implements GreetingService {
 
   @Override
   public GreetingResponse greetingRequest(GreetingRequest request) {
-    return new GreetingResponse(" hello to: " + request.name());
+    return new GreetingResponse(" hello to: " + request.getName());
   }
 
   @Override
   public CompletableFuture<GreetingResponse> asyncGreetingRequest(GreetingRequest request) {
-    return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.name()));
+    return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName()));
   }
 
   @Override

@@ -6,7 +6,6 @@ import io.scalecube.transport.Message;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 
 /**
  * Local service instance invokes the service instance hosted on this local process.
@@ -21,27 +20,18 @@ public class LocalServiceInstance implements ServiceInstance {
   private final String memberId;
 
   /**
-   * LocalServiceInstance instance constructor. 
-   * @param serviceObject the instance of the service object. 
-   * @param memberId the Cluster memberId of this instance. 
-   * @param serviceInterface the service interface class of the service.
-   * @param serviceName the qulifier name of the service.
+   * LocalServiceInstance instance constructor.
+   * 
+   * @param serviceObject the instance of the service object.
+   * @param memberId the Cluster memberId of this instance.
+   * @param serviceName the qualifier name of the service.
    * @param method the java method of the service.
-   * @param returnType the return type class of the service method.
    */
-  public LocalServiceInstance(
-      Object serviceObject,
-      String memberId,
-      Class<?> serviceInterface,
-      String serviceName,
-      Method method,
-      Type returnType) {
-
+  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Method method) {
     checkArgument(serviceObject != null);
     checkArgument(memberId != null);
     checkArgument(serviceName != null);
     checkArgument(method != null);
-
     this.serviceObject = serviceObject;
     this.serviceName = serviceName;
     this.method = method;

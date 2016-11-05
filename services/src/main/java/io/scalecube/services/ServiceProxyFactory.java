@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
@@ -20,7 +21,7 @@ public class ServiceProxyFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
 
   private final ServiceProcessor serviceProcessor;
-  private ConcurrentMap<String, ServiceDefinition> serviceDefinitions;
+  private Map<String, ServiceDefinition> serviceDefinitions;
   private RouterFactory routerFactory;
 
   public ServiceProxyFactory(ServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {

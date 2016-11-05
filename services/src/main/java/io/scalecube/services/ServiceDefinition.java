@@ -15,6 +15,7 @@ public class ServiceDefinition {
 
   /**
    * Constructor of service definition instance.
+   * 
    * @param serviceInterface the class of the service interface.
    * @param qualifier - the qualifier of the service.
    * @param method - the method to invoke the service.
@@ -53,24 +54,6 @@ public class ServiceDefinition {
 
   public Method method() {
     return this.method;
-  }
-
-  /**
-   * helper method to create a local service instance. 
-   * @param def ServiceDefinition of the requested instance.
-   * @param serviceObject the service object instance of the service.
-   * @param memberId the Cluster memberId of this instance.
-   * @param returnType the return type of the service instance.
-   * @return newly created service instance.
-   */
-  public static ServiceInstance toLocalServiceInstance(
-      ServiceDefinition def, Object serviceObject, String memberId, Type returnType) {
-    return new LocalServiceInstance(serviceObject,
-        memberId,
-        def.serviceInterface(),
-        def.qualifier(),
-        def.method(),
-        returnType);
   }
 
   @Override

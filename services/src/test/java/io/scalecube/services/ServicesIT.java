@@ -1,12 +1,7 @@
-package io.scalecube.services.tests;
+package io.scalecube.services;
 
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.services.GreetingRequest;
-import io.scalecube.services.GreetingResponse;
-import io.scalecube.services.GreetingService;
-import io.scalecube.services.GreetingServiceImpl;
-import io.scalecube.services.Microservices;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
@@ -148,7 +143,7 @@ public class ServicesIT {
 
     future.whenComplete((result, ex) -> {
       if (ex == null) {
-        assertTrue(result.result().equals(" hello to: joe"));
+        assertTrue(result.getResult().equals(" hello to: joe"));
         // print the greeting.
         System.out.println("pojoAsyncInvoke :" + result);
       } else {
@@ -183,9 +178,9 @@ public class ServicesIT {
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
-        System.out.println("pojoDistributedAsyncInvoke :" + result.result());
+        System.out.println("pojoDistributedAsyncInvoke :" + result.getResult());
         // print the greeting.
-        assertTrue(result.result().equals(" hello to: joe"));
+        assertTrue(result.getResult().equals(" hello to: joe"));
       } else {
         // print the greeting.
         System.out.println(ex);
@@ -209,9 +204,9 @@ public class ServicesIT {
     GreetingResponse result = service.greetingRequest(new GreetingRequest("joe"));
 
     // print the greeting.
-    System.out.println("pojoSyncBlockingCallExample :" + result.result());
+    System.out.println("pojoSyncBlockingCallExample :" + result.getResult());
 
-    assertTrue(result.result().equals(" hello to: joe"));
+    assertTrue(result.getResult().equals(" hello to: joe"));
   }
 
   @Test
@@ -232,9 +227,9 @@ public class ServicesIT {
     GreetingResponse result = service.greetingRequest(new GreetingRequest("joe"));
 
     // print the greeting.
-    System.out.println("pojoDistributedSyncBlockingCallExample :" + result.result());
+    System.out.println("pojoDistributedSyncBlockingCallExample :" + result.getResult());
 
-    assertTrue(result.result().equals(" hello to: joe"));
+    assertTrue(result.getResult().equals(" hello to: joe"));
 
     provider.cluster().shutdown();
   }

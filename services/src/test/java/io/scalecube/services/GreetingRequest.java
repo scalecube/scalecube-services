@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-public class GreetingRequest {
+final class GreetingRequest {
 
   private final String name;
 
@@ -8,7 +8,12 @@ public class GreetingRequest {
     this.name = name;
   }
 
-  public String name() {
+  public String getName() {
     return name;
+  }
+
+  @Override
+  public String toString() {
+    return "GreetingRequest{name='" + name + '\'' + '}';
   }
 }

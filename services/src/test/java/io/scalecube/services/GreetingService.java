@@ -7,14 +7,13 @@ import io.scalecube.transport.Message;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-public interface GreetingService {
+interface GreetingService {
 
   @ServiceMethod
   String greeting(String name);
 
   @ServiceMethod
   CompletableFuture<String> asyncGreeting(String string);
-
 
   @ServiceMethod
   GreetingResponse greetingRequest(GreetingRequest request);

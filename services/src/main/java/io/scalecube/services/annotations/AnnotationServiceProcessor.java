@@ -9,6 +9,7 @@ import com.google.common.base.Strings;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,43 +33,40 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   }
 
   @Override
-  public ConcurrentMap<String, ServiceDefinition> introspectServiceInterface(Class<?> serviceInterface) {
+  public Map<String, ServiceDefinition> introspectServiceInterface(Class<?> serviceInterface) {
+    // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     checkArgument(serviceAnnotation != null, "Not a service interface: %s", serviceInterface);
+    String serviceName = resolveServiceName(serviceInterface, serviceAnnotation);
 
-    String serviceName = Strings.isNullOrEmpty(serviceAnnotation.value())
-        ? serviceInterface.getName()
-        : serviceAnnotation.value();
-
-    ConcurrentMap<String, ServiceDefinition> serviceDefinitions = new ConcurrentHashMap<>();
-    Map<String, Method> methods = parseServiceMethods(serviceInterface);
-    methods.entrySet().forEach(entry -> {
-      String qualifier = serviceName + METHOD_NAME_DELIMITER + entry.getKey();
-      ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, qualifier, entry.getValue());
-      // TODO [AK]: Is it really supposed to be methodName -> methodDefinition?
-      // TODO [RN]: i don't see reason why not.
-      serviceDefinitions.put(entry.getKey(), serviceDefinition);
-    });
-
-    return serviceDefinitions;
-  }
-
-  private Map<String, Method> parseServiceMethods(Class<?> serviceInterface) {
-    Map<String, Method> methods = new HashMap<>();
+    // Method name
+    Map<String, ServiceDefinition> serviceDefinitionByMethodName = new HashMap<>();
     for (Method method : serviceInterface.getMethods()) {
       if (method.isAnnotationPresent(ServiceMethod.class)) {
-        ServiceMethod serviceMethodAnnotation = method.getAnnotation(ServiceMethod.class);
-        String methodName = Strings.isNullOrEmpty(serviceMethodAnnotation.value())
-            ? method.getName()
-            : serviceMethodAnnotation.value();
-        if (methods.containsKey(methodName)) {
+        ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+        String methodName = resolveMethodName(method, methodAnnotation);
+        if (serviceDefinitionByMethodName.containsKey(methodName)) {
           throw new IllegalStateException("Service method with name '" + methodName + "' already exists");
         }
-        methods.put(methodName, method);
+        String qualifier = toQualifier(serviceName, methodName);
+        ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, qualifier, method);
+        serviceDefinitionByMethodName.put(methodName, serviceDefinition);
       }
     }
-    return methods;
+
+    return Collections.unmodifiableMap(serviceDefinitionByMethodName);
   }
 
+  private String resolveServiceName(Class<?> serviceInterface, Service serviceAnnotation) {
+    return Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
+  }
+
+  private String resolveMethodName(Method method, ServiceMethod methodAnnotation) {
+    return Strings.isNullOrEmpty(methodAnnotation.value()) ? method.getName() : methodAnnotation.value();
+  }
+
+  private String toQualifier(String serviceName, String methodName) {
+    return serviceName + METHOD_NAME_DELIMITER + methodName;
+  }
 
 }

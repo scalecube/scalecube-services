@@ -115,15 +115,14 @@ public class ServiceRegistry implements IServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
+      Map<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
       serviceDefinitions.values().forEach(definition -> {
         ServiceReference serviceRef = new ServiceReference(memberId, definition.qualifier(), cluster.address());
-        ServiceInstance serviceDef = ServiceDefinition.toLocalServiceInstance(
-            definition, serviceObject, memberId, definition.returnType());
-
-        serviceInstances.putIfAbsent(serviceRef, serviceDef);
+        ServiceInstance serviceInstance =
+            new LocalServiceInstance(serviceObject, memberId, definition.qualifier(), definition.method());
+        serviceInstances.putIfAbsent(serviceRef, serviceInstance);
 
       });
     });
@@ -136,7 +135,7 @@ public class ServiceRegistry implements IServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      ConcurrentMap<String, ServiceDefinition> serviceDefinitions =
+      Map<String, ServiceDefinition> serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
       serviceDefinitions.values().forEach(serviceDefinition -> {

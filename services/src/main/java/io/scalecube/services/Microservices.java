@@ -226,8 +226,8 @@ public class Microservices {
     for (Object service : services) {
       Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service);
       for (Class<?> serviceInterface : serviceInterfaces) {
-        ConcurrentMap<String, ServiceDefinition> defs = serviceProcessor.introspectServiceInterface(serviceInterface);
-        defs.entrySet().stream().forEach(entry -> {
+        Map<String, ServiceDefinition> defs = serviceProcessor.introspectServiceInterface(serviceInterface);
+        defs.entrySet().forEach(entry -> {
           result.put(entry.getValue().qualifier(), "service");
         });
       }

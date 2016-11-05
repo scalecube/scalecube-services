@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-public class GreetingResponse {
+final class GreetingResponse {
 
   private final String result;
 
@@ -8,8 +8,12 @@ public class GreetingResponse {
     this.result = result;
   }
 
-  public String result() {
+  public String getResult() {
     return result;
   }
 
+  @Override
+  public String toString() {
+    return "GreetingResponse{result='" + result + '\'' + '}';
+  }
 }
