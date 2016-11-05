@@ -1,4 +1,4 @@
-package io.scalecube.services.examples;
+package io.scalecube.examples.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
@@ -10,22 +10,15 @@ import java.util.concurrent.CompletableFuture;
 public interface GreetingService {
 
   @ServiceMethod
-  String greeting(String name);
+  String syncGreeting(String name);
 
   @ServiceMethod
   CompletableFuture<String> asyncGreeting(String string);
 
+  @ServiceMethod
+  String syncGreetingException(String name);
 
   @ServiceMethod
-  GreetingResponse greetingRequest(GreetingRequest request);
-
-  @ServiceMethod
-  CompletableFuture<GreetingResponse> asyncGreetingRequest(GreetingRequest string);
-
-  @ServiceMethod
-  Message greetingMessage(Message request);
-
-  @ServiceMethod
-  CompletableFuture<Message> asyncGreetingMessage(Message request);
+  CompletableFuture<String> asyncGreetingException(String name);
 
 }
