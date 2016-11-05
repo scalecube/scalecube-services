@@ -18,7 +18,7 @@ public class RandomServiceRouter implements Router {
 
   @Override
   public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition) {
-    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.qualifier());
+    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.serviceName());
     if (!serviceInstances.isEmpty()) {
       int index = ThreadLocalRandom.current().nextInt((serviceInstances.size()));
       return Optional.of(serviceInstances.get(index));

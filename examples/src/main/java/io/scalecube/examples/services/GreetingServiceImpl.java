@@ -17,7 +17,7 @@ public class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public String syncGreetingException(String name) {
+  public String syncGreetingException(String name) throws  UnsupportedOperationException {
     System.out.println("Provider: 'syncGreetingException' -> " + name);
     throw new UnsupportedOperationException("syncGreetingException");
   }

@@ -10,21 +10,18 @@ import java.util.concurrent.CompletableFuture;
 interface GreetingService {
 
   @ServiceMethod
-  String greeting(String name);
-
-  @ServiceMethod
   CompletableFuture<String> asyncGreeting(String string);
 
   @ServiceMethod
-  GreetingResponse greetingRequest(GreetingRequest request);
+  CompletableFuture<GreetingResponse> greetingRequestTimeout(GreetingRequest request);
 
   @ServiceMethod
   CompletableFuture<GreetingResponse> asyncGreetingRequest(GreetingRequest string);
 
   @ServiceMethod
-  Message greetingMessage(Message request);
+  CompletableFuture<Message> asyncGreetingMessage(Message request);
 
   @ServiceMethod
-  CompletableFuture<Message> asyncGreetingMessage(Message request);
+  void greetingVoid(GreetingRequest request);
 
 }
