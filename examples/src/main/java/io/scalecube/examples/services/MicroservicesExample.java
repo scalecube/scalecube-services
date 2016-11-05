@@ -37,26 +37,28 @@ public class MicroservicesExample {
 
     // Call service asynchronously
     CompletableFuture<String> future = greetingService.asyncGreeting("Joe");
-    future.whenComplete((result, ex) -> System.out.println("Response async: " + (ex == null ? result : ex)));
+    future.whenComplete((result, exception) ->
+        System.out.println("Consumer: 'asyncGreeting' <- " + (exception == null ? result : exception)));
 
     // Call service asynchronously with error
     CompletableFuture<String> futureError = greetingService.asyncGreetingException("Joe");
-    futureError.whenComplete((result, ex) -> System.out.println("Response async: " + (ex == null ? result : ex)));
+    futureError.whenComplete((result, exception) ->
+        System.out.println("Consumer: 'asyncGreetingException' <- " + (exception == null ? result : exception)));
 
     // Call service synchronously (blocking)
     try {
-      String result = greetingService.syncGreeting("joe");
-      System.out.println("Response sync: " + result);
-    } catch (Exception ex) {
-      System.out.println("Response sync: " + ex.toString());
+      String result = greetingService.syncGreeting("Joe");
+      System.out.println("Consumer: 'syncGreeting' <- " + result);
+    } catch (Exception exception) {
+      System.out.println("Consumer: 'syncGreeting' <- " + exception);
     }
 
     // Call service synchronously (blocking) with error
     try {
-      String result = greetingService.syncGreetingException("joe");
-      System.out.println("Response sync: " + result);
-    } catch (Exception ex) {
-      System.out.println("Response sync: " + ex.toString());
+      String result = greetingService.syncGreetingException("Joe");
+      System.out.println("Consumer: 'syncGreetingException' <- " + result);
+    } catch (Exception exception) {
+      System.out.println("Consumer: 'syncGreetingException' <- " + exception);
     }
   }
 
