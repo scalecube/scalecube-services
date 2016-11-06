@@ -6,18 +6,82 @@ import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServicesIT {
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
-  /**
-   * NATIVE TESTING
-   */
   @Test
-  public void simpleAsyncInvoke() {
+  public void remote_greeting_request_completes_before_timeout() {
+    Duration duration = Duration.ofSeconds(1);
+    
+    // Create microservices instance.
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+    
+     Microservices.builder()
+       .seeds(gateway.cluster().address())
+       .services(new GreetingServiceImpl())
+       .build();
+       
+
+     GreetingService service = gateway.proxy()
+         .api(GreetingService.class)
+         .create();
+     
+    // call the service.
+    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe",duration));
+
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    result.whenComplete((success,error)->{
+      if(error==null) {
+        // print the greeting.
+        System.out.println("1. greeting_request_completes_before_timeout : " + success.getResult());
+        assertTrue(success.getResult().equals(" hello to: joe"));
+        timeLatch.countDown();
+      }
+    });
+    
+    await(timeLatch,60,TimeUnit.SECONDS);
+  }
+  
+  @Test
+  public void greeting_request_completes_before_timeout() {
+    Duration duration = Duration.ofSeconds(1);
+    
+    // Create microservices instance.
+    GreetingService service = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build()
+        .proxy().api(GreetingService.class)
+        .create();
+
+    // call the service.
+    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe",duration));
+
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    result.whenComplete((success,error)->{
+      if(error==null) {
+        // print the greeting.
+        System.out.println("2. greeting_request_completes_before_timeout : " + success.getResult());
+        assertTrue(success.getResult().equals(" hello to: joe"));
+        timeLatch.countDown();
+      }
+    });
+    
+    await(timeLatch,60,TimeUnit.SECONDS);
+  }
+  
+  @Test
+  public void local_async_greeting() {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -34,7 +98,7 @@ public class ServicesIT {
       if (ex == null) {
         assertTrue(result.equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("simpleAsyncInvoke :" + result);
+        System.out.println("3. local_async_greeting :" + result);
       } else {
         // print the greeting.
         System.out.println(ex);
@@ -45,7 +109,7 @@ public class ServicesIT {
   }
 
   @Test
-  public void distributedAsyncInvoke() {
+  public void remote_async_greeting_return_string() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -67,7 +131,7 @@ public class ServicesIT {
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
-        System.out.println("distributedAsyncInvoke :" + result);
+        System.out.println("4. remote_async_greeting_return_string :" + result);
 
         assertTrue(result.equals(" hello to: joe"));
       } else {
@@ -75,60 +139,13 @@ public class ServicesIT {
         System.out.println(ex);
       }
     });
+    await(TimeUnit.MILLISECONDS, 5);
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
 
   @Test
-  public void simpleSyncBlockingCallExample() {
-    // Create microservices instance.
-    GreetingService service = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build()
-        .proxy().api(GreetingService.class)
-        .create();
-
-    // call the service.
-    String result = service.greeting("joe");
-
-    // print the greeting.
-    System.out.println("simpleSyncBlockingCallExample :" + result);
-
-    assertTrue(result.equals(" hello to: joe"));
-  }
-
-  @Test
-  public void distributedSyncBlockingCallExample() {
-    // Create microservices cluster.
-    Microservices provider = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-
-    GreetingService service = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address()) // join provider cluster
-        .build().proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .create();
-
-    String result = service.greeting("joe");
-
-    // print the greeting.
-    System.out.println("distributedSyncBlockingCallExample :" + result);
-
-    assertTrue(result.equals(" hello to: joe"));
-
-    provider.cluster().shutdown();
-  }
-
-
-  /**
-   * POJO TESTING
-   */
-  @Test
-  public void pojoAsyncInvoke() {
+  public void local_async_greeting_return_GreetingResponse() {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -145,7 +162,7 @@ public class ServicesIT {
       if (ex == null) {
         assertTrue(result.getResult().equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("pojoAsyncInvoke :" + result);
+        System.out.println("5. remote_async_greeting_return_GreetingResponse :" + result);
       } else {
         // print the greeting.
         System.out.println(ex);
@@ -156,7 +173,7 @@ public class ServicesIT {
   }
 
   @Test
-  public void pojoDistributedAsyncInvoke() {
+  public void remote_async_greeting_return_GreetingResponse() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -178,7 +195,7 @@ public class ServicesIT {
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
-        System.out.println("pojoDistributedAsyncInvoke :" + result.getResult());
+        System.out.println("6. remote_async_greeting_return_GreetingResponse :" + result.getResult());
         // print the greeting.
         assertTrue(result.getResult().equals(" hello to: joe"));
       } else {
@@ -186,12 +203,13 @@ public class ServicesIT {
         System.out.println(ex);
       }
     });
+    await(TimeUnit.MILLISECONDS, 5);
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
 
   @Test
-  public void pojoSyncBlockingCallExample() {
+  public void local_greeting_request_timeout_expires() {
     // Create microservices instance.
     GreetingService service = Microservices.builder()
         .port(port.incrementAndGet())
@@ -200,47 +218,57 @@ public class ServicesIT {
         .proxy().api(GreetingService.class)
         .create();
 
+    Duration duration = Duration.ofSeconds(4);
     // call the service.
-    GreetingResponse result = service.greetingRequest(new GreetingRequest("joe"));
+    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe",duration));
 
-    // print the greeting.
-    System.out.println("pojoSyncBlockingCallExample :" + result.getResult());
-
-    assertTrue(result.getResult().equals(" hello to: joe"));
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    result.whenComplete((success,error)->{
+      if(error!=null)
+      // print the greeting.
+      System.out.println("7. local_greeting_request_timeout_expires : " + error);
+      assertTrue(error instanceof TimeoutException);
+      timeLatch.countDown();
+    });
+    
+    await(timeLatch,60,TimeUnit.SECONDS);
   }
 
   @Test
-  public void pojoDistributedSyncBlockingCallExample() {
+  public void remote_greeting_request_timeout_expires() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = Microservices.builder()
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
-        .seeds(provider.cluster().address()) // join provider cluster
-        .build().proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .create();
+        .seeds(provider.cluster().address())
+        .build();
 
-    GreetingResponse result = service.greetingRequest(new GreetingRequest("joe"));
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
 
-    // print the greeting.
-    System.out.println("pojoDistributedSyncBlockingCallExample :" + result.getResult());
+    Duration duration = Duration.ofSeconds(4);
+    // call the service.
+    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe",duration));
 
-    assertTrue(result.getResult().equals(" hello to: joe"));
-
-    provider.cluster().shutdown();
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    result.whenComplete((success,error)->{
+      if(error!=null)
+      // print the greeting.
+      System.out.println("8. remote_greeting_request_timeout_expires : " + error);
+      assertTrue(error instanceof TimeoutException);
+      timeLatch.countDown();
+    });
+    
+    await(timeLatch,60,TimeUnit.SECONDS);
   }
 
-
-
-  /**
-   * MESSAGE TESTING
-   */
   @Test
-  public void messageAsyncInvoke() {
+  public void local_async_greeting_return_Message() {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -257,18 +285,19 @@ public class ServicesIT {
       if (ex == null) {
         assertTrue(result.data().equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("messageAsyncInvoke :" + result.data());
+        System.out.println("9. local_async_greeting_return_Message :" + result.data());
       } else {
         // print the greeting.
         System.out.println(ex);
       }
     });
-
+    
+    await(TimeUnit.MILLISECONDS, 5);
     microservices.cluster().shutdown();
   }
 
   @Test
-  public void messageDistributedAsyncInvoke() {
+  public void remote_async_greeting_return_Message() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -290,7 +319,7 @@ public class ServicesIT {
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
-        System.out.println("messageDistributedAsyncInvoke :" + result.data());
+        System.out.println("10. remote_async_greeting_return_Message :" + result.data());
         // print the greeting.
         assertTrue(result.data().equals(" hello to: joe"));
       } else {
@@ -298,54 +327,13 @@ public class ServicesIT {
         System.out.println(ex);
       }
     });
+    
+    await(TimeUnit.MILLISECONDS, 5);
     consumer.cluster().shutdown();
   }
 
   @Test
-  public void messageSyncBlockingCallExample() {
-    // Create microservices instance.
-    GreetingService service = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build()
-        .proxy().api(GreetingService.class)
-        .create();
-
-    // call the service.
-    Message result = service.greetingMessage(Message.builder().data("joe").build());
-
-    // print the greeting.
-    System.out.println("messageSyncBlockingCallExample :" + result.data());
-
-    assertTrue(result.data().equals(" hello to: joe"));
-  }
-
-  @Test
-  public void messageDistributedSyncBlockingCallExample() {
-    // Create microservices cluster.
-    Microservices provider = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-
-    GreetingService service = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address()) // join provider cluster
-        .build().proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .create();
-
-    Message result = service.greetingMessage(Message.builder().data("joe").build());
-
-    // print the greeting.
-    System.out.println("messageDistributedSyncBlockingCallExample :" + result.data());
-
-    assertTrue(result.data().equals(" hello to: joe"));
-
-  }
-
-  @Test
-  public void testRoundRubinLogic() {
+  public void round_robin_selection_logic() {
     Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
@@ -371,10 +359,11 @@ public class ServicesIT {
     combined.whenComplete((v, x) -> {
       try {
         // print the greeting.
-        System.out.println("messageDistributedSyncBlockingCallExample :" + result1.get());
-        System.out.println("messageDistributedSyncBlockingCallExample :" + result2.get());
+        System.out.println("11. round_robin_selection_logic :" + result1.get());
+        System.out.println("11. round_robin_selection_logic :" + result2.get());
  
         boolean success = !result1.get().sender().equals(result2.get().sender());
+        
         assertTrue(success);
       } catch (Throwable e) {
         assertTrue(false);
@@ -413,7 +402,7 @@ public class ServicesIT {
     
     GreetingService service = createProxy(gateway);
    try{
-     service.greeting("hello");
+     service.asyncGreeting("hello");
    } catch(Throwable th) {
      assertTrue(th.getCause().getMessage().equals("java.lang.IllegalStateException: No reachable member with such service: greeting"));
    }
@@ -441,4 +430,21 @@ public class ServicesIT {
         .build();
     return gateway;
   }
+  
+  private void await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) {
+    try {
+      timeLatch.await(timeout,timeUnit);
+    } catch (InterruptedException e) {
+    }
+  }
+  
+  private void await(TimeUnit timeunit, int i) {
+    try {
+      timeunit.sleep(i);
+    } catch (InterruptedException e) {
+    }
+  }
+
+  
+
 }

@@ -15,10 +15,14 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class ServiceProxyFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
+  final static ScheduledExecutorService delayer = Executors.newScheduledThreadPool(1);
 
   private final ServiceProcessor serviceProcessor;
   private Map<String, ServiceDefinition> serviceDefinitions;
@@ -31,6 +35,7 @@ public class ServiceProxyFactory {
 
   /**
    * createProxy creates a java generic proxy instance by a given service interface.
+   * 
    * @param serviceInterface the service interface, api, of the service.
    * @param routerType the type of routing method class to be used.
    * @return newly created service proxy object.
@@ -54,20 +59,27 @@ public class ServiceProxyFactory {
             Message reqMsg = Message.withData(args[0])
                 .qualifier(serviceInstance.get().serviceName())
                 .build();
-            return serviceInstance.get().invoke(reqMsg, serviceDefinition);
 
+            CompletableFuture<?> resultFuture =
+                (CompletableFuture<?>) serviceInstance.get().invoke(reqMsg, serviceDefinition);
+
+            CompletableFuture<?> futureTimeout = timeoutAfter(resultFuture, 3, TimeUnit.SECONDS);
+            resultFuture.thenRun(() -> {
+              futureTimeout.complete(null);
+            });
+
+            return resultFuture;
           } else {
             LOGGER.error(
                 "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
                 serviceDefinition, args);
             CompletableFuture<T> future = completeExcptionally(
                 new IllegalStateException("No reachable member with such service: " + method.getName()));
-            
+
             if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
               return future;
             } else {
-              T result = future.get();
-              return result;
+              throw new UnsupportedOperationException("service must return CompletableFuture");
             }
           }
 
@@ -82,6 +94,19 @@ public class ServiceProxyFactory {
             throw ex;
           }
         }
+      }
+
+
+      public <T> CompletableFuture<T> timeoutAfter(CompletableFuture<T> targetGoal, long timeout, TimeUnit unit) {
+        CompletableFuture<T> result = new CompletableFuture<T>();
+        delayer.schedule(() -> result.completeExceptionally(new TimeoutException()), timeout, unit);
+        result.whenComplete((success, error) -> {
+          if (error != null) {
+            if (!targetGoal.isDone())
+              targetGoal.completeExceptionally(error);
+          }
+        });
+        return result;
       }
 
       private <T> CompletableFuture<T> completeExcptionally(IllegalStateException ex) {

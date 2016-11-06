@@ -3,13 +3,10 @@ package io.scalecube.services;
 import io.scalecube.transport.Message;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 final class GreetingServiceImpl implements GreetingService {
-
-  @Override
-  public String greeting(String name) {
-    return " hello to: " + name;
-  }
 
   @Override
   public CompletableFuture<String> asyncGreeting(String name) {
@@ -17,18 +14,21 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public GreetingResponse greetingRequest(GreetingRequest request) {
-    return new GreetingResponse(" hello to: " + request.getName());
+  public CompletableFuture<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {  
+    CompletableFuture<GreetingResponse> response = new CompletableFuture<GreetingResponse>();
+    
+    Executors.newScheduledThreadPool(1).schedule(()->{
+      try {     
+        response.complete(new GreetingResponse(" hello to: " + request.getName()));
+      } catch(Exception ex) {}
+    }, request.getDuration().toMillis(), TimeUnit.MILLISECONDS);
+    
+    return response;
   }
 
   @Override
   public CompletableFuture<GreetingResponse> asyncGreetingRequest(GreetingRequest request) {
     return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName()));
-  }
-
-  @Override
-  public Message greetingMessage(Message request) {
-    return Message.fromData(" hello to: " + request.data());
   }
 
   @Override
