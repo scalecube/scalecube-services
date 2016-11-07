@@ -97,6 +97,7 @@ public class ServicesIT {
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
 
+    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         assertTrue(result.equals(" hello to: joe"));
@@ -106,8 +107,10 @@ public class ServicesIT {
         // print the greeting.
         System.out.println(ex);
       }
+      timeLatch.countDown();
     });
-
+    
+    await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
 
@@ -130,19 +133,20 @@ public class ServicesIT {
 
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
-
+    
+    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
         System.out.println("4. remote_async_greeting_return_string :" + result);
-
         assertTrue(result.equals(" hello to: joe"));
       } else {
         // print the greeting.
         System.out.println(ex);
       }
+      timeLatch.countDown();
     });
-    await(TimeUnit.MILLISECONDS, 5);
+    await(timeLatch,1,TimeUnit.SECONDS);
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
@@ -161,6 +165,7 @@ public class ServicesIT {
     // call the service.
     CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
 
+    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         assertTrue(result.getResult().equals(" hello to: joe"));
@@ -170,8 +175,9 @@ public class ServicesIT {
         // print the greeting.
         System.out.println(ex);
       }
+      timeLatch.countDown();
     });
-
+    await(timeLatch, 1,TimeUnit.SECONDS); 
     microservices.cluster().shutdown();
   }
 
@@ -195,6 +201,7 @@ public class ServicesIT {
     // call the service.
     CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
 
+    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
@@ -205,8 +212,10 @@ public class ServicesIT {
         // print the greeting.
         System.out.println(ex);
       }
+      timeLatch.countDown();
     });
-    await(TimeUnit.MILLISECONDS, 5);
+    
+    await(timeLatch , 1,TimeUnit.SECONDS);
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
@@ -223,7 +232,7 @@ public class ServicesIT {
         .create();
 
     // call the service.
-    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
+    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(2)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
@@ -237,7 +246,7 @@ public class ServicesIT {
       timeLatch.countDown();
     });
 
-    await(timeLatch, 10, TimeUnit.SECONDS);
+    await(timeLatch, 5, TimeUnit.SECONDS);
   }
 
   @Test
@@ -288,6 +297,7 @@ public class ServicesIT {
     // call the service.
     CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
 
+    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         assertTrue(result.data().equals(" hello to: joe"));
@@ -297,9 +307,9 @@ public class ServicesIT {
         // print the greeting.
         System.out.println(ex);
       }
+      timeLatch.countDown();
     });
-
-    await(TimeUnit.MILLISECONDS, 5);
+    await(timeLatch  , 1,TimeUnit.SECONDS); 
     microservices.cluster().shutdown();
   }
 
@@ -323,6 +333,7 @@ public class ServicesIT {
     // call the service.
     CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
 
+    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
@@ -334,9 +345,10 @@ public class ServicesIT {
         System.out.println("10 failed: " + ex);
         assertTrue(result.data().equals(" hello to: joe"));
       }
+      timeLatch.countDown();
     });
 
-    await(TimeUnit.MILLISECONDS, 5);
+    await(timeLatch  , 1,TimeUnit.SECONDS);
     consumer.cluster().shutdown();
   }
 
@@ -363,7 +375,9 @@ public class ServicesIT {
     CompletableFuture<Message> result1 = service.asyncGreetingMessage(Message.builder().data("joe").build());
     CompletableFuture<Message> result2 = service.asyncGreetingMessage(Message.builder().data("joe").build());
 
+    
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
+    CountDownLatch timeLatch = new CountDownLatch(1);
     combined.whenComplete((v, x) -> {
       try {
         // print the greeting.
@@ -376,8 +390,9 @@ public class ServicesIT {
       } catch (Throwable e) {
         assertTrue(false);
       }
+      timeLatch.countDown();
     });
-
+    await(timeLatch, 1, TimeUnit.SECONDS);
     provider1.cluster().shutdown();
     provider2.cluster().shutdown();
     gateway.cluster().shutdown();
@@ -391,13 +406,15 @@ public class ServicesIT {
     Microservices provider1 = createProvider(gateway);
 
     GreetingService service = createProxy(gateway);
+    CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       service.asyncGreeting("hello");
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: asyncGreeting"));
+      timeLatch.countDown();
     }
 
-    await(TimeUnit.MILLISECONDS, 5);
+    await(timeLatch, 1, TimeUnit.SECONDS);
     gateway.cluster().shutdown();
     provider1.cluster().shutdown();
   }
@@ -433,16 +450,7 @@ public class ServicesIT {
     try {
       timeLatch.await(timeout, timeUnit);
     } catch (InterruptedException e) {
+      throw new AssertionError();
     }
   }
-
-  private void await(TimeUnit timeunit, int i) {
-    try {
-      timeunit.sleep(i);
-    } catch (InterruptedException e) {
-    }
-  }
-
-
-
 }

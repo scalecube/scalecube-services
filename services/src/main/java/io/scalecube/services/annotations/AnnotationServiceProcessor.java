@@ -16,7 +16,7 @@ import java.util.Map;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
-  private static final String METHOD_NAME_DELIMITER = "/";
+  private static final String METHOD_NAME_DELIMITER = "@";
 
   @Override
   public Collection<Class<?>> extractServiceInterfaces(Object serviceObject) {

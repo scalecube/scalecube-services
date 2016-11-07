@@ -24,7 +24,12 @@ import java.util.concurrent.TimeoutException;
 
 public class ServiceProxyFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
-
+  
+  /**
+   * used to complete the request future with timeout exception in case no response comes from service.
+   */
+  private static final ScheduledExecutorService delayer = Executors.newScheduledThreadPool(1);
+  
   private final ServiceProcessor serviceProcessor;
   private Map<String, ServiceDefinition> serviceDefinitions;
   private RouterFactory routerFactory;
@@ -47,13 +52,12 @@ public class ServiceProxyFactory {
     this.serviceDefinitions = serviceProcessor.introspectServiceInterface(serviceInterface);
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
-
-
+      
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         try {
-
+          // fetch the service definition by the method name
           ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
 
           Router router = routerFactory.getRouter(routerType);
@@ -84,8 +88,6 @@ public class ServiceProxyFactory {
           throw new IllegalStateException("No reachable member with such service: " + method.getName());
         }
       }
-
-      final ScheduledExecutorService delayer = Executors.newScheduledThreadPool(1);
 
       public CompletableFuture<?> timeoutAfter(final CompletableFuture<?> resultFuture, Duration timeout) {
 
