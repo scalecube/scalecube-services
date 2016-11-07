@@ -72,7 +72,7 @@ public class ServiceProxyFactory {
             CompletableFuture<?> resultFuture =
                 (CompletableFuture<?>) serviceInstance.get().invoke(reqMsg, serviceDefinition);
 
-            if (resultFuture == null) {
+            if (method.getReturnType().equals(Void.TYPE)) {
               return CompletableFuture.completedFuture(Void.TYPE);
             } else {
               return timeoutAfter(resultFuture, timeout);
