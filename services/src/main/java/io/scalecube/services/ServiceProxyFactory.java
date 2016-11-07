@@ -72,8 +72,11 @@ public class ServiceProxyFactory {
             CompletableFuture<?> resultFuture =
                 (CompletableFuture<?>) serviceInstance.get().invoke(reqMsg, serviceDefinition);
 
-            return timeoutAfter(resultFuture, timeout);
-
+            if (resultFuture == null) {
+              return CompletableFuture.completedFuture(Void.TYPE);
+            } else {
+              return timeoutAfter(resultFuture, timeout);
+            }
           } else {
             LOGGER.error(
                 "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
@@ -90,29 +93,26 @@ public class ServiceProxyFactory {
       }
 
       public CompletableFuture<?> timeoutAfter(final CompletableFuture<?> resultFuture, Duration timeout) {
-        if(resultFuture==null) {
-          return CompletableFuture.completedFuture(Void.TYPE);
-        } else {
-          final CompletableFuture<Class<Void>> timeoutFuture = new CompletableFuture<>();
-  
-          // schedule to terminate the target goal in future in case it was not done yet
-          final ScheduledFuture<?> scheduledEvent = delayer.schedule(() -> {
-            // by this time the target goal should have finished.
-            if (!resultFuture.isDone()) {
-              // taget goal not finished in time so cancel it with timeout.
-              resultFuture.completeExceptionally(new TimeoutException("expecting response reached timeout!"));
-            }
-          }, timeout.toMillis(), TimeUnit.MILLISECONDS);
-  
-          // cancel the timeout in case target goal did finish on time
-          resultFuture.thenRun(() -> {
-            if (resultFuture.isDone()) {
-              scheduledEvent.cancel(true);
-              timeoutFuture.complete(Void.TYPE);
-            }
-          });
-          return resultFuture;
-        }
+       
+        final CompletableFuture<Class<Void>> timeoutFuture = new CompletableFuture<>();
+
+        // schedule to terminate the target goal in future in case it was not done yet
+        final ScheduledFuture<?> scheduledEvent = delayer.schedule(() -> {
+          // by this time the target goal should have finished.
+          if (!resultFuture.isDone()) {
+            // taget goal not finished in time so cancel it with timeout.
+            resultFuture.completeExceptionally(new TimeoutException("expecting response reached timeout!"));
+          }
+        }, timeout.toMillis(), TimeUnit.MILLISECONDS);
+
+        // cancel the timeout in case target goal did finish on time
+        resultFuture.thenRun(() -> {
+          if (resultFuture.isDone()) {
+            scheduledEvent.cancel(true);
+            timeoutFuture.complete(Void.TYPE);
+          }
+        });
+        return resultFuture;
       }
     });
   }

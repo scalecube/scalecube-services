@@ -52,7 +52,7 @@ public class RemoteServiceInstance implements ServiceInstance {
       } else {
         return futureInvoke(request, message -> message.data());
       }
-    }else if(definition.returnType().equals(Void.TYPE)) {
+    } else if (definition.returnType().equals(Void.TYPE)) {
       return sendRemote(composeRequest(request,request.correlationId()));
     } else {
       throw new UnsupportedOperationException("Method: " + definition.method() + " must return CompletableFuture");
