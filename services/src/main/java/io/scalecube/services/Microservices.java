@@ -27,14 +27,12 @@ import java.util.Map;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  * 
- * <p>
- * ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated regards
+ * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated regards
  * how you build the service component itself. the Service component is simply java class that implements the service
  * Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive
  * and streaming patters but does not force application developers to it.
  * 
- * <p>
- * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -46,8 +44,7 @@ import java.util.Map;
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service endpoints</li>
  * 
- * </p>
- * <b>basic usage example:</b>
+ * </p><b>basic usage example:</b>
  * 
  * <pre>
  * 
@@ -175,6 +172,11 @@ public class Microservices {
       return this;
     }
 
+    /**
+     * Services list to be registered.
+     * @param services list of instances decorated with @Service
+     * @return builder.
+     */
     public Builder services(Object... services) {
       if (services == null) {
         this.services = new Object[0];
@@ -206,8 +208,8 @@ public class Microservices {
       return (T) createProxy(this.api, this.router,this.timeout );
     }
 
-    public ProxyContext timeout(Duration duration){
-      this.timeout= duration;
+    public ProxyContext timeout(Duration duration) {
+      this.timeout = duration;
       return this;
     }
     

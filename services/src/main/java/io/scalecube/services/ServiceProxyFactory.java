@@ -41,8 +41,8 @@ public class ServiceProxyFactory {
    * @param routerType the type of routing method class to be used.
    * @return newly created service proxy object.
    */
-  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType
-      , Duration timeout) {
+  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType, 
+      Duration timeout) {
 
     this.serviceDefinitions = serviceProcessor.introspectServiceInterface(serviceInterface);
 
