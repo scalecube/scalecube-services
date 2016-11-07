@@ -47,9 +47,9 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
         methods.put(methodName, method);
       }
     }
-    ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, serviceName, 
+    ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, serviceName,
         Collections.unmodifiableMap(methods));
-    
+
     return serviceDefinition;
   }
 

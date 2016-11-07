@@ -24,12 +24,12 @@ import java.util.concurrent.TimeoutException;
 
 public class ServiceProxyFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
-  
+
   /**
    * used to complete the request future with timeout exception in case no response comes from service.
    */
   private static final ScheduledExecutorService delayer = Executors.newScheduledThreadPool(1);
-  
+
   private final ServiceProcessor serviceProcessor;
   ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
@@ -46,13 +46,13 @@ public class ServiceProxyFactory {
    * @param routerType the type of routing method class to be used.
    * @return newly created service proxy object.
    */
-  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType, 
+  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
       Duration timeout) {
 
     this.serviceDefinition = serviceProcessor.introspectServiceInterface(serviceInterface);
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
-      
+
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
@@ -92,7 +92,7 @@ public class ServiceProxyFactory {
       }
 
       public CompletableFuture<?> timeoutAfter(final CompletableFuture<?> resultFuture, Duration timeout) {
-       
+
         final CompletableFuture<Class<Void>> timeoutFuture = new CompletableFuture<>();
 
         // schedule to terminate the target goal in future in case it was not done yet

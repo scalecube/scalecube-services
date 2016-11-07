@@ -16,7 +16,7 @@ import java.util.Map;
 public class LocalServiceInstance implements ServiceInstance {
 
   private final Object serviceObject;
-  private final Map<String,Method> methods;
+  private final Map<String, Method> methods;
   private final String serviceName;
   private final String memberId;
 
@@ -28,7 +28,7 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param serviceName the qualifier name of the service.
    * @param method the java method of the service.
    */
-  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Map<String,Method> methods) {
+  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Map<String, Method> methods) {
     checkArgument(serviceObject != null);
     checkArgument(memberId != null);
     checkArgument(serviceName != null);

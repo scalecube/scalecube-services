@@ -27,10 +27,10 @@ import java.util.Map;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  * 
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards
- * how you build the service component itself. the Service component is simply java class that implements the service
- * Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive
- * and streaming patters but does not force application developers to it.
+ * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
+ * build the service component itself. the Service component is simply java class that implements the service Interface
+ * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
+ * streaming patters but does not force application developers to it.
  * 
  * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
@@ -118,7 +118,7 @@ public class Microservices {
   }
 
   private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
-    return proxyFactory.createProxy(serviceInterface, router,timeout);
+    return proxyFactory.createProxy(serviceInterface, router, timeout);
   }
 
   public Collection<ServiceInstance> services() {
@@ -173,6 +173,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
+     * 
      * @param services list of instances decorated with @Service
      * @return builder.
      */
@@ -204,14 +205,14 @@ public class Microservices {
 
     public <T> T create() {
       LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, this.router,this.timeout );
+      return (T) createProxy(this.api, this.router, this.timeout);
     }
 
     public ProxyContext timeout(Duration duration) {
       this.timeout = duration;
       return this;
     }
-    
+
     public Class<?> api() {
       return api;
     }

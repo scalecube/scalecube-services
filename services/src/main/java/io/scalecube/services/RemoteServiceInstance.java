@@ -54,13 +54,14 @@ public class RemoteServiceInstance implements ServiceInstance {
         return futureInvoke(request, message -> message.data());
       }
     } else if (definition.method(request.method()).getReturnType().equals(Void.TYPE)) {
-      return sendRemote(composeRequest(request,request.correlationId()));
+      return sendRemote(composeRequest(request, request.correlationId()));
     } else {
-      throw new UnsupportedOperationException("Method: " + definition.method(request.method()) + " must return CompletableFuture");
+      throw new UnsupportedOperationException(
+          "Method: " + definition.method(request.method()) + " must return CompletableFuture");
     }
   }
 
-  
+
   private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
     final CompletableFuture<Object> messageFuture = new CompletableFuture<>();
 

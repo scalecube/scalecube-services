@@ -36,7 +36,7 @@ final class GreetingServiceImpl implements GreetingService {
   public CompletableFuture<Message> asyncGreetingMessage(Message request) {
     return CompletableFuture.completedFuture(Message.fromData(" hello to: " + request.data()));
   }
-  
+
   @Override
   public void greetingVoid(GreetingRequest request) {
     System.out.println(" hello to: " + request.getName());

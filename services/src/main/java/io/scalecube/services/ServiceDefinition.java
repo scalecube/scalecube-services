@@ -10,7 +10,7 @@ public class ServiceDefinition {
 
   private final Class<?> serviceInterface;
   private final String serviceName;
- 
+
   private final Map<String, Method> methods;
 
   /**
@@ -50,9 +50,9 @@ public class ServiceDefinition {
     return serviceName;
   }
 
-  
+
   public Method method(String name) {
-    return  methods.get(name);
+    return methods.get(name);
   }
 
   @Override

@@ -52,7 +52,7 @@ public class ServicesIT {
         timeLatch.countDown();
       }
     });
-    await(timeLatch,10,TimeUnit.SECONDS);
+    await(timeLatch, 10, TimeUnit.SECONDS);
   }
 
   @Test
@@ -109,11 +109,11 @@ public class ServicesIT {
       }
       timeLatch.countDown();
     });
-    
+
     await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
-  
+
   @Test
   public void test_remote_void_greeting() {
     // Create microservices instance.
@@ -133,7 +133,7 @@ public class ServicesIT {
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe"));
-    
+
     // send and forget so we have no way to know what happen
     // but at least we didn't get exception :)
     assertTrue(true);
@@ -152,13 +152,13 @@ public class ServicesIT {
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe"));
-    
+
     // send and forget so we have no way to know what happen
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_local_void_greeting done.");
   }
-  
+
   @Test
   public void test_remote_async_greeting_return_string() {
     // Create microservices cluster.
@@ -178,7 +178,7 @@ public class ServicesIT {
 
     // call the service.
     CompletableFuture<String> future = service.asyncGreeting("joe");
-    
+
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
@@ -191,7 +191,7 @@ public class ServicesIT {
       }
       timeLatch.countDown();
     });
-    await(timeLatch,1,TimeUnit.SECONDS);
+    await(timeLatch, 1, TimeUnit.SECONDS);
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
@@ -222,7 +222,7 @@ public class ServicesIT {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 1,TimeUnit.SECONDS); 
+    await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
 
@@ -259,8 +259,8 @@ public class ServicesIT {
       }
       timeLatch.countDown();
     });
-    
-    await(timeLatch , 1,TimeUnit.SECONDS);
+
+    await(timeLatch, 1, TimeUnit.SECONDS);
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
@@ -277,7 +277,8 @@ public class ServicesIT {
         .create();
 
     // call the service.
-    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(2)));
+    CompletableFuture<GreetingResponse> result =
+        service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(2)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
@@ -309,11 +310,11 @@ public class ServicesIT {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = createProxy(consumer,Duration.ofSeconds(1));
+    GreetingService service = createProxy(consumer, Duration.ofSeconds(1));
 
 
     // call the service.
-    CompletableFuture<GreetingResponse> result = 
+    CompletableFuture<GreetingResponse> result =
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -354,7 +355,7 @@ public class ServicesIT {
       }
       timeLatch.countDown();
     });
-    await(timeLatch  , 1,TimeUnit.SECONDS); 
+    await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
 
@@ -393,7 +394,7 @@ public class ServicesIT {
       timeLatch.countDown();
     });
 
-    await(timeLatch  , 20,TimeUnit.SECONDS);
+    await(timeLatch, 20, TimeUnit.SECONDS);
     consumer.cluster().shutdown();
   }
 
@@ -420,7 +421,7 @@ public class ServicesIT {
     CompletableFuture<Message> result1 = service.asyncGreetingMessage(Message.builder().data("joe").build());
     CompletableFuture<Message> result2 = service.asyncGreetingMessage(Message.builder().data("joe").build());
 
-    
+
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
     combined.whenComplete((v, x) -> {
@@ -476,7 +477,7 @@ public class ServicesIT {
         .timeout(duration)
         .create();
   }
-  
+
   private Microservices createProvider(Microservices gateway) {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
