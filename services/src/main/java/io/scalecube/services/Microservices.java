@@ -12,11 +12,10 @@ import io.scalecube.transport.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -28,12 +27,14 @@ import java.util.concurrent.ConcurrentMap;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  * 
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated 
- * regards how you build the service component itself. the Service component is simply java class that implements the 
- * service Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and 
- * reactive and streaming patters but does not force application developers to it.
+ * <p>
+ * ScaleCube services requires developers only to two simple Annotations declaring a Service but not Opinieated regards
+ * how you build the service component itself. the Service component is simply java class that implements the service
+ * Interface and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive
+ * and streaming patters but does not force application developers to it.
  * 
- * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * <p>
+ * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -45,7 +46,8 @@ import java.util.concurrent.ConcurrentMap;
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service endpoints</li>
  * 
- * </p><b>basic usage example:</b>
+ * </p>
+ * <b>basic usage example:</b>
  * 
  * <pre>
  * 
@@ -100,18 +102,15 @@ public class Microservices {
 
   private final ICluster cluster;
 
-  private final ServiceRegistry serviceRegistry;
+  private final IServiceRegistry serviceRegistry;
 
   private final ServiceProxyFactory proxyFactory;
 
-  private final ServiceDispatcher localDispatcher;
-
-  private Microservices(ICluster cluster, Optional<Object[]> services, boolean isSeed) {
+  private Microservices(ICluster cluster, Object[] services, boolean isSeed) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistry(cluster, services, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
-    this.localDispatcher = new ServiceDispatcher(cluster, serviceRegistry);
-  
+    new ServiceDispatcher(cluster, serviceRegistry);
   }
 
   public ICluster cluster() {
@@ -122,8 +121,8 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router) {
-    return proxyFactory.createProxy(serviceInterface, router);
+  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
+    return proxyFactory.createProxy(serviceInterface, router,timeout);
   }
 
   public Collection<ServiceInstance> services() {
@@ -134,7 +133,7 @@ public class Microservices {
 
     private Integer port = null;
     private Address[] seeds;
-    private Optional<Object[]> services = Optional.empty();
+    private Object[] services = new Object[0];
 
     /**
      * microsrrvices instance builder.
@@ -149,8 +148,8 @@ public class Microservices {
     private ClusterConfig getClusterConfig() {
       Map<String, String> metadata = new HashMap<>();
 
-      if (services.isPresent()) {
-        metadata = Microservices.metadata(services.get());
+      if (services.length > 0) {
+        metadata = Microservices.metadata(services);
       }
 
       ClusterConfig cfg;
@@ -177,7 +176,11 @@ public class Microservices {
     }
 
     public Builder services(Object... services) {
-      this.services = Optional.of(services);
+      if (services == null) {
+        this.services = new Object[0];
+      } else {
+        this.services = services;
+      }
       return this;
     }
   }
@@ -196,11 +199,18 @@ public class Microservices {
 
     private Class<? extends Router> router = RoundRobinServiceRouter.class;
 
+    private Duration timeout = Duration.ofSeconds(30);
+
     public <T> T create() {
       LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, router);
+      return (T) createProxy(this.api, this.router,this.timeout );
     }
 
+    public ProxyContext timeout(Duration duration){
+      this.timeout= duration;
+      return this;
+    }
+    
     public Class<?> api() {
       return api;
     }

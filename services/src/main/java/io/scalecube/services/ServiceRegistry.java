@@ -24,7 +24,9 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
 
-  private enum DiscoveryType {ADDED, REMOVED, DISCOVERED}
+  private enum DiscoveryType {
+    ADDED, REMOVED, DISCOVERED
+  }
 
   private final ICluster cluster;
   private final ServiceProcessor serviceProcessor;
@@ -39,17 +41,22 @@ public class ServiceRegistry implements IServiceRegistry {
    * @param serviceProcessor - service processor.
    * @param isSeed indication if this member is seed.
    */
-  public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceProcessor,
+  public ServiceRegistry(ICluster cluster, Object[] services, ServiceProcessor serviceProcessor,
       boolean isSeed) {
     checkArgument(cluster != null);
+    checkArgument(services != null);
+    checkArgument(serviceProcessor != null);
+
     this.serviceProcessor = serviceProcessor;
     this.cluster = cluster;
     CompletableFuture<Void> future = listenCluster();
-    if (services.isPresent()) {
-      for (Object service : services.get()) {
+
+    if (services.length > 0) {
+      for (Object service : services) {
         registerService(service);
       }
     }
+
     if (!isSeed && cluster.otherMembers().isEmpty()) {
       try {
         future.get();
@@ -94,7 +101,7 @@ public class ServiceRegistry implements IServiceRegistry {
               member.id(),
               entry.getKey(),
               member.address());
-          
+
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
@@ -156,11 +163,10 @@ public class ServiceRegistry implements IServiceRegistry {
 
   @Override
   public Optional<ServiceInstance> getLocalInstance(String serviceName) {
-    return Optional.ofNullable(serviceInstances.values().stream()
+    return serviceInstances.values().stream()
         .filter(ServiceInstance::isLocal)
         .filter(serviceInstance -> serviceInstance.serviceName().equals(serviceName))
-        .findFirst()
-        .orElse(null));
+        .findFirst();
   }
 
   public ServiceInstance serviceInstance(ServiceReference reference) {

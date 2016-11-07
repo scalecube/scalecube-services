@@ -34,7 +34,7 @@ public class RoundRobinServiceRouter implements Router {
       return Optional.of(serviceInstances.get(index));
     } else {
       LOGGER.warn("route selection return null since no service instance was found for {}", serviceDefinition);
-      return Optional.empty(); 
+      return Optional.empty();
     }
   }
 

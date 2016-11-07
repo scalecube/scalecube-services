@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
@@ -46,22 +48,20 @@ public class RemoteServiceInstance implements ServiceInstance {
     // Request message
     if (definition.returnType().equals(CompletableFuture.class)) {
       if (definition.parametrizedType().equals(Message.class)) {
-        return futureInvokeMessage(request);
+        return futureInvoke(request, message -> message);
       } else {
-        return futureInvokeGeneric(request);
+        return futureInvoke(request, message -> message.data());
       }
     } else {
-      CompletableFuture<Object> future = futureInvokeGeneric(request);
-      Object result = future.get();
-      return result;
+      throw new UnsupportedOperationException("Method: " + definition.method() + " must return CompletableFuture");
     }
   }
 
-  
-  private CompletableFuture<Message> futureInvokeMessage(final Message request) throws Exception {
-    final CompletableFuture<Message> messageFuture = new CompletableFuture<>();
 
-    final String correlationId = "rpc-" + UUID.randomUUID().toString();
+  private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
+    final CompletableFuture<Object> messageFuture = new CompletableFuture<>();
+
+    final String correlationId = "rpc-" + generateId();
 
     Message requestMessage = composeRequest(request, correlationId);
     // Listen response
@@ -69,8 +69,9 @@ public class RemoteServiceInstance implements ServiceInstance {
         .filter(message -> correlationId.equals(message.correlationId()))
         .first().subscribe(message -> {
           if (message.header("exception") == null) {
-            messageFuture.complete(message);
+            messageFuture.complete(fn.apply(message));
           } else {
+            System.out.println("RESPONSE: " + message.data());
             LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
             messageFuture.completeExceptionally(message.data());
           }
@@ -89,35 +90,8 @@ public class RemoteServiceInstance implements ServiceInstance {
     return messageFuture;
   }
 
-  private CompletableFuture<Object> futureInvokeGeneric(final Message request) throws Exception {
-    final CompletableFuture<Object> messageFuture = new CompletableFuture<>();
-
-    final String correlationId = "rpc-" + UUID.randomUUID().toString();
-    Message requestMessage = composeRequest(request, correlationId);
-    // Listen response
-    this.cluster.listen()
-        .filter(message -> correlationId.equals(message.correlationId()))
-        .first()
-        .subscribe(message -> {
-          if (message.header("exception") == null) {
-            messageFuture.complete(message.data());
-          } else {
-        	Exception ex = message.data();
-            messageFuture.completeExceptionally(ex);
-          }
-        });
-
-    // check that send operation completed successfully else report an error
-    CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
-    sendFuture.whenComplete((success, error) -> {
-      if (error != null) {
-        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
-            requestMessage.correlationId(),
-            requestMessage, error);
-        messageFuture.completeExceptionally(error);
-      }
-    });
-    return messageFuture;
+  private String generateId() {
+    return new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString();
   }
 
   private CompletableFuture<Void> sendRemote(Message requestMessage) {
@@ -126,7 +100,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.cluster.send(address, requestMessage, messageFuture);
     return messageFuture;
   }
-
 
   private Message composeRequest(Message request, final String correlationId) {
     return Message.withData(request.data())

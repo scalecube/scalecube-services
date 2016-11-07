@@ -4,7 +4,6 @@ import io.scalecube.services.ServiceDefinition;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
 
 
 public interface ServiceProcessor {

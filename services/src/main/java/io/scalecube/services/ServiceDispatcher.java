@@ -33,8 +33,8 @@ public class ServiceDispatcher {
       if (serviceInstance.isPresent()) {
         Object result = serviceInstance.get().invoke(message, null);
         if (result != null) {
-          if(result instanceof Throwable) {
-            repleyWithError(message, Throwable.class.cast(result) );
+          if (result instanceof Throwable) {
+            repleyWithError(message, Throwable.class.cast(result));
           } else if (result instanceof CompletableFuture) {
             handleComputable(cluster, message, result);
           } else { // this is a sync request response call
@@ -86,8 +86,7 @@ public class ServiceDispatcher {
               .correlationId(message.correlationId())
               .build();
         }
-      }
-      else{
+      } else {
         futureMessage = Message.builder()
             .data(error)
             .header("exception", "true")

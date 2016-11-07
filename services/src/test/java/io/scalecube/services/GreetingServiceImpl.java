@@ -14,15 +14,16 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public CompletableFuture<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {  
+  public CompletableFuture<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
     CompletableFuture<GreetingResponse> response = new CompletableFuture<GreetingResponse>();
-    
-    Executors.newScheduledThreadPool(1).schedule(()->{
-      try {     
+
+    Executors.newScheduledThreadPool(1).schedule(() -> {
+      try {
         response.complete(new GreetingResponse(" hello to: " + request.getName()));
-      } catch(Exception ex) {}
+      } catch (Exception ex) {
+      }
     }, request.getDuration().toMillis(), TimeUnit.MILLISECONDS);
-    
+
     return response;
   }
 

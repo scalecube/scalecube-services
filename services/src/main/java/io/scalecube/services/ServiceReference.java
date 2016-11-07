@@ -18,6 +18,7 @@ public class ServiceReference {
 
   /**
    * constructor of ServiceReference, a reference for local or remote service instance.
+   * 
    * @param memberId the memberId of the requested service.
    * @param serviceName the fully qualified name of the service.
    * @param address the address of the service.
@@ -27,7 +28,7 @@ public class ServiceReference {
     Preconditions.checkNotNull(serviceName);
     this.memberId = memberId;
     this.serviceName = serviceName;
-    this.address = address;    
+    this.address = address;
   }
 
   public Address address() {
@@ -57,7 +58,7 @@ public class ServiceReference {
   public int hashCode() {
     return Objects.hash(memberId, serviceName);
   }
-  
+
   @Override
   public String toString() {
     return "ServiceReference [memberId=" + memberId

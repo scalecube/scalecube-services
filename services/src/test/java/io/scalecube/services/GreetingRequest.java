@@ -24,7 +24,7 @@ final class GreetingRequest {
   public Duration getDuration() {
     return duration;
   }
-  
+
   @Override
   public String toString() {
     return "GreetingRequest{name='" + name + '\'' + '}';

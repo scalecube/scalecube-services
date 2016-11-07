@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,6 +19,8 @@ public interface IServiceRegistry {
   ServiceInstance serviceInstance(ServiceReference reference);
 
   Optional<ServiceInstance> getLocalInstance(String serviceName);
+
+  Collection<ServiceInstance> services();
 
 
 }
