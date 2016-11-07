@@ -26,7 +26,7 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param serviceObject the instance of the service object.
    * @param memberId the Cluster memberId of this instance.
    * @param serviceName the qualifier name of the service.
-   * @param method the java method of the service.
+   * @param methods the java methods of the service.
    */
   public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Map<String, Method> methods) {
     checkArgument(serviceObject != null);
