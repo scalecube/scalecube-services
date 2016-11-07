@@ -113,6 +113,31 @@ public class ServicesIT {
     await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
+  
+  @Test
+  public void test_local_void_greeting() {
+    // Create microservices instance.
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    GreetingService service = gateway.proxy()
+        .api(GreetingService.class)
+        .timeout(Duration.ofSeconds(3))
+        .create();
+
+    // call the service.
+    service.greetingVoid(new GreetingRequest("joe"));
+    
+    // send and forget so we have no way to know what happen
+    // but at least we didn't get exception :)
+    assertTrue(true);
+  }
 
   @Test
   public void test_remote_async_greeting_return_string() {
