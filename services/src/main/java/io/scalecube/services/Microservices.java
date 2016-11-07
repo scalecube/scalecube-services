@@ -237,10 +237,8 @@ public class Microservices {
     for (Object service : services) {
       Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service);
       for (Class<?> serviceInterface : serviceInterfaces) {
-        Map<String, ServiceDefinition> defs = serviceProcessor.introspectServiceInterface(serviceInterface);
-        defs.entrySet().forEach(entry -> {
-          result.put(entry.getValue().qualifier(), "service");
-        });
+        ServiceDefinition def = serviceProcessor.introspectServiceInterface(serviceInterface);
+        result.put(def.serviceName(), "service");
       }
     }
     return result;

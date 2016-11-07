@@ -393,7 +393,7 @@ public class ServicesIT {
       timeLatch.countDown();
     });
 
-    await(timeLatch  , 1,TimeUnit.SECONDS);
+    await(timeLatch  , 20,TimeUnit.SECONDS);
     consumer.cluster().shutdown();
   }
 

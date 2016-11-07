@@ -2,6 +2,8 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.transport.Message.Builder;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -136,7 +138,11 @@ public final class Message {
   public String qualifier() {
     return header(MessageHeaders.QUALIFIER);
   }
-
+  
+  public String method() {
+    return header(MessageHeaders.METHOD);
+  }
+  
   public String correlationId() {
     return header(MessageHeaders.CORRELATION_ID);
   }
@@ -194,5 +200,11 @@ public final class Message {
     public Message build() {
       return new Message(this);
     }
+
+    public Builder method(String methodName) {
+      return header(MessageHeaders.METHOD, methodName);
+    }
   }
+
+ 
 }

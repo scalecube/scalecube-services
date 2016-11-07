@@ -22,6 +22,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String memberId;
   private final String serviceName;
 
+
   /**
    * Remote service instance constructor to initiate instance.
    * 
@@ -46,16 +47,16 @@ public class RemoteServiceInstance implements ServiceInstance {
 
     // Try to call via messaging
     // Request message
-    if (definition.returnType().equals(CompletableFuture.class)) {
-      if (definition.parametrizedType().equals(Message.class)) {
+    if (definition.method(request.method()).getReturnType().equals(CompletableFuture.class)) {
+      if (definition.parametrizedType(request.method()).equals(Message.class)) {
         return futureInvoke(request, message -> message);
       } else {
         return futureInvoke(request, message -> message.data());
       }
-    } else if (definition.returnType().equals(Void.TYPE)) {
+    } else if (definition.method(request.method()).getReturnType().equals(Void.TYPE)) {
       return sendRemote(composeRequest(request,request.correlationId()));
     } else {
-      throw new UnsupportedOperationException("Method: " + definition.method() + " must return CompletableFuture");
+      throw new UnsupportedOperationException("Method: " + definition.method(request.method()) + " must return CompletableFuture");
     }
   }
 
@@ -107,6 +108,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     return Message.withData(request.data())
         .header("service", serviceName)
         .qualifier(serviceName)
+        .method(request.method())
         .correlationId(correlationId)
         .build();
   }

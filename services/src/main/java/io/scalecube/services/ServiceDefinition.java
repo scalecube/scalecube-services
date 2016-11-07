@@ -3,29 +3,27 @@ package io.scalecube.services;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Map;
 
 
 public class ServiceDefinition {
 
   private final Class<?> serviceInterface;
-  private final String qualifier;
-  private final Method method;
-  private final Type returnType;
-  private final Type parametrizedType;
+  private final String serviceName;
+ 
+  private final Map<String, Method> methods;
 
   /**
    * Constructor of service definition instance.
    * 
    * @param serviceInterface the class of the service interface.
-   * @param qualifier - the qualifier of the service.
+   * @param serviceName - the qualifier of the service.
    * @param method - the method to invoke the service.
    */
-  public ServiceDefinition(Class<?> serviceInterface, String qualifier, Method method) {
+  public ServiceDefinition(Class<?> serviceInterface, String serviceName, Map<String, Method> methods) {
     this.serviceInterface = serviceInterface;
-    this.qualifier = qualifier;
-    this.method = method;
-    this.returnType = method.getReturnType();
-    this.parametrizedType = extractReturnType(method.getGenericReturnType());
+    this.serviceName = serviceName;
+    this.methods = methods;
   }
 
   private Type extractReturnType(Type type) {
@@ -36,32 +34,37 @@ public class ServiceDefinition {
     }
   }
 
-  public Type returnType() {
-    return returnType;
+  public Type returnType(String name) {
+    return methods.get(name).getReturnType();
   }
 
-  public Type parametrizedType() {
-    return parametrizedType;
+  public Type parametrizedType(String name) {
+    return extractReturnType(methods.get(name).getGenericReturnType());
   }
 
   public Class<?> serviceInterface() {
     return serviceInterface;
   }
 
-  public String qualifier() {
-    return qualifier;
+  public String serviceName() {
+    return serviceName;
   }
 
-  public Method method() {
-    return this.method;
+  
+  public Method method(String name) {
+    return  methods.get(name);
   }
 
   @Override
   public String toString() {
     return "ServiceDefinition [serviceInterface=" + serviceInterface
-        + ", serviceName=" + qualifier
-        + ", method=" + method
+        + ", serviceName=" + serviceName
+        + ", methods=" + methods
         + "]";
+  }
+
+  public Map<String, Method> methods() {
+    return methods;
   }
 
 }

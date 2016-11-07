@@ -31,7 +31,7 @@ public class ServiceProxyFactory {
   private static final ScheduledExecutorService delayer = Executors.newScheduledThreadPool(1);
   
   private final ServiceProcessor serviceProcessor;
-  private Map<String, ServiceDefinition> serviceDefinitions;
+  ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
 
   public ServiceProxyFactory(IServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
@@ -49,7 +49,7 @@ public class ServiceProxyFactory {
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType, 
       Duration timeout) {
 
-    this.serviceDefinitions = serviceProcessor.introspectServiceInterface(serviceInterface);
+    this.serviceDefinition = serviceProcessor.introspectServiceInterface(serviceInterface);
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
       
@@ -58,8 +58,6 @@ public class ServiceProxyFactory {
 
         try {
           // fetch the service definition by the method name
-          ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
-
           Router router = routerFactory.getRouter(routerType);
 
           Optional<ServiceInstance> serviceInstance = router.route(serviceDefinition);
@@ -67,6 +65,7 @@ public class ServiceProxyFactory {
           if (serviceInstance.isPresent()) {
             Message reqMsg = Message.withData(args[0])
                 .qualifier(serviceInstance.get().serviceName())
+                .method(method.getName())
                 .build();
 
             CompletableFuture<?> resultFuture =
@@ -108,7 +107,7 @@ public class ServiceProxyFactory {
         // cancel the timeout in case target goal did finish on time
         resultFuture.thenRun(() -> {
           if (resultFuture.isDone()) {
-            scheduledEvent.cancel(true);
+            scheduledEvent.cancel(false);
             timeoutFuture.complete(Void.TYPE);
           }
         });

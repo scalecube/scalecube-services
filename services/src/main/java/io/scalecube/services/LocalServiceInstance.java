@@ -5,6 +5,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.transport.Message;
 
 import java.lang.reflect.Method;
+import java.util.Collection;
+import java.util.Map;
 
 /**
  * Local service instance invokes the service instance hosted on this local process.
@@ -14,7 +16,7 @@ import java.lang.reflect.Method;
 public class LocalServiceInstance implements ServiceInstance {
 
   private final Object serviceObject;
-  private final Method method;
+  private final Map<String,Method> methods;
   private final String serviceName;
   private final String memberId;
 
@@ -26,14 +28,14 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param serviceName the qualifier name of the service.
    * @param method the java method of the service.
    */
-  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Method method) {
+  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Map<String,Method> methods) {
     checkArgument(serviceObject != null);
     checkArgument(memberId != null);
     checkArgument(serviceName != null);
-    checkArgument(method != null);
+    checkArgument(methods != null);
     this.serviceObject = serviceObject;
     this.serviceName = serviceName;
-    this.method = method;
+    this.methods = methods;
     this.memberId = memberId;
   }
 
@@ -43,7 +45,7 @@ public class LocalServiceInstance implements ServiceInstance {
     checkArgument(message != null);
 
     try {
-      Method method = this.method;
+      Method method = this.methods.get(message.method());
       Object result;
 
       if (method.getParameters().length == 0) {

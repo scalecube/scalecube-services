@@ -42,7 +42,7 @@ public class ServiceReference {
   public String serviceName() {
     return serviceName;
   }
-
+ 
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -66,4 +66,6 @@ public class ServiceReference {
         + ", address=" + address
         + "]";
   }
+
+  
 }
