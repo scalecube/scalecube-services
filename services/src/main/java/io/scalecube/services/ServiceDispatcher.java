@@ -28,7 +28,9 @@ public class ServiceDispatcher {
   }
 
   private void onServiceRequest(Message message) {
-    Optional<ServiceInstance> serviceInstance = registry.getLocalInstance(message.qualifier(), message.header(ServiceHeaders.METHOD));
+    Optional<ServiceInstance> serviceInstance = 
+        registry.getLocalInstance(message.qualifier(), message.header(ServiceHeaders.METHOD));
+    
     try {
       if (serviceInstance.isPresent()) {
         Object result = serviceInstance.get().invoke(message, null);
