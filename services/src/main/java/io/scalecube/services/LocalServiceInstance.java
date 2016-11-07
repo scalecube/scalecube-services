@@ -5,7 +5,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.transport.Message;
 
 import java.lang.reflect.Method;
-import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -45,7 +44,7 @@ public class LocalServiceInstance implements ServiceInstance {
     checkArgument(message != null);
 
     try {
-      Method method = this.methods.get(message.method());
+      Method method = this.methods.get(message.header(ServiceHeaders.METHOD));
       Object result;
 
       if (method.getParameters().length == 0) {

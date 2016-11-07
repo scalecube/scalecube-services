@@ -44,20 +44,22 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public Object invoke(Message request, ServiceDefinition definition) throws Exception {
     Preconditions.checkArgument(definition != null, "Service definition can't be null");
-
+    Preconditions.checkArgument(request.header(ServiceHeaders.METHOD) != null, "Service definition can't be null");
+    
     // Try to call via messaging
     // Request message
-    if (definition.method(request.method()).getReturnType().equals(CompletableFuture.class)) {
-      if (definition.parametrizedType(request.method()).equals(Message.class)) {
+    String method = request.header(ServiceHeaders.METHOD);
+    if (definition.method(method).getReturnType().equals(CompletableFuture.class)) {
+      if (definition.parametrizedType(method).equals(Message.class)) {
         return futureInvoke(request, message -> message);
       } else {
         return futureInvoke(request, message -> message.data());
       }
-    } else if (definition.method(request.method()).getReturnType().equals(Void.TYPE)) {
+    } else if (definition.method(method).getReturnType().equals(Void.TYPE)) {
       return sendRemote(composeRequest(request, request.correlationId()));
     } else {
       throw new UnsupportedOperationException(
-          "Method: " + definition.method(request.method()) + " must return CompletableFuture");
+          "Method: " + definition.method(request.header(ServiceHeaders.METHOD)) + " must return CompletableFuture");
     }
   }
 
@@ -107,9 +109,9 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   private Message composeRequest(Message request, final String correlationId) {
     return Message.withData(request.data())
-        .header("service", serviceName)
+        .header(ServiceHeaders.SERVICE, serviceName)
+        .header(ServiceHeaders.METHOD,request.header(ServiceHeaders.METHOD))
         .qualifier(serviceName)
-        .method(request.method())
         .correlationId(correlationId)
         .build();
   }

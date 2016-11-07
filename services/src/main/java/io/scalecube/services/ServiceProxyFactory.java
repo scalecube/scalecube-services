@@ -65,7 +65,7 @@ public class ServiceProxyFactory {
           if (serviceInstance.isPresent()) {
             Message reqMsg = Message.withData(args[0])
                 .qualifier(serviceInstance.get().serviceName())
-                .method(method.getName())
+                .header(ServiceHeaders.METHOD, method.getName())
                 .build();
 
             CompletableFuture<?> resultFuture =
