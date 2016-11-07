@@ -115,7 +115,7 @@ public class ServicesIT {
   }
   
   @Test
-  public void test_local_void_greeting() {
+  public void test_remote_void_greeting() {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
@@ -137,8 +137,28 @@ public class ServicesIT {
     // send and forget so we have no way to know what happen
     // but at least we didn't get exception :)
     assertTrue(true);
+    System.out.println("test_remote_void_greeting done.");
   }
 
+  @Test
+  public void test_local_void_greeting() {
+    // Create microservices instance.
+    GreetingService service = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build().proxy()
+        .api(GreetingService.class)
+        .create();
+
+    // call the service.
+    service.greetingVoid(new GreetingRequest("joe"));
+    
+    // send and forget so we have no way to know what happen
+    // but at least we didn't get exception :)
+    assertTrue(true);
+    System.out.println("test_local_void_greeting done.");
+  }
+  
   @Test
   public void test_remote_async_greeting_return_string() {
     // Create microservices cluster.
