@@ -122,16 +122,16 @@ public class ServiceRegistry implements IServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      Map<String, ServiceDefinition> serviceDefinitions =
+      ServiceDefinition serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
-      serviceDefinitions.values().forEach(definition -> {
-        ServiceReference serviceRef = new ServiceReference(memberId, definition.qualifier(), cluster.address());
-        ServiceInstance serviceInstance =
-            new LocalServiceInstance(serviceObject, memberId, definition.qualifier(), definition.method());
-        serviceInstances.putIfAbsent(serviceRef, serviceInstance);
+      ServiceReference serviceRef = new ServiceReference(memberId, serviceDefinitions.serviceName(), cluster.address());
 
-      });
+      ServiceInstance serviceInstance =
+          new LocalServiceInstance(serviceObject, memberId, serviceDefinitions.serviceName(),
+              serviceDefinitions.methods());
+      serviceInstances.putIfAbsent(serviceRef, serviceInstance);
+
     });
   }
 
@@ -142,13 +142,12 @@ public class ServiceRegistry implements IServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      Map<String, ServiceDefinition> serviceDefinitions =
+      ServiceDefinition serviceDefinition =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
-      serviceDefinitions.values().forEach(serviceDefinition -> {
-        ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
-        serviceInstances.remove(serviceReference);
-      });
+      ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
+      serviceInstances.remove(serviceReference);
+
     });
   }
 
@@ -162,7 +161,7 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   @Override
-  public Optional<ServiceInstance> getLocalInstance(String serviceName) {
+  public Optional<ServiceInstance> getLocalInstance(String serviceName, String method) {
     return serviceInstances.values().stream()
         .filter(ServiceInstance::isLocal)
         .filter(serviceInstance -> serviceInstance.serviceName().equals(serviceName))
@@ -178,7 +177,7 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(cluster.member().id(), serviceDefinition.qualifier(), cluster.address());
+    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(), cluster.address());
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {

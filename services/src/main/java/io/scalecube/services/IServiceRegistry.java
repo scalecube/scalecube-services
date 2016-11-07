@@ -18,7 +18,7 @@ public interface IServiceRegistry {
 
   ServiceInstance serviceInstance(ServiceReference reference);
 
-  Optional<ServiceInstance> getLocalInstance(String serviceName);
+  Optional<ServiceInstance> getLocalInstance(String serviceName, String method);
 
   Collection<ServiceInstance> services();
 

@@ -16,8 +16,6 @@ import java.util.Map;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
-  private static final String METHOD_NAME_DELIMITER = "/";
-
   @Override
   public Collection<Class<?>> extractServiceInterfaces(Object serviceObject) {
     Class<?>[] interfaces = serviceObject.getClass().getInterfaces();
@@ -31,28 +29,28 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   }
 
   @Override
-  public Map<String, ServiceDefinition> introspectServiceInterface(Class<?> serviceInterface) {
+  public ServiceDefinition introspectServiceInterface(Class<?> serviceInterface) {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     checkArgument(serviceAnnotation != null, "Not a service interface: %s", serviceInterface);
     String serviceName = resolveServiceName(serviceInterface, serviceAnnotation);
 
     // Method name
-    Map<String, ServiceDefinition> serviceDefinitionByMethodName = new HashMap<>();
+    Map<String, Method> methods = new HashMap<>();
     for (Method method : serviceInterface.getMethods()) {
       if (method.isAnnotationPresent(ServiceMethod.class)) {
         ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
         String methodName = resolveMethodName(method, methodAnnotation);
-        if (serviceDefinitionByMethodName.containsKey(methodName)) {
+        if (methods.containsKey(methodName)) {
           throw new IllegalStateException("Service method with name '" + methodName + "' already exists");
         }
-        String qualifier = toQualifier(serviceName, methodName);
-        ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, qualifier, method);
-        serviceDefinitionByMethodName.put(methodName, serviceDefinition);
+        methods.put(methodName, method);
       }
     }
+    ServiceDefinition serviceDefinition = new ServiceDefinition(serviceInterface, serviceName,
+        Collections.unmodifiableMap(methods));
 
-    return Collections.unmodifiableMap(serviceDefinitionByMethodName);
+    return serviceDefinition;
   }
 
   private String resolveServiceName(Class<?> serviceInterface, Service serviceAnnotation) {
@@ -62,9 +60,4 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   private String resolveMethodName(Method method, ServiceMethod methodAnnotation) {
     return Strings.isNullOrEmpty(methodAnnotation.value()) ? method.getName() : methodAnnotation.value();
   }
-
-  private String toQualifier(String serviceName, String methodName) {
-    return serviceName + METHOD_NAME_DELIMITER + methodName;
-  }
-
 }

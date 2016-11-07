@@ -25,8 +25,13 @@ import java.util.concurrent.TimeoutException;
 public class ServiceProxyFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
 
+  /**
+   * used to complete the request future with timeout exception in case no response comes from service.
+   */
+  private static final ScheduledExecutorService delayer = Executors.newScheduledThreadPool(1);
+
   private final ServiceProcessor serviceProcessor;
-  private Map<String, ServiceDefinition> serviceDefinitions;
+  ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
 
   public ServiceProxyFactory(IServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
@@ -41,21 +46,18 @@ public class ServiceProxyFactory {
    * @param routerType the type of routing method class to be used.
    * @return newly created service proxy object.
    */
-  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType, 
+  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
       Duration timeout) {
 
-    this.serviceDefinitions = serviceProcessor.introspectServiceInterface(serviceInterface);
+    this.serviceDefinition = serviceProcessor.introspectServiceInterface(serviceInterface);
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
-
 
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         try {
-
-          ServiceDefinition serviceDefinition = serviceDefinitions.get(method.getName());
-
+          // fetch the service definition by the method name
           Router router = routerFactory.getRouter(routerType);
 
           Optional<ServiceInstance> serviceInstance = router.route(serviceDefinition);
@@ -63,13 +65,17 @@ public class ServiceProxyFactory {
           if (serviceInstance.isPresent()) {
             Message reqMsg = Message.withData(args[0])
                 .qualifier(serviceInstance.get().serviceName())
+                .header(ServiceHeaders.METHOD, method.getName())
                 .build();
 
             CompletableFuture<?> resultFuture =
                 (CompletableFuture<?>) serviceInstance.get().invoke(reqMsg, serviceDefinition);
 
-            return timeoutAfter(resultFuture, timeout);
-
+            if (method.getReturnType().equals(Void.TYPE)) {
+              return CompletableFuture.completedFuture(Void.TYPE);
+            } else {
+              return timeoutAfter(resultFuture, timeout);
+            }
           } else {
             LOGGER.error(
                 "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
@@ -84,8 +90,6 @@ public class ServiceProxyFactory {
           throw new IllegalStateException("No reachable member with such service: " + method.getName());
         }
       }
-
-      final ScheduledExecutorService delayer = Executors.newScheduledThreadPool(1);
 
       public CompletableFuture<?> timeoutAfter(final CompletableFuture<?> resultFuture, Duration timeout) {
 
@@ -103,11 +107,10 @@ public class ServiceProxyFactory {
         // cancel the timeout in case target goal did finish on time
         resultFuture.thenRun(() -> {
           if (resultFuture.isDone()) {
-            scheduledEvent.cancel(true);
+            scheduledEvent.cancel(false);
             timeoutFuture.complete(Void.TYPE);
           }
         });
-
         return resultFuture;
       }
     });

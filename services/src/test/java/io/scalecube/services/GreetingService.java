@@ -21,4 +21,7 @@ interface GreetingService {
   @ServiceMethod
   CompletableFuture<Message> asyncGreetingMessage(Message request);
 
+  @ServiceMethod
+  void greetingVoid(GreetingRequest request);
+
 }

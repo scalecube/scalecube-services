@@ -22,6 +22,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String memberId;
   private final String serviceName;
 
+
   /**
    * Remote service instance constructor to initiate instance.
    * 
@@ -43,17 +44,22 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public Object invoke(Message request, ServiceDefinition definition) throws Exception {
     Preconditions.checkArgument(definition != null, "Service definition can't be null");
-
+    Preconditions.checkArgument(request.header(ServiceHeaders.METHOD) != null, "Service definition can't be null");
+    
     // Try to call via messaging
     // Request message
-    if (definition.returnType().equals(CompletableFuture.class)) {
-      if (definition.parametrizedType().equals(Message.class)) {
+    String method = request.header(ServiceHeaders.METHOD);
+    if (definition.method(method).getReturnType().equals(CompletableFuture.class)) {
+      if (definition.parametrizedType(method).equals(Message.class)) {
         return futureInvoke(request, message -> message);
       } else {
         return futureInvoke(request, message -> message.data());
       }
+    } else if (definition.method(method).getReturnType().equals(Void.TYPE)) {
+      return sendRemote(composeRequest(request, request.correlationId()));
     } else {
-      throw new UnsupportedOperationException("Method: " + definition.method() + " must return CompletableFuture");
+      throw new UnsupportedOperationException(
+          "Method: " + definition.method(request.header(ServiceHeaders.METHOD)) + " must return CompletableFuture");
     }
   }
 
@@ -103,7 +109,8 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   private Message composeRequest(Message request, final String correlationId) {
     return Message.withData(request.data())
-        .header("service", serviceName)
+        .header(ServiceHeaders.SERVICE, serviceName)
+        .header(ServiceHeaders.METHOD,request.header(ServiceHeaders.METHOD))
         .qualifier(serviceName)
         .correlationId(correlationId)
         .build();
