@@ -28,15 +28,19 @@ public class ServiceDispatcher {
   }
 
   private void onServiceRequest(Message message) {
-    Optional<ServiceInstance> serviceInstance = registry.getLocalInstance(message.qualifier());
+    Optional<ServiceInstance> serviceInstance = 
+        registry.getLocalInstance(message.qualifier(), message.header(ServiceHeaders.METHOD));
+    
     try {
       if (serviceInstance.isPresent()) {
         Object result = serviceInstance.get().invoke(message, null);
         if (result != null) {
-          if (result instanceof CompletableFuture) {
+          if (result instanceof Throwable) {
+            repleyWithError(message, Throwable.class.cast(result));
+          } else if (result instanceof CompletableFuture) {
             handleComputable(cluster, message, result);
           } else { // this is a sync request response call
-            handleSync(cluster, message, result);
+            throw new UnsupportedOperationException("Service must return a Completeable future or Void");
           }
         }
       } else {
@@ -49,21 +53,13 @@ public class ServiceDispatcher {
 
   }
 
-  private void repleyWithError(Message message, Exception ex) {
+  private void repleyWithError(Message message, Throwable ex) {
     Message errorResponseMsg = Message.builder()
         .data(ex)
         .header("exception", "true")
         .correlationId(message.correlationId())
         .build();
     cluster.send(message.sender(), errorResponseMsg);
-  }
-
-  private void handleSync(final ICluster cluster, Message message, Object result) {
-    Message responseMessage = Message.builder()
-        .data(result)
-        .correlationId(message.correlationId())
-        .build();
-    cluster.send(message.sender(), responseMessage);
   }
 
   private void handleComputable(final ICluster cluster, Message message, Object result) {
@@ -84,8 +80,14 @@ public class ServiceDispatcher {
               .correlationId(message.correlationId())
               .build();
         }
-        cluster.send(message.sender(), futureMessage);
+      } else {
+        futureMessage = Message.builder()
+            .data(error)
+            .header("exception", "true")
+            .correlationId(message.correlationId())
+            .build();
       }
+      cluster.send(message.sender(), futureMessage);
     });
   }
 

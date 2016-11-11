@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,7 +25,9 @@ public class ServiceRegistry implements IServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistry.class);
 
-  private enum DiscoveryType {ADDED, REMOVED, DISCOVERED}
+  private enum DiscoveryType {
+    ADDED, REMOVED, DISCOVERED
+  }
 
   private final ICluster cluster;
   private final ServiceProcessor serviceProcessor;
@@ -39,17 +42,22 @@ public class ServiceRegistry implements IServiceRegistry {
    * @param serviceProcessor - service processor.
    * @param isSeed indication if this member is seed.
    */
-  public ServiceRegistry(ICluster cluster, Optional<Object[]> services, ServiceProcessor serviceProcessor,
+  public ServiceRegistry(ICluster cluster, Object[] services, ServiceProcessor serviceProcessor,
       boolean isSeed) {
     checkArgument(cluster != null);
+    checkArgument(services != null);
+    checkArgument(serviceProcessor != null);
+
     this.serviceProcessor = serviceProcessor;
     this.cluster = cluster;
     CompletableFuture<Void> future = listenCluster();
-    if (services.isPresent()) {
-      for (Object service : services.get()) {
+
+    if (services.length > 0) {
+      for (Object service : services) {
         registerService(service);
       }
     }
+
     if (!isSeed && cluster.otherMembers().isEmpty()) {
       try {
         future.get();
@@ -94,7 +102,7 @@ public class ServiceRegistry implements IServiceRegistry {
               member.id(),
               entry.getKey(),
               member.address());
-          
+
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
@@ -115,16 +123,16 @@ public class ServiceRegistry implements IServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      Map<String, ServiceDefinition> serviceDefinitions =
+      ServiceDefinition serviceDefinitions =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
-      serviceDefinitions.values().forEach(definition -> {
-        ServiceReference serviceRef = new ServiceReference(memberId, definition.qualifier(), cluster.address());
-        ServiceInstance serviceInstance =
-            new LocalServiceInstance(serviceObject, memberId, definition.qualifier(), definition.method());
-        serviceInstances.putIfAbsent(serviceRef, serviceInstance);
+      ServiceReference serviceRef = new ServiceReference(memberId, serviceDefinitions.serviceName(), cluster.address());
 
-      });
+      ServiceInstance serviceInstance =
+          new LocalServiceInstance(serviceObject, memberId, serviceDefinitions.serviceName(),
+              serviceDefinitions.methods());
+      serviceInstances.putIfAbsent(serviceRef, serviceInstance);
+
     });
   }
 
@@ -135,13 +143,12 @@ public class ServiceRegistry implements IServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      Map<String, ServiceDefinition> serviceDefinitions =
+      ServiceDefinition serviceDefinition =
           serviceProcessor.introspectServiceInterface(serviceInterface);
 
-      serviceDefinitions.values().forEach(serviceDefinition -> {
-        ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
-        serviceInstances.remove(serviceReference);
-      });
+      ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
+      serviceInstances.remove(serviceReference);
+
     });
   }
 
@@ -155,24 +162,19 @@ public class ServiceRegistry implements IServiceRegistry {
   }
 
   @Override
-  public Optional<ServiceInstance> getLocalInstance(String serviceName) {
-    return Optional.ofNullable(serviceInstances.values().stream()
+  public Optional<ServiceInstance> getLocalInstance(String serviceName, String method) {
+    return serviceInstances.values().stream()
         .filter(ServiceInstance::isLocal)
         .filter(serviceInstance -> serviceInstance.serviceName().equals(serviceName))
-        .findFirst()
-        .orElse(null));
-  }
-
-  public ServiceInstance serviceInstance(ServiceReference reference) {
-    return serviceInstances.get(reference);
+        .findFirst();
   }
 
   public Collection<ServiceInstance> services() {
-    return serviceInstances.values();
+    return Collections.unmodifiableCollection(serviceInstances.values());
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(cluster.member().id(), serviceDefinition.qualifier(), cluster.address());
+    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(), cluster.address());
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {

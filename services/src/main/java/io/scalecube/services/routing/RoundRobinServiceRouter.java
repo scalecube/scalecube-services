@@ -26,15 +26,15 @@ public class RoundRobinServiceRouter implements Router {
 
   @Override
   public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition) {
-    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.qualifier());
+    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.serviceName());
     if (!serviceInstances.isEmpty()) {
       AtomicInteger counter = counterByServiceName
-          .computeIfAbsent(serviceDefinition.qualifier(), or -> new AtomicInteger());
+          .computeIfAbsent(serviceDefinition.serviceName(), or -> new AtomicInteger());
       int index = counter.incrementAndGet() % serviceInstances.size();
       return Optional.of(serviceInstances.get(index));
     } else {
       LOGGER.warn("route selection return null since no service instance was found for {}", serviceDefinition);
-      return Optional.empty(); 
+      return Optional.empty();
     }
   }
 

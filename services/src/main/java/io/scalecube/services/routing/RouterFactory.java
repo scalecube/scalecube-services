@@ -19,6 +19,7 @@ public class RouterFactory {
 
   /**
    * get router instance by a given router class.
+   * 
    * @param routing the type of the Router.
    * @return instance of the Router.
    */
