@@ -74,6 +74,7 @@
         <module>testlib</module>
         <module>benchmark</module>
         <module>examples</module>
+        <module>services</module>
     </modules>
 
     <dependencyManagement>

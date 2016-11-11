@@ -11,7 +11,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>scalecube-cluster</artifactId>
+            <artifactId>scalecube-services</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

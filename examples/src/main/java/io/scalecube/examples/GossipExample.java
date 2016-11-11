@@ -4,8 +4,6 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
-import rx.functions.Action1;
-
 /**
  * Basic example for member gossiping between cluster members. to run the example Start ClusterNodeA and cluster
  * ClusterNodeB A listen on gossip B spread gossip
