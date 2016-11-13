@@ -100,7 +100,7 @@ public class ServiceProxyFactory {
         final ScheduledFuture<?> scheduledEvent = delayer.schedule(() -> {
           // by this time the target goal should have finished.
           if (!resultFuture.isDone()) {
-            // taget goal not finished in time so cancel it with timeout.
+            // target goal not finished in time so cancel it with timeout.
             resultFuture.completeExceptionally(new TimeoutException("expecting response reached timeout!"));
           }
         }, timeout.toMillis(), TimeUnit.MILLISECONDS);

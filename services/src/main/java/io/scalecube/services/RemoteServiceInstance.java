@@ -1,10 +1,10 @@
 package io.scalecube.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
-
-import com.google.common.base.Preconditions;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,8 +16,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
@@ -125,7 +123,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private Message composeRequest(Message request, final String correlationId) {
     return Message.withData(request.data())
         .header(ServiceHeaders.SERVICE, serviceName)
-        .header(ServiceHeaders.METHOD,request.header(ServiceHeaders.METHOD))
+        .header(ServiceHeaders.METHOD, request.header(ServiceHeaders.METHOD))
         .qualifier(serviceName)
         .correlationId(correlationId)
         .build();

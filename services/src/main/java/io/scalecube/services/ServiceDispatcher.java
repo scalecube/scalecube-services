@@ -36,24 +36,24 @@ public class ServiceDispatcher {
         Object result = serviceInstance.get().invoke(message, null);
         if (result != null) {
           if (result instanceof Throwable) {
-            repleyWithError(message, Throwable.class.cast(result));
+            replyWithError(message, Throwable.class.cast(result));
           } else if (result instanceof CompletableFuture) {
             handleComputable(cluster, message, result);
           } else { // this is a sync request response call
-            throw new UnsupportedOperationException("Service must return a Completeable future or Void");
+            throw new UnsupportedOperationException("Service must return a CompletableFuture or Void");
           }
         }
       } else {
-        repleyWithError(message,
+        replyWithError(message,
             new IllegalStateException("no local service instance was found for service request: [" + message + "]"));
       }
     } catch (Exception ex) {
-      repleyWithError(message, ex);
+      replyWithError(message, ex);
     }
 
   }
 
-  private void repleyWithError(Message message, Throwable ex) {
+  private void replyWithError(Message message, Throwable ex) {
     Message errorResponseMsg = Message.builder()
         .data(ex)
         .header("exception", "true")
