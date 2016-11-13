@@ -5,28 +5,16 @@ import java.util.concurrent.CompletableFuture;
 public class GreetingServiceImpl implements GreetingService {
 
   @Override
-  public String syncGreeting(String name) {
-    System.out.println("Provider: 'syncGreeting' -> " + name);
-    return "Hello " + name;
-  }
-
-  @Override
-  public CompletableFuture<String> asyncGreeting(String name) {
-    System.out.println("Provider: 'asyncGreeting' -> " + name);
+  public CompletableFuture<String> greeting(String name) {
+    System.out.println("Provider: 'greeting' -> " + name);
     return CompletableFuture.completedFuture("Hello " + name);
   }
 
   @Override
-  public String syncGreetingException(String name) throws  UnsupportedOperationException {
-    System.out.println("Provider: 'syncGreetingException' -> " + name);
-    throw new UnsupportedOperationException("syncGreetingException");
-  }
-
-  @Override
-  public CompletableFuture<String> asyncGreetingException(String name) {
-    System.out.println("Provider: 'asyncGreetingException' -> " + name);
+  public CompletableFuture<String> greetingException(String name) {
+    System.out.println("Provider: 'greetingException' -> " + name);
     CompletableFuture<String> future = new CompletableFuture<>();
-    future.completeExceptionally(new UnsupportedOperationException("asyncGreetingException"));
+    future.completeExceptionally(new UnsupportedOperationException("greetingException"));
     return future;
   }
 

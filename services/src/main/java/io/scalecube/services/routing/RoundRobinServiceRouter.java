@@ -1,6 +1,6 @@
 package io.scalecube.services.routing;
 
-import io.scalecube.services.IServiceRegistry;
+import io.scalecube.services.ServiceRegistry;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 
@@ -17,10 +17,10 @@ public class RoundRobinServiceRouter implements Router {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RoundRobinServiceRouter.class);
 
-  private final IServiceRegistry serviceRegistry;
+  private final ServiceRegistry serviceRegistry;
   private final ConcurrentMap<String, AtomicInteger> counterByServiceName = new ConcurrentHashMap<>();
 
-  public RoundRobinServiceRouter(IServiceRegistry serviceRegistry) {
+  public RoundRobinServiceRouter(ServiceRegistry serviceRegistry) {
     this.serviceRegistry = serviceRegistry;
   }
 

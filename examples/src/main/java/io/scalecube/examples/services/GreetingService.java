@@ -10,15 +10,9 @@ import java.util.concurrent.CompletableFuture;
 public interface GreetingService {
 
   @ServiceMethod
-  String syncGreeting(String name);
+  CompletableFuture<String> greeting(String string);
 
   @ServiceMethod
-  CompletableFuture<String> asyncGreeting(String string);
-
-  @ServiceMethod
-  String syncGreetingException(String name);
-
-  @ServiceMethod
-  CompletableFuture<String> asyncGreetingException(String name);
+  CompletableFuture<String> greetingException(String name);
 
 }

@@ -9,10 +9,15 @@ import com.google.common.base.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
+
+import static com.google.common.base.Preconditions.checkArgument;
 
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
@@ -43,26 +48,37 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public Object invoke(Message request, ServiceDefinition definition) throws Exception {
-    Preconditions.checkArgument(definition != null, "Service definition can't be null");
-    Preconditions.checkArgument(request.header(ServiceHeaders.METHOD) != null, "Service definition can't be null");
-    
+    checkArgument(definition != null, "Service definition can't be null");
+
+    // Resolve method
+    String methodName = request.header(ServiceHeaders.METHOD);
+    checkArgument(methodName != null, "Method name can't be null");
+    Method method = definition.method(methodName);
+    checkArgument(method != null,
+        "Method '%s' is not registered for service: %s", methodName, definition.serviceInterface());
+
     // Try to call via messaging
-    // Request message
-    String method = request.header(ServiceHeaders.METHOD);
-    if (definition.method(method).getReturnType().equals(CompletableFuture.class)) {
-      if (definition.parametrizedType(method).equals(Message.class)) {
+    if (method.getReturnType().equals(CompletableFuture.class)) {
+      if (extractGenericReturnType(method).equals(Message.class)) {
         return futureInvoke(request, message -> message);
       } else {
-        return futureInvoke(request, message -> message.data());
+        return futureInvoke(request, Message::data);
       }
-    } else if (definition.method(method).getReturnType().equals(Void.TYPE)) {
+    } else if (method.getReturnType().equals(Void.TYPE)) {
       return sendRemote(composeRequest(request, request.correlationId()));
     } else {
-      throw new UnsupportedOperationException(
-          "Method: " + definition.method(request.header(ServiceHeaders.METHOD)) + " must return CompletableFuture");
+      throw new UnsupportedOperationException("Unsupported return type for method: " + method);
     }
   }
 
+  private Type extractGenericReturnType(Method method) {
+    Type type = method.getGenericReturnType();
+    if (type instanceof ParameterizedType) {
+      return ((ParameterizedType) type).getActualTypeArguments()[0];
+    } else {
+      return Object.class;
+    }
+  }
 
   private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
     final CompletableFuture<Object> messageFuture = new CompletableFuture<>();
@@ -77,7 +93,6 @@ public class RemoteServiceInstance implements ServiceInstance {
           if (message.header("exception") == null) {
             messageFuture.complete(fn.apply(message));
           } else {
-            System.out.println("RESPONSE: " + message.data());
             LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
             messageFuture.completeExceptionally(message.data());
           }

@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture;
 public class ServiceDispatcher {
 
   private final ICluster cluster;
-  private final IServiceRegistry registry;
+  private final ServiceRegistry registry;
 
   /**
    * ServiceDispatcher constructor to listen on incoming network service request.
@@ -17,7 +17,7 @@ public class ServiceDispatcher {
    * @param cluster instance to listen on events.
    * @param registry service registry instance for dispatching.
    */
-  public ServiceDispatcher(ICluster cluster, IServiceRegistry registry) {
+  public ServiceDispatcher(ICluster cluster, ServiceRegistry registry) {
     this.cluster = cluster;
     this.registry = registry;
 

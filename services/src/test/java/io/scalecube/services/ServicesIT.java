@@ -486,10 +486,9 @@ public class ServicesIT {
   }
 
   private Microservices createSeed() {
-    Microservices gateway = Microservices.builder()
+    return Microservices.builder()
         .port(port.incrementAndGet())
         .build();
-    return gateway;
   }
 
   private void await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) {

@@ -35,7 +35,7 @@ public class ServiceProxyFactory {
   ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
 
-  public ServiceProxyFactory(IServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
+  public ServiceProxyFactory(ServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
     this.routerFactory = new RouterFactory(serviceRegistry);
     this.serviceProcessor = serviceProcessor;
   }

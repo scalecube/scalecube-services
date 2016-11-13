@@ -102,13 +102,13 @@ public class Microservices {
 
   private final ICluster cluster;
 
-  private final IServiceRegistry serviceRegistry;
+  private final ServiceRegistry serviceRegistry;
 
   private final ServiceProxyFactory proxyFactory;
 
   private Microservices(ICluster cluster, Object[] services, boolean isSeed) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistry(cluster, services, serviceProcessor, isSeed);
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
     new ServiceDispatcher(cluster, serviceRegistry);
   }

@@ -1,6 +1,6 @@
 package io.scalecube.services.routing;
 
-import io.scalecube.services.IServiceRegistry;
+import io.scalecube.services.ServiceRegistry;
 import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ServiceInstance;
 
@@ -10,9 +10,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class RandomServiceRouter implements Router {
 
-  private final IServiceRegistry serviceRegistry;
+  private final ServiceRegistry serviceRegistry;
 
-  public RandomServiceRouter(IServiceRegistry serviceRegistry) {
+  public RandomServiceRouter(ServiceRegistry serviceRegistry) {
     this.serviceRegistry = serviceRegistry;
   }
 

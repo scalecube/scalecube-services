@@ -10,9 +10,6 @@ import java.util.concurrent.CompletableFuture;
  */
 public class MicroservicesExample {
 
-  private static Microservices provider;
-  private static Microservices consumer;
-
   public static void main(String[] args) throws Exception {
     Address providerAddress = onProvider();
     onConsumer(providerAddress);
@@ -20,7 +17,7 @@ public class MicroservicesExample {
 
   private static Address onProvider() {
     // Create microservice provider
-    provider = Microservices.builder()
+    Microservices provider = Microservices.builder()
         .services(new GreetingServiceImpl())
         .build();
 
@@ -30,36 +27,20 @@ public class MicroservicesExample {
 
   private static void onConsumer(Address providerAddress) throws Exception {
     // Create microservice consumer
-    consumer = Microservices.builder().seeds(providerAddress).build();
+    Microservices consumer = Microservices.builder().seeds(providerAddress).build();
 
     // Get a proxy to the service API
     GreetingService greetingService = consumer.proxy().api(GreetingService.class).create();
 
-    // Call service asynchronously
-    CompletableFuture<String> future = greetingService.asyncGreeting("Joe");
+    // Call service (successful case)
+    CompletableFuture<String> future = greetingService.greeting("Joe");
     future.whenComplete((result, exception) ->
-        System.out.println("Consumer: 'asyncGreeting' <- " + (exception == null ? result : exception)));
+        System.out.println("Consumer: 'greeting' <- " + (exception == null ? result : exception)));
 
-    // Call service asynchronously with error
-    CompletableFuture<String> futureError = greetingService.asyncGreetingException("Joe");
+    // Call service (error case)
+    CompletableFuture<String> futureError = greetingService.greetingException("Joe");
     futureError.whenComplete((result, exception) ->
-        System.out.println("Consumer: 'asyncGreetingException' <- " + (exception == null ? result : exception)));
-
-    // Call service synchronously (blocking)
-    try {
-      String result = greetingService.syncGreeting("Joe");
-      System.out.println("Consumer: 'syncGreeting' <- " + result);
-    } catch (Exception exception) {
-      System.out.println("Consumer: 'syncGreeting' <- " + exception);
-    }
-
-    // Call service synchronously (blocking) with error
-    try {
-      String result = greetingService.syncGreetingException("Joe");
-      System.out.println("Consumer: 'syncGreetingException' <- " + result);
-    } catch (Exception exception) {
-      System.out.println("Consumer: 'syncGreetingException' <- " + exception);
-    }
+        System.out.println("Consumer: 'greetingException' <- " + (exception == null ? result : exception)));
   }
 
 
