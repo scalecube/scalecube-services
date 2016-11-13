@@ -465,6 +465,44 @@ public class ServicesIT {
     provider1.cluster().shutdown();
   }
 
+  @Test
+  public void test_naive_stress_not_breaking_the_system() throws InterruptedException{
+    // Create microservices cluster member.
+    Microservices provider = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // Create microservices cluster member.
+    Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+    
+    int count = 5000;
+    long startTime = System.currentTimeMillis();
+    CountDownLatch countLatch = new CountDownLatch(count);
+    for(int i=0 ; i < count ; i++) {
+      // call the service.
+      CompletableFuture<Message> future =
+          service.asyncGreetingMessage(Message.builder().data("test_naive_stress_not_breaking_the_system").build());
+      future.whenComplete((success, error) -> {
+        if(error == null) {
+          countLatch.countDown();
+        }
+      });
+    }
+    System.out.println("finised sending "+count+" messages in " + (System.currentTimeMillis() - startTime));
+    countLatch.await(30, TimeUnit.SECONDS);
+    System.out.println("finised reciving "+count+" messages in " + (System.currentTimeMillis() - startTime));
+    assertTrue(countLatch.getCount()==0);
+    
+  }
+
+  
   private GreetingService createProxy(Microservices gateway) {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
