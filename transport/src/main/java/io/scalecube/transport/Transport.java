@@ -41,7 +41,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
 public final class Transport implements ITransport {
-
+  private static long DEFAULT_BUFFER_LIMIT = 5000;
   private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
   private static final CompletableFuture<Void> COMPLETED_PROMISE = CompletableFuture.completedFuture(null);
 
@@ -279,7 +279,7 @@ public final class Transport implements ITransport {
   @Override
   public final Observable<Message> listen() {
     checkState(!stopped, "Transport is stopped");
-    return incomingMessagesSubject.onBackpressureBuffer().asObservable();
+    return incomingMessagesSubject.onBackpressureBuffer(DEFAULT_BUFFER_LIMIT).asObservable();
   }
 
   @Override
