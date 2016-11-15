@@ -33,7 +33,7 @@ To add a dependency on ScaleCube services using Maven, use the following:
 <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services</artifactId>
-  <version>1.0.1-SNAPSHOT</version> 
+  <version>1.0.0</version> 
 </dependency>
 ```
 
