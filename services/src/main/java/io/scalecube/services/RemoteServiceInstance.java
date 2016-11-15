@@ -12,9 +12,9 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 public class RemoteServiceInstance implements ServiceInstance {
@@ -24,7 +24,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Address address;
   private final String memberId;
   private final String serviceName;
-
+  private final ConcurrentMap<String, ResponseFuture> futures;
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -37,6 +37,8 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
+    this.futures = new ConcurrentHashMap<>();
+    this.cluster.listen().subscribe(message -> handleReply(message));
   }
 
   @Override
@@ -78,39 +80,39 @@ public class RemoteServiceInstance implements ServiceInstance {
     }
   }
 
+  // Listen response
+  private void handleReply(Message message) {
+    String correlationId = message.correlationId();
+    ResponseFuture future = futures.remove(message.correlationId());
+    if (future != null) {
+      if (message.header("exception") == null) {
+        future.complete(message);
+      } else {
+        LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
+        future.completeExceptionally(message.data());
+      }
+    }
+  }
+
   private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
-    final CompletableFuture<Object> messageFuture = new CompletableFuture<>();
 
-    final String correlationId = "rpc-" + generateId();
+    ResponseFuture responseFuture = new ResponseFuture(fn);
+    futures.putIfAbsent(responseFuture.correlationId(), responseFuture);
 
-    Message requestMessage = composeRequest(request, correlationId);
-    // Listen response
-    this.cluster.listen()
-        .filter(message -> correlationId.equals(message.correlationId()))
-        .first().subscribe(message -> {
-          if (message.header("exception") == null) {
-            messageFuture.complete(fn.apply(message));
-          } else {
-            LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
-            messageFuture.completeExceptionally(message.data());
-          }
-        });
+    Message requestMessage = composeRequest(request, responseFuture.correlationId());
 
-    // check that send operation completed successfully else report an error
     CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
+    // check that send operation completed successfully else report an error
     sendFuture.whenComplete((success, error) -> {
       if (error != null) {
+        ResponseFuture future = futures.remove(requestMessage.correlationId());
         LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
             requestMessage.correlationId(),
             requestMessage, error);
-        messageFuture.completeExceptionally(error);
+        future.completeExceptionally(error);
       }
     });
-    return messageFuture;
-  }
-
-  private String generateId() {
-    return new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString();
+    return responseFuture.future();
   }
 
   private CompletableFuture<Void> sendRemote(Message requestMessage) {

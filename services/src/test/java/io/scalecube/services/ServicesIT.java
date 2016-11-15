@@ -456,7 +456,7 @@ public class ServicesIT {
     try {
       service.greeting("hello");
     } catch (Exception ex) {
-      assertTrue(ex.getMessage().equals("No reachable member with such service: asyncGreeting"));
+      assertTrue(ex.getMessage().equals("No reachable member with such service: greeting"));
       timeLatch.countDown();
     }
 
@@ -484,7 +484,7 @@ public class ServicesIT {
 
     // Init params
     int warmUpCount = 1_000;
-    int count = 5_000;
+    int count = 10_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
