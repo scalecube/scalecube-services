@@ -18,7 +18,7 @@ Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
 Binaries and dependency information for Maven can be found at 
 [http://search.maven.org](http://search.maven.org/#search%7Cga%7C1%7Cio.scalecube.scalecube).
 
-To add a dependency on ScaleCube using Maven, use the following:
+To add a dependency on ScaleCube cluster using Maven, use the following:
 
 ``` xml
 <dependency>
@@ -26,6 +26,15 @@ To add a dependency on ScaleCube using Maven, use the following:
   <artifactId>scalecube-cluster</artifactId>
   <version>1.0.0</version>
 </dependency>
+```
+
+To add a dependency on ScaleCube services using Maven, use the following:
+``` xml
+<dependency>
+			<groupId>io.scalecube</groupId>
+			<artifactId>scalecube-services</artifactId>
+			<version>1.0.1-SNAPSHOT</version> 
+		</dependency>
 ```
 
 ## Bugs and Feedback
