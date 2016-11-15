@@ -31,10 +31,10 @@ To add a dependency on ScaleCube cluster using Maven, use the following:
 To add a dependency on ScaleCube services using Maven, use the following:
 ``` xml
 <dependency>
-			<groupId>io.scalecube</groupId>
-			<artifactId>scalecube-services</artifactId>
-			<version>1.0.1-SNAPSHOT</version> 
-		</dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-services</artifactId>
+  <version>1.0.1-SNAPSHOT</version> 
+</dependency>
 ```
 
 ## Bugs and Feedback
