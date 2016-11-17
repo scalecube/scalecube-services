@@ -115,6 +115,37 @@ public class ServicesIT {
   }
 
   @Test
+  public void test_local_async_no_params() {
+    // Create microservices cluster.
+    Microservices microservices = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(microservices);
+
+    // call the service.
+    CompletableFuture<String> future = service.greetingNoParams();
+
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    future.whenComplete((result, ex) -> {
+      if (ex == null) {
+        assertTrue(result.equals("hello unknown"));
+        // print the greeting.
+        System.out.println("test_local_async_no_params :" + result);
+      } else {
+        // print the greeting.
+        System.out.println(ex);
+      }
+      timeLatch.countDown();
+    });
+
+    await(timeLatch, 1, TimeUnit.SECONDS);
+    microservices.cluster().shutdown();
+  }
+  
+  @Test
   public void test_remote_void_greeting() {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
@@ -185,6 +216,43 @@ public class ServicesIT {
         // print the greeting.
         System.out.println("4. remote_async_greeting_return_string :" + result);
         assertTrue(result.equals(" hello to: joe"));
+      } else {
+        // print the greeting.
+        System.out.println(ex);
+      }
+      timeLatch.countDown();
+    });
+    await(timeLatch, 1, TimeUnit.SECONDS);
+    provider.cluster().shutdown();
+    consumer.cluster().shutdown();
+  }
+  
+  @Test
+  public void test_remote_async_greeting_no_params() {
+    // Create microservices cluster.
+    Microservices provider = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    // call the service.
+    CompletableFuture<String> future = service.greetingNoParams();
+
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    future.whenComplete((result, ex) -> {
+      if (ex == null) {
+        // print the greeting.
+        System.out.println("test_remote_async_greeting_no_params :" + result);
+        assertTrue(result.equals("hello unknown"));
       } else {
         // print the greeting.
         System.out.println(ex);

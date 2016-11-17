@@ -28,6 +28,11 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
+  public CompletableFuture<String> greetingNoParams() {
+    return CompletableFuture.completedFuture("hello unknown");
+  }
+  
+  @Override
   public CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request) {
     return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName()));
   }

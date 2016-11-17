@@ -10,6 +10,9 @@ import java.util.concurrent.CompletableFuture;
 interface GreetingService {
 
   @ServiceMethod
+  CompletableFuture<String> greetingNoParams();
+  
+  @ServiceMethod
   CompletableFuture<String> greeting(String string);
 
   @ServiceMethod
