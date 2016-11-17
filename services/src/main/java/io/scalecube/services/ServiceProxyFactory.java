@@ -64,17 +64,17 @@ public class ServiceProxyFactory {
           Optional<ServiceInstance> serviceInstance = router.route(serviceDefinition);
           Message reqMsg;
           if (serviceInstance.isPresent()) {
-            if(method.getParameterCount()==0){
-              reqMsg =Message.builder().qualifier(serviceInstance.get().serviceName())
-                .header(ServiceHeaders.METHOD, method.getName())
-                .build();
-            }else{
-               reqMsg = Message.withData(args[0])
+            if (method.getParameterCount() == 0) {
+              reqMsg = Message.builder().qualifier(serviceInstance.get().serviceName())
+                  .header(ServiceHeaders.METHOD, method.getName())
+                  .build();
+            } else {
+              reqMsg = Message.withData(args[0])
                   .qualifier(serviceInstance.get().serviceName())
                   .header(ServiceHeaders.METHOD, method.getName())
                   .build();
             }
-            
+
             CompletableFuture<?> resultFuture =
                 (CompletableFuture<?>) serviceInstance.get().invoke(reqMsg, serviceDefinition);
 
