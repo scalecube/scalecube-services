@@ -169,6 +169,7 @@ public class ServicesIT {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
+    
   }
 
   @Test
@@ -512,10 +513,11 @@ public class ServicesIT {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 1, TimeUnit.SECONDS);
-    provider1.cluster().shutdown();
+    await(timeLatch, 2, TimeUnit.SECONDS);
+
     provider2.cluster().shutdown();
-    gateway.cluster().shutdown();
+    provider1.cluster().shutdown();
+
   }
 
   @Test

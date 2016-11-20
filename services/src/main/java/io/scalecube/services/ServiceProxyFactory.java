@@ -109,7 +109,9 @@ public class ServiceProxyFactory {
         // cancel the timeout in case target goal did finish on time
         resultFuture.thenRun(() -> {
           if (resultFuture.isDone()) {
-            scheduledEvent.cancel(false);
+            if (!scheduledEvent.isDone()) {
+              scheduledEvent.cancel(false);
+            }
             timeoutFuture.complete(Void.TYPE);
           }
         });
