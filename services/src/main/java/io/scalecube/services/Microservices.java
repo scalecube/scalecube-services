@@ -10,6 +10,7 @@ import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,6 +113,8 @@ public class Microservices {
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
     new ServiceDispatcher(cluster, serviceRegistry);
   }
+
+  
 
   public ICluster cluster() {
     return this.cluster;

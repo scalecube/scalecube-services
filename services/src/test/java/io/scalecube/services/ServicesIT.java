@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import io.scalecube.transport.Message;
 
@@ -386,15 +386,21 @@ public class ServicesIT {
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
+    
     result.whenComplete((success, error) -> {
-      if (error != null)
+      if (error != null) {
         // print the greeting.
         System.out.println("8. remote_greeting_request_timeout_expires : " + error);
-      assertTrue(error instanceof TimeoutException);
-      timeLatch.countDown();
+        assertTrue(error instanceof TimeoutException);
+        timeLatch.countDown();
+      }
     });
 
-    await(timeLatch, 60, TimeUnit.SECONDS);
+    try {
+      await(timeLatch, 10, TimeUnit.SECONDS);
+    } catch ( Exception ex){
+      fail();
+    }
   }
 
   @Test

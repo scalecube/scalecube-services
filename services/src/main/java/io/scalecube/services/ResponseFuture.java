@@ -7,6 +7,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
@@ -19,6 +21,8 @@ public class ResponseFuture {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ResponseFuture.class);
 
+  private static final ConcurrentMap<String, ResponseFuture> futures = new ConcurrentHashMap<>();
+
   private final String correlationId;
   private final Function<Message, Object> function;
   private final CompletableFuture<Object> messageFuture;
@@ -27,6 +31,17 @@ public class ResponseFuture {
     this.correlationId = generateId();
     this.function = fn;
     this.messageFuture = new CompletableFuture<>();
+    futures.putIfAbsent(this.correlationId, this);
+  }
+
+  /**
+   * return a pending ResponseFuture by given correlationId.
+   * 
+   * @param correlationId or the request.
+   * @return ResponseFuture pending completion.
+   */
+  public static ResponseFuture get(String correlationId) {
+    return futures.get(correlationId);
   }
 
   /**
@@ -41,6 +56,7 @@ public class ResponseFuture {
       LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
       messageFuture.completeExceptionally(message.data());
     }
+    futures.remove(this.correlationId);
   }
 
   /**
@@ -50,6 +66,7 @@ public class ResponseFuture {
    */
   public void completeExceptionally(Throwable exception) {
     messageFuture.completeExceptionally(exception);
+    futures.remove(this.correlationId);
   }
 
   /**
@@ -69,11 +86,9 @@ public class ResponseFuture {
   public String correlationId() {
     return correlationId;
   }
-  
+
   private String generateId() {
     return new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString();
   }
-
-  
 
 }
