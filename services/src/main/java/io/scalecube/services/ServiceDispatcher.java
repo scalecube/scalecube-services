@@ -1,5 +1,8 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.ServiceHeaders.service_method_of;
+import static io.scalecube.services.ServiceHeaders.service_request_of;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
@@ -20,19 +23,24 @@ public class ServiceDispatcher {
     this.cluster = cluster;
     this.registry = registry;
 
+
     // Start listen messages
     cluster.listen()
-        .filter(message -> message.qualifier() != null)
+        .filter(message -> service_request_of(message) != null)
         .subscribe(this::onServiceRequest);
   }
 
   private void onServiceRequest(final Message request) {
     Optional<ServiceInstance> serviceInstance =
-        registry.getLocalInstance(request.qualifier(), request.header(ServiceHeaders.METHOD));
+        registry.getLocalInstance(service_request_of(request), service_method_of(request));
 
     DispatchingFuture result = DispatchingFuture.from(cluster, request);
     try {
-      result.complete(serviceInstance.get().invoke(request, null));
+      if (serviceInstance.isPresent()) {
+        result.complete(serviceInstance.get().invoke(request, null));
+      } else {
+        result.completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
+      }
     } catch (Exception ex) {
       result.completeExceptionally(ex);
     }

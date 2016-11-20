@@ -1,5 +1,8 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.ServiceHeaders.service_method_of;
+import static io.scalecube.services.ServiceHeaders.service_request_of;
+
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.ICluster;
@@ -23,7 +26,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Address address;
   private final String memberId;
   private final String serviceName;
- 
+
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -36,23 +39,8 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
-    this.cluster.listen().subscribe(message -> handleReply(message));
   }
 
-  // Listen response
-  private void handleReply(Message message) {
-    String correlationId = message.correlationId();
-    Optional<ResponseFuture> optinalFuture = ResponseFuture.get(message.correlationId());
-    if (optinalFuture.isPresent()) {
-      if (message.header("exception") == null) {
-        optinalFuture.get().complete(message);
-      } else {
-        LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
-        optinalFuture.get().completeExceptionally(message.data());
-      }
-    }
-  }
-  
   @Override
   public String serviceName() {
     return serviceName;
@@ -95,7 +83,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
 
     ResponseFuture responseFuture = new ResponseFuture(fn);
-    
+
     Message requestMessage = composeRequest(request, responseFuture.correlationId());
 
     CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
@@ -125,9 +113,8 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   private Message composeRequest(Message request, final String correlationId) {
     return Message.withData(request.data())
-        .header(ServiceHeaders.SERVICE, serviceName)
+        .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
         .header(ServiceHeaders.METHOD, request.header(ServiceHeaders.METHOD))
-        .qualifier(serviceName)
         .correlationId(correlationId)
         .build();
   }

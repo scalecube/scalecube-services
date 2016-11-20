@@ -66,7 +66,7 @@ public class ServiceProxyFactory {
             ServiceInstance serviceInstance = optionalServiceInstance.get();
             Object data = method.getParameterCount() != 0 ? args[0] : null;
             Message reqMsg = Message.withData(data)
-                .qualifier(serviceInstance.serviceName())
+                .header(ServiceHeaders.SERVICE_REQUEST, serviceInstance.serviceName())
                 .header(ServiceHeaders.METHOD, method.getName())
                 .build();
 

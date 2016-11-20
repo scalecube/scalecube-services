@@ -31,6 +31,11 @@ public class DispatchingFuture {
     return new DispatchingFuture(cluster, request);
   }
 
+  /**
+   * private contractor use static method from.
+   * @param cluster instance.
+   * @param request original service request.
+   */
   private DispatchingFuture(ICluster cluster, Message request) {
     this.request = request;
     this.cluster = cluster;
@@ -59,6 +64,7 @@ public class DispatchingFuture {
   public void completeExceptionally(Throwable error) {
     Message errorResponseMsg = Message.builder()
         .data(error)
+        .header(ServiceHeaders.SERVICE_RESPONSE, "Response")
         .header("exception", "true")
         .correlationId(request.correlationId())
         .build();
@@ -72,20 +78,22 @@ public class DispatchingFuture {
       if (error == null) {
         if (success instanceof Message) {
           Message successMessage = (Message) success;
-          futureMessage = Message.builder()
-              .data(successMessage.data())
-              .correlationId(request.correlationId())
-              .build();
+          futureMessage = composeResponse(successMessage.data());
         } else {
-          futureMessage = Message.builder()
-              .data(success)
-              .correlationId(request.correlationId())
-              .build();
+          futureMessage = composeResponse(success);
         }
       } else {
         completeExceptionally(error);
       }
       cluster.send(request.sender(), futureMessage);
     });
+  }
+
+  private Message composeResponse(Object data) {
+    return Message.builder()
+        .data(data)
+        .header(ServiceHeaders.SERVICE_RESPONSE, "Response")
+        .correlationId(request.correlationId())
+        .build();
   }
 }

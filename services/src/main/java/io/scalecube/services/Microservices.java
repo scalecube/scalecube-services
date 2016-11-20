@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -112,9 +113,25 @@ public class Microservices {
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
     new ServiceDispatcher(cluster, serviceRegistry);
+    this.cluster.listen().subscribe(message -> handleReply(message));
   }
 
-  
+
+  // Listen response
+  private void handleReply(Message message) {
+    if (message.header(ServiceHeaders.SERVICE_RESPONSE) != null) {
+      String correlationId = message.correlationId();
+      Optional<ResponseFuture> optinalFuture = ResponseFuture.get(message.correlationId());
+      if (optinalFuture.isPresent()) {
+        if (message.header("exception") == null) {
+          optinalFuture.get().complete(message);
+        } else {
+          LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
+          optinalFuture.get().completeExceptionally(message.data());
+        }
+      }
+    }
+  }
 
   public ICluster cluster() {
     return this.cluster;
