@@ -5,6 +5,7 @@ import io.scalecube.transport.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,13 +36,13 @@ public class ResponseFuture {
   }
 
   /**
-   * return a pending ResponseFuture by given correlationId.
+   * return a Optional pending ResponseFuture by given correlationId.
    * 
    * @param correlationId or the request.
    * @return ResponseFuture pending completion.
    */
-  public static ResponseFuture get(String correlationId) {
-    return futures.get(correlationId);
+  public static Optional<ResponseFuture> get(String correlationId) {
+    return Optional.of(futures.get(correlationId));
   }
 
   /**

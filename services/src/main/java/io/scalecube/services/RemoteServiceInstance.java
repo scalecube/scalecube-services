@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -41,13 +42,13 @@ public class RemoteServiceInstance implements ServiceInstance {
   // Listen response
   private void handleReply(Message message) {
     String correlationId = message.correlationId();
-    ResponseFuture future = ResponseFuture.get(message.correlationId());
-    if (future != null) {
+    Optional<ResponseFuture> optinalFuture = ResponseFuture.get(message.correlationId());
+    if (optinalFuture.isPresent()) {
       if (message.header("exception") == null) {
-        future.complete(message);
+        optinalFuture.get().complete(message);
       } else {
         LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
-        future.completeExceptionally(message.data());
+        optinalFuture.get().completeExceptionally(message.data());
       }
     }
   }
@@ -104,10 +105,12 @@ public class RemoteServiceInstance implements ServiceInstance {
         LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
             requestMessage.correlationId(),
             requestMessage, error);
-        
+
         // if send future faild then complete the response future Exceptionally.
-        ResponseFuture future = ResponseFuture.get(requestMessage.correlationId());
-        future.completeExceptionally(error);
+        Optional<ResponseFuture> future = ResponseFuture.get(requestMessage.correlationId());
+        if (future.isPresent()) {
+          future.get().completeExceptionally(error);
+        }
       }
     });
     return responseFuture.future();
