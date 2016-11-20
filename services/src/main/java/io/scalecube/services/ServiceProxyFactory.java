@@ -56,27 +56,22 @@ public class ServiceProxyFactory {
 
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
         try {
           // fetch the service definition by the method name
           Router router = routerFactory.getRouter(routerType);
 
-          Optional<ServiceInstance> serviceInstance = router.route(serviceDefinition);
-          Message reqMsg;
-          if (serviceInstance.isPresent()) {
-            if (method.getParameterCount() == 0) {
-              reqMsg = Message.builder().qualifier(serviceInstance.get().serviceName())
-                  .header(ServiceHeaders.METHOD, method.getName())
-                  .build();
-            } else {
-              reqMsg = Message.withData(args[0])
-                  .qualifier(serviceInstance.get().serviceName())
-                  .header(ServiceHeaders.METHOD, method.getName())
-                  .build();
-            }
+          Optional<ServiceInstance> optionalServiceInstance = router.route(serviceDefinition);
+
+          if (optionalServiceInstance.isPresent()) {
+            ServiceInstance serviceInstance = optionalServiceInstance.get();
+            Object data = method.getParameterCount() != 0 ? args[0] : null;
+            Message reqMsg = Message.withData(data)
+                .qualifier(serviceInstance.serviceName())
+                .header(ServiceHeaders.METHOD, method.getName())
+                .build();
 
             CompletableFuture<?> resultFuture =
-                (CompletableFuture<?>) serviceInstance.get().invoke(reqMsg, serviceDefinition);
+                (CompletableFuture<?>) serviceInstance.invoke(reqMsg, serviceDefinition);
 
             if (method.getReturnType().equals(Void.TYPE)) {
               return CompletableFuture.completedFuture(Void.TYPE);
