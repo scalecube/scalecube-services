@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 final class GreetingServiceImpl implements GreetingService {
 
   @Override
-  public CompletableFuture<String> asyncGreeting(String name) {
+  public CompletableFuture<String> greeting(String name) {
     return CompletableFuture.completedFuture(" hello to: " + name);
   }
 
@@ -28,12 +28,17 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public CompletableFuture<GreetingResponse> asyncGreetingRequest(GreetingRequest request) {
+  public CompletableFuture<String> greetingNoParams() {
+    return CompletableFuture.completedFuture("hello unknown");
+  }
+  
+  @Override
+  public CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request) {
     return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName()));
   }
 
   @Override
-  public CompletableFuture<Message> asyncGreetingMessage(Message request) {
+  public CompletableFuture<Message> greetingMessage(Message request) {
     return CompletableFuture.completedFuture(Message.fromData(" hello to: " + request.data()));
   }
 

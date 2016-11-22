@@ -1,10 +1,12 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.ServiceHeaders.service_method_of;
+import static io.scalecube.services.ServiceHeaders.service_request_of;
+
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 public class ServiceDispatcher {
 
@@ -21,74 +23,26 @@ public class ServiceDispatcher {
     this.cluster = cluster;
     this.registry = registry;
 
+
     // Start listen messages
     cluster.listen()
-        .filter(message -> message.qualifier() != null)
+        .filter(message -> service_request_of(message) != null)
         .subscribe(this::onServiceRequest);
   }
 
-  private void onServiceRequest(Message message) {
-    Optional<ServiceInstance> serviceInstance = 
-        registry.getLocalInstance(message.qualifier(), message.header(ServiceHeaders.METHOD));
-    
+  private void onServiceRequest(final Message request) {
+    Optional<ServiceInstance> serviceInstance =
+        registry.getLocalInstance(service_request_of(request), service_method_of(request));
+
+    DispatchingFuture result = DispatchingFuture.from(cluster, request);
     try {
       if (serviceInstance.isPresent()) {
-        Object result = serviceInstance.get().invoke(message, null);
-        if (result != null) {
-          if (result instanceof Throwable) {
-            replyWithError(message, Throwable.class.cast(result));
-          } else if (result instanceof CompletableFuture) {
-            handleComputable(cluster, message, result);
-          } else { // this is a sync request response call
-            throw new UnsupportedOperationException("Service must return a CompletableFuture or Void");
-          }
-        }
+        result.complete(serviceInstance.get().invoke(request, null));
       } else {
-        replyWithError(message,
-            new IllegalStateException("no local service instance was found for service request: [" + message + "]"));
+        result.completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
       }
     } catch (Exception ex) {
-      replyWithError(message, ex);
+      result.completeExceptionally(ex);
     }
-
   }
-
-  private void replyWithError(Message message, Throwable ex) {
-    Message errorResponseMsg = Message.builder()
-        .data(ex)
-        .header("exception", "true")
-        .correlationId(message.correlationId())
-        .build();
-    cluster.send(message.sender(), errorResponseMsg);
-  }
-
-  private void handleComputable(final ICluster cluster, Message message, Object result) {
-    CompletableFuture<?> futureResult = (CompletableFuture<?>) result;
-
-    futureResult.whenComplete((success, error) -> {
-      Message futureMessage = null;
-      if (error == null) {
-        if (success instanceof Message) {
-          Message successMessage = (Message) success;
-          futureMessage = Message.builder()
-              .data(successMessage.data())
-              .correlationId(message.correlationId())
-              .build();
-        } else {
-          futureMessage = Message.builder()
-              .data(success)
-              .correlationId(message.correlationId())
-              .build();
-        }
-      } else {
-        futureMessage = Message.builder()
-            .data(error)
-            .header("exception", "true")
-            .correlationId(message.correlationId())
-            .build();
-      }
-      cluster.send(message.sender(), futureMessage);
-    });
-  }
-
 }

@@ -56,21 +56,22 @@ public class ServiceProxyFactory {
 
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
         try {
           // fetch the service definition by the method name
           Router router = routerFactory.getRouter(routerType);
 
-          Optional<ServiceInstance> serviceInstance = router.route(serviceDefinition);
+          Optional<ServiceInstance> optionalServiceInstance = router.route(serviceDefinition);
 
-          if (serviceInstance.isPresent()) {
-            Message reqMsg = Message.withData(args[0])
-                .qualifier(serviceInstance.get().serviceName())
+          if (optionalServiceInstance.isPresent()) {
+            ServiceInstance serviceInstance = optionalServiceInstance.get();
+            Object data = method.getParameterCount() != 0 ? args[0] : null;
+            Message reqMsg = Message.withData(data)
+                .header(ServiceHeaders.SERVICE_REQUEST, serviceInstance.serviceName())
                 .header(ServiceHeaders.METHOD, method.getName())
                 .build();
 
             CompletableFuture<?> resultFuture =
-                (CompletableFuture<?>) serviceInstance.get().invoke(reqMsg, serviceDefinition);
+                (CompletableFuture<?>) serviceInstance.invoke(reqMsg, serviceDefinition);
 
             if (method.getReturnType().equals(Void.TYPE)) {
               return CompletableFuture.completedFuture(Void.TYPE);
@@ -108,7 +109,9 @@ public class ServiceProxyFactory {
         // cancel the timeout in case target goal did finish on time
         resultFuture.thenRun(() -> {
           if (resultFuture.isDone()) {
-            scheduledEvent.cancel(false);
+            if (!scheduledEvent.isDone()) {
+              scheduledEvent.cancel(false);
+            }
             timeoutFuture.complete(Void.TYPE);
           }
         });

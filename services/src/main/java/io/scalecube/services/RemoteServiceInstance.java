@@ -1,5 +1,8 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.ServiceHeaders.service_method_of;
+import static io.scalecube.services.ServiceHeaders.service_request_of;
+
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.ICluster;
@@ -12,9 +15,8 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.UUID;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 public class RemoteServiceInstance implements ServiceInstance {
@@ -79,38 +81,27 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
-    final CompletableFuture<Object> messageFuture = new CompletableFuture<>();
 
-    final String correlationId = "rpc-" + generateId();
+    ResponseFuture responseFuture = new ResponseFuture(fn);
 
-    Message requestMessage = composeRequest(request, correlationId);
-    // Listen response
-    this.cluster.listen()
-        .filter(message -> correlationId.equals(message.correlationId()))
-        .first().subscribe(message -> {
-          if (message.header("exception") == null) {
-            messageFuture.complete(fn.apply(message));
-          } else {
-            LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
-            messageFuture.completeExceptionally(message.data());
-          }
-        });
+    Message requestMessage = composeRequest(request, responseFuture.correlationId());
 
-    // check that send operation completed successfully else report an error
     CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
+    // check that send operation completed successfully else report an error
     sendFuture.whenComplete((success, error) -> {
       if (error != null) {
         LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
             requestMessage.correlationId(),
             requestMessage, error);
-        messageFuture.completeExceptionally(error);
+
+        // if send future faild then complete the response future Exceptionally.
+        Optional<ResponseFuture> future = ResponseFuture.get(requestMessage.correlationId());
+        if (future.isPresent()) {
+          future.get().completeExceptionally(error);
+        }
       }
     });
-    return messageFuture;
-  }
-
-  private String generateId() {
-    return new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString();
+    return responseFuture.future();
   }
 
   private CompletableFuture<Void> sendRemote(Message requestMessage) {
@@ -122,9 +113,8 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   private Message composeRequest(Message request, final String correlationId) {
     return Message.withData(request.data())
-        .header(ServiceHeaders.SERVICE, serviceName)
+        .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
         .header(ServiceHeaders.METHOD, request.header(ServiceHeaders.METHOD))
-        .qualifier(serviceName)
         .correlationId(correlationId)
         .build();
   }

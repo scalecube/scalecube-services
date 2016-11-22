@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import io.scalecube.transport.Message;
 
@@ -95,7 +95,7 @@ public class ServicesIT {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<String> future = service.asyncGreeting("joe");
+    CompletableFuture<String> future = service.greeting("joe");
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -114,6 +114,37 @@ public class ServicesIT {
     microservices.cluster().shutdown();
   }
 
+  @Test
+  public void test_local_async_no_params() {
+    // Create microservices cluster.
+    Microservices microservices = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(microservices);
+
+    // call the service.
+    CompletableFuture<String> future = service.greetingNoParams();
+
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    future.whenComplete((result, ex) -> {
+      if (ex == null) {
+        assertTrue(result.equals("hello unknown"));
+        // print the greeting.
+        System.out.println("test_local_async_no_params :" + result);
+      } else {
+        // print the greeting.
+        System.out.println(ex);
+      }
+      timeLatch.countDown();
+    });
+
+    await(timeLatch, 1, TimeUnit.SECONDS);
+    microservices.cluster().shutdown();
+  }
+  
   @Test
   public void test_remote_void_greeting() {
     // Create microservices instance.
@@ -138,6 +169,7 @@ public class ServicesIT {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
+    
   }
 
   @Test
@@ -177,7 +209,7 @@ public class ServicesIT {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<String> future = service.asyncGreeting("joe");
+    CompletableFuture<String> future = service.greeting("joe");
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -185,6 +217,43 @@ public class ServicesIT {
         // print the greeting.
         System.out.println("4. remote_async_greeting_return_string :" + result);
         assertTrue(result.equals(" hello to: joe"));
+      } else {
+        // print the greeting.
+        System.out.println(ex);
+      }
+      timeLatch.countDown();
+    });
+    await(timeLatch, 1, TimeUnit.SECONDS);
+    provider.cluster().shutdown();
+    consumer.cluster().shutdown();
+  }
+  
+  @Test
+  public void test_remote_async_greeting_no_params() {
+    // Create microservices cluster.
+    Microservices provider = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    // call the service.
+    CompletableFuture<String> future = service.greetingNoParams();
+
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    future.whenComplete((result, ex) -> {
+      if (ex == null) {
+        // print the greeting.
+        System.out.println("test_remote_async_greeting_no_params :" + result);
+        assertTrue(result.equals("hello unknown"));
       } else {
         // print the greeting.
         System.out.println(ex);
@@ -208,7 +277,7 @@ public class ServicesIT {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
+    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -244,7 +313,7 @@ public class ServicesIT {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<GreetingResponse> future = service.asyncGreetingRequest(new GreetingRequest("joe"));
+    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -318,15 +387,21 @@ public class ServicesIT {
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
+    
     result.whenComplete((success, error) -> {
-      if (error != null)
+      if (error != null) {
         // print the greeting.
         System.out.println("8. remote_greeting_request_timeout_expires : " + error);
-      assertTrue(error instanceof TimeoutException);
-      timeLatch.countDown();
+        assertTrue(error instanceof TimeoutException);
+        timeLatch.countDown();
+      }
     });
 
-    await(timeLatch, 60, TimeUnit.SECONDS);
+    try {
+      await(timeLatch, 10, TimeUnit.SECONDS);
+    } catch ( Exception ex){
+      fail();
+    }
   }
 
   @Test
@@ -341,7 +416,7 @@ public class ServicesIT {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<Message> future = service.greetingMessage(Message.builder().data("joe").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -377,7 +452,7 @@ public class ServicesIT {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<Message> future = service.asyncGreetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<Message> future = service.greetingMessage(Message.builder().data("joe").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -418,8 +493,8 @@ public class ServicesIT {
 
     GreetingService service = createProxy(gateway);
 
-    CompletableFuture<Message> result1 = service.asyncGreetingMessage(Message.builder().data("joe").build());
-    CompletableFuture<Message> result2 = service.asyncGreetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<Message> result1 = service.greetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<Message> result2 = service.greetingMessage(Message.builder().data("joe").build());
 
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
@@ -438,10 +513,11 @@ public class ServicesIT {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 1, TimeUnit.SECONDS);
-    provider1.cluster().shutdown();
+    await(timeLatch, 2, TimeUnit.SECONDS);
+
     provider2.cluster().shutdown();
-    gateway.cluster().shutdown();
+    provider1.cluster().shutdown();
+
   }
 
   @Test
@@ -454,9 +530,9 @@ public class ServicesIT {
     GreetingService service = createProxy(gateway);
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
-      service.asyncGreeting("hello");
+      service.greeting("hello");
     } catch (Exception ex) {
-      assertTrue(ex.getMessage().equals("No reachable member with such service: asyncGreeting"));
+      assertTrue(ex.getMessage().equals("No reachable member with such service: greeting"));
       timeLatch.countDown();
     }
 
@@ -465,6 +541,58 @@ public class ServicesIT {
     provider1.cluster().shutdown();
   }
 
+  @Test
+  public void test_naive_stress_not_breaking_the_system() throws InterruptedException{
+    // Create microservices cluster member.
+    Microservices provider = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // Create microservices cluster member.
+    Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build();
+
+    // Get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    // Init params
+    int warmUpCount = 1_000;
+    int count = 10_000;
+    CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
+
+    // Warm up
+    for (int i = 0; i < warmUpCount; i++) {
+      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
+      future.whenComplete((success, error) -> {
+        if (error == null) {
+          warmUpLatch.countDown();
+        }
+      });
+    }
+    warmUpLatch.await(30, TimeUnit.SECONDS);
+    assertTrue(warmUpLatch.getCount() == 0);
+
+
+    // Measure
+    CountDownLatch countLatch = new CountDownLatch(count);
+    long startTime = System.currentTimeMillis();
+    for (int i = 0; i < count; i++) {
+      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
+      future.whenComplete((success, error) -> {
+        if (error == null) {
+          countLatch.countDown();
+        }
+      });
+    }
+    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    countLatch.await(30, TimeUnit.SECONDS);
+    System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    assertTrue(countLatch.getCount() == 0);
+  }
+  
   private GreetingService createProxy(Microservices gateway) {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API

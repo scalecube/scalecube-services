@@ -424,6 +424,38 @@ public class TransportTest extends BaseTest {
     assertEquals("q/unblocked", resp.get(0).header(MessageHeaders.QUALIFIER));
   }
 
+  @Test
+  public void naiveTransportStressTest() throws Exception {
+    // Create transport provider
+    Transport echoServer = Transport.bindAwait();
+    echoServer.listen().subscribe(msg -> echoServer.send(msg.sender(), msg));
+
+    // Create transport consumer
+    int warmUpCount = 1_000;
+    int count = 5_000;
+    CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
+    CountDownLatch latch = new CountDownLatch(warmUpCount + count);
+    Transport client = Transport.bindAwait();
+    client.listen().subscribe(msg -> {latch.countDown(); warmUpLatch.countDown();});
+
+    // Warm up
+    for (int i = 0; i < warmUpCount; i++) {
+      client.send(echoServer.address(), Message.fromData("naive_stress_test"));
+    }
+    warmUpLatch.await(10, TimeUnit.SECONDS);
+    assertTrue(warmUpLatch.getCount() == 0);
+
+    // Measure
+    long startTime = System.currentTimeMillis();
+    for (int i = 0; i < count; i++) {
+      client.send(echoServer.address(), Message.fromData("naive_stress_test"));
+    }
+    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    latch.await(30, TimeUnit.SECONDS);
+    System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    assertTrue(latch.getCount() == 0);
+  }
+
   private void pause(int millis) throws InterruptedException {
     Thread.sleep(millis);
   }
