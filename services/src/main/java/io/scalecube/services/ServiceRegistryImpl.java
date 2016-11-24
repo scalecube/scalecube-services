@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
+import io.scalecube.services.ServiceConfig.Builder.ServiceContext;
 import io.scalecube.services.annotations.ServiceProcessor;
 
 import org.slf4j.Logger;
@@ -38,23 +39,23 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * the ServiceRegistry constructor to register and lookup cluster instances.
    *
    * @param cluster the cluster instance related to the service registry.
-   * @param services optional services if relevant to this instance.
+   * @param serviceConfig optional services config if relevant to this instance.
    * @param serviceProcessor - service processor.
    * @param isSeed indication if this member is seed.
    */
-  public ServiceRegistryImpl(ICluster cluster, Object[] services, ServiceProcessor serviceProcessor,
+  public ServiceRegistryImpl(ICluster cluster, ServiceConfig serviceConfig, ServiceProcessor serviceProcessor,
                              boolean isSeed) {
     checkArgument(cluster != null);
-    checkArgument(services != null);
+    checkArgument(serviceConfig.services() != null);
     checkArgument(serviceProcessor != null);
 
     this.serviceProcessor = serviceProcessor;
     this.cluster = cluster;
     CompletableFuture<Void> future = listenCluster();
 
-    if (services.length > 0) {
-      for (Object service : services) {
-        registerService(service);
+    if (!serviceConfig.services().isEmpty()) {
+      for (ServiceContext serviceConf : serviceConfig.services()) {
+        registerService(serviceConf.getService(),serviceConf.getTags());
       }
     }
 
@@ -98,14 +99,17 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     member.metadata().entrySet().stream()
         .filter(entry -> "service".equals(entry.getValue())) // filter service tags
         .forEach(entry -> {
+
+          ServiceInfo adv = ServiceInfo.from(entry.getKey());
+
           ServiceReference serviceRef = new ServiceReference(
               member.id(),
-              entry.getKey(),
+              adv.getServiceName(),
               member.address());
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-            serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
+            serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef, adv.getTags()));
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
           }
@@ -115,7 +119,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   /**
    * register a service instance at the cluster.
    */
-  public void registerService(Object serviceObject) {
+  public void registerService(Object serviceObject, Tag[] tags) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
 
@@ -130,7 +134,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
       ServiceInstance serviceInstance =
           new LocalServiceInstance(serviceObject, memberId, serviceDefinitions.serviceName(),
-              serviceDefinitions.methods());
+              serviceDefinitions.methods(),tags);
       serviceInstances.putIfAbsent(serviceRef, serviceInstance);
 
     });
@@ -179,5 +183,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private boolean isValid(ServiceReference reference, String qualifier) {
     return reference.serviceName().equals(qualifier);
+  }
+
+  @Override
+  public ICluster cluster() {
+    return this.cluster;
   }
 }

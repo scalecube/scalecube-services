@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-final class GreetingResponse {
+public final class GreetingResponse {
 
   private final String result;
 

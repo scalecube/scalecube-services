@@ -1,8 +1,5 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.ServiceHeaders.service_method_of;
-import static io.scalecube.services.ServiceHeaders.service_request_of;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.ICluster;
@@ -15,9 +12,14 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
@@ -27,6 +29,8 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String memberId;
   private final String serviceName;
 
+  private final Map<String,String> tags;
+
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -34,12 +38,20 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param cluster to be used for instance context.
    * @param serviceReference service reference of this instance.
    */
-  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
+  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference,Tag[] tags) {
     this.serviceName = serviceReference.serviceName();
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
+    
+    this.tags = toMap(tags);
   }
+
+  private Map<String, String> toMap(Tag[] tags) {
+    return Arrays.stream(tags).map(tag -> tag)
+        .collect(Collectors.toMap(tag -> tag.getKey(), tag -> tag.getValue()));
+  }
+
 
   @Override
   public String serviceName() {
@@ -139,8 +151,12 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public String toString() {
-    return "RemoteServiceInstance [address=" + address
-        + ", memberId=" + memberId
-        + "]";
+    return "RemoteServiceInstance [address=" + address + ", memberId=" + memberId + ", serviceName=" + serviceName
+        + ", tags=" + tags + "]";
+  }
+
+  @Override
+  public Map<String, String> tags() {
+    return tags;
   }
 }
