@@ -7,11 +7,11 @@ import io.scalecube.services.routing.Router;
 
 import java.util.Optional;
 
-public class ABTestingRouter implements Router {
+public class CanaryTestingRouter implements Router {
 
   private ServiceRegistry serviceRegistry;
 
-  public ABTestingRouter(ServiceRegistry serviceRegistry) {
+  public CanaryTestingRouter(ServiceRegistry serviceRegistry) {
     this.serviceRegistry = serviceRegistry;
   }
 

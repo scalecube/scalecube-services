@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import static org.junit.Assert.*;
 
-import io.scalecube.services.a.b.testing.ABTestingRouter;
+import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.transport.Message;
@@ -138,14 +138,14 @@ public class ServicesIT {
   @Test
   public void test_remote_async_greeting_with_A_B_tags() {
 
-    // Create microservices instance.
+    // Create gateway instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
         .build();
 
 
-    // Create microservices cluster.
-    Microservices microservices1 = Microservices.builder()
+    // Create member node1 with A/B testing tag.
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(ServiceConfig.builder().service(new GreetingServiceImplA())
@@ -153,7 +153,8 @@ public class ServicesIT {
             .build())
         .build();
 
-    Microservices microservices2 = Microservices.builder()
+    // Create member node2 with A/B testing tag.
+    Microservices node2 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(ServiceConfig.builder().service(new GreetingServiceImplB())
@@ -163,7 +164,7 @@ public class ServicesIT {
     // get a proxy to the service api.
     GreetingService service = gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
-        .router(ABTestingRouter.class)
+        .router(CanaryTestingRouter.class)
         .create();
 
     AtomicInteger count = new AtomicInteger(0);
@@ -188,7 +189,6 @@ public class ServicesIT {
     // print the greeting.
     System.out.println("out of 100 times B was selected :" + count.get());
     assertTrue((count.get() >= 60 && count.get() <= 80));
-    microservices1.cluster().shutdown();
   }
 
   @Test
