@@ -29,7 +29,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String memberId;
   private final String serviceName;
 
-  private final Map<String,String> tags;
+  private final Map<String, String> tags;
 
 
   /**
@@ -38,12 +38,12 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param cluster to be used for instance context.
    * @param serviceReference service reference of this instance.
    */
-  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference,Tag[] tags) {
+  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference, Tag[] tags) {
     this.serviceName = serviceReference.serviceName();
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
-    
+
     this.tags = toMap(tags);
   }
 

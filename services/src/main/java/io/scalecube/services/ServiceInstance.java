@@ -14,5 +14,5 @@ public interface ServiceInstance {
 
   Boolean isLocal();
 
-  Map<String,String> tags();
+  Map<String, String> tags();
 }

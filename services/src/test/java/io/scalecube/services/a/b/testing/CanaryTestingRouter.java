@@ -7,20 +7,20 @@ import io.scalecube.services.routing.Router;
 
 import java.util.Optional;
 
-public class ABTestingRouter implements Router {
+public class CanaryTestingRouter implements Router {
 
   private ServiceRegistry serviceRegistry;
 
-  public ABTestingRouter(ServiceRegistry serviceRegistry) {
+  public CanaryTestingRouter(ServiceRegistry serviceRegistry) {
     this.serviceRegistry = serviceRegistry;
   }
 
   @Override
   public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition) {
-    RandomCollection<ServiceInstance> weightedRandom = new RandomCollection<>();    
-    serviceRegistry.serviceLookup(serviceDefinition.serviceName()).stream().forEach(instance->{
+    RandomCollection<ServiceInstance> weightedRandom = new RandomCollection<>();
+    serviceRegistry.serviceLookup(serviceDefinition.serviceName()).stream().forEach(instance -> {
       weightedRandom.add(
-          Double.valueOf(instance.tags().get("Weight")), 
+          Double.valueOf(instance.tags().get("Weight")),
           instance);
     });
     return Optional.of(weightedRandom.next());

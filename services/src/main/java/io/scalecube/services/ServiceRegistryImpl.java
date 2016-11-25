@@ -44,7 +44,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param isSeed indication if this member is seed.
    */
   public ServiceRegistryImpl(ICluster cluster, ServiceConfig serviceConfig, ServiceProcessor serviceProcessor,
-                             boolean isSeed) {
+      boolean isSeed) {
     checkArgument(cluster != null);
     checkArgument(serviceConfig.services() != null);
     checkArgument(serviceProcessor != null);
@@ -55,7 +55,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
     if (!serviceConfig.services().isEmpty()) {
       for (ServiceContext serviceConf : serviceConfig.services()) {
-        registerService(serviceConf.getService(),serviceConf.getTags());
+        registerService(serviceConf.getService(), serviceConf.getTags());
       }
     }
 
@@ -100,7 +100,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         .filter(entry -> "service".equals(entry.getValue())) // filter service tags
         .forEach(entry -> {
 
-          ServiceInfo adv = ServiceInfo.from(entry.getKey());
+          ServiceInfo adv = JsonUtil.from(entry.getKey(), ServiceInfo.class);
 
           ServiceReference serviceRef = new ServiceReference(
               member.id(),
@@ -134,7 +134,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
       ServiceInstance serviceInstance =
           new LocalServiceInstance(serviceObject, memberId, serviceDefinitions.serviceName(),
-              serviceDefinitions.methods(),tags);
+              serviceDefinitions.methods(), tags);
       serviceInstances.putIfAbsent(serviceRef, serviceInstance);
 
     });

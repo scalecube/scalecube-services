@@ -64,7 +64,7 @@
         <guava.version>19.0</guava.version>
         <findbugs.version>2.0.3</findbugs.version>
         <netty.version>4.0.40.Final</netty.version>
-        <protostuff.version>1.4.4</protostuff.version>
+        <protostuff.version>1.5.2</protostuff.version>
         <protobuf.version>2.4.1</protobuf.version>
     </properties>
 

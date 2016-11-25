@@ -46,7 +46,7 @@ public class LocalServiceInstance implements ServiceInstance {
     this.memberId = memberId;
     this.tags = toMap(tags);
   }
-  
+
   private Map<String, String> toMap(Tag[] tags) {
     return Arrays.stream(tags).map(tag -> tag)
         .collect(Collectors.toMap(tag -> tag.getKey(), tag -> tag.getValue()));
@@ -95,7 +95,7 @@ public class LocalServiceInstance implements ServiceInstance {
   public Map<String, String> tags() {
     return tags;
   }
-  
+
   @Override
   public String toString() {
     return "LocalServiceInstance [serviceName=" + serviceName + ", memberId=" + memberId + ", tags=" + tags + "]";

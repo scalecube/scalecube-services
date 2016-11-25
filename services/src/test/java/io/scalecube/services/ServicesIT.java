@@ -2,7 +2,8 @@ package io.scalecube.services;
 
 import static org.junit.Assert.*;
 
-import io.scalecube.services.a.b.testing.ABTestingRouter;
+import io.scalecube.services.a.b.testing.CanaryService;
+import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.transport.Message;
@@ -27,6 +28,7 @@ public class ServicesIT {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
+        .listenAddress("localhost")
         .build();
 
     Microservices.builder()
@@ -91,6 +93,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
+        .portAutoIncrement(false)
         .services(new GreetingServiceImpl())
         .build();
 
@@ -123,11 +126,12 @@ public class ServicesIT {
       // Create microservices cluster.
       Microservices.builder()
           .port(port.incrementAndGet())
+          .portAutoIncrement(false)
           // configuration ServiceConfig is not allowed when using services()
           .services(ServiceConfig.builder().service(new GreetingServiceImplA()).add()
               .build())
           // configuration services is not allowed when using ServiceConfig
-          .services(new GreetingServiceImplA()) 
+          .services(new GreetingServiceImplA())
           .build();
     } catch (IllegalStateException ex) {
       assertTrue(ex != null);
@@ -138,34 +142,38 @@ public class ServicesIT {
   @Test
   public void test_remote_async_greeting_with_A_B_tags() {
 
-    // Create microservices instance.
+    // Create gateway instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
         .build();
 
 
-    // Create microservices cluster.
-    Microservices microservices1 = Microservices.builder()
+    // Create member node1 with A/B testing tag.
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
+        .portAutoIncrement(false)
         .seeds(gateway.cluster().address())
         .services(ServiceConfig.builder().service(new GreetingServiceImplA())
             .tag("A/B-Testing", "A").tag("Weight", "0.3").add()
             .build())
         .build();
 
-    Microservices microservices2 = Microservices.builder()
+    // Create member node2 with A/B testing tag.
+    Microservices node2 = Microservices.builder()
         .port(port.incrementAndGet())
+        .portAutoIncrement(false)
         .seeds(gateway.cluster().address())
         .services(ServiceConfig.builder().service(new GreetingServiceImplB())
             .tag("A/B-Testing", "B").tag("Weight", "0.7").add().build())
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = gateway.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .router(ABTestingRouter.class)
+    CanaryService service = gateway.proxy()
+        .api(CanaryService.class) // create proxy for GreetingService API
+        .router(CanaryTestingRouter.class)
         .create();
 
+    System.out.println(gateway.cluster().members());
     AtomicInteger count = new AtomicInteger(0);
     // call the service.
     for (int i = 0; i < 100; i++) {
@@ -188,7 +196,6 @@ public class ServicesIT {
     // print the greeting.
     System.out.println("out of 100 times B was selected :" + count.get());
     assertTrue((count.get() >= 60 && count.get() <= 80));
-    microservices1.cluster().shutdown();
   }
 
   @Test

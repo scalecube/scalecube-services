@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
+import io.scalecube.services.Microservices.Builder;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -154,6 +155,8 @@ public class Microservices {
     private Address[] seeds;
     private Object[] services = new Object[0];
     private ServiceConfig serviceConfig;
+    private boolean portAutoIncrement = true;
+    private String listenAddress;
 
     /**
      * microsrrvices instance builder.
@@ -182,14 +185,15 @@ public class Microservices {
       }
 
       ClusterConfig cfg;
+
       if (port != null && seeds != null) {
-        cfg = ConfigAssist.create(port, seeds, metadata);
+        cfg = ConfigAssist.create(listenAddress, port, this.portAutoIncrement, seeds, metadata);
       } else if (seeds != null) {
-        cfg = ConfigAssist.create(seeds, metadata);
+        cfg = ConfigAssist.create(listenAddress, seeds, metadata);
       } else if (port != null) {
-        cfg = ConfigAssist.create(port, metadata);
+        cfg = ConfigAssist.create(listenAddress, port, this.portAutoIncrement, metadata);
       } else {
-        cfg = ConfigAssist.create(metadata);
+        cfg = ConfigAssist.create(listenAddress, metadata);
       }
       return cfg;
     }
@@ -228,6 +232,16 @@ public class Microservices {
     public Builder services(ServiceConfig serviceConfig) {
       checkNotNull(serviceConfig);
       this.serviceConfig = serviceConfig;
+      return this;
+    }
+
+    public Builder portAutoIncrement(boolean portAutoIncrement) {
+      this.portAutoIncrement = portAutoIncrement;
+      return this;
+    }
+
+    public Builder listenAddress(String address) {
+      this.listenAddress = address;
       return this;
     }
   }
@@ -284,7 +298,7 @@ public class Microservices {
       Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service.getService());
       for (Class<?> serviceInterface : serviceInterfaces) {
         ServiceDefinition def = serviceProcessor.introspectServiceInterface(serviceInterface);
-        result.put(ServiceInfo.toJson(def.serviceName(), service.getTags()), "service");
+        result.put(JsonUtil.toJson(new ServiceInfo(def.serviceName(), service.getTags())), "service");
       }
     });
 
