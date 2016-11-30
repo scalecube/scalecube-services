@@ -11,17 +11,18 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
+import io.scalecube.transport.TransportConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -108,12 +109,17 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
-  private Microservices(ICluster cluster, Object[] services, boolean isSeed) {
+  private final Transport serviceTransport;
+
+  private Microservices(ICluster cluster, Transport transport, ServiceConfig serviceConfig, boolean isSeed) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
+
+    this.serviceTransport = transport;
+
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, serviceTransport, serviceConfig, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
-    new ServiceDispatcher(cluster, serviceRegistry);
-    this.cluster.listen().subscribe(message -> handleReply(message));
+    new ServiceDispatcher(serviceTransport, serviceRegistry);
+    this.serviceTransport.listen().subscribe(message -> handleReply(message));
   }
 
 
@@ -151,25 +157,47 @@ public class Microservices {
 
   public static final class Builder {
 
+    private static final int DEFAULT_SERVICE_PORT = 6000;
+
+    private static final TransportConfig DEFAULT_TRANSPORT_CONFIG = TransportConfig.builder().port(DEFAULT_SERVICE_PORT)
+        .portAutoIncrement(true).build();
+
     private Integer port = null;
     private Address[] seeds;
     private Object[] services = new Object[0];
+    private ServiceConfig serviceConfig;
+
+    // used for service communication and messaging
+    private TransportConfig transportConfig = DEFAULT_TRANSPORT_CONFIG;
 
     /**
-     * microsrrvices instance builder.
+     * Microservices instance builder.
      * 
      * @return Microservices instance.
      */
     public Microservices build() {
-      ClusterConfig cfg = getClusterConfig();
-      return new Microservices(Cluster.joinAwait(cfg), services, seeds == null);
+      if (serviceConfig != null && !serviceConfig.services().isEmpty() && services.length > 0) {
+        throw new IllegalStateException(
+            "ServiceConfig builder and services() are not allowed to be used in parallel."
+                + "please choose ServiceConfig builder in case you wish to register services with service tags");
+      }
+
+      // initialize transport channel to be used by the services request / response.
+      Transport transport = Transport.bindAwait(transportConfig);
+
+      if (serviceConfig == null) {
+        serviceConfig = ServiceConfig.from(transport.address(), services);
+      }
+
+      ClusterConfig cfg = getClusterConfig(transport.address());
+      return new Microservices(Cluster.joinAwait(cfg), transport, serviceConfig, seeds == null);
     }
 
-    private ClusterConfig getClusterConfig() {
+    private ClusterConfig getClusterConfig(Address serviceAddress) {
       Map<String, String> metadata = new HashMap<>();
 
-      if (services.length > 0) {
-        metadata = Microservices.metadata(services);
+      if (!serviceConfig.services().isEmpty()) {
+        metadata = Microservices.metadata(serviceAddress, serviceConfig);
       }
 
       ClusterConfig cfg;
@@ -190,6 +218,11 @@ public class Microservices {
       return this;
     }
 
+    public Builder serviceTransport(TransportConfig config) {
+      this.transportConfig = config;
+      return this;
+    }
+
     public Builder seeds(Address... seeds) {
       this.seeds = seeds;
       return this;
@@ -203,9 +236,22 @@ public class Microservices {
      */
     public Builder services(Object... services) {
       checkNotNull(services);
+
       if (services != null) {
         this.services = services;
       }
+      return this;
+    }
+
+    /**
+     * Services list to be registered.
+     * 
+     * @param services list of instances decorated with @Service
+     * @return builder.
+     */
+    public Builder services(ServiceConfig serviceConfig) {
+      checkNotNull(serviceConfig);
+      this.serviceConfig = serviceConfig;
       return this;
     }
   }
@@ -213,7 +259,6 @@ public class Microservices {
   public static Builder builder() {
     return new Builder();
   }
-
 
   public ProxyContext proxy() {
     return new ProxyContext();
@@ -255,11 +300,18 @@ public class Microservices {
     }
   }
 
-  private static Map<String, String> metadata(Object... services) {
-    return Arrays.stream(services).flatMap(service -> {
-      Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service);
-      return serviceInterfaces.stream().map(serviceProcessor::introspectServiceInterface);
-    }).collect(Collectors.toMap(ServiceDefinition::serviceName,def -> "service"));
+  private static Map<String, String> metadata(Address address, ServiceConfig config) {
+    Map<String, String> result = new HashMap<>();
+
+    config.services().stream().forEach(service -> {
+      Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service.getService());
+      for (Class<?> serviceInterface : serviceInterfaces) {
+        ServiceDefinition def = serviceProcessor.introspectServiceInterface(serviceInterface);
+        result.put(ServiceInfo.toJson(address.toString(), def.serviceName(), service.getTags()), "service");
+      }
+    });
+
+    return Collections.unmodifiableMap(result);
   }
 
 }

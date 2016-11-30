@@ -3,10 +3,11 @@ package io.scalecube.transport;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import rx.subjects.Subject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import rx.subjects.Subject;
 
 /**
  * Channel handler for getting message traffic. Activated when connection established/accepted.

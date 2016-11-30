@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.cluster.ICluster;
+import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
 import java.util.concurrent.CompletableFuture;
@@ -18,27 +19,27 @@ public class DispatchingFuture {
   /**
    * the instance of the relevant cluster.
    */
-  private ICluster cluster;
+  private final ITransport transport;
 
   /**
    * create a method dispatching future with relevant original request.
    * 
-   * @param cluster the cluster instance this future assigned to.
+   * @param transport the cluster instance this future assigned to.
    * @param request the original request this response correlated to.
    * @return new instance of a dispatching future.
    */
-  static DispatchingFuture from(ICluster cluster, Message request) {
-    return new DispatchingFuture(cluster, request);
+  static DispatchingFuture from(ITransport transport, Message request) {
+    return new DispatchingFuture(transport, request);
   }
 
   /**
    * private contractor use static method from.
-   * @param cluster instance.
+   * @param transport instance.
    * @param request original service request.
    */
-  private DispatchingFuture(ICluster cluster, Message request) {
+  private DispatchingFuture(ITransport transport, Message request) {
     this.request = request;
-    this.cluster = cluster;
+    this.transport = transport;
   }
 
   /**
@@ -52,7 +53,7 @@ public class DispatchingFuture {
     if (value instanceof Throwable) {
       completeExceptionally(Throwable.class.cast(value));
     } else if (value instanceof CompletableFuture<?>) {
-      handleComputable(cluster, CompletableFuture.class.cast(value));
+      handleComputable(CompletableFuture.class.cast(value));
     }
   }
 
@@ -68,11 +69,11 @@ public class DispatchingFuture {
         .header("exception", "true")
         .correlationId(request.correlationId())
         .build();
-    cluster.send(request.sender(), errorResponseMsg);
+    transport.send(request.sender(), errorResponseMsg);
   }
 
 
-  private void handleComputable(final ICluster cluster, CompletableFuture<?> result) {
+  private void handleComputable(CompletableFuture<?> result) {
     result.whenComplete((success, error) -> {
       Message futureMessage = null;
       if (error == null) {
@@ -85,7 +86,7 @@ public class DispatchingFuture {
       } else {
         completeExceptionally(error);
       }
-      cluster.send(request.sender(), futureMessage);
+      transport.send(request.sender(), futureMessage);
     });
   }
 

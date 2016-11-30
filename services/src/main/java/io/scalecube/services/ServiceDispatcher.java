@@ -3,46 +3,47 @@ package io.scalecube.services;
 import static io.scalecube.services.ServiceHeaders.service_method_of;
 import static io.scalecube.services.ServiceHeaders.service_request_of;
 
-import io.scalecube.cluster.ICluster;
+import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
 import java.util.Optional;
 
 public class ServiceDispatcher {
 
-  private final ICluster cluster;
+  private final ITransport transport;
   private final ServiceRegistry registry;
 
   /**
    * ServiceDispatcher constructor to listen on incoming network service request.
    * 
-   * @param cluster instance to listen on events.
+   * @param transport instance to listen on events.
    * @param registry service registry instance for dispatching.
    */
-  public ServiceDispatcher(ICluster cluster, ServiceRegistry registry) {
-    this.cluster = cluster;
+  public ServiceDispatcher(ITransport transport, ServiceRegistry registry) {
+    this.transport = transport;
     this.registry = registry;
 
 
     // Start listen messages
-    cluster.listen()
-        .filter(message -> service_request_of(message) != null)
-        .subscribe(this::onServiceRequest);
+    transport.listen().subscribe(this::onServiceRequest);
   }
 
   private void onServiceRequest(final Message request) {
-    Optional<ServiceInstance> serviceInstance =
-        registry.getLocalInstance(service_request_of(request), service_method_of(request));
+    if (service_request_of(request) != null) {
+      Optional<ServiceInstance> serviceInstance =
+          registry.getLocalInstance(service_request_of(request), service_method_of(request));
 
-    DispatchingFuture result = DispatchingFuture.from(cluster, request);
-    try {
-      if (serviceInstance.isPresent()) {
-        result.complete(serviceInstance.get().invoke(request, null));
-      } else {
-        result.completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
+      DispatchingFuture result = DispatchingFuture.from(transport, request);
+      try {
+        if (serviceInstance.isPresent()) {
+          result.complete(serviceInstance.get().invoke(request, null));
+        } else {
+          result
+              .completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
+        }
+      } catch (Exception ex) {
+        result.completeExceptionally(ex);
       }
-    } catch (Exception ex) {
-      result.completeExceptionally(ex);
     }
   }
 }
