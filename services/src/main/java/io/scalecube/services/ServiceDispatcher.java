@@ -29,16 +29,17 @@ public class ServiceDispatcher {
   }
 
   private void onServiceRequest(final Message request) {
-    if(service_request_of(request) != null) {
+    if (service_request_of(request) != null) {
       Optional<ServiceInstance> serviceInstance =
           registry.getLocalInstance(service_request_of(request), service_method_of(request));
-  
+
       DispatchingFuture result = DispatchingFuture.from(transport, request);
       try {
         if (serviceInstance.isPresent()) {
           result.complete(serviceInstance.get().invoke(request, null));
         } else {
-          result.completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
+          result
+              .completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
         }
       } catch (Exception ex) {
         result.completeExceptionally(ex);

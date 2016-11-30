@@ -41,7 +41,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * the ServiceRegistry constructor to register and lookup cluster instances.
    *
    * @param cluster the cluster instance related to the service registry.
-   * @param address
+   * @param transport instance for service communication.
    * @param serviceConfig optional services config if relevant to this instance.
    * @param serviceProcessor - service processor.
    * @param isSeed indication if this member is seed.
