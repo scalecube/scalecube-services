@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.ServiceConfig.Builder.ServiceContext;
+import io.scalecube.transport.Address;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -105,7 +106,7 @@ public class ServiceConfig {
     }
   }
 
-  public static ServiceConfig from(Object[] services) {
+  public static ServiceConfig from(Address address,Object[] services) {
     return ServiceConfig.builder().services(services).build();
   }
 }

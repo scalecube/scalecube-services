@@ -149,7 +149,8 @@ public class ServicesIT {
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(ServiceConfig.builder().service(new GreetingServiceImplA())
-            .tag("A/B-Testing", "A").tag("Weight", "0.3").add()
+            .tag("A/B-Testing", "A")
+            .tag("Weight", "0.3").add()
             .build())
         .build();
 
@@ -158,7 +159,9 @@ public class ServicesIT {
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(ServiceConfig.builder().service(new GreetingServiceImplB())
-            .tag("A/B-Testing", "B").tag("Weight", "0.7").add().build())
+            .tag("A/B-Testing", "B")
+            .tag("Weight", "0.7").add()
+            .build())
         .build();
 
     // get a proxy to the service api.
@@ -637,7 +640,7 @@ public class ServicesIT {
 
     // Init params
     int warmUpCount = 1_000;
-    int count = 10_000;
+    int count = 500_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
@@ -649,6 +652,7 @@ public class ServicesIT {
         }
       });
     }
+    
     warmUpLatch.await(30, TimeUnit.SECONDS);
     assertTrue(warmUpLatch.getCount() == 0);
 
@@ -665,7 +669,7 @@ public class ServicesIT {
       });
     }
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
-    countLatch.await(30, TimeUnit.SECONDS);
+    countLatch.await(220, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
   }

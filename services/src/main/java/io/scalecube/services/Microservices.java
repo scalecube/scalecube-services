@@ -11,6 +11,8 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
+import io.scalecube.transport.TransportConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,12 +109,17 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
-  private Microservices(ICluster cluster, ServiceConfig serviceConfig, boolean isSeed) {
+  private final Transport serviceTransport;
+
+  private Microservices(ICluster cluster, Transport transport, ServiceConfig serviceConfig, boolean isSeed) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, serviceConfig, serviceProcessor, isSeed);
+
+    this.serviceTransport = transport;
+
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, serviceTransport, serviceConfig, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
-    new ServiceDispatcher(cluster, serviceRegistry);
-    this.cluster.listen().subscribe(message -> handleReply(message));
+    new ServiceDispatcher(serviceTransport, serviceRegistry);
+    this.serviceTransport.listen().subscribe(message -> handleReply(message));
   }
 
 
@@ -150,13 +157,21 @@ public class Microservices {
 
   public static final class Builder {
 
+    private static final int DEFAULT_SERVICE_PORT = 6000;
+
+    private static final TransportConfig DEFAULT_TRANSPORT_CONFIG = TransportConfig.builder().port(DEFAULT_SERVICE_PORT)
+        .portAutoIncrement(true).build();
+
     private Integer port = null;
     private Address[] seeds;
     private Object[] services = new Object[0];
     private ServiceConfig serviceConfig;
 
+    // used for service communication and messaging
+    private TransportConfig transportConfig = DEFAULT_TRANSPORT_CONFIG;
+
     /**
-     * microsrrvices instance builder.
+     * Microservices instance builder.
      * 
      * @return Microservices instance.
      */
@@ -167,18 +182,22 @@ public class Microservices {
                 + "please choose ServiceConfig builder in case you wish to register services with service tags");
       }
 
+      // initialize transport channel to be used by the services request / response.
+      Transport transport = Transport.bindAwait(transportConfig);
+
       if (serviceConfig == null) {
-        serviceConfig = ServiceConfig.from(services);
+        serviceConfig = ServiceConfig.from(transport.address(), services);
       }
-      ClusterConfig cfg = getClusterConfig();
-      return new Microservices(Cluster.joinAwait(cfg), serviceConfig, seeds == null);
+
+      ClusterConfig cfg = getClusterConfig(transport.address());
+      return new Microservices(Cluster.joinAwait(cfg), transport, serviceConfig, seeds == null);
     }
 
-    private ClusterConfig getClusterConfig() {
+    private ClusterConfig getClusterConfig(Address serviceAddress) {
       Map<String, String> metadata = new HashMap<>();
 
       if (!serviceConfig.services().isEmpty()) {
-        metadata = Microservices.metadata(serviceConfig);
+        metadata = Microservices.metadata(serviceAddress, serviceConfig);
       }
 
       ClusterConfig cfg;
@@ -196,6 +215,11 @@ public class Microservices {
 
     public Builder port(int port) {
       this.port = port;
+      return this;
+    }
+
+    public Builder serviceTransport(TransportConfig config) {
+      this.transportConfig = config;
       return this;
     }
 
@@ -235,7 +259,6 @@ public class Microservices {
   public static Builder builder() {
     return new Builder();
   }
-
 
   public ProxyContext proxy() {
     return new ProxyContext();
@@ -277,14 +300,14 @@ public class Microservices {
     }
   }
 
-  private static Map<String, String> metadata(ServiceConfig config) {
+  private static Map<String, String> metadata(Address address, ServiceConfig config) {
     Map<String, String> result = new HashMap<>();
 
     config.services().stream().forEach(service -> {
       Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service.getService());
       for (Class<?> serviceInterface : serviceInterfaces) {
         ServiceDefinition def = serviceProcessor.introspectServiceInterface(serviceInterface);
-        result.put(ServiceInfo.toJson(def.serviceName(), service.getTags()), "service");
+        result.put(ServiceInfo.toJson(address.toString(), def.serviceName(), service.getTags()), "service");
       }
     });
 

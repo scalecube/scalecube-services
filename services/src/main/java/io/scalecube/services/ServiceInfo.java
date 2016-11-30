@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Helper class used to register service with tags as metadata in the scalecube cluster.
- * parsing from service info to json and back.
+ * Helper class used to register service with tags as metadata in the scalecube cluster. parsing from service info to
+ * json and back.
  */
 public class ServiceInfo {
 
@@ -14,14 +14,17 @@ public class ServiceInfo {
 
   private String serviceName;
 
+  private String address;
+
   private Tag[] tags;
 
   public ServiceInfo() {
     // default contractor used for json serialization.
   }
 
-  public ServiceInfo(String serviceName, Tag[] tags) {
+  public ServiceInfo(String address, String serviceName, Tag[] tags) {
     this.serviceName = serviceName;
+    this.address = address;
     this.tags = tags;
   }
 
@@ -31,6 +34,14 @@ public class ServiceInfo {
 
   public String getServiceName() {
     return serviceName;
+  }
+
+  public String getAddress() {
+    return this.address;
+  }
+
+  private void setAddress(String address) {
+    this.address = address;
   }
 
   private void setServiceName(String serviceName) {
@@ -43,6 +54,7 @@ public class ServiceInfo {
 
   /**
    * Create service Advertisement from a json format.
+   * 
    * @param value json value of a registration info.
    * @return instance of service Advertisement.
    */
@@ -56,6 +68,7 @@ public class ServiceInfo {
 
   /**
    * Create json format of a service Advertisement.
+   * 
    * @param value instance value of a Advertisement.
    * @return json value of a registration info.
    */
@@ -69,11 +82,14 @@ public class ServiceInfo {
 
   /**
    * Create json format of a service Advertisement.
+   * 
    * @param serviceName given a service name.
    * @param tags given a service tags.
-   * @return  json value of a registration info.
+   * @return json value of a registration info.
    */
-  public static String toJson(String serviceName, Tag[] tags) {
-    return toJson(new ServiceInfo(serviceName, tags));
+  public static String toJson(String address, String serviceName, Tag[] tags) {
+    return toJson(new ServiceInfo(address, serviceName, tags));
   }
+
+
 }

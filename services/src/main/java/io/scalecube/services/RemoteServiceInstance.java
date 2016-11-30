@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
@@ -13,8 +14,6 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -31,6 +30,8 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   private final Map<String,String> tags;
 
+  private ITransport transport;
+
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -38,9 +39,10 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param cluster to be used for instance context.
    * @param serviceReference service reference of this instance.
    */
-  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference,Tag[] tags) {
+  public RemoteServiceInstance(ICluster cluster,ITransport transport, ServiceReference serviceReference,Tag[] tags) {
     this.serviceName = serviceReference.serviceName();
     this.cluster = cluster;
+    this.transport = transport;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     
@@ -119,7 +121,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private CompletableFuture<Void> sendRemote(Message requestMessage) {
     final CompletableFuture<Void> messageFuture = new CompletableFuture<>();
     LOGGER.debug("cid [{}] send remote service request message {}", requestMessage.correlationId(), requestMessage);
-    this.cluster.send(address, requestMessage, messageFuture);
+    this.transport.send(address, requestMessage, messageFuture);
     return messageFuture;
   }
 
