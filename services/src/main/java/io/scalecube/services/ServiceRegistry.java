@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -10,7 +12,7 @@ import java.util.Optional;
  */
 public interface ServiceRegistry {
 
-  void registerService(Object serviceObject);
+  void registerService(ServiceConfig serviceObject);
 
   void unregisterService(Object serviceObject);
 

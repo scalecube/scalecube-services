@@ -2,9 +2,11 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.transport.Message;
 
 import java.lang.reflect.Method;
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -18,24 +20,27 @@ public class LocalServiceInstance implements ServiceInstance {
   private final Map<String, Method> methods;
   private final String serviceName;
   private final String memberId;
+  private final Map<String, String> tags;
 
   /**
    * LocalServiceInstance instance constructor.
    * 
-   * @param serviceObject the instance of the service object.
+   * @param serviceConfig the instance of the service configurations.
    * @param memberId the Cluster memberId of this instance.
    * @param serviceName the qualifier name of the service.
    * @param methods the java methods of the service.
    */
-  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Map<String, Method> methods) {
-    checkArgument(serviceObject != null);
+  public LocalServiceInstance(ServiceConfig serviceConfig, String memberId, String serviceName,
+      Map<String, Method> methods) {
+    checkArgument(serviceConfig.getService() != null);
     checkArgument(memberId != null);
     checkArgument(serviceName != null);
     checkArgument(methods != null);
-    this.serviceObject = serviceObject;
+    this.serviceObject = serviceConfig.getService();
     this.serviceName = serviceName;
     this.methods = methods;
     this.memberId = memberId;
+    this.tags = serviceConfig.getTags();
   }
 
 
@@ -81,5 +86,11 @@ public class LocalServiceInstance implements ServiceInstance {
   @Override
   public String toString() {
     return "LocalServiceInstance [serviceObject=" + serviceObject + ", memberId=" + memberId + "]";
+  }
+
+
+  @Override
+  public Map<String, String> tags() {
+    return Collections.unmodifiableMap(tags);
   }
 }
