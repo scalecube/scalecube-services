@@ -33,6 +33,7 @@ public class DispatchingFuture {
 
   /**
    * private contractor use static method from.
+   * 
    * @param cluster instance.
    * @param request original service request.
    */

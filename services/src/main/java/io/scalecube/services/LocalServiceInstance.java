@@ -5,7 +5,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.transport.Message;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Local service instance invokes the service instance hosted on this local process.
@@ -18,6 +23,7 @@ public class LocalServiceInstance implements ServiceInstance {
   private final Map<String, Method> methods;
   private final String serviceName;
   private final String memberId;
+  private final Map<String, String> tags;
 
   /**
    * LocalServiceInstance instance constructor.
@@ -26,8 +32,10 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param memberId the Cluster memberId of this instance.
    * @param serviceName the qualifier name of the service.
    * @param methods the java methods of the service.
+   * @param tags service tags of this instance.
    */
-  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Map<String, Method> methods) {
+  public LocalServiceInstance(Object serviceObject, String memberId, String serviceName, Map<String, Method> methods,
+      Tag[] tags) {
     checkArgument(serviceObject != null);
     checkArgument(memberId != null);
     checkArgument(serviceName != null);
@@ -36,8 +44,13 @@ public class LocalServiceInstance implements ServiceInstance {
     this.serviceName = serviceName;
     this.methods = methods;
     this.memberId = memberId;
+    this.tags = toMap(tags);
   }
 
+  private Map<String, String> toMap(Tag[] tags) {
+    return Arrays.stream(tags).map(tag -> tag)
+        .collect(Collectors.toMap(tag -> tag.getKey(), tag -> tag.getValue()));
+  }
 
   @Override
   public Object invoke(Message message, ServiceDefinition definition) throws Exception {
@@ -79,7 +92,12 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
+  public Map<String, String> tags() {
+    return tags;
+  }
+
+  @Override
   public String toString() {
-    return "LocalServiceInstance [serviceObject=" + serviceObject + ", memberId=" + memberId + "]";
+    return "LocalServiceInstance [serviceName=" + serviceName + ", memberId=" + memberId + ", tags=" + tags + "]";
   }
 }

@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import io.scalecube.cluster.ICluster;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -10,7 +12,7 @@ import java.util.Optional;
  */
 public interface ServiceRegistry {
 
-  void registerService(Object serviceObject);
+  void registerService(Object serviceObject, Tag[] tags);
 
   void unregisterService(Object serviceObject);
 
@@ -19,5 +21,7 @@ public interface ServiceRegistry {
   Optional<ServiceInstance> getLocalInstance(String serviceName, String method);
 
   Collection<ServiceInstance> services();
+
+  ICluster cluster();
 
 }

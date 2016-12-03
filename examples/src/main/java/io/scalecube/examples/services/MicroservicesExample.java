@@ -20,7 +20,7 @@ public class MicroservicesExample {
     Microservices provider = Microservices.builder()
         .services(new GreetingServiceImpl())
         .build();
-
+    System.out.println(provider.cluster().members());
     // Return provider address
     return provider.cluster().address();
   }
@@ -41,6 +41,8 @@ public class MicroservicesExample {
     CompletableFuture<String> futureError = greetingService.greetingException("Joe");
     futureError.whenComplete((result, exception) ->
         System.out.println("Consumer: 'greetingException' <- " + (exception == null ? result : exception)));
+    
+    System.out.println(consumer.cluster().members());
   }
 
 

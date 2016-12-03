@@ -14,8 +14,7 @@ public final class ServiceHeaders {
   public static final String METHOD = "m";
 
   /**
-   * Extract header value from a given message.
-   * the service method to invoke on request.
+   * Extract header value from a given message. the service method to invoke on request.
    */
   public static String service_method_of(Message request) {
     return request.header(METHOD);
@@ -28,8 +27,7 @@ public final class ServiceHeaders {
   public static final String SERVICE = "service";
 
   /**
-   * Extract header value from a given message.
-   * header is used to mark this registration as a microservice instance.
+   * Extract header value from a given message. header is used to mark this registration as a microservice instance.
    */
   public static String service_of(Message request) {
     return request.header(SERVICE);
@@ -42,8 +40,7 @@ public final class ServiceHeaders {
   public static final String SERVICE_REQUEST = "service-request";
 
   /**
-   * Extract header value from a given message.
-   * is used to mark a request as a service request.
+   * Extract header value from a given message. is used to mark a request as a service request.
    */
   public static String service_request_of(Message request) {
     return request.header(SERVICE_REQUEST);
@@ -56,8 +53,7 @@ public final class ServiceHeaders {
   public static final String SERVICE_RESPONSE = "service-response";
 
   /**
-   * Extract header value from a given message.
-   * header is used to mark a request as a service response.
+   * Extract header value from a given message. header is used to mark a request as a service response.
    */
   public static String service_response_of(Message request) {
     return request.header(SERVICE_RESPONSE);

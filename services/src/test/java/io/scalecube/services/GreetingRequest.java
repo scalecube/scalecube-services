@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import java.time.Duration;
 
-final class GreetingRequest {
+public final class GreetingRequest {
 
   private final String name;
   private final Duration duration;

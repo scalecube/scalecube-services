@@ -2,6 +2,10 @@ package io.scalecube.services;
 
 import static org.junit.Assert.*;
 
+import io.scalecube.services.a.b.testing.CanaryService;
+import io.scalecube.services.a.b.testing.CanaryTestingRouter;
+import io.scalecube.services.a.b.testing.GreetingServiceImplA;
+import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
@@ -24,6 +28,7 @@ public class ServicesIT {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
+        .listenAddress("localhost")
         .build();
 
     Microservices.builder()
@@ -88,6 +93,7 @@ public class ServicesIT {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
+        .portAutoIncrement(false)
         .services(new GreetingServiceImpl())
         .build();
 
@@ -112,6 +118,84 @@ public class ServicesIT {
 
     await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
+  }
+
+  @Test
+  public void test_illigal_state_services_and_service_config() {
+    try {
+      // Create microservices cluster.
+      Microservices.builder()
+          .port(port.incrementAndGet())
+          .portAutoIncrement(false)
+          // configuration ServiceConfig is not allowed when using services()
+          .services(ServiceConfig.builder().service(new GreetingServiceImplA()).add()
+              .build())
+          // configuration services is not allowed when using ServiceConfig
+          .services(new GreetingServiceImplA())
+          .build();
+    } catch (IllegalStateException ex) {
+      assertTrue(ex != null);
+    }
+  }
+
+
+  @Test
+  public void test_remote_async_greeting_with_A_B_tags() {
+
+    // Create gateway instance.
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+
+    // Create member node1 with A/B testing tag.
+    Microservices node1 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .portAutoIncrement(false)
+        .seeds(gateway.cluster().address())
+        .services(ServiceConfig.builder().service(new GreetingServiceImplA())
+            .tag("A/B-Testing", "A").tag("Weight", "0.3").add()
+            .build())
+        .build();
+
+    // Create member node2 with A/B testing tag.
+    Microservices node2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .portAutoIncrement(false)
+        .seeds(gateway.cluster().address())
+        .services(ServiceConfig.builder().service(new GreetingServiceImplB())
+            .tag("A/B-Testing", "B").tag("Weight", "0.7").add().build())
+        .build();
+
+    // get a proxy to the service api.
+    CanaryService service = gateway.proxy()
+        .api(CanaryService.class) // create proxy for GreetingService API
+        .router(CanaryTestingRouter.class)
+        .create();
+
+    System.out.println(gateway.cluster().members());
+    AtomicInteger count = new AtomicInteger(0);
+    // call the service.
+    for (int i = 0; i < 100; i++) {
+      CompletableFuture<String> future = service.greeting("joe");
+      CountDownLatch timeLatch = new CountDownLatch(1);
+
+      future.whenComplete((result, ex) -> {
+        if (ex == null) {
+          if (result.startsWith("B"))
+            count.incrementAndGet();
+        } else {
+          // print the greeting.
+          System.out.println(ex);
+        }
+        timeLatch.countDown();
+      });
+
+      await(timeLatch, 1, TimeUnit.SECONDS);
+    }
+    // print the greeting.
+    System.out.println("out of 100 times B was selected :" + count.get());
+    assertTrue((count.get() >= 60 && count.get() <= 80));
   }
 
   @Test
@@ -144,7 +228,7 @@ public class ServicesIT {
     await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
-  
+
   @Test
   public void test_remote_void_greeting() {
     // Create microservices instance.
@@ -169,7 +253,7 @@ public class ServicesIT {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
-    
+
   }
 
   @Test
@@ -227,7 +311,7 @@ public class ServicesIT {
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
-  
+
   @Test
   public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
@@ -387,7 +471,7 @@ public class ServicesIT {
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    
+
     result.whenComplete((success, error) -> {
       if (error != null) {
         // print the greeting.
@@ -399,7 +483,7 @@ public class ServicesIT {
 
     try {
       await(timeLatch, 10, TimeUnit.SECONDS);
-    } catch ( Exception ex){
+    } catch (Exception ex) {
       fail();
     }
   }
@@ -542,7 +626,7 @@ public class ServicesIT {
   }
 
   @Test
-  public void test_naive_stress_not_breaking_the_system() throws InterruptedException{
+  public void test_naive_stress_not_breaking_the_system() throws InterruptedException {
     // Create microservices cluster member.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -592,7 +676,7 @@ public class ServicesIT {
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
   }
-  
+
   private GreetingService createProxy(Microservices gateway) {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API

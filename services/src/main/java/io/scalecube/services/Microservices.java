@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ICluster;
+import io.scalecube.services.Microservices.Builder;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -16,12 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -108,9 +108,9 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
-  private Microservices(ICluster cluster, Object[] services, boolean isSeed) {
+  private Microservices(ICluster cluster, ServiceConfig serviceConfig, boolean isSeed) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, serviceConfig, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
     new ServiceDispatcher(cluster, serviceRegistry);
     this.cluster.listen().subscribe(message -> handleReply(message));
@@ -154,6 +154,9 @@ public class Microservices {
     private Integer port = null;
     private Address[] seeds;
     private Object[] services = new Object[0];
+    private ServiceConfig serviceConfig;
+    private boolean portAutoIncrement = true;
+    private String listenAddress;
 
     /**
      * microsrrvices instance builder.
@@ -161,26 +164,36 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
+      if (serviceConfig != null && !serviceConfig.services().isEmpty() && services.length > 0) {
+        throw new IllegalStateException(
+            "ServiceConfig builder and services() are not allowed to be used in parallel."
+                + "please choose ServiceConfig builder in case you wish to register services with service tags");
+      }
+
+      if (serviceConfig == null) {
+        serviceConfig = ServiceConfig.from(services);
+      }
       ClusterConfig cfg = getClusterConfig();
-      return new Microservices(Cluster.joinAwait(cfg), services, seeds == null);
+      return new Microservices(Cluster.joinAwait(cfg), serviceConfig, seeds == null);
     }
 
     private ClusterConfig getClusterConfig() {
       Map<String, String> metadata = new HashMap<>();
 
-      if (services.length > 0) {
-        metadata = Microservices.metadata(services);
+      if (!serviceConfig.services().isEmpty()) {
+        metadata = Microservices.metadata(serviceConfig);
       }
 
       ClusterConfig cfg;
+
       if (port != null && seeds != null) {
-        cfg = ConfigAssist.create(port, seeds, metadata);
+        cfg = ConfigAssist.create(listenAddress, port, this.portAutoIncrement, seeds, metadata);
       } else if (seeds != null) {
-        cfg = ConfigAssist.create(seeds, metadata);
+        cfg = ConfigAssist.create(listenAddress, seeds, metadata);
       } else if (port != null) {
-        cfg = ConfigAssist.create(port, metadata);
+        cfg = ConfigAssist.create(listenAddress, port, this.portAutoIncrement, metadata);
       } else {
-        cfg = ConfigAssist.create(metadata);
+        cfg = ConfigAssist.create(listenAddress, metadata);
       }
       return cfg;
     }
@@ -203,9 +216,32 @@ public class Microservices {
      */
     public Builder services(Object... services) {
       checkNotNull(services);
+
       if (services != null) {
         this.services = services;
       }
+      return this;
+    }
+
+    /**
+     * Services list to be registered.
+     * 
+     * @param services list of instances decorated with @Service
+     * @return builder.
+     */
+    public Builder services(ServiceConfig serviceConfig) {
+      checkNotNull(serviceConfig);
+      this.serviceConfig = serviceConfig;
+      return this;
+    }
+
+    public Builder portAutoIncrement(boolean portAutoIncrement) {
+      this.portAutoIncrement = portAutoIncrement;
+      return this;
+    }
+
+    public Builder listenAddress(String address) {
+      this.listenAddress = address;
       return this;
     }
   }
@@ -255,11 +291,18 @@ public class Microservices {
     }
   }
 
-  private static Map<String, String> metadata(Object... services) {
-    return Arrays.stream(services).flatMap(service -> {
-      Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service);
-      return serviceInterfaces.stream().map(serviceProcessor::introspectServiceInterface);
-    }).collect(Collectors.toMap(ServiceDefinition::serviceName,def -> "service"));
+  private static Map<String, String> metadata(ServiceConfig config) {
+    Map<String, String> result = new HashMap<>();
+
+    config.services().stream().forEach(service -> {
+      Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service.getService());
+      for (Class<?> serviceInterface : serviceInterfaces) {
+        ServiceDefinition def = serviceProcessor.introspectServiceInterface(serviceInterface);
+        result.put(JsonUtil.toJson(new ServiceInfo(def.serviceName(), service.getTags())), "service");
+      }
+    });
+
+    return Collections.unmodifiableMap(result);
   }
 
 }

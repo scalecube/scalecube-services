@@ -26,5 +26,4 @@ public class RandomServiceRouter implements Router {
       return Optional.empty();
     }
   }
-
 }

@@ -16,10 +16,13 @@ public class ConfigAssist {
    * @param metadata provided metatadata requested in the config.
    * @return newly created ClusterConfig.
    */
-  public static ClusterConfig create(int port, Map<String, String> metadata) {
+  public static ClusterConfig create(String listenAddress, int port, boolean portAutoIncrement,
+      Map<String, String> metadata) {
     return ClusterConfig.builder()
         .transportConfig(
             TransportConfig.builder().port(port)
+                .listenAddress(listenAddress)
+                .portAutoIncrement(portAutoIncrement)
                 .build())
         .membershipConfig(MembershipConfig.builder()
             .metadata(metadata)
@@ -27,7 +30,8 @@ public class ConfigAssist {
         .build();
   }
 
-  public static ClusterConfig create() {
+  public static ClusterConfig create(String listenAddress, Integer port, boolean portAutoIncrement, Address[] seeds,
+      Map<String, String> metadata) {
     return ClusterConfig.builder().build();
   }
 
@@ -37,8 +41,12 @@ public class ConfigAssist {
    * @param metadata provided metatadata requested in the config.
    * @return newly created ClusterConfig.
    */
-  public static ClusterConfig create(Map<String, String> metadata) {
+  public static ClusterConfig create(String listenAddress, Map<String, String> metadata) {
     return ClusterConfig.builder()
+        .transportConfig(
+            TransportConfig.builder()
+                .listenAddress(listenAddress)
+                .build())
         .membershipConfig(MembershipConfig.builder()
             .metadata(metadata)
             .build())
@@ -52,8 +60,12 @@ public class ConfigAssist {
    * @param metadata provided metatadata requested in the config.
    * @return newly created ClusterConfig.
    */
-  public static ClusterConfig create(Address[] seeds, Map<String, String> metadata) {
+  public static ClusterConfig create(String listenAddress, Address[] seeds, Map<String, String> metadata) {
     return ClusterConfig.builder()
+        .transportConfig(
+            TransportConfig.builder()
+                .listenAddress(listenAddress)
+                .build())
         .membershipConfig(MembershipConfig.builder()
             .seedMembers(seeds)
             .metadata(metadata)
@@ -69,11 +81,14 @@ public class ConfigAssist {
    * @param metadata provided metatadata requested in the config.
    * @return newly created ClusterConfig.
    */
-  public static ClusterConfig create(int port, Address[] seeds, Map<String, String> metadata) {
+  public static ClusterConfig create(String listenAddress, int port, boolean portAutoIncrement, Address[] seeds,
+      Map<String, String> metadata) {
     return ClusterConfig.builder()
         .transportConfig(
             TransportConfig.builder()
+                .listenAddress(listenAddress)
                 .port(port)
+                .portAutoIncrement(portAutoIncrement)
                 .build())
         .membershipConfig(MembershipConfig.builder()
             .seedMembers(seeds)
