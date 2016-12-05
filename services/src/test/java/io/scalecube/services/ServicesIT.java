@@ -599,15 +599,19 @@ public class ServicesIT {
 
   @Test
   public void test_service_tags() {
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
 
     Microservices services1 = Microservices.builder()
+        .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
         .build()
         .build();
 
     Microservices services2 = Microservices.builder()
+        .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
         .build()
