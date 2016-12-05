@@ -21,12 +21,15 @@ import org.slf4j.LoggerFactory;
 
 import rx.Subscriber;
 
+import java.net.BindException;
 import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -85,6 +88,65 @@ public class TransportTest extends BaseTest {
         transport.stop();
       }
     }
+  }
+
+  @Test
+  public void testPortAutoIncrementRaceConditions() throws Exception {
+    TransportConfig config = TransportConfig.builder()
+        .port(6000)
+        .portAutoIncrement(true)
+        .portCount(100)
+        .build();
+
+    Map<CompletableFuture<Transport>, Boolean> transports = new ConcurrentHashMap<>();
+    ExecutorService executor = Executors.newFixedThreadPool(4);
+    for (int i = 0; i < 100; i++) {
+      executor.execute(() -> transports.put(Transport.bind(config), true));
+    }
+    executor.shutdown();
+    executor.awaitTermination(60, TimeUnit.SECONDS);
+
+    CompletableFuture<Void> allFuturesResult =
+        CompletableFuture.allOf(transports.keySet().toArray(new CompletableFuture[transports.size()]));
+
+    try {
+      allFuturesResult.get(60, TimeUnit.SECONDS);
+    } finally {
+      for (CompletableFuture<Transport> transportFuture : transports.keySet()) {
+        if (transportFuture.isDone()) {
+          transportFuture.get().stop();
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testBindExceptionWithoutPortAutoIncrement() throws Exception {
+    TransportConfig config = TransportConfig.builder()
+        .port(6000)
+        .portAutoIncrement(false)
+        .portCount(100)
+        .build();
+
+
+    Transport transport1 = null;
+    Transport transport2 = null;
+    try {
+      transport1 = Transport.bindAwait(config);
+      transport2 = Transport.bindAwait(config);
+    } catch (Throwable throwable) {
+      // Check that get address already in use exception
+      assertTrue(throwable instanceof BindException || throwable.getMessage().contains("Address already in use"));
+      return;
+    } finally {
+        if (transport1 != null) {
+          transport1.stop();
+        }
+        if (transport2 != null) {
+          transport2.stop();
+        }
+    }
+    fail("Didn't get expected bind exception");
   }
 
   @Test

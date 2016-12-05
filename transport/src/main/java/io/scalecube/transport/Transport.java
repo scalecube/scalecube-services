@@ -32,6 +32,7 @@ import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.net.BindException;
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
@@ -135,20 +136,28 @@ public final class Transport implements ITransport {
     ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
     ChannelFuture bindFuture = server.bind(listenAddress, address.port());
     final CompletableFuture<Transport> result = new CompletableFuture<>();
-    bindFuture.addListener(new ChannelFutureListener() {
-      @Override
-      public void operationComplete(ChannelFuture channelFuture) throws Exception {
-        if (channelFuture.isSuccess()) {
-          serverChannel = (ServerChannel) channelFuture.channel();
-          LOGGER.info("Bound to: {}", address);
-          result.complete(Transport.this);
+    bindFuture.addListener((ChannelFutureListener) channelFuture -> {
+      if (channelFuture.isSuccess()) {
+        serverChannel = (ServerChannel) channelFuture.channel();
+        LOGGER.info("Bound to: {}", address);
+        result.complete(Transport.this);
+      } else {
+        Throwable cause = channelFuture.cause();
+        if (config.isPortAutoIncrement() && isAddressAlreadyInUseException(cause)) {
+          LOGGER.warn("Can't bind to address {}, try again on different port [cause={}]", address, cause.toString());
+          bind0().thenAccept(result::complete);
         } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", address, channelFuture.cause());
-          result.completeExceptionally(channelFuture.cause());
+          LOGGER.error("Failed to bind to: {}, cause: {}", address, cause);
+          result.completeExceptionally(cause);
         }
       }
     });
     return result;
+  }
+
+  private boolean isAddressAlreadyInUseException(Throwable exception) {
+    return exception instanceof BindException
+        || (exception.getMessage() != null && exception.getMessage().contains("Address already in use"));
   }
 
   @Override
