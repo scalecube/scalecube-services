@@ -2,6 +2,10 @@ package io.scalecube.services;
 
 import static org.junit.Assert.*;
 
+import io.scalecube.services.a.b.testing.CanaryService;
+import io.scalecube.services.a.b.testing.CanaryTestingRouter;
+import io.scalecube.services.a.b.testing.GreetingServiceImplA;
+import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
@@ -144,7 +148,7 @@ public class ServicesIT {
     await(timeLatch, 1, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
-  
+
   @Test
   public void test_remote_void_greeting() {
     // Create microservices instance.
@@ -169,7 +173,7 @@ public class ServicesIT {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
-    
+
   }
 
   @Test
@@ -227,7 +231,7 @@ public class ServicesIT {
     provider.cluster().shutdown();
     consumer.cluster().shutdown();
   }
-  
+
   @Test
   public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
@@ -387,7 +391,7 @@ public class ServicesIT {
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    
+
     result.whenComplete((success, error) -> {
       if (error != null) {
         // print the greeting.
@@ -399,7 +403,7 @@ public class ServicesIT {
 
     try {
       await(timeLatch, 10, TimeUnit.SECONDS);
-    } catch ( Exception ex){
+    } catch (Exception ex) {
       fail();
     }
   }
@@ -542,7 +546,7 @@ public class ServicesIT {
   }
 
   @Test
-  public void test_naive_stress_not_breaking_the_system() throws InterruptedException{
+  public void test_naive_stress_not_breaking_the_system() throws InterruptedException {
     // Create microservices cluster member.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -592,7 +596,46 @@ public class ServicesIT {
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
   }
-  
+
+  @Test
+  public void test_service_tags() {
+    Microservices gateway = Microservices.builder().build();
+
+    Microservices services1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
+        .build()
+        .build();
+
+    Microservices services2 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
+        .build()
+        .build();
+
+    CanaryService service = gateway.proxy()
+        .router(CanaryTestingRouter.class)
+        .api(CanaryService.class).create();
+
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicInteger responses = new AtomicInteger(0);
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    for (int i = 0; i < 100; i++) {
+      service.greeting("joe").whenComplete((success, error) -> {
+        responses.incrementAndGet();
+        if (success.startsWith("B")) {
+          count.incrementAndGet();
+          if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
+            timeLatch.countDown();
+          }
+        }
+      });
+    }
+
+    await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
+  }
+
   private GreetingService createProxy(Microservices gateway) {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
