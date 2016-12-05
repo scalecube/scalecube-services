@@ -1,8 +1,5 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.ServiceHeaders.service_method_of;
-import static io.scalecube.services.ServiceHeaders.service_request_of;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.ICluster;
@@ -15,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -26,6 +24,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Address address;
   private final String memberId;
   private final String serviceName;
+  private final Map<String, String> tags;
 
 
   /**
@@ -34,11 +33,12 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param cluster to be used for instance context.
    * @param serviceReference service reference of this instance.
    */
-  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference) {
+  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference, Map<String, String> tags) {
     this.serviceName = serviceReference.serviceName();
     this.cluster = cluster;
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
+    this.tags = tags;
   }
 
   @Override
@@ -142,5 +142,10 @@ public class RemoteServiceInstance implements ServiceInstance {
     return "RemoteServiceInstance [address=" + address
         + ", memberId=" + memberId
         + "]";
+  }
+
+  @Override
+  public Map<String, String> tags() {
+    return tags;
   }
 }

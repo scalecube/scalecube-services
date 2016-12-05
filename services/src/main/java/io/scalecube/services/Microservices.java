@@ -16,12 +16,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -108,7 +106,7 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
-  private Microservices(ICluster cluster, Object[] services, boolean isSeed) {
+  private Microservices(ICluster cluster, ServicesConfig services, boolean isSeed) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
@@ -153,7 +151,7 @@ public class Microservices {
 
     private Integer port = null;
     private Address[] seeds;
-    private Object[] services = new Object[0];
+    private ServicesConfig servicesConfig = ServicesConfig.empty();
 
     /**
      * microsrrvices instance builder.
@@ -161,15 +159,15 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-      ClusterConfig cfg = getClusterConfig();
-      return new Microservices(Cluster.joinAwait(cfg), services, seeds == null);
+      ClusterConfig cfg = getClusterConfig(servicesConfig);
+      return new Microservices(Cluster.joinAwait(cfg), servicesConfig, seeds == null);
     }
 
-    private ClusterConfig getClusterConfig() {
+    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
       Map<String, String> metadata = new HashMap<>();
 
-      if (services.length > 0) {
-        metadata = Microservices.metadata(services);
+      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
+        metadata = Microservices.metadata(servicesConfig);
       }
 
       ClusterConfig cfg;
@@ -203,10 +201,28 @@ public class Microservices {
      */
     public Builder services(Object... services) {
       checkNotNull(services);
-      if (services != null) {
-        this.services = services;
-      }
+
+      this.servicesConfig = ServicesConfig.builder(this)
+          .services(services)
+          .create();
+
       return this;
+    }
+
+    /**
+     * Services list to be registered.
+     * 
+     * @param servicesConfig list of instances decorated with.
+     * @return builder.
+     */
+    public Builder services(ServicesConfig servicesConfig) {
+      checkNotNull(servicesConfig);
+      this.servicesConfig = servicesConfig;
+      return this;
+    }
+
+    public ServicesConfig.Builder services() {
+      return ServicesConfig.builder(this);
     }
   }
 
@@ -255,11 +271,16 @@ public class Microservices {
     }
   }
 
-  private static Map<String, String> metadata(Object... services) {
-    return Arrays.stream(services).flatMap(service -> {
-      Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(service);
-      return serviceInterfaces.stream().map(serviceProcessor::introspectServiceInterface);
-    }).collect(Collectors.toMap(ServiceDefinition::serviceName,def -> "service"));
+  private static Map<String, String> metadata(ServicesConfig config) {
+    Map<String, String> servicesTags = new HashMap<>();
+
+    config.getServiceConfigs().stream().forEach(serviceConfig -> {
+      serviceConfig.serviceNames().stream().forEach(name -> {
+        servicesTags.put(new ServiceInfo(name, serviceConfig.getTags()).toMetadata(), "service");
+      });
+    });
+
+    return servicesTags;
   }
 
 }

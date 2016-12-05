@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -48,5 +49,12 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
   private String resolveMethodName(Method method, ServiceMethod methodAnnotation) {
     return Strings.isNullOrEmpty(methodAnnotation.value()) ? method.getName() : methodAnnotation.value();
+  }
+
+  @Override
+  public Set<ServiceDefinition> serviceDefinitions(Object service) {
+    return this.extractServiceInterfaces(service).stream()
+        .map(foreach -> introspectServiceInterface(foreach))
+        .collect(Collectors.toSet());
   }
 }

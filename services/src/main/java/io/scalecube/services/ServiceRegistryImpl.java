@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
+import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.annotations.ServiceProcessor;
 
 import org.slf4j.Logger;
@@ -42,8 +43,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param serviceProcessor - service processor.
    * @param isSeed indication if this member is seed.
    */
-  public ServiceRegistryImpl(ICluster cluster, Object[] services, ServiceProcessor serviceProcessor,
-                             boolean isSeed) {
+  public ServiceRegistryImpl(ICluster cluster, ServicesConfig services, ServiceProcessor serviceProcessor,
+      boolean isSeed) {
     checkArgument(cluster != null);
     checkArgument(services != null);
     checkArgument(serviceProcessor != null);
@@ -52,8 +53,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     this.cluster = cluster;
     CompletableFuture<Void> future = listenCluster();
 
-    if (services.length > 0) {
-      for (Object service : services) {
+    if (!services.services().isEmpty()) {
+      for (ServiceConfig service : services.services()) {
         registerService(service);
       }
     }
@@ -98,14 +99,15 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     member.metadata().entrySet().stream()
         .filter(entry -> "service".equals(entry.getValue())) // filter service tags
         .forEach(entry -> {
+          ServiceInfo info = ServiceInfo.from(entry.getKey());
           ServiceReference serviceRef = new ServiceReference(
               member.id(),
-              entry.getKey(),
+              info.getServiceName(),
               member.address());
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-            serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef));
+            serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(cluster, serviceRef, info.getTags()));
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
           }
@@ -115,9 +117,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   /**
    * register a service instance at the cluster.
    */
-  public void registerService(Object serviceObject) {
+  public void registerService(ServiceConfig serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
-    Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
+    Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject.getService());
 
     String memberId = cluster.member().id();
 
