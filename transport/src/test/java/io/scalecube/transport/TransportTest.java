@@ -332,7 +332,7 @@ public class TransportTest extends BaseTest {
       client.send(server.address(), Message.fromData("q" + i));
     }
 
-    pause(1000);
+    Thread.sleep(1000);
 
     int expectedMax = total / 100 * lostPercent + total / 100 * 5; // +5% for maximum possible lost messages
     int size = serverMessageList.size();
@@ -478,11 +478,11 @@ public class TransportTest extends BaseTest {
     send(client, server.address(), Message.fromQualifier("q/unblocked"));
 
     // then block client->server messages
-    pause(1000);
+    Thread.sleep(1000);
     client.block(server.address());
     send(client, server.address(), Message.fromQualifier("q/blocked"));
 
-    pause(1000);
+    Thread.sleep(1000);
     assertEquals(1, resp.size());
     assertEquals("q/unblocked", resp.get(0).header(MessageHeaders.QUALIFIER));
   }
@@ -517,10 +517,9 @@ public class TransportTest extends BaseTest {
     latch.await(30, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(latch.getCount() == 0);
-  }
 
-  private void pause(int millis) throws InterruptedException {
-    Thread.sleep(millis);
+    destroyTransport(echoServer);
+    destroyTransport(client);
   }
 
   private void assertSendOrder(int total, List<Message> received) {
@@ -579,6 +578,7 @@ public class TransportTest extends BaseTest {
     TransportConfig config = TransportConfig.builder()
         .connectTimeout(1000)
         .useNetworkEmulator(true)
+        .port(5800)
         .build();
     return Transport.bindAwait(config);
   }
