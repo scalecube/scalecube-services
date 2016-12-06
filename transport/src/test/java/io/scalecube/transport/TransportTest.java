@@ -26,6 +26,7 @@ import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -588,6 +589,15 @@ public class TransportTest extends BaseTest {
       transport.stop(close);
       close.get(1, TimeUnit.SECONDS);
     }
+  }
+
+  private void assertAmongExpectedClasses(Class actualClass, Class... expectedClasses) {
+    for (Class expectedClass : expectedClasses) {
+      if (expectedClass.equals(actualClass)) {
+        return;
+      }
+    }
+    fail("Expected classes " + Arrays.toString(expectedClasses) + ", but actual: " + actualClass);
   }
 
 }

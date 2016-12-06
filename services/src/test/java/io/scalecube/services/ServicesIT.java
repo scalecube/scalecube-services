@@ -6,6 +6,7 @@ import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
@@ -17,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ServicesIT {
+public class ServicesIT extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
@@ -592,7 +593,7 @@ public class ServicesIT {
       });
     }
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
-    countLatch.await(30, TimeUnit.SECONDS);
+    countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
   }

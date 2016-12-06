@@ -12,6 +12,7 @@
     <Loggers>
         <Logger name="io.netty" level="info"/>
         <Logger name="io.scalecube.transport" level="info"/>
+        <Logger name="io.scalecube.services" level="info"/>
 
         <Root level="debug">
             <AppenderRef ref="console"/>
