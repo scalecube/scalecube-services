@@ -170,9 +170,13 @@ public final class Cluster implements ICluster {
       Member localMember = membership.member();
       onMemberAdded(localMember);
       membership.listen()
-          .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
+          .filter(MembershipEvent::isAdded)
+          .map(MembershipEvent::member)
+          .subscribe(this::onMemberAdded, this::onError);
       membership.listen()
-          .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
+          .filter(MembershipEvent::isRemoved)
+          .map(MembershipEvent::member)
+          .subscribe(this::onMemberRemoved, this::onError);
 
       failureDetector.start();
       gossip.start();
@@ -181,6 +185,10 @@ public final class Cluster implements ICluster {
       return membership.start();
     });
     return clusterFuture.thenApply(aVoid -> Cluster.this);
+  }
+
+  private void onError(Throwable throwable) {
+    LOGGER.error("Received unexpected error: ", throwable);
   }
 
   private void onMemberAdded(Member member) {

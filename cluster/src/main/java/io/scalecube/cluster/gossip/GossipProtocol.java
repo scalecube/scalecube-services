@@ -108,25 +108,29 @@ public final class GossipProtocol implements IGossipProtocol {
 
   @Override
   public void start() {
-    onMemberAddedEventSubscriber = Subscribers.create(remoteMembers::add);
+    onMemberAddedEventSubscriber = Subscribers.create(remoteMembers::add, this::onError);
     membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isAdded)
         .map(MembershipEvent::member)
         .subscribe(onMemberAddedEventSubscriber);
 
-    onMemberRemovedEventSubscriber = Subscribers.create(remoteMembers::remove);
+    onMemberRemovedEventSubscriber = Subscribers.create(remoteMembers::remove, this::onError);
     membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isRemoved)
         .map(MembershipEvent::member)
         .subscribe(onMemberRemovedEventSubscriber);
 
-    onGossipRequestSubscriber = Subscribers.create(this::onGossipReq);
+    onGossipRequestSubscriber = Subscribers.create(this::onGossipReq, this::onError);
     transport.listen().observeOn(scheduler)
         .filter(this::isGossipReq)
         .subscribe(onGossipRequestSubscriber);
 
     spreadGossipTask = executor.scheduleWithFixedDelay(this::doSpreadGossip,
         config.getGossipInterval(), config.getGossipInterval(), TimeUnit.MILLISECONDS);
+  }
+
+  private void onError(Throwable throwable) {
+    LOGGER.error("Received unexpected error: ", throwable);
   }
 
   @Override

@@ -164,14 +164,14 @@ public final class MembershipProtocol implements IMembershipProtocol {
     membershipTable.put(member.id(), localMemberRecord);
 
     // Listen to incoming SYNC requests from other members
-    onSyncRequestSubscriber = Subscribers.create(this::onSync);
+    onSyncRequestSubscriber = Subscribers.create(this::onSync, this::onError);
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC.equals(msg.qualifier()))
         .filter(this::checkSyncGroup)
         .subscribe(onSyncRequestSubscriber);
 
     // Listen to incoming SYNC ACK responses from other members
-    onSyncAckResponseSubscriber = Subscribers.create(this::onSyncAck);
+    onSyncAckResponseSubscriber = Subscribers.create(this::onSyncAck, this::onError);
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
         .filter(msg -> msg.correlationId() == null) // filter out initial sync
@@ -179,18 +179,22 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .subscribe(onSyncAckResponseSubscriber);
 
     // Listen to events from failure detector
-    onFdEventSubscriber = Subscribers.create(this::onFailureDetectorEvent);
+    onFdEventSubscriber = Subscribers.create(this::onFailureDetectorEvent, this::onError);
     failureDetector.listen().observeOn(scheduler)
         .subscribe(onFdEventSubscriber);
 
     // Listen to membership gossips
-    onGossipRequestSubscriber = Subscribers.create(this::onMembershipGossip);
+    onGossipRequestSubscriber = Subscribers.create(this::onMembershipGossip, this::onError);
     gossipProtocol.listen().observeOn(scheduler)
         .filter(msg -> MEMBERSHIP_GOSSIP.equals(msg.qualifier()))
         .subscribe(onGossipRequestSubscriber);
 
     // Make initial sync with all seed members
     return doInitialSync();
+  }
+
+  private void onError(Throwable throwable) {
+    LOGGER.error("Received unexpected error: ", throwable);
   }
 
   /**
