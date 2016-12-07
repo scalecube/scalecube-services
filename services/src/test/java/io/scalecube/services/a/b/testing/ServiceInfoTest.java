@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class ServiceInfoTests {
+public class ServiceInfoTest {
 
   @Test
   public void test_service_info() {

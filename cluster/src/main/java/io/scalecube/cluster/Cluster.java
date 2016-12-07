@@ -3,7 +3,6 @@ package io.scalecube.cluster;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
 import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
@@ -39,8 +38,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.Nullable;
-
 /**
  * Main ICluster implementation.
  * 
@@ -66,6 +63,9 @@ public final class Cluster implements ICluster {
   private FailureDetector failureDetector;
   private GossipProtocol gossip;
   private MembershipProtocol membership;
+
+  private Observable<Message> messageObservable;
+  private Observable<Message> gossipObservable;
 
   private Cluster(ClusterConfig config) {
     checkNotNull(config);
@@ -158,6 +158,9 @@ public final class Cluster implements ICluster {
     CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
     CompletableFuture<Void> clusterFuture =  transportFuture.thenCompose(boundTransport -> {
       transport = boundTransport;
+      messageObservable = transport.listen()
+          .filter(msg -> !SYSTEM_MESSAGES.contains(msg.qualifier())); // filter out system gossips
+
       membership = new MembershipProtocol(transport, config.getMembershipConfig());
       gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
       failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
@@ -167,15 +170,25 @@ public final class Cluster implements ICluster {
       Member localMember = membership.member();
       onMemberAdded(localMember);
       membership.listen()
-          .filter(MembershipEvent::isAdded).map(MembershipEvent::member).subscribe(this::onMemberAdded);
+          .filter(MembershipEvent::isAdded)
+          .map(MembershipEvent::member)
+          .subscribe(this::onMemberAdded, this::onError);
       membership.listen()
-          .filter(MembershipEvent::isRemoved).map(MembershipEvent::member).subscribe(this::onMemberRemoved);
+          .filter(MembershipEvent::isRemoved)
+          .map(MembershipEvent::member)
+          .subscribe(this::onMemberRemoved, this::onError);
 
       failureDetector.start();
       gossip.start();
+      gossipObservable = gossip.listen()
+          .filter(msg -> !SYSTEM_GOSSIPS.contains(msg.qualifier())); // filter out system gossips
       return membership.start();
     });
     return clusterFuture.thenApply(aVoid -> Cluster.this);
+  }
+
+  private void onError(Throwable throwable) {
+    LOGGER.error("Received unexpected error: ", throwable);
   }
 
   private void onMemberAdded(Member member) {
@@ -215,7 +228,7 @@ public final class Cluster implements ICluster {
 
   @Override
   public Observable<Message> listen() {
-    return transport.listen().filter(msg -> !SYSTEM_MESSAGES.contains(msg.qualifier())); // filter out system gossips
+    return messageObservable;
   }
 
   @Override
@@ -225,7 +238,7 @@ public final class Cluster implements ICluster {
 
   @Override
   public Observable<Message> listenGossips() {
-    return gossip.listen().filter(msg -> !SYSTEM_GOSSIPS.contains(msg.qualifier())); // filter out system gossips
+    return gossipObservable;
   }
 
   @Override

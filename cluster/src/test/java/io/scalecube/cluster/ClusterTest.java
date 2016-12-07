@@ -7,7 +7,7 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClusterIT {
+public class ClusterTest {
 
   @Test
   public void testJoinDynamicPort() throws Exception {

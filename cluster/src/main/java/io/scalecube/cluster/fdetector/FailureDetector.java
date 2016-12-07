@@ -101,29 +101,29 @@ public final class FailureDetector implements IFailureDetector {
 
   @Override
   public void start() {
-    onMemberAddedSubscriber = Subscribers.create(this::onMemberAdded);
+    onMemberAddedSubscriber = Subscribers.create(this::onMemberAdded, this::onError);
     membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isAdded)
         .map(MembershipEvent::member)
         .subscribe(onMemberAddedSubscriber);
 
-    onMemberRemovedSubscriber = Subscribers.create(this::onMemberRemoved);
+    onMemberRemovedSubscriber = Subscribers.create(this::onMemberRemoved, this::onError);
     membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isRemoved)
         .map(MembershipEvent::member)
         .subscribe(onMemberRemovedSubscriber);
 
-    onPingRequestSubscriber = Subscribers.create(this::onPing);
+    onPingRequestSubscriber = Subscribers.create(this::onPing, this::onError);
     transport.listen().observeOn(scheduler)
         .filter(this::isPing)
         .subscribe(onPingRequestSubscriber);
 
-    onAskToPingRequestSubscriber = Subscribers.create(this::onPingReq);
+    onAskToPingRequestSubscriber = Subscribers.create(this::onPingReq, this::onError);
     transport.listen().observeOn(scheduler)
         .filter(this::isPingReq)
         .subscribe(onAskToPingRequestSubscriber);
 
-    onTransitPingAckRequestSubscriber = Subscribers.create(this::onTransitPingAck);
+    onTransitPingAckRequestSubscriber = Subscribers.create(this::onTransitPingAck, this::onError);
     transport.listen().observeOn(scheduler)
         .filter(this::isTransitPingAck)
         .subscribe(onTransitPingAckRequestSubscriber);
@@ -313,6 +313,10 @@ public final class FailureDetector implements IFailureDetector {
         .build();
     LOGGER.trace("Resend transit PingAck to {}", target.address());
     transport.send(target.address(), originalAckMessage);
+  }
+
+  private void onError(Throwable throwable) {
+    LOGGER.error("Received unexpected error: ", throwable);
   }
 
   // ================================================
