@@ -23,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class MembershipProtocolIT {
+public class MembershipProtocolTest {
 
   @Test
   public void testInitialPhaseOk() {

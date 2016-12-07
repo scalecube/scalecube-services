@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RunWith(Parameterized.class)
-public class GossipProtocolIT {
+public class GossipProtocolTest {
 
   @Parameterized.Parameters(name = "N={0}, Plost={1}%, Tmean={2}ms, T={3}ms")
   public static List<Object[]> data() {
@@ -47,7 +47,7 @@ public class GossipProtocolIT {
   private final int meanDelay;
   private final int timeout;
 
-  public GossipProtocolIT(Integer membersNum, Integer lostPercent, Integer meanDelay, Integer timeout) {
+  public GossipProtocolTest(Integer membersNum, Integer lostPercent, Integer meanDelay, Integer timeout) {
     this.membersNum = membersNum;
     this.lostPercent = lostPercent;
     this.meanDelay = meanDelay;

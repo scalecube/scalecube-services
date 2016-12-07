@@ -28,7 +28,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class FailureDetectorIT {
+public class FailureDetectorTest {
 
   @Test
   public void testTrusted() {

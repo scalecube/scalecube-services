@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ServicesIT extends BaseTest {
+public class ServiceTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
