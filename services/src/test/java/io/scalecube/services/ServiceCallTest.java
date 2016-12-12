@@ -229,7 +229,7 @@ public class ServiceCallTest extends BaseTest {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    await(timeLatch, 3, TimeUnit.SECONDS);
     microservices.cluster().shutdown();
   }
 
