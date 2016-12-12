@@ -590,6 +590,8 @@ public class ServiceCallTest extends BaseTest {
         .build()
         .build();
 
+    System.out.println( gateway.cluster().members());
+    
     ServiceCall service = gateway.dispatcher()
         .router(CanaryTestingRouter.class)
         .create();
@@ -616,8 +618,10 @@ public class ServiceCallTest extends BaseTest {
       });
     }
 
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    
+    await(timeLatch, 3, TimeUnit.SECONDS);
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
+    System.out.println("Service B was called: " + count.get()  + " times.");
   }
 
   @Test
