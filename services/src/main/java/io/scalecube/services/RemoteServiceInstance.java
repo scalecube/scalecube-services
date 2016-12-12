@@ -46,6 +46,29 @@ public class RemoteServiceInstance implements ServiceInstance {
     return serviceName;
   }
 
+  /**
+   * Dispatch a request message and invoke a service by a given service name and method name. expected headers in
+   * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
+   * invoke.
+   * 
+   * @param request request with given headers.
+   * @return CompletableFuture with dispatching result
+   * @throws Exception in case of an error
+   */
+  public CompletableFuture<Object> dispatch(Message request) throws Exception {
+    ResponseFuture responseFuture = new ResponseFuture(fn -> request);
+    Message requestMessage = composeRequest(request, responseFuture.correlationId());
+
+    // Resolve method
+    String methodName = request.header(ServiceHeaders.METHOD);
+    checkArgument(methodName != null, "Method name can't be null");
+
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    checkArgument(serviceName != null, "Method name can't be null");
+
+    return futureInvoke(requestMessage, message -> message);
+  }
+
   @Override
   public Object invoke(Message request, ServiceDefinition definition) throws Exception {
     checkArgument(definition != null, "Service definition can't be null");
@@ -65,7 +88,7 @@ public class RemoteServiceInstance implements ServiceInstance {
         return futureInvoke(request, Message::data);
       }
     } else if (method.getReturnType().equals(Void.TYPE)) {
-      return sendRemote(composeRequest(request, request.correlationId()));
+      return futureInvoke(request, message -> request.correlationId());
     } else {
       throw new UnsupportedOperationException("Unsupported return type for method: " + method);
     }

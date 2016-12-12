@@ -106,9 +106,13 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
+  private final ServiceDispatcherFactory dispatcherFactory;
+
   private Microservices(ICluster cluster, ServicesConfig services, boolean isSeed) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
+    this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
+
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
     new ServiceDispatcher(cluster, serviceRegistry);
     this.cluster.listen().subscribe(message -> handleReply(message));
@@ -230,6 +234,31 @@ public class Microservices {
     return new Builder();
   }
 
+
+  public class DispatcherContext {
+    private Duration timeout = Duration.ofSeconds(30);
+
+    private Class<? extends Router> router = RoundRobinServiceRouter.class;
+
+    public ServiceCall create() {
+      LOGGER.debug("create service api {} router {}", router);
+      return dispatcherFactory.createDispatcher(this.router, this.timeout);
+    }
+
+    public DispatcherContext timeout(Duration timeout) {
+      this.timeout = timeout;
+      return this;
+    }
+
+    public DispatcherContext router(Class<? extends Router> routerType) {
+      this.router = routerType;
+      return this;
+    }
+  }
+
+  public DispatcherContext dispatcher() {
+    return new DispatcherContext();
+  }
 
   public ProxyContext proxy() {
     return new ProxyContext();
