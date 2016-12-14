@@ -26,8 +26,8 @@ public class ServiceCall {
   /**
    * used to complete the request future with timeout exception in case no response comes from service.
    */
-  private static final ScheduledExecutorService delayer = Executors.newSingleThreadScheduledExecutor(
-      new ThreadFactoryBuilder().setNameFormat("sc-services-timeout").setDaemon(true).build());
+  private static final ScheduledExecutorService delayer =
+      ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
 
   private Duration timeout;
   private Router router;

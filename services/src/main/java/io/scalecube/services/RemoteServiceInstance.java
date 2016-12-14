@@ -56,7 +56,7 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @throws Exception in case of an error
    */
   public CompletableFuture<Object> dispatch(Message request) throws Exception {
-    ResponseFuture responseFuture = new ResponseFuture(fn -> request);
+    ServiceResponse responseFuture = new ServiceResponse(fn -> request);
     Message requestMessage = composeRequest(request, responseFuture.correlationId());
 
     // Resolve method
@@ -105,7 +105,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
 
-    ResponseFuture responseFuture = new ResponseFuture(fn);
+    ServiceResponse responseFuture = new ServiceResponse(fn);
 
     Message requestMessage = composeRequest(request, responseFuture.correlationId());
 
@@ -118,7 +118,7 @@ public class RemoteServiceInstance implements ServiceInstance {
             requestMessage, error);
 
         // if send future faild then complete the response future Exceptionally.
-        Optional<ResponseFuture> future = ResponseFuture.get(requestMessage.correlationId());
+        Optional<ServiceResponse> future = ServiceResponse.get(requestMessage.correlationId());
         if (future.isPresent()) {
           future.get().completeExceptionally(error);
         }

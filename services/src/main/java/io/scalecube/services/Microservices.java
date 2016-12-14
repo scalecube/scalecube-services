@@ -123,7 +123,7 @@ public class Microservices {
   private void handleReply(Message message) {
     if (message.header(ServiceHeaders.SERVICE_RESPONSE) != null) {
       String correlationId = message.correlationId();
-      Optional<ResponseFuture> optinalFuture = ResponseFuture.get(message.correlationId());
+      Optional<ServiceResponse> optinalFuture = ServiceResponse.get(message.correlationId());
       if (optinalFuture.isPresent()) {
         if (message.header("exception") == null) {
           optinalFuture.get().complete(message);

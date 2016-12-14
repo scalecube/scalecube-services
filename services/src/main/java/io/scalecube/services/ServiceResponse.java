@@ -14,21 +14,21 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 /**
- * ResponseFuture handles the response of a service request based on correlationId. it holds a mapping between
+ * ServiceResponse handles the response of a service request based on correlationId. it holds a mapping between
  * correlationId to CompleteableFuture so when a response message is returned from service endpoint the future is
  * completed with success or error.
  */
-public class ResponseFuture {
+public class ServiceResponse {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ResponseFuture.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceResponse.class);
 
-  private static final ConcurrentMap<String, ResponseFuture> futures = new ConcurrentHashMap<>();
+  private static final ConcurrentMap<String, ServiceResponse> futures = new ConcurrentHashMap<>();
 
   private final String correlationId;
   private final Function<Message, Object> function;
   private final CompletableFuture<Object> messageFuture;
 
-  public ResponseFuture(Function<Message, Object> fn) {
+  public ServiceResponse(Function<Message, Object> fn) {
     this.correlationId = generateId();
     this.function = fn;
     this.messageFuture = new CompletableFuture<>();
@@ -41,7 +41,7 @@ public class ResponseFuture {
    * @param correlationId or the request.
    * @return ResponseFuture pending completion.
    */
-  public static Optional<ResponseFuture> get(String correlationId) {
+  public static Optional<ServiceResponse> get(String correlationId) {
     return Optional.of(futures.get(correlationId));
   }
 

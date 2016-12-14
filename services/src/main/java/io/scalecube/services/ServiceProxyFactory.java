@@ -6,7 +6,6 @@ import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
 
 import com.google.common.reflect.Reflection;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +15,6 @@ import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +26,8 @@ public class ServiceProxyFactory {
   /**
    * used to complete the request future with timeout exception in case no response comes from service.
    */
-  private static final ScheduledExecutorService delayer = Executors.newSingleThreadScheduledExecutor(
-      new ThreadFactoryBuilder().setNameFormat("sc-services-timeout").setDaemon(true).build());
+  private static final ScheduledExecutorService delayer =
+      ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
 
   private final ServiceProcessor serviceProcessor;
   ServiceDefinition serviceDefinition;
