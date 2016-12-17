@@ -17,7 +17,7 @@ public class CanaryTestingRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition) {
+  public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition, Object data) {
     RandomCollection<ServiceInstance> weightedRandom = new RandomCollection<>();
     serviceRegistry.serviceLookup(serviceDefinition.serviceName()).stream().forEach(instance -> {
       weightedRandom.add(

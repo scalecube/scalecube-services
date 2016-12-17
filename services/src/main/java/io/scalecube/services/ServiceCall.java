@@ -1,10 +1,9 @@
 package io.scalecube.services;
 
 import io.scalecube.services.routing.Router;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +11,10 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 
 public class ServiceCall {
 
@@ -57,7 +54,7 @@ public class ServiceCall {
     String methodName = request.header(ServiceHeaders.METHOD);
     try {
       ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceName);
-      Optional<ServiceInstance> optionalServiceInstance = router.route(serviceDefinition);
+      Optional<ServiceInstance> optionalServiceInstance = router.route(serviceDefinition, request);
 
       if (optionalServiceInstance.isPresent()) {
         ServiceInstance serviceInstance = optionalServiceInstance.get();
@@ -148,6 +145,8 @@ public class ServiceCall {
         .header(ServiceHeaders.METHOD, methodName);
 
   }
+
+
 }
 
 

@@ -7,6 +7,6 @@ import java.util.Optional;
 
 public interface Router {
 
-  Optional<ServiceInstance> route(ServiceDefinition serviceDefinition);
+  Optional<ServiceInstance> route(ServiceDefinition serviceDefinition, Object data);
 
 }
