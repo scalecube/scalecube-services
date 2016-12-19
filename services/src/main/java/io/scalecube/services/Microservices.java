@@ -31,30 +31,27 @@ import java.util.Optional;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  * 
- * <p>
- * ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
+ * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
  * build the service component itself. the Service component is simply java class that implements the service Interface
  * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
  * streaming patters but does not force application developers to it.
  * 
- * <p>
- * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
  * <li>Provides fluent, java 8 lambda apis.</li>
- * <li>embeddable and lightweight.</li>
+ * <li>Embeddable and lightweight.</li>
  * <li>utilizes completable futures but primitives and messages can be used as well completable futures gives the
  * advantage of composing and chaining service calls and service results.</li>
  * <li>low latency</li>
- * <li>supports routing extensible strategies when selecting service endpoints</li>
+ * <li>supports routing extensible strategies when selecting service end-points</li>
  * 
- * </p>
- * <b>basic usage example:</b>
+ * </p><b>basic usage example:</b>
  * 
  * <pre>
  * 
- * <b><font color="green">//Define a serivce interface and implement it.</font></b>
+ * <b><font color="green">//Define a service interface and implement it.</font></b>
  * {@code
  *    <b>{@literal @}Service</b>
  *    <b><font color="9b0d9b">public interface</font></b> GreetingService {  

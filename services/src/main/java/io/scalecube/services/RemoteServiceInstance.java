@@ -32,10 +32,12 @@ public class RemoteServiceInstance implements ServiceInstance {
   /**
    * Remote service instance constructor to initiate instance.
    * 
-   * @param cluster to be used for instance context.
+   * @param serviceRegistry to be used for instance context.
    * @param serviceReference service reference of this instance.
+   * @param tags describing this service instance metadata.
    */
-  public RemoteServiceInstance(ServiceRegistry serviceRegistry, ServiceReference serviceReference, Map<String, String> tags) {
+  public RemoteServiceInstance(ServiceRegistry serviceRegistry, ServiceReference serviceReference,
+      Map<String, String> tags) {
     this.serviceRegistry = serviceRegistry;
     this.serviceName = serviceReference.serviceName();
     this.cluster = serviceRegistry.cluster();
