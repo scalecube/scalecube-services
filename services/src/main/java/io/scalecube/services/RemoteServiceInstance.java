@@ -26,6 +26,8 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String serviceName;
   private final Map<String, String> tags;
 
+  private ServiceRegistry serviceRegistry;
+
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -33,9 +35,10 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param cluster to be used for instance context.
    * @param serviceReference service reference of this instance.
    */
-  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference, Map<String, String> tags) {
+  public RemoteServiceInstance(ServiceRegistry serviceRegistry, ServiceReference serviceReference, Map<String, String> tags) {
+    this.serviceRegistry = serviceRegistry;
     this.serviceName = serviceReference.serviceName();
-    this.cluster = cluster;
+    this.cluster = serviceRegistry.cluster();
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = tags;
@@ -70,12 +73,13 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Object invoke(Message request, ServiceDefinition definition) throws Exception {
-    checkArgument(definition != null, "Service definition can't be null");
+  public Object invoke(Message request) throws Exception {
+    checkArgument(request != null, "Service request can't be null");
 
     // Resolve method
     String methodName = request.header(ServiceHeaders.METHOD);
     checkArgument(methodName != null, "Method name can't be null");
+    ServiceDefinition definition = serviceRegistry.getServiceDefinition(serviceName).get();
     Method method = definition.method(methodName);
     checkArgument(method != null,
         "Method '%s' is not registered for service: %s", methodName, definition.serviceInterface());

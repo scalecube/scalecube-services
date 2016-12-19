@@ -1,8 +1,9 @@
 package io.scalecube.services.routing;
 
-import io.scalecube.services.ServiceDefinition;
+import io.scalecube.services.ServiceHeaders;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
+import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,15 +26,17 @@ public class RoundRobinServiceRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceInstance> route(ServiceDefinition serviceDefinition, Object data) {
-    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceDefinition.serviceName());
+  public Optional<ServiceInstance> route(Message request) {
+
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceName);
     if (!serviceInstances.isEmpty()) {
       AtomicInteger counter = counterByServiceName
-          .computeIfAbsent(serviceDefinition.serviceName(), or -> new AtomicInteger());
+          .computeIfAbsent(serviceName, or -> new AtomicInteger());
       int index = counter.incrementAndGet() % serviceInstances.size();
       return Optional.of(serviceInstances.get(index));
     } else {
-      LOGGER.warn("route selection return null since no service instance was found for {}", serviceDefinition);
+      LOGGER.warn("route selection return null since no service instance was found for {}", serviceName);
       return Optional.empty();
     }
   }

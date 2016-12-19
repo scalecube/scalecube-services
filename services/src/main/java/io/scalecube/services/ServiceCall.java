@@ -53,15 +53,15 @@ public class ServiceCall {
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
     String methodName = request.header(ServiceHeaders.METHOD);
     try {
-      ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceName);
-      Optional<ServiceInstance> optionalServiceInstance = router.route(serviceDefinition, request);
+      
+      Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
       if (optionalServiceInstance.isPresent()) {
         ServiceInstance serviceInstance = optionalServiceInstance.get();
 
         if (serviceInstance.isLocal()) {
 
-          CompletableFuture<?> resultFuture = (CompletableFuture<?>) serviceInstance.invoke(request, serviceDefinition);
+          CompletableFuture<?> resultFuture = (CompletableFuture<?>) serviceInstance.invoke(request);
 
           return (CompletableFuture<Message>) timeoutAfter(resultFuture, timeout)
               .thenApply(result -> toMessage(request, (T) result));
@@ -77,7 +77,7 @@ public class ServiceCall {
       } else {
         LOGGER.error(
             "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
-            serviceDefinition, request);
+            serviceName, request);
         throw new IllegalStateException("No reachable member with such service: " + methodName);
       }
 

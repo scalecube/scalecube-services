@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
@@ -29,13 +28,14 @@ public class ServiceProxyFactory {
   private static final ScheduledExecutorService delayer =
       ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
 
-  private final ServiceProcessor serviceProcessor;
   ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
 
-  public ServiceProxyFactory(ServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
+  private ServiceRegistry serviceRegistry;
+
+  public ServiceProxyFactory(ServiceRegistry serviceRegistry) {
     this.routerFactory = new RouterFactory(serviceRegistry);
-    this.serviceProcessor = serviceProcessor;
+    this.serviceRegistry = serviceRegistry;
   }
 
   /**
@@ -48,8 +48,8 @@ public class ServiceProxyFactory {
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
       Duration timeout) {
 
-    this.serviceDefinition = serviceProcessor.introspectServiceInterface(serviceInterface);
-
+    serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
+    
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
       @Override
@@ -59,18 +59,18 @@ public class ServiceProxyFactory {
           Router router = routerFactory.getRouter(routerType);
 
           Object data = method.getParameterCount() != 0 ? args[0] : null;
-          Optional<ServiceInstance> optionalServiceInstance = router.route(serviceDefinition, data);
+          Message reqMsg = Message.withData(data)
+              .header(ServiceHeaders.SERVICE_REQUEST, serviceDefinition.serviceName())
+              .header(ServiceHeaders.METHOD, method.getName())
+              .build();
+          
+          Optional<ServiceInstance> optionalServiceInstance = router.route(reqMsg);
 
           if (optionalServiceInstance.isPresent()) {
             ServiceInstance serviceInstance = optionalServiceInstance.get();
 
-            Message reqMsg = Message.withData(data)
-                .header(ServiceHeaders.SERVICE_REQUEST, serviceInstance.serviceName())
-                .header(ServiceHeaders.METHOD, method.getName())
-                .build();
-
             CompletableFuture<?> resultFuture =
-                (CompletableFuture<?>) serviceInstance.invoke(reqMsg, serviceDefinition);
+                (CompletableFuture<?>) serviceInstance.invoke(reqMsg);
 
             if (method.getReturnType().equals(Void.TYPE)) {
               return CompletableFuture.completedFuture(Void.TYPE);
