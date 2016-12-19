@@ -95,14 +95,12 @@ transport2.send(address1, Message.fromData("Hello World"));
 
 You are welcome to explore javadoc documentation on transport API for more advanced use cases.
 
-## Project Status
-
-You are more then welcome to join us. Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
-or just show your support by granting us a small star :)
-
 ## Support
 
-Chat with us or get support: https://gitter.im/scalecube/Lobby
+For improvement requests, bugs and discussions please use the [GitHub Issues](https://github.com/scalecube/scalecube/issues) 
+or chat with us to get support on [Gitter](https://gitter.im/scalecube/Lobby).
+
+You are more then welcome to join us or just show your support by granting us a small star :)
 
 ## Maven
 
@@ -138,10 +136,6 @@ To add a dependency on ScaleCube Transport using Maven, use the following:
   <version>x.y.z</version>
 </dependency>
 ```
-
-## Bugs and Feedback
-
-For bugs, questions and discussions please use the [GitHub Issues](https://github.com/scalecube/scalecube/issues).
 
 ## License
 
