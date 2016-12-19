@@ -41,17 +41,17 @@ import java.util.Optional;
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
  * <li>Provides fluent, java 8 lambda apis.</li>
- * <li>embeddable and lightweight.</li>
+ * <li>Embeddable and lightweight.</li>
  * <li>utilizes completable futures but primitives and messages can be used as well completable futures gives the
  * advantage of composing and chaining service calls and service results.</li>
  * <li>low latency</li>
- * <li>supports routing extensible strategies when selecting service endpoints</li>
+ * <li>supports routing extensible strategies when selecting service end-points</li>
  * 
  * </p><b>basic usage example:</b>
  * 
  * <pre>
  * 
- * <b><font color="green">//Define a serivce interface and implement it.</font></b>
+ * <b><font color="green">//Define a service interface and implement it.</font></b>
  * {@code
  *    <b>{@literal @}Service</b>
  *    <b><font color="9b0d9b">public interface</font></b> GreetingService {  
@@ -106,10 +106,15 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
+  private final ServiceDispatcherFactory dispatcherFactory;
+
   private Microservices(ICluster cluster, ServicesConfig services, boolean isSeed) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
-    this.proxyFactory = new ServiceProxyFactory(serviceRegistry, serviceProcessor);
+    
+    this.proxyFactory = new ServiceProxyFactory(serviceRegistry);
+    this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
+
     new ServiceDispatcher(cluster, serviceRegistry);
     this.cluster.listen().subscribe(message -> handleReply(message));
   }
@@ -119,7 +124,7 @@ public class Microservices {
   private void handleReply(Message message) {
     if (message.header(ServiceHeaders.SERVICE_RESPONSE) != null) {
       String correlationId = message.correlationId();
-      Optional<ResponseFuture> optinalFuture = ResponseFuture.get(message.correlationId());
+      Optional<ServiceResponse> optinalFuture = ServiceResponse.get(message.correlationId());
       if (optinalFuture.isPresent()) {
         if (message.header("exception") == null) {
           optinalFuture.get().complete(message);
@@ -230,6 +235,31 @@ public class Microservices {
     return new Builder();
   }
 
+
+  public class DispatcherContext {
+    private Duration timeout = Duration.ofSeconds(30);
+
+    private Class<? extends Router> router = RoundRobinServiceRouter.class;
+
+    public ServiceCall create() {
+      LOGGER.debug("create service api {} router {}", router);
+      return dispatcherFactory.createDispatcher(this.router, this.timeout);
+    }
+
+    public DispatcherContext timeout(Duration timeout) {
+      this.timeout = timeout;
+      return this;
+    }
+
+    public DispatcherContext router(Class<? extends Router> routerType) {
+      this.router = routerType;
+      return this;
+    }
+  }
+
+  public DispatcherContext dispatcher() {
+    return new DispatcherContext();
+  }
 
   public ProxyContext proxy() {
     return new ProxyContext();

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.cluster.ICluster;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 
 import java.util.Collection;
@@ -21,5 +22,11 @@ public interface ServiceRegistry {
   Optional<ServiceInstance> getLocalInstance(String serviceName, String method);
 
   Collection<ServiceInstance> services();
+
+  Optional<ServiceDefinition> getServiceDefinition(String serviceName);
+
+  ServiceDefinition registerInterface(Class<?> serviceInterface);
+  
+  ICluster cluster();
 
 }

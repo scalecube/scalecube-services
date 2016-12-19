@@ -23,9 +23,14 @@ public class ServiceDefinition {
   public ServiceDefinition(Class<?> serviceInterface, String serviceName, Map<String, Method> methods) {
     this.serviceInterface = serviceInterface;
     this.serviceName = serviceName;
-    this.methods = Collections.unmodifiableMap(methods);
+    this.methods = (methods != null) ?  Collections.unmodifiableMap(methods) : null;
+
   }
 
+  public static ServiceDefinition from(String serviceName) {
+    return new ServiceDefinition(null,serviceName,null);
+  }
+  
   public Class<?> serviceInterface() {
     return serviceInterface;
   }
@@ -49,5 +54,7 @@ public class ServiceDefinition {
         + ", methods=" + methods
         + "]";
   }
+
+  
 
 }

@@ -1,12 +1,10 @@
 package io.scalecube.services;
 
-import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
 
 import com.google.common.reflect.Reflection;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +14,6 @@ import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -28,16 +25,17 @@ public class ServiceProxyFactory {
   /**
    * used to complete the request future with timeout exception in case no response comes from service.
    */
-  private static final ScheduledExecutorService delayer = Executors.newSingleThreadScheduledExecutor(
-      new ThreadFactoryBuilder().setNameFormat("sc-services-timeout").setDaemon(true).build());
+  private static final ScheduledExecutorService delayer =
+      ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
 
-  private final ServiceProcessor serviceProcessor;
   ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
 
-  public ServiceProxyFactory(ServiceRegistry serviceRegistry, ServiceProcessor serviceProcessor) {
+  private ServiceRegistry serviceRegistry;
+
+  public ServiceProxyFactory(ServiceRegistry serviceRegistry) {
     this.routerFactory = new RouterFactory(serviceRegistry);
-    this.serviceProcessor = serviceProcessor;
+    this.serviceRegistry = serviceRegistry;
   }
 
   /**
@@ -50,8 +48,8 @@ public class ServiceProxyFactory {
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
       Duration timeout) {
 
-    this.serviceDefinition = serviceProcessor.introspectServiceInterface(serviceInterface);
-
+    serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
+    
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
       @Override
@@ -60,18 +58,19 @@ public class ServiceProxyFactory {
           // fetch the service definition by the method name
           Router router = routerFactory.getRouter(routerType);
 
-          Optional<ServiceInstance> optionalServiceInstance = router.route(serviceDefinition);
+          Object data = method.getParameterCount() != 0 ? args[0] : null;
+          Message reqMsg = Message.withData(data)
+              .header(ServiceHeaders.SERVICE_REQUEST, serviceDefinition.serviceName())
+              .header(ServiceHeaders.METHOD, method.getName())
+              .build();
+          
+          Optional<ServiceInstance> optionalServiceInstance = router.route(reqMsg);
 
           if (optionalServiceInstance.isPresent()) {
             ServiceInstance serviceInstance = optionalServiceInstance.get();
-            Object data = method.getParameterCount() != 0 ? args[0] : null;
-            Message reqMsg = Message.withData(data)
-                .header(ServiceHeaders.SERVICE_REQUEST, serviceInstance.serviceName())
-                .header(ServiceHeaders.METHOD, method.getName())
-                .build();
 
             CompletableFuture<?> resultFuture =
-                (CompletableFuture<?>) serviceInstance.invoke(reqMsg, serviceDefinition);
+                (CompletableFuture<?>) serviceInstance.invoke(reqMsg);
 
             if (method.getReturnType().equals(Void.TYPE)) {
               return CompletableFuture.completedFuture(Void.TYPE);

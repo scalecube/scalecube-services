@@ -37,7 +37,7 @@ public class ServiceDispatcher {
     DispatchingFuture result = DispatchingFuture.from(cluster, request);
     try {
       if (serviceInstance.isPresent()) {
-        result.complete(serviceInstance.get().invoke(request, null));
+        result.complete(serviceInstance.get().invoke(request));
       } else {
         result.completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
       }

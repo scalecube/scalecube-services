@@ -33,6 +33,7 @@ public class DispatchingFuture {
 
   /**
    * private contractor use static method from.
+   * 
    * @param cluster instance.
    * @param request original service request.
    */
@@ -53,6 +54,8 @@ public class DispatchingFuture {
       completeExceptionally(Throwable.class.cast(value));
     } else if (value instanceof CompletableFuture<?>) {
       handleComputable(cluster, CompletableFuture.class.cast(value));
+    } else if (value == null) {
+      handleComputable(cluster, CompletableFuture.completedFuture(null));
     }
   }
 

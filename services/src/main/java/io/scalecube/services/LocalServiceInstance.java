@@ -45,7 +45,7 @@ public class LocalServiceInstance implements ServiceInstance {
 
 
   @Override
-  public Object invoke(Message message, ServiceDefinition definition) throws Exception {
+  public Object invoke(Message message) throws Exception {
     checkArgument(message != null);
 
     try {

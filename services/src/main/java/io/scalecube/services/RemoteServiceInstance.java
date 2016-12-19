@@ -26,16 +26,21 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String serviceName;
   private final Map<String, String> tags;
 
+  private ServiceRegistry serviceRegistry;
+
 
   /**
    * Remote service instance constructor to initiate instance.
    * 
-   * @param cluster to be used for instance context.
+   * @param serviceRegistry to be used for instance context.
    * @param serviceReference service reference of this instance.
+   * @param tags describing this service instance metadata.
    */
-  public RemoteServiceInstance(ICluster cluster, ServiceReference serviceReference, Map<String, String> tags) {
+  public RemoteServiceInstance(ServiceRegistry serviceRegistry, ServiceReference serviceReference,
+      Map<String, String> tags) {
+    this.serviceRegistry = serviceRegistry;
     this.serviceName = serviceReference.serviceName();
-    this.cluster = cluster;
+    this.cluster = serviceRegistry.cluster();
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = tags;
@@ -46,13 +51,37 @@ public class RemoteServiceInstance implements ServiceInstance {
     return serviceName;
   }
 
-  @Override
-  public Object invoke(Message request, ServiceDefinition definition) throws Exception {
-    checkArgument(definition != null, "Service definition can't be null");
+  /**
+   * Dispatch a request message and invoke a service by a given service name and method name. expected headers in
+   * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
+   * invoke.
+   * 
+   * @param request request with given headers.
+   * @return CompletableFuture with dispatching result
+   * @throws Exception in case of an error
+   */
+  public CompletableFuture<Object> dispatch(Message request) throws Exception {
+    ServiceResponse responseFuture = new ServiceResponse(fn -> request);
+    Message requestMessage = composeRequest(request, responseFuture.correlationId());
 
     // Resolve method
     String methodName = request.header(ServiceHeaders.METHOD);
     checkArgument(methodName != null, "Method name can't be null");
+
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    checkArgument(serviceName != null, "Method name can't be null");
+
+    return futureInvoke(requestMessage, message -> message);
+  }
+
+  @Override
+  public Object invoke(Message request) throws Exception {
+    checkArgument(request != null, "Service request can't be null");
+
+    // Resolve method
+    String methodName = request.header(ServiceHeaders.METHOD);
+    checkArgument(methodName != null, "Method name can't be null");
+    ServiceDefinition definition = serviceRegistry.getServiceDefinition(serviceName).get();
     Method method = definition.method(methodName);
     checkArgument(method != null,
         "Method '%s' is not registered for service: %s", methodName, definition.serviceInterface());
@@ -65,7 +94,7 @@ public class RemoteServiceInstance implements ServiceInstance {
         return futureInvoke(request, Message::data);
       }
     } else if (method.getReturnType().equals(Void.TYPE)) {
-      return sendRemote(composeRequest(request, request.correlationId()));
+      return futureInvoke(request, message -> request.correlationId());
     } else {
       throw new UnsupportedOperationException("Unsupported return type for method: " + method);
     }
@@ -82,7 +111,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
 
-    ResponseFuture responseFuture = new ResponseFuture(fn);
+    ServiceResponse responseFuture = new ServiceResponse(fn);
 
     Message requestMessage = composeRequest(request, responseFuture.correlationId());
 
@@ -95,7 +124,7 @@ public class RemoteServiceInstance implements ServiceInstance {
             requestMessage, error);
 
         // if send future faild then complete the response future Exceptionally.
-        Optional<ResponseFuture> future = ResponseFuture.get(requestMessage.correlationId());
+        Optional<ServiceResponse> future = ServiceResponse.get(requestMessage.correlationId());
         if (future.isPresent()) {
           future.get().completeExceptionally(error);
         }
