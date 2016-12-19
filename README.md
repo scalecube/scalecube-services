@@ -10,6 +10,8 @@ ScaleCube project provides the tools to develop, test and scale microservice com
 The project focuses on ensuring that your application realises the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
 while delivering a high productivity development environment, and seamless production deployment experience.
 
+Web Site: [http://scalecube.io](http://scalecube.io/)
+
 ## Features
 
 ScaleCube is designed as an embeddable library for the Java VM. It is built in a modular way where each module independently 
@@ -58,7 +60,7 @@ alice.listen().subscribe(msg -> System.out.println("Alice received: " + msg.data
 ICluster bob = Cluster.joinAwait(alice.address());
 bob.listen().subscribe(msg -> System.out.println("Bob received: " + msg.data()));
 
-// Join cluster node Carol to cluster with Alice (and Bob)
+// Join cluster node Carol to cluster with Alice (and Bob which is resolved via Alice)
 ICluster carol = Cluster.joinAwait(alice.address());
 
 // Send from Carol greeting message to all other cluster members (which is Alice and Bob)
@@ -69,18 +71,36 @@ You are welcome to explore javadoc documentation on cluster API and examples mod
 
 ### TRANSPORT
 
-The Transport module is communication layer of nodes and service. its main goal is to deal with managing message exchange
+ScaleCube Transport is a network communication layer which provides high throughput and low latency peer-to-peer messaging. 
+It is based on [Netty](http://netty.io/) asynchronous networking framework and is using [RxJava](https://github.com/ReactiveX/RxJava) 
+in order to provide convenient reactive API on top of network handlers pipelines.
 
-Web Site: [http://scalecube.io](http://scalecube.io/)
+Using ScaleCube Transport as simple as few lines of code:
 
-## Project Status
+``` java
+// Bind first transport to port 5000
+TransportConfig config1 = TransportConfig.builder().port(5000).build();
+Transport transport1 = Transport.bindAwait(config1);
 
-You are more then welcome to join us. Your [feedback](https://github.com/scalecube/scalecube/issues) is welcome.
-or just show your support by granting us a small star :)
+// Make first transport to listen and print all incoming messages
+transport1.listen().subscribe(System.out::println);
+
+// Get 'host:port' address of the first transport
+Address address1 = transport1.address(); 
+
+// Bind second transport on available port and send message to the first transport
+Transport transport2 = Transport.bindAwait();
+transport2.send(address1, Message.fromData("Hello World"));
+```
+
+You are welcome to explore javadoc documentation on transport API for more advanced use cases.
 
 ## Support
 
-Chat with us or get support: https://gitter.im/scalecube/Lobby
+For improvement requests, bugs and discussions please use the [GitHub Issues](https://github.com/scalecube/scalecube/issues) 
+or chat with us to get support on [Gitter](https://gitter.im/scalecube/Lobby).
+
+You are more then welcome to join us or just show your support by granting us a small star :)
 
 ## Maven
 
@@ -116,10 +136,6 @@ To add a dependency on ScaleCube Transport using Maven, use the following:
   <version>x.y.z</version>
 </dependency>
 ```
-
-## Bugs and Feedback
-
-For bugs, questions and discussions please use the [GitHub Issues](https://github.com/scalecube/scalecube/issues).
 
 ## License
 
