@@ -138,7 +138,8 @@ To add a dependency on ScaleCube Transport using Maven, use the following:
 ```
 
 ## Contributing
-* Fork (and then git clone https://github.com/<your-username-here>/scalecube.git).
+
+* Fork (and then git clone https://github.com/--your-username-here--/scalecube.git).
 * Create a branch (git checkout -b branch_name).
 * Commit your changes (git commit -am "Description of contribution").
 * Push the branch (git push origin branch_name).
