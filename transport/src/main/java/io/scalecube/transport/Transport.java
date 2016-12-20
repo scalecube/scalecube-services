@@ -321,7 +321,7 @@ public final class Transport implements ITransport {
 
   private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
     if (promise == COMPLETED_PROMISE) {
-      channel.writeAndFlush(message, channel.voidPromise());
+      channel.writeAndFlush(message);
     } else {
       composeFutures(channel.writeAndFlush(message), promise);
     }

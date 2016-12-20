@@ -573,9 +573,9 @@ public class TransportTest extends BaseTest {
     for (int i = 0; i < count; i++) {
       client.send(echoServer.address(), Message.fromData("naive_stress_test"));
     }
-    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    LOGGER.info("Finished sending {} messages in {} ms", count, System.currentTimeMillis() - startTime);
     latch.await(30, TimeUnit.SECONDS);
-    System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    LOGGER.info("Finished receiving {} messages in {} ms", count, System.currentTimeMillis() - startTime);
     assertTrue(latch.getCount() == 0);
 
     destroyTransport(echoServer);
