@@ -30,6 +30,7 @@ public class GossipProtocolTest {
   @Parameterized.Parameters(name = "N={0}, Plost={1}%, Tmean={2}ms, T={3}ms")
   public static List<Object[]> data() {
     return Arrays.asList(new Object[][] {
+//        N  , L  ,  D   , T         // N - num of nodes, L - loss percent, D - mean delay (ms), T - timeout (ms)
         { 2  , 0  ,  2   , 1_000  }, // warm up
         { 2  , 0  ,  2   ,   500  },
         { 3  , 0  ,  2   ,   500  },
@@ -47,7 +48,7 @@ public class GossipProtocolTest {
   private final int meanDelay;
   private final int timeout;
 
-  public GossipProtocolTest(Integer membersNum, Integer lostPercent, Integer meanDelay, Integer timeout) {
+  public GossipProtocolTest(int membersNum, int lostPercent, int meanDelay, int timeout) {
     this.membersNum = membersNum;
     this.lostPercent = lostPercent;
     this.meanDelay = meanDelay;

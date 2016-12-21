@@ -189,7 +189,7 @@ public final class Transport implements ITransport {
   public void setDefaultNetworkSettings(int lostPercent, int meanDelay) {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
-      LOGGER.info("Set default network settings (loss={}%, mean={}ms)");
+      LOGGER.info("Set default network settings (loss={}%, mean={}ms)", lostPercent, meanDelay);
     } else {
       LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
           lostPercent, meanDelay);

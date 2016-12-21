@@ -54,6 +54,7 @@ public final class GossipProtocol implements IGossipProtocol {
   private long gossipCounter = 0;
   private Map<String, GossipState> gossips = Maps.newHashMap();
   private List<Member> remoteMembers = new ArrayList<>();
+  private int remoteMembersIndex = -1;
 
   // Subscriptions
 
@@ -105,7 +106,6 @@ public final class GossipProtocol implements IGossipProtocol {
     return membership.member();
   }
 
-
   @Override
   public void start() {
     onMemberAddedEventSubscriber = Subscribers.create(remoteMembers::add, this::onError);
@@ -152,6 +152,7 @@ public final class GossipProtocol implements IGossipProtocol {
     }
 
     // Shutdown executor
+    // TODO AK: Consider to await termination ?!
     executor.shutdown();
 
     // Stop publishing events
@@ -176,14 +177,22 @@ public final class GossipProtocol implements IGossipProtocol {
     // Increment period
     period++;
 
-    // Check any gossips to spread
+    // Check any gossips exists
     if (gossips.isEmpty()) {
-      return;
+      return; // nothing to spread
     }
 
     try {
+      // Select gossips to send
+      List<Gossip> gossipsToSend = selectGossipsToSend();
+      if (gossipsToSend.isEmpty()) {
+        return; // nothing to spread
+      }
+
       // Spread gossips to randomly selected member(s)
-      selectGossipMembers().forEach(this::spreadGossipsTo);
+      Message gossipReqMsg = buildGossipRequestMessage(gossipsToSend);
+      selectGossipMembers(config.getGossipFanout())
+          .forEach(member -> transport.send(member.address(), gossipReqMsg));
 
       // Sweep gossips
       sweepGossips();
@@ -211,7 +220,6 @@ public final class GossipProtocol implements IGossipProtocol {
         gossips.put(gossip.gossipId(), gossipState);
         subject.onNext(gossip.message());
       }
-      gossipState.addToInfected(gossipRequest.from());
     }
   }
 
@@ -227,60 +235,69 @@ public final class GossipProtocol implements IGossipProtocol {
     return membership.member().id() + "-" + gossipCounter++;
   }
 
-  private List<Gossip> selectGossipsToSend(Member member) {
+  private List<Gossip> selectGossipsToSend() {
+    int maxPeriodsToSpread = maxPeriodsToSpread();
     return gossips.values().stream()
-        .filter(gossipState -> !gossipState.isInfected(member)) // already infected
-        .filter(gossipState -> gossipState.infectionPeriod() + factor() >= period) // max rounds
+        .filter(gossipState -> gossipState.infectionPeriod() + maxPeriodsToSpread >= period) // max rounds
         .map(GossipState::gossip)
         .collect(Collectors.toList());
   }
 
-  private List<Member> selectGossipMembers() {
-    if (remoteMembers.size() < config.getGossipFanout()) {
-      return remoteMembers; // all
-    } else if (config.getGossipFanout() == 1) {
-      return Collections.singletonList(remoteMembers.get(ThreadLocalRandom.current().nextInt(remoteMembers.size())));
-    } else {
-      Collections.shuffle(remoteMembers);
-      return remoteMembers.subList(0, config.getGossipFanout());
+  private List<Member> selectGossipMembers(int gossipFanout) {
+    if (remoteMembers.size() < gossipFanout) { // select all
+      return remoteMembers;
+    } else { // select random members
+      // Shuffle members initially and once reached top bound
+      if (remoteMembersIndex < 0 || remoteMembersIndex + gossipFanout > remoteMembers.size()) {
+        Collections.shuffle(remoteMembers);
+        remoteMembersIndex = 0;
+      }
+
+      // Select members
+      List<Member> selectedMembers = gossipFanout == 1
+          ? Collections.singletonList(remoteMembers.get(remoteMembersIndex))
+          : remoteMembers.subList(remoteMembersIndex, remoteMembersIndex + gossipFanout);
+
+      // Increment index and return result
+      remoteMembersIndex += gossipFanout;
+      return selectedMembers;
     }
   }
 
-  private void spreadGossipsTo(Member member) {
-    // Select gossips to send
-    List<Gossip> gossipsToSend = selectGossipsToSend(member);
-    if (gossipsToSend.isEmpty()) {
-      return; // nothing to spread
-    }
-
-    // Send gossip request
+  private Message buildGossipRequestMessage(List<Gossip> gossipsToSend) {
     GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member());
-    Message gossipReqMsg = Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
-    transport.send(member.address(), gossipReqMsg);
-
-    // Update gossip states
-    gossipsToSend.forEach(gossip -> {
-      GossipState gossipState = gossips.get(gossip.gossipId());
-      gossipState.incrementSpreadCount();
-      gossipState.addToInfected(member);
-    });
+    return Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
   }
 
   private void sweepGossips() {
-    int maxPeriodsToKeep = 2 * (factor() + 1);
+    // Select gossips to sweep
+    int maxPeriodsToKeep = maxPeriodsToKeep();
     Set<GossipState> gossipsToRemove = gossips.values().stream()
         .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriodsToKeep)
         .collect(Collectors.toSet());
-    if (!gossipsToRemove.isEmpty()) {
-      LOGGER.debug("Sweep gossips: {}", gossipsToRemove);
-      for (GossipState gossipState : gossipsToRemove) {
-        gossips.remove(gossipState.gossip().gossipId());
-      }
+
+    // Check if anything selected
+    if (gossipsToRemove.isEmpty()) {
+      return; // nothing to sweep
+    }
+
+    // Sweep gossips
+    LOGGER.debug("Sweep gossips: {}", gossipsToRemove);
+    for (GossipState gossipState : gossipsToRemove) {
+      gossips.remove(gossipState.gossip().gossipId());
     }
   }
 
+  private int maxPeriodsToKeep() {
+    return 2 * maxPeriodsToSpread() + 1;
+  }
+
+  private int maxPeriodsToSpread() {
+    return factor() + 1;
+  }
+
   private int factor() {
-    return 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1) /* log2 */;
+    return 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1) /* ceil[ log2( N + 1 ) ] */;
   }
 
 }
