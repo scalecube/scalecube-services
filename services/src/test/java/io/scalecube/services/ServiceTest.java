@@ -571,7 +571,7 @@ public class ServiceTest extends BaseTest {
 
     // Init params
     int warmUpCount = 5_000;
-    int count = 100_000;
+    int count = 320_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
@@ -591,6 +591,7 @@ public class ServiceTest extends BaseTest {
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
     ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    System.out.println("availableProcessors" + Runtime.getRuntime().availableProcessors());
     for (int x = 0; x < Runtime.getRuntime().availableProcessors(); x++) {
       exec.execute(() -> {
         for (int i = 0; i < count / Runtime.getRuntime().availableProcessors(); i++) {
