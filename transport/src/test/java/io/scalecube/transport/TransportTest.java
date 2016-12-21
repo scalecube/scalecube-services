@@ -614,6 +614,7 @@ public class TransportTest extends BaseTest {
     for (Message message : messages) {
       group.put(Integer.valueOf(message.correlationId().split("/")[0]), message);
     }
+
     assertEquals(total, group.get(id).size());
     for (int k = 0; k < total; k++) {
       assertEquals(id + "/" + k, group.get(id).get(k).correlationId());
