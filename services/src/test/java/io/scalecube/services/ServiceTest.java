@@ -15,6 +15,7 @@ import org.omg.CORBA.Environment;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -560,23 +561,20 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    // Create microservices cluster member.
-    Microservices consumer1 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
-        .build();
-
-    // Create microservices cluster member.
-    Microservices consumer2 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
-        .build();
+    ConcurrentHashMap<Integer, Microservices> consumersMap = new ConcurrentHashMap();
+    ConcurrentHashMap<Integer, GreetingService> proxyMap = new ConcurrentHashMap();
+    int cores = Runtime.getRuntime().availableProcessors();
     
-    // Get a proxy to the service api.
-    GreetingService service1 = createProxy(consumer1);
+    // Create microservices cluster member.
+    for(int i = 0 ; i < cores ; i++){
+      Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build();
+        consumersMap.put(i, consumer);
+      proxyMap.put(i, createProxy(consumer));
+    }
 
-    // Get a proxy to the service api.
-    GreetingService service2 = createProxy(consumer2);
 
     
     // Init params
@@ -586,7 +584,7 @@ public class ServiceTest extends BaseTest {
 
     // Warm up
     for (int i = 0; i < warmUpCount; i++) {
-      CompletableFuture<Message> future = service1.greetingMessage(Message.fromData("naive_stress_test"));
+      CompletableFuture<Message> future = proxyMap.get(0).greetingMessage(Message.fromData("naive_stress_test"));
       future.whenComplete((success, error) -> {
         if (error == null) {
           warmUpLatch.countDown();
@@ -600,12 +598,12 @@ public class ServiceTest extends BaseTest {
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
-    ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    System.out.println(Runtime.getRuntime().availableProcessors());
-    for (int x = 0; x < Runtime.getRuntime().availableProcessors(); x++) {
+    ExecutorService exec = Executors.newFixedThreadPool(cores);
+    
+    for (int x = 0; x < cores ; x++) {
       exec.execute(() -> {
-        for (int i = 0 ; i < count / Runtime.getRuntime().availableProcessors(); i++) {
-          GreetingService proxy = (i % 2 == 0)  ? service2 :  service1;
+        for (int i = 0 ; i < count / cores ; i++) {
+          GreetingService proxy = proxyMap.get( i % cores);
           CompletableFuture<Message> future = proxy.greetingMessage(Message.fromData("naive_stress_test"));
           future.whenComplete((success, error) -> {
             if (error == null) {
