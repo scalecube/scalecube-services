@@ -11,10 +11,14 @@ import io.scalecube.transport.Message;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.omg.CORBA.Environment;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -175,7 +179,7 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
-    
+
 
     Thread.sleep(1000);
   }
@@ -535,10 +539,10 @@ public class ServiceTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider1 = createProvider(gateway);
 
-    GreetingService service = createProxy(gateway);
+    GreetingService service1 = createProxy(gateway);
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
-      service.greeting("hello");
+      service1.greeting("hello");
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: greeting"));
       timeLatch.countDown();
@@ -551,24 +555,28 @@ public class ServiceTest extends BaseTest {
 
   @Test
   public void test_naive_stress_not_breaking_the_system() throws InterruptedException {
-    // Create microservices cluster member.
-    Microservices provider = Microservices.builder()
+ // Create microservices cluster member.
+    Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
-
-    // Create microservices cluster member.
-    Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
-        .build();
-
-    // Get a proxy to the service api.
-    GreetingService service = createProxy(consumer);
+    
+    int cores = Runtime.getRuntime().availableProcessors();
+    
+    for (int i=0 ; i < cores ; i ++) {
+      // Create microservices cluster member.
+      Microservices.builder()
+          .seeds(gateway.cluster().address())
+          .port(port.incrementAndGet())
+          .services(new GreetingServiceImpl())
+          .build();
+    }
+        
+    GreetingService service = createProxy(gateway);
 
     // Init params
-    int warmUpCount = 1_000;
-    int count = 10_000;
+    int warmUpCount = 15_000;
+    int count = 320_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
@@ -587,26 +595,39 @@ public class ServiceTest extends BaseTest {
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
-    for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          countLatch.countDown();
+    ExecutorService exec = Executors.newFixedThreadPool(cores);
+
+    for (int x = 0; x < cores; x++) {
+      exec.execute(() -> {
+        for (int i = 0; i < count / cores; i++) {
+          try {
+            if (i % 15000 == 0) {
+              TimeUnit.MILLISECONDS.sleep(1);
+            }
+          } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+          
+          GreetingService proxy = service;
+          CompletableFuture<Message> future = proxy.greetingMessage(Message.fromData("naive_stress_test"));
+          future.whenComplete((success, error) -> {
+            if (error == null) {
+              countLatch.countDown();
+            }
+          });
         }
+        System.out.println("Finished sending " + count / cores + " messages in "
+            + (System.currentTimeMillis() - startTime));
       });
     }
-    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
+
     countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
   }
 
-  /*
-   * TODO [AK]: This test is unstable and need to be fixed and un-ignored, see builds:
-   * https://travis-ci.org/scalecube/scalecube/builds/185625139
-   * https://travis-ci.org/scalecube/scalecube/builds/185623016
-   */
-  @Ignore
+
   @Test
   public void test_service_tags() {
     Microservices gateway = Microservices.builder()
