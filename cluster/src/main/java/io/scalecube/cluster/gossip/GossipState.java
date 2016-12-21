@@ -1,11 +1,11 @@
 package io.scalecube.cluster.gossip;
 
+import io.scalecube.cluster.Member;
+
 import com.google.common.base.Preconditions;
 
 import java.util.HashSet;
 import java.util.Set;
-
-import io.scalecube.cluster.Member;
 
 /** Data related to gossip, maintained locally on each node. */
 final class GossipState {

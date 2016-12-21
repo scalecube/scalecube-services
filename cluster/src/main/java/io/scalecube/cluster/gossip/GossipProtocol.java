@@ -306,8 +306,8 @@ public final class GossipProtocol implements IGossipProtocol {
     return periodsToKeep() * config.getGossipInterval();
   }
   
-  private int ceilLog2(int n) {
-    return 32 - Integer.numberOfLeadingZeros(n) /* ceil[log2(N)] */;
+  private int ceilLog2(int num) {
+    return 32 - Integer.numberOfLeadingZeros(num) /* ceil[log2(N)] */;
   }
 
 }
