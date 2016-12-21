@@ -297,8 +297,8 @@ public final class Transport implements ITransport {
   }
 
   @Override
-  public void send(@CheckForNull final Address address, @CheckForNull final Message message,
-      @CheckForNull final CompletableFuture<Void> promise) {
+  public void send(@CheckForNull Address address, @CheckForNull Message message,
+      @CheckForNull CompletableFuture<Void> promise) {
     checkState(!stopped, "Transport is stopped");
     checkArgument(address != null);
     checkArgument(message != null);
@@ -307,15 +307,23 @@ public final class Transport implements ITransport {
 
     final ChannelFuture channelFuture = outgoingChannels.get(address);
     if (channelFuture.isSuccess()) {
-      composeFutures(channelFuture.channel().writeAndFlush(message), promise);
+      send(channelFuture.channel(), message, promise);
     } else {
       channelFuture.addListener((ChannelFuture chFuture) -> {
         if (chFuture.isSuccess()) {
-          composeFutures(chFuture.channel().writeAndFlush(message), promise);
+          send(channelFuture.channel(), message, promise);
         } else {
           promise.completeExceptionally(chFuture.cause());
         }
       });
+    }
+  }
+
+  private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
+    if (promise == COMPLETED_PROMISE) {
+      channel.writeAndFlush(message);
+    } else {
+      composeFutures(channel.writeAndFlush(message), promise);
     }
   }
 
@@ -343,15 +351,12 @@ public final class Transport implements ITransport {
       ChannelFuture connectFuture = client.connect(address.host(), address.port());
 
       // Register logger and cleanup listener
-      connectFuture.addListener(new ChannelFutureListener() {
-        @Override
-        public void operationComplete(ChannelFuture channelFuture) {
-          if (channelFuture.isSuccess()) {
-            LOGGER.info("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
-          } else {
-            LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
-            outgoingChannels.delete(address);
-          }
+      connectFuture.addListener((ChannelFutureListener) channelFuture -> {
+        if (channelFuture.isSuccess()) {
+          LOGGER.info("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
+        } else {
+          LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
+          outgoingChannels.delete(address);
         }
       });
 
