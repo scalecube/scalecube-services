@@ -11,10 +11,13 @@ import io.scalecube.transport.Message;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.omg.CORBA.Environment;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -175,7 +178,7 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
-    
+
 
     Thread.sleep(1000);
   }
@@ -567,8 +570,8 @@ public class ServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // Init params
-    int warmUpCount = 1_000;
-    int count = 20_0000;
+    int warmUpCount = 5_000;
+    int count = 100_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
@@ -587,15 +590,21 @@ public class ServiceTest extends BaseTest {
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
-    for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          countLatch.countDown();
+    ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+    for (int x = 0; x < Runtime.getRuntime().availableProcessors(); x++) {
+      exec.execute(() -> {
+        for (int i = 0; i < count / Runtime.getRuntime().availableProcessors(); i++) {
+          CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
+          future.whenComplete((success, error) -> {
+            if (error == null) {
+              countLatch.countDown();
+            }
+          });
         }
+        System.out.println("Finished sending " + count / Runtime.getRuntime().availableProcessors() + " messages in " + (System.currentTimeMillis() - startTime));
       });
     }
-    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
+
     countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
