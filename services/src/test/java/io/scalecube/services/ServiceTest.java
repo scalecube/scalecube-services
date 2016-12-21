@@ -606,7 +606,6 @@ public class ServiceTest extends BaseTest {
    * https://travis-ci.org/scalecube/scalecube/builds/185625139
    * https://travis-ci.org/scalecube/scalecube/builds/185623016
    */
-  @Ignore
   @Test
   public void test_service_tags() {
     Microservices gateway = Microservices.builder()
