@@ -590,8 +590,7 @@ public class TransportTest extends BaseTest {
     }
   }
 
-  private Callable<Void> sender(final int id, final Transport client, final Address address,
-      final int total) {
+  private Callable<Void> sender(final int id, final Transport client, final Address address, final int total) {
     return () -> {
       for (int j = 0; j < total; j++) {
         String correlationId = id + "/" + j;
