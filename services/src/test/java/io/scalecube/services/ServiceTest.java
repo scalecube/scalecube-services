@@ -557,45 +557,22 @@ public class ServiceTest extends BaseTest {
   public void test_naive_stress_not_breaking_the_system() throws InterruptedException {
  // Create microservices cluster member.
     Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+    
+    int cores = Runtime.getRuntime().availableProcessors();
+    
+    for (int i=0 ; i < cores ; i ++) {
+      // Create microservices cluster member.
+      Microservices.builder()
+          .seeds(gateway.cluster().address())
+          .port(port.incrementAndGet())
+          .services(new GreetingServiceImpl())
+          .build();
+    }
         
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-    
-    // Create microservices cluster member.
-    Microservices provider = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-
-    // Create microservices cluster member.
-    Microservices provider2 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-    
-    // Create microservices cluster member.
-    Microservices provider3 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-    
-    // Create microservices cluster member.
-    Microservices provider4 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-    
-    ConcurrentHashMap<Integer, Microservices> consumersMap = new ConcurrentHashMap();
-   
-    int cores = Runtime.getRuntime().availableProcessors()  ;
-
     GreetingService service = createProxy(gateway);
-
 
     // Init params
     int warmUpCount = 15_000;
