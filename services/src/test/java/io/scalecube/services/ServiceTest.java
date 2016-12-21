@@ -584,7 +584,7 @@ public class ServiceTest extends BaseTest {
     
     ConcurrentHashMap<Integer, Microservices> consumersMap = new ConcurrentHashMap();
     ConcurrentHashMap<Integer, GreetingService> proxyMap = new ConcurrentHashMap();
-    int cores = Runtime.getRuntime().availableProcessors() ;
+    int cores = Runtime.getRuntime().availableProcessors() / 2 ;
 
     // Create microservices cluster member.
     for (int i = 0; i < cores; i++) {
@@ -625,7 +625,7 @@ public class ServiceTest extends BaseTest {
       exec.execute(() -> {
         for (int i = 0; i < count / cores; i++) {
           try {
-            if (i % 200 == 0) {
+            if (i % 3000 == 0) {
               TimeUnit.MILLISECONDS.sleep(1);
             }
           } catch (InterruptedException e) {
