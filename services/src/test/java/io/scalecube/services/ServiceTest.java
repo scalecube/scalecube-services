@@ -563,7 +563,7 @@ public class ServiceTest extends BaseTest {
 
     ConcurrentHashMap<Integer, Microservices> consumersMap = new ConcurrentHashMap();
     ConcurrentHashMap<Integer, GreetingService> proxyMap = new ConcurrentHashMap();
-    int cores = Runtime.getRuntime().availableProcessors();
+    int cores = Runtime.getRuntime().availableProcessors() /2;
 
     // Create microservices cluster member.
     for (int i = 0; i < cores; i++) {
@@ -619,7 +619,7 @@ public class ServiceTest extends BaseTest {
             }
           });
         }
-        System.out.println("Finished sending " + count / Runtime.getRuntime().availableProcessors() + " messages in "
+        System.out.println("Finished sending " + count / cores + " messages in "
             + (System.currentTimeMillis() - startTime));
       });
     }
