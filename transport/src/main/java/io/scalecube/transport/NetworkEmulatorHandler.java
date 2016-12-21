@@ -16,6 +16,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 @ChannelHandler.Sharable
 final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
@@ -24,15 +25,21 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
 
   private final Map<Address, NetworkEmulatorSettings> networkSettings = new ConcurrentHashMap<>();
 
+  private final AtomicLong totalMessageSentCount = new AtomicLong();
+
+  private final AtomicLong totalMessageLostCount = new AtomicLong();
+
   private NetworkEmulatorSettings defaultSettings = new NetworkEmulatorSettings(0, 0);
 
   @Override
   public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
     NetworkEmulatorSettings networkSettings = resolveNetworkSettings(ctx.channel());
+    totalMessageSentCount.incrementAndGet();
 
     // Emulate message loss
     boolean isLost = networkSettings.evaluateLost();
     if (isLost) {
+      totalMessageLostCount.incrementAndGet();
       if (promise != null) {
         promise.setFailure(new RuntimeException("NETWORK_BREAK detected, not sent " + msg));
       }
@@ -100,5 +107,13 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
   public void unblockAll() {
     networkSettings.clear();
     LOGGER.debug("Unblock all messages");
+  }
+
+  public long totalMessageSentCount() {
+    return totalMessageSentCount.get();
+  }
+
+  public long totalMessageLostCount() {
+    return totalMessageLostCount.get();
   }
 }

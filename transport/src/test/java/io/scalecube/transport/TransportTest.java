@@ -43,7 +43,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.LongStream;
 
 public class TransportTest extends BaseTest {
-  static final Logger LOGGER = LoggerFactory.getLogger(TransportTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransportTest.class);
 
   private Transport client;
   private Transport server;

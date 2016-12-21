@@ -244,6 +244,30 @@ public final class Transport implements ITransport {
     }
   }
 
+  /**
+   * Returns total message sent count computed by network emulator. If network emulator is disabled returns zero.
+   */
+  public long totalMessageSentCount() {
+    if (config.isUseNetworkEmulator()) {
+      return networkEmulatorHandler.totalMessageSentCount();
+    } else {
+      LOGGER.warn("Noop on 'totalMessageSentCount()' since network emulator is disabled");
+      return 0;
+    }
+  }
+
+  /**
+   * Returns total message lost count computed by network emulator. If network emulator is disabled returns zero.
+   */
+  public long totalMessageLostCount() {
+    if (config.isUseNetworkEmulator()) {
+      return networkEmulatorHandler.totalMessageLostCount();
+    } else {
+      LOGGER.warn("Noop on 'totalMessageLostCount()' since network emulator is disabled");
+      return 0;
+    }
+  }
+
   @Override
   public final void stop() {
     stop(COMPLETED_PROMISE);
@@ -353,7 +377,7 @@ public final class Transport implements ITransport {
       // Register logger and cleanup listener
       connectFuture.addListener((ChannelFutureListener) channelFuture -> {
         if (channelFuture.isSuccess()) {
-          LOGGER.info("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
+          LOGGER.debug("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
         } else {
           LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
           outgoingChannels.delete(address);
