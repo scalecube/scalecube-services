@@ -555,47 +555,46 @@ public class ServiceTest extends BaseTest {
 
   @Test
   public void test_naive_stress_not_breaking_the_system() throws InterruptedException {
+ // Create microservices cluster member.
+    Microservices gateway = Microservices.builder()
+        
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build();
+    
     // Create microservices cluster member.
     Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
     // Create microservices cluster member.
     Microservices provider2 = Microservices.builder()
-        .seeds(provider.cluster().address())
+        .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
     
     // Create microservices cluster member.
     Microservices provider3 = Microservices.builder()
-        .seeds(provider.cluster().address())
+        .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
     
     // Create microservices cluster member.
     Microservices provider4 = Microservices.builder()
-        .seeds(provider.cluster().address())
+        .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
     
     ConcurrentHashMap<Integer, Microservices> consumersMap = new ConcurrentHashMap();
-    ConcurrentHashMap<Integer, GreetingService> proxyMap = new ConcurrentHashMap();
-    int cores = Runtime.getRuntime().availableProcessors() / 2 ;
+   
+    int cores = Runtime.getRuntime().availableProcessors()  ;
 
-    // Create microservices cluster member.
-    for (int i = 0; i < cores; i++) {
-      Microservices consumer = Microservices.builder()
-          .port(port.incrementAndGet())
-          .seeds(provider.cluster().address())
-          .build();
-      consumersMap.put(i, consumer);
-      proxyMap.put(i, createProxy(consumer));
-    }
-
+    GreetingService service = createProxy(gateway);
 
 
     // Init params
@@ -605,7 +604,7 @@ public class ServiceTest extends BaseTest {
 
     // Warm up
     for (int i = 0; i < warmUpCount; i++) {
-      CompletableFuture<Message> future = proxyMap.get(0).greetingMessage(Message.fromData("naive_stress_test"));
+      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
       future.whenComplete((success, error) -> {
         if (error == null) {
           warmUpLatch.countDown();
@@ -625,7 +624,7 @@ public class ServiceTest extends BaseTest {
       exec.execute(() -> {
         for (int i = 0; i < count / cores; i++) {
           try {
-            if (i % 3000 == 0) {
+            if (i % 15000 == 0) {
               TimeUnit.MILLISECONDS.sleep(1);
             }
           } catch (InterruptedException e) {
@@ -633,7 +632,7 @@ public class ServiceTest extends BaseTest {
             e.printStackTrace();
           }
           
-          GreetingService proxy = proxyMap.get(i % cores);
+          GreetingService proxy = service;
           CompletableFuture<Message> future = proxy.greetingMessage(Message.fromData("naive_stress_test"));
           future.whenComplete((success, error) -> {
             if (error == null) {
