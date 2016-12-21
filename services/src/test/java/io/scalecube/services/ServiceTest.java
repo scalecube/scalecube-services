@@ -538,10 +538,10 @@ public class ServiceTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider1 = createProvider(gateway);
 
-    GreetingService service = createProxy(gateway);
+    GreetingService service1 = createProxy(gateway);
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
-      service.greeting("hello");
+      service1.greeting("hello");
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: greeting"));
       timeLatch.countDown();
@@ -561,22 +561,32 @@ public class ServiceTest extends BaseTest {
         .build();
 
     // Create microservices cluster member.
-    Microservices consumer = Microservices.builder()
+    Microservices consumer1 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
 
+    // Create microservices cluster member.
+    Microservices consumer2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build();
+    
     // Get a proxy to the service api.
-    GreetingService service = createProxy(consumer);
+    GreetingService service1 = createProxy(consumer1);
 
+    // Get a proxy to the service api.
+    GreetingService service2 = createProxy(consumer2);
+
+    
     // Init params
     int warmUpCount = 5_000;
-    int count = 320_000;
+    int count = 100_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
     for (int i = 0; i < warmUpCount; i++) {
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
+      CompletableFuture<Message> future = service1.greetingMessage(Message.fromData("naive_stress_test"));
       future.whenComplete((success, error) -> {
         if (error == null) {
           warmUpLatch.countDown();
@@ -591,11 +601,12 @@ public class ServiceTest extends BaseTest {
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
     ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-    System.out.println("availableProcessors" + Runtime.getRuntime().availableProcessors());
+    System.out.println(Runtime.getRuntime().availableProcessors());
     for (int x = 0; x < Runtime.getRuntime().availableProcessors(); x++) {
       exec.execute(() -> {
-        for (int i = 0; i < count / Runtime.getRuntime().availableProcessors(); i++) {
-          CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
+        for (int i = 0 ; i < count / Runtime.getRuntime().availableProcessors(); i++) {
+          GreetingService proxy = (i % 2 == 0)  ? service2 :  service1;
+          CompletableFuture<Message> future = proxy.greetingMessage(Message.fromData("naive_stress_test"));
           future.whenComplete((success, error) -> {
             if (error == null) {
               countLatch.countDown();
