@@ -278,7 +278,7 @@ public final class GossipProtocol implements IGossipProtocol {
     return Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
   }
 
-  private void sweepGossips() {
+  private synchronized void sweepGossips() {
     // Select gossips to sweep
     int maxPeriodsToKeep = maxPeriodsToKeep();
     Set<GossipState> gossipsToRemove = gossips.values().stream()
