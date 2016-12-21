@@ -561,7 +561,7 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
     
-    int cores = 2;
+    int cores = Runtime.getRuntime().availableProcessors();
     
     for (int i=0 ; i < cores ; i ++) {
       // Create microservices cluster member.

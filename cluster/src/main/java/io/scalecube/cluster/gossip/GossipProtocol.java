@@ -96,7 +96,7 @@ public final class GossipProtocol implements IGossipProtocol {
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);
     
-    this.transExecutor = Executors.newFixedThreadPool(4,
+    this.transExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors(),
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
     this.transScheduler = Schedulers.from(transExecutor);
   }
