@@ -601,11 +601,7 @@ public class ServiceTest extends BaseTest {
     assertTrue(countLatch.getCount() == 0);
   }
 
-  /*
-   * TODO [AK]: This test is unstable and need to be fixed and un-ignored, see builds:
-   * https://travis-ci.org/scalecube/scalecube/builds/185625139
-   * https://travis-ci.org/scalecube/scalecube/builds/185623016
-   */
+
   @Test
   public void test_service_tags() {
     Microservices gateway = Microservices.builder()
