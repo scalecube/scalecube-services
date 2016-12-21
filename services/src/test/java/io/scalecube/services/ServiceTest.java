@@ -564,19 +564,19 @@ public class ServiceTest extends BaseTest {
     ConcurrentHashMap<Integer, Microservices> consumersMap = new ConcurrentHashMap();
     ConcurrentHashMap<Integer, GreetingService> proxyMap = new ConcurrentHashMap();
     int cores = Runtime.getRuntime().availableProcessors();
-    
+
     // Create microservices cluster member.
-    for(int i = 0 ; i < cores ; i++){
+    for (int i = 0; i < cores; i++) {
       Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
-        .build();
-        consumersMap.put(i, consumer);
+          .port(port.incrementAndGet())
+          .seeds(provider.cluster().address())
+          .build();
+      consumersMap.put(i, consumer);
       proxyMap.put(i, createProxy(consumer));
     }
 
 
-    
+
     // Init params
     int warmUpCount = 15_000;
     int count = 256_000;
@@ -599,11 +599,19 @@ public class ServiceTest extends BaseTest {
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
     ExecutorService exec = Executors.newFixedThreadPool(cores);
-    
-    for (int x = 0; x < cores ; x++) {
+
+    for (int x = 0; x < cores; x++) {
       exec.execute(() -> {
-        for (int i = 0 ; i < count / cores ; i++) {
-          GreetingService proxy = proxyMap.get( i % cores);
+        for (int i = 0; i < count / cores; i++) {
+          try {
+            if (i % 200 == 0) {
+              TimeUnit.MILLISECONDS.sleep(1);
+            }
+          } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+          }
+          GreetingService proxy = proxyMap.get(i % cores);
           CompletableFuture<Message> future = proxy.greetingMessage(Message.fromData("naive_stress_test"));
           future.whenComplete((success, error) -> {
             if (error == null) {
@@ -611,7 +619,8 @@ public class ServiceTest extends BaseTest {
             }
           });
         }
-        System.out.println("Finished sending " + count / Runtime.getRuntime().availableProcessors() + " messages in " + (System.currentTimeMillis() - startTime));
+        System.out.println("Finished sending " + count / Runtime.getRuntime().availableProcessors() + " messages in "
+            + (System.currentTimeMillis() - startTime));
       });
     }
 
