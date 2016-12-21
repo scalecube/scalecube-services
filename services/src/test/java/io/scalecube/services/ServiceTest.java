@@ -578,8 +578,8 @@ public class ServiceTest extends BaseTest {
 
     
     // Init params
-    int warmUpCount = 5_000;
-    int count = 320_000;
+    int warmUpCount = 15_000;
+    int count = 256_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
