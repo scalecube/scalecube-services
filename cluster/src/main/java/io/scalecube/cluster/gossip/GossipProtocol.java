@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -72,6 +73,10 @@ public final class GossipProtocol implements IGossipProtocol {
   private final Scheduler scheduler;
   private ScheduledFuture<?> spreadGossipTask;
 
+  private ExecutorService transExecutor;
+
+  private Scheduler transScheduler;
+
   /**
    * Creates new instance of gossip protocol with given memberId, transport and settings.
    *
@@ -90,6 +95,10 @@ public final class GossipProtocol implements IGossipProtocol {
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);
+    
+    this.transExecutor = Executors.newFixedThreadPool(4,
+        new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
+    this.transScheduler = Schedulers.from(transExecutor);
   }
 
   /**
@@ -121,7 +130,7 @@ public final class GossipProtocol implements IGossipProtocol {
         .subscribe(onMemberRemovedEventSubscriber);
 
     onGossipRequestSubscriber = Subscribers.create(this::onGossipReq, this::onError);
-    transport.listen().observeOn(scheduler)
+    transport.listen().observeOn(transScheduler)
         .filter(this::isGossipReq)
         .subscribe(onGossipRequestSubscriber);
 
