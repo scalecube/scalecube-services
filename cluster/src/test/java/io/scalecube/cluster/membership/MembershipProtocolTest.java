@@ -7,6 +7,7 @@ import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
@@ -23,7 +24,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class MembershipProtocolTest {
+public class MembershipProtocolTest extends BaseTest {
 
   @Test
   public void testInitialPhaseOk() {
@@ -510,8 +511,8 @@ public class MembershipProtocolTest {
   }
 
   private List<Address> getAddressesWithStatus(MembershipProtocol membership, MemberStatus status) {
-    return membership.getMembershipRecords()
-        .stream().filter(member -> member.status() == status)
+    return membership.getMembershipRecords().stream()
+        .filter(member -> member.status() == status)
         .map(MembershipRecord::address)
         .collect(Collectors.toList());
   }

@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BaseTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(BaseTest.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(BaseTest.class);
 
   @Rule
   public final TestName testName = new TestName();
