@@ -57,7 +57,7 @@ public final class Transport implements ITransport {
   private final ExceptionHandler exceptionHandler = new ExceptionHandler();
   private final MessageToByteEncoder<Message> serializerHandler;
   private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
-  private final MessageReceiverHandler messageHandler;
+  private final MessageHandler messageHandler;
   private final NetworkEmulatorHandler networkEmulatorHandler;
 
   private Address address;
@@ -70,7 +70,7 @@ public final class Transport implements ITransport {
     this.serializerHandler = new MessageSerializerHandler();
     this.deserializerHandler = new MessageDeserializerHandler();
     this.networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
-    this.messageHandler = new MessageReceiverHandler(incomingMessagesSubject);
+    this.messageHandler = new MessageHandler(incomingMessagesSubject);
     this.bootstrapFactory = new BootstrapFactory(config);
     this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
