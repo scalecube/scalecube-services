@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -54,6 +53,7 @@ public final class GossipProtocol implements IGossipProtocol {
   private long gossipCounter = 0;
   private Map<String, GossipState> gossips = Maps.newHashMap();
   private List<Member> remoteMembers = new ArrayList<>();
+  private int remoteMembersIndex = -1;
 
   // Subscriptions
 
@@ -105,7 +105,6 @@ public final class GossipProtocol implements IGossipProtocol {
     return membership.member();
   }
 
-
   @Override
   public void start() {
     onMemberAddedEventSubscriber = Subscribers.create(remoteMembers::add, this::onError);
@@ -152,6 +151,7 @@ public final class GossipProtocol implements IGossipProtocol {
     }
 
     // Shutdown executor
+    // TODO AK: Consider to await termination ?!
     executor.shutdown();
 
     // Stop publishing events
@@ -176,9 +176,9 @@ public final class GossipProtocol implements IGossipProtocol {
     // Increment period
     period++;
 
-    // Check any gossips to spread
+    // Check any gossips exists
     if (gossips.isEmpty()) {
-      return;
+      return; // nothing to spread
     }
 
     try {
@@ -227,25 +227,6 @@ public final class GossipProtocol implements IGossipProtocol {
     return membership.member().id() + "-" + gossipCounter++;
   }
 
-  private List<Gossip> selectGossipsToSend(Member member) {
-    return gossips.values().stream()
-        .filter(gossipState -> !gossipState.isInfected(member)) // already infected
-        .filter(gossipState -> gossipState.infectionPeriod() + factor() >= period) // max rounds
-        .map(GossipState::gossip)
-        .collect(Collectors.toList());
-  }
-
-  private List<Member> selectGossipMembers() {
-    if (remoteMembers.size() < config.getGossipFanout()) {
-      return remoteMembers; // all
-    } else if (config.getGossipFanout() == 1) {
-      return Collections.singletonList(remoteMembers.get(ThreadLocalRandom.current().nextInt(remoteMembers.size())));
-    } else {
-      Collections.shuffle(remoteMembers);
-      return remoteMembers.subList(0, config.getGossipFanout());
-    }
-  }
-
   private void spreadGossipsTo(Member member) {
     // Select gossips to send
     List<Gossip> gossipsToSend = selectGossipsToSend(member);
@@ -254,33 +235,79 @@ public final class GossipProtocol implements IGossipProtocol {
     }
 
     // Send gossip request
-    GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member());
-    Message gossipReqMsg = Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
+    Message gossipReqMsg = buildGossipRequestMessage(gossipsToSend);
     transport.send(member.address(), gossipReqMsg);
-
-    // Update gossip states
-    gossipsToSend.forEach(gossip -> {
-      GossipState gossipState = gossips.get(gossip.gossipId());
-      gossipState.incrementSpreadCount();
-      gossipState.addToInfected(member);
-    });
   }
 
-  private void sweepGossips() {
-    int maxPeriodsToKeep = 2 * (factor() + 1);
-    Set<GossipState> gossipsToRemove = gossips.values().stream()
-        .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriodsToKeep)
-        .collect(Collectors.toSet());
-    if (!gossipsToRemove.isEmpty()) {
-      LOGGER.debug("Sweep gossips: {}", gossipsToRemove);
-      for (GossipState gossipState : gossipsToRemove) {
-        gossips.remove(gossipState.gossip().gossipId());
+  private List<Gossip> selectGossipsToSend(Member member) {
+    int maxPeriodsToSpread = periodsToSpread();
+    return gossips.values().stream()
+        .filter(gossipState -> gossipState.infectionPeriod() + maxPeriodsToSpread >= period) // max rounds
+        .filter(gossipState -> !gossipState.isInfected(member)) // already infected
+        .map(GossipState::gossip)
+        .collect(Collectors.toList());
+  }
+
+  private List<Member> selectGossipMembers() {
+    int gossipFanout = config.getGossipFanout();
+    if (remoteMembers.size() < gossipFanout) { // select all
+      return remoteMembers;
+    } else { // select random members
+      // Shuffle members initially and once reached top bound
+      if (remoteMembersIndex < 0 || remoteMembersIndex + gossipFanout > remoteMembers.size()) {
+        Collections.shuffle(remoteMembers);
+        remoteMembersIndex = 0;
       }
+
+      // Select members
+      List<Member> selectedMembers = gossipFanout == 1
+          ? Collections.singletonList(remoteMembers.get(remoteMembersIndex))
+          : remoteMembers.subList(remoteMembersIndex, remoteMembersIndex + gossipFanout);
+
+      // Increment index and return result
+      remoteMembersIndex += gossipFanout;
+      return selectedMembers;
     }
   }
 
-  private int factor() {
-    return 32 - Integer.numberOfLeadingZeros(remoteMembers.size() + 1) /* log2 */;
+  private Message buildGossipRequestMessage(List<Gossip> gossipsToSend) {
+    GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member());
+    return Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
+  }
+
+  private void sweepGossips() {
+    // Select gossips to sweep
+    int maxPeriodsToKeep = periodsToKeep();
+    Set<GossipState> gossipsToRemove = gossips.values().stream()
+        .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriodsToKeep)
+        .collect(Collectors.toSet());
+
+    // Check if anything selected
+    if (gossipsToRemove.isEmpty()) {
+      return; // nothing to sweep
+    }
+
+    // Sweep gossips
+    LOGGER.debug("Sweep gossips: {}", gossipsToRemove);
+    for (GossipState gossipState : gossipsToRemove) {
+      gossips.remove(gossipState.gossip().gossipId());
+    }
+  }
+
+  private int periodsToKeep() {
+    return 2 * (periodsToSpread() + 1);
+  }
+
+  private int periodsToSpread() {
+    return config.getGossipFactor() * ceilLog2(remoteMembers.size() + 1);
+  }
+
+  long gossipLifetime() {
+    return periodsToKeep() * config.getGossipInterval();
+  }
+  
+  private int ceilLog2(int num) {
+    return 32 - Integer.numberOfLeadingZeros(num) /* ceil[log2(N)] */;
   }
 
 }

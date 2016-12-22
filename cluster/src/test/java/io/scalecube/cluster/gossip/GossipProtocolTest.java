@@ -12,10 +12,13 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.LongSummaryStatistics;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -27,40 +30,74 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RunWith(Parameterized.class)
 public class GossipProtocolTest {
 
-  @Parameterized.Parameters(name = "N={0}, Plost={1}%, Tmean={2}ms, T={3}ms")
+  private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocolTest.class);
+
+  private static List<Object[]> experiments = Arrays.asList(new Object[][] {
+//      N  , L  ,  D      // N - num of nodes, L - msg loss percent, D - msg mean delay (ms)
+      { 2  , 0  ,  2   }, // warm up
+      { 2  , 0  ,  2   },
+      { 3  , 0  ,  2   },
+      { 5  , 0  ,  2   },
+      { 10 , 0  ,  2   },
+      { 10 , 10 ,  2   },
+      { 10 , 25 ,  2   },
+      { 10 , 25 ,  100 },
+      { 10 , 50 ,  2   },
+      { 50 , 0  ,  2   },
+      { 50 , 10 ,  2   },
+      { 50 , 10 ,  100 },
+  });
+
+  // Makes tests run longer since always awaits for maximum gossip lifetime, but performs more checks
+  private static final boolean awaitFullCompletion = true;
+
+  // Allow to configure gossip settings other than defaults
+  private static final long gossipInterval /* ms */ = GossipConfig.DEFAULT_GOSSIP_INTERVAL;
+  private static final int gossipFanout = GossipConfig.DEFAULT_GOSSIP_FANOUT;
+  private static final int gossipFactor = GossipConfig.DEFAULT_GOSSIP_FACTOR;
+
+
+  // Uncomment and modify params to run single experiment repeatedly
+//  static {
+//    int repeatCount = 1000;
+//    int membersNum = 10;
+//    int lossPercent = 50; //%
+//    int meanDelay = 2; //ms
+//    experiments = new ArrayList<>(repeatCount + 1);
+//    experiments.add(new Object[] {2, 0, 2}); // add warm up experiment
+//    for (int i = 0; i < repeatCount; i++) {
+//      experiments.add(new Object[] {membersNum, lossPercent,  meanDelay});
+//    }
+//  }
+
+  @Parameterized.Parameters(name = "N={0}, Ploss={1}%, Tmean={2}ms")
   public static List<Object[]> data() {
-    return Arrays.asList(new Object[][] {
-        { 2  , 0  ,  2   , 1_000  }, // warm up
-        { 2  , 0  ,  2   ,   500  },
-        { 3  , 0  ,  2   ,   500  },
-        { 5  , 0  ,  2   ,   800  },
-        { 10 , 0  ,  2   , 1_000  },
-        { 10 , 25 ,  2   , 2_000  },
-        { 10 , 50 ,  2   , 4_000  },
-        { 50 , 0  ,  2   , 5_000  },
-        { 50 , 10  , 300 , 10_000 },
-    });
+    return experiments;
   }
 
   private final int membersNum;
-  private final int lostPercent;
+  private final int lossPercent;
   private final int meanDelay;
-  private final int timeout;
 
-  public GossipProtocolTest(Integer membersNum, Integer lostPercent, Integer meanDelay, Integer timeout) {
+  public GossipProtocolTest(int membersNum, int lossPercent, int meanDelay) {
     this.membersNum = membersNum;
-    this.lostPercent = lostPercent;
+    this.lossPercent = lossPercent;
     this.meanDelay = meanDelay;
-    this.timeout = timeout;
   }
 
   @Test
   public void testGossipProtocol() throws Exception {
     // Init gossip protocol instances
-    List<GossipProtocol> gossipProtocols = initGossipProtocols(membersNum, lostPercent, meanDelay);
+    List<GossipProtocol> gossipProtocols = initGossipProtocols(membersNum, lossPercent, meanDelay);
 
     // Subscribe on gossips
-    long time = 0;
+    long disseminationTime = 0;
+    long awaitCompletionTime = 0;
+    LongSummaryStatistics messageSentStatsDissemination = null;
+    LongSummaryStatistics messageLostStatsDissemination = null;
+    LongSummaryStatistics messageSentStatsOverall = null;
+    LongSummaryStatistics messageLostStatsOverall = null;
+    long gossipLifetime = gossipProtocols.get(0).gossipLifetime();
     try {
       final String gossipData = "test gossip - " + ThreadLocalRandom.current().nextLong();
       final CountDownLatch latch = new CountDownLatch(membersNum - 1);
@@ -73,7 +110,7 @@ public class GossipProtocolTest {
             if (firstTimeAdded) {
               latch.countDown();
             } else {
-              System.out.println("Delivered gossip twice to: " + protocol.getTransport().address());
+              LOGGER.error("Delivered gossip twice to: {}", protocol.getTransport().address());
               doubleDelivery.set(true);
             }
           }
@@ -83,16 +120,60 @@ public class GossipProtocolTest {
       // Spread gossip, measure and verify delivery metrics
       long start = System.currentTimeMillis();
       gossipProtocols.get(0).spread(Message.fromData(gossipData));
-      latch.await(2 * timeout, TimeUnit.MILLISECONDS); // Await double timeout
-      time = System.currentTimeMillis() - start;
-      Assert.assertFalse("Delivered gossip twice to same member", doubleDelivery.get());
+      latch.await(2 * gossipLifetime, TimeUnit.MILLISECONDS); // Await for double gossip lifetime
+      disseminationTime = System.currentTimeMillis() - start;
+      messageSentStatsDissemination = computeMessageSentStats(gossipProtocols);
+      messageLostStatsDissemination = computeMessageLostStats(gossipProtocols);
       Assert.assertEquals("Not all members received gossip", membersNum - 1, receivers.size());
-      Assert.assertTrue("Time " + time + "ms is bigger then expected " + timeout + "ms", time < timeout);
+      Assert.assertTrue("Too long dissemination time " + disseminationTime
+              + "ms (timeout " + gossipLifetime + "ms)", disseminationTime < gossipLifetime);
+
+      // Await gossip lifetime plus few gossip intervals too ensure gossip is fully spread
+      if (awaitFullCompletion) {
+        awaitCompletionTime = gossipLifetime - disseminationTime + 3 * gossipInterval;
+        Thread.sleep(awaitCompletionTime);
+
+        messageSentStatsOverall = computeMessageSentStats(gossipProtocols);
+        messageLostStatsOverall = computeMessageLostStats(gossipProtocols);
+      }
+      Assert.assertFalse("Delivered gossip twice to same member", doubleDelivery.get());
     } finally {
+      // Print results
+      LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Gossip dissemination time: {} ms (max {} ms)",
+          membersNum, lossPercent, meanDelay, disseminationTime, gossipLifetime);
+      LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message sent until dissemination stats: {}",
+          membersNum, lossPercent, meanDelay, messageSentStatsDissemination);
+      LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message lost until dissemination stats: {}",
+          membersNum, lossPercent, meanDelay, messageLostStatsDissemination);
+      if (awaitFullCompletion) {
+        LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message sent total stats (after await for {} ms): {}",
+            membersNum, lossPercent, meanDelay, awaitCompletionTime, messageSentStatsOverall);
+        LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message lost total stats (after await for {} ms): {}",
+            membersNum, lossPercent, meanDelay, awaitCompletionTime, messageLostStatsOverall);
+      }
+
       // Destroy gossip protocol instances
       destroyGossipProtocols(gossipProtocols);
-      System.out.println("Gossip dissemination time: " + time + " ms");
+
     }
+  }
+
+  private LongSummaryStatistics computeMessageSentStats(List<GossipProtocol> gossipProtocols) {
+    List<Long> messageSentPerNode = new ArrayList<>(gossipProtocols.size());
+    for (GossipProtocol gossipProtocol : gossipProtocols) {
+      Transport transport = (Transport) gossipProtocol.getTransport();
+      messageSentPerNode.add(transport.totalMessageSentCount());
+    }
+    return messageSentPerNode.stream().mapToLong(v -> v).summaryStatistics();
+  }
+
+  private LongSummaryStatistics computeMessageLostStats(List<GossipProtocol> gossipProtocols) {
+    List<Long> messageLostPerNode = new ArrayList<>(gossipProtocols.size());
+    for (GossipProtocol gossipProtocol : gossipProtocols) {
+      Transport transport = (Transport) gossipProtocol.getTransport();
+      messageLostPerNode.add(transport.totalMessageLostCount());
+    }
+    return messageLostPerNode.stream().mapToLong(v -> v).summaryStatistics();
   }
 
   private List<GossipProtocol> initGossipProtocols(int count, int lostPercent, int meanDelay) {
@@ -127,7 +208,12 @@ public class GossipProtocolTest {
 
   private GossipProtocol initGossipProtocol(Transport transport, List<Address> members) {
     IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), members);
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership, GossipConfig.defaultConfig());
+    GossipConfig gossipConfig = GossipConfig.builder()
+        .gossipFanout(gossipFanout)
+        .gossipInterval(gossipInterval)
+        .gossipFactor(gossipFactor)
+        .build();
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership, gossipConfig);
     gossipProtocol.start();
     return gossipProtocol;
   }
@@ -148,7 +234,7 @@ public class GossipProtocolTest {
     try {
       CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).get(30, TimeUnit.SECONDS);
     } catch (Exception ignore) {
-      System.out.println("Failed to await transport termination");
+      LOGGER.warn("Failed to await transport termination");
     }
 
     // Await a bit

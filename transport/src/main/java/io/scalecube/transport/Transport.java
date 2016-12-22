@@ -189,7 +189,7 @@ public final class Transport implements ITransport {
   public void setDefaultNetworkSettings(int lostPercent, int meanDelay) {
     if (config.isUseNetworkEmulator()) {
       networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
-      LOGGER.info("Set default network settings (loss={}%, mean={}ms)");
+      LOGGER.info("Set default network settings (loss={}%, mean={}ms)", lostPercent, meanDelay);
     } else {
       LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
           lostPercent, meanDelay);
@@ -241,6 +241,30 @@ public final class Transport implements ITransport {
       LOGGER.info("Unblock all network from {}", address);
     } else {
       LOGGER.warn("Noop on 'unblockAll()' since network emulator is disabled");
+    }
+  }
+
+  /**
+   * Returns total message sent count computed by network emulator. If network emulator is disabled returns zero.
+   */
+  public long totalMessageSentCount() {
+    if (config.isUseNetworkEmulator()) {
+      return networkEmulatorHandler.totalMessageSentCount();
+    } else {
+      LOGGER.warn("Noop on 'totalMessageSentCount()' since network emulator is disabled");
+      return 0;
+    }
+  }
+
+  /**
+   * Returns total message lost count computed by network emulator. If network emulator is disabled returns zero.
+   */
+  public long totalMessageLostCount() {
+    if (config.isUseNetworkEmulator()) {
+      return networkEmulatorHandler.totalMessageLostCount();
+    } else {
+      LOGGER.warn("Noop on 'totalMessageLostCount()' since network emulator is disabled");
+      return 0;
     }
   }
 
@@ -353,7 +377,7 @@ public final class Transport implements ITransport {
       // Register logger and cleanup listener
       connectFuture.addListener((ChannelFutureListener) channelFuture -> {
         if (channelFuture.isSuccess()) {
-          LOGGER.info("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
+          LOGGER.debug("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
         } else {
           LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
           outgoingChannels.delete(address);
