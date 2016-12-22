@@ -57,7 +57,7 @@ public final class Transport implements ITransport {
   private final ExceptionHandler exceptionHandler = new ExceptionHandler();
   private final MessageToByteEncoder<Message> serializerHandler;
   private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
-  private final MessageReceiverHandler messageHandler;
+  private final MessageHandler messageHandler;
   private final NetworkEmulatorHandler networkEmulatorHandler;
 
   private Address address;
@@ -70,7 +70,7 @@ public final class Transport implements ITransport {
     this.serializerHandler = new MessageSerializerHandler();
     this.deserializerHandler = new MessageDeserializerHandler();
     this.networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
-    this.messageHandler = new MessageReceiverHandler(incomingMessagesSubject);
+    this.messageHandler = new MessageHandler(incomingMessagesSubject);
     this.bootstrapFactory = new BootstrapFactory(config);
     this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
@@ -172,27 +172,27 @@ public final class Transport implements ITransport {
   /**
    * Sets given network emulator settings. If network emulator is disabled do nothing.
    */
-  public void setNetworkSettings(Address destination, int lostPercent, int meanDelay) {
+  public void setNetworkSettings(Address destination, int lossPercent, int meanDelay) {
     if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.setNetworkSettings(destination, lostPercent, meanDelay);
+      networkEmulatorHandler.setNetworkSettings(destination, lossPercent, meanDelay);
       LOGGER.info("Set network settings (loss={}%, mean={}ms) from {} to {}",
-          lostPercent, meanDelay, address, destination);
+          lossPercent, meanDelay, address, destination);
     } else {
       LOGGER.warn("Noop on 'setNetworkSettings({},{},{})' since network emulator is disabled",
-          destination, lostPercent, meanDelay);
+          destination, lossPercent, meanDelay);
     }
   }
 
   /**
    * Sets default network emulator settings. If network emulator is disabled do nothing.
    */
-  public void setDefaultNetworkSettings(int lostPercent, int meanDelay) {
+  public void setDefaultNetworkSettings(int lossPercent, int meanDelay) {
     if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.setDefaultNetworkSettings(lostPercent, meanDelay);
-      LOGGER.info("Set default network settings (loss={}%, mean={}ms)", lostPercent, meanDelay);
+      networkEmulatorHandler.setDefaultNetworkSettings(lossPercent, meanDelay);
+      LOGGER.info("Set default network settings (loss={}%, mean={}ms)", lossPercent, meanDelay);
     } else {
       LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
-          lostPercent, meanDelay);
+          lossPercent, meanDelay);
     }
   }
 

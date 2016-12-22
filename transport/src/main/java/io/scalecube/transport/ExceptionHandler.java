@@ -14,7 +14,8 @@ import org.slf4j.LoggerFactory;
  */
 @ChannelHandler.Sharable
 final class ExceptionHandler extends ChannelDuplexHandler {
-  static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandler.class);
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionHandler.class);
 
   @Override
   public final void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {

@@ -7,8 +7,8 @@ import javax.annotation.Nonnull;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Transport is responsible for maintaining existing p2p connections to/from other transports. It allows sending
- * messages and listen incoming messages.
+ * Transport is responsible for maintaining existing p2p connections to/from other transports.
+ * It allows to send messages to other transports and listen for incoming messages.
  */
 public interface ITransport {
 
@@ -18,14 +18,14 @@ public interface ITransport {
   Address address();
 
   /**
-   * Stop transport, disconnect all available connections which belong to this transport. <br/>
-   * After transport is stopped it can't be opened again. Observable returned from method {@link #listen()} will
+   * Stop transport, disconnect all connections and release all resources which belong to this transport. <br/>
+   * After transport is stopped it can't be used again. Observable returned from method {@link #listen()} will
    * immediately emit onComplete event for all subscribers.
    */
   void stop();
 
   /**
-   * Stop transport, disconnect all available connections which belong to this transport. <br/>
+   * Stop transport, disconnect all connections and release all resources which belong to this transport. <br/>
    * After transport is stopped it can't be opened again. Observable returned from method {@link #listen()} will
    * immediately emit onComplete event for all subscribers. <br/>
    * Stop is async operation, if result of operation is not needed use {@link ITransport#stop}, otherwise pass

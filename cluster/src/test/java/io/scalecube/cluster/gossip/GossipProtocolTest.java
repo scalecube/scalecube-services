@@ -3,6 +3,7 @@ package io.scalecube.cluster.gossip;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
@@ -28,7 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RunWith(Parameterized.class)
-public class GossipProtocolTest {
+public class GossipProtocolTest extends BaseTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GossipProtocolTest.class);
 

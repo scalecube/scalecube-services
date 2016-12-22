@@ -14,13 +14,13 @@ import org.slf4j.LoggerFactory;
  * <b>NOTE:</b> in the pipeline this handler must be set just right before {@link ExceptionHandler}.
  */
 @ChannelHandler.Sharable
-final class MessageReceiverHandler extends ChannelInboundHandlerAdapter {
+final class MessageHandler extends ChannelInboundHandlerAdapter {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MessageReceiverHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MessageHandler.class);
 
   private final Subject<Message, Message> incomingMessagesSubject;
 
-  MessageReceiverHandler(Subject<Message, Message> incomingMessagesSubject) {
+  MessageHandler(Subject<Message, Message> incomingMessagesSubject) {
     this.incomingMessagesSubject = incomingMessagesSubject;
   }
 

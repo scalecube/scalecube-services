@@ -29,7 +29,7 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
 
   private final AtomicLong totalMessageLostCount = new AtomicLong();
 
-  private NetworkEmulatorSettings defaultSettings = new NetworkEmulatorSettings(0, 0);
+  private volatile NetworkEmulatorSettings defaultSettings = new NetworkEmulatorSettings(0, 0);
 
   @Override
   public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
@@ -50,12 +50,9 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
     int delay = (int) networkSettings.evaluateDelay();
     if (delay > 0) {
       try {
-        ctx.channel().eventLoop().schedule(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            ctx.writeAndFlush(msg, promise);
-            return null;
-          }
+        ctx.channel().eventLoop().schedule((Callable<Void>) () -> {
+          ctx.writeAndFlush(msg, promise);
+          return null;
         }, delay, TimeUnit.MILLISECONDS);
       } catch (RejectedExecutionException e) {
         if (promise != null) {
@@ -76,14 +73,14 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
     return networkSettings.containsKey(remoteAddress) ? networkSettings.get(remoteAddress) : defaultSettings;
   }
 
-  public void setNetworkSettings(Address destination, int lostPercent, int mean) {
-    NetworkEmulatorSettings settings = new NetworkEmulatorSettings(lostPercent, mean);
+  public void setNetworkSettings(Address destination, int lossPercent, int mean) {
+    NetworkEmulatorSettings settings = new NetworkEmulatorSettings(lossPercent, mean);
     networkSettings.put(destination, settings);
     LOGGER.debug("Set {} for messages to: {}", settings, destination);
   }
 
-  public void setDefaultNetworkSettings(int lostPercent, int delay) {
-    defaultSettings = new NetworkEmulatorSettings(lostPercent, delay);
+  public void setDefaultNetworkSettings(int lossPercent, int delay) {
+    defaultSettings = new NetworkEmulatorSettings(lossPercent, delay);
     LOGGER.debug("Set default {}", defaultSettings);
   }
 
