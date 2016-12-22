@@ -11,19 +11,19 @@ import java.util.concurrent.ThreadLocalRandom;
  * 
  * @author alexeyz
  */
-public final class NetworkEmulatorSettings {
+final class NetworkEmulatorSettings {
 
-  private final int lostPercent;
+  private final int lossPercent;
   private final int meanDelay;
 
-  public NetworkEmulatorSettings(int lostPercent, int mean) {
-    this.lostPercent = lostPercent;
+  public NetworkEmulatorSettings(int lossPercent, int mean) {
+    this.lossPercent = lossPercent;
     this.meanDelay = mean;
   }
 
   /** Probability of message loss in percents. */
-  public int getLostPercent() {
-    return lostPercent;
+  public int getLossPercent() {
+    return lossPercent;
   }
 
   /** Mean network delay for message in milliseconds. */
@@ -32,7 +32,7 @@ public final class NetworkEmulatorSettings {
   }
 
   public boolean evaluateLost() {
-    return lostPercent > 0 && (lostPercent >= 100 || ThreadLocalRandom.current().nextInt(100) < lostPercent);
+    return lossPercent > 0 && (lossPercent >= 100 || ThreadLocalRandom.current().nextInt(100) < lossPercent);
   }
 
   /** Delays are emulated using exponential distribution of probabilities. */
@@ -49,6 +49,6 @@ public final class NetworkEmulatorSettings {
 
   @Override
   public String toString() {
-    return "NetworkEmulatorSettings{lostPercent=" + lostPercent + ", meanDelay=" + meanDelay + '}';
+    return "NetworkEmulatorSettings{lossPercent=" + lossPercent + ", meanDelay=" + meanDelay + '}';
   }
 }

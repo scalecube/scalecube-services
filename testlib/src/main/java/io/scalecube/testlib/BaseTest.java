@@ -21,12 +21,12 @@ public class BaseTest {
 
   @Before
   public final void baseSetUp() throws Exception {
-    LOGGER.info("***** Test started: " + getClass().getSimpleName() + "." + testName.getMethodName() + " *****");
+    LOGGER.info("***** Test started  : " + getClass().getSimpleName() + "." + testName.getMethodName() + " *****");
   }
 
   @After
   public final void baseTearDown() throws Exception {
-    LOGGER.info("***** Test finished: " + getClass().getSimpleName() + "." + testName.getMethodName() + " *****");
+    LOGGER.info("***** Test finished : " + getClass().getSimpleName() + "." + testName.getMethodName() + " *****");
   }
 
 }

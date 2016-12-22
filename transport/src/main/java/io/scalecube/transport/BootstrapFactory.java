@@ -43,8 +43,7 @@ final class BootstrapFactory {
       } catch (Throwable t) {
         LOGGER
             .warn("Tried to use epoll transport, but it's not supported by host OS (or no corresponding libs included) "
-                +
-                "using NIO instead, cause: " + Throwables.getRootCause(t));
+                + "using NIO instead, cause: " + Throwables.getRootCause(t));
         envSupportEpoll = false;
       }
     }
@@ -87,8 +86,9 @@ final class BootstrapFactory {
    * @return {@link EpollEventLoopGroup} or {@link NioEventLoopGroup} object dep on {@link #isEpollSupported()} call.
    */
   private EventLoopGroup createEventLoopGroup(int threadNum, ThreadFactory threadFactory) {
-    return isEpollSupported() ? new EpollEventLoopGroup(threadNum, threadFactory) : new NioEventLoopGroup(threadNum,
-        threadFactory);
+    return isEpollSupported()
+        ? new EpollEventLoopGroup(threadNum, threadFactory)
+        : new NioEventLoopGroup(threadNum, threadFactory);
   }
 
   private Class<? extends ServerSocketChannel> serverChannelClass() {
