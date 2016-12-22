@@ -1,5 +1,6 @@
 package io.scalecube.cluster.gossip;
 
+import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
@@ -28,6 +29,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static io.scalecube.cluster.ClusterMath.gossipConvergencePercent;
+import static io.scalecube.cluster.ClusterMath.gossipDisseminationTime;
+import static io.scalecube.cluster.ClusterMath.maxMessagesPerGossipPerNode;
+import static io.scalecube.cluster.ClusterMath.maxMessagesPerGossipTotal;
+
 @RunWith(Parameterized.class)
 public class GossipProtocolTest extends BaseTest {
 
@@ -55,7 +61,7 @@ public class GossipProtocolTest extends BaseTest {
   // Allow to configure gossip settings other than defaults
   private static final long gossipInterval /* ms */ = GossipConfig.DEFAULT_GOSSIP_INTERVAL;
   private static final int gossipFanout = GossipConfig.DEFAULT_GOSSIP_FANOUT;
-  private static final int gossipFactor = GossipConfig.DEFAULT_GOSSIP_FACTOR;
+  private static final int gossipRepeatMultiplier = GossipConfig.DEFAULT_GOSSIP_REPEAT_MULTIPLIER;
 
 
   // Uncomment and modify params to run single experiment repeatedly
@@ -98,7 +104,7 @@ public class GossipProtocolTest extends BaseTest {
     LongSummaryStatistics messageLostStatsDissemination = null;
     LongSummaryStatistics messageSentStatsOverall = null;
     LongSummaryStatistics messageLostStatsOverall = null;
-    long gossipLifetime = gossipProtocols.get(0).gossipLifetime();
+    long gossipTimeout = ClusterMath.gossipTimeoutToSweep(gossipRepeatMultiplier, membersNum, gossipInterval);
     try {
       final String gossipData = "test gossip - " + ThreadLocalRandom.current().nextLong();
       final CountDownLatch latch = new CountDownLatch(membersNum - 1);
@@ -121,36 +127,49 @@ public class GossipProtocolTest extends BaseTest {
       // Spread gossip, measure and verify delivery metrics
       long start = System.currentTimeMillis();
       gossipProtocols.get(0).spread(Message.fromData(gossipData));
-      latch.await(2 * gossipLifetime, TimeUnit.MILLISECONDS); // Await for double gossip lifetime
+      latch.await(2 * gossipTimeout, TimeUnit.MILLISECONDS); // Await for double gossip timeout
       disseminationTime = System.currentTimeMillis() - start;
       messageSentStatsDissemination = computeMessageSentStats(gossipProtocols);
-      messageLostStatsDissemination = computeMessageLostStats(gossipProtocols);
+      if (lossPercent > 0) {
+        messageLostStatsDissemination = computeMessageLostStats(gossipProtocols);
+      }
       Assert.assertEquals("Not all members received gossip", membersNum - 1, receivers.size());
       Assert.assertTrue("Too long dissemination time " + disseminationTime
-              + "ms (timeout " + gossipLifetime + "ms)", disseminationTime < gossipLifetime);
+              + "ms (timeout " + gossipTimeout + "ms)", disseminationTime < gossipTimeout);
 
       // Await gossip lifetime plus few gossip intervals too ensure gossip is fully spread
       if (awaitFullCompletion) {
-        awaitCompletionTime = gossipLifetime - disseminationTime + 3 * gossipInterval;
+        awaitCompletionTime = gossipTimeout - disseminationTime + 3 * gossipInterval;
         Thread.sleep(awaitCompletionTime);
 
         messageSentStatsOverall = computeMessageSentStats(gossipProtocols);
-        messageLostStatsOverall = computeMessageLostStats(gossipProtocols);
+        if (lossPercent > 0) {
+          messageLostStatsOverall = computeMessageLostStats(gossipProtocols);
+        }
       }
       Assert.assertFalse("Delivered gossip twice to same member", doubleDelivery.get());
     } finally {
-      // Print results
-      LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Gossip dissemination time: {} ms (max {} ms)",
-          membersNum, lossPercent, meanDelay, disseminationTime, gossipLifetime);
-      LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message sent until dissemination stats: {}",
-          membersNum, lossPercent, meanDelay, messageSentStatsDissemination);
-      LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message lost until dissemination stats: {}",
-          membersNum, lossPercent, meanDelay, messageLostStatsDissemination);
+      // Print theoretical results
+      LOGGER.info("Experiment params: N={}, Gfanout={}, Grepeat_mult={}, Tgossip={}ms Ploss={}%, Tmean={}ms",
+          membersNum, gossipFanout, gossipRepeatMultiplier, gossipInterval, lossPercent, meanDelay);
+      double convergProb = gossipConvergencePercent(gossipFanout, gossipRepeatMultiplier, membersNum, lossPercent);
+      long expDissemTime = gossipDisseminationTime(gossipRepeatMultiplier, membersNum, gossipInterval);
+      int maxMsgPerNode = maxMessagesPerGossipPerNode(gossipFanout, gossipRepeatMultiplier, membersNum);
+      int maxMsgTotal = maxMessagesPerGossipTotal(gossipFanout, gossipRepeatMultiplier, membersNum);
+      LOGGER.info("Expected dissemination time is {}ms with probability {}%", expDissemTime, convergProb);
+      LOGGER.info("Max messages sent per node {} and total {}", maxMsgPerNode, maxMsgTotal);
+
+      // Print actual results
+      LOGGER.info("Actual dissemination time: {}ms (timeout {}ms)", disseminationTime, gossipTimeout);
+      LOGGER.info("Messages sent stats (diss.): {}", messageSentStatsDissemination);
+      if (lossPercent > 0) {
+        LOGGER.info("Messages lost stats (diss.): {}", messageLostStatsDissemination);
+      }
       if (awaitFullCompletion) {
-        LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message sent total stats (after await for {} ms): {}",
-            membersNum, lossPercent, meanDelay, awaitCompletionTime, messageSentStatsOverall);
-        LOGGER.info("[N={}, Ploss={}%, Tmean={}ms] Message lost total stats (after await for {} ms): {}",
-            membersNum, lossPercent, meanDelay, awaitCompletionTime, messageLostStatsOverall);
+        LOGGER.info("Messages sent stats (total): {}", messageSentStatsOverall);
+        if (lossPercent > 0) {
+          LOGGER.info("Messages lost stats (total): {}", messageLostStatsOverall);
+        }
       }
 
       // Destroy gossip protocol instances
@@ -212,7 +231,7 @@ public class GossipProtocolTest extends BaseTest {
     GossipConfig gossipConfig = GossipConfig.builder()
         .gossipFanout(gossipFanout)
         .gossipInterval(gossipInterval)
-        .gossipFactor(gossipFactor)
+        .gossipRepeatMultiplier(gossipRepeatMultiplier)
         .build();
     GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership, gossipConfig);
     gossipProtocol.start();

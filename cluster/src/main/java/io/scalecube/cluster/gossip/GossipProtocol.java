@@ -2,6 +2,7 @@ package io.scalecube.cluster.gossip;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MembershipEvent;
@@ -240,9 +241,10 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private List<Gossip> selectGossipsToSend(Member member) {
-    int maxPeriodsToSpread = periodsToSpread();
+    int periodsToSpread =
+        ClusterMath.gossipPeriodsToSpread(config.getGossipRepeatMultiplier(), remoteMembers.size() + 1);
     return gossips.values().stream()
-        .filter(gossipState -> gossipState.infectionPeriod() + maxPeriodsToSpread >= period) // max rounds
+        .filter(gossipState -> gossipState.infectionPeriod() + periodsToSpread >= period) // max rounds
         .filter(gossipState -> !gossipState.isInfected(member)) // already infected
         .map(GossipState::gossip)
         .collect(Collectors.toList());
@@ -277,9 +279,9 @@ public final class GossipProtocol implements IGossipProtocol {
 
   private void sweepGossips() {
     // Select gossips to sweep
-    int maxPeriodsToKeep = periodsToKeep();
+    int periodsToSweep = ClusterMath.gossipPeriodsToSweep(config.getGossipRepeatMultiplier(), remoteMembers.size() + 1);
     Set<GossipState> gossipsToRemove = gossips.values().stream()
-        .filter(gossipState -> period > gossipState.infectionPeriod() + maxPeriodsToKeep)
+        .filter(gossipState -> period > gossipState.infectionPeriod() + periodsToSweep)
         .collect(Collectors.toSet());
 
     // Check if anything selected
@@ -292,22 +294,6 @@ public final class GossipProtocol implements IGossipProtocol {
     for (GossipState gossipState : gossipsToRemove) {
       gossips.remove(gossipState.gossip().gossipId());
     }
-  }
-
-  private int periodsToKeep() {
-    return 2 * (periodsToSpread() + 1);
-  }
-
-  private int periodsToSpread() {
-    return config.getGossipFactor() * ceilLog2(remoteMembers.size() + 1);
-  }
-
-  long gossipLifetime() {
-    return periodsToKeep() * config.getGossipInterval();
-  }
-  
-  private int ceilLog2(int num) {
-    return 32 - Integer.numberOfLeadingZeros(num) /* ceil[log2(N)] */;
   }
 
 }
