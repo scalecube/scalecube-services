@@ -32,7 +32,6 @@ import rx.subjects.Subject;
 
 import java.net.BindException;
 import java.net.InetAddress;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,10 +57,14 @@ public final class Transport implements ITransport {
   private final MessageToByteEncoder<Message> serializerHandler;
   private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
   private final MessageHandler messageHandler;
-  private final NetworkEmulatorHandler networkEmulatorHandler;
+
+  // Network emulator
+  private NetworkEmulator networkEmulator;
+  private NetworkEmulatorHandler networkEmulatorHandler;
 
   private Address address;
   private ServerChannel serverChannel;
+
   private volatile boolean stopped = false;
 
   private Transport(TransportConfig config) {
@@ -69,7 +72,6 @@ public final class Transport implements ITransport {
     this.config = config;
     this.serializerHandler = new MessageSerializerHandler();
     this.deserializerHandler = new MessageDeserializerHandler();
-    this.networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
     this.messageHandler = new MessageHandler(incomingMessagesSubject);
     this.bootstrapFactory = new BootstrapFactory(config);
   }
@@ -138,6 +140,8 @@ public final class Transport implements ITransport {
     bindFuture.addListener((ChannelFutureListener) channelFuture -> {
       if (channelFuture.isSuccess()) {
         serverChannel = (ServerChannel) channelFuture.channel();
+        networkEmulator = new NetworkEmulator(address, config.isUseNetworkEmulator());
+        networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler(networkEmulator) : null;
         LOGGER.info("Bound to: {}", address);
         result.complete(Transport.this);
       } else {
@@ -160,6 +164,7 @@ public final class Transport implements ITransport {
   }
 
   @Override
+  @Nonnull
   public Address address() {
     return address;
   }
@@ -169,103 +174,10 @@ public final class Transport implements ITransport {
     return stopped;
   }
 
-  /**
-   * Sets given network emulator settings. If network emulator is disabled do nothing.
-   */
-  public void setNetworkSettings(Address destination, int lossPercent, int meanDelay) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.setNetworkSettings(destination, lossPercent, meanDelay);
-      LOGGER.info("Set network settings (loss={}%, mean={}ms) from {} to {}",
-          lossPercent, meanDelay, address, destination);
-    } else {
-      LOGGER.warn("Noop on 'setNetworkSettings({},{},{})' since network emulator is disabled",
-          destination, lossPercent, meanDelay);
-    }
-  }
-
-  /**
-   * Sets default network emulator settings. If network emulator is disabled do nothing.
-   */
-  public void setDefaultNetworkSettings(int lossPercent, int meanDelay) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.setDefaultNetworkSettings(lossPercent, meanDelay);
-      LOGGER.info("Set default network settings (loss={}%, mean={}ms)", lossPercent, meanDelay);
-    } else {
-      LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
-          lossPercent, meanDelay);
-    }
-  }
-
-  /**
-   * Block messages to given destination. If network emulator is disabled do nothing.
-   */
-  public void block(Address destination) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.block(destination);
-      LOGGER.info("Block network from {} to {}", address, destination);
-    } else {
-      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destination);
-    }
-  }
-
-  /**
-   * Block messages to the given destinations. If network emulator is disabled do nothing.
-   */
-  public void block(Collection<Address> destinations) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.block(destinations);
-      LOGGER.info("Block network from {} to {}", address, destinations);
-    } else {
-      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destinations);
-    }
-  }
-
-  /**
-   * Unblock messages to given destination. If network emulator is disabled do nothing.
-   */
-  public void unblock(Address destination) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.unblock(destination);
-      LOGGER.info("Unblock network from {} to {}", address, destination);
-    } else {
-      LOGGER.warn("Noop on 'unblock({})' since network emulator is disabled", destination);
-    }
-  }
-
-  /**
-   * Unblock messages to all destinations. If network emulator is disabled do nothing.
-   */
-  public void unblockAll() {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.unblockAll();
-      LOGGER.info("Unblock all network from {}", address);
-    } else {
-      LOGGER.warn("Noop on 'unblockAll()' since network emulator is disabled");
-    }
-  }
-
-  /**
-   * Returns total message sent count computed by network emulator. If network emulator is disabled returns zero.
-   */
-  public long totalMessageSentCount() {
-    if (config.isUseNetworkEmulator()) {
-      return networkEmulatorHandler.totalMessageSentCount();
-    } else {
-      LOGGER.warn("Noop on 'totalMessageSentCount()' since network emulator is disabled");
-      return 0;
-    }
-  }
-
-  /**
-   * Returns total message lost count computed by network emulator. If network emulator is disabled returns zero.
-   */
-  public long totalMessageLostCount() {
-    if (config.isUseNetworkEmulator()) {
-      return networkEmulatorHandler.totalMessageLostCount();
-    } else {
-      LOGGER.warn("Noop on 'totalMessageLostCount()' since network emulator is disabled");
-      return 0;
-    }
+  @Nonnull
+  @Override
+  public NetworkEmulator networkEmulator() {
+    return networkEmulator;
   }
 
   @Override

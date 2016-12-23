@@ -75,9 +75,9 @@ public class FailureDetectorTest extends BaseTest {
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // block all traffic
-    a.block(members);
-    b.block(members);
-    c.block(members);
+    a.networkEmulator().block(members);
+    b.networkEmulator().block(members);
+    c.networkEmulator().block(members);
 
     try {
       start(fdetectors);
@@ -90,9 +90,9 @@ public class FailureDetectorTest extends BaseTest {
       assertStatus(b.address(), SUSPECT, awaitEvents(list_b), a.address(), c.address());
       assertStatus(c.address(), SUSPECT, awaitEvents(list_c), a.address(), b.address());
     } finally {
-      a.unblockAll();
-      b.unblockAll();
-      c.unblockAll();
+      a.networkEmulator().unblockAll();
+      b.networkEmulator().unblockAll();
+      c.networkEmulator().unblockAll();
       stop(fdetectors);
     }
   }
@@ -112,7 +112,7 @@ public class FailureDetectorTest extends BaseTest {
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // Traffic issue at connection A -> B
-    a.block(b.address());
+    a.networkEmulator().block(b.address());
 
     Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
     Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
@@ -176,7 +176,7 @@ public class FailureDetectorTest extends BaseTest {
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic on member A to all cluster members
-    a.block(members);
+    a.networkEmulator().block(members);
 
     try {
       Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
@@ -193,7 +193,7 @@ public class FailureDetectorTest extends BaseTest {
       assertStatus(d.address(), SUSPECT, awaitEvents(list_d), a.address());
 
       // Unblock traffic on member A
-      a.unblockAll();
+      a.networkEmulator().unblockAll();
       TimeUnit.SECONDS.sleep(4);
 
       list_a = listenNextEventFor(fd_a, members);
@@ -229,9 +229,9 @@ public class FailureDetectorTest extends BaseTest {
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic to node D on other members
-    a.block(d.address());
-    b.block(d.address());
-    c.block(d.address());
+    a.networkEmulator().block(d.address());
+    b.networkEmulator().block(d.address());
+    c.networkEmulator().block(d.address());
 
     try {
       Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
@@ -248,9 +248,9 @@ public class FailureDetectorTest extends BaseTest {
       // partitioned
 
       // Unblock traffic to member D on other members
-      a.unblockAll();
-      b.unblockAll();
-      c.unblockAll();
+      a.networkEmulator().unblockAll();
+      b.networkEmulator().unblockAll();
+      c.networkEmulator().unblockAll();
       TimeUnit.SECONDS.sleep(4);
 
       list_a = listenNextEventFor(fd_a, members);
@@ -282,8 +282,8 @@ public class FailureDetectorTest extends BaseTest {
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
 
     // Traffic is blocked initially on both sides: A--X-->B, B--X-->A
-    a.block(b.address());
-    b.block(a.address());
+    a.networkEmulator().block(b.address());
+    b.networkEmulator().block(a.address());
 
     Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
     Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
@@ -295,8 +295,8 @@ public class FailureDetectorTest extends BaseTest {
       assertStatus(b.address(), SUSPECT, awaitEvents(list_b), a.address());
 
       // Unblock A and B members: A-->B, B-->A
-      a.unblockAll();
-      b.unblockAll();
+      a.networkEmulator().unblockAll();
+      b.networkEmulator().unblockAll();
       TimeUnit.SECONDS.sleep(2);
 
       // Check that members recover

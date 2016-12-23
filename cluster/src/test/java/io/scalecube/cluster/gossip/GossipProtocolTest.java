@@ -5,6 +5,7 @@ import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.testlib.BaseTest;
+import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Address;
@@ -181,8 +182,8 @@ public class GossipProtocolTest extends BaseTest {
   private LongSummaryStatistics computeMessageSentStats(List<GossipProtocol> gossipProtocols) {
     List<Long> messageSentPerNode = new ArrayList<>(gossipProtocols.size());
     for (GossipProtocol gossipProtocol : gossipProtocols) {
-      Transport transport = (Transport) gossipProtocol.getTransport();
-      messageSentPerNode.add(transport.totalMessageSentCount());
+      ITransport transport = gossipProtocol.getTransport();
+      messageSentPerNode.add(transport.networkEmulator().totalMessageSentCount());
     }
     return messageSentPerNode.stream().mapToLong(v -> v).summaryStatistics();
   }
@@ -190,8 +191,8 @@ public class GossipProtocolTest extends BaseTest {
   private LongSummaryStatistics computeMessageLostStats(List<GossipProtocol> gossipProtocols) {
     List<Long> messageLostPerNode = new ArrayList<>(gossipProtocols.size());
     for (GossipProtocol gossipProtocol : gossipProtocols) {
-      Transport transport = (Transport) gossipProtocol.getTransport();
-      messageLostPerNode.add(transport.totalMessageLostCount());
+      ITransport transport = gossipProtocol.getTransport();
+      messageLostPerNode.add(transport.networkEmulator().totalMessageLostCount());
     }
     return messageLostPerNode.stream().mapToLong(v -> v).summaryStatistics();
   }
@@ -219,7 +220,7 @@ public class GossipProtocolTest extends BaseTest {
           .portCount(1000)
           .build();
       Transport transport = Transport.bindAwait(transportConfig);
-      transport.setDefaultNetworkSettings(lostPercent, meanDelay);
+      transport.networkEmulator().setDefaultLinkSettings(lostPercent, meanDelay);
       transports.add(transport);
       startPort = transport.address().port() + 1;
     }

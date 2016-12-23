@@ -63,9 +63,9 @@ public class MembershipProtocolTest extends BaseTest {
     MembershipProtocol cm_c = createMembership(c, members);
 
     // Block traffic
-    a.block(members);
-    b.block(members);
-    c.block(members);
+    a.networkEmulator().block(members);
+    b.networkEmulator().block(members);
+    c.networkEmulator().block(members);
 
     try {
       awaitSeconds(6);
@@ -77,9 +77,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertTrusted(cm_c, c.address());
       assertNoSuspected(cm_c);
 
-      a.unblockAll();
-      b.unblockAll();
-      c.unblockAll();
+      a.networkEmulator().unblockAll();
+      b.networkEmulator().unblockAll();
+      c.networkEmulator().unblockAll();
 
       awaitSeconds(5);
 
@@ -117,9 +117,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertNoSuspected(cm_c);
 
       // Node b lost network
-      b.block(Arrays.asList(a.address(), c.address()));
-      a.block(b.address());
-      c.block(b.address());
+      b.networkEmulator().block(Arrays.asList(a.address(), c.address()));
+      a.networkEmulator().block(b.address());
+      c.networkEmulator().block(b.address());
 
       awaitSeconds(1);
 
@@ -132,9 +132,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertSuspected(cm_c, b.address());
 
       // Node b recover network
-      a.unblockAll();
-      b.unblockAll();
-      c.unblockAll();
+      a.networkEmulator().unblockAll();
+      b.networkEmulator().unblockAll();
+      c.networkEmulator().unblockAll();
 
       awaitSeconds(1);
 
@@ -173,9 +173,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertNoSuspected(cm_c);
 
       // Node b lost network
-      b.block(Arrays.asList(a.address(), c.address()));
-      a.block(b.address());
-      c.block(b.address());
+      b.networkEmulator().block(Arrays.asList(a.address(), c.address()));
+      a.networkEmulator().block(b.address());
+      c.networkEmulator().block(b.address());
 
       awaitSeconds(1);
 
@@ -188,8 +188,8 @@ public class MembershipProtocolTest extends BaseTest {
       assertSuspected(cm_c, b.address());
 
       // Node a and c lost network
-      a.block(c.address());
-      c.block(a.address());
+      a.networkEmulator().block(c.address());
+      c.networkEmulator().block(a.address());
 
       awaitSeconds(1);
 
@@ -202,9 +202,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertSuspected(cm_c, b.address(), a.address());
 
       // Recover network
-      a.unblockAll();
-      b.unblockAll();
-      c.unblockAll();
+      a.networkEmulator().unblockAll();
+      b.networkEmulator().unblockAll();
+      c.networkEmulator().unblockAll();
 
       awaitSeconds(1);
 
@@ -241,9 +241,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertTrusted(cm_c, a.address(), b.address(), c.address());
       assertNoSuspected(cm_c);
 
-      a.block(members);
-      b.block(members);
-      c.block(members);
+      a.networkEmulator().block(members);
+      b.networkEmulator().block(members);
+      c.networkEmulator().block(members);
 
       awaitSeconds(1);
 
@@ -256,9 +256,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertTrusted(cm_c, c.address());
       assertSuspected(cm_c, a.address(), b.address());
 
-      a.unblockAll();
-      b.unblockAll();
-      c.unblockAll();
+      a.networkEmulator().unblockAll();
+      b.networkEmulator().unblockAll();
+      c.networkEmulator().unblockAll();
 
       awaitSeconds(1);
 
@@ -296,11 +296,11 @@ public class MembershipProtocolTest extends BaseTest {
       assertTrusted(cm_c, a.address(), b.address(), c.address(), d.address());
       assertTrusted(cm_d, a.address(), b.address(), c.address(), d.address());
 
-      a.block(Arrays.asList(c.address(), d.address()));
-      b.block(Arrays.asList(c.address(), d.address()));
+      a.networkEmulator().block(Arrays.asList(c.address(), d.address()));
+      b.networkEmulator().block(Arrays.asList(c.address(), d.address()));
 
-      c.block(Arrays.asList(a.address(), b.address()));
-      d.block(Arrays.asList(a.address(), b.address()));
+      c.networkEmulator().block(Arrays.asList(a.address(), b.address()));
+      d.networkEmulator().block(Arrays.asList(a.address(), b.address()));
 
       awaitSeconds(3);
 

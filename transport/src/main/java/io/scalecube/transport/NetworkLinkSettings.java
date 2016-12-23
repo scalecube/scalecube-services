@@ -3,35 +3,36 @@ package io.scalecube.transport;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * Tuple class. Contains:
+ * This class contains settings for the network link and computations to evaluate message loss and message delay.
+ * Following parameters is present:
  * <ul>
  * <li>Percent of losing messages</li>
- * <li>Network delays in milliseconds. Delays should be emulated using exponential distribution of probabilities</li>
+ * <li>Mean network delays in milliseconds. Delays are emulated using exponential distribution of probabilities</li>
  * </ul>
  * 
- * @author alexeyz
+ * @author Anton Kharenko
  */
-final class NetworkEmulatorSettings {
+public final class NetworkLinkSettings {
 
   private final int lossPercent;
   private final int meanDelay;
 
-  public NetworkEmulatorSettings(int lossPercent, int mean) {
+  public NetworkLinkSettings(int lossPercent, int mean) {
     this.lossPercent = lossPercent;
     this.meanDelay = mean;
   }
 
   /** Probability of message loss in percents. */
-  public int getLossPercent() {
+  public int lossPercent() {
     return lossPercent;
   }
 
   /** Mean network delay for message in milliseconds. */
-  public int getMeanDelay() {
+  public int meanDelay() {
     return meanDelay;
   }
 
-  public boolean evaluateLost() {
+  public boolean evaluateLoss() {
     return lossPercent > 0 && (lossPercent >= 100 || ThreadLocalRandom.current().nextInt(100) < lossPercent);
   }
 
@@ -49,6 +50,6 @@ final class NetworkEmulatorSettings {
 
   @Override
   public String toString() {
-    return "NetworkEmulatorSettings{lossPercent=" + lossPercent + ", meanDelay=" + meanDelay + '}';
+    return "NetworkLinkSettings{lossPercent=" + lossPercent + ", meanDelay=" + meanDelay + '}';
   }
 }

@@ -15,6 +15,7 @@ public interface ITransport {
   /**
    * Returns local {@link Address} on which current instance of transport listens for incoming messages.
    */
+  @Nonnull
   Address address();
 
   /**
@@ -76,5 +77,13 @@ public interface ITransport {
    */
   @Nonnull
   Observable<Message> listen();
+
+  /**
+   * Returns network emulator associated with this instance of transport. It always returns non null instance
+   * even if network emulator is disabled by transport config. In case when network emulator is disable all
+   * calls to network emulator instance will result in no operation.
+   */
+  @Nonnull
+  NetworkEmulator networkEmulator();
 
 }

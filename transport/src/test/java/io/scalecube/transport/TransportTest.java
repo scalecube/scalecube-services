@@ -37,8 +37,8 @@ public class TransportTest extends BaseTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransportTest.class);
 
   // Auto-destroyed on tear down
-  private Transport client;
-  private Transport server;
+  private ITransport client;
+  private ITransport server;
 
   @After
   public void tearDown() throws Exception {
@@ -48,7 +48,7 @@ public class TransportTest extends BaseTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidListenConfig() {
-    Transport transport = null;
+    ITransport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenInterface("eth0").listenAddress("10.10.10.10").build();
       transport = Transport.bindAwait(config);
@@ -59,7 +59,7 @@ public class TransportTest extends BaseTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidListenInterface() {
-    Transport transport = null;
+    ITransport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenInterface("yadayada").build();
       transport = Transport.bindAwait(config);
@@ -70,7 +70,7 @@ public class TransportTest extends BaseTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidListenAddress() {
-    Transport transport = null;
+    ITransport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenAddress("0.0.0.0").build();
       transport = Transport.bindAwait(config);
@@ -135,7 +135,7 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testValidListenAddress() {
-    Transport transport = null;
+    ITransport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenAddress("127.0.0.1").build();
       transport = Transport.bindAwait(config);
@@ -224,7 +224,7 @@ public class TransportTest extends BaseTest {
 
     int lostPercent = 50;
     int mean = 0;
-    client.setNetworkSettings(server.address(), lostPercent, mean);
+    client.networkEmulator().setLinkSettings(server.address(), lostPercent, mean);
 
     final List<Message> serverMessageList = new ArrayList<>();
     server.listen().subscribe(serverMessageList::add);
@@ -379,7 +379,7 @@ public class TransportTest extends BaseTest {
 
     // then block client->server messages
     Thread.sleep(1000);
-    client.block(server.address());
+    client.networkEmulator().block(server.address());
     send(client, server.address(), Message.fromQualifier("q/blocked"));
 
     Thread.sleep(1000);

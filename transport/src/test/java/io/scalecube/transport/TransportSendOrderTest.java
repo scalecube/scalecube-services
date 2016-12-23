@@ -38,8 +38,8 @@ public class TransportSendOrderTest extends BaseTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransportSendOrderTest.class);
 
   // Auto-destroyed on tear down
-  private Transport client;
-  private Transport server;
+  private ITransport client;
+  private ITransport server;
 
   @After
   public void tearDown() throws Exception {
@@ -156,14 +156,14 @@ public class TransportSendOrderTest extends BaseTest {
 
   @Test
   public void testSendOrderMultiThread() throws Exception {
-    Transport server = createTransport();
+    ITransport server = createTransport();
 
     final int total = 1000;
     for (int i = 0; i < 10; i++) {
       LOGGER.info("####### {} : iteration = {}", testName.getMethodName(), i);
       ExecutorService exec = Executors.newFixedThreadPool(4, new ThreadFactoryBuilder().setDaemon(true).build());
 
-      Transport client = createTransport();
+      ITransport client = createTransport();
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(4 * total);
       server.listen().subscribe(message -> {
@@ -205,7 +205,7 @@ public class TransportSendOrderTest extends BaseTest {
     }
   }
 
-  private Callable<Void> sender(final int id, final Transport client, final Address address, final int total) {
+  private Callable<Void> sender(final int id, final ITransport client, final Address address, final int total) {
     return () -> {
       for (int j = 0; j < total; j++) {
         String correlationId = id + "/" + j;
