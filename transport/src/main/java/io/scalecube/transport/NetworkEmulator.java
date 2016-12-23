@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class NetworkEmulator {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(NetworkEmulatorHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NetworkEmulator.class);
 
   public static final NetworkLinkSettings DEAD_LINK_SETTINGS = new NetworkLinkSettings(100, 0);
   public static final NetworkLinkSettings ALIVE_LINK_SETTINGS = new NetworkLinkSettings(0, 0);

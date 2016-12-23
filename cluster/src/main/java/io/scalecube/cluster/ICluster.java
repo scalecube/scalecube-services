@@ -3,8 +3,8 @@ package io.scalecube.cluster;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
-
 import io.scalecube.transport.NetworkEmulator;
+
 import rx.Observable;
 
 import java.util.Collection;
@@ -83,9 +83,9 @@ public interface ICluster {
   CompletableFuture<Void> shutdown();
 
   /**
-   * Returns network emulator associated with this instance of cluster. It always returns non null instance
-   * even if network emulator is disabled by transport config. In case when network emulator is disable all
-   * calls to network emulator instance will result in no operation.
+   * Returns network emulator associated with this instance of cluster. It always returns non null instance even if
+   * network emulator is disabled by transport config. In case when network emulator is disable all calls to network
+   * emulator instance will result in no operation.
    */
   @Nonnull
   NetworkEmulator networkEmulator();

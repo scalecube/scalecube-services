@@ -1,6 +1,8 @@
 package io.scalecube.transport;
 
 /**
+ * Exception which is thrown by network emulator on message loss.
+ *
  * @author Anton Kharenko
  */
 public final class NetworkEmulatorException extends RuntimeException {
