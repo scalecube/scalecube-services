@@ -3,8 +3,6 @@ package io.scalecube.transport;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
-import io.scalecube.transport.memoizer.Memoizer;
-
 import com.google.common.base.Throwables;
 
 import io.netty.bootstrap.Bootstrap;
@@ -35,8 +33,9 @@ import rx.subjects.Subject;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -49,7 +48,8 @@ public final class Transport implements ITransport {
   private final TransportConfig config;
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.<Message>create().toSerialized();
-  private final Memoizer<Address, ChannelFuture> outgoingChannels;
+
+  private final Map<Address, ChannelFuture> outgoingChannels = new ConcurrentHashMap<>();
 
   // Pipeline
   private final BootstrapFactory bootstrapFactory;
@@ -72,7 +72,6 @@ public final class Transport implements ITransport {
     this.networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
     this.messageHandler = new MessageHandler(incomingMessagesSubject);
     this.bootstrapFactory = new BootstrapFactory(config);
-    this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
   }
 
   /**
@@ -288,7 +287,7 @@ public final class Transport implements ITransport {
 
     // close connected channels
     for (Address address : outgoingChannels.keySet()) {
-      ChannelFuture channelFuture = outgoingChannels.getIfExists(address);
+      ChannelFuture channelFuture = outgoingChannels.get(address);
       if (channelFuture == null) {
         continue;
       }
@@ -330,7 +329,7 @@ public final class Transport implements ITransport {
     checkArgument(promise != null);
     message.setSender(this.address);
 
-    final ChannelFuture channelFuture = outgoingChannels.get(address);
+    final ChannelFuture channelFuture = outgoingChannels.computeIfAbsent(address, this::connect);
     if (channelFuture.isSuccess()) {
       send(channelFuture.channel(), message, promise);
     } else {
@@ -368,25 +367,22 @@ public final class Transport implements ITransport {
     });
   }
 
-  private final class OutgoingChannelComputable implements Function<Address, ChannelFuture> {
-    @Override
-    public ChannelFuture apply(Address address) {
-      OutgoingChannelInitializer channelInitializer = new OutgoingChannelInitializer(address);
-      Bootstrap client = bootstrapFactory.clientBootstrap().handler(channelInitializer);
-      ChannelFuture connectFuture = client.connect(address.host(), address.port());
+  private ChannelFuture connect(Address address) {
+    OutgoingChannelInitializer channelInitializer = new OutgoingChannelInitializer(address);
+    Bootstrap client = bootstrapFactory.clientBootstrap().handler(channelInitializer);
+    ChannelFuture connectFuture = client.connect(address.host(), address.port());
 
-      // Register logger and cleanup listener
-      connectFuture.addListener((ChannelFutureListener) channelFuture -> {
-        if (channelFuture.isSuccess()) {
-          LOGGER.debug("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
-        } else {
-          LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
-          outgoingChannels.delete(address);
-        }
-      });
+    // Register logger and cleanup listener
+    connectFuture.addListener((ChannelFutureListener) channelFuture -> {
+      if (channelFuture.isSuccess()) {
+        LOGGER.debug("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
+      } else {
+        LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
+        outgoingChannels.remove(address);
+      }
+    });
 
-      return connectFuture;
-    }
+    return connectFuture;
   }
 
   @ChannelHandler.Sharable
@@ -416,7 +412,7 @@ public final class Transport implements ITransport {
         @Override
         public void channelInactive(ChannelHandlerContext ctx) throws Exception {
           LOGGER.debug("Disconnected from: {} {}", address, ctx.channel());
-          outgoingChannels.delete(address);
+          outgoingChannels.remove(address);
           super.channelInactive(ctx);
         }
       });
