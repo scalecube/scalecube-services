@@ -16,6 +16,7 @@ import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.cluster.membership.MembershipProtocol;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.NetworkEmulator;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
 
@@ -37,6 +38,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import javax.annotation.Nonnull;
 
 /**
  * Main ICluster implementation.
@@ -289,6 +292,12 @@ public final class Cluster implements ICluster {
     transport.stop(transportStoppedFuture);
 
     return transportStoppedFuture;
+  }
+
+  @Nonnull
+  @Override
+  public NetworkEmulator networkEmulator() {
+    return transport.networkEmulator();
   }
 
 }
