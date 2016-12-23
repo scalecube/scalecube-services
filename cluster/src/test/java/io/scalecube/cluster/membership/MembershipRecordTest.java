@@ -3,6 +3,7 @@ package io.scalecube.cluster.membership;
 import org.junit.Test;
 
 import io.scalecube.cluster.Member;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
@@ -11,7 +12,7 @@ import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
-public class MembershipRecordTest {
+public class MembershipRecordTest extends BaseTest {
 
   private final Member member = new Member("0", Address.from("localhost:1234"));
   private final Member anotherMember = new Member("1", Address.from("localhost:4567"));
@@ -42,7 +43,7 @@ public class MembershipRecordTest {
   public void testDeadOverride() {
     MembershipRecord r1_dead_1 = new MembershipRecord(member, DEAD, 1);
 
-    assertTrue(r1_dead_1.isOverrides(r0_null));
+    assertFalse(r1_dead_1.isOverrides(r0_null));
 
     assertTrue(r1_dead_1.isOverrides(r0_alive_0));
     assertTrue(r1_dead_1.isOverrides(r0_alive_1));
@@ -77,17 +78,10 @@ public class MembershipRecordTest {
   }
 
   @Test
-  public void testEqualRecordNotOverriding() {
-    assertFalse(r0_alive_1.isOverrides(r0_alive_1));
-    assertFalse(r0_suspect_1.isOverrides(r0_suspect_1));
-    assertFalse(r0_dead_1.isOverrides(r0_dead_1));
-  }
-
-  @Test
   public void testSuspectOverride() {
     MembershipRecord r1_suspect_1 = new MembershipRecord(member, SUSPECT, 1);
 
-    assertTrue(r1_suspect_1.isOverrides(r0_null));
+    assertFalse(r1_suspect_1.isOverrides(r0_null));
 
     assertTrue(r1_suspect_1.isOverrides(r0_alive_0));
     assertTrue(r1_suspect_1.isOverrides(r0_alive_1));
@@ -100,6 +94,13 @@ public class MembershipRecordTest {
     assertFalse(r1_suspect_1.isOverrides(r0_dead_0));
     assertFalse(r1_suspect_1.isOverrides(r0_dead_1));
     assertFalse(r1_suspect_1.isOverrides(r0_dead_2));
+  }
+
+  @Test
+  public void testEqualRecordNotOverriding() {
+    assertFalse(r0_alive_1.isOverrides(r0_alive_1));
+    assertFalse(r0_suspect_1.isOverrides(r0_suspect_1));
+    assertFalse(r0_dead_1.isOverrides(r0_dead_1));
   }
 
 }

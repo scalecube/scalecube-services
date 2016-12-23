@@ -4,16 +4,16 @@ public final class GossipConfig {
 
   public static final long DEFAULT_GOSSIP_INTERVAL = 200;
   public static final int DEFAULT_GOSSIP_FANOUT = 3;
-  public static final int DEFAULT_GOSSIP_FACTOR = 2;
+  public static final int DEFAULT_GOSSIP_REPEAT_MULTIPLIER = 2;
 
   private final long gossipInterval;
   private final int gossipFanout;
-  private final int gossipFactor;
+  private final int gossipRepeatMultiplier;
 
   private GossipConfig(Builder builder) {
     this.gossipFanout = builder.gossipFanout;
     this.gossipInterval = builder.gossipInterval;
-    this.gossipFactor = builder.gossipFactor;
+    this.gossipRepeatMultiplier = builder.gossipRepeatMultiplier;
   }
 
   public static GossipConfig defaultConfig() {
@@ -32,15 +32,15 @@ public final class GossipConfig {
     return gossipInterval;
   }
 
-  public int getGossipFactor() {
-    return gossipFactor;
+  public int getGossipRepeatMultiplier() {
+    return gossipRepeatMultiplier;
   }
 
   @Override
   public String toString() {
     return "GossipConfig{gossipInterval=" + gossipInterval
         + ", gossipFanout=" + gossipFanout
-        + ", gossipFactor=" + gossipFactor
+        + ", gossipRepeatMultiplier=" + gossipRepeatMultiplier
         + '}';
   }
 
@@ -48,7 +48,7 @@ public final class GossipConfig {
 
     private long gossipInterval = DEFAULT_GOSSIP_INTERVAL;
     private int gossipFanout = DEFAULT_GOSSIP_FANOUT;
-    private int gossipFactor = DEFAULT_GOSSIP_FACTOR;
+    private int gossipRepeatMultiplier = DEFAULT_GOSSIP_REPEAT_MULTIPLIER;
 
     private Builder() {}
 
@@ -62,8 +62,8 @@ public final class GossipConfig {
       return this;
     }
 
-    public Builder gossipFactor(int gossipFactor) {
-      this.gossipFactor = gossipFactor;
+    public Builder gossipRepeatMultiplier(int gossipRepeatMultiplier) {
+      this.gossipRepeatMultiplier = gossipRepeatMultiplier;
       return this;
     }
 

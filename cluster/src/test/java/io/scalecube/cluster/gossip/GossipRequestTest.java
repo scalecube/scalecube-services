@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.Member;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -22,7 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GossipRequestTest {
+public class GossipRequestTest extends BaseTest {
 
   private static final String testDataQualifier = "scalecube/testData";
 

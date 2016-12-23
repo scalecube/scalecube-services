@@ -7,7 +7,9 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ClusterTest {
+import io.scalecube.testlib.BaseTest;
+
+public class ClusterTest extends BaseTest {
 
   @Test
   public void testJoinDynamicPort() throws Exception {

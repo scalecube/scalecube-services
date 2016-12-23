@@ -45,6 +45,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
+  private enum MembershipUpdateReason {
+    FAILURE_DETECTOR_EVENT,
+    MEMBERSHIP_GOSSIP,
+    SYNC,
+    SUSPICION_TIMEOUT
+  }
+
   // Qualifiers
 
   public static final String SYNC = "sc/membership/sync";
@@ -80,7 +87,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   private final Scheduler scheduler;
   private final ScheduledExecutorService executor;
-  private final Map<String, ScheduledFuture<?>> removeMemberTasks = new HashMap<>();
+  private final Map<String, ScheduledFuture<?>> suspicionTimeoutTasks = new HashMap<>();
   private ScheduledFuture<?> syncTask;
 
   /**
@@ -221,13 +228,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Cancel remove members tasks
-    for (String memberId : removeMemberTasks.keySet()) {
-      ScheduledFuture<?> future = removeMemberTasks.get(memberId);
+    for (String memberId : suspicionTimeoutTasks.keySet()) {
+      ScheduledFuture<?> future = suspicionTimeoutTasks.get(memberId);
       if (future != null) {
         future.cancel(true);
       }
     }
-    removeMemberTasks.clear();
+    suspicionTimeoutTasks.clear();
 
     // Shutdown executor
     executor.shutdown();
@@ -327,7 +334,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
       transport.send(fdEvent.member().address(), syncMsg);
     } else {
       MembershipRecord r1 = new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation());
-      updateMembership(r1, true /* spread gossip */);
+      updateMembership(r1, MembershipUpdateReason.FAILURE_DETECTOR_EVENT);
     }
   }
 
@@ -337,7 +344,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void onMembershipGossip(Message message) {
     MembershipRecord record = message.data();
     LOGGER.debug("Received membership gossip: {}", record);
-    updateMembership(record, false /* don't spread gossip */);
+    updateMembership(record, MembershipUpdateReason.MEMBERSHIP_GOSSIP);
   }
 
   // ================================================
@@ -369,7 +376,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     for (MembershipRecord r1 : syncData.getMembership()) {
       MembershipRecord r0 = membershipTable.get(r1.id());
       if (!r1.equals(r0)) {
-        updateMembership(r1, true/* spread gossip */);
+        updateMembership(r1, MembershipUpdateReason.SYNC);
       }
     }
   }
@@ -378,15 +385,15 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * Try to update membership table with the given record.
    *
    * @param r1 new membership record which compares with existing r0 record
-   * @param spreadGossip flag indicating should updates be gossiped to cluster
+   * @param reason indicating the reason for updating membership table
    */
-  private void updateMembership(MembershipRecord r1, boolean spreadGossip) {
+  private void updateMembership(MembershipRecord r1, MembershipUpdateReason reason) {
     Preconditions.checkArgument(r1 != null, "Membership record can't be null");
 
     // Get current record
     MembershipRecord r0 = membershipTable.get(r1.id());
 
-    // Check if r1 overrides existing membership record record
+    // Check if new record r1 overrides existing membership record r0
     if (!r1.isOverrides(r0)) {
       return;
     }
@@ -408,42 +415,48 @@ public final class MembershipProtocol implements IMembershipProtocol {
       membershipTable.put(r1.id(), r1);
     }
 
-    // Update remove member tasks
+    // Schedule/cancel suspicion timeout task
     if (r1.isSuspect()) {
-      scheduleRemoveMemberTask(r1);
+      scheduleSuspicionTimeoutTask(r1);
     } else {
-      cancelRemoveMemberTask(r1.id());
+      cancelSuspicionTimeoutTask(r1.id());
     }
 
     // Emit membership event
-    if (r1.isDead() && r0 != null) {
+    if (r1.isDead()) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.REMOVED, r1.member());
       subject.onNext(membershipEvent);
-    } else if (r0 == null && !r1.isDead()) {
+    } else if (r0 == null && r1.isAlive()) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.ADDED, r1.member());
       subject.onNext(membershipEvent);
     }
 
-    // Spread gossip
-    if (spreadGossip) {
+    // Spread gossip (unless already gossiped)
+    if (reason != MembershipUpdateReason.MEMBERSHIP_GOSSIP) {
       spreadMembershipGossip(r1);
     }
   }
 
-  private void cancelRemoveMemberTask(String memberId) {
-    ScheduledFuture<?> future = removeMemberTasks.remove(memberId);
+  private void cancelSuspicionTimeoutTask(String memberId) {
+    ScheduledFuture<?> future = suspicionTimeoutTasks.remove(memberId);
     if (future != null) {
       future.cancel(true);
     }
   }
 
-  private void scheduleRemoveMemberTask(MembershipRecord record) {
-    removeMemberTasks.putIfAbsent(record.id(), executor.schedule(() -> {
-      LOGGER.debug("Time to remove SUSPECTED member={} from membership table", record);
-      removeMemberTasks.remove(record.id());
+  private void scheduleSuspicionTimeoutTask(MembershipRecord record) {
+    suspicionTimeoutTasks.computeIfAbsent(record.id(), id ->
+        executor.schedule(() -> onSuspicionTimeout(id), config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+  }
+
+  private void onSuspicionTimeout(String memberId) {
+    suspicionTimeoutTasks.remove(memberId);
+    MembershipRecord record = membershipTable.get(memberId);
+    if (record != null) {
+      LOGGER.debug("Declare SUSPECTED member as DEAD by timeout: {}", record);
       MembershipRecord deadRecord = new MembershipRecord(record.member(), DEAD, record.incarnation());
-      updateMembership(deadRecord, true /* spread gossip */);
-    }, config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+      updateMembership(deadRecord, MembershipUpdateReason.SUSPICION_TIMEOUT);
+    }
   }
 
   private void spreadMembershipGossip(MembershipRecord record) {

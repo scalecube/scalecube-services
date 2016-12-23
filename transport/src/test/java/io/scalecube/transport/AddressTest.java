@@ -4,7 +4,9 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-public class AddressTest {
+import io.scalecube.testlib.BaseTest;
+
+public class AddressTest  extends BaseTest {
 
   @Test
   public void testParseHostPort() throws Exception {
