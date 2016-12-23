@@ -165,6 +165,7 @@ public final class Transport implements ITransport {
     return address;
   }
 
+  @Override
   public boolean isStopped() {
     return stopped;
   }
@@ -345,7 +346,7 @@ public final class Transport implements ITransport {
 
   private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
     if (promise == COMPLETED_PROMISE) {
-      channel.writeAndFlush(message);
+      channel.writeAndFlush(message, channel.voidPromise());
     } else {
       composeFutures(channel.writeAndFlush(message), promise);
     }

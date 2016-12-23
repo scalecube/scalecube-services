@@ -386,7 +386,7 @@ public class FailureDetectorTest extends BaseTest {
   }
 
   private void destroyTransport(ITransport transport) {
-    if (((Transport) transport).isStopped()) {
+    if (transport == null || transport.isStopped()) {
       return;
     }
     CompletableFuture<Void> close = new CompletableFuture<>();

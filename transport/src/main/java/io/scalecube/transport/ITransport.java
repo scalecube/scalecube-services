@@ -35,6 +35,12 @@ public interface ITransport {
    */
   void stop(@CheckForNull CompletableFuture<Void> promise);
 
+
+  /**
+   * Returns true if transport was stopped; false otherwise.
+   */
+  boolean isStopped();
+
   /**
    * Sends message to the given address. It will issue connect in case if no transport channel by given transport
    * {@code address} exists already. Send is an async operation.

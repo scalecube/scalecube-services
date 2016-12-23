@@ -41,7 +41,7 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
     if (isLost) {
       totalMessageLostCount.incrementAndGet();
       if (promise != null) {
-        promise.setFailure(new RuntimeException("NETWORK_BREAK detected, not sent " + msg));
+        promise.setFailure(new NetworkEmulatorException("NETWORK_BREAK detected, not sent " + msg));
       }
       return;
     }
@@ -55,10 +55,10 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
           return null;
         }, delay, TimeUnit.MILLISECONDS);
       } catch (RejectedExecutionException e) {
+        String warn = "Rejected " + msg + " on " + ctx.channel();
+        LOGGER.warn(warn, e);
         if (promise != null) {
-          String warn = "Rejected " + msg + " on " + ctx.channel();
-          LOGGER.warn(warn);
-          promise.setFailure(new RuntimeException(warn, e));
+          promise.setFailure(new NetworkEmulatorException(warn));
         }
       }
       return;
