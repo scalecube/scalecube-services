@@ -8,7 +8,7 @@ import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
 
 import com.google.common.base.Preconditions;
@@ -61,7 +61,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   // Injected
 
   private final Member member;
-  private final ITransport transport;
+  private final Transport transport;
   private final MembershipConfig config;
   private final List<Address> seedMembers;
   private IFailureDetector failureDetector;
@@ -96,7 +96,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
    * @param transport transport
    * @param config membership config parameters
    */
-  public MembershipProtocol(ITransport transport, MembershipConfig config) {
+  public MembershipProtocol(Transport transport, MembershipConfig config) {
     this.transport = transport;
     this.config = config;
     this.member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
@@ -141,7 +141,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   /**
    * <b>NOTE:</b> this method is for testing purpose only.
    */
-  ITransport getTransport() {
+  Transport getTransport() {
     return transport;
   }
 

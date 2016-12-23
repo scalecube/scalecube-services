@@ -1,84 +1,23 @@
 package io.scalecube.transport;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
-
-import io.scalecube.transport.memoizer.Memoizer;
-
 import com.google.common.base.Throwables;
 
-import io.netty.bootstrap.Bootstrap;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelDuplexHandler;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.ServerChannel;
-import io.netty.handler.codec.MessageToByteEncoder;
-import io.netty.handler.codec.MessageToMessageDecoder;
-import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
-import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import rx.Observable;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
-
-import java.net.BindException;
-import java.net.InetAddress;
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import java.util.concurrent.CompletableFuture;
 
-public final class Transport implements ITransport {
-  private static long DEFAULT_BUFFER_LIMIT = 5000;
-  private static final Logger LOGGER = LoggerFactory.getLogger(Transport.class);
-  private static final CompletableFuture<Void> COMPLETED_PROMISE = CompletableFuture.completedFuture(null);
-
-  private final TransportConfig config;
-
-  private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.<Message>create().toSerialized();
-  private final Memoizer<Address, ChannelFuture> outgoingChannels;
-
-  // Pipeline
-  private final BootstrapFactory bootstrapFactory;
-  private final IncomingChannelInitializer incomingChannelInitializer = new IncomingChannelInitializer();
-  private final ExceptionHandler exceptionHandler = new ExceptionHandler();
-  private final MessageToByteEncoder<Message> serializerHandler;
-  private final MessageToMessageDecoder<ByteBuf> deserializerHandler;
-  private final MessageHandler messageHandler;
-  private final NetworkEmulatorHandler networkEmulatorHandler;
-
-  private Address address;
-  private ServerChannel serverChannel;
-  private volatile boolean stopped = false;
-
-  private Transport(TransportConfig config) {
-    checkArgument(config != null);
-    this.config = config;
-    this.serializerHandler = new MessageSerializerHandler();
-    this.deserializerHandler = new MessageDeserializerHandler();
-    this.networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler() : null;
-    this.messageHandler = new MessageHandler(incomingMessagesSubject);
-    this.bootstrapFactory = new BootstrapFactory(config);
-    this.outgoingChannels = new Memoizer<>(new OutgoingChannelComputable());
-  }
+/**
+ * Transport is responsible for maintaining existing p2p connections to/from other transports.
+ * It allows to send messages to other transports and listen for incoming messages.
+ */
+public interface Transport {
 
   /**
    * Init transport with the default configuration synchronously. Starts to accept connections on local address.
    */
-  public static Transport bindAwait() {
+  static Transport bindAwait() {
     return bindAwait(TransportConfig.defaultConfig());
   }
 
@@ -86,14 +25,14 @@ public final class Transport implements ITransport {
    * Init transport with the default configuration and network emulator flag synchronously. Starts to accept connections
    * on local address.
    */
-  public static Transport bindAwait(boolean useNetworkEmulator) {
+  static Transport bindAwait(boolean useNetworkEmulator) {
     return bindAwait(TransportConfig.builder().useNetworkEmulator(useNetworkEmulator).build());
   }
 
   /**
    * Init transport with the given configuration synchronously. Starts to accept connections on local address.
    */
-  public static Transport bindAwait(TransportConfig config) {
+  static Transport bindAwait(TransportConfig config) {
     try {
       return bind(config).get();
     } catch (Exception e) {
@@ -104,327 +43,89 @@ public final class Transport implements ITransport {
   /**
    * Init transport with the default configuration asynchronously. Starts to accept connections on local address.
    */
-  public static CompletableFuture<Transport> bind() {
+  static CompletableFuture<Transport> bind() {
     return bind(TransportConfig.defaultConfig());
   }
 
   /**
    * Init transport with the given configuration asynchronously. Starts to accept connections on local address.
    */
-  public static CompletableFuture<Transport> bind(TransportConfig config) {
-    return new Transport(config).bind0();
+  static CompletableFuture<Transport> bind(TransportConfig config) {
+    return new TransportImpl(config).bind0();
   }
 
   /**
-   * Starts to accept connections on local address.
+   * Returns local {@link Address} on which current instance of transport listens for incoming messages.
    */
-  private CompletableFuture<Transport> bind0() {
-    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
-
-    // Resolve listen IP address
-    final InetAddress listenAddress =
-        Addressing.getLocalIpAddress(config.getListenAddress(), config.getListenInterface(), config.isPreferIPv6());
-
-    // Resolve listen port
-    int bindPort = config.isPortAutoIncrement()
-        ? Addressing.getNextAvailablePort(listenAddress, config.getPort(), config.getPortCount()) // Find available port
-        : config.getPort();
-
-    // Listen address
-    address = Address.create(listenAddress.getHostAddress(), bindPort);
-
-    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(listenAddress, address.port());
-    final CompletableFuture<Transport> result = new CompletableFuture<>();
-    bindFuture.addListener((ChannelFutureListener) channelFuture -> {
-      if (channelFuture.isSuccess()) {
-        serverChannel = (ServerChannel) channelFuture.channel();
-        LOGGER.info("Bound to: {}", address);
-        result.complete(Transport.this);
-      } else {
-        Throwable cause = channelFuture.cause();
-        if (config.isPortAutoIncrement() && isAddressAlreadyInUseException(cause)) {
-          LOGGER.warn("Can't bind to address {}, try again on different port [cause={}]", address, cause.toString());
-          bind0().thenAccept(result::complete);
-        } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", address, cause);
-          result.completeExceptionally(cause);
-        }
-      }
-    });
-    return result;
-  }
-
-  private boolean isAddressAlreadyInUseException(Throwable exception) {
-    return exception instanceof BindException
-        || (exception.getMessage() != null && exception.getMessage().contains("Address already in use"));
-  }
-
-  @Override
-  public Address address() {
-    return address;
-  }
-
-  public boolean isStopped() {
-    return stopped;
-  }
-
-  /**
-   * Sets given network emulator settings. If network emulator is disabled do nothing.
-   */
-  public void setNetworkSettings(Address destination, int lossPercent, int meanDelay) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.setNetworkSettings(destination, lossPercent, meanDelay);
-      LOGGER.info("Set network settings (loss={}%, mean={}ms) from {} to {}",
-          lossPercent, meanDelay, address, destination);
-    } else {
-      LOGGER.warn("Noop on 'setNetworkSettings({},{},{})' since network emulator is disabled",
-          destination, lossPercent, meanDelay);
-    }
-  }
-
-  /**
-   * Sets default network emulator settings. If network emulator is disabled do nothing.
-   */
-  public void setDefaultNetworkSettings(int lossPercent, int meanDelay) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.setDefaultNetworkSettings(lossPercent, meanDelay);
-      LOGGER.info("Set default network settings (loss={}%, mean={}ms)", lossPercent, meanDelay);
-    } else {
-      LOGGER.warn("Noop on 'setDefaultNetworkSettings({},{})' since network emulator is disabled",
-          lossPercent, meanDelay);
-    }
-  }
-
-  /**
-   * Block messages to given destination. If network emulator is disabled do nothing.
-   */
-  public void block(Address destination) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.block(destination);
-      LOGGER.info("Block network from {} to {}", address, destination);
-    } else {
-      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destination);
-    }
-  }
-
-  /**
-   * Block messages to the given destinations. If network emulator is disabled do nothing.
-   */
-  public void block(Collection<Address> destinations) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.block(destinations);
-      LOGGER.info("Block network from {} to {}", address, destinations);
-    } else {
-      LOGGER.warn("Noop on 'block({})' since network emulator is disabled", destinations);
-    }
-  }
-
-  /**
-   * Unblock messages to given destination. If network emulator is disabled do nothing.
-   */
-  public void unblock(Address destination) {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.unblock(destination);
-      LOGGER.info("Unblock network from {} to {}", address, destination);
-    } else {
-      LOGGER.warn("Noop on 'unblock({})' since network emulator is disabled", destination);
-    }
-  }
-
-  /**
-   * Unblock messages to all destinations. If network emulator is disabled do nothing.
-   */
-  public void unblockAll() {
-    if (config.isUseNetworkEmulator()) {
-      networkEmulatorHandler.unblockAll();
-      LOGGER.info("Unblock all network from {}", address);
-    } else {
-      LOGGER.warn("Noop on 'unblockAll()' since network emulator is disabled");
-    }
-  }
-
-  /**
-   * Returns total message sent count computed by network emulator. If network emulator is disabled returns zero.
-   */
-  public long totalMessageSentCount() {
-    if (config.isUseNetworkEmulator()) {
-      return networkEmulatorHandler.totalMessageSentCount();
-    } else {
-      LOGGER.warn("Noop on 'totalMessageSentCount()' since network emulator is disabled");
-      return 0;
-    }
-  }
-
-  /**
-   * Returns total message lost count computed by network emulator. If network emulator is disabled returns zero.
-   */
-  public long totalMessageLostCount() {
-    if (config.isUseNetworkEmulator()) {
-      return networkEmulatorHandler.totalMessageLostCount();
-    } else {
-      LOGGER.warn("Noop on 'totalMessageLostCount()' since network emulator is disabled");
-      return 0;
-    }
-  }
-
-  @Override
-  public final void stop() {
-    stop(COMPLETED_PROMISE);
-  }
-
-  @Override
-  public final void stop(CompletableFuture<Void> promise) {
-    checkState(!stopped, "Transport is stopped");
-    checkArgument(promise != null);
-    stopped = true;
-    // Complete incoming messages observable
-    try {
-      incomingMessagesSubject.onCompleted();
-    } catch (Exception ignore) {
-      // ignore
-    }
-
-    // close connected channels
-    for (Address address : outgoingChannels.keySet()) {
-      ChannelFuture channelFuture = outgoingChannels.getIfExists(address);
-      if (channelFuture == null) {
-        continue;
-      }
-      if (channelFuture.isSuccess()) {
-        channelFuture.channel().close();
-      } else {
-        channelFuture.addListener(ChannelFutureListener.CLOSE);
-      }
-    }
-    outgoingChannels.clear();
-
-    // close server channel
-    if (serverChannel != null) {
-      composeFutures(serverChannel.close(), promise);
-    }
-
-    // TODO [AK]: shutdown boss/worker threads and listen for their futures
-    bootstrapFactory.shutdown();
-  }
-
   @Nonnull
-  @Override
-  public final Observable<Message> listen() {
-    checkState(!stopped, "Transport is stopped");
-    return incomingMessagesSubject.onBackpressureBuffer(DEFAULT_BUFFER_LIMIT).asObservable();
-  }
-
-  @Override
-  public void send(@CheckForNull Address address, @CheckForNull Message message) {
-    send(address, message, COMPLETED_PROMISE);
-  }
-
-  @Override
-  public void send(@CheckForNull Address address, @CheckForNull Message message,
-      @CheckForNull CompletableFuture<Void> promise) {
-    checkState(!stopped, "Transport is stopped");
-    checkArgument(address != null);
-    checkArgument(message != null);
-    checkArgument(promise != null);
-    message.setSender(this.address);
-
-    final ChannelFuture channelFuture = outgoingChannels.get(address);
-    if (channelFuture.isSuccess()) {
-      send(channelFuture.channel(), message, promise);
-    } else {
-      channelFuture.addListener((ChannelFuture chFuture) -> {
-        if (chFuture.isSuccess()) {
-          send(channelFuture.channel(), message, promise);
-        } else {
-          promise.completeExceptionally(chFuture.cause());
-        }
-      });
-    }
-  }
-
-  private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
-    if (promise == COMPLETED_PROMISE) {
-      channel.writeAndFlush(message);
-    } else {
-      composeFutures(channel.writeAndFlush(message), promise);
-    }
-  }
+  Address address();
 
   /**
-   * Converts netty {@link ChannelFuture} to the given {@link CompletableFuture}.
-   *
-   * @param channelFuture netty channel future
-   * @param promise guava future; can be null
+   * Stop transport, disconnect all connections and release all resources which belong to this transport. <br/>
+   * After transport is stopped it can't be used again. Observable returned from method {@link #listen()} will
+   * immediately emit onComplete event for all subscribers.
    */
-  private void composeFutures(ChannelFuture channelFuture, @Nonnull final CompletableFuture<Void> promise) {
-    channelFuture.addListener((ChannelFuture future) -> {
-      if (channelFuture.isSuccess()) {
-        promise.complete(channelFuture.get());
-      } else {
-        promise.completeExceptionally(channelFuture.cause());
-      }
-    });
-  }
+  void stop();
 
-  private final class OutgoingChannelComputable implements Function<Address, ChannelFuture> {
-    @Override
-    public ChannelFuture apply(Address address) {
-      OutgoingChannelInitializer channelInitializer = new OutgoingChannelInitializer(address);
-      Bootstrap client = bootstrapFactory.clientBootstrap().handler(channelInitializer);
-      ChannelFuture connectFuture = client.connect(address.host(), address.port());
+  /**
+   * Stop transport, disconnect all connections and release all resources which belong to this transport. <br/>
+   * After transport is stopped it can't be opened again. Observable returned from method {@link #listen()} will
+   * immediately emit onComplete event for all subscribers. <br/>
+   * Stop is async operation, if result of operation is not needed use {@link Transport#stop}, otherwise pass
+   * {@link CompletableFuture}.
+   *
+   * @param promise promise will be completed with result of closing (void or exception)
+   */
+  void stop(@CheckForNull CompletableFuture<Void> promise);
 
-      // Register logger and cleanup listener
-      connectFuture.addListener((ChannelFutureListener) channelFuture -> {
-        if (channelFuture.isSuccess()) {
-          LOGGER.debug("Connected from {} to {}: {}", Transport.this.address, address, channelFuture.channel());
-        } else {
-          LOGGER.warn("Failed to connect from {} to {}", Transport.this.address, address);
-          outgoingChannels.delete(address);
-        }
-      });
 
-      return connectFuture;
-    }
-  }
+  /**
+   * Returns true if transport was stopped; false otherwise.
+   */
+  boolean isStopped();
 
-  @ChannelHandler.Sharable
-  private final class IncomingChannelInitializer extends ChannelInitializer {
-    @Override
-    protected void initChannel(Channel channel) throws Exception {
-      ChannelPipeline pipeline = channel.pipeline();
-      pipeline.addLast(new ProtobufVarint32FrameDecoder());
-      pipeline.addLast(deserializerHandler);
-      pipeline.addLast(messageHandler);
-      pipeline.addLast(exceptionHandler);
-    }
-  }
+  /**
+   * Sends message to the given address. It will issue connect in case if no transport channel by given transport
+   * {@code address} exists already. Send is an async operation.
+   *
+   * @param address address where message will be sent
+   * @param message message to send
+   * @throws IllegalArgumentException if {@code message} or {@code address} is null
+   */
+  void send(@CheckForNull Address address, @CheckForNull Message message);
 
-  @ChannelHandler.Sharable
-  private final class OutgoingChannelInitializer extends ChannelInitializer {
-    private final Address address;
+  /**
+   * Sends message to the given address. It will issue connect in case if no transport channel by given {@code address}
+   * exists already. Send is an async operation, if result of operation is not needed use
+   * {@link Transport#send(Address, Message)}, otherwise pass {@link CompletableFuture}.
+   *
+   * @param message message to send
+   * @param promise promise will be completed with result of sending (void or exception)
+   * @throws IllegalArgumentException if {@code message} or {@code address} is null
+   */
+  void send(@CheckForNull Address address, @CheckForNull Message message,
+      @CheckForNull CompletableFuture<Void> promise);
 
-    public OutgoingChannelInitializer(Address address) {
-      this.address = address;
-    }
+  /**
+   * Returns stream of received messages. For each observers subscribed to the returned observable:
+   * <ul>
+   * <li>{@code rx.Observer#onNext(Object)} will be invoked when some message arrived to current transport</li>
+   * <li>{@code rx.Observer#onCompleted()} will be invoked when there is no possibility that server will receive new
+   * message observable for already closed transport</li>
+   * <li>{@code rx.Observer#onError(Throwable)} will not be invoked</li>
+   * </ul>
+   *
+   * @return Observable which emit received messages or complete event when transport is closed
+   */
+  @Nonnull
+  Observable<Message> listen();
 
-    @Override
-    protected void initChannel(Channel channel) throws Exception {
-      ChannelPipeline pipeline = channel.pipeline();
-      pipeline.addLast(new ChannelDuplexHandler() {
-        @Override
-        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-          LOGGER.debug("Disconnected from: {} {}", address, ctx.channel());
-          outgoingChannels.delete(address);
-          super.channelInactive(ctx);
-        }
-      });
-      pipeline.addLast(new ProtobufVarint32LengthFieldPrepender());
-      pipeline.addLast(serializerHandler);
-      if (networkEmulatorHandler != null) {
-        pipeline.addLast(networkEmulatorHandler);
-      }
-      pipeline.addLast(exceptionHandler);
-    }
-  }
+  /**
+   * Returns network emulator associated with this instance of transport. It always returns non null instance
+   * even if network emulator is disabled by transport config. In case when network emulator is disable all
+   * calls to network emulator instance will result in no operation.
+   */
+  @Nonnull
+  NetworkEmulator networkEmulator();
+
 }

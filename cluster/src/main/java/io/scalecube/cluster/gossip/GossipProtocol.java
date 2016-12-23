@@ -6,7 +6,7 @@ import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
 
 import com.google.common.collect.Maps;
@@ -44,7 +44,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // Injected
 
-  private final ITransport transport;
+  private final Transport transport;
   private final IMembershipProtocol membership;
   private final GossipConfig config;
 
@@ -79,7 +79,7 @@ public final class GossipProtocol implements IGossipProtocol {
    * @param membership membership protocol
    * @param config gossip protocol settings
    */
-  public GossipProtocol(ITransport transport, IMembershipProtocol membership, GossipConfig config) {
+  public GossipProtocol(Transport transport, IMembershipProtocol membership, GossipConfig config) {
     checkArgument(transport != null);
     checkArgument(membership != null);
     checkArgument(config != null);
@@ -95,7 +95,7 @@ public final class GossipProtocol implements IGossipProtocol {
   /**
    * <b>NOTE:</b> this method is for testing purpose only.
    */
-  ITransport getTransport() {
+  Transport getTransport() {
     return transport;
   }
 

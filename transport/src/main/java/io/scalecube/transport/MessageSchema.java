@@ -3,8 +3,6 @@ package io.scalecube.transport;
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.scalecube.transport.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
-import io.scalecube.transport.memoizer.Memoizer;
-
 import com.google.common.collect.ImmutableMap;
 
 import io.protostuff.Input;
@@ -23,6 +21,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Protostuff schema for {@link Message}.
@@ -49,15 +48,7 @@ final class MessageSchema implements Schema<Message> {
       .put("senderPort", SENDER_PORT_FIELD_NUMBER)
       .build();
 
-  private final Memoizer<String, Optional<Class>> classCache = new Memoizer<>((String className) -> {
-    try {
-      Class dataClass = Class.forName(className);
-      return Optional.of(dataClass);
-    } catch (ClassNotFoundException e) {
-      return Optional.empty();
-    }
-  });
-
+  private final Map<String, Optional<Class>> classCache = new ConcurrentHashMap<>();
 
   @Override
   public String getFieldName(int number) {
@@ -159,7 +150,7 @@ final class MessageSchema implements Schema<Message> {
       if (dataType == null) {
         data = dataBytes;
       } else {
-        Optional<Class> optionalDataClass = classCache.get(dataType);
+        Optional<Class> optionalDataClass = classCache.computeIfAbsent(dataType, this::classForName);
         if (optionalDataClass.isPresent()) {
           headers.remove(MessageHeaders.DATA_TYPE);
           Class<?> dataClass = optionalDataClass.get();
@@ -224,6 +215,15 @@ final class MessageSchema implements Schema<Message> {
     if (sender != null) {
       output.writeString(SENDER_HOST_FIELD_NUMBER, sender.host(), false);
       output.writeInt32(SENDER_PORT_FIELD_NUMBER, sender.port(), false);
+    }
+  }
+
+  private Optional<Class> classForName(String className) {
+    try {
+      Class dataClass = Class.forName(className);
+      return Optional.of(dataClass);
+    } catch (ClassNotFoundException e) {
+      return Optional.empty();
     }
   }
 }

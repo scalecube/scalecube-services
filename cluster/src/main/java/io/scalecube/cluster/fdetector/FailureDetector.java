@@ -6,7 +6,7 @@ import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.transport.ITransport;
+import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -43,7 +43,7 @@ public final class FailureDetector implements IFailureDetector {
 
   // Injected
 
-  private final ITransport transport;
+  private final Transport transport;
   private final IMembershipProtocol membership;
   private final FailureDetectorConfig config;
 
@@ -79,7 +79,7 @@ public final class FailureDetector implements IFailureDetector {
    * @param membership membership protocol
    * @param config failure detector settings
    */
-  public FailureDetector(ITransport transport, IMembershipProtocol membership, FailureDetectorConfig config) {
+  public FailureDetector(Transport transport, IMembershipProtocol membership, FailureDetectorConfig config) {
     checkArgument(transport != null);
     checkArgument(membership != null);
     checkArgument(config != null);
@@ -95,7 +95,7 @@ public final class FailureDetector implements IFailureDetector {
   /**
    * <b>NOTE:</b> this method is for testing purpose only.
    */
-  ITransport getTransport() {
+  Transport getTransport() {
     return transport;
   }
 

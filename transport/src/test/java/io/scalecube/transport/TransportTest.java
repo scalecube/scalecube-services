@@ -224,7 +224,7 @@ public class TransportTest extends BaseTest {
 
     int lostPercent = 50;
     int mean = 0;
-    client.setNetworkSettings(server.address(), lostPercent, mean);
+    client.networkEmulator().setLinkSettings(server.address(), lostPercent, mean);
 
     final List<Message> serverMessageList = new ArrayList<>();
     server.listen().subscribe(serverMessageList::add);
@@ -379,7 +379,7 @@ public class TransportTest extends BaseTest {
 
     // then block client->server messages
     Thread.sleep(1000);
-    client.block(server.address());
+    client.networkEmulator().block(server.address());
     send(client, server.address(), Message.fromQualifier("q/blocked"));
 
     Thread.sleep(1000);
