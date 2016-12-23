@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
+import java.net.BindException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -112,11 +113,20 @@ public final class Cluster implements ICluster {
    * Init cluster instance with the given configuration and join cluster synchronously.
    */
   public static ICluster joinAwait(ClusterConfig config) {
-    try {
-      return join(config).get();
-    } catch (Exception e) {
-      throw Throwables.propagate(Throwables.getRootCause(e));
-    }
+
+    do {
+      try {
+        return join(config).get();
+      } catch (Exception ex) {
+        if (Throwables.getRootCause(ex) instanceof BindException) {
+          // retry if auto increment?;
+        } else {
+          throw Throwables.propagate(Throwables.getRootCause(ex));
+        }
+      }
+    } while (config.getTransportConfig().isPortAutoIncrement());
+    
+    throw Throwables.propagate(Throwables.getRootCause(new Exception("cant join cluster")));
   }
 
   /**
