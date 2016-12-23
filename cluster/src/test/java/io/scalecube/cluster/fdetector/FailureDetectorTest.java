@@ -12,7 +12,6 @@ import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
 
@@ -385,7 +384,7 @@ public class FailureDetectorTest extends BaseTest {
     return new FailureDetector(transport, dummyMembership, config);
   }
 
-  private void destroyTransport(ITransport transport) {
+  private void destroyTransport(Transport transport) {
     if (transport == null || transport.isStopped()) {
       return;
     }

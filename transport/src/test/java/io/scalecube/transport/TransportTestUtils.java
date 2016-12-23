@@ -20,7 +20,7 @@ public final class TransportTestUtils {
     // Do not instantiate
   }
 
-  public static ITransport createTransport() {
+  public static Transport createTransport() {
     TransportConfig config = TransportConfig.builder()
         .connectTimeout(CONNECT_TIMEOUT)
         .useNetworkEmulator(true)
@@ -29,7 +29,7 @@ public final class TransportTestUtils {
     return Transport.bindAwait(config);
   }
 
-  public static void destroyTransport(ITransport transport) {
+  public static void destroyTransport(Transport transport) {
     if (transport != null && !transport.isStopped()) {
       CompletableFuture<Void> close = new CompletableFuture<>();
       transport.stop(close);
@@ -41,7 +41,7 @@ public final class TransportTestUtils {
     }
   }
 
-  public static void send(final ITransport from, final Address to, final Message msg) {
+  public static void send(final Transport from, final Address to, final Message msg) {
     final CompletableFuture<Void> promise = new CompletableFuture<>();
     promise.thenAccept(aVoid -> {
       if (promise.isDone()) {

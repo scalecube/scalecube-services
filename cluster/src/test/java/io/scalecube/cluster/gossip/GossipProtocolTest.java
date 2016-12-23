@@ -5,9 +5,8 @@ import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.ITransport;
-import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
+import io.scalecube.transport.Message;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.TransportConfig;
 
@@ -100,7 +99,6 @@ public class GossipProtocolTest extends BaseTest {
 
     // Subscribe on gossips
     long disseminationTime = 0;
-    long awaitCompletionTime = 0;
     LongSummaryStatistics messageSentStatsDissemination = null;
     LongSummaryStatistics messageLostStatsDissemination = null;
     LongSummaryStatistics messageSentStatsOverall = null;
@@ -140,7 +138,7 @@ public class GossipProtocolTest extends BaseTest {
 
       // Await gossip lifetime plus few gossip intervals too ensure gossip is fully spread
       if (awaitFullCompletion) {
-        awaitCompletionTime = gossipTimeout - disseminationTime + 3 * gossipInterval;
+        long awaitCompletionTime = gossipTimeout - disseminationTime + 3 * gossipInterval;
         Thread.sleep(awaitCompletionTime);
 
         messageSentStatsOverall = computeMessageSentStats(gossipProtocols);
@@ -182,7 +180,7 @@ public class GossipProtocolTest extends BaseTest {
   private LongSummaryStatistics computeMessageSentStats(List<GossipProtocol> gossipProtocols) {
     List<Long> messageSentPerNode = new ArrayList<>(gossipProtocols.size());
     for (GossipProtocol gossipProtocol : gossipProtocols) {
-      ITransport transport = gossipProtocol.getTransport();
+      Transport transport = gossipProtocol.getTransport();
       messageSentPerNode.add(transport.networkEmulator().totalMessageSentCount());
     }
     return messageSentPerNode.stream().mapToLong(v -> v).summaryStatistics();
@@ -191,7 +189,7 @@ public class GossipProtocolTest extends BaseTest {
   private LongSummaryStatistics computeMessageLostStats(List<GossipProtocol> gossipProtocols) {
     List<Long> messageLostPerNode = new ArrayList<>(gossipProtocols.size());
     for (GossipProtocol gossipProtocol : gossipProtocols) {
-      ITransport transport = gossipProtocol.getTransport();
+      Transport transport = gossipProtocol.getTransport();
       messageLostPerNode.add(transport.networkEmulator().totalMessageLostCount());
     }
     return messageLostPerNode.stream().mapToLong(v -> v).summaryStatistics();

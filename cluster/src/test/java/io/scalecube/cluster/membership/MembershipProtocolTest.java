@@ -9,7 +9,6 @@ import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.ITransport;
 import io.scalecube.transport.Transport;
 
 import com.google.common.base.Throwables;
@@ -477,7 +476,7 @@ public class MembershipProtocolTest extends BaseTest {
     membership.getGossipProtocol().stop();
     membership.getFailureDetector().stop();
 
-    ITransport transport = membership.getTransport();
+    Transport transport = membership.getTransport();
     CompletableFuture<Void> close = new CompletableFuture<>();
     transport.stop(close);
     try {

@@ -37,8 +37,8 @@ public class TransportTest extends BaseTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(TransportTest.class);
 
   // Auto-destroyed on tear down
-  private ITransport client;
-  private ITransport server;
+  private Transport client;
+  private Transport server;
 
   @After
   public void tearDown() throws Exception {
@@ -48,7 +48,7 @@ public class TransportTest extends BaseTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidListenConfig() {
-    ITransport transport = null;
+    Transport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenInterface("eth0").listenAddress("10.10.10.10").build();
       transport = Transport.bindAwait(config);
@@ -59,7 +59,7 @@ public class TransportTest extends BaseTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidListenInterface() {
-    ITransport transport = null;
+    Transport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenInterface("yadayada").build();
       transport = Transport.bindAwait(config);
@@ -70,7 +70,7 @@ public class TransportTest extends BaseTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testInvalidListenAddress() {
-    ITransport transport = null;
+    Transport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenAddress("0.0.0.0").build();
       transport = Transport.bindAwait(config);
@@ -135,7 +135,7 @@ public class TransportTest extends BaseTest {
 
   @Test
   public void testValidListenAddress() {
-    ITransport transport = null;
+    Transport transport = null;
     try {
       TransportConfig config = TransportConfig.builder().listenAddress("127.0.0.1").build();
       transport = Transport.bindAwait(config);
