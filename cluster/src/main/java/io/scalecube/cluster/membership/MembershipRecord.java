@@ -77,7 +77,7 @@ final class MembershipRecord {
    */
   public boolean isOverrides(MembershipRecord r0) {
     if (r0 == null) {
-      return true;
+      return isAlive();
     }
     checkArgument(this.member.equals(r0.member), "Can't compare records for different members");
     if (r0.status == DEAD) {

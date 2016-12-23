@@ -43,7 +43,7 @@ public class MembershipRecordTest extends BaseTest {
   public void testDeadOverride() {
     MembershipRecord r1_dead_1 = new MembershipRecord(member, DEAD, 1);
 
-    assertTrue(r1_dead_1.isOverrides(r0_null));
+    assertFalse(r1_dead_1.isOverrides(r0_null));
 
     assertTrue(r1_dead_1.isOverrides(r0_alive_0));
     assertTrue(r1_dead_1.isOverrides(r0_alive_1));
@@ -78,17 +78,10 @@ public class MembershipRecordTest extends BaseTest {
   }
 
   @Test
-  public void testEqualRecordNotOverriding() {
-    assertFalse(r0_alive_1.isOverrides(r0_alive_1));
-    assertFalse(r0_suspect_1.isOverrides(r0_suspect_1));
-    assertFalse(r0_dead_1.isOverrides(r0_dead_1));
-  }
-
-  @Test
   public void testSuspectOverride() {
     MembershipRecord r1_suspect_1 = new MembershipRecord(member, SUSPECT, 1);
 
-    assertTrue(r1_suspect_1.isOverrides(r0_null));
+    assertFalse(r1_suspect_1.isOverrides(r0_null));
 
     assertTrue(r1_suspect_1.isOverrides(r0_alive_0));
     assertTrue(r1_suspect_1.isOverrides(r0_alive_1));
@@ -101,6 +94,13 @@ public class MembershipRecordTest extends BaseTest {
     assertFalse(r1_suspect_1.isOverrides(r0_dead_0));
     assertFalse(r1_suspect_1.isOverrides(r0_dead_1));
     assertFalse(r1_suspect_1.isOverrides(r0_dead_2));
+  }
+
+  @Test
+  public void testEqualRecordNotOverriding() {
+    assertFalse(r0_alive_1.isOverrides(r0_alive_1));
+    assertFalse(r0_suspect_1.isOverrides(r0_suspect_1));
+    assertFalse(r0_dead_1.isOverrides(r0_dead_1));
   }
 
 }

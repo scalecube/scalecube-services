@@ -423,10 +423,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Emit membership event
-    if (r1.isDead() && r0 != null) {
+    if (r1.isDead()) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.REMOVED, r1.member());
       subject.onNext(membershipEvent);
-    } else if (r0 == null && !r1.isDead()) {
+    } else if (r0 == null && r1.isAlive()) {
       MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.ADDED, r1.member());
       subject.onNext(membershipEvent);
     }
