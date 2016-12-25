@@ -32,8 +32,9 @@ public class ClusterMessagingStressTest extends BaseTest {
       {     1_000 },
       {     5_000 },
       {    10_000 },
-      {    50_000 },
-      {   100_000 },
+      {    25_000 },
+//      {    50_000 },
+//      {   100_000 },
 //      {   250_000 },
 //      {   500_000 },
 //      { 1_000_000 },
@@ -54,7 +55,7 @@ public class ClusterMessagingStressTest extends BaseTest {
   }
 
   @Test
-  public void transportStressTest() throws Exception {
+  public void clusterMessagingStressTest() throws Exception {
     // Init transports
     Cluster echoServer = Cluster.joinAwait();
     Cluster client1 = null;
