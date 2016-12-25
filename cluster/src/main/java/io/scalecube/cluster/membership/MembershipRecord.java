@@ -79,7 +79,7 @@ final class MembershipRecord {
     if (r0 == null) {
       return isAlive();
     }
-    checkArgument(this.member.equals(r0.member), "Can't compare records for different members");
+    checkArgument(this.member.id().equals(r0.member.id()), "Can't compare records for different members");
     if (r0.status == DEAD) {
       return false;
     }

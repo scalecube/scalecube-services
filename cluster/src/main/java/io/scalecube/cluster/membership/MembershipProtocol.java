@@ -40,6 +40,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 public final class MembershipProtocol implements IMembershipProtocol {
 
@@ -60,7 +61,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   // Injected
 
-  private final Member member;
+  private final AtomicReference<Member> memberRef;
   private final Transport transport;
   private final MembershipConfig config;
   private final List<Address> seedMembers;
@@ -99,7 +100,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
   public MembershipProtocol(Transport transport, MembershipConfig config) {
     this.transport = transport;
     this.config = config;
-    this.member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
+    Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
+    this.memberRef = new AtomicReference<>(member);
 
     String nameFormat = "sc-membership-" + transport.address().toString();
     this.executor = Executors.newSingleThreadScheduledExecutor(
@@ -159,7 +161,17 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   @Override
   public Member member() {
-    return member;
+    return memberRef.get();
+  }
+
+  @Override
+  public void updateMetadata(Map<String, String> metadata) {
+    executor.execute(() -> onUpdateMetadata(metadata));
+  }
+
+  @Override
+  public void updateMetadataProperty(String key, String value) {
+    executor.execute(() -> onUpdateMetadataProperty(key, value));
   }
 
   /**
@@ -167,6 +179,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
    */
   public CompletableFuture<Void> start() {
     // Init membership table with local member record
+    Member member = memberRef.get();
     MembershipRecord localMemberRecord = new MembershipRecord(member, ALIVE, 0);
     membershipTable.put(member.id(), localMemberRecord);
 
@@ -257,7 +270,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     CompletableFuture<Void> syncResponseFuture = new CompletableFuture<>();
 
     // Listen initial Sync Ack
-    String cid = member.id();
+    String cid = memberRef.get().id();
     transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
         .filter(msg -> cid.equals(msg.correlationId()))
@@ -299,6 +312,33 @@ public final class MembershipProtocol implements IMembershipProtocol {
   // ================================================
   // ============== Event Listeners =================
   // ================================================
+
+  private void onUpdateMetadataProperty(String key, String value) {
+    // Update local member reference
+    Member curMember = memberRef.get();
+    Map<String, String> metadata = new HashMap<>(curMember.metadata());
+    metadata.put(key, value);
+    onUpdateMetadata(metadata);
+  }
+
+  private void onUpdateMetadata(Map<String, String> metadata) {
+    // Update local member reference
+    Member curMember = memberRef.get();
+    String memberId = curMember.id();
+    Member newMember = new Member(memberId, curMember.address(), metadata);
+    memberRef.set(newMember);
+
+    // Update membership table
+    MembershipRecord curRecord = membershipTable.get(memberId);
+    MembershipRecord newRecord = new MembershipRecord(newMember, ALIVE, curRecord.incarnation() + 1);
+    membershipTable.put(memberId, newRecord);
+
+    // Emit membership updated event
+    subject.onNext(MembershipEvent.createUpdated(curMember, newMember));
+
+    // Spread new membership record over the cluster
+    spreadMembershipGossip(newRecord);
+  }
 
   private void onSyncAck(Message syncAckMsg) {
     LOGGER.debug("Received SyncAck: {}", syncAckMsg);
@@ -399,10 +439,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // If received updated for local member then increase incarnation number and spread Alive gossip
-    if (r1.member().equals(member)) {
+    Member localMember = memberRef.get();
+    if (r1.member().id().equals(localMember.id())) {
       int currentIncarnation = Math.max(r0.incarnation(), r1.incarnation());
-      MembershipRecord r2 = new MembershipRecord(member, ALIVE, currentIncarnation + 1);
-      membershipTable.put(member.id(), r2);
+      MembershipRecord r2 = new MembershipRecord(localMember, ALIVE, currentIncarnation + 1);
+      membershipTable.put(localMember.id(), r2);
       LOGGER.debug("Local membership record r0={}, but received r1={}, spread r2={}", r0, r1, r2);
       spreadMembershipGossip(r2);
       return;
@@ -424,11 +465,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
     // Emit membership event
     if (r1.isDead()) {
-      MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.REMOVED, r1.member());
-      subject.onNext(membershipEvent);
+      subject.onNext(MembershipEvent.createRemoved(r1.member()));
     } else if (r0 == null && r1.isAlive()) {
-      MembershipEvent membershipEvent = new MembershipEvent(MembershipEvent.Type.ADDED, r1.member());
-      subject.onNext(membershipEvent);
+      subject.onNext(MembershipEvent.createAdded(r1.member()));
+    } else if (r0 != null && !r0.member().equals(r1.member())) {
+      LOGGER.info("Received membership update r0={} ato r1={}", r0, r1);
+      subject.onNext(MembershipEvent.createUpdated(r0.member(), r1.member()));
     }
 
     // Spread gossip (unless already gossiped)

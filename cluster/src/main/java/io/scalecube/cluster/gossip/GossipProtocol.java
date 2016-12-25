@@ -245,7 +245,7 @@ public final class GossipProtocol implements IGossipProtocol {
         ClusterMath.gossipPeriodsToSpread(config.getGossipRepeatMultiplier(), remoteMembers.size() + 1);
     return gossips.values().stream()
         .filter(gossipState -> gossipState.infectionPeriod() + periodsToSpread >= period) // max rounds
-        .filter(gossipState -> !gossipState.isInfected(member)) // already infected
+        .filter(gossipState -> !gossipState.isInfected(member.id())) // already infected
         .map(GossipState::gossip)
         .collect(Collectors.toList());
   }
@@ -273,7 +273,7 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   private Message buildGossipRequestMessage(List<Gossip> gossipsToSend) {
-    GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member());
+    GossipRequest gossipReqData = new GossipRequest(gossipsToSend, membership.member().id());
     return Message.withData(gossipReqData).qualifier(GOSSIP_REQ).build();
   }
 

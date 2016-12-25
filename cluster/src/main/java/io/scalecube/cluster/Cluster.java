@@ -1,14 +1,13 @@
 package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING;
+import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
 import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
 import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
 import static io.scalecube.cluster.membership.MembershipProtocol.SYNC;
 import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
-
 
 import io.scalecube.cluster.fdetector.FailureDetector;
 import io.scalecube.cluster.gossip.GossipProtocol;
@@ -16,9 +15,9 @@ import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.cluster.membership.MembershipProtocol;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.Message;
 import io.scalecube.transport.NetworkEmulator;
 import io.scalecube.transport.Transport;
-import io.scalecube.transport.Message;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
@@ -33,8 +32,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -159,7 +158,7 @@ public final class Cluster implements ICluster {
 
   private CompletableFuture<ICluster> join0() {
     CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
-    CompletableFuture<Void> clusterFuture =  transportFuture.thenCompose(boundTransport -> {
+    CompletableFuture<Void> clusterFuture = transportFuture.thenCompose(boundTransport -> {
       transport = boundTransport;
       messageObservable = transport.listen()
           .filter(msg -> !SYSTEM_MESSAGES.contains(msg.qualifier())); // filter out system gossips
@@ -180,6 +179,10 @@ public final class Cluster implements ICluster {
           .filter(MembershipEvent::isRemoved)
           .map(MembershipEvent::member)
           .subscribe(this::onMemberRemoved, this::onError);
+      membership.listen()
+          .filter(MembershipEvent::isUpdated)
+          .map(MembershipEvent::member)
+          .subscribe(this::onMemberUpdated, this::onError);
 
       failureDetector.start();
       gossip.start();
@@ -202,6 +205,10 @@ public final class Cluster implements ICluster {
   private void onMemberRemoved(Member member) {
     members.remove(member.id());
     memberAddressIndex.remove(member.address());
+  }
+
+  private void onMemberUpdated(Member member) {
+    members.put(member.id(), member);
   }
 
   @Override
@@ -271,6 +278,16 @@ public final class Cluster implements ICluster {
     ArrayList<Member> otherMembers = new ArrayList<>(members.values());
     otherMembers.remove(membership.member());
     return Collections.unmodifiableCollection(otherMembers);
+  }
+
+  @Override
+  public void updateMetadata(Map<String, String> metadata) {
+    membership.updateMetadata(metadata);
+  }
+
+  @Override
+  public void updateMetadataProperty(String key, String value) {
+    membership.updateMetadataProperty(key, value);
   }
 
   @Override

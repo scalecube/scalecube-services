@@ -8,6 +8,7 @@ import io.scalecube.transport.NetworkEmulator;
 import rx.Observable;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -69,6 +70,25 @@ public interface ICluster {
    * Returns list of all cluster members of the joined cluster excluding local member.
    */
   Collection<Member> otherMembers();
+
+  /**
+   * Updates local member metadata with the given metadata map. Metadata is updated asynchronously and results in a
+   * membership update event for local member once it is updated locally. Information about new metadata is disseminated
+   * to other nodes of the cluster with a weekly-consistent guarantees.
+   *
+   * @param metadata new metadata
+   */
+  void updateMetadata(Map<String, String> metadata);
+
+  /**
+   * Updates single key-value pair of local member's metadata. This is a shortcut method and anyway update will result
+   * in a full metadata update. In case if you need to update several metadata property together it is recommended to
+   * use {@link #updateMetadata(Map)}.
+   *
+   * @param key metadata key to update
+   * @param value metadata value to update
+   */
+  void updateMetadataProperty(String key, String value);
 
   /**
    * Listen changes in cluster membership.

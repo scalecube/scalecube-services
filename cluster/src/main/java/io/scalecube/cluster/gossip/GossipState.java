@@ -1,7 +1,5 @@
 package io.scalecube.cluster.gossip;
 
-import io.scalecube.cluster.Member;
-
 import com.google.common.base.Preconditions;
 
 import java.util.HashSet;
@@ -16,8 +14,8 @@ final class GossipState {
   /** Local gossip period when gossip was received for the first time. */
   private final long infectionPeriod;
 
-  /** Set of members this gossip was received from. */
-  private final Set<Member> infected = new HashSet<>();
+  /** Set of member IDs this gossip was received from. */
+  private final Set<String> infected = new HashSet<>();
 
   GossipState(Gossip gossip, long infectionPeriod) {
     Preconditions.checkArgument(gossip != null);
@@ -33,12 +31,12 @@ final class GossipState {
     return infectionPeriod;
   }
 
-  public void addToInfected(Member member) {
-    infected.add(member);
+  public void addToInfected(String memberId) {
+    infected.add(memberId);
   }
 
-  public boolean isInfected(Member member) {
-    return infected.contains(member);
+  public boolean isInfected(String memberId) {
+    return infected.contains(memberId);
   }
 
   @Override

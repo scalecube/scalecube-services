@@ -12,20 +12,33 @@ import javax.annotation.concurrent.Immutable;
  * @author Anton Kharenko
  */
 @Immutable
-public class MembershipEvent {
+public final class MembershipEvent {
 
   public enum Type {
-    ADDED, REMOVED
+    ADDED, REMOVED, UPDATED
   }
 
   private final Type type;
-  private final Member member;
+  private final Member newMember;
+  private final Member oldMember;
 
-  public MembershipEvent(Type type, Member member) {
+  private MembershipEvent(Type type, Member oldMember, Member newMember) {
     checkArgument(type != null);
-    checkArgument(member != null);
     this.type = type;
-    this.member = member;
+    this.oldMember = oldMember;
+    this.newMember = newMember;
+  }
+
+  static MembershipEvent createRemoved(Member member) {
+    return new MembershipEvent(Type.REMOVED, member, null);
+  }
+
+  static MembershipEvent createAdded(Member member) {
+    return new MembershipEvent(Type.ADDED, null, member);
+  }
+
+  static MembershipEvent createUpdated(Member oldMember, Member newMember) {
+    return new MembershipEvent(Type.UPDATED, oldMember, newMember);
   }
 
   public Type type() {
@@ -40,12 +53,27 @@ public class MembershipEvent {
     return type == Type.REMOVED;
   }
 
+  public boolean isUpdated() {
+    return type == Type.UPDATED;
+  }
+
   public Member member() {
-    return member;
+    return type == Type.REMOVED ? oldMember : newMember;
+  }
+
+  public Member oldMember() {
+    return oldMember;
+  }
+
+  public Member newMember() {
+    return newMember;
   }
 
   @Override
   public String toString() {
-    return "MembershipEvent{type=" + type + ", member=" + member + '}';
+    return "MembershipEvent{type=" + type
+        + ", newMember=" + newMember
+        + ", oldMember=" + oldMember
+        + '}';
   }
 }
