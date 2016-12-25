@@ -1,7 +1,6 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Message;
 
@@ -28,11 +27,11 @@ public class ClusterMetadataExample {
    */
   public static void main(String[] args) throws Exception {
     // Start seed cluster member Alice
-    ICluster alice = Cluster.joinAwait();
+    Cluster alice = Cluster.joinAwait();
 
     // Join Joe to cluster with metadata
     Map<String, String> metadata = ImmutableMap.of("name", "Joe");
-    ICluster joe = Cluster.joinAwait(metadata, alice.address());
+    Cluster joe = Cluster.joinAwait(metadata, alice.address());
 
     // Subscribe Joe to listen for incoming messages and print them to system out
     joe.listen()

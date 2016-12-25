@@ -2,9 +2,8 @@ package io.scalecube.examples;
 
 import static java.util.stream.Collectors.joining;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.transport.TransportConfig;
@@ -14,7 +13,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 
 /**
- * Example how to create {@link ICluster} instances and join them to cluster.
+ * Example how to create {@link Cluster} instances and join them to cluster.
  * 
  * @author Anton Kharenko
  */
@@ -25,14 +24,14 @@ public class ClusterJoinExamples {
    */
   public static void main(String[] args) throws Exception {
     // Start seed member Alice
-    ICluster alice = Cluster.joinAwait();
+    Cluster alice = Cluster.joinAwait();
 
     // Join Bob to cluster with Alice
-    ICluster bob = Cluster.joinAwait(alice.address());
+    Cluster bob = Cluster.joinAwait(alice.address());
 
     // Join Carol to cluster with metadata
     Map<String, String> metadata = ImmutableMap.of("name", "Carol");
-    ICluster carol = Cluster.joinAwait(metadata, alice.address());
+    Cluster carol = Cluster.joinAwait(metadata, alice.address());
 
     // Start Dan on port 3000
     ClusterConfig configWithFixedPort = ClusterConfig.builder()
@@ -43,7 +42,7 @@ public class ClusterJoinExamples {
                 .port(3000)
                 .build())
         .build();
-    ICluster dan = Cluster.joinAwait(configWithFixedPort);
+    Cluster dan = Cluster.joinAwait(configWithFixedPort);
 
     // Start Eve in separate cluster (separate sync group)
     ClusterConfig configWithSyncGroup = ClusterConfig.builder()
@@ -53,7 +52,7 @@ public class ClusterJoinExamples {
                 .syncGroup("another cluster")
                 .build())
         .build();
-    ICluster eve = Cluster.joinAwait(configWithSyncGroup);
+    Cluster eve = Cluster.joinAwait(configWithSyncGroup);
 
     // Print cluster members of each node
 

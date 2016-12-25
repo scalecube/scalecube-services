@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Message;
 
 import java.util.concurrent.CompletableFuture;
@@ -18,7 +18,7 @@ public class DispatchingFuture {
   /**
    * the instance of the relevant cluster.
    */
-  private ICluster cluster;
+  private Cluster cluster;
 
   /**
    * create a method dispatching future with relevant original request.
@@ -27,7 +27,7 @@ public class DispatchingFuture {
    * @param request the original request this response correlated to.
    * @return new instance of a dispatching future.
    */
-  static DispatchingFuture from(ICluster cluster, Message request) {
+  static DispatchingFuture from(Cluster cluster, Message request) {
     return new DispatchingFuture(cluster, request);
   }
 
@@ -37,7 +37,7 @@ public class DispatchingFuture {
    * @param cluster instance.
    * @param request original service request.
    */
-  private DispatchingFuture(ICluster cluster, Message request) {
+  private DispatchingFuture(Cluster cluster, Message request) {
     this.request = request;
     this.cluster = cluster;
   }
@@ -75,7 +75,7 @@ public class DispatchingFuture {
   }
 
 
-  private void handleComputable(final ICluster cluster, CompletableFuture<?> result) {
+  private void handleComputable(final Cluster cluster, CompletableFuture<?> result) {
     result.whenComplete((success, error) -> {
       Message futureMessage = null;
       if (error == null) {

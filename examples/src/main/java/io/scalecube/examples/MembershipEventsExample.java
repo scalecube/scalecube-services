@@ -1,7 +1,6 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ICluster;
 import io.scalecube.cluster.fdetector.FailureDetectorConfig;
 import io.scalecube.cluster.membership.MembershipConfig;
 
@@ -26,19 +25,19 @@ public class MembershipEventsExample {
    */
   public static void main(String[] args) throws Exception {
     // Alice init cluster
-    ICluster alice = Cluster.joinAwait(ImmutableMap.of("name", "Alice"));
+    Cluster alice = Cluster.joinAwait(ImmutableMap.of("name", "Alice"));
     System.out.println(now() + " Alice join members: " + alice.members());
     alice.listenMembership()
         .subscribe(event -> System.out.println(now() + " Alice received: " + event));
 
     // Bob join cluster
-    ICluster bob = Cluster.joinAwait(ImmutableMap.of("name", "Bob"), alice.address());
+    Cluster bob = Cluster.joinAwait(ImmutableMap.of("name", "Bob"), alice.address());
     System.out.println(now() + " Bob join members: " + bob.members());
     bob.listenMembership()
         .subscribe(event -> System.out.println(now() + " Bob received: " + event));
 
     // Carol join cluster
-    ICluster carol = Cluster.joinAwait(ImmutableMap.of("name", "Carol"), alice.address(), bob.address());
+    Cluster carol = Cluster.joinAwait(ImmutableMap.of("name", "Carol"), alice.address(), bob.address());
     System.out.println(now() + " Carol join members: " + carol.members());
     carol.listenMembership()
         .subscribe(event -> System.out.println(now() + " Carol received: " + event));

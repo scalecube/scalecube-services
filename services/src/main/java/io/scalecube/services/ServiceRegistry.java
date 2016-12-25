@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Cluster;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 
 import java.util.Collection;
@@ -27,6 +27,6 @@ public interface ServiceRegistry {
 
   ServiceDefinition registerInterface(Class<?> serviceInterface);
   
-  ICluster cluster();
+  Cluster cluster();
 
 }

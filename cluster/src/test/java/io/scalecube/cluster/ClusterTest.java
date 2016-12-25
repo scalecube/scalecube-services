@@ -24,12 +24,12 @@ public class ClusterTest extends BaseTest {
   @Test
   public void testJoinDynamicPort() throws Exception {
     // Start seed node
-    ICluster seedNode = Cluster.joinAwait();
+    Cluster seedNode = Cluster.joinAwait();
 
     // Start other nodes
     int membersNum = 10;
     long start = System.currentTimeMillis();
-    List<ICluster> otherNodes = new ArrayList<>();
+    List<Cluster> otherNodes = new ArrayList<>();
     for (int i = 0; i < membersNum; i++) {
       otherNodes.add(Cluster.joinAwait(seedNode.address()));
     }
@@ -46,21 +46,21 @@ public class ClusterTest extends BaseTest {
   @Test
   public void testUpdateMetadata() throws Exception {
     // Start seed member
-    ICluster seedNode = Cluster.joinAwait();
+    Cluster seedNode = Cluster.joinAwait();
 
     // Start member with metadata
     Map<String, String> metadata = ImmutableMap.of("key1", "value1", "key2", "value2");
-    ICluster metadataNode = Cluster.joinAwait(metadata, seedNode.address());
+    Cluster metadataNode = Cluster.joinAwait(metadata, seedNode.address());
 
     // Start other test members
     int testMembersNum = 10;
-    List<ICluster> otherNodes = new ArrayList<>();
+    List<Cluster> otherNodes = new ArrayList<>();
     for (int i = 0; i < testMembersNum; i++) {
       otherNodes.add(Cluster.joinAwait(seedNode.address()));
     }
 
     // Check all test members know valid metadata
-    for (ICluster node : otherNodes) {
+    for (Cluster node : otherNodes) {
       Optional<Member> mNodeOpt = node.member(metadataNode.member().id());
       assertTrue(mNodeOpt.isPresent());
       Member mNode = mNodeOpt.get();
@@ -69,7 +69,7 @@ public class ClusterTest extends BaseTest {
 
     // Subscribe for membership update event all nodes
     CountDownLatch updateLatch = new CountDownLatch(testMembersNum);
-    for (ICluster node : otherNodes) {
+    for (Cluster node : otherNodes) {
       node.listenMembership()
           .filter(MembershipEvent::isUpdated)
           .subscribe(event -> updateLatch.countDown());
@@ -81,10 +81,10 @@ public class ClusterTest extends BaseTest {
     metadataNode.updateMetadata(updatedMetadata);
 
     // Await latch
-    updateLatch.await(100, TimeUnit.SECONDS);
+    updateLatch.await(10, TimeUnit.SECONDS);
 
     // Check all nodes had updated metadata member
-    for (ICluster node : otherNodes) {
+    for (Cluster node : otherNodes) {
       Optional<Member> mNodeOpt = node.member(metadataNode.member().id());
       assertTrue(mNodeOpt.isPresent());
       Member mNode = mNodeOpt.get();
@@ -100,21 +100,21 @@ public class ClusterTest extends BaseTest {
   @Test
   public void testUpdateMetadataProperty() throws Exception {
     // Start seed member
-    ICluster seedNode = Cluster.joinAwait();
+    Cluster seedNode = Cluster.joinAwait();
 
     // Start member with metadata
     Map<String, String> metadata = ImmutableMap.of("key1", "value1", "key2", "value2");
-    ICluster metadataNode = Cluster.joinAwait(metadata, seedNode.address());
+    Cluster metadataNode = Cluster.joinAwait(metadata, seedNode.address());
 
     // Start other test members
     int testMembersNum = 10;
-    List<ICluster> otherNodes = new ArrayList<>();
+    List<Cluster> otherNodes = new ArrayList<>();
     for (int i = 0; i < testMembersNum; i++) {
       otherNodes.add(Cluster.joinAwait(seedNode.address()));
     }
 
     // Check all test members know valid metadata
-    for (ICluster node : otherNodes) {
+    for (Cluster node : otherNodes) {
       Optional<Member> mNodeOpt = node.member(metadataNode.member().id());
       assertTrue(mNodeOpt.isPresent());
       Member mNode = mNodeOpt.get();
@@ -123,7 +123,7 @@ public class ClusterTest extends BaseTest {
 
     // Subscribe for membership update event all nodes
     CountDownLatch updateLatch = new CountDownLatch(testMembersNum);
-    for (ICluster node : otherNodes) {
+    for (Cluster node : otherNodes) {
       node.listenMembership()
           .filter(MembershipEvent::isUpdated)
           .subscribe(event -> updateLatch.countDown());
@@ -133,10 +133,10 @@ public class ClusterTest extends BaseTest {
     metadataNode.updateMetadataProperty("key2", "value3");
 
     // Await latch
-    updateLatch.await(100, TimeUnit.SECONDS);
+    updateLatch.await(10, TimeUnit.SECONDS);
 
     // Check all nodes had updated metadata member
-    for (ICluster node : otherNodes) {
+    for (Cluster node : otherNodes) {
       Optional<Member> mNodeOpt = node.member(metadataNode.member().id());
       assertTrue(mNodeOpt.isPresent());
       Member mNode = mNodeOpt.get();
@@ -152,12 +152,12 @@ public class ClusterTest extends BaseTest {
     shutdown(otherNodes);
   }
 
-  private void shutdown(ICluster... nodes) {
+  private void shutdown(Cluster... nodes) {
     shutdown(Arrays.asList(nodes));
   }
 
-  private void shutdown(Collection<ICluster> nodes) {
-    for (ICluster node : nodes) {
+  private void shutdown(Collection<Cluster> nodes) {
+    for (Cluster node : nodes) {
       try {
         node.shutdown().get();
       } catch (Exception ex) {
