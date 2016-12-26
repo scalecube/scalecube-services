@@ -2,6 +2,7 @@ package io.scalecube.cluster.membership;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.scalecube.cluster.Member;
@@ -34,9 +35,19 @@ public class DummyMembershipProtocol implements IMembershipProtocol {
   }
 
   @Override
+  public void updateMetadata(Map<String, String> metadata) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void updateMetadataProperty(String key, String value) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Observable<MembershipEvent> listen() {
     return Observable.from(remoteMembers.stream()
-        .map(member -> new MembershipEvent(MembershipEvent.Type.ADDED, member))
+        .map(MembershipEvent::createAdded)
         .collect(Collectors.toList()));
   }
 }

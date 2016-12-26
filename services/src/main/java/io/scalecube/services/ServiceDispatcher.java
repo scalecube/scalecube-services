@@ -3,14 +3,14 @@ package io.scalecube.services;
 import static io.scalecube.services.ServiceHeaders.service_method_of;
 import static io.scalecube.services.ServiceHeaders.service_request_of;
 
-import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Message;
 
 import java.util.Optional;
 
 public class ServiceDispatcher {
 
-  private final ICluster cluster;
+  private final Cluster cluster;
   private final ServiceRegistry registry;
 
   /**
@@ -19,7 +19,7 @@ public class ServiceDispatcher {
    * @param cluster instance to listen on events.
    * @param registry service registry instance for dispatching.
    */
-  public ServiceDispatcher(ICluster cluster, ServiceRegistry registry) {
+  public ServiceDispatcher(Cluster cluster, ServiceRegistry registry) {
     this.cluster = cluster;
     this.registry = registry;
 

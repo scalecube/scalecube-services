@@ -1,84 +1,34 @@
 package io.scalecube.cluster;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
-import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
-import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
-import static io.scalecube.cluster.membership.MembershipProtocol.SYNC;
-import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
-
-
-import io.scalecube.cluster.fdetector.FailureDetector;
-import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.cluster.membership.MembershipProtocol;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.NetworkEmulator;
-import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.NetworkEmulator;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableSet;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import javax.annotation.Nonnull;
 
 /**
- * Main ICluster implementation.
+ * Facade cluster interface which provides API to interact with cluster members.
  * 
  * @author Anton Kharenko
  */
-public final class Cluster implements ICluster {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(Cluster.class);
-
-  private static final Set<String> SYSTEM_MESSAGES =
-      ImmutableSet.of(PING, PING_REQ, PING_ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
-
-  private static final Set<String> SYSTEM_GOSSIPS = ImmutableSet.of(MEMBERSHIP_GOSSIP);
-
-  private final ClusterConfig config;
-
-  private final ConcurrentMap<String, Member> members = new ConcurrentHashMap<>();
-  private final ConcurrentMap<Address, String> memberAddressIndex = new ConcurrentHashMap<>();
-
-
-  // Cluster components
-  private Transport transport;
-  private FailureDetector failureDetector;
-  private GossipProtocol gossip;
-  private MembershipProtocol membership;
-
-  private Observable<Message> messageObservable;
-  private Observable<Message> gossipObservable;
-
-  private Cluster(ClusterConfig config) {
-    checkNotNull(config);
-    this.config = config;
-  }
+public interface Cluster {
 
   /**
    * Init cluster instance and join cluster synchronously.
    */
-  public static ICluster joinAwait() {
+  static Cluster joinAwait() {
     try {
       return join().get();
     } catch (Exception e) {
@@ -89,7 +39,7 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance with the given seed members and join cluster synchronously.
    */
-  public static ICluster joinAwait(Address... seedMembers) {
+  static Cluster joinAwait(Address... seedMembers) {
     try {
       return join(seedMembers).get();
     } catch (Exception e) {
@@ -100,7 +50,7 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance with the given metadata and seed members and join cluster synchronously.
    */
-  public static ICluster joinAwait(Map<String, String> metadata, Address... seedMembers) {
+  static Cluster joinAwait(Map<String, String> metadata, Address... seedMembers) {
     try {
       return join(metadata, seedMembers).get();
     } catch (Exception e) {
@@ -111,7 +61,7 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance with the given configuration and join cluster synchronously.
    */
-  public static ICluster joinAwait(ClusterConfig config) {
+  static Cluster joinAwait(ClusterConfig config) {
     try {
       return join(config).get();
     } catch (Exception e) {
@@ -122,14 +72,14 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance and join cluster asynchronously.
    */
-  public static CompletableFuture<ICluster> join() {
+  static CompletableFuture<Cluster> join() {
     return join(ClusterConfig.defaultConfig());
   }
 
   /**
    * Init cluster instance with the given seed members and join cluster asynchronously.
    */
-  public static CompletableFuture<ICluster> join(Address... seedMembers) {
+  static CompletableFuture<Cluster> join(Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
         .membershipConfig(MembershipConfig.builder().seedMembers(Arrays.asList(seedMembers)).build())
         .build();
@@ -139,7 +89,7 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance with the given metadata and seed members and join cluster synchronously.
    */
-  public static CompletableFuture<ICluster> join(Map<String, String> metadata, Address... seedMembers) {
+  static CompletableFuture<Cluster> join(Map<String, String> metadata, Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
         .membershipConfig(
             MembershipConfig.builder()
@@ -153,151 +103,97 @@ public final class Cluster implements ICluster {
   /**
    * Init cluster instance with the given configuration and join cluster synchronously.
    */
-  public static CompletableFuture<ICluster> join(final ClusterConfig config) {
-    return new Cluster(config).join0();
+  static CompletableFuture<Cluster> join(final ClusterConfig config) {
+    return new ClusterImpl(config).join0();
   }
 
-  private CompletableFuture<ICluster> join0() {
-    CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
-    CompletableFuture<Void> clusterFuture =  transportFuture.thenCompose(boundTransport -> {
-      transport = boundTransport;
-      messageObservable = transport.listen()
-          .filter(msg -> !SYSTEM_MESSAGES.contains(msg.qualifier())); // filter out system gossips
+  /**
+   * Returns local listen {@link Address} of this cluster instance.
+   */
+  Address address();
 
-      membership = new MembershipProtocol(transport, config.getMembershipConfig());
-      gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
-      failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
-      membership.setFailureDetector(failureDetector);
-      membership.setGossipProtocol(gossip);
+  void send(Member member, Message message);
 
-      Member localMember = membership.member();
-      onMemberAdded(localMember);
-      membership.listen()
-          .filter(MembershipEvent::isAdded)
-          .map(MembershipEvent::member)
-          .subscribe(this::onMemberAdded, this::onError);
-      membership.listen()
-          .filter(MembershipEvent::isRemoved)
-          .map(MembershipEvent::member)
-          .subscribe(this::onMemberRemoved, this::onError);
+  void send(Member member, Message message, CompletableFuture<Void> promise);
 
-      failureDetector.start();
-      gossip.start();
-      gossipObservable = gossip.listen()
-          .filter(msg -> !SYSTEM_GOSSIPS.contains(msg.qualifier())); // filter out system gossips
-      return membership.start();
-    });
-    return clusterFuture.thenApply(aVoid -> Cluster.this);
-  }
+  void send(Address address, Message message);
 
-  private void onError(Throwable throwable) {
-    LOGGER.error("Received unexpected error: ", throwable);
-  }
+  void send(Address address, Message message, CompletableFuture<Void> promise);
 
-  private void onMemberAdded(Member member) {
-    memberAddressIndex.put(member.address(), member.id());
-    members.put(member.id(), member);
-  }
+  Observable<Message> listen();
 
-  private void onMemberRemoved(Member member) {
-    members.remove(member.id());
-    memberAddressIndex.remove(member.address());
-  }
+  /**
+   * Spreads given message between cluster members using gossiping protocol.
+   */
+  void spreadGossip(Message message);
 
-  @Override
-  public Address address() {
-    return transport.address();
-  }
+  /**
+   * Listens for gossips from other cluster members.
+   */
+  Observable<Message> listenGossips();
 
-  @Override
-  public void send(Member member, Message message) {
-    transport.send(member.address(), message);
-  }
+  /**
+   * Returns local cluster member which corresponds to this cluster instance.
+   */
+  Member member();
 
-  @Override
-  public void send(Address address, Message message) {
-    transport.send(address, message);
-  }
+  /**
+   * Returns cluster member with given id or null if no member with such id exists at joined cluster.
+   */
+  Optional<Member> member(String id);
 
-  @Override
-  public void send(Member member, Message message, CompletableFuture<Void> promise) {
-    transport.send(member.address(), message, promise);
-  }
+  /**
+   * Returns cluster member by given address or null if no member with such address exists at joined cluster.
+   */
+  Optional<Member> member(Address address);
 
-  @Override
-  public void send(Address address, Message message, CompletableFuture<Void> promise) {
-    transport.send(address, message, promise);
-  }
+  /**
+   * Returns list of all members of the joined cluster. This will include all cluster members including local member.
+   */
+  Collection<Member> members();
 
-  @Override
-  public Observable<Message> listen() {
-    return messageObservable;
-  }
+  /**
+   * Returns list of all cluster members of the joined cluster excluding local member.
+   */
+  Collection<Member> otherMembers();
 
-  @Override
-  public void spreadGossip(Message message) {
-    gossip.spread(message);
-  }
+  /**
+   * Updates local member metadata with the given metadata map. Metadata is updated asynchronously and results in a
+   * membership update event for local member once it is updated locally. Information about new metadata is disseminated
+   * to other nodes of the cluster with a weekly-consistent guarantees.
+   *
+   * @param metadata new metadata
+   */
+  void updateMetadata(Map<String, String> metadata);
 
-  @Override
-  public Observable<Message> listenGossips() {
-    return gossipObservable;
-  }
+  /**
+   * Updates single key-value pair of local member's metadata. This is a shortcut method and anyway update will result
+   * in a full metadata update. In case if you need to update several metadata property together it is recommended to
+   * use {@link #updateMetadata(Map)}.
+   *
+   * @param key metadata key to update
+   * @param value metadata value to update
+   */
+  void updateMetadataProperty(String key, String value);
 
-  @Override
-  public Collection<Member> members() {
-    return Collections.unmodifiableCollection(members.values());
-  }
+  /**
+   * Listen changes in cluster membership.
+   */
+  Observable<MembershipEvent> listenMembership();
 
-  @Override
-  public Member member() {
-    return membership.member();
-  }
+  /**
+   * Member notifies other members of the cluster about leaving and gracefully shutdown and free occupied resources.
+   *
+   * @return Listenable future which is completed once graceful shutdown is finished.
+   */
+  CompletableFuture<Void> shutdown();
 
-  @Override
-  public Optional<Member> member(String id) {
-    return Optional.ofNullable(members.get(id));
-  }
-
-  @Override
-  public Optional<Member> member(Address address) {
-    return Optional.ofNullable(memberAddressIndex.get(address)).flatMap(memberId ->
-        Optional.ofNullable(members.get(memberId))
-    );
-  }
-
-  @Override
-  public Collection<Member> otherMembers() {
-    ArrayList<Member> otherMembers = new ArrayList<>(members.values());
-    otherMembers.remove(membership.member());
-    return Collections.unmodifiableCollection(otherMembers);
-  }
-
-  @Override
-  public Observable<MembershipEvent> listenMembership() {
-    return membership.listen();
-  }
-
-  @Override
-  public CompletableFuture<Void> shutdown() {
-    LOGGER.info("Cluster member {} is shutting down...", membership.member());
-
-    // stop algorithms
-    membership.stop();
-    gossip.stop();
-    failureDetector.stop();
-
-    // stop transport
-    CompletableFuture<Void> transportStoppedFuture = new CompletableFuture<>();
-    transport.stop(transportStoppedFuture);
-
-    return transportStoppedFuture;
-  }
-
+  /**
+   * Returns network emulator associated with this instance of cluster. It always returns non null instance even if
+   * network emulator is disabled by transport config. In case when network emulator is disable all calls to network
+   * emulator instance will result in no operation.
+   */
   @Nonnull
-  @Override
-  public NetworkEmulator networkEmulator() {
-    return transport.networkEmulator();
-  }
+  NetworkEmulator networkEmulator();
 
 }

@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -20,7 +20,7 @@ import java.util.function.Function;
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
 
-  private final ICluster cluster;
+  private final Cluster cluster;
   private final Address address;
   private final String memberId;
   private final String serviceName;

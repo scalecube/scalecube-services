@@ -57,6 +57,7 @@ public final class FailureDetector implements IFailureDetector {
 
   private Subscriber<Member> onMemberAddedSubscriber;
   private Subscriber<Member> onMemberRemovedSubscriber;
+  private Subscriber<MembershipEvent> onMemberUpdatedSubscriber;
   private Subscriber<Message> onPingRequestSubscriber;
   private Subscriber<Message> onAskToPingRequestSubscriber;
   private Subscriber<Message> onTransitPingAckRequestSubscriber;
@@ -113,6 +114,11 @@ public final class FailureDetector implements IFailureDetector {
         .map(MembershipEvent::member)
         .subscribe(onMemberRemovedSubscriber);
 
+    onMemberUpdatedSubscriber = Subscribers.create(this::onMemberUpdated, this::onError);
+    membership.listen().observeOn(scheduler)
+        .filter(MembershipEvent::isUpdated)
+        .subscribe(onMemberUpdatedSubscriber);
+
     onPingRequestSubscriber = Subscribers.create(this::onPing, this::onError);
     transport.listen().observeOn(scheduler)
         .filter(this::isPing)
@@ -140,6 +146,9 @@ public final class FailureDetector implements IFailureDetector {
     }
     if (onMemberRemovedSubscriber != null) {
       onMemberRemovedSubscriber.unsubscribe();
+    }
+    if (onMemberUpdatedSubscriber != null) {
+      onMemberUpdatedSubscriber.unsubscribe();
     }
     if (onPingRequestSubscriber != null) {
       onPingRequestSubscriber.unsubscribe();
@@ -266,14 +275,22 @@ public final class FailureDetector implements IFailureDetector {
     pingMembers.remove(member);
   }
 
+  private void onMemberUpdated(MembershipEvent membershipEvent) {
+    int index = pingMembers.indexOf(membershipEvent.oldMember());
+    if (index != -1) { // except local
+      pingMembers.set(index, membershipEvent.newMember());
+    }
+  }
+
   /**
    * Listens to PING message and answers with ACK.
    */
   private void onPing(Message message) {
     LOGGER.trace("Received Ping: {}", message);
     PingData data = message.data();
-    if (!data.getTo().equals(membership.member())) {
-      LOGGER.warn("Received Ping to {}, but local member is {}", data.getTo(), transport.address());
+    Member localMember = membership.member();
+    if (!data.getTo().id().equals(localMember.id())) {
+      LOGGER.warn("Received Ping to {}, but local member is {}", data.getTo(), localMember);
       return;
     }
     String correlationId = message.correlationId();

@@ -43,7 +43,7 @@ public class GossipRequestTest extends BaseTest {
 
     Member from = new Member("0", Address.from("localhost:1234"));
     List<Gossip> gossips = getGossips();
-    Message message = Message.withData(new GossipRequest(gossips, from)).correlationId("CORR_ID").build();
+    Message message = Message.withData(new GossipRequest(gossips, from.id())).correlationId("CORR_ID").build();
 
     ByteBuf bb = buffer();
     MessageCodec.serialize(message, bb);

@@ -1,4 +1,4 @@
-package io.scalecube.transport;
+package io.scalecube.cluster;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,17 +14,17 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import io.scalecube.testlib.BaseTest;
+import io.scalecube.transport.Message;
 
-import static io.scalecube.transport.TransportTestUtils.destroyTransport;
 import static org.junit.Assert.assertTrue;
 
 /**
  * @author Anton Kharenko
  */
 @RunWith(Parameterized.class)
-public class TransportStressTest extends BaseTest {
+public class ClusterMessagingStressTest extends BaseTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TransportStressTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClusterMessagingStressTest.class);
 
   private static List<Object[]> experiments = Arrays.asList(new Object[][] {
       // Msg count
@@ -50,15 +50,15 @@ public class TransportStressTest extends BaseTest {
 
   private final int msgCount;
 
-  public TransportStressTest(int msgCount) {
+  public ClusterMessagingStressTest(int msgCount) {
     this.msgCount = msgCount;
   }
 
   @Test
-  public void transportStressTest() throws Exception {
+  public void clusterMessagingStressTest() throws Exception {
     // Init transports
-    Transport echoServer = Transport.bindAwait();
-    Transport client1 = null;
+    Cluster echoServer = Cluster.joinAwait();
+    Cluster client1 = null;
 
     // Init measured params
     long sentTime = 0;
@@ -73,7 +73,7 @@ public class TransportStressTest extends BaseTest {
       // Init client
       CountDownLatch measureLatch = new CountDownLatch(msgCount);
       ArrayList<Long> rttRecords = new ArrayList<>(msgCount);
-      client1 = Transport.bindAwait();
+      client1 = Cluster.joinAwait(echoServer.address());
       client1.listen().subscribe(msg -> {
         long sentAt = Long.valueOf(msg.data());
         long rttTime = System.currentTimeMillis() - sentAt;
@@ -97,9 +97,17 @@ public class TransportStressTest extends BaseTest {
       LOGGER.info("Finished receiving {} messages in {} ms", msgCount, receivedTime);
       LOGGER.info("Round trip stats (ms): {}", rttStats);
 
-      // Destroy transport
-      destroyTransport(echoServer);
-      destroyTransport(client1);
+      // Shutdown
+      shutdown(echoServer);
+      shutdown(client1);
+    }
+  }
+
+  private void shutdown(Cluster node) {
+    try {
+      node.shutdown().get();
+    } catch (Exception ex) {
+      LOGGER.error("Exception on cluster shutdown", ex);
     }
   }
 

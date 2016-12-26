@@ -2,9 +2,8 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Cluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -100,7 +99,7 @@ public class Microservices {
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
   private static final ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
 
-  private final ICluster cluster;
+  private final Cluster cluster;
 
   private final ServiceRegistry serviceRegistry;
 
@@ -108,7 +107,7 @@ public class Microservices {
 
   private final ServiceDispatcherFactory dispatcherFactory;
 
-  private Microservices(ICluster cluster, ServicesConfig services, boolean isSeed) {
+  private Microservices(Cluster cluster, ServicesConfig services, boolean isSeed) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
     
@@ -136,7 +135,7 @@ public class Microservices {
     }
   }
 
-  public ICluster cluster() {
+  public Cluster cluster() {
     return this.cluster;
   }
 

@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.ICluster;
+import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.annotations.ServiceProcessor;
@@ -30,7 +30,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     ADDED, REMOVED, DISCOVERED
   }
 
-  private final ICluster cluster;
+  private final Cluster cluster;
   private final ServiceProcessor serviceProcessor;
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
@@ -45,8 +45,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param serviceProcessor - service processor.
    * @param isSeed indication if this member is seed.
    */
-  public ServiceRegistryImpl(ICluster cluster, ServicesConfig services, ServiceProcessor serviceProcessor,
-      boolean isSeed) {
+  public ServiceRegistryImpl(Cluster cluster, ServicesConfig services, ServiceProcessor serviceProcessor,
+                             boolean isSeed) {
     checkArgument(cluster != null);
     checkArgument(services != null);
     checkArgument(serviceProcessor != null);
@@ -194,7 +194,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public ICluster cluster() {
+  public Cluster cluster() {
     return this.cluster;
   }
 

@@ -15,9 +15,9 @@ final class GossipRequest {
   private final List<Gossip> gossips;
 
   @Tag(2)
-  private final Member from;
+  private final String from;
 
-  public GossipRequest(List<Gossip> gossips, Member from) {
+  public GossipRequest(List<Gossip> gossips, String from) {
     this.gossips = new ArrayList<>(gossips);
     this.from = from;
   }
@@ -26,7 +26,7 @@ final class GossipRequest {
     return gossips;
   }
 
-  public Member from() {
+  public String from() {
     return from;
   }
 

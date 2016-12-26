@@ -1,7 +1,6 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ICluster;
 import io.scalecube.transport.Message;
 
 /**
@@ -18,21 +17,21 @@ public class MessagingExample {
    */
   public static void main(String[] args) throws Exception {
     // Start cluster node Alice to listen and respond for incoming greeting messages
-    ICluster alice = Cluster.joinAwait();
+    Cluster alice = Cluster.joinAwait();
     alice.listen().subscribe(msg -> {
       System.out.println("Alice received: " + msg.data());
       alice.send(msg.sender(), Message.fromData("Greetings from Alice"));
     });
 
     // Join cluster node Bob to cluster with Alice, listen and respond for incoming greeting messages
-    ICluster bob = Cluster.joinAwait(alice.address());
+    Cluster bob = Cluster.joinAwait(alice.address());
     bob.listen().subscribe(msg -> {
       System.out.println("Bob received: " + msg.data());
       bob.send(msg.sender(), Message.fromData("Greetings from Bob"));
     });
 
     // Join cluster node Carol to cluster with Alice and Bob
-    ICluster carol = Cluster.joinAwait(alice.address(), bob.address());
+    Cluster carol = Cluster.joinAwait(alice.address(), bob.address());
 
     // Subscribe Carol to listen for incoming messages and print them to system out
     carol.listen()
