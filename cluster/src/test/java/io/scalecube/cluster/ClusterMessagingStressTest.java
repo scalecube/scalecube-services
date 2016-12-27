@@ -61,6 +61,7 @@ public class ClusterMessagingStressTest extends BaseTest {
   public void clusterMessagingStressTest() throws Exception {
     // Init transports
     Cluster echoServer = Cluster.joinAwait();
+    Cluster[] latentNodes = new Cluster[ClusterConfig.DEFAULT_PING_REQ_MEMBERS];
     Cluster client1 = null;
 
     // Init measured params
@@ -72,6 +73,11 @@ public class ClusterMessagingStressTest extends BaseTest {
     try {
       // Subscribe echo server handler
       echoServer.listen().subscribe(msg -> echoServer.send(msg.sender(), msg));
+
+      // Start latent nodes (for indirect pings)
+      for (int i = 0; i < latentNodes.length; i++) {
+        latentNodes[i] = Cluster.joinAwait(echoServer.address());
+      }
 
       // Init client
       CountDownLatch measureLatch = new CountDownLatch(msgCount);
@@ -112,15 +118,18 @@ public class ClusterMessagingStressTest extends BaseTest {
 
       // Shutdown
       shutdown(echoServer);
+      shutdown(latentNodes);
       shutdown(client1);
     }
   }
 
-  private void shutdown(Cluster node) {
-    try {
-      node.shutdown().get();
-    } catch (Exception ex) {
-      LOGGER.error("Exception on cluster shutdown", ex);
+  private void shutdown(Cluster... nodes) {
+    for (Cluster node : nodes) {
+      try {
+        node.shutdown().get();
+      } catch (Exception ex) {
+        LOGGER.error("Exception on cluster shutdown", ex);
+      }
     }
   }
 

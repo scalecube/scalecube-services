@@ -62,7 +62,7 @@ public class GossipProtocolTest extends BaseTest {
   // Allow to configure gossip settings other than defaults
   private static final long gossipInterval /* ms */ = ClusterConfig.DEFAULT_GOSSIP_INTERVAL;
   private static final int gossipFanout = ClusterConfig.DEFAULT_GOSSIP_FANOUT;
-  private static final int gossipRepeatMultiplier = ClusterConfig.DEFAULT_GOSSIP_REPEAT_MULTIPLIER;
+  private static final int gossipRepeatMultiplier = ClusterConfig.DEFAULT_GOSSIP_REPEAT_MULT;
 
 
   // Uncomment and modify params to run single experiment repeatedly
@@ -231,7 +231,7 @@ public class GossipProtocolTest extends BaseTest {
     GossipConfig gossipConfig = ClusterConfig.builder()
         .gossipFanout(gossipFanout)
         .gossipInterval(gossipInterval)
-        .gossipRepeatMultiplier(gossipRepeatMultiplier)
+        .gossipRepeatMult(gossipRepeatMultiplier)
         .build();
     GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership, gossipConfig);
     gossipProtocol.start();

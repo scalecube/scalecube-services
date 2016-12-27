@@ -6,6 +6,6 @@ public interface GossipConfig {
 
   long getGossipInterval();
 
-  int getGossipRepeatMultiplier();
+  int getGossipRepeatMult();
 
 }

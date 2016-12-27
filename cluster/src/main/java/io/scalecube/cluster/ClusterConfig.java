@@ -27,24 +27,41 @@ import java.util.Map;
  */
 public final class ClusterConfig implements FailureDetectorConfig, GossipConfig, MembershipConfig {
 
+  // Default settings for LAN cluster
+  public static final String DEFAULT_SYNC_GROUP = "default";
   public static final int DEFAULT_SYNC_INTERVAL = 30_000;
   public static final int DEFAULT_SYNC_TIMEOUT = 1_000;
-  public static final int DEFAULT_SUSPECT_TIMEOUT = 3_000;
-  public static final String DEFAULT_SYNC_GROUP = "default";
-
-  public static final int DEFAULT_PING_INTERVAL = 1000;
+  public static final int DEFAULT_SUSPICION_MULT = 5;
+  public static final int DEFAULT_PING_INTERVAL = 1_000;
   public static final int DEFAULT_PING_TIMEOUT = 500;
   public static final int DEFAULT_PING_REQ_MEMBERS = 3;
-
   public static final long DEFAULT_GOSSIP_INTERVAL = 200;
   public static final int DEFAULT_GOSSIP_FANOUT = 3;
-  public static final int DEFAULT_GOSSIP_REPEAT_MULTIPLIER = 2;
+  public static final int DEFAULT_GOSSIP_REPEAT_MULT = 3;
+
+  // Default settings for WAN cluster (overrides default/LAN settings)
+  public static final int DEFAULT_WAN_SUSPICION_MULT = 6;
+  public static final int DEFAULT_WAN_SYNC_INTERVAL = 60_000;
+  public static final int DEFAULT_WAN_PING_TIMEOUT = 3_000;
+  public static final int DEFAULT_WAN_PING_INTERVAL = 5_000;
+  public static final int DEFAULT_WAN_GOSSIP_FANOUT = 4;
+  public static final int DEFAULT_WAN_CONNECT_TIMEOUT = 10_000;
+
+  // Default settings for local cluster working via loopback interface (overrides default/LAN settings)
+  public static final int DEFAULT_LOCAL_SUSPICION_MULT = 3;
+  public static final int DEFAULT_LOCAL_SYNC_INTERVAL = 15_000;
+  public static final int DEFAULT_LOCAL_PING_TIMEOUT = 200;
+  public static final int DEFAULT_LOCAL_PING_INTERVAL = 1_000;
+  public static final int DEFAULT_LOCAL_GOSSIP_REPEAT_MULT = 2;
+  public static final int DEFAULT_LOCAL_PING_REQ_MEMBERS = 1;
+  public static final int DEFAULT_LOCAL_GOSSIP_INTERVAL = 100;
+  public static final int DEFAULT_LOCAL_CONNECT_TIMEOUT = 1_000;
 
   private final List<Address> seedMembers;
   private final Map<String, String> metadata;
   private final int syncInterval;
   private final int syncTimeout;
-  private final int suspectTimeout;
+  private final int suspicionMult;
   private final String syncGroup;
 
   private final int pingInterval;
@@ -53,7 +70,7 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
 
   private final long gossipInterval;
   private final int gossipFanout;
-  private final int gossipRepeatMultiplier;
+  private final int gossipRepeatMult;
 
   private final TransportConfig transportConfig;
 
@@ -62,8 +79,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
     this.metadata = Collections.unmodifiableMap(builder.metadata);
     this.syncInterval = builder.syncInterval;
     this.syncTimeout = builder.syncTimeout;
-    this.suspectTimeout = builder.suspectTimeout;
     this.syncGroup = builder.syncGroup;
+    this.suspicionMult = builder.suspicionMult;
 
     this.pingInterval = builder.pingInterval;
     this.pingTimeout = builder.pingTimeout;
@@ -71,7 +88,7 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
 
     this.gossipFanout = builder.gossipFanout;
     this.gossipInterval = builder.gossipInterval;
-    this.gossipRepeatMultiplier = builder.gossipRepeatMultiplier;
+    this.gossipRepeatMult = builder.gossipRepeatMult;
 
     this.transportConfig = builder.transportConfigBuilder.build();
   }
@@ -82,6 +99,40 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
 
   public static ClusterConfig defaultConfig() {
     return builder().build();
+  }
+
+  public static ClusterConfig defaultLanConfig() {
+    return defaultConfig();
+  }
+
+  /**
+   * Creates cluster config with default settings for cluster on WAN network.
+   */
+  public static ClusterConfig defaultWanConfig() {
+    return builder()
+        .suspicionMult(DEFAULT_WAN_SUSPICION_MULT)
+        .syncInterval(DEFAULT_WAN_SYNC_INTERVAL)
+        .pingTimeout(DEFAULT_WAN_PING_TIMEOUT)
+        .pingInterval(DEFAULT_WAN_PING_INTERVAL)
+        .gossipFanout(DEFAULT_WAN_GOSSIP_FANOUT)
+        .connectTimeout(DEFAULT_WAN_CONNECT_TIMEOUT)
+        .build();
+  }
+
+  /**
+   * Creates cluster config with default settings for cluster on local loopback interface.
+   */
+  public static ClusterConfig defaultLocalConfig() {
+    return builder()
+        .suspicionMult(DEFAULT_LOCAL_SUSPICION_MULT)
+        .syncInterval(DEFAULT_LOCAL_SYNC_INTERVAL)
+        .pingTimeout(DEFAULT_LOCAL_PING_TIMEOUT)
+        .pingInterval(DEFAULT_LOCAL_PING_INTERVAL)
+        .gossipRepeatMult(DEFAULT_LOCAL_GOSSIP_REPEAT_MULT)
+        .pingReqMembers(DEFAULT_LOCAL_PING_REQ_MEMBERS)
+        .gossipInterval(DEFAULT_LOCAL_GOSSIP_INTERVAL)
+        .connectTimeout(DEFAULT_LOCAL_CONNECT_TIMEOUT)
+        .build();
   }
 
   public List<Address> getSeedMembers() {
@@ -100,8 +151,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
     return syncTimeout;
   }
 
-  public int getSuspectTimeout() {
-    return suspectTimeout;
+  public int getSuspicionMult() {
+    return suspicionMult;
   }
 
   public String getSyncGroup() {
@@ -128,8 +179,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
     return gossipInterval;
   }
 
-  public int getGossipRepeatMultiplier() {
-    return gossipRepeatMultiplier;
+  public int getGossipRepeatMult() {
+    return gossipRepeatMult;
   }
 
   public TransportConfig getTransportConfig() {
@@ -142,14 +193,14 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
         + ", metadata=" + metadata
         + ", syncInterval=" + syncInterval
         + ", syncTimeout=" + syncTimeout
-        + ", suspectTimeout=" + suspectTimeout
+        + ", suspicionMult=" + suspicionMult
         + ", syncGroup='" + syncGroup + '\''
         + ", pingInterval=" + pingInterval
         + ", pingTimeout=" + pingTimeout
         + ", pingReqMembers=" + pingReqMembers
         + ", gossipInterval=" + gossipInterval
         + ", gossipFanout=" + gossipFanout
-        + ", gossipRepeatMultiplier=" + gossipRepeatMultiplier
+        + ", gossipRepeatMult=" + gossipRepeatMult
         + ", transportConfig=" + transportConfig
         + '}';
   }
@@ -160,8 +211,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
     private Map<String, String> metadata = Collections.emptyMap();
     private int syncInterval = DEFAULT_SYNC_INTERVAL;
     private int syncTimeout = DEFAULT_SYNC_TIMEOUT;
-    private int suspectTimeout = DEFAULT_SUSPECT_TIMEOUT;
     private String syncGroup = DEFAULT_SYNC_GROUP;
+    private int suspicionMult = DEFAULT_SUSPICION_MULT;
 
     private int pingInterval = DEFAULT_PING_INTERVAL;
     private int pingTimeout = DEFAULT_PING_TIMEOUT;
@@ -169,7 +220,7 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
 
     private long gossipInterval = DEFAULT_GOSSIP_INTERVAL;
     private int gossipFanout = DEFAULT_GOSSIP_FANOUT;
-    private int gossipRepeatMultiplier = DEFAULT_GOSSIP_REPEAT_MULTIPLIER;
+    private int gossipRepeatMult = DEFAULT_GOSSIP_REPEAT_MULT;
 
     private TransportConfig.Builder transportConfigBuilder = TransportConfig.builder();
 
@@ -200,8 +251,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
       return this;
     }
 
-    public Builder suspectTimeout(int suspectTimeout) {
-      this.suspectTimeout = suspectTimeout;
+    public Builder suspicionMult(int suspicionMult) {
+      this.suspicionMult = suspicionMult;
       return this;
     }
 
@@ -235,8 +286,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
       return this;
     }
 
-    public Builder gossipRepeatMultiplier(int gossipRepeatMultiplier) {
-      this.gossipRepeatMultiplier = gossipRepeatMultiplier;
+    public Builder gossipRepeatMult(int gossipRepeatMult) {
+      this.gossipRepeatMult = gossipRepeatMult;
       return this;
     }
 

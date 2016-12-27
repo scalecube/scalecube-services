@@ -19,8 +19,10 @@ public interface MembershipConfig {
 
   int getSyncTimeout();
 
-  int getSuspectTimeout();
-
   String getSyncGroup();
+
+  int getPingInterval();
+
+  int getSuspicionMult();
 
 }

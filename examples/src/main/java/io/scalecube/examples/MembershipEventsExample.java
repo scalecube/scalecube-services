@@ -2,6 +2,7 @@ package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.cluster.ClusterMath;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -46,7 +47,9 @@ public class MembershipEventsExample {
     shutdownFuture.get();
 
     // Avoid exit main thread immediately ]:->
-    long maxRemoveTimeout = ClusterConfig.DEFAULT_SUSPECT_TIMEOUT + 3 * ClusterConfig.DEFAULT_PING_INTERVAL;
+    long pingInterval = ClusterConfig.DEFAULT_PING_INTERVAL;
+    long suspicionTimeout = ClusterMath.suspicionTimeout(ClusterConfig.DEFAULT_SUSPICION_MULT, 4, pingInterval);
+    long maxRemoveTimeout = suspicionTimeout + 3 * pingInterval;
     Thread.sleep(maxRemoveTimeout);
   }
 
