@@ -37,18 +37,22 @@ public final class TransportChannel {
    */
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (!(obj instanceof TransportChannel))
+    }
+    if (!(obj instanceof TransportChannel)) {
       return false;
+    }
     TransportChannel other = (TransportChannel) obj;
-    if (!name.equals(other.name))
+    if (!name.equals(other.name)) {
       return false;
-    if (!address.equals(other.address))
+    }
+    if (!address.equals(other.address)) {
       return false;
-
+    }
     return true;
   }
 

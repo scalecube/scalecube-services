@@ -49,7 +49,7 @@ final class TransportImpl implements Transport {
   private final Map<Address, ChannelFuture> outgoingChannels = new ConcurrentHashMap<>();
 
   private final Map<TransportChannel, ChannelFuture> namedChannels = new ConcurrentHashMap<>();
-  
+
   // Pipeline
   private final BootstrapFactory bootstrapFactory;
   private final IncomingChannelInitializer incomingChannelInitializer = new IncomingChannelInitializer();
@@ -224,7 +224,8 @@ final class TransportImpl implements Transport {
     checkArgument(promise != null);
     message.setSender(transportChannel.address());
 
-    final ChannelFuture channelFuture = namedChannels.computeIfAbsent(transportChannel,  transChannel -> this.connect(transChannel.address()));
+    final ChannelFuture channelFuture =
+        namedChannels.computeIfAbsent(transportChannel, transChannel -> this.connect(transChannel.address()));
     if (channelFuture.isSuccess()) {
       send(channelFuture.channel(), message, promise);
     } else {
@@ -237,7 +238,7 @@ final class TransportImpl implements Transport {
       });
     }
   }
-  
+
   private ChannelFuture connect(Address address) {
     OutgoingChannelInitializer channelInitializer = new OutgoingChannelInitializer(address);
     Bootstrap client = bootstrapFactory.clientBootstrap().handler(channelInitializer);
@@ -255,7 +256,7 @@ final class TransportImpl implements Transport {
 
     return connectFuture;
   }
-  
+
   private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
     if (promise == COMPLETED_PROMISE) {
       channel.writeAndFlush(message, channel.voidPromise());
@@ -280,7 +281,7 @@ final class TransportImpl implements Transport {
     });
   }
 
- 
+
 
   @ChannelHandler.Sharable
   private final class IncomingChannelInitializer extends ChannelInitializer {

@@ -106,6 +106,19 @@ public interface Transport {
   void send(@CheckForNull Address address, @CheckForNull Message message,
       @CheckForNull CompletableFuture<Void> promise);
 
+
+  /**
+   * Sends message to the given transportChannel. It will issue connect in case if no transport channel by given {@code address}
+   * exists already. Send is an async operation, if result of operation is not needed use
+   * {@link Transport#send(Address, Message)}, otherwise pass {@link CompletableFuture}.
+   *
+   * @param transportChannel name and address of the logical channel to send.
+   * @param message message to send
+   * @param promise promise will be completed with result of sending (void or exception)
+   * @throws IllegalArgumentException if {@code message} or {@code address} is null
+   */
+  void send(TransportChannel transportChannel, Message message, CompletableFuture<Void> promise);
+  
   /**
    * Returns stream of received messages. For each observers subscribed to the returned observable:
    * <ul>
@@ -128,6 +141,6 @@ public interface Transport {
   @Nonnull
   NetworkEmulator networkEmulator();
 
-  void send(TransportChannel transportChannel, Message message, CompletableFuture<Void> promise);
+  
 
 }
