@@ -22,9 +22,10 @@ final class MessageHandler extends ChannelInboundHandlerAdapter {
 
   private final Topic<Message> topic = Topic.create();
 
-  public Topic<Message> topic(){
+  public Topic<Message> topic() {
     return this.topic;
   }
+
   MessageHandler(Subject<Message, Message> incomingMessagesSubject) {
     this.incomingMessagesSubject = incomingMessagesSubject;
   }
@@ -38,11 +39,11 @@ final class MessageHandler extends ChannelInboundHandlerAdapter {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("Received: {}", message);
     }
-    if (message.header("service-response")!=null) {
+    if (message.header("service-response") != null) {
       topic.onNext(message);
     } else {
       incomingMessagesSubject.onNext(message);
     }
   }
-  
+
 }
