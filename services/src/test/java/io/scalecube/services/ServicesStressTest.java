@@ -18,7 +18,7 @@ public class ServicesStressTest {
 
   // Init params
   private static int warmUpCount = 10_000;
-  private static int count = 640_000;
+  private static int count = 400000;
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
@@ -30,7 +30,7 @@ public class ServicesStressTest {
           .port(port.incrementAndGet())
           .build();
 
-      int cores = Runtime.getRuntime().availableProcessors()/2;
+      int cores = Runtime.getRuntime().availableProcessors();
 
       // Create microservices cluster member.
       Microservices.builder()
@@ -73,13 +73,14 @@ public class ServicesStressTest {
         exec.execute(() -> {
           for (int i = 0; i < count / cores; i++) {
             int select = (i % cores);
-            CompletableFuture<Message> future =
-                proxies.get(select).greetingMessage(Message.fromData("naive_stress_test"));
-            future.whenComplete((success, error) -> {
-              if (error == null) {
-                countLatch.countDown();
-              }
-            });
+            proxies.get(select)
+                .greetingMessage(Message.fromData("channel-" + i))
+                .whenComplete((success, error) -> {
+                  if (error == null) {
+                    countLatch.countDown();
+                 
+                  }
+                });
           }
           System.out.println("Finished sending " + count / cores + " messages in "
               + (System.currentTimeMillis() - startTime));
@@ -102,7 +103,7 @@ public class ServicesStressTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway.proxy()
+    return Microservices.builder().seeds(gateway.cluster().address()).build().proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
         .create();
   }
