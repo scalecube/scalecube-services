@@ -141,6 +141,8 @@ public interface Transport {
   @Nonnull
   NetworkEmulator networkEmulator();
 
+  Topic<Message> topic();
+
 
 
 }

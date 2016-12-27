@@ -324,4 +324,9 @@ final class TransportImpl implements Transport {
       pipeline.addLast(exceptionHandler);
     }
   }
+
+  @Override
+  public Topic<Message> topic() {
+    return messageHandler.topic();
+  }
 }

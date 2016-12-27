@@ -115,12 +115,12 @@ public class Microservices {
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
 
     new ServiceDispatcher(cluster, serviceRegistry);
-    this.cluster.listen().subscribe(message -> handleReply(message));
+    this.cluster.transport().topic().subscribe(message -> handleReply(message));
   }
 
 
   // Listen response
-  private void handleReply(Message message) {
+  private Void handleReply(Message message) {
     if (message.header(ServiceHeaders.SERVICE_RESPONSE) != null) {
       String correlationId = message.correlationId();
       Optional<ServiceResponse> optinalFuture = ServiceResponse.get(message.correlationId());
@@ -133,6 +133,7 @@ public class Microservices {
         }
       }
     }
+    return null;
   }
 
   public Cluster cluster() {
