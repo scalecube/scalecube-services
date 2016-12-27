@@ -239,6 +239,14 @@ final class TransportImpl implements Transport {
     }
   }
 
+  private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
+    if (promise == COMPLETED_PROMISE) {
+      channel.writeAndFlush(message, channel.voidPromise());
+    } else {
+      composeFutures(channel.writeAndFlush(message), promise);
+    }
+  }
+
   private ChannelFuture connect(Address address) {
     OutgoingChannelInitializer channelInitializer = new OutgoingChannelInitializer(address);
     Bootstrap client = bootstrapFactory.clientBootstrap().handler(channelInitializer);
@@ -257,13 +265,7 @@ final class TransportImpl implements Transport {
     return connectFuture;
   }
 
-  private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
-    if (promise == COMPLETED_PROMISE) {
-      channel.writeAndFlush(message, channel.voidPromise());
-    } else {
-      composeFutures(channel.writeAndFlush(message), promise);
-    }
-  }
+
 
   /**
    * Converts netty {@link ChannelFuture} to the given {@link CompletableFuture}.
