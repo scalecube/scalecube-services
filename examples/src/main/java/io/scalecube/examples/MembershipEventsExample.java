@@ -1,8 +1,7 @@
 package io.scalecube.examples;
 
 import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.fdetector.FailureDetectorConfig;
-import io.scalecube.cluster.membership.MembershipConfig;
+import io.scalecube.cluster.ClusterConfig;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -47,7 +46,7 @@ public class MembershipEventsExample {
     shutdownFuture.get();
 
     // Avoid exit main thread immediately ]:->
-    long maxRemoveTimeout = MembershipConfig.DEFAULT_SUSPECT_TIMEOUT + 3 * FailureDetectorConfig.DEFAULT_PING_INTERVAL;
+    long maxRemoveTimeout = ClusterConfig.DEFAULT_SUSPECT_TIMEOUT + 3 * ClusterConfig.DEFAULT_PING_INTERVAL;
     Thread.sleep(maxRemoveTimeout);
   }
 

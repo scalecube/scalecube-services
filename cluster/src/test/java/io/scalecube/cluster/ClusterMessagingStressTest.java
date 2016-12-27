@@ -12,10 +12,13 @@ import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -81,6 +84,15 @@ public class ClusterMessagingStressTest extends BaseTest {
         measureLatch.countDown();
       });
 
+      // Subscribe on member removed event
+      AtomicBoolean receivedMemberRemovedEvent = new AtomicBoolean(false);
+      client1.listenMembership()
+          .filter(MembershipEvent::isRemoved)
+          .subscribe(event -> {
+            LOGGER.warn("Received member removed event: {}", event);
+            receivedMemberRemovedEvent.set(true);
+          });
+
       // Measure
       long startAt = System.currentTimeMillis();
       for (int i = 0; i < msgCount; i++) {
@@ -91,6 +103,7 @@ public class ClusterMessagingStressTest extends BaseTest {
       receivedTime = System.currentTimeMillis() - startAt;
       rttStats = rttRecords.stream().mapToLong(v -> v).summaryStatistics();
       assertTrue(measureLatch.getCount() == 0);
+      assertFalse("Received member removed event", receivedMemberRemovedEvent.get());
     } finally {
       // Print results
       LOGGER.info("Finished sending {} messages in {} ms", msgCount, sentTime);

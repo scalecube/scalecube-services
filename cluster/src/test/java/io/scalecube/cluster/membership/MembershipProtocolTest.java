@@ -3,9 +3,8 @@ package io.scalecube.cluster.membership;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.fdetector.FailureDetector;
-import io.scalecube.cluster.fdetector.FailureDetectorConfig;
-import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
@@ -429,26 +428,20 @@ public class MembershipProtocolTest extends BaseTest {
   }
 
   public MembershipProtocol createMembership(Transport transport, List<Address> seedAddresses) {
-    // Create membership protocol
-    MembershipConfig membershipConfig = MembershipConfig.builder()
+    // Create faster config for local testing
+    ClusterConfig config = ClusterConfig.builder()
         .seedMembers(seedAddresses)
         .syncInterval(1000)
         .syncTimeout(200)
         .suspectTimeout(5000)
-        .build();
-    MembershipProtocol membership = new MembershipProtocol(transport, membershipConfig);
-
-    // Create failure detector
-    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
         .pingInterval(200)
         .pingTimeout(100)
         .build();
-    FailureDetector failureDetector = new FailureDetector(transport, membership, fdConfig);
 
-    // Create gossip protocol
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership, GossipConfig.defaultConfig());
-
-    // Set membership components
+    // Create components
+    MembershipProtocol membership = new MembershipProtocol(transport, config);
+    FailureDetector failureDetector = new FailureDetector(transport, membership, config);
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership, config);
     membership.setGossipProtocol(gossipProtocol);
     membership.setFailureDetector(failureDetector);
 

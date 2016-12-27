@@ -1,5 +1,6 @@
 package io.scalecube.cluster.gossip;
 
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
@@ -59,9 +60,9 @@ public class GossipProtocolTest extends BaseTest {
   private static final boolean awaitFullCompletion = true;
 
   // Allow to configure gossip settings other than defaults
-  private static final long gossipInterval /* ms */ = GossipConfig.DEFAULT_GOSSIP_INTERVAL;
-  private static final int gossipFanout = GossipConfig.DEFAULT_GOSSIP_FANOUT;
-  private static final int gossipRepeatMultiplier = GossipConfig.DEFAULT_GOSSIP_REPEAT_MULTIPLIER;
+  private static final long gossipInterval /* ms */ = ClusterConfig.DEFAULT_GOSSIP_INTERVAL;
+  private static final int gossipFanout = ClusterConfig.DEFAULT_GOSSIP_FANOUT;
+  private static final int gossipRepeatMultiplier = ClusterConfig.DEFAULT_GOSSIP_REPEAT_MULTIPLIER;
 
 
   // Uncomment and modify params to run single experiment repeatedly
@@ -227,7 +228,7 @@ public class GossipProtocolTest extends BaseTest {
 
   private GossipProtocol initGossipProtocol(Transport transport, List<Address> members) {
     IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), members);
-    GossipConfig gossipConfig = GossipConfig.builder()
+    GossipConfig gossipConfig = ClusterConfig.builder()
         .gossipFanout(gossipFanout)
         .gossipInterval(gossipInterval)
         .gossipRepeatMultiplier(gossipRepeatMultiplier)

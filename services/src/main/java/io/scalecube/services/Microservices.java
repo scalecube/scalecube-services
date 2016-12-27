@@ -174,17 +174,14 @@ public class Microservices {
         metadata = Microservices.metadata(servicesConfig);
       }
 
-      ClusterConfig cfg;
-      if (port != null && seeds != null) {
-        cfg = ConfigAssist.create(port, seeds, metadata);
-      } else if (seeds != null) {
-        cfg = ConfigAssist.create(seeds, metadata);
-      } else if (port != null) {
-        cfg = ConfigAssist.create(port, metadata);
-      } else {
-        cfg = ConfigAssist.create(metadata);
+      ClusterConfig.Builder cfgBuilder = ClusterConfig.builder().metadata(metadata);
+      if (port != null) {
+        cfgBuilder.port(port);
       }
-      return cfg;
+      if (seeds != null) {
+        cfgBuilder.seedMembers(seeds);
+      }
+      return cfgBuilder.build();
     }
 
     public Builder port(int port) {
