@@ -18,7 +18,7 @@ public class ServicesStressTest {
 
   // Init params
   private static int warmUpCount = 10_000;
-  private static int count = 320_000;
+  private static int count = 160_000;
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
