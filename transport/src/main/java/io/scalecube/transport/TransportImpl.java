@@ -19,14 +19,13 @@ import io.netty.handler.codec.MessageToByteEncoder;
 import io.netty.handler.codec.MessageToMessageDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32FrameDecoder;
 import io.netty.handler.codec.protobuf.ProtobufVarint32LengthFieldPrepender;
+import io.reactivex.Flowable;
+import io.reactivex.processors.FlowableProcessor;
+import io.reactivex.processors.PublishProcessor;
+import io.reactivex.schedulers.Schedulers;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import java.net.BindException;
 import java.net.InetAddress;
@@ -44,7 +43,7 @@ final class TransportImpl implements Transport {
 
   private final TransportConfig config;
 
-  private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.<Message>create().toSerialized();
+  private final FlowableProcessor<Message> incomingMessagesSubject = PublishProcessor.<Message>create().toSerialized();
 
   private final Map<Address, ChannelFuture> outgoingChannels = new ConcurrentHashMap<>();
 
@@ -150,7 +149,7 @@ final class TransportImpl implements Transport {
     stopped = true;
     // Complete incoming messages observable
     try {
-      incomingMessagesSubject.onCompleted();
+      incomingMessagesSubject.onComplete();
     } catch (Exception ignore) {
       // ignore
     }
@@ -180,9 +179,9 @@ final class TransportImpl implements Transport {
 
   @Nonnull
   @Override
-  public final Observable<Message> listen() {
+  public final Flowable<Message> listen() {
     checkState(!stopped, "Transport is stopped");
-    return incomingMessagesSubject.onBackpressureBuffer().asObservable();
+    return incomingMessagesSubject;
   }
 
   @Override
@@ -271,7 +270,7 @@ final class TransportImpl implements Transport {
   private final class OutgoingChannelInitializer extends ChannelInitializer {
     private final Address address;
 
-    public OutgoingChannelInitializer(Address address) {
+    OutgoingChannelInitializer(Address address) {
       this.address = address;
     }
 

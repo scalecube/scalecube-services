@@ -11,12 +11,12 @@ import static org.junit.Assert.fail;
 
 import io.scalecube.testlib.BaseTest;
 
+import io.reactivex.subscribers.DefaultSubscriber;
+
 import org.junit.After;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Subscriber;
 
 import java.io.IOException;
 import java.net.BindException;
@@ -295,9 +295,9 @@ public class TransportTest extends BaseTest {
     final CompletableFuture<Boolean> completeLatch = new CompletableFuture<>();
     final CompletableFuture<Message> messageLatch = new CompletableFuture<>();
 
-    server.listen().subscribe(new Subscriber<Message>() {
+    server.listen().subscribe(new DefaultSubscriber<Message>() {
       @Override
-      public void onCompleted() {
+      public void onComplete() {
         completeLatch.complete(true);
       }
 

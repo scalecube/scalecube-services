@@ -2,11 +2,12 @@ package io.scalecube.transport;
 
 import com.google.common.base.Throwables;
 
-import rx.Observable;
+import io.reactivex.Flowable;
+
+import java.util.concurrent.CompletableFuture;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Transport is responsible for maintaining existing p2p connections to/from other transports.
@@ -118,7 +119,7 @@ public interface Transport {
    * @return Observable which emit received messages or complete event when transport is closed
    */
   @Nonnull
-  Observable<Message> listen();
+  Flowable<Message> listen();
 
   /**
    * Returns network emulator associated with this instance of transport. It always returns non null instance

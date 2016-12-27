@@ -1,13 +1,14 @@
 package io.scalecube.cluster.membership;
 
+import io.scalecube.cluster.Member;
+import io.scalecube.transport.Address;
+
+import io.reactivex.Flowable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import io.scalecube.cluster.Member;
-import io.scalecube.transport.Address;
-import rx.Observable;
 
 /**
  * @author Anton Kharenko
@@ -45,8 +46,8 @@ public class DummyMembershipProtocol implements IMembershipProtocol {
   }
 
   @Override
-  public Observable<MembershipEvent> listen() {
-    return Observable.from(remoteMembers.stream()
+  public Flowable<MembershipEvent> listen() {
+    return Flowable.fromIterable(remoteMembers.stream()
         .map(MembershipEvent::createAdded)
         .collect(Collectors.toList()));
   }

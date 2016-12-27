@@ -6,22 +6,21 @@ import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.processors.FlowableProcessor;
+import io.reactivex.processors.PublishProcessor;
+import io.reactivex.schedulers.Schedulers;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.observers.Subscribers;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -58,13 +57,13 @@ public final class GossipProtocol implements IGossipProtocol {
 
   // Subscriptions
 
-  private Subscriber<Member> onMemberAddedEventSubscriber;
-  private Subscriber<Member> onMemberRemovedEventSubscriber;
-  private Subscriber<Message> onGossipRequestSubscriber;
+  private Disposable onMemberAddedEventSubscriber;
+  private Disposable onMemberRemovedEventSubscriber;
+  private Disposable onGossipRequestSubscriber;
 
   // Subject
 
-  private Subject<Message, Message> subject = PublishSubject.<Message>create().toSerialized();
+  private FlowableProcessor<Message> subject = PublishProcessor.<Message>create().toSerialized();
 
   // Scheduled
 
@@ -108,22 +107,19 @@ public final class GossipProtocol implements IGossipProtocol {
 
   @Override
   public void start() {
-    onMemberAddedEventSubscriber = Subscribers.create(remoteMembers::add, this::onError);
-    membership.listen().observeOn(scheduler)
+    onMemberAddedEventSubscriber = membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isAdded)
         .map(MembershipEvent::member)
-        .subscribe(onMemberAddedEventSubscriber);
+        .subscribe(remoteMembers::add, this::onError);
 
-    onMemberRemovedEventSubscriber = Subscribers.create(remoteMembers::remove, this::onError);
-    membership.listen().observeOn(scheduler)
+    onMemberRemovedEventSubscriber = membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isRemoved)
         .map(MembershipEvent::member)
-        .subscribe(onMemberRemovedEventSubscriber);
+        .subscribe(remoteMembers::remove, this::onError);
 
-    onGossipRequestSubscriber = Subscribers.create(this::onGossipReq, this::onError);
-    transport.listen().observeOn(scheduler)
+    onGossipRequestSubscriber = transport.listen().observeOn(scheduler)
         .filter(this::isGossipReq)
-        .subscribe(onGossipRequestSubscriber);
+        .subscribe(this::onGossipReq, this::onError);
 
     spreadGossipTask = executor.scheduleWithFixedDelay(this::doSpreadGossip,
         config.getGossipInterval(), config.getGossipInterval(), TimeUnit.MILLISECONDS);
@@ -137,13 +133,13 @@ public final class GossipProtocol implements IGossipProtocol {
   public void stop() {
     // Stop accepting gossip requests
     if (onMemberAddedEventSubscriber != null) {
-      onMemberAddedEventSubscriber.unsubscribe();
+      onMemberAddedEventSubscriber.dispose();
     }
     if (onMemberRemovedEventSubscriber != null) {
-      onMemberRemovedEventSubscriber.unsubscribe();
+      onMemberRemovedEventSubscriber.dispose();
     }
     if (onGossipRequestSubscriber != null) {
-      onGossipRequestSubscriber.unsubscribe();
+      onGossipRequestSubscriber.dispose();
     }
 
     // Stop spreading gossips
@@ -156,7 +152,7 @@ public final class GossipProtocol implements IGossipProtocol {
     executor.shutdown();
 
     // Stop publishing events
-    subject.onCompleted();
+    subject.onComplete();
   }
 
   @Override
@@ -165,8 +161,8 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   @Override
-  public Observable<Message> listen() {
-    return subject.asObservable();
+  public Flowable<Message> listen() {
+    return subject;
   }
 
   // ================================================

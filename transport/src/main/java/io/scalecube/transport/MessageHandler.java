@@ -3,7 +3,7 @@ package io.scalecube.transport;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import rx.subjects.Subject;
+import io.reactivex.processors.FlowableProcessor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,9 +18,9 @@ final class MessageHandler extends ChannelInboundHandlerAdapter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MessageHandler.class);
 
-  private final Subject<Message, Message> incomingMessagesSubject;
+  private final FlowableProcessor<Message> incomingMessagesSubject;
 
-  MessageHandler(Subject<Message, Message> incomingMessagesSubject) {
+  MessageHandler(FlowableProcessor<Message> incomingMessagesSubject) {
     this.incomingMessagesSubject = incomingMessagesSubject;
   }
 

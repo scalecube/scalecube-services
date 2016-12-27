@@ -1,10 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
-import io.scalecube.transport.Address;
-
-import rx.Observable;
-
-import java.util.Collection;
+import io.reactivex.Flowable;
 
 /**
  * Failure Detector component responsible for monitoring availability of other members in the cluster. This interface is
@@ -29,6 +25,6 @@ public interface IFailureDetector {
   /**
    * Listens for results of ping checks (ALIVE/SUSPECT) done periodically by failure detector.
    */
-  Observable<FailureDetectorEvent> listen();
+  Flowable<FailureDetectorEvent> listen();
 
 }

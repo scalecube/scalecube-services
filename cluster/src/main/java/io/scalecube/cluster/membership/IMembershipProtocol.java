@@ -2,7 +2,7 @@ package io.scalecube.cluster.membership;
 
 import io.scalecube.cluster.Member;
 
-import rx.Observable;
+import io.reactivex.Flowable;
 
 import java.util.Map;
 
@@ -31,6 +31,6 @@ public interface IMembershipProtocol {
   /**
    * Listen changes in cluster membership.
    */
-  Observable<MembershipEvent> listen();
+  Flowable<MembershipEvent> listen();
 
 }

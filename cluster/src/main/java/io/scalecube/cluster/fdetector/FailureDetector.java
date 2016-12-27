@@ -6,21 +6,20 @@ import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.processors.FlowableProcessor;
+import io.reactivex.processors.PublishProcessor;
+import io.reactivex.schedulers.Schedulers;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.observers.Subscribers;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,17 +54,17 @@ public final class FailureDetector implements IFailureDetector {
 
   // Subscriptions
 
-  private Subscriber<Member> onMemberAddedSubscriber;
-  private Subscriber<Member> onMemberRemovedSubscriber;
-  private Subscriber<MembershipEvent> onMemberUpdatedSubscriber;
-  private Subscriber<Message> onPingRequestSubscriber;
-  private Subscriber<Message> onAskToPingRequestSubscriber;
-  private Subscriber<Message> onTransitPingAckRequestSubscriber;
+  private Disposable onMemberAddedSubscriber;
+  private Disposable onMemberRemovedSubscriber;
+  private Disposable onMemberUpdatedSubscriber;
+  private Disposable onPingRequestSubscriber;
+  private Disposable onAskToPingRequestSubscriber;
+  private Disposable onTransitPingAckRequestSubscriber;
 
   // Subject
 
-  private Subject<FailureDetectorEvent, FailureDetectorEvent> subject =
-      PublishSubject.<FailureDetectorEvent>create().toSerialized();
+  private FlowableProcessor<FailureDetectorEvent> subject =
+      PublishProcessor.<FailureDetectorEvent>create().toSerialized();
 
   // Scheduled
 
@@ -102,37 +101,31 @@ public final class FailureDetector implements IFailureDetector {
 
   @Override
   public void start() {
-    onMemberAddedSubscriber = Subscribers.create(this::onMemberAdded, this::onError);
-    membership.listen().observeOn(scheduler)
-        .filter(MembershipEvent::isAdded)
-        .map(MembershipEvent::member)
-        .subscribe(onMemberAddedSubscriber);
+    onMemberAddedSubscriber = membership.listen().observeOn(scheduler)
+            .filter(MembershipEvent::isAdded)
+            .map(MembershipEvent::member)
+            .subscribe(this::onMemberAdded, this::onError);
 
-    onMemberRemovedSubscriber = Subscribers.create(this::onMemberRemoved, this::onError);
-    membership.listen().observeOn(scheduler)
+    onMemberRemovedSubscriber = membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isRemoved)
         .map(MembershipEvent::member)
-        .subscribe(onMemberRemovedSubscriber);
+        .subscribe(this::onMemberRemoved, this::onError);
 
-    onMemberUpdatedSubscriber = Subscribers.create(this::onMemberUpdated, this::onError);
-    membership.listen().observeOn(scheduler)
+    onMemberUpdatedSubscriber = membership.listen().observeOn(scheduler)
         .filter(MembershipEvent::isUpdated)
-        .subscribe(onMemberUpdatedSubscriber);
+        .subscribe(this::onMemberUpdated, this::onError);
 
-    onPingRequestSubscriber = Subscribers.create(this::onPing, this::onError);
-    transport.listen().observeOn(scheduler)
+    onPingRequestSubscriber = transport.listen().observeOn(scheduler)
         .filter(this::isPing)
-        .subscribe(onPingRequestSubscriber);
+        .subscribe(this::onPing,this ::onError);
 
-    onAskToPingRequestSubscriber = Subscribers.create(this::onPingReq, this::onError);
-    transport.listen().observeOn(scheduler)
+    onAskToPingRequestSubscriber = transport.listen().observeOn(scheduler)
         .filter(this::isPingReq)
-        .subscribe(onAskToPingRequestSubscriber);
+        .subscribe(this::onPingReq, this::onError);
 
-    onTransitPingAckRequestSubscriber = Subscribers.create(this::onTransitPingAck, this::onError);
-    transport.listen().observeOn(scheduler)
+    onTransitPingAckRequestSubscriber = transport.listen().observeOn(scheduler)
         .filter(this::isTransitPingAck)
-        .subscribe(onTransitPingAckRequestSubscriber);
+        .subscribe(this::onTransitPingAck, this::onError);
 
     pingTask = executor.scheduleWithFixedDelay(
         this::doPing, config.getPingInterval(), config.getPingInterval(), TimeUnit.MILLISECONDS);
@@ -142,22 +135,22 @@ public final class FailureDetector implements IFailureDetector {
   public void stop() {
     // Stop accepting requests
     if (onMemberAddedSubscriber != null) {
-      onMemberAddedSubscriber.unsubscribe();
+      onMemberAddedSubscriber.dispose();
     }
     if (onMemberRemovedSubscriber != null) {
-      onMemberRemovedSubscriber.unsubscribe();
+      onMemberRemovedSubscriber.dispose();
     }
     if (onMemberUpdatedSubscriber != null) {
-      onMemberUpdatedSubscriber.unsubscribe();
+      onMemberUpdatedSubscriber.dispose();
     }
     if (onPingRequestSubscriber != null) {
-      onPingRequestSubscriber.unsubscribe();
+      onPingRequestSubscriber.dispose();
     }
     if (onAskToPingRequestSubscriber != null) {
-      onAskToPingRequestSubscriber.unsubscribe();
+      onAskToPingRequestSubscriber.dispose();
     }
     if (onTransitPingAckRequestSubscriber != null) {
-      onTransitPingAckRequestSubscriber.unsubscribe();
+      onTransitPingAckRequestSubscriber.dispose();
     }
 
     // Stop sending pings
@@ -169,12 +162,12 @@ public final class FailureDetector implements IFailureDetector {
     executor.shutdown();
 
     // Stop publishing events
-    subject.onCompleted();
+    subject.onComplete();
   }
 
   @Override
-  public Observable<FailureDetectorEvent> listen() {
-    return subject.toSerialized();
+  public Flowable<FailureDetectorEvent> listen() {
+    return subject;
   }
 
   // ================================================

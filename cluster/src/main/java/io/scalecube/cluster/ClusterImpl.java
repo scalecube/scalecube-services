@@ -20,10 +20,10 @@ import io.scalecube.transport.Transport;
 
 import com.google.common.collect.ImmutableSet;
 
+import io.reactivex.Flowable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,8 +63,8 @@ final class ClusterImpl implements Cluster {
   private GossipProtocol gossip;
   private MembershipProtocol membership;
 
-  private Observable<Message> messageObservable;
-  private Observable<Message> gossipObservable;
+  private Flowable<Message> messageObservable;
+  private Flowable<Message> gossipObservable;
 
   ClusterImpl(ClusterConfig config) {
     checkNotNull(config);
@@ -152,7 +152,7 @@ final class ClusterImpl implements Cluster {
   }
 
   @Override
-  public Observable<Message> listen() {
+  public Flowable<Message> listen() {
     return messageObservable;
   }
 
@@ -162,7 +162,7 @@ final class ClusterImpl implements Cluster {
   }
 
   @Override
-  public Observable<Message> listenGossips() {
+  public Flowable<Message> listenGossips() {
     return gossipObservable;
   }
 
@@ -206,7 +206,7 @@ final class ClusterImpl implements Cluster {
   }
 
   @Override
-  public Observable<MembershipEvent> listenMembership() {
+  public Flowable<MembershipEvent> listenMembership() {
     return membership.listen();
   }
 

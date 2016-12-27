@@ -8,23 +8,22 @@ import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.processors.FlowableProcessor;
+import io.reactivex.processors.PublishProcessor;
+import io.reactivex.schedulers.Schedulers;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
-import rx.Scheduler;
-import rx.Subscriber;
-import rx.observers.Subscribers;
-import rx.schedulers.Schedulers;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,12 +33,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class MembershipProtocol implements IMembershipProtocol {
@@ -47,10 +46,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   private enum MembershipUpdateReason {
-    FAILURE_DETECTOR_EVENT,
-    MEMBERSHIP_GOSSIP,
-    SYNC,
-    SUSPICION_TIMEOUT
+    FAILURE_DETECTOR_EVENT, MEMBERSHIP_GOSSIP, SYNC, SUSPICION_TIMEOUT
   }
 
   // Qualifiers
@@ -74,15 +70,15 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   // Subject
 
-  private final Subject<MembershipEvent, MembershipEvent> subject =
-      PublishSubject.<MembershipEvent>create().toSerialized();
+  private final FlowableProcessor<MembershipEvent> subject =
+      PublishProcessor.<MembershipEvent>create().toSerialized();
 
   // Subscriptions
 
-  private Subscriber<Message> onSyncRequestSubscriber;
-  private Subscriber<Message> onSyncAckResponseSubscriber;
-  private Subscriber<FailureDetectorEvent> onFdEventSubscriber;
-  private Subscriber<Message> onGossipRequestSubscriber;
+  private Disposable onSyncRequestSubscriber;
+  private Disposable onSyncAckResponseSubscriber;
+  private Disposable onFdEventSubscriber;
+  private Disposable onGossipRequestSubscriber;
 
   // Scheduled
 
@@ -155,8 +151,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   @Override
-  public Observable<MembershipEvent> listen() {
-    return subject.asObservable();
+  public Flowable<MembershipEvent> listen() {
+    return subject;
   }
 
   @Override
@@ -184,30 +180,26 @@ public final class MembershipProtocol implements IMembershipProtocol {
     membershipTable.put(member.id(), localMemberRecord);
 
     // Listen to incoming SYNC requests from other members
-    onSyncRequestSubscriber = Subscribers.create(this::onSync, this::onError);
-    transport.listen().observeOn(scheduler)
+    onSyncRequestSubscriber = transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC.equals(msg.qualifier()))
         .filter(this::checkSyncGroup)
-        .subscribe(onSyncRequestSubscriber);
+        .subscribe(this::onSync, this::onError);
 
     // Listen to incoming SYNC ACK responses from other members
-    onSyncAckResponseSubscriber = Subscribers.create(this::onSyncAck, this::onError);
-    transport.listen().observeOn(scheduler)
+    onSyncAckResponseSubscriber = transport.listen().observeOn(scheduler)
         .filter(msg -> SYNC_ACK.equals(msg.qualifier()))
         .filter(msg -> msg.correlationId() == null) // filter out initial sync
         .filter(this::checkSyncGroup)
-        .subscribe(onSyncAckResponseSubscriber);
+        .subscribe(this::onSyncAck, this::onError);
 
     // Listen to events from failure detector
-    onFdEventSubscriber = Subscribers.create(this::onFailureDetectorEvent, this::onError);
-    failureDetector.listen().observeOn(scheduler)
-        .subscribe(onFdEventSubscriber);
+    onFdEventSubscriber = failureDetector.listen().observeOn(scheduler)
+        .subscribe(this::onFailureDetectorEvent, this::onError);
 
     // Listen to membership gossips
-    onGossipRequestSubscriber = Subscribers.create(this::onMembershipGossip, this::onError);
-    gossipProtocol.listen().observeOn(scheduler)
+    onGossipRequestSubscriber = gossipProtocol.listen().observeOn(scheduler)
         .filter(msg -> MEMBERSHIP_GOSSIP.equals(msg.qualifier()))
-        .subscribe(onGossipRequestSubscriber);
+        .subscribe(this::onMembershipGossip, this::onError);
 
     // Make initial sync with all seed members
     return doInitialSync();
@@ -223,16 +215,16 @@ public final class MembershipProtocol implements IMembershipProtocol {
   public void stop() {
     // Stop accepting requests and events
     if (onSyncRequestSubscriber != null) {
-      onSyncRequestSubscriber.unsubscribe();
+      onSyncRequestSubscriber.dispose();
     }
     if (onFdEventSubscriber != null) {
-      onFdEventSubscriber.unsubscribe();
+      onFdEventSubscriber.dispose();
     }
     if (onGossipRequestSubscriber != null) {
-      onGossipRequestSubscriber.unsubscribe();
+      onGossipRequestSubscriber.dispose();
     }
     if (onSyncAckResponseSubscriber != null) {
-      onSyncAckResponseSubscriber.unsubscribe();
+      onSyncAckResponseSubscriber.dispose();
     }
 
     // Stop sending sync
@@ -253,7 +245,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     executor.shutdown();
 
     // Stop publishing events
-    subject.onCompleted();
+    subject.onComplete();
   }
 
   // ================================================
@@ -487,8 +479,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private void scheduleSuspicionTimeoutTask(MembershipRecord record) {
-    suspicionTimeoutTasks.computeIfAbsent(record.id(), id ->
-        executor.schedule(() -> onSuspicionTimeout(id), config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+    suspicionTimeoutTasks.computeIfAbsent(record.id(),
+        id -> executor.schedule(() -> onSuspicionTimeout(id), config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
   }
 
   private void onSuspicionTimeout(String memberId) {

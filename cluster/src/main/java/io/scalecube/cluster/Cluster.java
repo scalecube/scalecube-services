@@ -8,7 +8,7 @@ import io.scalecube.transport.NetworkEmulator;
 
 import com.google.common.base.Throwables;
 
-import rx.Observable;
+import io.reactivex.Flowable;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -120,7 +120,7 @@ public interface Cluster {
 
   void send(Address address, Message message, CompletableFuture<Void> promise);
 
-  Observable<Message> listen();
+  Flowable<Message> listen();
 
   /**
    * Spreads given message between cluster members using gossiping protocol.
@@ -130,7 +130,7 @@ public interface Cluster {
   /**
    * Listens for gossips from other cluster members.
    */
-  Observable<Message> listenGossips();
+  Flowable<Message> listenGossips();
 
   /**
    * Returns local cluster member which corresponds to this cluster instance.
@@ -179,7 +179,7 @@ public interface Cluster {
   /**
    * Listen changes in cluster membership.
    */
-  Observable<MembershipEvent> listenMembership();
+  Flowable<MembershipEvent> listenMembership();
 
   /**
    * Member notifies other members of the cluster about leaving and gracefully shutdown and free occupied resources.

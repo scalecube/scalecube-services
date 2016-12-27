@@ -2,7 +2,7 @@ package io.scalecube.cluster.gossip;
 
 import io.scalecube.transport.Message;
 
-import rx.Observable;
+import io.reactivex.Flowable;
 
 /**
  * Gossip Protocol component responsible for spreading information (gossips) over the cluster members using
@@ -30,6 +30,6 @@ public interface IGossipProtocol {
   /**
    * Listens for gossips from other cluster members.
    */
-  Observable<Message> listen();
+  Flowable<Message> listen();
 
 }

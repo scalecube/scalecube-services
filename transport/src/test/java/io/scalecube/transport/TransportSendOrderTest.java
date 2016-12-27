@@ -10,13 +10,12 @@ import io.scalecube.testlib.BaseTest;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
+import io.reactivex.subscribers.DisposableSubscriber;
+
 import org.junit.After;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Subscriber;
-import rx.observers.Subscribers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,11 +60,19 @@ public class TransportSendOrderTest extends BaseTest {
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(sentPerIteration);
 
-      Subscriber<Message> serverSubscriber = Subscribers.create(message -> {
-        received.add(message);
-        latch.countDown();
-      });
-      server.listen().subscribe(serverSubscriber);
+      DisposableSubscriber<Message> subscriber = new DisposableSubscriber<Message>() {
+        @Override
+        public void onNext(Message message) {
+          received.add(message);
+          latch.countDown();
+        }
+        @Override
+        public void onError(Throwable throwable) {}
+        @Override
+        public void onComplete() {}
+      };
+
+      server.listen().subscribe(subscriber);
 
       long startAt = System.currentTimeMillis();
       for (int j = 0; j < sentPerIteration; j++) {
@@ -80,7 +87,7 @@ public class TransportSendOrderTest extends BaseTest {
 
       LOGGER.info("Iteration time: {} ms", iterationTime);
 
-      serverSubscriber.unsubscribe();
+      subscriber.dispose();
       destroyTransport(client);
     }
 
@@ -104,11 +111,18 @@ public class TransportSendOrderTest extends BaseTest {
       final List<Message> received = new ArrayList<>();
       final CountDownLatch latch = new CountDownLatch(sentPerIteration);
 
-      Subscriber<Message> serverSubscriber = Subscribers.create(message -> {
-        received.add(message);
-        latch.countDown();
-      });
-      server.listen().subscribe(serverSubscriber);
+      DisposableSubscriber<Message> subscriber = new DisposableSubscriber<Message>() {
+        @Override
+        public void onNext(Message message) {
+          received.add(message);
+          latch.countDown();
+        }
+        @Override
+        public void onError(Throwable throwable) {}
+        @Override
+        public void onComplete() {}
+      };
+      server.listen().subscribe(subscriber);
 
       long startAt = System.currentTimeMillis();
       for (int j = 0; j < sentPerIteration; j++) {
@@ -146,7 +160,7 @@ public class TransportSendOrderTest extends BaseTest {
         LOGGER.info("Sent time stats total (ms): {}", totalSentTimeStats);
       }
 
-      serverSubscriber.unsubscribe();
+      subscriber.dispose();
       destroyTransport(client);
     }
 
