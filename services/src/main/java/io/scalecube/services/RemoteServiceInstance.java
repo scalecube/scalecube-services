@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.TransportChannel;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,7 +137,8 @@ public class RemoteServiceInstance implements ServiceInstance {
   private CompletableFuture<Void> sendRemote(Message requestMessage) {
     final CompletableFuture<Void> messageFuture = new CompletableFuture<>();
     LOGGER.debug("cid [{}] send remote service request message {}", requestMessage.correlationId(), requestMessage);
-    this.cluster.send(address, requestMessage, messageFuture);
+    TransportChannel channel = TransportChannel.create("services-channel", address);
+    this.cluster.transport().send(channel, requestMessage, messageFuture);
     return messageFuture;
   }
 

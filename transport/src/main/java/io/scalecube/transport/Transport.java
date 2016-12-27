@@ -128,4 +128,6 @@ public interface Transport {
   @Nonnull
   NetworkEmulator networkEmulator();
 
+  void send(TransportChannel transportChannel, Message message, CompletableFuture<Void> promise);
+
 }
