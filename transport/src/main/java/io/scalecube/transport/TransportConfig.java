@@ -132,6 +132,24 @@ public final class TransportConfig {
 
     private Builder() {}
 
+    /**
+     * Fills config with values equal to provided config.
+     */
+    public Builder fillFrom(TransportConfig config) {
+      this.listenAddress = config.listenAddress;
+      this.listenInterface = config.listenInterface;
+      this.preferIPv6 = config.preferIPv6;
+      this.port = config.port;
+      this.portCount = config.portCount;
+      this.portAutoIncrement = config.portAutoIncrement;
+      this.connectTimeout = config.connectTimeout;
+      this.useNetworkEmulator = config.useNetworkEmulator;
+      this.enableEpoll = config.enableEpoll;
+      this.bossThreads = config.bossThreads;
+      this.workerThreads = config.workerThreads;
+      return this;
+    }
+
     public Builder listenAddress(String listenAddress) {
       this.listenAddress = listenAddress;
       return this;

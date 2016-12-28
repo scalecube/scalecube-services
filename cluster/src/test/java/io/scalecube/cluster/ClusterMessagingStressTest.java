@@ -12,10 +12,13 @@ import java.util.List;
 import java.util.LongSummaryStatistics;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -58,6 +61,7 @@ public class ClusterMessagingStressTest extends BaseTest {
   public void clusterMessagingStressTest() throws Exception {
     // Init transports
     Cluster echoServer = Cluster.joinAwait();
+    Cluster[] latentNodes = new Cluster[ClusterConfig.DEFAULT_PING_REQ_MEMBERS];
     Cluster client1 = null;
 
     // Init measured params
@@ -70,6 +74,11 @@ public class ClusterMessagingStressTest extends BaseTest {
       // Subscribe echo server handler
       echoServer.listen().subscribe(msg -> echoServer.send(msg.sender(), msg));
 
+      // Start latent nodes (for indirect pings)
+      for (int i = 0; i < latentNodes.length; i++) {
+        latentNodes[i] = Cluster.joinAwait(echoServer.address());
+      }
+
       // Init client
       CountDownLatch measureLatch = new CountDownLatch(msgCount);
       ArrayList<Long> rttRecords = new ArrayList<>(msgCount);
@@ -81,16 +90,28 @@ public class ClusterMessagingStressTest extends BaseTest {
         measureLatch.countDown();
       });
 
+      // Subscribe on member removed event
+      AtomicBoolean receivedMemberRemovedEvent = new AtomicBoolean(false);
+      client1.listenMembership()
+          .filter(MembershipEvent::isRemoved)
+          .subscribe(event -> {
+            LOGGER.warn("Received member removed event: {}", event);
+            receivedMemberRemovedEvent.set(true);
+          });
+
       // Measure
       long startAt = System.currentTimeMillis();
       for (int i = 0; i < msgCount; i++) {
         client1.send(echoServer.address(), Message.fromData(Long.toString(System.currentTimeMillis())));
       }
       sentTime = System.currentTimeMillis() - startAt;
+
       measureLatch.await(timeoutSeconds, TimeUnit.SECONDS);
+
       receivedTime = System.currentTimeMillis() - startAt;
       rttStats = rttRecords.stream().mapToLong(v -> v).summaryStatistics();
       assertTrue(measureLatch.getCount() == 0);
+      assertFalse("Received member removed event", receivedMemberRemovedEvent.get());
     } finally {
       // Print results
       LOGGER.info("Finished sending {} messages in {} ms", msgCount, sentTime);
@@ -99,15 +120,18 @@ public class ClusterMessagingStressTest extends BaseTest {
 
       // Shutdown
       shutdown(echoServer);
+      shutdown(latentNodes);
       shutdown(client1);
     }
   }
 
-  private void shutdown(Cluster node) {
-    try {
-      node.shutdown().get();
-    } catch (Exception ex) {
-      LOGGER.error("Exception on cluster shutdown", ex);
+  private void shutdown(Cluster... nodes) {
+    for (Cluster node : nodes) {
+      try {
+        node.shutdown().get();
+      } catch (Exception ex) {
+        LOGGER.error("Exception on cluster shutdown", ex);
+      }
     }
   }
 

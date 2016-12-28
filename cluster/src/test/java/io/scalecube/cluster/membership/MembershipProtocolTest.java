@@ -3,9 +3,9 @@ package io.scalecube.cluster.membership;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.fdetector.FailureDetector;
-import io.scalecube.cluster.fdetector.FailureDetectorConfig;
-import io.scalecube.cluster.gossip.GossipConfig;
 import io.scalecube.cluster.gossip.GossipProtocol;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class MembershipProtocolTest extends BaseTest {
+
+  private static final int TEST_PING_INTERVAL = 200;
 
   @Test
   public void testInitialPhaseOk() {
@@ -301,7 +303,7 @@ public class MembershipProtocolTest extends BaseTest {
       c.networkEmulator().block(Arrays.asList(a.address(), b.address()));
       d.networkEmulator().block(Arrays.asList(a.address(), b.address()));
 
-      awaitSeconds(3);
+      awaitSeconds(2);
 
       assertTrusted(cm_a, a.address(), b.address());
       assertSuspected(cm_a, c.address(), d.address());
@@ -312,7 +314,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertTrusted(cm_d, c.address(), d.address());
       assertSuspected(cm_d, a.address(), b.address());
 
-      awaitSeconds(5); // > max suspect time (5)
+      long suspicionTimeoutSec =
+          ClusterMath.suspicionTimeout(ClusterConfig.DEFAULT_SUSPICION_MULT, 4, TEST_PING_INTERVAL) / 1000;
+      awaitSeconds(suspicionTimeoutSec + 1); // > max suspect time
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
@@ -361,7 +365,9 @@ public class MembershipProtocolTest extends BaseTest {
       assertTrusted(cm_b, a.address(), b.address());
       assertSuspected(cm_b, c.address(), d.address());
 
-      awaitSeconds(5); // > suspect timeout (5)
+      long suspicionTimeoutSec =
+          ClusterMath.suspicionTimeout(ClusterConfig.DEFAULT_SUSPICION_MULT, 4, TEST_PING_INTERVAL) / 1000;
+      awaitSeconds(suspicionTimeoutSec + 1); // > max suspect time
 
       assertTrusted(cm_a, a.address(), b.address());
       assertNoSuspected(cm_a);
@@ -420,7 +426,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  private void awaitSeconds(int seconds) {
+  private void awaitSeconds(long seconds) {
     try {
       TimeUnit.SECONDS.sleep(seconds);
     } catch (InterruptedException e) {
@@ -428,27 +434,20 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  public MembershipProtocol createMembership(Transport transport, List<Address> seedAddresses) {
-    // Create membership protocol
-    MembershipConfig membershipConfig = MembershipConfig.builder()
+  private MembershipProtocol createMembership(Transport transport, List<Address> seedAddresses) {
+    // Create faster config for local testing
+    ClusterConfig config = ClusterConfig.builder()
         .seedMembers(seedAddresses)
         .syncInterval(1000)
         .syncTimeout(200)
-        .suspectTimeout(5000)
-        .build();
-    MembershipProtocol membership = new MembershipProtocol(transport, membershipConfig);
-
-    // Create failure detector
-    FailureDetectorConfig fdConfig = FailureDetectorConfig.builder() // faster config for local testing
-        .pingInterval(200)
+        .pingInterval(TEST_PING_INTERVAL)
         .pingTimeout(100)
         .build();
-    FailureDetector failureDetector = new FailureDetector(transport, membership, fdConfig);
 
-    // Create gossip protocol
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership, GossipConfig.defaultConfig());
-
-    // Set membership components
+    // Create components
+    MembershipProtocol membership = new MembershipProtocol(transport, config);
+    FailureDetector failureDetector = new FailureDetector(transport, membership, config);
+    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership, config);
     membership.setGossipProtocol(gossipProtocol);
     membership.setFailureDetector(failureDetector);
 
@@ -463,7 +462,7 @@ public class MembershipProtocolTest extends BaseTest {
     return membership;
   }
 
-  public void stopAll(MembershipProtocol... memberships) {
+  private void stopAll(MembershipProtocol... memberships) {
     for (MembershipProtocol membership : memberships) {
       if (membership != null) {
         stop(membership);
@@ -471,7 +470,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  public void stop(MembershipProtocol membership) {
+  private void stop(MembershipProtocol membership) {
     membership.stop();
     membership.getGossipProtocol().stop();
     membership.getFailureDetector().stop();
@@ -486,7 +485,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  public void assertTrusted(MembershipProtocol membership, Address... expected) {
+  private void assertTrusted(MembershipProtocol membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, MemberStatus.ALIVE);
     assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
@@ -495,7 +494,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  public void assertSuspected(MembershipProtocol membership, Address... expected) {
+  private void assertSuspected(MembershipProtocol membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
@@ -504,7 +503,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  public void assertNoSuspected(MembershipProtocol membership) {
+  private void assertNoSuspected(MembershipProtocol membership) {
     List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
   }

@@ -6,6 +6,7 @@ import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
 import io.scalecube.cluster.membership.IMembershipProtocol;
@@ -138,9 +139,9 @@ public class FailureDetectorTest extends BaseTest {
 
     // Create failure detectors
     FailureDetector fd_a = createFD(a, members);
-    FailureDetectorConfig fd_b_config = FailureDetectorConfig.builder().pingTimeout(500).pingInterval(1000).build();
+    FailureDetectorConfig fd_b_config = ClusterConfig.builder().pingTimeout(500).pingInterval(1000).build();
     FailureDetector fd_b = createFD(b, members, fd_b_config);
-    FailureDetector fd_c = createFD(c, members, FailureDetectorConfig.defaultConfig());
+    FailureDetector fd_c = createFD(c, members, ClusterConfig.defaultConfig());
     List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
@@ -371,7 +372,7 @@ public class FailureDetectorTest extends BaseTest {
   }
 
   private FailureDetector createFD(Transport transport, List<Address> members) {
-    FailureDetectorConfig failureDetectorConfig = FailureDetectorConfig.builder() // faster config for local testing
+    FailureDetectorConfig failureDetectorConfig = ClusterConfig.builder() // faster config for local testing
         .pingTimeout(100)
         .pingInterval(200)
         .pingReqMembers(2)

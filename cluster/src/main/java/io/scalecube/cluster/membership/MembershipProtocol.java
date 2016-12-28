@@ -3,6 +3,7 @@ package io.scalecube.cluster.membership;
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 
+import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
@@ -493,8 +494,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private void scheduleSuspicionTimeoutTask(MembershipRecord record) {
+    long suspicionTimeout =
+        ClusterMath.suspicionTimeout(config.getSuspicionMult(), membershipTable.size(), config.getPingInterval());
     suspicionTimeoutTasks.computeIfAbsent(record.id(), id ->
-        executor.schedule(() -> onSuspicionTimeout(id), config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+        executor.schedule(() -> onSuspicionTimeout(id), suspicionTimeout, TimeUnit.MILLISECONDS));
   }
 
   private void onSuspicionTimeout(String memberId) {

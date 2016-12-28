@@ -5,8 +5,6 @@ import static java.util.stream.Collectors.joining;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
-import io.scalecube.cluster.membership.MembershipConfig;
-import io.scalecube.transport.TransportConfig;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -35,22 +33,16 @@ public class ClusterJoinExamples {
 
     // Start Dan on port 3000
     ClusterConfig configWithFixedPort = ClusterConfig.builder()
-        .membershipConfig(MembershipConfig.builder().seedMembers(alice.address()).build())
-        .transportConfig(
-            TransportConfig.builder()
-                .portAutoIncrement(false)
-                .port(3000)
-                .build())
+        .seedMembers(alice.address())
+        .portAutoIncrement(false)
+        .port(3000)
         .build();
     Cluster dan = Cluster.joinAwait(configWithFixedPort);
 
     // Start Eve in separate cluster (separate sync group)
     ClusterConfig configWithSyncGroup = ClusterConfig.builder()
-        .membershipConfig(
-            MembershipConfig.builder()
-                .seedMembers(alice.address(), bob.address(), carol.address(), dan.address()) // won't join anyway
-                .syncGroup("another cluster")
-                .build())
+        .seedMembers(alice.address(), bob.address(), carol.address(), dan.address()) // won't join anyway
+        .syncGroup("another cluster")
         .build();
     Cluster eve = Cluster.joinAwait(configWithSyncGroup);
 
