@@ -166,7 +166,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   @Override
   public Observable<Message> listen() {
-    return subject.asObservable();
+    return subject.onBackpressureBuffer().asObservable();
   }
 
   // ================================================

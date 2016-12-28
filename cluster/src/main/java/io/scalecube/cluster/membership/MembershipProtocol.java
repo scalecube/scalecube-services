@@ -50,6 +50,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     FAILURE_DETECTOR_EVENT,
     MEMBERSHIP_GOSSIP,
     SYNC,
+    INITIAL_SYNC,
     SUSPICION_TIMEOUT
   }
 
@@ -156,7 +157,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   @Override
   public Observable<MembershipEvent> listen() {
-    return subject.asObservable();
+    return subject.onBackpressureBuffer().asObservable();
   }
 
   @Override
@@ -279,7 +280,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(
             message -> {
-              onSyncAck(message);
+              onSyncAck(message, true);
               schedulePeriodicSync();
               syncResponseFuture.complete(null);
             },
@@ -341,8 +342,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private void onSyncAck(Message syncAckMsg) {
+    onSyncAck(syncAckMsg, false);
+  }
+
+  private void onSyncAck(Message syncAckMsg, boolean initial) {
     LOGGER.debug("Received SyncAck: {}", syncAckMsg);
-    syncMembership(syncAckMsg.data());
+    syncMembership(syncAckMsg.data(), initial);
   }
 
   /**
@@ -350,7 +355,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
    */
   private void onSync(Message syncMsg) {
     LOGGER.debug("Received Sync: {}", syncMsg);
-    syncMembership(syncMsg.data());
+    syncMembership(syncMsg.data(), false);
     Message syncAckMsg = prepareSyncDataMsg(SYNC_ACK, syncMsg.correlationId());
     transport.send(syncMsg.sender(), syncAckMsg);
   }
@@ -412,11 +417,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
     return Message.withData(syncData).qualifier(qualifier).correlationId(cid).build();
   }
 
-  private void syncMembership(SyncData syncData) {
+  private void syncMembership(SyncData syncData, boolean initial) {
     for (MembershipRecord r1 : syncData.getMembership()) {
       MembershipRecord r0 = membershipTable.get(r1.id());
       if (!r1.equals(r0)) {
-        updateMembership(r1, MembershipUpdateReason.SYNC);
+        MembershipUpdateReason reason = initial ? MembershipUpdateReason.INITIAL_SYNC : MembershipUpdateReason.SYNC;
+        updateMembership(r1, reason);
       }
     }
   }
@@ -474,7 +480,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     }
 
     // Spread gossip (unless already gossiped)
-    if (reason != MembershipUpdateReason.MEMBERSHIP_GOSSIP) {
+    if (reason != MembershipUpdateReason.MEMBERSHIP_GOSSIP && reason != MembershipUpdateReason.INITIAL_SYNC) {
       spreadMembershipGossip(r1);
     }
   }
