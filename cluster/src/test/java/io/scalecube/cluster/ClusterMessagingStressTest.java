@@ -105,7 +105,9 @@ public class ClusterMessagingStressTest extends BaseTest {
         client1.send(echoServer.address(), Message.fromData(Long.toString(System.currentTimeMillis())));
       }
       sentTime = System.currentTimeMillis() - startAt;
+
       measureLatch.await(timeoutSeconds, TimeUnit.SECONDS);
+
       receivedTime = System.currentTimeMillis() - startAt;
       rttStats = rttRecords.stream().mapToLong(v -> v).summaryStatistics();
       assertTrue(measureLatch.getCount() == 0);
