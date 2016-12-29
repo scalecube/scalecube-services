@@ -30,7 +30,7 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
   // Default settings for LAN cluster
   public static final String DEFAULT_SYNC_GROUP = "default";
   public static final int DEFAULT_SYNC_INTERVAL = 30_000;
-  public static final int DEFAULT_SYNC_TIMEOUT = 1_000;
+  public static final int DEFAULT_SYNC_TIMEOUT = 3_000;
   public static final int DEFAULT_SUSPICION_MULT = 5;
   public static final int DEFAULT_PING_INTERVAL = 1_000;
   public static final int DEFAULT_PING_TIMEOUT = 500;

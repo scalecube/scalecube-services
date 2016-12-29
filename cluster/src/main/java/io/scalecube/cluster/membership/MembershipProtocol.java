@@ -476,7 +476,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
     } else if (r0 == null && r1.isAlive()) {
       subject.onNext(MembershipEvent.createAdded(r1.member()));
     } else if (r0 != null && !r0.member().equals(r1.member())) {
-      LOGGER.info("Received membership update r0={} ato r1={}", r0, r1);
       subject.onNext(MembershipEvent.createUpdated(r0.member(), r1.member()));
     }
 
