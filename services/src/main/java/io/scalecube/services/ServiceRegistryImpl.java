@@ -43,52 +43,33 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param cluster the cluster instance related to the service registry.
    * @param services optional services if relevant to this instance.
    * @param serviceProcessor - service processor.
-   * @param isSeed indication if this member is seed.
    */
-  public ServiceRegistryImpl(Cluster cluster, ServicesConfig services, ServiceProcessor serviceProcessor,
-                             boolean isSeed) {
+  public ServiceRegistryImpl(Cluster cluster, ServicesConfig services, ServiceProcessor serviceProcessor) {
     checkArgument(cluster != null);
     checkArgument(services != null);
     checkArgument(serviceProcessor != null);
 
     this.serviceProcessor = serviceProcessor;
     this.cluster = cluster;
-    CompletableFuture<Void> future = listenCluster();
+    listenCluster();
 
     if (!services.services().isEmpty()) {
       for (ServiceConfig service : services.services()) {
         registerService(service);
       }
     }
-
-    if (!isSeed && cluster.otherMembers().isEmpty()) {
-      try {
-        future.get();
-      } catch (Exception ex) {
-        LOGGER.error("error while waiting to join the cluster members event", ex);
-      }
-    } else {
-      loadClusterServices();
-    }
+    loadClusterServices();
   }
 
-  private CompletableFuture<Void> listenCluster() {
-    CompletableFuture<Void> future = new CompletableFuture<>();
-
+  private void listenCluster() {
     cluster.listenMembership().subscribe(event -> {
       if (event.isAdded()) {
         loadMemberServices(DiscoveryType.ADDED, event.member());
       } else if (event.isRemoved()) {
         loadMemberServices(DiscoveryType.REMOVED, event.member());
       }
-      if (!cluster.members().isEmpty()) {
-        future.complete(null);
-      }
     });
-
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
-
-    return future;
   }
 
   private void loadClusterServices() {

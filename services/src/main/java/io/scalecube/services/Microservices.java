@@ -107,9 +107,9 @@ public class Microservices {
 
   private final ServiceDispatcherFactory dispatcherFactory;
 
-  private Microservices(Cluster cluster, ServicesConfig services, boolean isSeed) {
+  private Microservices(Cluster cluster, ServicesConfig services) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor);
     
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
@@ -153,10 +153,10 @@ public class Microservices {
 
   public static final class Builder {
 
-    private Integer port = null;
-    private Address[] seeds;
     private ServicesConfig servicesConfig = ServicesConfig.empty();
 
+    private ClusterConfig.Builder clusterConfig = ClusterConfig.builder(); 
+    
     /**
      * microsrrvices instance builder.
      * 
@@ -164,7 +164,7 @@ public class Microservices {
      */
     public Microservices build() {
       ClusterConfig cfg = getClusterConfig(servicesConfig);
-      return new Microservices(Cluster.joinAwait(cfg), servicesConfig, seeds == null);
+      return new Microservices(Cluster.joinAwait(cfg), servicesConfig);
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
@@ -174,26 +174,25 @@ public class Microservices {
         metadata = Microservices.metadata(servicesConfig);
       }
 
-      ClusterConfig.Builder cfgBuilder = ClusterConfig.builder().metadata(metadata);
-      if (port != null) {
-        cfgBuilder.port(port);
-      }
-      if (seeds != null) {
-        cfgBuilder.seedMembers(seeds);
-      }
-      return cfgBuilder.build();
+      clusterConfig.metadata(metadata);
+      
+      return clusterConfig.build();
     }
 
     public Builder port(int port) {
-      this.port = port;
+      this.clusterConfig.port(port);
       return this;
     }
 
     public Builder seeds(Address... seeds) {
-      this.seeds = seeds;
+      this.clusterConfig.seedMembers(seeds);
       return this;
     }
 
+    public Builder clusterConfig(ClusterConfig.Builder clusterConfig) {
+      this.clusterConfig = clusterConfig;
+      return this;
+    }
     /**
      * Services list to be registered.
      * 
