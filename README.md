@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster)
+[![codecov](https://codecov.io/gh/scalecube/scalecube/branch/master/graph/badge.svg)](https://codecov.io/gh/scalecube/scalecube)
 [![Join the chat at https://gitter.im/scalecube/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalecube/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
