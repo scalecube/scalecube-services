@@ -66,6 +66,9 @@
         <netty.version>4.0.40.Final</netty.version>
         <protostuff.version>1.4.4</protostuff.version>
         <protobuf.version>2.4.1</protobuf.version>
+        
+    	<argLine>-Xms1024m -Xmx2048m</argLine>
+  
     </properties>
 
     <modules>
@@ -207,7 +210,7 @@
 				<version>2.18.1</version>
 				<configuration>
 					<!-- Travis build workaround -->
-					<argLine>-Xms1024m -Xmx2048m</argLine>
+					
 				</configuration>
 			</plugin>
             <plugin>
