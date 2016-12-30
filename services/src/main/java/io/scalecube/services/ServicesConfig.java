@@ -42,7 +42,7 @@ public class ServicesConfig {
   }
 
   public static class Builder {
-    List<ServiceConfig> servicesBuilder = new ArrayList();
+    List<ServiceConfig> servicesBuilder = new ArrayList<>();
     private Microservices.Builder microservicesBuilder;
 
     public static class ServiceConfig {
