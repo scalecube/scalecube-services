@@ -66,12 +66,12 @@ final class ClusterImpl implements Cluster {
   private Observable<Message> messageObservable;
   private Observable<Message> gossipObservable;
 
-  ClusterImpl(ClusterConfig config) {
+  public ClusterImpl(ClusterConfig config) {
     checkNotNull(config);
     this.config = config;
   }
 
-  CompletableFuture<Cluster> join0() {
+  public CompletableFuture<Cluster> join0() {
     CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
     CompletableFuture<Void> clusterFuture = transportFuture.thenCompose(boundTransport -> {
       transport = boundTransport;
