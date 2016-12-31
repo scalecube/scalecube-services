@@ -27,7 +27,7 @@ public class DispatchingFuture {
    * @param request the original request this response correlated to.
    * @return new instance of a dispatching future.
    */
-  static DispatchingFuture from(Cluster cluster, Message request) {
+  public static DispatchingFuture from(Cluster cluster, Message request) {
     return new DispatchingFuture(cluster, request);
   }
 

@@ -147,13 +147,13 @@ final class MessageSchema implements Schema<Message> {
     // Deserialize data
     Object data = null;
     if (dataBytes != null) {
-      String dataType = headers.get(MessageHeaders.DATA_TYPE);
+      String dataType = headers.get(Message.HEADER_DATA_TYPE);
       if (dataType == null) {
         data = dataBytes;
       } else {
         Optional<Class> optionalDataClass = classCache.computeIfAbsent(dataType, this::classForName);
         if (optionalDataClass.isPresent()) {
-          headers.remove(MessageHeaders.DATA_TYPE);
+          headers.remove(Message.HEADER_DATA_TYPE);
           Class<?> dataClass = optionalDataClass.get();
           Schema dataSchema = RuntimeSchema.getSchema(dataClass);
           data = dataSchema.newMessage();
@@ -199,7 +199,7 @@ final class MessageSchema implements Schema<Message> {
       } else {
         // Write data class as an additional header
         Class<?> dataClass = originalData.getClass();
-        output.writeString(HEADER_KEYS_FIELD_NUMBER, MessageHeaders.DATA_TYPE, true);
+        output.writeString(HEADER_KEYS_FIELD_NUMBER, Message.HEADER_DATA_TYPE, true);
         output.writeString(HEADER_VALUES_FIELD_NUMBER, dataClass.getName(), true);
 
         // Write data as serialized byte array

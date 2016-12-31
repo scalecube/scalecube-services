@@ -214,7 +214,7 @@ public class TransportTest extends BaseTest {
 
     Message result = messageFuture.get(3, TimeUnit.SECONDS);
     assertNotNull("No response from serverAddress", result);
-    assertEquals("hi client", result.header(MessageHeaders.QUALIFIER));
+    assertEquals("hi client", result.qualifier());
   }
 
   @Test
@@ -248,7 +248,7 @@ public class TransportTest extends BaseTest {
 
     server.listen().buffer(2).subscribe(messages -> {
       for (Message message : messages) {
-        Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
+        Message echo = Message.fromData("echo/" + message.qualifier());
         server.send(message.sender(), echo);
       }
     });
@@ -271,7 +271,7 @@ public class TransportTest extends BaseTest {
 
     server.listen().buffer(2).subscribe(messages -> {
       for (Message message : messages) {
-        Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
+        Message echo = Message.fromData("echo/" + message.qualifier());
         server.send(message.sender(), echo);
       }
     });
@@ -334,7 +334,7 @@ public class TransportTest extends BaseTest {
         throw new RuntimeException("" + message);
       }
       if (qualifier.startsWith("q")) {
-        Message echo = Message.fromData("echo/" + message.header(MessageHeaders.QUALIFIER));
+        Message echo = Message.fromData("echo/" + message.qualifier());
         server.send(message.sender(), echo);
       }
     }, Throwable::printStackTrace);
@@ -384,7 +384,7 @@ public class TransportTest extends BaseTest {
 
     Thread.sleep(1000);
     assertEquals(1, resp.size());
-    assertEquals("q/unblocked", resp.get(0).header(MessageHeaders.QUALIFIER));
+    assertEquals("q/unblocked", resp.get(0).qualifier());
   }
 
 }
