@@ -267,6 +267,7 @@ public class Microservices {
 
     private Duration timeout = Duration.ofSeconds(30);
 
+    @SuppressWarnings("unchecked")
     public <T> T create() {
       LOGGER.debug("create service api {} router {}", this.api, router);
       return (T) createProxy(this.api, this.router, this.timeout);
