@@ -1,10 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
-import io.scalecube.transport.Address;
-
 import rx.Observable;
-
-import java.util.Collection;
 
 /**
  * Failure Detector component responsible for monitoring availability of other members in the cluster. This interface is

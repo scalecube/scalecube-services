@@ -1,6 +1,7 @@
 package io.scalecube.cluster.membership;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
 
@@ -54,15 +55,15 @@ final class MembershipRecord {
   }
 
   public boolean isAlive() {
-    return status == MemberStatus.ALIVE;
+    return status == ALIVE;
   }
 
   public boolean isSuspect() {
-    return status == MemberStatus.SUSPECT;
+    return status == SUSPECT;
   }
 
   public boolean isDead() {
-    return status == MemberStatus.DEAD;
+    return status == DEAD;
   }
 
   public int incarnation() {

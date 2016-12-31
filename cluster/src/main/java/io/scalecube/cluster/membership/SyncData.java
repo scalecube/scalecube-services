@@ -28,16 +28,16 @@ final class SyncData {
   @Tag(2)
   private final String syncGroup;
 
-  SyncData(Collection<MembershipRecord> membership, String syncGroup) {
+  public SyncData(Collection<MembershipRecord> membership, String syncGroup) {
     this.membership = new ArrayList<>(membership);
     this.syncGroup = syncGroup;
   }
 
-  Collection<MembershipRecord> getMembership() {
+  public Collection<MembershipRecord> getMembership() {
     return new ArrayList<>(membership);
   }
 
-  String getSyncGroup() {
+  public String getSyncGroup() {
     return syncGroup;
   }
 
