@@ -3,8 +3,8 @@
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster)
 [![codecov](https://codecov.io/gh/scalecube/scalecube/branch/master/graph/badge.svg)](https://codecov.io/gh/scalecube/scalecube)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a162edec5ca347ef87db19320e41138a)](https://www.codacy.com/app/ScaleCube/scalecube?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=scalecube/scalecube&amp;utm_campaign=Badge_Grade)
 [![Join the chat at https://gitter.im/scalecube/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalecube/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Codacy](https://api.codacy.com/project/badge/grade/3c7f5de6ce734762981d3e689de7b941)](https://www.codacy.com/app/codacy/node-codacy-coverage)
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40ScaleCube)](https://twitter.com/scalecube)
 
 ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
@@ -56,15 +56,15 @@ Using ScaleCube Cluster as simple as few lines of code:
  
 ``` java
 // Start cluster node Alice as a seed node of the cluster, listen and print all incoming messages
-ICluster alice = Cluster.joinAwait();
+Cluster alice = Cluster.joinAwait();
 alice.listen().subscribe(msg -> System.out.println("Alice received: " + msg.data()));
 
 // Join cluster node Bob to cluster with Alice, listen and print all incoming messages
-ICluster bob = Cluster.joinAwait(alice.address());
+Cluster bob = Cluster.joinAwait(alice.address());
 bob.listen().subscribe(msg -> System.out.println("Bob received: " + msg.data()));
 
 // Join cluster node Carol to cluster with Alice (and Bob which is resolved via Alice)
-ICluster carol = Cluster.joinAwait(alice.address());
+Cluster carol = Cluster.joinAwait(alice.address());
 
 // Send from Carol greeting message to all other cluster members (which is Alice and Bob)
 carol.otherMembers().forEach(member -> carol.send(member, Message.fromData("Greetings from Carol")));

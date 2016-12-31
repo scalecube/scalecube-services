@@ -373,7 +373,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
       return;
     }
     LOGGER.debug("Received status change on failure detector event: {}", fdEvent);
-    if (fdEvent.status() == MemberStatus.ALIVE) {
+    if (fdEvent.status() == ALIVE) {
       // TODO: Consider to make more elegant solution
       // Alive won't override SUSPECT so issue instead extra sync with member to force it spread alive with inc + 1
       Message syncMsg = prepareSyncDataMsg(SYNC, null);

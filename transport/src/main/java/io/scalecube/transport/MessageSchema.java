@@ -130,6 +130,7 @@ final class MessageSchema implements Schema<Message> {
           break;
         default:
           input.handleUnknownField(number, this);
+          break;
       }
     }
 

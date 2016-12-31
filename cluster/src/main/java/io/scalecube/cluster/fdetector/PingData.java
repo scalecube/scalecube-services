@@ -1,7 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
 import io.scalecube.cluster.Member;
-import io.scalecube.transport.Address;
 
 import io.protostuff.Tag;
 
