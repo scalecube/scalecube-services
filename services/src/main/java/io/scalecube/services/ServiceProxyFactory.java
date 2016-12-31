@@ -28,7 +28,7 @@ public class ServiceProxyFactory {
   private static final ScheduledExecutorService delayer =
       ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
 
-  ServiceDefinition serviceDefinition;
+  private ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
 
   private ServiceRegistry serviceRegistry;

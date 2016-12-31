@@ -12,7 +12,7 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class ThreadFactory {
 
-  static final ConcurrentMap<String, ScheduledExecutorService> schedulers = new ConcurrentHashMap<>();
+  private static final ConcurrentMap<String, ScheduledExecutorService> schedulers = new ConcurrentHashMap<>();
 
   /**
    * Used to create and cache shared thread pools with given name.
