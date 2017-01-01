@@ -18,5 +18,6 @@ public interface ServiceProcessor {
   
   Collection<Class<?>> extractInjectables(Class<?> serviceImpl);
   
+  boolean isServiceInterface(Class<?> clsType);
 
 }

@@ -27,7 +27,8 @@ public class ServicesConfig {
     this.servicesConfig = serviceTags;
   }
 
-  ServicesConfig() {}
+  ServicesConfig() {
+  }
 
   ServicesConfig(List<ServiceConfig> unmodifiableList) {
     this.servicesConfig = unmodifiableList;
@@ -42,6 +43,7 @@ public class ServicesConfig {
   }
 
   public static class Builder {
+
     private List<ServiceConfig> servicesBuilder = new ArrayList<>();
     private Microservices.Builder microservicesBuilder;
 
@@ -51,29 +53,29 @@ public class ServicesConfig {
 
       private final Object service;
 
-      private final Class<?> serviceCls;
-      
+      private final Class<?> serviceType;
+
       private final Map<String, String> kv = new HashMap<>();
 
       private final Set<ServiceDefinition> serviceDefinitions;
 
       public ServiceConfig(Builder builder, Object service) {
         this.service = service;
-        this.serviceCls = null;
+        this.serviceType = null;
         this.serviceDefinitions = serviceProcessor.serviceDefinitions(service.getClass());
         this.builder = builder;
       }
-      
-      public ServiceConfig(Builder builder, Class<?> serviceCls) {
+
+      public ServiceConfig(Builder builder, Class<?> serviceType) {
         this.service = null;
-        this.serviceCls = serviceCls;
-        this.serviceDefinitions = serviceProcessor.serviceDefinitions(serviceCls);
+        this.serviceType = serviceType;
+        this.serviceDefinitions = serviceProcessor.serviceDefinitions(serviceType);
         this.builder = builder;
       }
 
       public ServiceConfig(Object service) {
         this.service = service;
-        this.serviceCls = null;
+        this.serviceType = null;
         this.serviceDefinitions = serviceProcessor.serviceDefinitions(service.getClass());
         this.builder = null;
       }
@@ -99,8 +101,16 @@ public class ServicesConfig {
         return this.service;
       }
 
+      public Class<?> getServiceType() {
+        return serviceType;
+      }
+
       public Set<String> serviceNames() {
         return serviceDefinitions.stream().map(definition -> definition.serviceName()).collect(Collectors.toSet());
+      }
+
+      public ServiceConfig copy(Object service) {
+        return new ServiceConfig(builder, service);
       }
     }
 
@@ -112,6 +122,10 @@ public class ServicesConfig {
       return new ServiceConfig(this, object);
     }
 
+    public ServiceConfig from(Class<?> serviceType) {
+      return new ServiceConfig(this, serviceType);
+    }
+
     public Builder add(ServiceConfig serviceBuilder) {
       servicesBuilder.add(serviceBuilder);
       return this;
@@ -119,7 +133,7 @@ public class ServicesConfig {
 
     public Microservices.Builder build() {
       return microservicesBuilder.services(
-          new ServicesConfig(Collections.unmodifiableList(servicesBuilder)));
+              new ServicesConfig(Collections.unmodifiableList(servicesBuilder)));
     }
 
     public ServicesConfig create() {

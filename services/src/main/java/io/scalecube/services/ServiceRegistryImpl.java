@@ -52,11 +52,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     this.cluster = cluster;
     listenCluster();
 
-    if (!services.services().isEmpty()) {
-      for (ServiceConfig service : services.services()) {
-        registerService(service);
-      }
-    }
+    services.services().stream()
+            .filter(service->service.getService() != null)
+            .forEach(service->registerService(service));
     loadClusterServices();
   }
 

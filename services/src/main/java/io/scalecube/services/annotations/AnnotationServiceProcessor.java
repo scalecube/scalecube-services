@@ -69,4 +69,9 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
             .flatMap(Arrays::stream).collect(Collectors.toList());
   }
 
+  @Override
+  public boolean isServiceInterface(Class<?> clsType) {
+      return clsType.isAnnotationPresent(Service.class);
+  }
+
 }

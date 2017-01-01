@@ -17,48 +17,62 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
- * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
- * provides Reactive application development platform for building distributed applications Using microservices and fast
- * data on a message-driven runtime that scales transparently on multi-core, multi-process and/or multi-machines Most
- * microservices frameworks focus on making it easy to build individual microservices. ScaleCube allows developers to
- * run a whole system of microservices from a single command. removing most of the boilerplate code, ScaleCube-Services
- * focuses development on the essence of the service and makes it easy to create explicit and typed protocols that
- * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
- * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
- * 
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
- * build the service component itself. the Service component is simply java class that implements the service Interface
- * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
- * streaming patters but does not force application developers to it.
- * 
- * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * The ScaleCube-Services module enables to provision and consuming
+ * microservices in a cluster. ScaleCube-Services provides Reactive application
+ * development platform for building distributed applications Using
+ * microservices and fast data on a message-driven runtime that scales
+ * transparently on multi-core, multi-process and/or multi-machines Most
+ * microservices frameworks focus on making it easy to build individual
+ * microservices. ScaleCube allows developers to run a whole system of
+ * microservices from a single command. removing most of the boilerplate code,
+ * ScaleCube-Services focuses development on the essence of the service and
+ * makes it easy to create explicit and typed protocols that compose. True
+ * isolation is achieved through shared-nothing design. This means the services
+ * in ScaleCube are autonomous, loosely coupled and mobile (location
+ * transparent)—necessary requirements for resilence and elasticity
+ *
+ * <p>
+ * ScaleCube services requires developers only to two simple Annotations
+ * declaring a Service but not regards how you build the service component
+ * itself. the Service component is simply java class that implements the
+ * service Interface and ScaleCube take care for the rest of the magic. it
+ * derived and influenced by Actor model and reactive and streaming patters but
+ * does not force application developers to it.
+ *
+ * <p>
+ * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster
+ * aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
  * <li>Provides fluent, java 8 lambda apis.</li>
  * <li>Embeddable and lightweight.</li>
- * <li>utilizes completable futures but primitives and messages can be used as well completable futures gives the
- * advantage of composing and chaining service calls and service results.</li>
+ * <li>utilizes completable futures but primitives and messages can be used as
+ * well completable futures gives the advantage of composing and chaining
+ * service calls and service results.</li>
  * <li>low latency</li>
- * <li>supports routing extensible strategies when selecting service end-points</li>
- * 
+ * <li>supports routing extensible strategies when selecting service
+ * end-points</li>
+ *
  * </p><b>basic usage example:</b>
- * 
+ *
  * <pre>
- * 
+ *
  * <b><font color="green">//Define a service interface and implement it.</font></b>
  * {@code
  *    <b>{@literal @}Service</b>
- *    <b><font color="9b0d9b">public interface</font></b> GreetingService {  
+ *    <b><font color="9b0d9b">public interface</font></b> GreetingService {
  *
  *         <b>{@literal @}ServiceMethod</b>
  *         CompletableFuture<String> asyncGreeting(String string);
  *     }
- *    
+ *
  *     <b><font color="9b0d9b">public class</font></b> GreetingServiceImpl implements GreetingService {
  *
  *       {@literal @}Override
@@ -71,15 +85,15 @@ import java.util.Optional;
  *       <b><font color="green">//Introduce GreetingServiceImpl pojo as a micro-service.</font></b>
  *         .services(<b><font color="9b0d9b">new</font></b> GreetingServiceImpl())
  *         .build();
- * 
+ *
  *     <b><font color="green">//Create microservice proxy to GreetingService.class interface.</font></b>
  *     GreetingService service = microservices.proxy()
  *         .api(GreetingService.class)
  *         .create();
- * 
+ *
  *     <b><font color="green">//Invoke the greeting service async.</font></b>
  *     CompletableFuture<String> future = service.asyncGreeting("joe");
- * 
+ *
  *     <b><font color="green">//handle completable success or error.</font></b>
  *     future.whenComplete((result, ex) -> {
  *      if (ex == <b><font color="9b0d9b">null</font></b>) {
@@ -93,7 +107,6 @@ import java.util.Optional;
  * }
  * </pre>
  */
-
 public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
@@ -107,17 +120,26 @@ public class Microservices {
 
   private final ServiceDispatcherFactory dispatcherFactory;
 
+  private final ServiceInjector injector;
+
   private Microservices(Cluster cluster, ServicesConfig services) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor);
-    
+    this.injector = ServiceInjector.builder().build();
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
-
     new ServiceDispatcher(cluster, serviceRegistry);
     this.cluster.listen().subscribe(message -> handleReply(message));
+    resolveInjectableServices(services);
   }
 
+  private void resolveInjectableServices(ServicesConfig services) {
+    List<ServicesConfig.Builder.ServiceConfig> serviceList = services.services().stream()
+            .filter(srv -> srv.getServiceType() != null)
+            .map(srv -> srv.copy(injector.getInstance(this, srv.getServiceType()))).collect(Collectors.toList());
+
+    serviceList.stream().forEach(srv -> serviceRegistry.registerService(srv));
+  }
 
   // Listen response
   private void handleReply(Message message) {
@@ -155,11 +177,11 @@ public class Microservices {
 
     private ServicesConfig servicesConfig = ServicesConfig.empty();
 
-    private ClusterConfig.Builder clusterConfig = ClusterConfig.builder(); 
-    
+    private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
+
     /**
      * microsrrvices instance builder.
-     * 
+     *
      * @return Microservices instance.
      */
     public Microservices build() {
@@ -175,7 +197,7 @@ public class Microservices {
       }
 
       clusterConfig.metadata(metadata);
-      
+
       return clusterConfig.build();
     }
 
@@ -193,9 +215,10 @@ public class Microservices {
       this.clusterConfig = clusterConfig;
       return this;
     }
+
     /**
      * Services list to be registered.
-     * 
+     *
      * @param services list of instances decorated with @Service
      * @return builder.
      */
@@ -203,15 +226,15 @@ public class Microservices {
       checkNotNull(services);
 
       this.servicesConfig = ServicesConfig.builder(this)
-          .services(services)
-          .create();
+              .services(services)
+              .create();
 
       return this;
     }
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param servicesConfig list of instances decorated with.
      * @return builder.
      */
@@ -230,8 +253,8 @@ public class Microservices {
     return new Builder();
   }
 
-
   public class DispatcherContext {
+
     private Duration timeout = Duration.ofSeconds(30);
 
     private Class<? extends Router> router = RoundRobinServiceRouter.class;
@@ -261,6 +284,7 @@ public class Microservices {
   }
 
   public class ProxyContext {
+
     private Class<?> api;
 
     private Class<? extends Router> router = RoundRobinServiceRouter.class;
