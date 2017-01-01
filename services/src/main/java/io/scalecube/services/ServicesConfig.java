@@ -51,19 +51,30 @@ public class ServicesConfig {
 
       private final Object service;
 
-      private final Map<String, String> kv = new HashMap<String, String>();
+      private final Class<?> serviceCls;
+      
+      private final Map<String, String> kv = new HashMap<>();
 
       private final Set<ServiceDefinition> serviceDefinitions;
 
       public ServiceConfig(Builder builder, Object service) {
         this.service = service;
-        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service);
+        this.serviceCls = null;
+        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service.getClass());
+        this.builder = builder;
+      }
+      
+      public ServiceConfig(Builder builder, Class<?> serviceCls) {
+        this.service = null;
+        this.serviceCls = serviceCls;
+        this.serviceDefinitions = serviceProcessor.serviceDefinitions(serviceCls);
         this.builder = builder;
       }
 
       public ServiceConfig(Object service) {
         this.service = service;
-        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service);
+        this.serviceCls = null;
+        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service.getClass());
         this.builder = null;
       }
 

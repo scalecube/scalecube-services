@@ -6,7 +6,9 @@ import io.scalecube.services.ServiceDefinition;
 
 import com.google.common.base.Strings;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -18,11 +20,11 @@ import java.util.stream.Collectors;
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
   @Override
-  public Collection<Class<?>> extractServiceInterfaces(Object serviceObject) {
-    Class<?>[] interfaces = serviceObject.getClass().getInterfaces();
+  public Collection<Class<?>> extractServiceInterfaces(Class<?> serviceInterface) {
+    Class<?>[] interfaces = serviceInterface.getInterfaces();
     return Arrays.stream(interfaces)
-        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
-        .collect(Collectors.toList());
+            .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
+            .collect(Collectors.toList());
   }
 
   @Override
@@ -34,11 +36,11 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
     // Method name
     Map<String, Method> methods = Arrays.stream(serviceInterface.getMethods())
-        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-        .collect(Collectors.toMap(method -> {
-          ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
-          return resolveMethodName(method, methodAnnotation);
-        }, Function.identity()));
+            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+            .collect(Collectors.toMap(method -> {
+              ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+              return resolveMethodName(method, methodAnnotation);
+            }, Function.identity()));
 
     return new ServiceDefinition(serviceInterface, serviceName, Collections.unmodifiableMap(methods));
   }
@@ -52,9 +54,19 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   }
 
   @Override
-  public Set<ServiceDefinition> serviceDefinitions(Object service) {
-    return this.extractServiceInterfaces(service).stream()
-        .map(foreach -> introspectServiceInterface(foreach))
-        .collect(Collectors.toSet());
+  public Set<ServiceDefinition> serviceDefinitions(Class<?> serviceInterface) {
+    return this.extractServiceInterfaces(serviceInterface).stream()
+            .map(foreach -> introspectServiceInterface(foreach))
+            .collect(Collectors.toSet());
   }
+
+  @Override
+  public Collection<Class<?>> extractInjectables(Class<?> serviceImpl) {
+    Constructor<?> constructor = serviceImpl.getDeclaredConstructors()[0];
+    return Arrays.asList(constructor).stream()
+            .filter(construct -> construct.isAnnotationPresent(Inject.class))
+            .map(construct -> construct.getParameterTypes())
+            .flatMap(Arrays::stream).collect(Collectors.toList());
+  }
+
 }

@@ -99,6 +99,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   /**
    * register a service instance at the cluster.
    */
+  @Override
   public void registerService(ServiceConfig serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject.getService());

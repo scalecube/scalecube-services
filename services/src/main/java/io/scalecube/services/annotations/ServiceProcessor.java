@@ -8,10 +8,15 @@ import java.util.Set;
 
 public interface ServiceProcessor {
 
-  Collection<Class<?>> extractServiceInterfaces(Object serviceObject);
+  default Collection<Class<?>> extractServiceInterfaces(Object service){return extractServiceInterfaces(service.getClass());}
+  
+  Collection<Class<?>> extractServiceInterfaces(Class<?> serviceInterface);
 
   ServiceDefinition introspectServiceInterface(Class<?> serviceInterface);
 
-  Set<ServiceDefinition> serviceDefinitions(Object service);
+  Set<ServiceDefinition> serviceDefinitions(Class<?> serviceInterface);
+  
+  Collection<Class<?>> extractInjectables(Class<?> serviceImpl);
+  
 
 }
