@@ -28,7 +28,6 @@ public class ServiceProxyFactory {
   private static final ScheduledExecutorService delayer =
       ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
 
-  private ServiceDefinition serviceDefinition;
   private RouterFactory routerFactory;
 
   private ServiceRegistry serviceRegistry;
@@ -48,7 +47,7 @@ public class ServiceProxyFactory {
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
       Duration timeout) {
 
-    serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
+    ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
     
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
