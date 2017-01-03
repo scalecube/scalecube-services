@@ -603,7 +603,7 @@ public class ServiceTest extends BaseTest {
 
     Microservices gateway = createSeed();
 
-    CoarseGrainedrServiceImpl coarseGrained = new CoarseGrainedrServiceImpl();
+    CoarseGrainedServiceImpl coarseGrained = new CoarseGrainedServiceImpl();
 
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 
@@ -644,7 +644,7 @@ public class ServiceTest extends BaseTest {
     Microservices gateway = createSeed();
 
     // getting proxy from any node at any given time.
-    CoarseGrainedrServiceImpl another = new CoarseGrainedrServiceImpl(gateway.proxy().api(GreetingService.class).create());
+    CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl(gateway.proxy().api(GreetingService.class).create());
 
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 

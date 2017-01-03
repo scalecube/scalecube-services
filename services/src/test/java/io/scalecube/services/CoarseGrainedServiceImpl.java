@@ -14,15 +14,15 @@ package io.scalecube.services;
 
 import java.util.concurrent.CompletableFuture;
 
-public class CoarseGrainedrServiceImpl implements CoarseGrainedService {
+public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
   private GreetingService greetingService;
 
-  public CoarseGrainedrServiceImpl() {
+  public CoarseGrainedServiceImpl() {
     // default;
   };
 
-  public CoarseGrainedrServiceImpl(GreetingService greetingService) {
+  public CoarseGrainedServiceImpl(GreetingService greetingService) {
     this.greetingService = greetingService;
   }
 
