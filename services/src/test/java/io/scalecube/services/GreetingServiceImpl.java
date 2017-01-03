@@ -51,4 +51,5 @@ final class GreetingServiceImpl implements GreetingService {
   public void greetingVoid(GreetingRequest request) {
     System.out.println(" hello to: " + request.getName());
   }
+
 }
