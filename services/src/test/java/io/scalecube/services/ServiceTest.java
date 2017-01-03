@@ -175,7 +175,6 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
-    
 
     Thread.sleep(1000);
   }
@@ -389,7 +388,6 @@ public class ServiceTest extends BaseTest {
     // get a proxy to the service api.
     GreetingService service = createProxy(consumer, Duration.ofSeconds(1));
 
-
     // call the service.
     CompletableFuture<GreetingResponse> result =
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
@@ -504,7 +502,6 @@ public class ServiceTest extends BaseTest {
     CompletableFuture<Message> result1 = service.greetingMessage(Message.builder().data("joe").build());
     CompletableFuture<Message> result2 = service.greetingMessage(Message.builder().data("joe").build());
 
-
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
     combined.whenComplete((v, x) -> {
@@ -583,7 +580,6 @@ public class ServiceTest extends BaseTest {
     warmUpLatch.await(30, TimeUnit.SECONDS);
     assertTrue(warmUpLatch.getCount() == 0);
 
-
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
@@ -598,6 +594,41 @@ public class ServiceTest extends BaseTest {
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
     countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    assertTrue(countLatch.getCount() == 0);
+  }
+
+  @Test
+  public void test_sub_service() throws InterruptedException {
+    Microservices gateway = createSeed();
+
+    GreetingServiceImpl serviceImpl = new GreetingServiceImpl();
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(serviceImpl, new GreetingSubServiceImpl())
+        .build();
+
+    // Create microservices cluster member.
+    Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build();
+
+    GreetingSubService subService = consumer.proxy().api(GreetingSubService.class).create();
+    serviceImpl.setSubService(subService);
+    // Get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+    CountDownLatch countLatch = new CountDownLatch(1);
+    CompletableFuture<String> future = service.greetingFromSubService("joe");
+    future.whenComplete((success, error) -> {
+      if (error == null) {
+        assertTrue(success.equals(" hello to: joe"));
+        countLatch.countDown();
+      }
+
+    });
+    countLatch.await(5, TimeUnit.SECONDS);
     assertTrue(countLatch.getCount() == 0);
   }
 

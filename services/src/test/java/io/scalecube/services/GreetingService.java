@@ -26,5 +26,8 @@ interface GreetingService {
 
   @ServiceMethod
   void greetingVoid(GreetingRequest request);
+  
+  @ServiceMethod
+  CompletableFuture<String> greetingFromSubService(String name);
 
 }

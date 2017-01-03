@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 
 final class GreetingServiceImpl implements GreetingService {
 
+  GreetingSubService subService = null;
+
   @Override
   public CompletableFuture<String> greeting(String name) {
     return CompletableFuture.completedFuture(" hello to: " + name);
@@ -31,7 +33,7 @@ final class GreetingServiceImpl implements GreetingService {
   public CompletableFuture<String> greetingNoParams() {
     return CompletableFuture.completedFuture("hello unknown");
   }
-  
+
   @Override
   public CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request) {
     return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName()));
@@ -46,4 +48,14 @@ final class GreetingServiceImpl implements GreetingService {
   public void greetingVoid(GreetingRequest request) {
     System.out.println(" hello to: " + request.getName());
   }
+
+  @Override
+  public CompletableFuture<String> greetingFromSubService(String name) {
+    return this.subService.call(name);
+  }
+
+  public void setSubService(GreetingSubService subService) {
+    this.subService = subService;
+  }
+
 }
