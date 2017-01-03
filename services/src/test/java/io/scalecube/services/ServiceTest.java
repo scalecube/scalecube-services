@@ -599,11 +599,52 @@ public class ServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_serviceA_calls_serviceB() throws InterruptedException {
+  public void test_serviceA_calls_serviceB_using_setter() throws InterruptedException {
 
     Microservices gateway = createSeed();
 
-    AnotherServiceImpl another = new AnotherServiceImpl();
+    CoarseGrainedrServiceImpl coarseGrained = new CoarseGrainedrServiceImpl();
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(greeting, coarseGrained) // add service a and b
+        .build();
+
+    // Get Proxy to greeting service.
+    GreetingService proxy = gateway.proxy().api(GreetingService.class).create();
+
+    // provide the proxy of service B
+    coarseGrained.setGreetingServiceProxy(proxy);;
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CountDownLatch countLatch = new CountDownLatch(1);
+    CompletableFuture<String> future = service.callGreeting("joe");
+    future.whenComplete((success, error) -> {
+      if (error == null) {
+        assertTrue(success.equals(" hello to: joe"));
+        countLatch.countDown();
+      }
+    });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+
+  @Test
+  public void test_serviceA_calls_serviceB_using_constractor() throws InterruptedException {
+
+    Microservices gateway = createSeed();
+
+    // getting proxy from any node at any given time.
+    CoarseGrainedrServiceImpl another = new CoarseGrainedrServiceImpl(gateway.proxy().api(GreetingService.class).create());
 
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 
@@ -614,14 +655,8 @@ public class ServiceTest extends BaseTest {
         .services(greeting, another) // add service a and b
         .build();
 
-    // Get Proxy to greeting service.
-    GreetingService proxy = gateway.proxy().api(GreetingService.class).create();
-
-    // provide the proxy of service B
-    another.setGreetingServiceProxy(proxy);;
-
     // Get a proxy to the service api.
-    AnotherService service = gateway.proxy().api(AnotherService.class).create();
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
     CountDownLatch countLatch = new CountDownLatch(1);
     CompletableFuture<String> future = service.callGreeting("joe");
     future.whenComplete((success, error) -> {

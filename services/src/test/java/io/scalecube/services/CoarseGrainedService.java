@@ -6,7 +6,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-public interface AnotherService {
+public interface CoarseGrainedService {
 
   @ServiceMethod
   public CompletableFuture<String> callGreeting(String name);
