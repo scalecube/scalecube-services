@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
@@ -175,7 +176,6 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
-    
 
     Thread.sleep(1000);
   }
@@ -389,7 +389,6 @@ public class ServiceTest extends BaseTest {
     // get a proxy to the service api.
     GreetingService service = createProxy(consumer, Duration.ofSeconds(1));
 
-
     // call the service.
     CompletableFuture<GreetingResponse> result =
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
@@ -504,7 +503,6 @@ public class ServiceTest extends BaseTest {
     CompletableFuture<Message> result1 = service.greetingMessage(Message.builder().data("joe").build());
     CompletableFuture<Message> result2 = service.greetingMessage(Message.builder().data("joe").build());
 
-
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
     combined.whenComplete((v, x) -> {
@@ -583,7 +581,6 @@ public class ServiceTest extends BaseTest {
     warmUpLatch.await(30, TimeUnit.SECONDS);
     assertTrue(warmUpLatch.getCount() == 0);
 
-
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
@@ -601,11 +598,81 @@ public class ServiceTest extends BaseTest {
     assertTrue(countLatch.getCount() == 0);
   }
 
-  /*
-   * TODO [AK]: This test is unstable and need to be fixed and un-ignored, see builds:
-   * https://travis-ci.org/scalecube/scalecube/builds/185625139
-   * https://travis-ci.org/scalecube/scalecube/builds/185623016
-   */
+  @Test
+  public void test_serviceA_calls_serviceB_using_setter() throws InterruptedException {
+
+    Microservices gateway = createSeed();
+
+    CoarseGrainedServiceImpl coarseGrained = new CoarseGrainedServiceImpl();
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(greeting, coarseGrained) // add service a and b
+        .build();
+
+    // Get Proxy to greeting service.
+    GreetingService proxy = gateway.proxy().api(GreetingService.class).create();
+
+    // provide the proxy of service B
+    coarseGrained.setGreetingServiceProxy(proxy);;
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CountDownLatch countLatch = new CountDownLatch(1);
+    CompletableFuture<String> future = service.callGreeting("joe");
+    future.whenComplete((success, error) -> {
+      if (error == null) {
+        assertTrue(success.equals(" hello to: joe"));
+        countLatch.countDown();
+      }
+    });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+
+  @Test
+  public void test_serviceA_calls_serviceB_using_constractor() throws InterruptedException {
+
+    Microservices gateway = createSeed();
+
+    // getting proxy from any node at any given time.
+    CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl(gateway.proxy().api(GreetingService.class).create());
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(greeting, another) // add service a and b
+        .build();
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CountDownLatch countLatch = new CountDownLatch(1);
+    CompletableFuture<String> future = service.callGreeting("joe");
+    future.whenComplete((success, error) -> {
+      if (error == null) {
+        assertTrue(success.equals(" hello to: joe"));
+        countLatch.countDown();
+      }
+    });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+
   @Ignore
   @Test
   public void test_service_tags() {
