@@ -9,6 +9,11 @@ import java.util.concurrent.TimeUnit;
 final class GreetingServiceImpl implements GreetingService {
 
   @Override
+  public String toString() {
+    return "GreetingServiceImpl []";
+  }
+
+  @Override
   public CompletableFuture<String> greeting(String name) {
     return CompletableFuture.completedFuture(" hello to: " + name);
   }

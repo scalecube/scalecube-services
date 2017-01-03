@@ -33,7 +33,7 @@ public class ServiceTest extends BaseTest {
         .port(port.incrementAndGet())
         .build();
 
-    Microservices.builder()
+    Microservices node2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -59,7 +59,12 @@ public class ServiceTest extends BaseTest {
         timeLatch.countDown();
       }
     });
+
     await(timeLatch, 10, TimeUnit.SECONDS);
+
+    node2.cluster().shutdown();
+    gateway.cluster().shutdown();
+
   }
 
   @Test
@@ -67,11 +72,12 @@ public class ServiceTest extends BaseTest {
     Duration duration = Duration.ofSeconds(1);
 
     // Create microservices instance.
-    GreetingService service = Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
-        .proxy().api(GreetingService.class)
+        .build();
+
+    GreetingService service = node1.proxy().api(GreetingService.class)
         .create();
 
     // call the service.
@@ -88,6 +94,8 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 60, TimeUnit.SECONDS);
+    node1.cluster().shutdown();
+
   }
 
   @Test
@@ -159,7 +167,7 @@ public class ServiceTest extends BaseTest {
         .port(port.incrementAndGet())
         .build();
 
-    Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -178,15 +186,20 @@ public class ServiceTest extends BaseTest {
     System.out.println("test_remote_void_greeting done.");
 
     Thread.sleep(1000);
+
+    gateway.cluster().shutdown();
+    node1.cluster().shutdown();
   }
 
   @Test
   public void test_local_void_greeting() {
     // Create microservices instance.
-    GreetingService service = Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build().proxy()
+        .build();
+
+    GreetingService service = node1.proxy()
         .api(GreetingService.class)
         .create();
 
@@ -197,6 +210,7 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_local_void_greeting done.");
+    node1.cluster().shutdown();
   }
 
   @Test
@@ -345,11 +359,12 @@ public class ServiceTest extends BaseTest {
   @Test
   public void test_local_greeting_request_timeout_expires() {
     // Create microservices instance.
-    GreetingService service = Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
-        .proxy().api(GreetingService.class)
+        .build();
+
+    GreetingService service = node1.proxy().api(GreetingService.class)
         .timeout(Duration.ofSeconds(1))
         .create();
 
@@ -370,6 +385,7 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 5, TimeUnit.SECONDS);
+    node1.cluster().shutdown();
   }
 
   @Test
@@ -409,6 +425,8 @@ public class ServiceTest extends BaseTest {
     } catch (Exception ex) {
       fail();
     }
+    provider.cluster().shutdown();
+    consumer.cluster().shutdown();
   }
 
   @Test
@@ -596,6 +614,8 @@ public class ServiceTest extends BaseTest {
     countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
+    provider.cluster().shutdown();
+    consumer.cluster().shutdown();
   }
 
   @Test
@@ -715,6 +735,10 @@ public class ServiceTest extends BaseTest {
 
     await(timeLatch, 1, TimeUnit.SECONDS);
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
+    
+    gateway.cluster().shutdown();
+    services1.cluster().shutdown();
+    services2.cluster().shutdown();
   }
 
   private GreetingService createProxy(Microservices gateway) {
