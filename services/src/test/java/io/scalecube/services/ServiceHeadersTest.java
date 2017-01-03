@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import io.scalecube.transport.Message;
 
@@ -15,10 +15,10 @@ public class ServiceHeadersTest {
         .header(ServiceHeaders.SERVICE_REQUEST, "req")
         .header(ServiceHeaders.SERVICE_RESPONSE, "res").build();
 
-    assertTrue(ServiceHeaders.serviceMethod(request).equals("m"));
-    assertTrue(ServiceHeaders.service(request).equals("s"));
-    assertTrue(ServiceHeaders.serviceRequest(request).equals("req"));
-    assertTrue(ServiceHeaders.serviceResponse(request).equals("res"));
+    assertEquals(ServiceHeaders.serviceMethod(request), "m");
+    assertEquals(ServiceHeaders.service(request), "s");
+    assertEquals(ServiceHeaders.serviceRequest(request), "req");
+    assertEquals(ServiceHeaders.serviceResponse(request), "res");
   }
-  
+
 }

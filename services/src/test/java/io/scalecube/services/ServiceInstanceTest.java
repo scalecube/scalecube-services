@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
@@ -35,15 +36,15 @@ public class ServiceInstanceTest {
     ServiceRegistry registry = new ServiceRegistryImpl(member.cluster(), config, processor);
     RemoteServiceInstance instance = new RemoteServiceInstance(registry, reference, new HashMap<>());
 
-    assertTrue(instance.toString().equals("RemoteServiceInstance [address=localhost:4000, memberId=a]"));
+    assertEquals(instance.toString(), "RemoteServiceInstance [address=localhost:4000, memberId=a]");
     assertTrue(instance.tags().isEmpty());
-    assertTrue(instance.memberId().equals("a"));
-    assertTrue(instance.address().equals(Address.create("localhost", 4000)));
+    assertEquals(instance.memberId(), "a");
+    assertEquals(instance.address(), Address.create("localhost", 4000));
     assertTrue(!instance.isReachable());
     assertTrue(!instance.isLocal());
-    assertTrue(instance.serviceName().equals("b"));
+    assertEquals(instance.serviceName(), "b");
     member.cluster().shutdown();
   }
 
-  
+
 }

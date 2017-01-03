@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Address;
@@ -19,11 +21,11 @@ public class ServiceReferenceTest {
     ServiceReference aref = new ServiceReference("a", "b", addr);
     ServiceReference bref = new ServiceReference("a", "b", addr);
 
-    assertTrue(aref.equals(aref));
-    assertTrue(aref.equals(bref));
-    assertTrue(!aref.equals(null));
+    assertEquals(aref, aref);
+    assertEquals(aref, bref);
+    assertNotEquals(aref, null);
 
-    assertTrue(reference.toString().equals("ServiceReference [memberId=a, qualifier=b, address=localhost:4000]"));
+    assertEquals(reference.toString(), "ServiceReference [memberId=a, qualifier=b, address=localhost:4000]");
   }
-  
+
 }
