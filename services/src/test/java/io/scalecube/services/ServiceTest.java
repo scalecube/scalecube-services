@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
@@ -598,45 +599,45 @@ public class ServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_sub_service() throws InterruptedException {
+  public void test_serviceA_calls_serviceB() throws InterruptedException {
+
     Microservices gateway = createSeed();
 
-    GreetingServiceImpl serviceImpl = new GreetingServiceImpl();
+    AnotherServiceImpl another = new AnotherServiceImpl();
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
     // Create microservices instance cluster.
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
-        .services(serviceImpl, new GreetingSubServiceImpl())
+        .services(greeting, another) // add service a and b
         .build();
 
-    // Create microservices cluster member.
-    Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
-        .build();
+    // Get Proxy to greeting service.
+    GreetingService proxy = gateway.proxy().api(GreetingService.class).create();
 
-    GreetingSubService subService = consumer.proxy().api(GreetingSubService.class).create();
-    serviceImpl.setSubService(subService);
+    // provide the proxy of service B
+    another.setGreetingServiceProxy(proxy);;
+
     // Get a proxy to the service api.
-    GreetingService service = createProxy(consumer);
+    AnotherService service = gateway.proxy().api(AnotherService.class).create();
     CountDownLatch countLatch = new CountDownLatch(1);
-    CompletableFuture<String> future = service.greetingFromSubService("joe");
+    CompletableFuture<String> future = service.callGreeting("joe");
     future.whenComplete((success, error) -> {
       if (error == null) {
         assertTrue(success.equals(" hello to: joe"));
         countLatch.countDown();
       }
-
     });
+
     countLatch.await(5, TimeUnit.SECONDS);
     assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
   }
 
-  /*
-   * TODO [AK]: This test is unstable and need to be fixed and un-ignored, see builds:
-   * https://travis-ci.org/scalecube/scalecube/builds/185625139
-   * https://travis-ci.org/scalecube/scalecube/builds/185623016
-   */
   @Ignore
   @Test
   public void test_service_tags() {

@@ -11,7 +11,7 @@ interface GreetingService {
 
   @ServiceMethod
   CompletableFuture<String> greetingNoParams();
-  
+
   @ServiceMethod
   CompletableFuture<String> greeting(String string);
 
@@ -26,8 +26,5 @@ interface GreetingService {
 
   @ServiceMethod
   void greetingVoid(GreetingRequest request);
-  
-  @ServiceMethod
-  CompletableFuture<String> greetingFromSubService(String name);
 
 }

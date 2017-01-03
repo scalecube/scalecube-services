@@ -15,17 +15,18 @@
  */
 package io.scalecube.services;
 
-import io.scalecube.services.annotations.Service;
-import io.scalecube.services.annotations.ServiceMethod;
 import java.util.concurrent.CompletableFuture;
 
-/**
- *
- * @author nuwan
- */
-@Service
-public interface GreetingSubService {
+public class AnotherServiceImpl implements AnotherService{
 
-  @ServiceMethod
-  CompletableFuture<String> call(String greeting);
+  private GreetingService greetingService;
+
+  public void setGreetingServiceProxy(GreetingService subService) {
+    this.greetingService = subService;
+  }
+
+  @Override
+  public CompletableFuture<String> callGreeting(String name) {
+    return this.greetingService.greeting(name);
+  }
 }
