@@ -17,11 +17,11 @@ public class MicroservicesInjectableExample {
   }
 
   private static Address onProvider() {
-    // Create microservice provider
+    //create the injector
     ServiceInjector injector = ServiceInjector.builder()
         .bind(TickerServiceConfig.class)
         .to(new TickerServiceConfig(10)).build();
-    
+    // Create microservice provider
     Microservices provider = Microservices.builder()
         .services().from(TicketServiceImpl.class).build().injector(injector)
         .build();
@@ -31,8 +31,13 @@ public class MicroservicesInjectableExample {
   }
 
   private static void onConsumer(Address providerAddress) throws Exception {
+     //create the injector
+    ServiceInjector injector = ServiceInjector.builder()
+        .bind(UserServiceConfig.class)
+        .to(new UserServiceConfig("TestVenue")).build();
     // Create microservice consumer
-    Microservices consumer = Microservices.builder().services().from(UserServiceImpl.class).build().seeds(providerAddress).build();
+    Microservices consumer = Microservices.builder().services().from(UserServiceImpl.class).build().injector(injector)
+        .seeds(providerAddress).build();
 
     // Get a proxy to the service API
     UserService userService = consumer.proxy().api(UserService.class).create();

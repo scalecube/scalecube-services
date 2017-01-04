@@ -27,6 +27,9 @@ public class UserServiceImpl implements UserService{
   TicketService ticketService;
 
   @Inject
+  UserServiceConfig userConfig;
+  
+  @Inject
   public UserServiceImpl(TicketService ticketService) {
     this.ticketService = ticketService;
   }
@@ -36,5 +39,19 @@ public class UserServiceImpl implements UserService{
     return ticketService.reserve(ticketsCount);
   }
  
+  
+}
+
+class UserServiceConfig
+{
+  String ticketVenue;
+
+  public UserServiceConfig(String ticketVenue) {
+    this.ticketVenue = ticketVenue;
+  }
+
+  public String getTicketVenue() {
+    return ticketVenue;
+  }
   
 }

@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Cluster;
@@ -21,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services

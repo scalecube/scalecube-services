@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
  * dependency injection annotation.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.CONSTRUCTOR)
+@Target({ElementType.CONSTRUCTOR,ElementType.FIELD})
 public @interface Inject {
 }

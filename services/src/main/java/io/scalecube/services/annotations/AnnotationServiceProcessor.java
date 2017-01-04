@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import static com.google.common.base.Preconditions.checkArgument;
+import java.lang.reflect.Field;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
@@ -61,12 +63,19 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   }
 
   @Override
-  public Collection<Class<?>> extractInjectables(Class<?> serviceImpl) {
+  public Collection<Class<?>> extractConstructorInjectables(Class<?> serviceImpl) {
     Constructor<?> constructor = serviceImpl.getDeclaredConstructors()[0];
     return Arrays.asList(constructor).stream()
             .filter(construct -> construct.isAnnotationPresent(Inject.class))
             .map(construct -> construct.getParameterTypes())
             .flatMap(Arrays::stream).collect(Collectors.toList());
+  }
+
+  @Override
+  public Collection<Field> extractMemberInjectables(Class<?> serviceImpl) {
+      Field[] fields = serviceImpl.getDeclaredFields();
+      return Arrays.asList(fields).stream().filter(field->field.isAnnotationPresent(Inject.class))
+          .collect(Collectors.toList());
   }
 
   @Override

@@ -8,6 +8,9 @@ import java.util.Map;
 
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
+import java.lang.reflect.Field;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +30,7 @@ public class ServiceInjector {
   }
 
   public <T> T getInstance(Microservices services, Class<T> cls) {
-    Collection<Class<?>> injectables = serviceProcessor.extractInjectables(cls);
+    Collection<Class<?>> injectables = serviceProcessor.extractConstructorInjectables(cls);
     injectables.stream().filter(srv -> serviceProcessor.isServiceInterface(srv))
         .forEach(srv -> resolveProxy(services, srv));
     Class<?>[] types = injectables.stream().toArray(size -> new Class<?>[size]);
@@ -36,14 +39,34 @@ public class ServiceInjector {
         .map(paramType -> instances.get(paramType))
         .toArray(size -> new Object[size]);
     try {
-      return cls.getConstructor(types).newInstance(args);
-    } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+      T instance =  cls.getConstructor(types).newInstance(args);
+      injectMembers(instance);
+      return instance;
+    } catch (NoSuchMethodException | SecurityException | InstantiationException 
+        | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
       LOGGER.error("service instance [{}] initialization failed with exception [{}]", cls.getName(), ex);
       throw new RuntimeException(ex);
     }
   }
 
-  public void resolveProxy(Microservices services, Class<?> serviceInterface) {
+  private <T> void injectMembers(T instance)
+  {
+    Collection<Field> injectables = serviceProcessor.extractMemberInjectables(instance.getClass());
+    injectables.stream().forEach(field->injectMember(field,instance));
+  }
+  
+  private <T> void injectMember(Field field,T instance) 
+  {
+    field.setAccessible(true);
+    try {
+      field.set(instance, instances.get(field.getType()));
+    } catch (IllegalArgumentException | IllegalAccessException ex) {
+      LOGGER.error("service instance member [{}] inject failed with exception [{}]", field.getName(), ex);
+      throw new RuntimeException(ex);
+    }
+  }
+  
+  private void resolveProxy(Microservices services, Class<?> serviceInterface) {
     instances.computeIfAbsent(serviceInterface, (srv) -> services.proxy().api(srv).create());
   }
 
