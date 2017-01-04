@@ -15,11 +15,11 @@ public class ServiceInjector {
 
   private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(ServiceInjector.class);
 
-  private final Map<Class, Object> clsInstMap;
+  private final Map<Class, Object> instances;
   private final ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
 
-  private ServiceInjector(Map<Class, Object> clsInstMap) {
-    this.clsInstMap = clsInstMap;
+  private ServiceInjector(Map<Class, Object> instances) {
+    this.instances = instances;
   }
 
   public <T> T getInstance(Microservices services, Class<T> cls) {
@@ -28,8 +28,8 @@ public class ServiceInjector {
             .forEach(srv -> resolveProxy(services, srv));
     Class<?>[] types = injectables.stream().toArray(size -> new Class<?>[size]);
     Object[] args = injectables.stream()
-            .filter(paramType -> clsInstMap.containsKey(paramType))
-            .map(paramType -> clsInstMap.get(paramType))
+            .filter(paramType -> instances.containsKey(paramType))
+            .map(paramType -> instances.get(paramType))
             .toArray(size -> new Object[size]);
     try {
       return cls.getConstructor(types).newInstance(args);
@@ -41,19 +41,19 @@ public class ServiceInjector {
   }
 
   public void resolveProxy(Microservices services, Class<?> serviceInterface) {
-    clsInstMap.computeIfAbsent(serviceInterface, (srv) -> services.proxy().api(srv).create());
+    instances.computeIfAbsent(serviceInterface, (srv) -> services.proxy().api(srv).create());
   }
 
   public static final class Builder {
 
-    private final Map<Class, Object> clsInstMap = new HashMap<>();
+    private final Map<Class, Object> instances = new HashMap<>();
 
     public <T> ClassBinder<? extends T> bind(Class<? extends T> cls) {
       return new ClassBinder<>(this, cls);
     }
 
     public ServiceInjector build() {
-      return new ServiceInjector(clsInstMap);
+      return new ServiceInjector(instances);
     }
   }
 
@@ -64,15 +64,15 @@ public class ServiceInjector {
   public static class ClassBinder<T> {
 
     ServiceInjector.Builder injectorBuilder = null;
-    Class<T> cls;
+    Class<T> clazz;
 
-    private ClassBinder(ServiceInjector.Builder injectorBuilder, Class<T> cls) {
+    private ClassBinder(ServiceInjector.Builder injectorBuilder, Class<T> clazz) {
       this.injectorBuilder = injectorBuilder;
-      this.cls = cls;
+      this.clazz = clazz;
     }
 
-    public ServiceInjector.Builder to(T inst) {
-      injectorBuilder.clsInstMap.put(cls, inst);
+    public ServiceInjector.Builder to(T instance) {
+      injectorBuilder.instances.put(clazz, instance);
       return injectorBuilder;
     }
   }
