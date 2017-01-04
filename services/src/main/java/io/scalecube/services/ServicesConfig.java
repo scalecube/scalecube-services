@@ -122,13 +122,9 @@ public class ServicesConfig {
       return new ServiceConfig(this, object);
     }
 
-    public ServiceConfig from(Class<?> serviceType) {
-      return new ServiceConfig(this, serviceType);
-    }
-
     public Builder from(Class<?>... serviceTypes) {
       for (Class<?> serviceType : serviceTypes) {
-        from(serviceType).add();
+          new ServiceConfig(this, serviceType).add();
       }
       return this;
     }

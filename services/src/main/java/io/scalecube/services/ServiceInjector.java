@@ -51,7 +51,7 @@ public class ServiceInjector {
 
     private final Map<Class, Object> instances = new HashMap<>();
 
-    public <T> ClassBinder<? extends T> bind(Class<? extends T> cls) {
+    public <T> ClassBinder<T> bind(Class<T> cls) {
       return new ClassBinder<>(this, cls);
     }
 
