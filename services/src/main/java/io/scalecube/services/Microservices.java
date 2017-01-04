@@ -23,42 +23,32 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * The ScaleCube-Services module enables to provision and consuming
- * microservices in a cluster. ScaleCube-Services provides Reactive application
- * development platform for building distributed applications Using
- * microservices and fast data on a message-driven runtime that scales
- * transparently on multi-core, multi-process and/or multi-machines Most
- * microservices frameworks focus on making it easy to build individual
- * microservices. ScaleCube allows developers to run a whole system of
- * microservices from a single command. removing most of the boilerplate code,
- * ScaleCube-Services focuses development on the essence of the service and
- * makes it easy to create explicit and typed protocols that compose. True
- * isolation is achieved through shared-nothing design. This means the services
- * in ScaleCube are autonomous, loosely coupled and mobile (location
- * transparent)—necessary requirements for resilence and elasticity
+ * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
+ * provides Reactive application development platform for building distributed applications Using microservices and fast
+ * data on a message-driven runtime that scales transparently on multi-core, multi-process and/or multi-machines Most
+ * microservices frameworks focus on making it easy to build individual microservices. ScaleCube allows developers to
+ * run a whole system of microservices from a single command. removing most of the boilerplate code, ScaleCube-Services
+ * focuses development on the essence of the service and makes it easy to create explicit and typed protocols that
+ * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
+ * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  *
  * <p>
- * ScaleCube services requires developers only to two simple Annotations
- * declaring a Service but not regards how you build the service component
- * itself. the Service component is simply java class that implements the
- * service Interface and ScaleCube take care for the rest of the magic. it
- * derived and influenced by Actor model and reactive and streaming patters but
- * does not force application developers to it.
+ * ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
+ * build the service component itself. the Service component is simply java class that implements the service Interface
+ * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
+ * streaming patters but does not force application developers to it.
  *
  * <p>
- * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster
- * aware to provide:
+ * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
  * <li>Provides fluent, java 8 lambda apis.</li>
  * <li>Embeddable and lightweight.</li>
- * <li>utilizes completable futures but primitives and messages can be used as
- * well completable futures gives the advantage of composing and chaining
- * service calls and service results.</li>
+ * <li>utilizes completable futures but primitives and messages can be used as well completable futures gives the
+ * advantage of composing and chaining service calls and service results.</li>
  * <li>low latency</li>
- * <li>supports routing extensible strategies when selecting service
- * end-points</li>
+ * <li>supports routing extensible strategies when selecting service end-points</li>
  *
  * </p><b>basic usage example:</b>
  *
@@ -122,10 +112,10 @@ public class Microservices {
 
   private final ServiceInjector injector;
 
-  private Microservices(Cluster cluster, ServicesConfig services) {
+  private Microservices(Cluster cluster, ServicesConfig services,ServiceInjector injector) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor);
-    this.injector = ServiceInjector.builder().build();
+    this.injector = injector;
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
     new ServiceDispatcher(cluster, serviceRegistry);
@@ -135,8 +125,8 @@ public class Microservices {
 
   private void resolveInjectableServices(ServicesConfig services) {
     List<ServicesConfig.Builder.ServiceConfig> serviceList = services.services().stream()
-            .filter(srv -> srv.getServiceType() != null)
-            .map(srv -> srv.copy(injector.getInstance(this, srv.getServiceType()))).collect(Collectors.toList());
+        .filter(srv -> srv.getServiceType() != null)
+        .map(srv -> srv.copy(injector.getInstance(this, srv.getServiceType()))).collect(Collectors.toList());
 
     serviceList.stream().forEach(srv -> serviceRegistry.registerService(srv));
   }
@@ -179,6 +169,8 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
+    private ServiceInjector injector = ServiceInjector.defaultInstance();
+
     /**
      * microsrrvices instance builder.
      *
@@ -186,7 +178,7 @@ public class Microservices {
      */
     public Microservices build() {
       ClusterConfig cfg = getClusterConfig(servicesConfig);
-      return new Microservices(Cluster.joinAwait(cfg), servicesConfig);
+      return new Microservices(Cluster.joinAwait(cfg), servicesConfig,injector);
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
@@ -226,9 +218,14 @@ public class Microservices {
       checkNotNull(services);
 
       this.servicesConfig = ServicesConfig.builder(this)
-              .services(services)
-              .create();
+          .services(services)
+          .create();
 
+      return this;
+    }
+
+    public Builder injector(ServiceInjector injector) {
+      this.injector = injector;
       return this;
     }
 

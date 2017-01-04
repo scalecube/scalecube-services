@@ -126,6 +126,13 @@ public class ServicesConfig {
       return new ServiceConfig(this, serviceType);
     }
 
+    public Builder from(Class<?>... serviceTypes) {
+      for (Class<?> serviceType : serviceTypes) {
+        from(serviceType).add();
+      }
+      return this;
+    }
+
     public Builder add(ServiceConfig serviceBuilder) {
       servicesBuilder.add(serviceBuilder);
       return this;
@@ -133,7 +140,7 @@ public class ServicesConfig {
 
     public Microservices.Builder build() {
       return microservicesBuilder.services(
-              new ServicesConfig(Collections.unmodifiableList(servicesBuilder)));
+          new ServicesConfig(Collections.unmodifiableList(servicesBuilder)));
     }
 
     public ServicesConfig create() {

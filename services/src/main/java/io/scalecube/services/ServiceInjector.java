@@ -22,19 +22,22 @@ public class ServiceInjector {
     this.instances = instances;
   }
 
+  public static ServiceInjector defaultInstance() {
+    return ServiceInjector.builder().build();
+  }
+
   public <T> T getInstance(Microservices services, Class<T> cls) {
     Collection<Class<?>> injectables = serviceProcessor.extractInjectables(cls);
     injectables.stream().filter(srv -> serviceProcessor.isServiceInterface(srv))
-            .forEach(srv -> resolveProxy(services, srv));
+        .forEach(srv -> resolveProxy(services, srv));
     Class<?>[] types = injectables.stream().toArray(size -> new Class<?>[size]);
     Object[] args = injectables.stream()
-            .filter(paramType -> instances.containsKey(paramType))
-            .map(paramType -> instances.get(paramType))
-            .toArray(size -> new Object[size]);
+        .filter(paramType -> instances.containsKey(paramType))
+        .map(paramType -> instances.get(paramType))
+        .toArray(size -> new Object[size]);
     try {
       return cls.getConstructor(types).newInstance(args);
-    } catch (NoSuchMethodException | SecurityException | InstantiationException 
-            | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+    } catch (NoSuchMethodException | SecurityException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
       LOGGER.error("service instance [{}] initialization failed with exception [{}]", cls.getName(), ex);
       throw new RuntimeException(ex);
     }
