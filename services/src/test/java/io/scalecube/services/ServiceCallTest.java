@@ -105,7 +105,7 @@ public class ServiceCallTest extends BaseTest {
         .port(port.incrementAndGet())
         .build();
 
-    Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -130,6 +130,8 @@ public class ServiceCallTest extends BaseTest {
     // but at least we didn't get exception :)
     System.out.println("test_remote_void_greeting done.");
     await(timeLatch, 1, TimeUnit.SECONDS);
+    gateway.cluster().shutdown();
+    node1.cluster().shutdown();
   }
 
   @Test
@@ -158,6 +160,7 @@ public class ServiceCallTest extends BaseTest {
     // but at least we didn't get exception :)
     System.out.println("test_local_void_greeting done.");
     await(timeLatch, 1, TimeUnit.SECONDS);
+    
   }
 
   @Test
