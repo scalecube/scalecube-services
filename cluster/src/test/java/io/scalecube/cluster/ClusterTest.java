@@ -112,6 +112,7 @@ public class ClusterTest extends BaseTest {
     Cluster metadataNode = null;
     int testMembersNum = 10;
     List<Cluster> otherNodes = new ArrayList<>(testMembersNum);
+
     try {
       // Start member with metadata
       Map<String, String> metadata = ImmutableMap.of("key1", "value1", "key2", "value2");
