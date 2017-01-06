@@ -4,6 +4,7 @@ import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.NetworkEmulator;
+import io.scalecube.transport.Transport;
 
 import com.google.common.base.Throwables;
 
@@ -191,5 +192,8 @@ public interface Cluster {
    */
   @Nonnull
   NetworkEmulator networkEmulator();
+
+  @Nonnull
+  Transport transport();
 
 }

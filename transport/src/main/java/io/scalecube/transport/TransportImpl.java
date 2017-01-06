@@ -48,6 +48,8 @@ final class TransportImpl implements Transport {
 
   private final Map<Address, ChannelFuture> outgoingChannels = new ConcurrentHashMap<>();
 
+  private final Map<TransportChannel, ChannelFuture> namedChannels = new ConcurrentHashMap<>();
+
   // Pipeline
   private final BootstrapFactory bootstrapFactory;
   private final IncomingChannelInitializer incomingChannelInitializer = new IncomingChannelInitializer();
@@ -213,28 +215,36 @@ final class TransportImpl implements Transport {
     }
   }
 
+  @Override
+  public void send(@CheckForNull TransportChannel transportChannel, @CheckForNull Message message,
+      @CheckForNull CompletableFuture<Void> promise) {
+    checkState(!stopped, "Transport is stopped");
+    checkArgument(transportChannel.address() != null);
+    checkArgument(message != null);
+    checkArgument(promise != null);
+    message.setSender(transportChannel.address());
+
+    final ChannelFuture channelFuture =
+        namedChannels.computeIfAbsent(transportChannel, transChannel -> this.connect(transChannel.address()));
+    if (channelFuture.isSuccess()) {
+      send(channelFuture.channel(), message, promise);
+    } else {
+      channelFuture.addListener((ChannelFuture chFuture) -> {
+        if (chFuture.isSuccess()) {
+          send(channelFuture.channel(), message, promise);
+        } else {
+          promise.completeExceptionally(chFuture.cause());
+        }
+      });
+    }
+  }
+
   private void send(Channel channel, Message message, CompletableFuture<Void> promise) {
     if (promise == COMPLETED_PROMISE) {
       channel.writeAndFlush(message, channel.voidPromise());
     } else {
       composeFutures(channel.writeAndFlush(message), promise);
     }
-  }
-
-  /**
-   * Converts netty {@link ChannelFuture} to the given {@link CompletableFuture}.
-   *
-   * @param channelFuture netty channel future
-   * @param promise guava future; can be null
-   */
-  private void composeFutures(ChannelFuture channelFuture, @Nonnull final CompletableFuture<Void> promise) {
-    channelFuture.addListener((ChannelFuture future) -> {
-      if (channelFuture.isSuccess()) {
-        promise.complete(channelFuture.get());
-      } else {
-        promise.completeExceptionally(channelFuture.cause());
-      }
-    });
   }
 
   private ChannelFuture connect(Address address) {
@@ -254,6 +264,26 @@ final class TransportImpl implements Transport {
 
     return connectFuture;
   }
+
+
+
+  /**
+   * Converts netty {@link ChannelFuture} to the given {@link CompletableFuture}.
+   *
+   * @param channelFuture netty channel future
+   * @param promise guava future; can be null
+   */
+  private void composeFutures(ChannelFuture channelFuture, @Nonnull final CompletableFuture<Void> promise) {
+    channelFuture.addListener((ChannelFuture future) -> {
+      if (channelFuture.isSuccess()) {
+        promise.complete(channelFuture.get());
+      } else {
+        promise.completeExceptionally(channelFuture.cause());
+      }
+    });
+  }
+
+
 
   @ChannelHandler.Sharable
   private final class IncomingChannelInitializer extends ChannelInitializer {
@@ -293,5 +323,10 @@ final class TransportImpl implements Transport {
       }
       pipeline.addLast(exceptionHandler);
     }
+  }
+
+  @Override
+  public Topic<Message> topic() {
+    return messageHandler.topic();
   }
 }

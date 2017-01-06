@@ -232,4 +232,9 @@ final class ClusterImpl implements Cluster {
     return transport.networkEmulator();
   }
 
+  @Override
+  public Transport transport() {
+    return this.transport;
+  }
+
 }
