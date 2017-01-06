@@ -7,6 +7,7 @@ import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
@@ -17,12 +18,38 @@ public class ServiceInstanceTest {
   @Test
   public void test_localService_instance() {
 
-    LocalServiceInstance instance = new LocalServiceInstance(new ServiceConfig(new GreetingServiceImpl()),
+    ServiceConfig conf = new ServiceConfig(new GreetingServiceImpl());
+    LocalServiceInstance instance = new LocalServiceInstance(conf,
         "a", "b", new HashMap<>());
-    assertTrue(instance.toString().equals("LocalServiceInstance [serviceObject=GreetingServiceImpl [], memberId=a]"));
+    assertEquals(instance.toString(), "LocalServiceInstance [serviceObject=GreetingServiceImpl [], memberId=a]");
     assertTrue(instance.tags().isEmpty());
-    assertTrue(instance.memberId().equals("a"));
-    assertTrue(instance.serviceName().equals("b"));
+    assertEquals(instance.memberId(), "a");
+    assertEquals(instance.serviceName(), "b");
+
+    try {
+      new LocalServiceInstance(conf, null, "b", new HashMap<>());
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+    }
+
+    try {
+      new LocalServiceInstance(conf, "a", null, new HashMap<>());
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+    }
+
+    try {
+      new LocalServiceInstance(conf, "a", "b", null);
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+    }
+
+    try {
+      new LocalServiceInstance(conf,
+          "a", "b", new HashMap<>()).invoke(null);
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+    }
   }
 
   @Test
@@ -43,7 +70,42 @@ public class ServiceInstanceTest {
     assertTrue(!instance.isReachable());
     assertTrue(!instance.isLocal());
     assertEquals(instance.serviceName(), "b");
+
+    try {
+      instance.dispatch(Message.builder()
+          .header(ServiceHeaders.METHOD, null)
+          .header(ServiceHeaders.SERVICE, "s")
+          .build());
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
+    }
+
+
+    try {
+      instance.dispatch(Message.builder()
+          .header(ServiceHeaders.METHOD, "m")
+          .header(ServiceHeaders.SERVICE, null)
+          .build());
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
+    }
+
+    try {
+      instance.invoke(Message.builder()
+          .header(ServiceHeaders.METHOD, null)
+          .build());
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
+    }
+     
+    try {
+      instance.invoke(null);
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
+    }
+
     member.cluster().shutdown();
+
   }
 
 
