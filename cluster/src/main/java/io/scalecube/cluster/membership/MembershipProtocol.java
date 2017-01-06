@@ -76,7 +76,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
 
   // Subject
 
-  private final Subject<MembershipEvent, MembershipEvent> subject = PublishSubject.<MembershipEvent>create().toSerialized();
+  private final Subject<MembershipEvent, MembershipEvent> subject =
+      PublishSubject.<MembershipEvent>create().toSerialized();
 
   // Subscriptions
 
