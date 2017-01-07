@@ -191,6 +191,21 @@ public class Microservices {
       return clusterConfig.build();
     }
 
+    public Builder port(int port) {
+      this.clusterConfig.port(port);
+      return this;
+    }
+
+    public Builder seeds(Address... seeds) {
+      this.clusterConfig.seedMembers(seeds);
+      return this;
+    }
+
+    public Builder clusterConfig(ClusterConfig.Builder clusterConfig) {
+      this.clusterConfig = clusterConfig;
+      return this;
+    }
+
     /**
      * Services list to be registered.
      *
@@ -221,21 +236,6 @@ public class Microservices {
 
     public ServicesConfig.Builder services() {
       return ServicesConfig.builder(this);
-    }
-
-    public Builder port(int port) {
-      this.clusterConfig.port(port);
-      return this;
-    }
-
-    public Builder seeds(Address... seeds) {
-      this.clusterConfig.seedMembers(seeds);
-      return this;
-    }
-
-    public Builder clusterConfig(ClusterConfig.Builder clusterConfig) {
-      this.clusterConfig = clusterConfig;
-      return this;
     }
 
     public Builder injector(ServiceInjector injector) {
