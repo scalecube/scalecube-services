@@ -36,20 +36,27 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private final ConcurrentMap<String, ServiceDefinition> definitionsCache = new ConcurrentHashMap<>();
 
+  private Sender sender;
+
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
    *
    * @param cluster the cluster instance related to the service registry.
+   * @param sender to be used for service communication.
    * @param services optional services if relevant to this instance.
    * @param serviceProcessor - service processor.
    */
-  public ServiceRegistryImpl(Cluster cluster, ServicesConfig services, ServiceProcessor serviceProcessor) {
-    checkArgument(cluster != null);
-    checkArgument(services != null);
-    checkArgument(serviceProcessor != null);
+  public ServiceRegistryImpl(Cluster cluster, Sender sender, ServicesConfig services,
+      ServiceProcessor serviceProcessor) {
+
+    checkArgument(cluster != null, "cluster can't be null");
+    checkArgument(sender != null, "transport can't be null");
+    checkArgument(services != null, "services can't be null");
+    checkArgument(serviceProcessor != null, "serviceProcessor can't be null");
 
     this.serviceProcessor = serviceProcessor;
     this.cluster = cluster;
+    this.sender = sender;
     listenCluster();
 
     if (!services.services().isEmpty()) {
@@ -89,7 +96,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-            serviceInstances.putIfAbsent(serviceRef, new RemoteServiceInstance(this, serviceRef, info.getTags()));
+            serviceInstances.putIfAbsent(serviceRef,
+                new RemoteServiceInstance(this, sender, serviceRef, info.getTags()));
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
           }
@@ -113,10 +121,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       // cache the service definition.
       definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
 
-      ServiceReference serviceRef = new ServiceReference(memberId, serviceDefinition.serviceName(), cluster.address());
+      ServiceReference serviceRef =
+          new ServiceReference(memberId, serviceDefinition.serviceName(), sender.address());
 
       ServiceInstance serviceInstance =
-          new LocalServiceInstance(serviceObject, memberId, serviceDefinition.serviceName(),
+          new LocalServiceInstance(serviceObject, sender.address(), memberId, serviceDefinition.serviceName(),
               serviceDefinition.methods());
       serviceInstances.putIfAbsent(serviceRef, serviceInstance);
 
@@ -161,7 +170,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(), cluster.address());
+    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(), sender.address());
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {
@@ -174,14 +183,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public Cluster cluster() {
-    return this.cluster;
-  }
-
-  @Override
   public ServiceDefinition registerInterface(Class<?> serviceInterface) {
     ServiceDefinition serviceDefinition = serviceProcessor.introspectServiceInterface(serviceInterface);
     definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
     return serviceDefinition;
   }
+
 }

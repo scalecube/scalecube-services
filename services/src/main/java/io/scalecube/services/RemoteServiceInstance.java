@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -20,14 +19,15 @@ import java.util.function.Function;
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
 
-  private final Cluster cluster;
   private final Address address;
   private final String memberId;
   private final String serviceName;
   private final Map<String, String> tags;
-
+  private final Sender sender;
+  
   private ServiceRegistry serviceRegistry;
 
+  
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -36,14 +36,15 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param serviceReference service reference of this instance.
    * @param tags describing this service instance metadata.
    */
-  public RemoteServiceInstance(ServiceRegistry serviceRegistry, ServiceReference serviceReference,
+  public RemoteServiceInstance(ServiceRegistry serviceRegistry, Sender sender,
+      ServiceReference serviceReference,
       Map<String, String> tags) {
     this.serviceRegistry = serviceRegistry;
     this.serviceName = serviceReference.serviceName();
-    this.cluster = serviceRegistry.cluster();
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = tags;
+    this.sender = sender;
   }
 
   @Override
@@ -136,7 +137,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private CompletableFuture<Void> sendRemote(Message requestMessage) {
     final CompletableFuture<Void> messageFuture = new CompletableFuture<>();
     LOGGER.debug("cid [{}] send remote service request message {}", requestMessage.correlationId(), requestMessage);
-    this.cluster.send(address, requestMessage, messageFuture);
+    this.sender.send(address, requestMessage, messageFuture);
     return messageFuture;
   }
 
@@ -160,10 +161,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public Boolean isLocal() {
     return false;
-  }
-
-  public boolean isReachable() {
-    return cluster.member(this.memberId).isPresent();
   }
 
   @Override
