@@ -27,8 +27,7 @@ public class ServicesConfig {
     this.servicesConfig = serviceTags;
   }
 
-  ServicesConfig() {
-  }
+  ServicesConfig() {}
 
   ServicesConfig(List<ServiceConfig> unmodifiableList) {
     this.servicesConfig = unmodifiableList;

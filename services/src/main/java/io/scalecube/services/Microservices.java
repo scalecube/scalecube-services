@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  *
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
+ * <p> ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
  * build the service component itself. the Service component is simply java class that implements the service Interface
  * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
  * streaming patters but does not force application developers to it.
@@ -110,7 +110,7 @@ public class Microservices {
 
   private final ServiceInjector injector;
 
-  private Microservices(Cluster cluster, ServicesConfig services,ServiceInjector injector) {
+  private Microservices(Cluster cluster, ServicesConfig services, ServiceInjector injector) {
     this.cluster = cluster;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor);
     this.injector = injector;
@@ -176,7 +176,7 @@ public class Microservices {
      */
     public Microservices build() {
       ClusterConfig cfg = getClusterConfig(servicesConfig);
-      return new Microservices(Cluster.joinAwait(cfg), servicesConfig,injector);
+      return new Microservices(Cluster.joinAwait(cfg), servicesConfig, injector);
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
@@ -206,7 +206,7 @@ public class Microservices {
 
       return this;
     }
-    
+
     /**
      * Services list to be registered.
      *
@@ -218,7 +218,11 @@ public class Microservices {
       this.servicesConfig = servicesConfig;
       return this;
     }
-    
+
+    public ServicesConfig.Builder services() {
+      return ServicesConfig.builder(this);
+    }
+
     public Builder port(int port) {
       this.clusterConfig.port(port);
       return this;
@@ -238,10 +242,7 @@ public class Microservices {
       this.injector = injector;
       return this;
     }
-    
-    public ServicesConfig.Builder services() {
-      return ServicesConfig.builder(this);
-    }
+
   }
 
   public static Builder builder() {
