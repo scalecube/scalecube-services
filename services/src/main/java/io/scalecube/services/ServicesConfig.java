@@ -124,7 +124,7 @@ public class ServicesConfig {
 
     public Builder from(Class<?>... serviceTypes) {
       for (Class<?> serviceType : serviceTypes) {
-          new ServiceConfig(this, serviceType).add();
+        new ServiceConfig(this, serviceType).add();
       }
       return this;
     }

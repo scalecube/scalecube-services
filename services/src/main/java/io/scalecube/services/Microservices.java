@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Cluster;
@@ -20,7 +21,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import static com.google.common.base.Preconditions.checkNotNull;
+
+
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -32,14 +34,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  *
- * <p>
- * ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
+ * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
  * build the service component itself. the Service component is simply java class that implements the service Interface
  * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
  * streaming patters but does not force application developers to it.
  *
- * <p>
- * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -208,22 +208,6 @@ public class Microservices {
       return this;
     }
 
-    /**
-     * Services list to be registered.
-     *
-     * @param services list of instances decorated with @Service
-     * @return builder.
-     */
-    public Builder services(Object... services) {
-      checkNotNull(services);
-
-      this.servicesConfig = ServicesConfig.builder(this)
-          .services(services)
-          .create();
-
-      return this;
-    }
-
     public Builder injector(ServiceInjector injector) {
       this.injector = injector;
       return this;
@@ -241,6 +225,22 @@ public class Microservices {
       return this;
     }
 
+    /**
+     * Services list to be registered.
+     *
+     * @param services list of instances decorated with @Service
+     * @return builder.
+     */
+    public Builder services(Object... services) {
+      checkNotNull(services);
+
+      this.servicesConfig = ServicesConfig.builder(this)
+          .services(services)
+          .create();
+
+      return this;
+    }
+    
     public ServicesConfig.Builder services() {
       return ServicesConfig.builder(this);
     }

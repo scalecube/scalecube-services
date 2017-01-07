@@ -1,5 +1,8 @@
 package io.scalecube.examples.services;
 
+import io.scalecube.examples.services.TicketServiceImpl.TickerServiceConfig;
+import io.scalecube.examples.services.UserServiceImpl.UserServiceConfig;
+
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInjector;
 import io.scalecube.transport.Address;

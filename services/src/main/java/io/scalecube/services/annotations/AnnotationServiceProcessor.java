@@ -16,17 +16,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import static com.google.common.base.Preconditions.checkArgument;
+
 import java.lang.reflect.Field;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
   @Override
+  public Collection<Class<?>> extractServiceInterfaces(Object service) {
+    return extractServiceInterfaces(service.getClass());
+  }
+
+  @Override
   public Collection<Class<?>> extractServiceInterfaces(Class<?> serviceInterface) {
     Class<?>[] interfaces = serviceInterface.getInterfaces();
     return Arrays.stream(interfaces)
-            .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
-            .collect(Collectors.toList());
+        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
+        .collect(Collectors.toList());
   }
 
   @Override
@@ -38,11 +43,11 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
     // Method name
     Map<String, Method> methods = Arrays.stream(serviceInterface.getMethods())
-            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-            .collect(Collectors.toMap(method -> {
-              ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
-              return resolveMethodName(method, methodAnnotation);
-            }, Function.identity()));
+        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+        .collect(Collectors.toMap(method -> {
+          ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+          return resolveMethodName(method, methodAnnotation);
+        }, Function.identity()));
 
     return new ServiceDefinition(serviceInterface, serviceName, Collections.unmodifiableMap(methods));
   }
@@ -58,29 +63,29 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   @Override
   public Set<ServiceDefinition> serviceDefinitions(Class<?> serviceInterface) {
     return this.extractServiceInterfaces(serviceInterface).stream()
-            .map(foreach -> introspectServiceInterface(foreach))
-            .collect(Collectors.toSet());
+        .map(foreach -> introspectServiceInterface(foreach))
+        .collect(Collectors.toSet());
   }
 
   @Override
   public Collection<Class<?>> extractConstructorInjectables(Class<?> serviceImpl) {
     Constructor<?> constructor = serviceImpl.getDeclaredConstructors()[0];
     return Arrays.asList(constructor).stream()
-            .filter(construct -> construct.isAnnotationPresent(Inject.class))
-            .map(construct -> construct.getParameterTypes())
-            .flatMap(Arrays::stream).collect(Collectors.toList());
+        .filter(construct -> construct.isAnnotationPresent(Inject.class))
+        .map(construct -> construct.getParameterTypes())
+        .flatMap(Arrays::stream).collect(Collectors.toList());
   }
 
   @Override
   public Collection<Field> extractMemberInjectables(Class<?> serviceImpl) {
-      Field[] fields = serviceImpl.getDeclaredFields();
-      return Arrays.asList(fields).stream().filter(field->field.isAnnotationPresent(Inject.class))
-          .collect(Collectors.toList());
+    Field[] fields = serviceImpl.getDeclaredFields();
+    return Arrays.asList(fields).stream().filter(field -> field.isAnnotationPresent(Inject.class))
+        .collect(Collectors.toList());
   }
 
   @Override
   public boolean isServiceInterface(Class<?> clsType) {
-      return clsType.isAnnotationPresent(Service.class);
+    return clsType.isAnnotationPresent(Service.class);
   }
 
 }

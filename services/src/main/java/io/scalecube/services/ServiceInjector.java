@@ -1,18 +1,16 @@
 package io.scalecube.services;
 
+import io.scalecube.services.annotations.AnnotationServiceProcessor;
+import io.scalecube.services.annotations.ServiceProcessor;
+
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Field;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.scalecube.services.annotations.AnnotationServiceProcessor;
-import io.scalecube.services.annotations.ServiceProcessor;
-import java.lang.reflect.Field;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import org.slf4j.LoggerFactory;
 
 public class ServiceInjector {
 
@@ -29,6 +27,13 @@ public class ServiceInjector {
     return ServiceInjector.builder().build();
   }
 
+  /**
+   * get service instance created by injector with all dependencies populated.
+   * @param <T> service type
+   * @param services service instance
+   * @param cls service class
+   * @return service instance
+   */
   public <T> T getInstance(Microservices services, Class<T> cls) {
     Collection<Class<?>> injectables = serviceProcessor.extractConstructorInjectables(cls);
     injectables.stream().filter(srv -> serviceProcessor.isServiceInterface(srv))
@@ -39,7 +44,7 @@ public class ServiceInjector {
         .map(paramType -> instances.get(paramType))
         .toArray(size -> new Object[size]);
     try {
-      T instance =  cls.getConstructor(types).newInstance(args);
+      T instance = cls.getConstructor(types).newInstance(args);
       injectMembers(instance);
       return instance;
     } catch (NoSuchMethodException | SecurityException | InstantiationException 
@@ -49,14 +54,12 @@ public class ServiceInjector {
     }
   }
 
-  private <T> void injectMembers(T instance)
-  {
+  private <T> void injectMembers(T instance) {
     Collection<Field> injectables = serviceProcessor.extractMemberInjectables(instance.getClass());
-    injectables.stream().forEach(field->injectMember(field,instance));
+    injectables.stream().forEach(field -> injectMember(field, instance));
   }
-  
-  private <T> void injectMember(Field field,T instance) 
-  {
+
+  private <T> void injectMember(Field field, T instance) {
     field.setAccessible(true);
     try {
       field.set(instance, instances.get(field.getType()));
@@ -65,7 +68,7 @@ public class ServiceInjector {
       throw new RuntimeException(ex);
     }
   }
-  
+
   private void resolveProxy(Microservices services, Class<?> serviceInterface) {
     instances.computeIfAbsent(serviceInterface, (srv) -> services.proxy().api(srv).create());
   }
