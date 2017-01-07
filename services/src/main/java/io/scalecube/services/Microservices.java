@@ -22,8 +22,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-
-
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
  * provides Reactive application development platform for building distributed applications Using microservices and fast
@@ -193,6 +191,34 @@ public class Microservices {
       return clusterConfig.build();
     }
 
+    /**
+     * Services list to be registered.
+     *
+     * @param services list of instances decorated with @Service
+     * @return builder.
+     */
+    public Builder services(Object... services) {
+      checkNotNull(services);
+
+      this.servicesConfig = ServicesConfig.builder(this)
+          .services(services)
+          .create();
+
+      return this;
+    }
+    
+    /**
+     * Services list to be registered.
+     *
+     * @param servicesConfig list of instances decorated with.
+     * @return builder.
+     */
+    public Builder services(ServicesConfig servicesConfig) {
+      checkNotNull(servicesConfig);
+      this.servicesConfig = servicesConfig;
+      return this;
+    }
+    
     public Builder port(int port) {
       this.clusterConfig.port(port);
       return this;
@@ -210,34 +236,6 @@ public class Microservices {
 
     public Builder injector(ServiceInjector injector) {
       this.injector = injector;
-      return this;
-    }
-
-    /**
-     * Services list to be registered.
-     *
-     * @param servicesConfig list of instances decorated with.
-     * @return builder.
-     */
-    public Builder services(ServicesConfig servicesConfig) {
-      checkNotNull(servicesConfig);
-      this.servicesConfig = servicesConfig;
-      return this;
-    }
-
-    /**
-     * Services list to be registered.
-     *
-     * @param services list of instances decorated with @Service
-     * @return builder.
-     */
-    public Builder services(Object... services) {
-      checkNotNull(services);
-
-      this.servicesConfig = ServicesConfig.builder(this)
-          .services(services)
-          .create();
-
       return this;
     }
     
