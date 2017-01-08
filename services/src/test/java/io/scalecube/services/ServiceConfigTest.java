@@ -13,17 +13,19 @@ public class ServiceConfigTest {
   @Test
   public void test_services_config_port_increment_false() {
 
-    Microservices node = Microservices.builder().clusterConfig(
-        ClusterConfig.builder()
-
-            .transportConfig(TransportConfig.builder()
-                .port(3000)
-                .portAutoIncrement(false)
-                .build())) // cluster config
-
+    Microservices node = Microservices.builder()
+        .serviceTransport(TransportConfig.builder()
+            .port(3000)
+            .portAutoIncrement(false)
+            .build())
+        .clusterConfig(ClusterConfig.builder()
+            .port(4000)
+            .portAutoIncrement(false)) // cluster config
         .build(); // node
 
-    assertEquals(node.cluster().address().port() , 3000);
+
+    assertEquals(node.sender().address().port(), 3000);
+    assertEquals(node.cluster().address().port(), 4000);
 
     node.cluster().shutdown();
 
@@ -37,6 +39,7 @@ public class ServiceConfigTest {
         ServicesConfig.builder(builder).service(new GreetingServiceImpl()).tag("a", "b").add().create();
     builder.build();
 
+    assertTrue(!config.services().isEmpty());
     assertTrue(!config.getServiceConfigs().isEmpty());
     assertTrue(!config.getServiceConfigs().get(0).getDefinitions().isEmpty());
   }

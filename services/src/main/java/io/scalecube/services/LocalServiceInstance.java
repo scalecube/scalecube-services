@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import java.lang.reflect.Method;
@@ -21,6 +22,7 @@ public class LocalServiceInstance implements ServiceInstance {
   private final String serviceName;
   private final String memberId;
   private final Map<String, String> tags;
+  private final Address address;
 
   /**
    * LocalServiceInstance instance constructor.
@@ -30,23 +32,27 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param serviceName the qualifier name of the service.
    * @param methods the java methods of the service.
    */
-  public LocalServiceInstance(ServiceConfig serviceConfig, String memberId, String serviceName,
+  public LocalServiceInstance(ServiceConfig serviceConfig, Address address, String memberId, String serviceName,
       Map<String, Method> methods) {
-    checkArgument(serviceConfig.getService() != null);
-    checkArgument(memberId != null);
-    checkArgument(serviceName != null);
-    checkArgument(methods != null);
+    checkArgument(serviceConfig != null, "serviceConfig can't be null");
+    checkArgument(serviceConfig.getService() != null, "serviceConfig.service can't be null");
+    checkArgument(address != null, "address can't be null");
+    checkArgument(memberId != null, "memberId can't be null");
+    checkArgument(serviceName != null, "serviceName can't be null");
+    checkArgument(methods != null, "methods can't be null");
+
     this.serviceObject = serviceConfig.getService();
     this.serviceName = serviceName;
     this.methods = methods;
     this.memberId = memberId;
     this.tags = serviceConfig.getTags();
+    this.address = address;
   }
 
 
   @Override
   public Object invoke(Message message) throws Exception {
-    checkArgument(message != null);
+    checkArgument(message != null, "message can't be null");
 
     try {
       Method method = this.methods.get(message.header(ServiceHeaders.METHOD));
@@ -88,5 +94,11 @@ public class LocalServiceInstance implements ServiceInstance {
   @Override
   public Map<String, String> tags() {
     return Collections.unmodifiableMap(tags);
+  }
+
+
+  @Override
+  public Address address() {
+    return this.address;
   }
 }

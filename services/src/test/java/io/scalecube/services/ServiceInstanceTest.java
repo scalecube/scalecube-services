@@ -18,8 +18,9 @@ public class ServiceInstanceTest {
   @Test
   public void test_localService_instance() {
 
+    Address address = Address.create("localhost", 4000);
     ServiceConfig conf = new ServiceConfig(new GreetingServiceImpl());
-    LocalServiceInstance instance = new LocalServiceInstance(conf,
+    LocalServiceInstance instance = new LocalServiceInstance(conf, address,
         "a", "b", new HashMap<>());
     assertEquals(instance.toString(), "LocalServiceInstance [serviceObject=GreetingServiceImpl [], memberId=a]");
     assertTrue(instance.tags().isEmpty());
@@ -27,28 +28,40 @@ public class ServiceInstanceTest {
     assertEquals(instance.serviceName(), "b");
 
     try {
-      new LocalServiceInstance(conf, null, "b", new HashMap<>());
+      new LocalServiceInstance(null, address, "a", "b", new HashMap<>());
     } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: serviceConfig can't be null");
     }
 
     try {
-      new LocalServiceInstance(conf, "a", null, new HashMap<>());
+      new LocalServiceInstance(conf, null, "a", "b", new HashMap<>());
     } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: address can't be null");
     }
 
     try {
-      new LocalServiceInstance(conf, "a", "b", null);
+      new LocalServiceInstance(conf, address, null, "b", new HashMap<>());
     } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: memberId can't be null");
     }
 
     try {
-      new LocalServiceInstance(conf,
+      new LocalServiceInstance(conf, address, "a", null, new HashMap<>());
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: serviceName can't be null");
+    }
+
+    try {
+      new LocalServiceInstance(conf, address, "a", "b", null);
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: methods can't be null");
+    }
+
+    try {
+      new LocalServiceInstance(conf, address,
           "a", "b", new HashMap<>()).invoke(null);
     } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException");
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: message can't be null");
     }
   }
 
@@ -60,14 +73,16 @@ public class ServiceInstanceTest {
     ServicesConfig config = ServicesConfig.empty();
 
     ServiceProcessor processor = new AnnotationServiceProcessor();
-    ServiceRegistry registry = new ServiceRegistryImpl(member.cluster(), config, processor);
-    RemoteServiceInstance instance = new RemoteServiceInstance(registry, reference, new HashMap<>());
+    ServiceCommunicator sender = new ClusterServiceCommunicator(member.cluster());
+    ServiceRegistry registry = new ServiceRegistryImpl(member.cluster(), sender, config, processor);
+
+    RemoteServiceInstance instance =
+        new RemoteServiceInstance(registry, sender, reference, new HashMap<>());
 
     assertEquals(instance.toString(), "RemoteServiceInstance [address=localhost:4000, memberId=a]");
     assertTrue(instance.tags().isEmpty());
     assertEquals(instance.memberId(), "a");
     assertEquals(instance.address(), Address.create("localhost", 4000));
-    assertTrue(!instance.isReachable());
     assertTrue(!instance.isLocal());
     assertEquals(instance.serviceName(), "b");
 
@@ -97,7 +112,7 @@ public class ServiceInstanceTest {
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
-     
+
     try {
       instance.invoke(null);
     } catch (Exception ex) {
