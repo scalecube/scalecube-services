@@ -6,7 +6,9 @@ import io.scalecube.services.ServiceDefinition;
 
 import com.google.common.base.Strings;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -15,11 +17,18 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import java.lang.reflect.Field;
+
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
   @Override
-  public Collection<Class<?>> extractServiceInterfaces(Object serviceObject) {
-    Class<?>[] interfaces = serviceObject.getClass().getInterfaces();
+  public Collection<Class<?>> extractServiceInterfaces(Object service) {
+    return extractServiceInterfaces(service.getClass());
+  }
+
+  @Override
+  public Collection<Class<?>> extractServiceInterfaces(Class<?> serviceInterface) {
+    Class<?>[] interfaces = serviceInterface.getInterfaces();
     return Arrays.stream(interfaces)
         .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
         .collect(Collectors.toList());
@@ -52,9 +61,32 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   }
 
   @Override
-  public Set<ServiceDefinition> serviceDefinitions(Object service) {
-    return this.extractServiceInterfaces(service).stream()
+  public Set<ServiceDefinition> serviceDefinitions(Class<?> serviceInterface) {
+    return this.extractServiceInterfaces(serviceInterface).stream()
         .map(foreach -> introspectServiceInterface(foreach))
         .collect(Collectors.toSet());
   }
+
+  @Override
+  public Collection<Class<?>> extractConstructorInjectables(Class<?> serviceImpl) {
+    Constructor<?>[] constructors = serviceImpl.getDeclaredConstructors();
+    Constructor<?> constructor = Arrays.asList(constructors).stream()
+        .filter(construct -> construct.isAnnotationPresent(Inject.class)).findFirst().orElse(constructors[0]);
+    return Arrays.asList(constructor).stream()
+        .map(construct -> construct.getParameterTypes())
+        .flatMap(Arrays::stream).collect(Collectors.toList());
+  }
+
+  @Override
+  public Collection<Field> extractMemberInjectables(Class<?> serviceImpl) {
+    Field[] fields = serviceImpl.getDeclaredFields();
+    return Arrays.asList(fields).stream().filter(field -> field.isAnnotationPresent(Inject.class))
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public boolean isServiceInterface(Class<?> clsType) {
+    return clsType.isAnnotationPresent(Service.class);
+  }
+
 }

@@ -16,17 +16,20 @@ import io.scalecube.services.annotations.Inject;
 
 import java.util.concurrent.CompletableFuture;
 
-public class CoarseGrainedServiceImpl implements CoarseGrainedService {
+public class CoarseGrainedConfigurableServiceImpl implements CoarseGrainedService {
 
   private GreetingService greetingService;
-
-  public CoarseGrainedServiceImpl() {
+  @Inject
+  private Configuration configuration;
+  
+  public CoarseGrainedConfigurableServiceImpl() {
     // default;
   };
 
   @Inject
-  public CoarseGrainedServiceImpl(GreetingService greetingService) {
+  public CoarseGrainedConfigurableServiceImpl(GreetingService greetingService,Configuration configuration) {
     this.greetingService = greetingService;
+    this.configuration = configuration;
   }
 
   public void setGreetingServiceProxy(GreetingService subService) {
@@ -36,5 +39,20 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   @Override
   public CompletableFuture<String> callGreeting(String name) {
     return this.greetingService.greeting(name);
+  }
+  
+  
+  public static final class Configuration
+  {
+    String language;
+
+    public Configuration(String language) {
+      this.language = language;
+    }
+
+    public String getLanguage() {
+      return language;
+    }
+    
   }
 }
