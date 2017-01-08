@@ -3,6 +3,7 @@ package io.scalecube.transport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -50,6 +51,26 @@ public final class NetworkEmulator {
    */
   public NetworkLinkSettings getLinkSettings(Address destination) {
     return customLinkSettings.containsKey(destination) ? customLinkSettings.get(destination) : defaultLinkSettings;
+  }
+
+  /**
+   * Returns link settings applied to the given destination.
+   */
+  public NetworkLinkSettings getLinkSettings(InetSocketAddress address) {
+    // Check hostname:port
+    Address address1 = Address.create(address.getHostName(), address.getPort());
+    if (customLinkSettings.containsKey(address1)) {
+      return customLinkSettings.get(address1);
+    }
+
+    // Check ip:port
+    Address address2 = Address.create(address.getAddress().getHostAddress(), address.getPort());
+    if (customLinkSettings.containsKey(address2)) {
+      return customLinkSettings.get(address2);
+    }
+
+    // Use default
+    return defaultLinkSettings;
   }
 
   /**
