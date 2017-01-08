@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotEquals;
 
+import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
 import org.junit.Test;
@@ -27,6 +28,7 @@ public class TransportSenderTest {
     });
 
     latch.await(1, TimeUnit.SECONDS);
+    sender.send(transport.address(), Message.builder().data("ping").build());
   }
 
   @Test
