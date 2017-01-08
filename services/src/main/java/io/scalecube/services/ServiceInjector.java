@@ -43,8 +43,14 @@ public class ServiceInjector {
         .filter(paramType -> instances.containsKey(paramType))
         .map(paramType -> instances.get(paramType))
         .toArray(size -> new Object[size]);
+      
     try {
-      T instance = cls.getConstructor(types).newInstance(args);
+      T instance;
+      if(types.length != 0)
+        instance = cls.getConstructor(types).newInstance(args);
+      else
+        instance = cls.newInstance();
+      
       injectMembers(instance);
       return instance;
     } catch (NoSuchMethodException | SecurityException | InstantiationException 

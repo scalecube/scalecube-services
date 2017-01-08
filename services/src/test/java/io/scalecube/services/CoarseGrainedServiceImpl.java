@@ -12,6 +12,8 @@
  */
 package io.scalecube.services;
 
+import io.scalecube.services.annotations.Inject;
+
 import java.util.concurrent.CompletableFuture;
 
 public class CoarseGrainedServiceImpl implements CoarseGrainedService {
@@ -22,6 +24,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
     // default;
   };
 
+  @Inject
   public CoarseGrainedServiceImpl(GreetingService greetingService) {
     this.greetingService = greetingService;
   }

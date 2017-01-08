@@ -693,6 +693,36 @@ public class ServiceTest extends BaseTest {
 
   }
 
+  @Test
+  public void test_serviceA_calls_serviceB_using_injector() throws InterruptedException {
+
+    Microservices gateway = createSeed();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services().from(CoarseGrainedServiceImpl.class,GreetingServiceImpl.class).build() // add service a and b classes
+        .build();
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CountDownLatch countLatch = new CountDownLatch(1);
+    CompletableFuture<String> future = service.callGreeting("joe");
+    future.whenComplete((success, error) -> {
+      if (error == null) {
+        assertTrue(success.equals(" hello to: joe"));
+        countLatch.countDown();
+      }
+    });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+  
   @Ignore
   @Test
   public void test_service_tags() {
