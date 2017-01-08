@@ -10,11 +10,11 @@ import rx.Observable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class ClusterSender implements ServiceCommunicator {
+public class ClusterServiceCommunicator implements ServiceCommunicator {
 
   private Cluster cluster;
 
-  public ClusterSender(Cluster cluster) {
+  public ClusterServiceCommunicator(Cluster cluster) {
     checkArgument(cluster != null, "cluster can't be null");
     this.cluster = cluster;
   }

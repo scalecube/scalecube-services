@@ -182,11 +182,11 @@ public class Microservices {
       }
 
       Cluster cluster = Cluster.joinAwait(cfg);
-      ServiceCommunicator sender = new ClusterSender(cluster);
+      ServiceCommunicator sender = new ClusterServiceCommunicator(cluster);
 
       if (!this.reuseClusterTransport) {
         // create cluster and transport with given config.
-        sender = new TransportSender(Transport.bindAwait(transportConfig));
+        sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
       }
 
       return new Microservices(cluster, sender, servicesConfig);

@@ -10,11 +10,11 @@ import rx.Observable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class TransportSender implements ServiceCommunicator {
+public class TransportServiceCommunicator implements ServiceCommunicator {
 
   private Transport transport;
 
-  public TransportSender(Transport transport) {
+  public TransportServiceCommunicator(Transport transport) {
     checkArgument(transport != null, "transport can't be null");
     this.transport = transport;
   }
@@ -35,5 +35,4 @@ public class TransportSender implements ServiceCommunicator {
   public Observable<Message> listen() {
     return this.transport.listen();
   }
-
 }
