@@ -52,11 +52,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     this.cluster = cluster;
     listenCluster();
 
-    if (!services.services().isEmpty()) {
-      for (ServiceConfig service : services.services()) {
-        registerService(service);
-      }
-    }
+    services.services().stream()
+            .filter(service->service.getService() != null)
+            .forEach(service->registerService(service));
     loadClusterServices();
   }
 
@@ -99,6 +97,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   /**
    * register a service instance at the cluster.
    */
+  @Override
   public void registerService(ServiceConfig serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject.getService());

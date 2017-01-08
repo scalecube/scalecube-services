@@ -42,6 +42,7 @@ public class ServiceProxyFactory {
    * 
    * @param serviceInterface the service interface, api, of the service.
    * @param routerType the type of routing method class to be used.
+   * @param timeout request timeout
    * @return newly created service proxy object.
    */
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
