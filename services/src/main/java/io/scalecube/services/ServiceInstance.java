@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import java.util.Map;
@@ -15,4 +16,6 @@ public interface ServiceInstance {
   Boolean isLocal();
 
   Map<String, String> tags();
+
+  Address address();
 }

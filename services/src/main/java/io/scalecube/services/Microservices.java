@@ -2,14 +2,16 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Cluster;
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
+import io.scalecube.transport.TransportConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -109,15 +112,17 @@ public class Microservices {
   private final ServiceDispatcherFactory dispatcherFactory;
 
   private final ServiceInjector injector;
-
-  private Microservices(Cluster cluster, ServicesConfig services, ServiceInjector injector) {
+  private final ServiceCommunicator sender;
+ 
+  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services,ServiceInjector injector) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor);
+    this.sender = sender;
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
     this.injector = injector;
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
     new ServiceDispatcher(cluster, serviceRegistry);
-    this.cluster.listen().subscribe(message -> handleReply(message));
+    this.sender.listen().subscribe(message -> handleReply(message));
     resolveInjectableServices(services);
   }
 
@@ -168,6 +173,11 @@ public class Microservices {
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
     private ServiceInjector injector = ServiceInjector.defaultInstance();
+    
+    private TransportConfig transportConfig;
+
+    private boolean reuseClusterTransport;
+
 
     /**
      * microsrrvices instance builder.
@@ -175,9 +185,25 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
+
       ClusterConfig cfg = getClusterConfig(servicesConfig);
-      return new Microservices(Cluster.joinAwait(cfg), servicesConfig, injector);
+
+      // if transport config is not specifically set use same config as cluster.
+      if (transportConfig == null) {
+        transportConfig = cfg.getTransportConfig();
+      }
+
+      Cluster cluster = Cluster.joinAwait(cfg);
+      ServiceCommunicator sender = new ClusterServiceCommunicator(cluster);
+
+      if (!this.reuseClusterTransport) {
+        // create cluster and transport with given config.
+        sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
+      }
+
+      return new Microservices(cluster, sender, servicesConfig,injector);
     }
+
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
       Map<String, String> metadata = new HashMap<>();
@@ -189,6 +215,11 @@ public class Microservices {
       clusterConfig.metadata(metadata);
 
       return clusterConfig.build();
+    }
+
+    public Builder reuseClusterTransport(boolean reuse) {
+      this.reuseClusterTransport = reuse;
+      return this;
     }
 
     public Builder port(int port) {
@@ -221,7 +252,11 @@ public class Microservices {
 
       return this;
     }
-
+    
+    public ServicesConfig.Builder services() {
+      return ServicesConfig.builder(this);
+    }
+    
     /**
      * Services list to be registered.
      *
@@ -234,8 +269,9 @@ public class Microservices {
       return this;
     }
 
-    public ServicesConfig.Builder services() {
-      return ServicesConfig.builder(this);
+    public Builder serviceTransport(TransportConfig transportConfig) {
+      this.transportConfig = transportConfig;
+      return this;
     }
 
     public Builder injector(ServiceInjector injector) {
@@ -298,10 +334,6 @@ public class Microservices {
       return this;
     }
 
-    public Class<?> api() {
-      return api;
-    }
-
     public <T> ProxyContext api(Class<T> api) {
       this.api = api;
       return this;
@@ -329,4 +361,11 @@ public class Microservices {
     return servicesTags;
   }
 
+  public ServiceCommunicator sender() {
+    return sender;
+  }
+
+  public CompletableFuture<Void> shutdown() {
+    return this.cluster.shutdown();
+  }
 }

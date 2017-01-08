@@ -63,7 +63,6 @@ final class NetworkEmulatorHandler extends ChannelOutboundHandlerAdapter {
 
   private NetworkLinkSettings resolveNetworkSettings(Channel channel) {
     InetSocketAddress remoteSocketAddress = (InetSocketAddress) channel.remoteAddress();
-    Address remoteAddress = Address.create(remoteSocketAddress.getHostName(), remoteSocketAddress.getPort());
-    return networkEmulator.getLinkSettings(remoteAddress);
+    return networkEmulator.getLinkSettings(remoteSocketAddress);
   }
 }
