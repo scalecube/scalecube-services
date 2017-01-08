@@ -29,6 +29,7 @@ public class ServiceInjector {
 
   /**
    * get service instance created by injector with all dependencies populated.
+   *
    * @param <T> service type
    * @param services service instance
    * @param cls service class
@@ -43,17 +44,18 @@ public class ServiceInjector {
         .filter(paramType -> instances.containsKey(paramType))
         .map(paramType -> instances.get(paramType))
         .toArray(size -> new Object[size]);
-      
+
     try {
       T instance;
-      if(types.length != 0)
+      if (types.length != 0) {
         instance = cls.getConstructor(types).newInstance(args);
-      else
+      } else {
         instance = cls.newInstance();
-      
+      }
+
       injectMembers(instance);
       return instance;
-    } catch (NoSuchMethodException | SecurityException | InstantiationException 
+    } catch (NoSuchMethodException | SecurityException | InstantiationException
         | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
       LOGGER.error("service instance [{}] initialization failed with exception [{}]", cls.getName(), ex);
       throw new RuntimeException(ex);

@@ -69,7 +69,7 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
   @Override
   public Collection<Class<?>> extractConstructorInjectables(Class<?> serviceImpl) {
-    Constructor<?> constructors[] = serviceImpl.getDeclaredConstructors();
+    Constructor<?>[] constructors = serviceImpl.getDeclaredConstructors();
     Constructor<?> constructor = Arrays.asList(constructors).stream()
         .filter(construct -> construct.isAnnotationPresent(Inject.class)).findFirst().orElse(constructors[0]);
     return Arrays.asList(constructor).stream()
