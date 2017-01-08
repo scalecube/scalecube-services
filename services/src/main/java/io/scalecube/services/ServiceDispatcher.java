@@ -1,7 +1,7 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.ServiceHeaders.service_method_of;
-import static io.scalecube.services.ServiceHeaders.service_request_of;
+import static io.scalecube.services.ServiceHeaders.serviceMethod;
+import static io.scalecube.services.ServiceHeaders.serviceRequest;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Message;
@@ -26,13 +26,13 @@ public class ServiceDispatcher {
 
     // Start listen messages
     cluster.listen()
-        .filter(message -> service_request_of(message) != null)
+        .filter(message -> serviceRequest(message) != null)
         .subscribe(this::onServiceRequest);
   }
 
   private void onServiceRequest(final Message request) {
     Optional<ServiceInstance> serviceInstance =
-        registry.getLocalInstance(service_request_of(request), service_method_of(request));
+        registry.getLocalInstance(serviceRequest(request), serviceMethod(request));
 
     DispatchingFuture result = DispatchingFuture.from(cluster, request);
     try {

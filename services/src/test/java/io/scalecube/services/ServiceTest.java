@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
@@ -32,7 +33,7 @@ public class ServiceTest extends BaseTest {
         .port(port.incrementAndGet())
         .build();
 
-    Microservices.builder()
+    Microservices node2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -58,7 +59,12 @@ public class ServiceTest extends BaseTest {
         timeLatch.countDown();
       }
     });
+
     await(timeLatch, 10, TimeUnit.SECONDS);
+
+    node2.cluster().shutdown();
+    gateway.cluster().shutdown();
+
   }
 
   @Test
@@ -66,11 +72,12 @@ public class ServiceTest extends BaseTest {
     Duration duration = Duration.ofSeconds(1);
 
     // Create microservices instance.
-    GreetingService service = Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
-        .proxy().api(GreetingService.class)
+        .build();
+
+    GreetingService service = node1.proxy().api(GreetingService.class)
         .create();
 
     // call the service.
@@ -87,6 +94,8 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 60, TimeUnit.SECONDS);
+    node1.cluster().shutdown();
+
   }
 
   @Test
@@ -158,7 +167,7 @@ public class ServiceTest extends BaseTest {
         .port(port.incrementAndGet())
         .build();
 
-    Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -175,18 +184,22 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_remote_void_greeting done.");
-    
 
     Thread.sleep(1000);
+
+    gateway.cluster().shutdown();
+    node1.cluster().shutdown();
   }
 
   @Test
   public void test_local_void_greeting() {
     // Create microservices instance.
-    GreetingService service = Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build().proxy()
+        .build();
+
+    GreetingService service = node1.proxy()
         .api(GreetingService.class)
         .create();
 
@@ -197,6 +210,7 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_local_void_greeting done.");
+    node1.cluster().shutdown();
   }
 
   @Test
@@ -345,11 +359,12 @@ public class ServiceTest extends BaseTest {
   @Test
   public void test_local_greeting_request_timeout_expires() {
     // Create microservices instance.
-    GreetingService service = Microservices.builder()
+    Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
-        .proxy().api(GreetingService.class)
+        .build();
+
+    GreetingService service = node1.proxy().api(GreetingService.class)
         .timeout(Duration.ofSeconds(1))
         .create();
 
@@ -370,6 +385,7 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 5, TimeUnit.SECONDS);
+    node1.cluster().shutdown();
   }
 
   @Test
@@ -388,7 +404,6 @@ public class ServiceTest extends BaseTest {
 
     // get a proxy to the service api.
     GreetingService service = createProxy(consumer, Duration.ofSeconds(1));
-
 
     // call the service.
     CompletableFuture<GreetingResponse> result =
@@ -410,6 +425,8 @@ public class ServiceTest extends BaseTest {
     } catch (Exception ex) {
       fail();
     }
+    provider.cluster().shutdown();
+    consumer.cluster().shutdown();
   }
 
   @Test
@@ -504,7 +521,6 @@ public class ServiceTest extends BaseTest {
     CompletableFuture<Message> result1 = service.greetingMessage(Message.builder().data("joe").build());
     CompletableFuture<Message> result2 = service.greetingMessage(Message.builder().data("joe").build());
 
-
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
     combined.whenComplete((v, x) -> {
@@ -583,7 +599,6 @@ public class ServiceTest extends BaseTest {
     warmUpLatch.await(30, TimeUnit.SECONDS);
     assertTrue(warmUpLatch.getCount() == 0);
 
-
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
@@ -599,13 +614,85 @@ public class ServiceTest extends BaseTest {
     countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
+    provider.cluster().shutdown();
+    consumer.cluster().shutdown();
   }
 
-  /*
-   * TODO [AK]: This test is unstable and need to be fixed and un-ignored, see builds:
-   * https://travis-ci.org/scalecube/scalecube/builds/185625139
-   * https://travis-ci.org/scalecube/scalecube/builds/185623016
-   */
+  @Test
+  public void test_serviceA_calls_serviceB_using_setter() throws InterruptedException {
+
+    Microservices gateway = createSeed();
+
+    CoarseGrainedServiceImpl coarseGrained = new CoarseGrainedServiceImpl();
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(greeting, coarseGrained) // add service a and b
+        .build();
+
+    // Get Proxy to greeting service.
+    GreetingService proxy = gateway.proxy().api(GreetingService.class).create();
+
+    // provide the proxy of service B
+    coarseGrained.setGreetingServiceProxy(proxy);;
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CountDownLatch countLatch = new CountDownLatch(1);
+    CompletableFuture<String> future = service.callGreeting("joe");
+    future.whenComplete((success, error) -> {
+      if (error == null) {
+        assertTrue(success.equals(" hello to: joe"));
+        countLatch.countDown();
+      }
+    });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+
+  @Test
+  public void test_serviceA_calls_serviceB_using_constractor() throws InterruptedException {
+
+    Microservices gateway = createSeed();
+
+    // getting proxy from any node at any given time.
+    CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl(gateway.proxy().api(GreetingService.class).create());
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(greeting, another) // add service a and b
+        .build();
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CountDownLatch countLatch = new CountDownLatch(1);
+    CompletableFuture<String> future = service.callGreeting("joe");
+    future.whenComplete((success, error) -> {
+      if (error == null) {
+        assertTrue(success.equals(" hello to: joe"));
+        countLatch.countDown();
+      }
+    });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+
   @Ignore
   @Test
   public void test_service_tags() {
@@ -648,6 +735,10 @@ public class ServiceTest extends BaseTest {
 
     await(timeLatch, 1, TimeUnit.SECONDS);
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
+    
+    gateway.cluster().shutdown();
+    services1.cluster().shutdown();
+    services2.cluster().shutdown();
   }
 
   private GreetingService createProxy(Microservices gateway) {

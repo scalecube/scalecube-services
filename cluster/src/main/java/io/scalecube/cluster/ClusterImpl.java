@@ -56,7 +56,6 @@ final class ClusterImpl implements Cluster {
   private final ConcurrentMap<String, Member> members = new ConcurrentHashMap<>();
   private final ConcurrentMap<Address, String> memberAddressIndex = new ConcurrentHashMap<>();
 
-
   // Cluster components
   private Transport transport;
   private FailureDetector failureDetector;

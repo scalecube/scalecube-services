@@ -281,6 +281,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(
             message -> {
+              SyncData syncData = message.data();
+              LOGGER.info("Joined cluster '{}': {}", syncData.getSyncGroup(), syncData.getMembership());
               onSyncAck(message, true);
               schedulePeriodicSync();
               syncResponseFuture.complete(null);

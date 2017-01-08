@@ -9,6 +9,11 @@ import java.util.concurrent.TimeUnit;
 final class GreetingServiceImpl implements GreetingService {
 
   @Override
+  public String toString() {
+    return "GreetingServiceImpl []";
+  }
+
+  @Override
   public CompletableFuture<String> greeting(String name) {
     return CompletableFuture.completedFuture(" hello to: " + name);
   }
@@ -31,7 +36,7 @@ final class GreetingServiceImpl implements GreetingService {
   public CompletableFuture<String> greetingNoParams() {
     return CompletableFuture.completedFuture("hello unknown");
   }
-  
+
   @Override
   public CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request) {
     return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName()));
@@ -46,4 +51,5 @@ final class GreetingServiceImpl implements GreetingService {
   public void greetingVoid(GreetingRequest request) {
     System.out.println(" hello to: " + request.getName());
   }
+
 }

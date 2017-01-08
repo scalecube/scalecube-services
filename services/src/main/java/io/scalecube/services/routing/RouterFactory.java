@@ -24,12 +24,7 @@ public class RouterFactory {
    * @return instance of the Router.
    */
   public Router getRouter(Class<? extends Router> routing) {
-    try {
-      return routers.computeIfAbsent(routing, this::create);
-    } catch (Exception ex) {
-      LOGGER.error("get router type: {} failed: {}", routing, ex);
-    }
-    return null;
+    return routers.computeIfAbsent(routing, this::create);
   }
 
   private Router create(Class<? extends Router> routing) {
