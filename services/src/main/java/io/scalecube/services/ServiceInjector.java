@@ -58,7 +58,7 @@ public class ServiceInjector {
     } catch (NoSuchMethodException | SecurityException | InstantiationException
         | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
       LOGGER.error("service instance [{}] initialization failed with exception [{}]", cls.getName(), ex);
-      throw new RuntimeException(ex);
+      throw new ServiceInjectorException(ex);
     }
   }
 
