@@ -64,7 +64,7 @@ public class TransportServiceCommunicatorTest {
     assertNotEquals(instance.address(), micro.cluster().address());
     assertEquals(instance.serviceName(), "io.scalecube.services.GreetingService");
     latch.await(1, TimeUnit.SECONDS);
-
+    assertTrue(latch.getCount() == 0);
     micro.shutdown();
   }
 }
