@@ -37,7 +37,7 @@ public class MicroservicesInjectableExample {
      //create the injector
     ServiceInjector injector = ServiceInjector.builder()
         .bind(UserServiceConfig.class)
-        .to(new UserServiceConfig("TestVenue")).build();
+        .to(new UserServiceConfig(1)).build();
     // Create microservice consumer
     Microservices consumer = Microservices.builder().services().from(UserServiceImpl.class).build().injector(injector)
         .seeds(providerAddress).build();

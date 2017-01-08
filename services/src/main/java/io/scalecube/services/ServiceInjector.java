@@ -73,7 +73,7 @@ public class ServiceInjector {
       field.set(instance, instances.get(field.getType()));
     } catch (IllegalArgumentException | IllegalAccessException ex) {
       LOGGER.error("service instance member [{}] inject failed with exception [{}]", field.getName(), ex);
-      throw new RuntimeException(ex);
+      throw new ServiceInjectorException(ex);
     }
   }
 

@@ -18,19 +18,22 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public CompletableFuture<Boolean> reserveTickets(Integer ticketsCount) {
+    if(ticketsCount > userConfig.getMaxTicketAllowed())
+      throw new RuntimeException("invalid ticket count");
+    
     return ticketService.reserve(ticketsCount);
   }
 
   public static final class UserServiceConfig {
 
-    private String ticketVenue;
+    private int maxTicketAllowed;
 
-    public UserServiceConfig(String ticketVenue) {
-      this.ticketVenue = ticketVenue;
+    public UserServiceConfig(int maxTicketAllowed) {
+      this.maxTicketAllowed = maxTicketAllowed;
     }
 
-    public String getTicketVenue() {
-      return ticketVenue;
+    public int getMaxTicketAllowed() {
+      return maxTicketAllowed;
     }
 
   }
