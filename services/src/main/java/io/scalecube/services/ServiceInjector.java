@@ -100,8 +100,8 @@ public class ServiceInjector {
 
   public static class ClassBinder<T> {
 
-    ServiceInjector.Builder injectorBuilder = null;
-    Class<T> clazz;
+    private ServiceInjector.Builder injectorBuilder = null;
+    private Class<T> clazz;
 
     private ClassBinder(ServiceInjector.Builder injectorBuilder, Class<T> clazz) {
       this.injectorBuilder = injectorBuilder;

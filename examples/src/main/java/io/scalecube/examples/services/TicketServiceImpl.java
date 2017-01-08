@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TicketServiceImpl implements TicketService {
 
-  AtomicInteger maxTicketCount = new AtomicInteger(10);
+  private AtomicInteger maxTicketCount = new AtomicInteger(10);
 
   @Inject
   public TicketServiceImpl(TickerServiceConfig config) {
@@ -21,7 +21,7 @@ public class TicketServiceImpl implements TicketService {
 
   public static final class TickerServiceConfig {
 
-    int maxTicketCount;
+    private int maxTicketCount;
 
     public TickerServiceConfig(int maxTicketCount) {
       this.maxTicketCount = maxTicketCount;

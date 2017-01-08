@@ -6,10 +6,10 @@ import java.util.concurrent.CompletableFuture;
 
 public class UserServiceImpl implements UserService {
 
-  TicketService ticketService;
+  private TicketService ticketService;
 
   @Inject
-  UserServiceConfig userConfig;
+  private UserServiceConfig userConfig;
 
   @Inject
   public UserServiceImpl(TicketService ticketService) {
@@ -23,7 +23,7 @@ public class UserServiceImpl implements UserService {
 
   public static final class UserServiceConfig {
 
-    String ticketVenue;
+    private String ticketVenue;
 
     public UserServiceConfig(String ticketVenue) {
       this.ticketVenue = ticketVenue;
