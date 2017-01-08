@@ -57,15 +57,20 @@ public final class NetworkEmulator {
    * Returns link settings applied to the given destination.
    */
   public NetworkLinkSettings getLinkSettings(InetSocketAddress address) {
+    // Check hostname:port
     Address address1 = Address.create(address.getHostName(), address.getPort());
-    Address address2 = Address.create(address.getAddress().getHostAddress(), address.getPort());
     if (customLinkSettings.containsKey(address1)) {
       return customLinkSettings.get(address1);
-    } else if (customLinkSettings.containsKey(address2)) {
-      return customLinkSettings.get(address2);
-    } else {
-      return defaultLinkSettings;
     }
+
+    // Check ip:port
+    Address address2 = Address.create(address.getAddress().getHostAddress(), address.getPort());
+    if (customLinkSettings.containsKey(address2)) {
+      return customLinkSettings.get(address2);
+    }
+
+    // Use default
+    return defaultLinkSettings;
   }
 
   /**
