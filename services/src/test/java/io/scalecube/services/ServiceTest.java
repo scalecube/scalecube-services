@@ -756,6 +756,30 @@ public class ServiceTest extends BaseTest {
 
   }
   
+  @Test
+  public void test_serviceA_calls_serviceB_with_external_injector_error() throws InterruptedException {
+
+    Microservices gateway = createSeed();
+
+     CountDownLatch countLatch = new CountDownLatch(1);
+    // Create microservices instance cluster.
+    try
+    {
+        Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services().from(CoarseGrainedConfigurableServiceImpl.class,GreetingServiceImpl.class).build() // add service a and b classes
+        .build();
+    }catch(Exception ex)
+    {
+      assertTrue(ex.getMessage().equals("java.lang.IllegalArgumentException: wrong number of arguments"));
+      countLatch.countDown();
+    }
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+
+  }
+  
   @Ignore
   @Test
   public void test_service_tags() {
