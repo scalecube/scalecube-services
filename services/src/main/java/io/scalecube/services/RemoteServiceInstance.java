@@ -69,7 +69,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     checkArgument(methodName != null, "Method name can't be null");
 
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-    checkArgument(serviceName != null, "Method name can't be null");
+    checkArgument(serviceName != null, "Service request can't be null");
 
     return futureInvoke(requestMessage, message -> message);
   }
