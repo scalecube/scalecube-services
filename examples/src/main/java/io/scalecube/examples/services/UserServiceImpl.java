@@ -18,9 +18,10 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public CompletableFuture<Boolean> reserveTickets(Integer ticketsCount) {
-    if(ticketsCount > userConfig.getMaxTicketAllowed())
+    if (ticketsCount > userConfig.getMaxTicketAllowed()) {
       throw new RuntimeException("invalid ticket count");
-    
+    }
+
     return ticketService.reserve(ticketsCount);
   }
 
