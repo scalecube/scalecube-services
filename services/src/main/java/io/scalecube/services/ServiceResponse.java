@@ -73,7 +73,7 @@ public class ServiceResponse {
   /**
    * future of this correlated response.
    * 
-   * @param CompletableFuture for this response.
+   * @return CompletableFuture for this response.
    */
   public CompletableFuture<Object> future() {
     return messageFuture;
@@ -82,7 +82,7 @@ public class ServiceResponse {
   /**
    * Correlation id of the request.
    * 
-   * @param String correlation id of the request.
+   * @return correlation id of the request.
    */
   public String correlationId() {
     return correlationId;

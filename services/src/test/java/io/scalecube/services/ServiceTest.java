@@ -574,6 +574,20 @@ public class ServiceTest extends BaseTest {
         .build();
 
     // Create microservices cluster member.
+    Microservices provider2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .seeds(provider.cluster().address())
+        .build();
+    
+    // Create microservices cluster member.
+    Microservices provider3 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .seeds(provider.cluster().address())
+        .build();
+    
+    // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
@@ -584,7 +598,7 @@ public class ServiceTest extends BaseTest {
 
     // Init params
     int warmUpCount = 1_000;
-    int count = 10_000;
+    int count = 600_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
