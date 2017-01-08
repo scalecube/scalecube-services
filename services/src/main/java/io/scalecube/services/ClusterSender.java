@@ -10,7 +10,7 @@ import rx.Observable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class ClusterSender implements Sender {
+public class ClusterSender implements ServiceCommunicator {
 
   private Cluster cluster;
 
@@ -20,8 +20,10 @@ public class ClusterSender implements Sender {
   }
 
   @Override
-  public void send(Address address, Message message, CompletableFuture<Void> messageFuture) {
+  public CompletableFuture<Void> send(Address address, Message message) {
+    CompletableFuture<Void> messageFuture = new CompletableFuture<>();
     cluster.send(address, message, messageFuture);
+    return messageFuture;
   }
 
   @Override

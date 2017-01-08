@@ -20,7 +20,7 @@ public class ServiceRegistryImplTest {
     ServicesConfig services = ServicesConfig.empty();
     ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
 
-    Sender sender = new ClusterSender(cluster);
+    ServiceCommunicator sender = new ClusterSender(cluster);
     
     ServiceRegistryImpl registry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
 

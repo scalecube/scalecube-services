@@ -36,7 +36,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private final ConcurrentMap<String, ServiceDefinition> definitionsCache = new ConcurrentHashMap<>();
 
-  private Sender sender;
+  private ServiceCommunicator sender;
 
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
@@ -46,7 +46,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param services optional services if relevant to this instance.
    * @param serviceProcessor - service processor.
    */
-  public ServiceRegistryImpl(Cluster cluster, Sender sender, ServicesConfig services,
+  public ServiceRegistryImpl(Cluster cluster, ServiceCommunicator sender, ServicesConfig services,
       ServiceProcessor serviceProcessor) {
 
     checkArgument(cluster != null, "cluster can't be null");

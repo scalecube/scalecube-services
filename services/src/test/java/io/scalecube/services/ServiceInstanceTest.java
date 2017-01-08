@@ -73,7 +73,7 @@ public class ServiceInstanceTest {
     ServicesConfig config = ServicesConfig.empty();
 
     ServiceProcessor processor = new AnnotationServiceProcessor();
-    Sender sender = new ClusterSender(member.cluster());
+    ServiceCommunicator sender = new ClusterSender(member.cluster());
     ServiceRegistry registry = new ServiceRegistryImpl(member.cluster(), sender, config, processor);
 
     RemoteServiceInstance instance =

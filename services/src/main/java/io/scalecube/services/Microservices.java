@@ -110,9 +110,9 @@ public class Microservices {
 
   private final ServiceDispatcherFactory dispatcherFactory;
 
-  private final Sender sender;
+  private final ServiceCommunicator sender;
 
-  private Microservices(Cluster cluster, Sender sender, ServicesConfig services) {
+  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
     this.cluster = cluster;
     this.sender = sender;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
@@ -182,7 +182,7 @@ public class Microservices {
       }
 
       Cluster cluster = Cluster.joinAwait(cfg);
-      Sender sender = new ClusterSender(cluster);
+      ServiceCommunicator sender = new ClusterSender(cluster);
 
       if (!this.reuseClusterTransport) {
         // create cluster and transport with given config.
@@ -343,7 +343,7 @@ public class Microservices {
     return servicesTags;
   }
 
-  public Sender sender() {
+  public ServiceCommunicator sender() {
     return sender;
   }
 

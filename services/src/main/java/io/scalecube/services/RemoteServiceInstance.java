@@ -23,7 +23,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String memberId;
   private final String serviceName;
   private final Map<String, String> tags;
-  private final Sender sender;
+  private final ServiceCommunicator sender;
   
   private ServiceRegistry serviceRegistry;
 
@@ -36,7 +36,7 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param serviceReference service reference of this instance.
    * @param tags describing this service instance metadata.
    */
-  public RemoteServiceInstance(ServiceRegistry serviceRegistry, Sender sender,
+  public RemoteServiceInstance(ServiceRegistry serviceRegistry, ServiceCommunicator sender,
       ServiceReference serviceReference,
       Map<String, String> tags) {
     this.serviceRegistry = serviceRegistry;
@@ -135,10 +135,8 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   private CompletableFuture<Void> sendRemote(Message requestMessage) {
-    final CompletableFuture<Void> messageFuture = new CompletableFuture<>();
     LOGGER.debug("cid [{}] send remote service request message {}", requestMessage.correlationId(), requestMessage);
-    this.sender.send(address, requestMessage, messageFuture);
-    return messageFuture;
+    return this.sender.send(address, requestMessage);
   }
 
   private Message composeRequest(Message request, final String correlationId) {

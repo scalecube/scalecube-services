@@ -7,9 +7,9 @@ import rx.Observable;
 
 import java.util.concurrent.CompletableFuture;
 
-public interface Sender {
+public interface ServiceCommunicator {
 
-  void send(Address address, Message requestMessage, CompletableFuture<Void> messageFuture);
+  CompletableFuture<Void> send(Address address, Message requestMessage);
 
   Address address();
 

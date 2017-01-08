@@ -10,7 +10,7 @@ import rx.Observable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class TransportSender implements Sender {
+public class TransportSender implements ServiceCommunicator {
 
   private Transport transport;
 
@@ -20,9 +20,10 @@ public class TransportSender implements Sender {
   }
 
   @Override
-  public void send(Address address, Message message, CompletableFuture<Void> messageFuture) {
-    this.transport.send(address, message, messageFuture);
-
+  public CompletableFuture<Void> send(Address address, Message message) {
+    CompletableFuture<Void> messageFuture = new CompletableFuture<>();
+    transport.send(address, message, messageFuture);
+    return messageFuture;
   }
 
   @Override
