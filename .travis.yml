@@ -13,4 +13,6 @@ before_install:
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t a6d36061-7980-4ff6-884b-0311e4d4fc22
-  - ~/jpm/bin/codacy-coverage-reporter -l Java -r build/reports/jacoco/test/jacocoTestReport.xml
+  - ~/jpm/bin/codacy-coverage-reporter -l Java -r ./cluster/target/site/jacoco/jacoco.xml
+  - ~/jpm/bin/codacy-coverage-reporter -l Java -r ./services/target/site/jacoco/jacoco.xml
+  - ~/jpm/bin/codacy-coverage-reporter -l Java -r ./transport/target/site/jacoco/jacoco.xml
