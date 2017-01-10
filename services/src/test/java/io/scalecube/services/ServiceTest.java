@@ -740,13 +740,14 @@ public class ServiceTest extends BaseTest {
         if (success.startsWith("B")) {
           count.incrementAndGet();
           if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
+            System.out.println("responses: " + responses);
             timeLatch.countDown();
           }
         }
       });
     }
-
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    System.out.println("timeLatch: " + timeLatch);
+    await(timeLatch, 3, TimeUnit.SECONDS);
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
     
     gateway.cluster().shutdown();
