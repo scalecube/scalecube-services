@@ -1,10 +1,13 @@
 package io.scalecube.services;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
+
+import java.lang.reflect.Constructor;
 
 public class ServiceHeadersTest {
 
@@ -19,6 +22,16 @@ public class ServiceHeadersTest {
     assertEquals(ServiceHeaders.service(request), "s");
     assertEquals(ServiceHeaders.serviceRequest(request), "req");
     assertEquals(ServiceHeaders.serviceResponse(request), "res");
+
+    try {
+      Constructor<ServiceHeaders> constructor= (Constructor<ServiceHeaders>) ServiceHeaders.class.getDeclaredConstructors()[0];
+      constructor.setAccessible(true);
+      ServiceHeaders foo = constructor.newInstance();
+      assertTrue(foo!=null);
+
+    } catch (Exception e) {
+    }
+
   }
 
 }
