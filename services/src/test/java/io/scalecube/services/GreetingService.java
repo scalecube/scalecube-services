@@ -7,7 +7,7 @@ import io.scalecube.transport.Message;
 import java.util.concurrent.CompletableFuture;
 
 @Service
-interface GreetingService {
+public interface GreetingService {
 
   @ServiceMethod
   CompletableFuture<String> greetingNoParams();
