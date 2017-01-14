@@ -6,6 +6,7 @@ import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ProxyDefinition;
 
 import com.google.common.base.Strings;
+
 import java.lang.annotation.Annotation;
 
 import java.lang.reflect.Constructor;
@@ -87,12 +88,12 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     Class<?>[] parameterTypes = constructor.getParameterTypes();
     int index = 0;
     List<ProxyDefinition> proxyList = new LinkedList<>();
-    for(Annotation array[] : annotations)
-    {
+    for (Annotation[] array : annotations) {
       Class<?> currentType = parameterTypes[index];
-      proxyList.addAll(Arrays.asList(array).stream().filter(annotation->annotation.annotationType() == ServiceProxy.class)
-          .map(annotation->new ProxyDefinition(currentType,((ServiceProxy)annotation).router(),
-              Duration.ofMillis(((ServiceProxy)annotation).timeout()))).collect(Collectors.toList()));
+      proxyList.addAll(Arrays.asList(array).stream()
+          .filter(annotation -> annotation.annotationType() == ServiceProxy.class)
+          .map(annotation -> new ProxyDefinition(currentType, ((ServiceProxy) annotation).router(),
+              Duration.ofMillis(((ServiceProxy) annotation).timeout()))).collect(Collectors.toList()));
       index++;
     }
     return proxyList;
@@ -115,7 +116,8 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
   @Override
   public Collection<ProxyDefinition> extractServiceProxyFromMembers(Collection<Field> fields) {
-    Collection<ProxyDefinition> proxyList =  fields.stream().filter(field -> field.isAnnotationPresent(ServiceProxy.class))
+    Collection<ProxyDefinition> proxyList = fields.stream()
+        .filter(field -> field.isAnnotationPresent(ServiceProxy.class))
         .map(field -> new ProxyDefinition(field.getType(), field.getAnnotation(ServiceProxy.class).router(),
             Duration.ofMillis(field.getAnnotation(ServiceProxy.class).timeout()))).collect(Collectors.toList());
     return proxyList;
