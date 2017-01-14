@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.assertEquals;
-
 import io.scalecube.cluster.Cluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
@@ -27,6 +25,6 @@ public class ServiceDispatcherTest {
         .header(ServiceHeaders.SERVICE_REQUEST, "none")
         .data("1").build());
 
-    cluster.shutdown();
+    cluster.shutdown(); 
   }
 }
