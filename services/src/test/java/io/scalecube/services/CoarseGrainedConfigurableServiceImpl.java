@@ -12,7 +12,10 @@
  */
 package io.scalecube.services;
 
+import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.annotations.Inject;
+import io.scalecube.services.annotations.ServiceProxy;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -27,7 +30,7 @@ public class CoarseGrainedConfigurableServiceImpl implements CoarseGrainedServic
   };
 
   @Inject
-  public CoarseGrainedConfigurableServiceImpl(GreetingService greetingService,Configuration configuration) {
+  public CoarseGrainedConfigurableServiceImpl(@ServiceProxy(router = RoundRobinServiceRouter.class,timeout = 10) GreetingService greetingService,Configuration configuration) {
     this.greetingService = greetingService;
     this.configuration = configuration;
   }

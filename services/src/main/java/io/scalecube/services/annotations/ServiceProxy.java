@@ -1,6 +1,7 @@
 
 package io.scalecube.services.annotations;
 
+import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 
 import java.lang.annotation.ElementType;
@@ -14,10 +15,10 @@ public @interface ServiceProxy {
  /**
    * proxy router. If not specified default router will be used.
    */
-  Class<? extends Router> router();
+  Class<? extends Router> router() default RoundRobinServiceRouter.class;
   
   /**
    * proxy request timeout in milliseconds. default value 0.
    */
-  long timeout();
+  long timeout() default 0;
 }

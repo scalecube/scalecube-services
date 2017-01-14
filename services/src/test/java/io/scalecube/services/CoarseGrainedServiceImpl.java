@@ -13,6 +13,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.annotations.Inject;
+import io.scalecube.services.annotations.ServiceProxy;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -25,7 +26,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   };
 
   @Inject
-  public CoarseGrainedServiceImpl(GreetingService greetingService) {
+  public CoarseGrainedServiceImpl(@ServiceProxy GreetingService greetingService) {
     this.greetingService = greetingService;
   }
 

@@ -6,6 +6,7 @@ import io.scalecube.services.ServiceDefinition;
 import io.scalecube.services.ProxyDefinition;
 
 import com.google.common.base.Strings;
+import java.lang.annotation.Annotation;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -20,6 +21,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import java.time.Duration;
+import java.util.LinkedList;
+import java.util.List;
 
 public class AnnotationServiceProcessor implements ServiceProcessor {
 
@@ -80,13 +83,19 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
   @Override
   public Collection<ProxyDefinition> extractServiceProxyFromConstructor(Constructor<?> constructor) {
 
-    return Arrays.asList(constructor).stream()
-        .map(construct -> construct.getParameterTypes())
-        .flatMap(Arrays::stream)
-        .filter(clazz -> clazz.isAnnotationPresent(ServiceProxy.class))
-        .map(clazz -> new ProxyDefinition(clazz, clazz.getAnnotation(ServiceProxy.class).router(),
-            Duration.ofMillis(clazz.getAnnotation(ServiceProxy.class).timeout())))
-        .collect(Collectors.toList());
+    Annotation[][] annotations = constructor.getParameterAnnotations();
+    Class<?>[] parameterTypes = constructor.getParameterTypes();
+    int index = 0;
+    List<ProxyDefinition> proxyList = new LinkedList<>();
+    for(Annotation array[] : annotations)
+    {
+      Class<?> currentType = parameterTypes[index];
+      proxyList.addAll(Arrays.asList(array).stream().filter(annotation->annotation.annotationType() == ServiceProxy.class)
+          .map(annotation->new ProxyDefinition(currentType,((ServiceProxy)annotation).router(),
+              Duration.ofMillis(((ServiceProxy)annotation).timeout()))).collect(Collectors.toList()));
+      index++;
+    }
+    return proxyList;
   }
 
   @Override
@@ -106,9 +115,10 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
   @Override
   public Collection<ProxyDefinition> extractServiceProxyFromMembers(Collection<Field> fields) {
-    return fields.stream().filter(field -> field.isAnnotationPresent(ServiceProxy.class))
+    Collection<ProxyDefinition> proxyList =  fields.stream().filter(field -> field.isAnnotationPresent(ServiceProxy.class))
         .map(field -> new ProxyDefinition(field.getType(), field.getAnnotation(ServiceProxy.class).router(),
             Duration.ofMillis(field.getAnnotation(ServiceProxy.class).timeout()))).collect(Collectors.toList());
+    return proxyList;
   }
 
   @Override
