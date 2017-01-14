@@ -5,6 +5,7 @@ import io.scalecube.services.annotations.ServiceProcessor;
 
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Field;
 
@@ -36,9 +37,13 @@ public class ServiceInjector {
    * @return service instance
    */
   public <T> T getInstance(Microservices services, Class<T> cls) {
-    Collection<Class<?>> injectables = serviceProcessor.extractConstructorInjectables(cls);
+    Constructor<?> constructor = serviceProcessor.extractConstructorInjectables(cls);
+    Collection<ProxyDefinition> proxyDefs = serviceProcessor.extractServiceProxyFromConstructor(constructor);
+    proxyDefs.stream().forEach(proxyDef->resolveProxy(services, proxyDef));
+    
+    Collection<Class<?>> injectables = serviceProcessor.extractInjectableParameterFromConstructor(constructor);
     injectables.stream().filter(srv -> serviceProcessor.isServiceInterface(srv))
-        .forEach(srv -> resolveProxy(services, srv));
+        .forEach(srv -> resolveProxy(services, new ProxyDefinition(srv)));
     Class<?>[] types = injectables.stream().toArray(size -> new Class<?>[size]);
     Object[] args = injectables.stream()
         .filter(paramType -> instances.containsKey(paramType))
@@ -53,7 +58,7 @@ public class ServiceInjector {
         instance = cls.newInstance();
       }
 
-      injectMembers(instance);
+      injectMembers(services, instance);
       return instance;
     } catch (NoSuchMethodException | SecurityException | InstantiationException
         | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
@@ -62,8 +67,13 @@ public class ServiceInjector {
     }
   }
 
-  private <T> void injectMembers(T instance) {
+  private <T> void injectMembers(Microservices services, T instance) {
     Collection<Field> injectables = serviceProcessor.extractMemberInjectables(instance.getClass());
+    Collection<ProxyDefinition> proxyDefs = serviceProcessor.extractServiceProxyFromMembers(injectables);
+    proxyDefs.stream().forEach(proxyDefinition->resolveProxy(services, proxyDefinition));
+    
+    injectables.stream().filter(field -> serviceProcessor.isServiceInterface(field.getType()))
+        .map(field -> field.getType()).forEach(srv -> resolveProxy(services, new ProxyDefinition(srv)));
     injectables.stream().forEach(field -> injectMember(field, instance));
   }
 
@@ -77,8 +87,21 @@ public class ServiceInjector {
     }
   }
 
-  private void resolveProxy(Microservices services, Class<?> serviceInterface) {
-    instances.computeIfAbsent(serviceInterface, (srv) -> services.proxy().api(srv).create());
+  private void resolveProxy(Microservices services, ProxyDefinition proxyDefinition) {
+
+    instances.computeIfAbsent(proxyDefinition.getServiceInterface(), (srv) -> createProxy(services, proxyDefinition));
+
+  }
+
+  private <T> T createProxy(Microservices services, ProxyDefinition proxyDefinition) {
+    Microservices.ProxyContext proxyContext = services.proxy().api(proxyDefinition.getServiceInterface());
+    if (proxyDefinition.getRouter() != null) {
+      proxyContext.router(proxyDefinition.getRouter());
+    }
+    if (!proxyDefinition.getDuration().isZero()) {
+      proxyContext.timeout(proxyDefinition.getDuration());
+    }
+    return proxyContext.create();
   }
 
   public static final class Builder {

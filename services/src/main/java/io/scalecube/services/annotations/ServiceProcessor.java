@@ -1,7 +1,9 @@
 package io.scalecube.services.annotations;
 
+import io.scalecube.services.ProxyDefinition;
 import io.scalecube.services.ServiceDefinition;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 
 import java.util.Collection;
@@ -17,10 +19,16 @@ public interface ServiceProcessor {
 
   Set<ServiceDefinition> serviceDefinitions(Class<?> serviceInterface);
 
-  Collection<Class<?>> extractConstructorInjectables(Class<?> serviceImpl);
+  Collection<Class<?>> extractInjectableParameterFromConstructor(Constructor<?> constructor);
+  
+  Collection<ProxyDefinition> extractServiceProxyFromConstructor(Constructor<?> constructor);
+  
+  Constructor<?> extractConstructorInjectables(Class<?> serviceImpl);
 
   Collection<Field> extractMemberInjectables(Class<?> serviceImpl);
 
+  Collection<ProxyDefinition> extractServiceProxyFromMembers(Collection<Field> fields);
+  
   boolean isServiceInterface(Class<?> clsType);
 
 }
