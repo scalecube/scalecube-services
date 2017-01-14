@@ -288,6 +288,10 @@ public class Microservices {
       this.router = routerType;
       return this;
     }
+    
+    public Class<? extends Router> router() {
+      return this.router;
+    }
   }
 
   public DispatcherContext dispatcher() {

@@ -95,6 +95,14 @@ public class ServiceInstanceTest {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
 
+    try {
+      instance.invoke(Message.builder()
+          .header(ServiceHeaders.METHOD, "unkonwn")
+          .header(ServiceHeaders.SERVICE, "s")
+          .build());
+    } catch (Exception ex) {
+      assertEquals(ex.toString(), "java.util.NoSuchElementException: No value present");
+    }
 
     try {
       instance.dispatch(Message.builder()
