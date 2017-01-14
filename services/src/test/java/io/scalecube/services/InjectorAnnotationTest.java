@@ -33,5 +33,6 @@ public class InjectorAnnotationTest {
     ProxyDefinition proxyDef = proxyDefList.iterator().next();
     Assert.assertEquals(RoundRobinServiceRouter.class,proxyDef.getRouter());
     Assert.assertEquals(10,proxyDef.getDuration().toMillis());
+    
   }
 }
