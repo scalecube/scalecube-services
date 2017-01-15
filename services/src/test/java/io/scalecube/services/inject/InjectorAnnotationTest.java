@@ -21,20 +21,19 @@ public class InjectorAnnotationTest {
     Collection<ProxyDefinition> proxyDefList = serviceProcessor
         .extractServiceProxyFromConstructor(CoarseGrainedServiceImpl.class.getConstructors()[1]);
     
-    assertTrue("proxyDefList.isEmpty",!proxyDefList.isEmpty());
+    assertEquals(1,proxyDefList.size());
     ProxyDefinition proxyDef = proxyDefList.iterator().next();
     assertEquals(RoundRobinServiceRouter.class,proxyDef.getRouter());
     assertEquals(0,proxyDef.getDuration().toMillis());
   }
   
   @Test
-  public void service_proxy_constructor_inject_test_with_custom_router()
-  {
+  public void service_proxy_constructor_inject_test_with_custom_router() {
     AnnotationServiceProcessor serviceProcessor  = new AnnotationServiceProcessor();
     Collection<ProxyDefinition> proxyDefList = serviceProcessor
         .extractServiceProxyFromConstructor(CoarseGrainedConfigurableServiceImpl.class.getConstructors()[1]);
     
-    assertTrue(!proxyDefList.isEmpty());
+    assertEquals(1,proxyDefList.size());
     ProxyDefinition proxyDef = proxyDefList.iterator().next();
     assertEquals(RoundRobinServiceRouter.class,proxyDef.getRouter());
     assertEquals(10,proxyDef.getDuration().toMillis());
