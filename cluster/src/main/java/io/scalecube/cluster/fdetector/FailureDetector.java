@@ -89,7 +89,7 @@ public final class FailureDetector implements IFailureDetector {
     this.membership = membership;
     this.config = config;
     String nameFormat = "sc-fdetector-" + transport.address().toString();
-    this.executor = ThreadFactory.singleScheduledExecutorService(nameFormat);
+    this.executor = ThreadFactory.newSingleScheduledExecutorService(nameFormat);
     this.scheduler = Schedulers.from(executor);
   }
 

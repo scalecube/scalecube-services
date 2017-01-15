@@ -105,7 +105,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     this.config = config;
     Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
-    this.executor = ThreadFactory.singleScheduledExecutorService("sc-membership-" + transport.address().toString());
+    this.executor = ThreadFactory.newSingleScheduledExecutorService("sc-membership-" + transport.address().toString());
     this.scheduler = Schedulers.from(executor);
     this.seedMembers = cleanUpSeedMembers(config.getSeedMembers());
   }
