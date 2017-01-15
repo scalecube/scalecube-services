@@ -1,4 +1,4 @@
-package io.scalecube.cluster.membership;
+package io.scalecube.transport;
 
 import static org.junit.Assert.assertTrue;
 
@@ -8,7 +8,7 @@ import io.scalecube.transport.ThreadFactory;
 
 import org.junit.Test;
 
-public class MembersipProtocolTest extends BaseTest{
+public class ThreadFactoryTest extends BaseTest{
 
   @Test
   public void test_ipv6_thread_factory_addressing(){
