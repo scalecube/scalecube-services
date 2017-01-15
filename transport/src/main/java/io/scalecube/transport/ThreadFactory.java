@@ -11,18 +11,18 @@ import java.util.concurrent.ScheduledExecutorService;
  * Used to create and cache shared thread pools with given name.
  */
 public class ThreadFactory {
-  
+
   /**
    * Used to create and cache shared thread pools with given name.
    * 
    * @name the requested name of the single thread executor if not cached will be created.
    */
   public static ScheduledExecutorService newSingleScheduledExecutorService(String name) {
-    checkArgument(name!=null, "name can't be null");
+    checkArgument(name != null, "name can't be null");
     String nameFormat = name.replaceAll("%", "%%");
     return compute(nameFormat);
   }
-  
+
 
   private static ScheduledExecutorService compute(String name) {
     return Executors.newSingleThreadScheduledExecutor(
