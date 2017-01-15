@@ -11,6 +11,7 @@ import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.ThreadFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -104,11 +105,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     this.config = config;
     Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
-
-    String nameFormat = "sc-membership-" + transport.address().toString().replaceAll("%", "-");
-    this.executor = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
-
+    this.executor = ThreadFactory.singleScheduledExecutorService("sc-membership-" + transport.address().toString());
     this.scheduler = Schedulers.from(executor);
     this.seedMembers = cleanUpSeedMembers(config.getSeedMembers());
   }

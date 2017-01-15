@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;
+import io.scalecube.transport.ThreadFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

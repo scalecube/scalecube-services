@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.ThreadFactory;
 
 import com.google.common.reflect.Reflection;
 

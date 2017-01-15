@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package io.scalecube.transport;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -20,12 +20,12 @@ public class ThreadFactory {
    * @name the requested name of the single thread executor if not cached will be created.
    */
   public static ScheduledExecutorService singleScheduledExecutorService(String name) {
-    return schedulers.computeIfAbsent(name, func -> compute(name));
+    String nameFormat = name.replaceAll("%", "%%");
+    return schedulers.computeIfAbsent(nameFormat, func -> compute(nameFormat));
   }
 
   private static ScheduledExecutorService compute(String name) {
     return Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(name).setDaemon(true).build());
   }
-
 }
