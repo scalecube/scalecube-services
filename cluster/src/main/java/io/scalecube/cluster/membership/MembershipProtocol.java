@@ -105,7 +105,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
 
-    String nameFormat = "sc-membership-" + transport.address().toString();
+    String nameFormat = "sc-membership-" + transport.address().toString().replaceAll("%", "-");
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
 
