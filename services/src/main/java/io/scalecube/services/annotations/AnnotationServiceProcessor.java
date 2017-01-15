@@ -86,15 +86,16 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
 
     Annotation[][] annotations = constructor.getParameterAnnotations();
     Class<?>[] parameterTypes = constructor.getParameterTypes();
-    int index = 0;
+
     List<ProxyDefinition> proxyList = new LinkedList<>();
-    for (Annotation[] array : annotations) {
-      Class<?> currentType = parameterTypes[index];
+    for (int i = 0; i < annotations.length; i++) {
+      Annotation[] array = annotations[i];
+      Class<?> currentType = parameterTypes[i];
       proxyList.addAll(Arrays.asList(array).stream()
-          .filter(annotation -> annotation.annotationType() == ServiceProxy.class)
+          .filter(annotation -> annotation.annotationType().equals(ServiceProxy.class))
           .map(annotation -> new ProxyDefinition(currentType, ((ServiceProxy) annotation).router(),
-              Duration.ofMillis(((ServiceProxy) annotation).timeout()))).collect(Collectors.toList()));
-      index++;
+              Duration.ofMillis(((ServiceProxy) annotation).timeout())))
+          .collect(Collectors.toList()));
     }
     return proxyList;
   }
@@ -119,7 +120,8 @@ public class AnnotationServiceProcessor implements ServiceProcessor {
     Collection<ProxyDefinition> proxyList = fields.stream()
         .filter(field -> field.isAnnotationPresent(ServiceProxy.class))
         .map(field -> new ProxyDefinition(field.getType(), field.getAnnotation(ServiceProxy.class).router(),
-            Duration.ofMillis(field.getAnnotation(ServiceProxy.class).timeout()))).collect(Collectors.toList());
+            Duration.ofMillis(field.getAnnotation(ServiceProxy.class).timeout())))
+        .collect(Collectors.toList());
     return proxyList;
   }
 

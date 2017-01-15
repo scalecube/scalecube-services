@@ -1,8 +1,11 @@
-package io.scalecube.services;
+package io.scalecube.services.inject;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.services.CoarseGrainedConfigurableServiceImpl;
+import io.scalecube.services.CoarseGrainedServiceImpl;
+import io.scalecube.services.ProxyDefinition;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 
@@ -18,7 +21,7 @@ public class InjectorAnnotationTest {
     Collection<ProxyDefinition> proxyDefList = serviceProcessor
         .extractServiceProxyFromConstructor(CoarseGrainedServiceImpl.class.getConstructors()[1]);
     
-    assertTrue(!proxyDefList.isEmpty());
+    assertTrue("proxyDefList.isEmpty",!proxyDefList.isEmpty());
     ProxyDefinition proxyDef = proxyDefList.iterator().next();
     assertEquals(RoundRobinServiceRouter.class,proxyDef.getRouter());
     assertEquals(0,proxyDef.getDuration().toMillis());
