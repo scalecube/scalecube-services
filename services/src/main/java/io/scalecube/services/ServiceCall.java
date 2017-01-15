@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;
+import io.scalecube.transport.ThreadFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,7 @@ public class ServiceCall {
    * used to complete the request future with timeout exception in case no response comes from service.
    */
   private static final ScheduledExecutorService delayer =
-      ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
+      ThreadFactory.newSingleScheduledExecutorService("sc-services-timeout");
 
   private Duration timeout;
   private Router router;

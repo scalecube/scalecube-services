@@ -8,6 +8,7 @@ import io.scalecube.cluster.membership.IMembershipProtocol;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.ThreadFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -87,8 +88,7 @@ public final class GossipProtocol implements IGossipProtocol {
     this.membership = membership;
     this.config = config;
     String nameFormat = "sc-gossip-" + transport.address().toString();
-    this.executor = Executors.newSingleThreadScheduledExecutor(
-        new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
+    this.executor = ThreadFactory.newSingleScheduledExecutorService(nameFormat);
     this.scheduler = Schedulers.from(executor);
   }
 

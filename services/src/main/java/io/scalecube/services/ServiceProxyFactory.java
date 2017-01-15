@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.ThreadFactory;
 
 import com.google.common.reflect.Reflection;
 
@@ -26,7 +27,7 @@ public class ServiceProxyFactory {
    * used to complete the request future with timeout exception in case no response comes from service.
    */
   private static final ScheduledExecutorService delayer =
-      ThreadFactory.singleScheduledExecutorService("sc-services-timeout");
+      ThreadFactory.newSingleScheduledExecutorService("sc-services-timeout");
 
   private RouterFactory routerFactory;
 
