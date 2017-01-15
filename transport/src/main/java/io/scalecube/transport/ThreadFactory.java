@@ -1,5 +1,7 @@
 package io.scalecube.transport;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.util.concurrent.Executors;
@@ -16,6 +18,7 @@ public class ThreadFactory {
    * @name the requested name of the single thread executor if not cached will be created.
    */
   public static ScheduledExecutorService newSingleScheduledExecutorService(String name) {
+    checkArgument(name!=null, "name can't be null");
     String nameFormat = name.replaceAll("%", "%%");
     return compute(nameFormat);
   }
