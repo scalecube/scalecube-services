@@ -82,7 +82,7 @@ public class MembershipProtocolTest extends BaseTest {
       b.networkEmulator().unblockAll();
       c.networkEmulator().unblockAll();
 
-      awaitSeconds(5);
+      awaitSeconds(6);
 
       assertTrusted(cm_a, a.address(), b.address(), c.address());
       assertNoSuspected(cm_a);
@@ -438,8 +438,8 @@ public class MembershipProtocolTest extends BaseTest {
     // Create faster config for local testing
     ClusterConfig config = ClusterConfig.builder()
         .seedMembers(seedAddresses)
-        .syncInterval(1000)
-        .syncTimeout(200)
+        .syncInterval(2000)
+        .syncTimeout(1000)
         .pingInterval(TEST_PING_INTERVAL)
         .pingTimeout(100)
         .build();
