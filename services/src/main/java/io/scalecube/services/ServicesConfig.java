@@ -42,6 +42,7 @@ public class ServicesConfig {
   }
 
   public static class Builder {
+
     private List<ServiceConfig> servicesBuilder = new ArrayList<>();
     private Microservices.Builder microservicesBuilder;
 
@@ -51,19 +52,30 @@ public class ServicesConfig {
 
       private final Object service;
 
-      private final Map<String, String> kv = new HashMap<String, String>();
+      private final Class<?> serviceType;
+
+      private final Map<String, String> kv = new HashMap<>();
 
       private final Set<ServiceDefinition> serviceDefinitions;
 
       public ServiceConfig(Builder builder, Object service) {
         this.service = service;
-        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service);
+        this.serviceType = null;
+        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service.getClass());
+        this.builder = builder;
+      }
+
+      public ServiceConfig(Builder builder, Class<?> serviceType) {
+        this.service = null;
+        this.serviceType = serviceType;
+        this.serviceDefinitions = serviceProcessor.serviceDefinitions(serviceType);
         this.builder = builder;
       }
 
       public ServiceConfig(Object service) {
         this.service = service;
-        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service);
+        this.serviceType = null;
+        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service.getClass());
         this.builder = null;
       }
 
@@ -88,8 +100,16 @@ public class ServicesConfig {
         return this.service;
       }
 
+      public Class<?> getServiceType() {
+        return serviceType;
+      }
+
       public Set<String> serviceNames() {
         return serviceDefinitions.stream().map(definition -> definition.serviceName()).collect(Collectors.toSet());
+      }
+
+      public ServiceConfig copy(Object service) {
+        return new ServiceConfig(builder, service);
       }
     }
 
@@ -99,6 +119,13 @@ public class ServicesConfig {
 
     public ServiceConfig service(Object object) {
       return new ServiceConfig(this, object);
+    }
+
+    public Builder from(Class<?>... serviceTypes) {
+      for (Class<?> serviceType : serviceTypes) {
+        new ServiceConfig(this, serviceType).add();
+      }
+      return this;
     }
 
     public Builder add(ServiceConfig serviceBuilder) {
