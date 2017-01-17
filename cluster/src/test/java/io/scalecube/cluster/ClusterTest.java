@@ -95,7 +95,6 @@ public class ClusterTest extends BaseTest {
         Member mNode = mNodeOpt.get();
         assertEquals(updatedMetadata, mNode.metadata());
       }
-
     } finally {
       // Shutdown all nodes
       shutdown(seedNode);

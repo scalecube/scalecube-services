@@ -86,7 +86,7 @@ public final class GossipProtocol implements IGossipProtocol {
     this.transport = transport;
     this.membership = membership;
     this.config = config;
-    String nameFormat = "sc-gossip-" + transport.address().toString();
+    String nameFormat = "sc-gossip-" + Integer.toString(transport.address().port());
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);
