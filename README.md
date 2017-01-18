@@ -1,5 +1,6 @@
 # ScaleCube
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a162edec5ca347ef87db19320e41138a)](https://www.codacy.com/app/ScaleCube/scalecube?utm_source=github.com&utm_medium=referral&utm_content=scalecube/scalecube&utm_campaign=badger)
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster)
 [![codecov](https://codecov.io/gh/scalecube/scalecube/branch/master/graph/badge.svg)](https://codecov.io/gh/scalecube/scalecube)
