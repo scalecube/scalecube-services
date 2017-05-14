@@ -40,39 +40,22 @@ public class ServiceCall {
   /**
    * Dispatch a request message and invoke a service by a given service name and method name. expected headers in
    * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-   * invoke.
+   * invoke message uses the router to select the target endpoint service instance in the cluster.
    * 
    * @param request request with given headers.
    * @timeout duration of the response before TimeException is returned.
    * @return CompletableFuture with service call dispatching result.
    * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
-  @SuppressWarnings("unchecked")
   public <T> CompletableFuture<Message> invoke(Message request, Duration timeout) {
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
     String methodName = request.header(ServiceHeaders.METHOD);
     try {
-      
+
       Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
       if (optionalServiceInstance.isPresent()) {
-        ServiceInstance serviceInstance = optionalServiceInstance.get();
-
-        if (serviceInstance.isLocal()) {
-
-          CompletableFuture<?> resultFuture = (CompletableFuture<?>) serviceInstance.invoke(request);
-
-          return (CompletableFuture<Message>) timeoutAfter(resultFuture, timeout)
-              .thenApply(result -> toMessage(request, (T) result));
-        } else {
-
-          RemoteServiceInstance remote = (RemoteServiceInstance) serviceInstance;
-          CompletableFuture<?> resultFuture =
-              (CompletableFuture<?>) remote.dispatch(request);
-
-          return (CompletableFuture<Message>) timeoutAfter(resultFuture, timeout);
-
-        }
+        return this.invoke(request, optionalServiceInstance.get(), timeout);
       } else {
         LOGGER.error(
             "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
@@ -85,6 +68,48 @@ public class ServiceCall {
           "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
           methodName, request.data(), ex);
       throw new IllegalStateException("No reachable member with such service: " + methodName);
+    }
+  }
+
+  /**
+   * Dispatch a request message and invoke a service by a given service name and method name. expected headers in
+   * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
+   * invoke with default timeout.
+   * 
+   * @param request request with given headers.
+   * @param serviceInstance target instance to invoke.
+   * @return CompletableFuture with service call dispatching result.
+   * @throws Exception in case of an error or TimeoutException if no response if a given duration.
+   */
+  public <T> CompletableFuture<Message> invoke(Message request, ServiceInstance serviceInstance) throws Exception {
+    return invoke(request, serviceInstance, timeout);
+  }
+
+  /**
+   * Dispatch a request message and invoke a service by a given service name and method name. expected headers in
+   * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
+   * invoke.
+   * 
+   * @param request request with given headers.
+   * @param serviceInstance target instance to invoke.
+   * @param duration of the response before TimeException is returned.
+   * @return CompletableFuture with service call dispatching result.
+   * @throws Exception in case of an error or TimeoutException if no response if a given duration.
+   */
+  @SuppressWarnings("unchecked")
+  public <T> CompletableFuture<Message> invoke(Message request, ServiceInstance serviceInstance, Duration duration)
+      throws Exception {
+
+    if (serviceInstance.isLocal()) {
+      CompletableFuture<?> resultFuture = (CompletableFuture<?>) serviceInstance.invoke(request);
+      return (CompletableFuture<Message>) timeoutAfter(resultFuture, timeout)
+          .thenApply(result -> toMessage(request, (T) result));
+    } else {
+      RemoteServiceInstance remote = (RemoteServiceInstance) serviceInstance;
+      CompletableFuture<?> resultFuture =
+          (CompletableFuture<?>) remote.dispatch(request);
+
+      return (CompletableFuture<Message>) timeoutAfter(resultFuture, timeout);
     }
   }
 
@@ -144,8 +169,4 @@ public class ServiceCall {
         .header(ServiceHeaders.METHOD, methodName);
 
   }
-
-
 }
-
-
