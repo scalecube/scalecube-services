@@ -27,8 +27,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import javax.management.RuntimeErrorException;
-
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
  * provides Reactive application development platform for building distributed applications Using microservices and fast
@@ -374,15 +372,13 @@ public class Microservices {
   private void inject(Object service, Microservices ms) {
     try {
       for (Field field : service.getClass().getDeclaredFields()) {
-        if (field.isAnnotationPresent(ServiceProxy.class)) {
-          if (field.getType().isInterface()) {
-            field.setAccessible(true);
-            field.set(service, ms.proxy().api(field.getType()).create());
-          }
+        if (field.isAnnotationPresent(ServiceProxy.class) && field.getType().isInterface()) {
+          field.setAccessible(true);
+          field.set(service, ms.proxy().api(field.getType()).create());
         }
       }
     } catch (Exception ex) {
-      throw new RuntimeException(ex);
+      LOGGER.error("failed to set service proxy of type: {} reason:{}", service.getClass().getName(), ex.getMessage());
     }
   }
 }
