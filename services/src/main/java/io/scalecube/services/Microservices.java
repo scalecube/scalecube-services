@@ -371,8 +371,8 @@ public class Microservices {
     return this.cluster.shutdown();
   }
 
-  private void inject(Object service, Microservices ms){
-    try{
+  private void inject(Object service, Microservices ms) {
+    try {
       for (Field field : service.getClass().getDeclaredFields()) {
         if (field.isAnnotationPresent(ServiceProxy.class)) {
           if (field.getType().isInterface()) {
@@ -381,7 +381,7 @@ public class Microservices {
           }
         }
       }
-    } catch(Exception ex){
+    } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
   }
