@@ -101,7 +101,7 @@ public class LocalServiceInstance implements ServiceInstance {
   public Address address() {
     return this.address;
   }
-
+  
   public Object serviceObject() {
     return this.serviceObject;
   }
