@@ -21,9 +21,13 @@ import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+
+import javax.management.RuntimeErrorException;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -190,8 +194,15 @@ public class Microservices {
         // create cluster and transport with given config.
         sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
       }
-
-      return new Microservices(cluster, sender, servicesConfig);
+      
+      Microservices ms = new Microservices(cluster, sender, servicesConfig);
+      List<ServiceInstance> localInstances = ms.services().stream().filter(instance->instance.isLocal()).collect(Collectors.toList());
+      localInstances.forEach(instance ->{
+        LocalServiceInstance localInstance = (LocalServiceInstance) instance;
+        ms.inject(localInstance.serviceObject(), ms);
+      });
+      
+      return ms;
     }
 
 
@@ -357,14 +368,18 @@ public class Microservices {
     return this.cluster.shutdown();
   }
 
-  public void inject(Object service, Object proxy) throws Exception {
-    for (Field field : service.getClass().getDeclaredFields()) {
-      if (field.isAnnotationPresent(ServiceProxy.class)) {
-        if (field.getType().isAssignableFrom(proxy.getClass())) {
-          field.setAccessible(true);
-          field.set(service, proxy);
+  private void inject(Object service, Microservices ms){
+    try{
+      for (Field field : service.getClass().getDeclaredFields()) {
+        if (field.isAnnotationPresent(ServiceProxy.class)) {
+          if (field.getType().isInterface()) {
+            field.setAccessible(true);
+            field.set(service, ms.proxy().api(field.getType()).create());
+          }
         }
       }
+    } catch(Exception ex){
+      throw new RuntimeException(ex);
     }
   }
 }
