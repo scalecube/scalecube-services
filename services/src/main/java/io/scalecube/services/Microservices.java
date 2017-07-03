@@ -196,12 +196,15 @@ public class Microservices {
       }
       
       Microservices ms = new Microservices(cluster, sender, servicesConfig);
-      List<ServiceInstance> localInstances = ms.services().stream().filter(instance->instance.isLocal()).collect(Collectors.toList());
-      localInstances.forEach(instance ->{
+      List<ServiceInstance> localInstances = ms.services().stream()
+          .filter(instance -> instance.isLocal())
+          .collect(Collectors.toList());
+
+      localInstances.forEach(instance -> {
         LocalServiceInstance localInstance = (LocalServiceInstance) instance;
         ms.inject(localInstance.serviceObject(), ms);
       });
-      
+
       return ms;
     }
 
