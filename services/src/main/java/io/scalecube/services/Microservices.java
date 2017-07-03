@@ -6,6 +6,7 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -16,6 +17,7 @@ import io.scalecube.transport.TransportConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
@@ -353,5 +355,16 @@ public class Microservices {
 
   public CompletableFuture<Void> shutdown() {
     return this.cluster.shutdown();
+  }
+
+  public void inject(Object service, Object proxy) throws Exception {
+    for (Field field : service.getClass().getDeclaredFields()) {
+      if (field.isAnnotationPresent(ServiceProxy.class)) {
+        if (field.getType().isAssignableFrom(proxy.getClass())) {
+          field.setAccessible(true);
+          field.set(service, proxy);
+        }
+      }
+    }
   }
 }
