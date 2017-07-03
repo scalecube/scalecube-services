@@ -6,7 +6,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.annotation.ElementType;
 
-@Target(value={ElementType.METHOD,ElementType.CONSTRUCTOR,ElementType.FIELD})
-@Retention(value=RetentionPolicy.RUNTIME)
+@Target(value = {ElementType.METHOD, ElementType.CONSTRUCTOR, ElementType.FIELD})
+@Retention(value = RetentionPolicy.RUNTIME)
 @Documented
-public @interface ServiceProxy{}
+public @interface ServiceProxy {
+}
