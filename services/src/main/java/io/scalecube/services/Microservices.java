@@ -194,18 +194,9 @@ public class Microservices {
       }
       
       Microservices ms = new Microservices(cluster, sender, servicesConfig);
-      List<ServiceInstance> localInstances = ms.services().stream()
-          .filter(instance -> instance.isLocal())
-          .collect(Collectors.toList());
-
-      localInstances.forEach(instance -> {
-        LocalServiceInstance localInstance = (LocalServiceInstance) instance;
-        ms.inject(localInstance.serviceObject(), ms);
-      });
-
+      ms.injectServiceProxies();
       return ms;
     }
-
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
       Map<String, String> metadata = new HashMap<>();
@@ -369,12 +360,20 @@ public class Microservices {
     return this.cluster.shutdown();
   }
 
-  private void inject(Object service, Microservices ms) {
+  private void injectServiceProxies() {
+    this.services().stream()
+        .filter(instance -> instance.isLocal())
+        .collect(Collectors.toList()).forEach(instance -> {
+          this.inject(((LocalServiceInstance) instance).serviceObject());
+        });
+  }
+
+  private void inject(Object service) {
     try {
       for (Field field : service.getClass().getDeclaredFields()) {
         if (field.isAnnotationPresent(ServiceProxy.class) && field.getType().isInterface()) {
           field.setAccessible(true);
-          field.set(service, ms.proxy().api(field.getType()).create());
+          field.set(service, this.proxy().api(field.getType()).create());
         }
       }
     } catch (Exception ex) {
