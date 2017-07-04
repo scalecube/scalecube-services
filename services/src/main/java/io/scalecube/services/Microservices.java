@@ -359,6 +359,9 @@ public class Microservices {
     return this.cluster.shutdown();
   }
 
+  /**
+   * scan all local service instances and inject a service proxy.
+   */
   private void injectServiceProxies() {
     this.services().stream()
         .filter(instance -> instance.isLocal())
