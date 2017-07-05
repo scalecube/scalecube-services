@@ -6,7 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-final class GreetingServiceImpl implements GreetingService {
+public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public String toString() {
