@@ -6,6 +6,7 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -16,12 +17,14 @@ import io.scalecube.transport.TransportConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -188,10 +191,11 @@ public class Microservices {
         // create cluster and transport with given config.
         sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
       }
-
-      return new Microservices(cluster, sender, servicesConfig);
+      
+      Microservices ms = new Microservices(cluster, sender, servicesConfig);
+      ms.injectServiceProxies();
+      return ms;
     }
-
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
       Map<String, String> metadata = new HashMap<>();
@@ -353,5 +357,29 @@ public class Microservices {
 
   public CompletableFuture<Void> shutdown() {
     return this.cluster.shutdown();
+  }
+
+  /**
+   * scan all local service instances and inject a service proxy.
+   */
+  private void injectServiceProxies() {
+    this.services().stream()
+        .filter(instance -> instance.isLocal())
+        .collect(Collectors.toList()).forEach(instance -> {
+          this.inject(((LocalServiceInstance) instance).serviceObject());
+        });
+  }
+
+  private void inject(Object service) {
+    try {
+      for (Field field : service.getClass().getDeclaredFields()) {
+        if (field.isAnnotationPresent(ServiceProxy.class) && field.getType().isInterface()) {
+          field.setAccessible(true);
+          field.set(service, this.proxy().api(field.getType()).create());
+        }
+      }
+    } catch (Exception ex) {
+      LOGGER.error("failed to set service proxy of type: {} reason:{}", service.getClass().getName(), ex.getMessage());
+    }
   }
 }

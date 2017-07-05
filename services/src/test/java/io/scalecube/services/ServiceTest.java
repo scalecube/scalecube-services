@@ -648,12 +648,6 @@ public class ServiceTest extends BaseTest {
         .services(greeting, coarseGrained) // add service a and b
         .build();
 
-    // Get Proxy to greeting service.
-    GreetingService proxy = gateway.proxy().api(GreetingService.class).create();
-
-    // provide the proxy of service B
-    coarseGrained.setGreetingServiceProxy(proxy);;
-
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
     CountDownLatch countLatch = new CountDownLatch(1);
@@ -678,7 +672,7 @@ public class ServiceTest extends BaseTest {
     Microservices gateway = createSeed();
 
     // getting proxy from any node at any given time.
-    CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl(gateway.proxy().api(GreetingService.class).create());
+    CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 
