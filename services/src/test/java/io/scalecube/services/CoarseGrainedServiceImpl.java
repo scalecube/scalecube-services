@@ -9,7 +9,7 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 
 public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
-  @ServiceProxy(router = RoundRobinServiceRouter.class)
+  @ServiceProxy(router = RoundRobinServiceRouter.class, timeout = 3, timeUnit = TimeUnit.SECONDS)
   private GreetingService greetingService;
 
   @Inject
