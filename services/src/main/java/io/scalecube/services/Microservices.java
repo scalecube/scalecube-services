@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
+import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -373,13 +374,33 @@ public class Microservices {
   private void inject(Object service) {
     try {
       for (Field field : service.getClass().getDeclaredFields()) {
-        if (field.isAnnotationPresent(ServiceProxy.class) && field.getType().isInterface()) {
-          field.setAccessible(true);
-          field.set(service, this.proxy().api(field.getType()).create());
-        }
+        injectThisMicroservices(service, field);
+        injectServiceProxy(service, field);
       }
     } catch (Exception ex) {
       LOGGER.error("failed to set service proxy of type: {} reason:{}", service.getClass().getName(), ex.getMessage());
+    }
+  }
+
+  private void injectThisMicroservices(Object service, Field field) throws IllegalAccessException {
+    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
+      field.setAccessible(true);
+      field.set(service, this);
+    }
+  }
+
+  private void injectServiceProxy(Object service, Field field) throws IllegalAccessException {
+    if (field.isAnnotationPresent(ServiceProxy.class) && field.getType().isInterface()) {
+      ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
+      ProxyContext builder = this.proxy().api(field.getType());
+      if (annotation.router().equals(Router.class)) {
+        builder.router(annotation.router());
+      } else if (annotation.timeout() > 0) {
+        long nanos = annotation.timeUnit().toNanos(annotation.timeout());
+        builder.timeout(Duration.ofNanos(nanos));
+      }
+      field.setAccessible(true);
+      field.set(service, builder.create());
     }
   }
 }
