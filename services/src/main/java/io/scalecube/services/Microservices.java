@@ -393,12 +393,15 @@ public class Microservices {
     if (field.isAnnotationPresent(ServiceProxy.class) && field.getType().isInterface()) {
       ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
       ProxyContext builder = this.proxy().api(field.getType());
-      if (annotation.router().equals(Router.class)) {
+      if (!annotation.router().equals(Router.class)) {
         builder.router(annotation.router());
-      } else if (annotation.timeout() > 0) {
+      } 
+      
+      if (annotation.timeout() > 0) {
         long nanos = annotation.timeUnit().toNanos(annotation.timeout());
         builder.timeout(Duration.ofNanos(nanos));
       }
+      
       field.setAccessible(true);
       field.set(service, builder.create());
     }
