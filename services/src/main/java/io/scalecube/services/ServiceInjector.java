@@ -51,7 +51,7 @@ public class ServiceInjector {
     /**
      * scan all local service instances and inject a service proxy.
      */
-    void inject(Microservices ms) {
+    private void inject(Microservices ms) {
       ms.services().stream()
           .filter(instance -> instance.isLocal())
           .collect(Collectors.toList()).forEach(instance -> {
@@ -59,13 +59,13 @@ public class ServiceInjector {
           });
     }
 
-    void scanServiceFields(Object service) {
+    private void scanServiceFields(Object service) {
       for (Field field : service.getClass().getDeclaredFields()) {
         injectField(field, service);
       }
     }
 
-    void injectField(Field field, Object service) {
+    private void injectField(Field field, Object service) {
       if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
         setField(field, service, this.microservices);
       } else if (field.isAnnotationPresent(Inject.class) && isService(field)) {
@@ -75,11 +75,11 @@ public class ServiceInjector {
       }
     }
 
-    boolean isService(Field field) {
+    private boolean isService(Field field) {
       return field.getType().isAnnotationPresent(Service.class);
     }
 
-    void injectServiceProxy(Field field, Object service) {
+    private void injectServiceProxy(Field field, Object service) {
       ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
       ProxyContext builder = this.microservices.proxy().api(field.getType());
       if (!annotation.router().equals(Router.class)) {
@@ -92,7 +92,7 @@ public class ServiceInjector {
       setField(field, service, builder.create());
     }
 
-    void setField(Field field, Object object, Object value) {
+    private void setField(Field field, Object object, Object value) {
       try {
         field.setAccessible(true);
         field.set(object, value);
