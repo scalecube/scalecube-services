@@ -193,9 +193,7 @@ public class Microservices {
         sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
       }
       
-      Microservices ms = new Microservices(cluster, sender, servicesConfig);
-      ms.injectServiceProxies();
-      return ms;
+      return ServiceInjector.builder(new Microservices(cluster, sender, servicesConfig)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
@@ -360,50 +358,5 @@ public class Microservices {
     return this.cluster.shutdown();
   }
 
-  /**
-   * scan all local service instances and inject a service proxy.
-   */
-  private void injectServiceProxies() {
-    this.services().stream()
-        .filter(instance -> instance.isLocal())
-        .collect(Collectors.toList()).forEach(instance -> {
-          this.inject(((LocalServiceInstance) instance).serviceObject());
-        });
-  }
-
-  private void inject(Object service) {
-    try {
-      for (Field field : service.getClass().getDeclaredFields()) {
-        injectThisMicroservices(service, field);
-        injectServiceProxy(service, field);
-      }
-    } catch (Exception ex) {
-      LOGGER.error("failed to set service proxy of type: {} reason:{}", service.getClass().getName(), ex.getMessage());
-    }
-  }
-
-  private void injectThisMicroservices(Object service, Field field) throws IllegalAccessException {
-    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
-      field.setAccessible(true);
-      field.set(service, this);
-    }
-  }
-
-  private void injectServiceProxy(Object service, Field field) throws IllegalAccessException {
-    if (field.isAnnotationPresent(ServiceProxy.class) && field.getType().isInterface()) {
-      ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
-      ProxyContext builder = this.proxy().api(field.getType());
-      if (!annotation.router().equals(Router.class)) {
-        builder.router(annotation.router());
-      } 
-      
-      if (annotation.timeout() > 0) {
-        long nanos = annotation.timeUnit().toNanos(annotation.timeout());
-        builder.timeout(Duration.ofNanos(nanos));
-      }
-      
-      field.setAccessible(true);
-      field.set(service, builder.create());
-    }
-  }
+  
 }

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -579,14 +580,14 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .seeds(provider.cluster().address())
         .build();
-    
+
     // Create microservices cluster member.
     Microservices provider3 = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .seeds(provider.cluster().address())
         .build();
-    
+
     // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
@@ -667,7 +668,7 @@ public class ServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_serviceA_calls_serviceB_using_constractor() throws InterruptedException {
+  public void test_serviceA_calls_serviceB() throws InterruptedException {
 
     Microservices gateway = createSeed();
 
@@ -700,6 +701,76 @@ public class ServiceTest extends BaseTest {
     provider.cluster().shutdown();
 
   }
+
+  @Test
+  public void test_serviceA_calls_serviceB_with_timeout() throws InterruptedException {
+    CountDownLatch countLatch = new CountDownLatch(1);
+    Microservices gateway = createSeed();
+
+    // getting proxy from any node at any given time.
+    CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(greeting, another) // add service a and b
+        .build();
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    service.callGreetingTimeout("joe")
+        .whenComplete((success, error) -> {
+          if (error != null) {
+            assertTrue(error instanceof TimeoutException);
+            System.out.println("CoarseGrainedService.callGreetingTimeout: " + (error instanceof TimeoutException));
+            countLatch.countDown();
+          }
+        });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+
+  @Test
+  public void test_serviceA_calls_serviceB_with_dispatcher() throws InterruptedException {
+    CountDownLatch countLatch = new CountDownLatch(1);
+    Microservices gateway = createSeed();
+
+    // getting proxy from any node at any given time.
+    CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
+
+    GreetingServiceImpl greeting = new GreetingServiceImpl();
+
+    // Create microservices instance cluster.
+    Microservices provider = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .port(port.incrementAndGet())
+        .services(greeting, another) // add service a and b
+        .build();
+
+    // Get a proxy to the service api.
+    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    service.callGreetingWithDispatcher("joe")
+        .whenComplete((success, error) -> {
+          if (error == null) {
+            assertEquals(success, " hello to: joe");
+            countLatch.countDown();
+          }
+        });
+
+    countLatch.await(5, TimeUnit.SECONDS);
+    assertTrue(countLatch.getCount() == 0);
+    gateway.cluster().shutdown();
+    provider.cluster().shutdown();
+
+  }
+
 
   @Ignore
   @Test
@@ -743,7 +814,7 @@ public class ServiceTest extends BaseTest {
 
     await(timeLatch, 1, TimeUnit.SECONDS);
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
-    
+
     gateway.cluster().shutdown();
     services1.cluster().shutdown();
     services2.cluster().shutdown();

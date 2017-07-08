@@ -67,6 +67,7 @@ public class LocalServiceInstance implements ServiceInstance {
       }
       return result;
     } catch (Exception ex) {
+      ex.printStackTrace();
       return ex;
     }
   }

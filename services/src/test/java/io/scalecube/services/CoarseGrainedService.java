@@ -11,4 +11,10 @@ public interface CoarseGrainedService {
   @ServiceMethod
   public CompletableFuture<String> callGreeting(String name);
 
+  @ServiceMethod
+  public CompletableFuture<String> callGreetingTimeout(String request);
+
+  @ServiceMethod
+  public CompletableFuture<String> callGreetingWithDispatcher(String request);
+
 }
