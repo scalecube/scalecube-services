@@ -23,11 +23,11 @@ public class ServiceInjector {
   /**
    * Injector builder.
    * 
-   * @param Microservices instance to be injected.
-   * @return Microservices after injection.
+   * @param microservices instance to be injected.
+   * @return Builder for injection.
    */
-  public static Builder builder(Microservices ms) {
-    return new Builder(ms);
+  public static Builder builder(Microservices microservices) {
+    return new Builder(microservices);
   }
 
   static class Builder {
@@ -51,8 +51,8 @@ public class ServiceInjector {
     /**
      * scan all local service instances and inject a service proxy.
      */
-    private void inject(Microservices ms) {
-      ms.services().stream()
+    private void inject(Microservices microservices) {
+      microservices.services().stream()
           .filter(instance -> instance.isLocal())
           .collect(Collectors.toList()).forEach(instance -> {
             scanServiceFields(((LocalServiceInstance) instance).serviceObject());
