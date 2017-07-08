@@ -14,7 +14,6 @@ import java.time.Duration;
 import java.util.stream.Collectors;
 
 /**
- * 
  * Service Injector scan and injects beans to a given Microservices instance.
  *
  */
