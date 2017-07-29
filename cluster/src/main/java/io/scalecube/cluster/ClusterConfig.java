@@ -334,6 +334,10 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
       return new ClusterConfig(this);
     }
 
+    public Map<String, String> metadata() {
+      return this.metadata;
+    }
+
   }
 
 }

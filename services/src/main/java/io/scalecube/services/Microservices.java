@@ -193,13 +193,11 @@ public class Microservices {
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
-      Map<String, String> metadata = new HashMap<>();
+      Map<String, String> metadata = clusterConfig.metadata();
 
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        metadata = Microservices.metadata(servicesConfig);
+        metadata.putAll(Microservices.metadata(servicesConfig));
       }
-
-      clusterConfig.metadata(metadata);
 
       return clusterConfig.build();
     }
