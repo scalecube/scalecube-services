@@ -231,6 +231,10 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
       return this;
     }
 
+    public Map<String, String> metadata() {
+      return this.metadata;
+    }
+    
     public Builder seedMembers(Address... seedMembers) {
       this.seedMembers = Arrays.asList(seedMembers);
       return this;
@@ -333,11 +337,5 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
       Preconditions.checkState(pingTimeout < pingInterval, "Ping timeout can't be bigger than ping interval");
       return new ClusterConfig(this);
     }
-
-    public Map<String, String> metadata() {
-      return this.metadata;
-    }
-
   }
-
 }
