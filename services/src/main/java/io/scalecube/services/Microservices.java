@@ -202,7 +202,7 @@ public class Microservices {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
         metadata.putAll(Microservices.metadata(servicesConfig));
       }
-
+      clusterConfig.metadata(metadata);
       return clusterConfig.build();
     }
 
