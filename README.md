@@ -29,11 +29,11 @@ based on gossip protocol ad without single point-of-failure or bottlenecks.
 
 User Guide:
 
-* [Services Overview] (http://scalecube.io/services.html)
-* [Defining Services] (http://scalecube.io/user-reference/services/DefineService.html)
-* [Implementing services] (http://scalecube.io/user-reference/services/ServiceImplementation.html)
-* [Provisioning Clustered Services] (http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
-* [Consuming services] (http://scalecube.io/user-reference/services/ConsumingServices.html)
+* [Services Overview](http://scalecube.io/services.html)
+* [Defining Services](http://scalecube.io/user-reference/services/DefineService.html)
+* [Implementing services](http://scalecube.io/user-reference/services/ServiceImplementation.html)
+* [Provisioning Clustered Services](http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
+* [Consuming services](http://scalecube.io/user-reference/services/ConsumingServices.html)
 
 ### CLUSTER
 
