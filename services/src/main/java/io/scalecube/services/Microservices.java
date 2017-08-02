@@ -188,18 +188,17 @@ public class Microservices {
         // create cluster and transport with given config.
         sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
       }
-      
+
       return ServiceInjector.builder(new Microservices(cluster, sender, servicesConfig)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
-      Map<String, String> metadata = new HashMap<>();
-
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        metadata = Microservices.metadata(servicesConfig);
+        Map<String, String> metadata = new HashMap<>();
+        metadata.putAll(clusterConfig.metadata());
+        metadata.putAll(Microservices.metadata(servicesConfig));
+        clusterConfig.metadata(metadata);
       }
-
-      clusterConfig.metadata(metadata);
 
       return clusterConfig.build();
     }
@@ -239,11 +238,11 @@ public class Microservices {
 
       return this;
     }
-    
+
     public ServicesConfig.Builder services() {
       return ServicesConfig.builder(this);
     }
-    
+
     /**
      * Services list to be registered.
      * 
@@ -287,7 +286,7 @@ public class Microservices {
       this.router = routerType;
       return this;
     }
-    
+
     public Class<? extends Router> router() {
       return this.router;
     }
@@ -354,5 +353,5 @@ public class Microservices {
     return this.cluster.shutdown();
   }
 
-  
+
 }

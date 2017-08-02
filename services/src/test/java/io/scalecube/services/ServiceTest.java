@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
@@ -15,6 +17,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -818,6 +824,19 @@ public class ServiceTest extends BaseTest {
     gateway.cluster().shutdown();
     services1.cluster().shutdown();
     services2.cluster().shutdown();
+  }
+
+  @Test
+  public void test_services_contribute_to_cluster_metadata() {
+    Map<String, String> metadata = new HashMap<>();
+    metadata.put("HOSTNAME", "host1");
+    Builder clusterConfig = ClusterConfig.builder().metadata(metadata);
+    Microservices ms = Microservices.builder()
+        .clusterConfig(clusterConfig)
+        .services(new GreetingServiceImpl()).build();
+
+    assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));
+    assertTrue(ms.cluster().member().metadata().containsKey("io.scalecube.services.GreetingService:tags:"));
   }
 
   private GreetingService createProxy(Microservices gateway) {
