@@ -24,7 +24,7 @@ public class SimpleQuoteService implements QuoteService {
     job.scheduleAtFixedRate(()->{
       quotes.onNext("quote : " + i.get());
       i.incrementAndGet();
-    }, 1, 1, TimeUnit.SECONDS);
+    }, 1, 1, TimeUnit.MILLISECONDS);
     
     return quotes.serialize();
   }
