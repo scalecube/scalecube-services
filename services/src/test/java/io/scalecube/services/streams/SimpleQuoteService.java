@@ -4,6 +4,7 @@ import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -27,6 +28,16 @@ public class SimpleQuoteService implements QuoteService {
       i.incrementAndGet();
     }, 1, 1, TimeUnit.MILLISECONDS);
 
+    return quotes.serialize();
+  }
+
+  @Override
+  public Observable<String> snapshoot(int size) {
+    CompletableFuture.runAsync(() -> {
+      for (int i = 0; i < size; i++) {
+        quotes.onNext("quote : " + i);
+      }
+    });
     return quotes.serialize();
   }
 

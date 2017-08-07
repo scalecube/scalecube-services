@@ -11,4 +11,6 @@ public interface QuoteService {
   @ServiceMethod
   Observable<String> quotes(int index);
 
+  @ServiceMethod
+  Observable<String> snapshoot(int index);
 }
