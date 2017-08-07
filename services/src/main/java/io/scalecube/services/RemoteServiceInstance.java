@@ -2,11 +2,14 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import rx.Observable;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -24,10 +27,10 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String serviceName;
   private final Map<String, String> tags;
   private final ServiceCommunicator sender;
-  
+
   private ServiceRegistry serviceRegistry;
 
-  
+
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -89,16 +92,49 @@ public class RemoteServiceInstance implements ServiceInstance {
 
     // Try to call via messaging
     if (method.getReturnType().equals(CompletableFuture.class)) {
-      if (extractGenericReturnType(method).equals(Message.class)) {
-        return futureInvoke(request, message -> message);
-      } else {
-        return futureInvoke(request, Message::data);
-      }
+      return invokeFuture(request, method);
     } else if (method.getReturnType().equals(Void.TYPE)) {
       return futureInvoke(request, message -> request.correlationId());
+    } else if (method.getReturnType().equals(Observable.class)) {
+      return invokeObservable(request, method);
     } else {
       throw new UnsupportedOperationException("Unsupported return type for method: " + method);
     }
+  }
+
+  private Object invokeFuture(Message request, Method method) throws Exception {
+    if (extractGenericReturnType(method).equals(Message.class)) {
+      return futureInvoke(request, message -> message);
+    } else {
+      return futureInvoke(request, Message::data);
+    }
+  }
+
+  private Object invokeObservable(Message request, Method method) {
+    if (extractGenericReturnType(method).equals(Message.class)) {
+      return observable(request, message -> message);
+    } else {
+      return observable(request, Message::data);
+    }
+  }
+
+  private Observable<?> observable(final Message request, final Function<Message, ?> func) {
+    
+    final String cid = IdGenerator.generateId();
+    
+    final Message message = Message.with(request)
+        .correlationId(cid)
+        .build();
+    
+    final Observable<Object> observer = this.sender.listen()
+        .filter(msg -> msg.correlationId().equals(cid))
+        .map(t -> {
+          return func.apply(t);
+        });
+
+    sender.send(address, message);
+
+    return observer;
   }
 
   private Type extractGenericReturnType(Method method) {

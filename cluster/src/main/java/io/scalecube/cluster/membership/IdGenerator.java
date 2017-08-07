@@ -5,7 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-final class IdGenerator {
+public final class IdGenerator {
 
   private static final int DEFAULT_SIZE = 10;
 

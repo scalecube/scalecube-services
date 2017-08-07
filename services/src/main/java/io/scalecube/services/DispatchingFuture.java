@@ -3,6 +3,8 @@ package io.scalecube.services;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Message;
 
+import rx.Observable;
+
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -56,6 +58,8 @@ public class DispatchingFuture {
       handleComputable(cluster, CompletableFuture.class.cast(value));
     } else if (value == null) {
       handleComputable(cluster, CompletableFuture.completedFuture(null));
+    } else if (value instanceof Observable<?>) {
+      handleObservable(cluster,Observable.class.cast(value));
     }
   }
 
@@ -74,21 +78,33 @@ public class DispatchingFuture {
     cluster.send(request.sender(), errorResponseMsg);
   }
 
-
+  private void handleObservable(Cluster cluster, Observable<?> observable) {
+    observable.subscribe(onNext->{
+      Message message; 
+      if (onNext instanceof Message) {
+        Message next = (Message) onNext;
+        message = composeResponse(next.data());
+      } else {
+        message = composeResponse(onNext);
+      }
+      cluster.send(request.sender(), message);
+    });
+  }
+  
   private void handleComputable(final Cluster cluster, CompletableFuture<?> result) {
     result.whenComplete((success, error) -> {
-      Message futureMessage = null;
+      Message message = null;
       if (error == null) {
         if (success instanceof Message) {
           Message successMessage = (Message) success;
-          futureMessage = composeResponse(successMessage.data());
+          message = composeResponse(successMessage.data());
         } else {
-          futureMessage = composeResponse(success);
+          message = composeResponse(success);
         }
       } else {
         completeExceptionally(error);
       }
-      cluster.send(request.sender(), futureMessage);
+      cluster.send(request.sender(), message);
     });
   }
 

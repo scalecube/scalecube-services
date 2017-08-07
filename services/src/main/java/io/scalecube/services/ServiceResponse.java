@@ -25,10 +25,10 @@ public class ServiceResponse {
   private static final ConcurrentMap<String, ServiceResponse> futures = new ConcurrentHashMap<>();
 
   private final String correlationId;
-  private final Function<Message, Object> function;
+  private final Function<Message, ?> function;
   private final CompletableFuture<Object> messageFuture;
 
-  public ServiceResponse(Function<Message, Object> fn) {
+  public ServiceResponse(Function<Message, ?> fn) {
     this.correlationId = generateId();
     this.function = fn;
     this.messageFuture = new CompletableFuture<>();
@@ -42,7 +42,7 @@ public class ServiceResponse {
    * @return ResponseFuture pending completion.
    */
   public static Optional<ServiceResponse> get(String correlationId) {
-    return Optional.of(futures.get(correlationId));
+    return Optional.ofNullable(futures.get(correlationId));
   }
 
   /**

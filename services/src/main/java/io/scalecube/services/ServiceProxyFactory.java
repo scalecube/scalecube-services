@@ -67,14 +67,13 @@ public class ServiceProxyFactory {
 
           if (optionalServiceInstance.isPresent()) {
             ServiceInstance serviceInstance = optionalServiceInstance.get();
-
-            CompletableFuture<?> resultFuture =
-                (CompletableFuture<?>) serviceInstance.invoke(reqMsg);
-
-            if (method.getReturnType().equals(Void.TYPE)) {
-              return CompletableFuture.completedFuture(Void.TYPE);
-            } else {
+            
+            if (method.getReturnType().equals(CompletableFuture.class)){
+              CompletableFuture<?> resultFuture =
+                  (CompletableFuture<?>) serviceInstance.invoke(reqMsg);
               return timeoutAfter(resultFuture, timeout);
+            } else {
+              return serviceInstance.invoke(reqMsg);
             }
           } else {
             LOGGER.error(
