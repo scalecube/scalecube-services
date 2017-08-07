@@ -48,7 +48,7 @@ public class ServiceProxyFactory {
       Duration timeout) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
-    
+
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
       @Override
@@ -62,13 +62,13 @@ public class ServiceProxyFactory {
               .header(ServiceHeaders.SERVICE_REQUEST, serviceDefinition.serviceName())
               .header(ServiceHeaders.METHOD, method.getName())
               .build();
-          
+
           Optional<ServiceInstance> optionalServiceInstance = router.route(reqMsg);
 
           if (optionalServiceInstance.isPresent()) {
             ServiceInstance serviceInstance = optionalServiceInstance.get();
-            
-            if (method.getReturnType().equals(CompletableFuture.class)){
+
+            if (method.getReturnType().equals(CompletableFuture.class)) {
               CompletableFuture<?> resultFuture =
                   (CompletableFuture<?>) serviceInstance.invoke(reqMsg);
               return timeoutAfter(resultFuture, timeout);

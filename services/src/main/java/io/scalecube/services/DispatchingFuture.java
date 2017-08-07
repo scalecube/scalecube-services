@@ -59,7 +59,7 @@ public class DispatchingFuture {
     } else if (value == null) {
       handleComputable(cluster, CompletableFuture.completedFuture(null));
     } else if (value instanceof Observable<?>) {
-      handleObservable(cluster,Observable.class.cast(value));
+      handleObservable(cluster, Observable.class.cast(value));
     }
   }
 
@@ -79,8 +79,8 @@ public class DispatchingFuture {
   }
 
   private void handleObservable(Cluster cluster, Observable<?> observable) {
-    observable.subscribe(onNext->{
-      Message message; 
+    observable.subscribe(onNext -> {
+      Message message;
       if (onNext instanceof Message) {
         Message next = (Message) onNext;
         message = composeResponse(next.data());
@@ -90,7 +90,7 @@ public class DispatchingFuture {
       cluster.send(request.sender(), message);
     });
   }
-  
+
   private void handleComputable(final Cluster cluster, CompletableFuture<?> result) {
     result.whenComplete((success, error) -> {
       Message message = null;
