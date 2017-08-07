@@ -53,18 +53,28 @@ public class TestStreamingService {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
+    
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
-    CountDownLatch latch = new CountDownLatch(3);
-
-    Subscription sub = service.quotes(2)
+    CountDownLatch latch1 = new CountDownLatch(3);
+    CountDownLatch latch2 = new CountDownLatch(3);
+    Subscription sub1 = service.quotes(2)
         .subscribe(onNext -> {
-          System.out.println("test_remote_quotes_service: " + onNext);
-          latch.countDown();
+          System.out.println("test_remote_quotes_service-2: " + onNext);
+          latch1.countDown();
         });
 
-    latch.await(1, TimeUnit.SECONDS);
-    sub.unsubscribe();
-    assertTrue(latch.getCount() <= 0);
+    Subscription sub2 = service.quotes(10)
+        .subscribe(onNext -> {
+          System.out.println("test_remote_quotes_service-10: " + onNext);
+          latch2.countDown();
+        });
+    
+    latch1.await(1, TimeUnit.SECONDS);
+    latch2.await(1, TimeUnit.SECONDS);
+    sub1.unsubscribe();
+    sub2.unsubscribe();
+    assertTrue(latch1.getCount() <= 0);
+    assertTrue(latch2.getCount() <= 0);
     System.out.println("done");
     gateway.shutdown();
     node.shutdown();

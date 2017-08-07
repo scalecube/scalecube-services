@@ -12,20 +12,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SimpleQuoteService implements QuoteService {
 
   private final Subject<String, String> quotes = PublishSubject.<String>create();
-  final AtomicInteger i = new AtomicInteger(0);
-  
+  final AtomicInteger i = new AtomicInteger(1);
+
   final ScheduledExecutorService job = Executors.newScheduledThreadPool(1);
-  
-  public SimpleQuoteService() {  
-  }
+
+  public SimpleQuoteService() {}
 
   @Override
   public Observable<String> quotes(int maxSize) {
-    job.scheduleAtFixedRate(()->{
-      quotes.onNext("quote : " + i.get());
+    job.scheduleAtFixedRate(() -> {
+      if ((i.get() % maxSize) == 0) {
+        quotes.onNext("quote : " + i.get());
+      }
       i.incrementAndGet();
     }, 1, 1, TimeUnit.MILLISECONDS);
-    
+
     return quotes.serialize();
   }
 
