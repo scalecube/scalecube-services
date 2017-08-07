@@ -43,6 +43,13 @@ public final class IdGenerator {
     return generateId(length, ThreadLocalRandom.current());
   }
 
+  /**
+   * Generate id by a given length.
+   * 
+   * @param length of the key to be generated.
+   * @param random strategy to be used.
+   * @return generated key.
+   */
   public static String generateId(int length, Random random) {
     byte[] buffer = new byte[length];
 
