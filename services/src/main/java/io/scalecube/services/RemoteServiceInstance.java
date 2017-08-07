@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -119,20 +120,26 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   private Observable<?> observable(final Message request, final Function<Message, ?> func) {
-    
+
     final String cid = IdGenerator.generateId();
-    
+
     final Message message = Message.with(request)
         .correlationId(cid)
         .build();
-    
+
     final Observable<Object> observer = this.sender.listen()
         .filter(msg -> msg.correlationId().equals(cid))
         .map(t -> {
           return func.apply(t);
         });
 
-    sender.send(address, message);
+    sender.send(address, message).whenComplete((response, error) -> {
+      if (error != null) {
+        // if failed to reach endpoint unsubsribe.
+        observer.unsubscribeOn(Schedulers.computation());
+      }
+
+    });
 
     return observer;
   }

@@ -1,16 +1,15 @@
 package io.scalecube.services;
 
+import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
 /**
@@ -89,7 +88,7 @@ public class ServiceResponse {
   }
 
   private String generateId() {
-    return new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString();
+    return IdGenerator.generateId();
   }
 
 }
