@@ -6,7 +6,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import rx.Observable;
 
 @Service
-public interface StreamingService {
+public interface QuoteService {
 
   @ServiceMethod
   Observable<String> quotes(int index);

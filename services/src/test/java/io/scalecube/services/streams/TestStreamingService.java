@@ -7,8 +7,10 @@ import io.scalecube.services.Microservices;
 import org.junit.Test;
 
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class TestStreamingService {
@@ -16,42 +18,44 @@ public class TestStreamingService {
   @Test
   public void test_quotes() {
 
-
-    StreamingService service = new SimpleStreamingService();
-
+    QuoteService service = new SimpleQuoteService();
     service.quotes(2).subscribe(onNext -> {
-      System.out.println(onNext);
+      System.out.println("test_quotes: " + onNext);
     });
+
   }
 
   @Test
   public void test_local_quotes_service() {
-    Microservices node = Microservices.builder().services( new SimpleStreamingService()).build();
-    
-    StreamingService service = node.proxy().api(StreamingService.class).create();
-    
+    Microservices node = Microservices.builder().services(new SimpleQuoteService()).build();
+
+    QuoteService service = node.proxy().api(QuoteService.class).create();
+
     service.quotes(2).subscribe(onNext -> {
-      System.out.println(onNext);
+      System.out.println("test_local_quotes_service: " + onNext);
     });
   }
-  
+
   @Test
   public void test_remote_quotes_service() throws InterruptedException {
     Microservices gateway = Microservices.builder().build();
-    
-    Microservices node = Microservices.builder()
+
+    Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services( new SimpleStreamingService()).build();
-    
-    StreamingService service = gateway.proxy().api(StreamingService.class).create();
+        .services(new SimpleQuoteService()).build();
+
+    QuoteService service = gateway.proxy().api(QuoteService.class).create();
     CountDownLatch latch = new CountDownLatch(3);
-    Subscription sub = service.quotes(2).subscribe(onNext -> {
-      System.out.println(onNext);
-      latch.countDown();
-    });
+    
+    Subscription sub = service.quotes(2)
+        .subscribe(onNext -> {
+          System.out.println("test_remote_quotes_service: " + onNext);
+          latch.countDown();
+        });
+    
     latch.await(4, TimeUnit.SECONDS);
     sub.unsubscribe();
-    assertTrue(latch.getCount()==0);
+    assertTrue(latch.getCount() == 0);
     System.out.println("done");
   }
 }
