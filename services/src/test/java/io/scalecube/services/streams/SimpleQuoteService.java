@@ -1,9 +1,11 @@
 package io.scalecube.services.streams;
 
 import rx.Observable;
+import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,10 +37,21 @@ public class SimpleQuoteService implements QuoteService {
   public Observable<String> snapshoot(int size) {
     CompletableFuture.runAsync(() -> {
       for (int i = 0; i < size; i++) {
+        pause(i); // slow down sending.
         quotes.onNext("quote : " + i);
       }
     });
-    return quotes.serialize();
+
+    return quotes.onBackpressureBuffer();
+  }
+
+  private void pause(int i) {
+    if (i % 5000 == 0) {
+      try {
+        Thread.sleep(1);
+      } catch (InterruptedException e) {
+      }
+    }
   }
 
 }

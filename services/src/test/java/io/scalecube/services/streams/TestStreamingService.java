@@ -12,6 +12,7 @@ import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class TestStreamingService {
@@ -42,7 +43,7 @@ public class TestStreamingService {
       latch.countDown();
     });
     latch.await(1, TimeUnit.SECONDS);
-    
+
     sub.unsubscribe();
     assertTrue(latch.getCount() <= 0);
     node.shutdown();
@@ -56,11 +57,12 @@ public class TestStreamingService {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    
+
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
-   
+
+
     Subscription sub1 = service.quotes(2)
         .subscribe(onNext -> {
           System.out.println("test_remote_quotes_service-2: " + onNext);
@@ -72,7 +74,7 @@ public class TestStreamingService {
           System.out.println("test_remote_quotes_service-10: " + onNext);
           latch2.countDown();
         });
-    
+
     latch1.await(1, TimeUnit.SECONDS);
     latch2.await(1, TimeUnit.SECONDS);
     sub1.unsubscribe();
@@ -83,7 +85,7 @@ public class TestStreamingService {
     gateway.shutdown();
     node.shutdown();
   }
-  
+
   @Test
   public void test_quotes_snapshot() throws InterruptedException {
     Microservices gateway = Microservices.builder().build();
@@ -92,23 +94,27 @@ public class TestStreamingService {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    
-    QuoteService service = gateway.proxy().api(QuoteService.class).create();
-    int batchSize = 100_000;
-    CountDownLatch latch1 = new CountDownLatch(batchSize);
-  
-    Subscription sub1 = service.snapshoot(batchSize)
-        .onBackpressureBuffer()
-        .serialize()
-        .subscribeOn(Schedulers.computation())
-        .subscribe(onNext -> {
-          latch1.countDown();
-        });
 
-    latch1.await(30, TimeUnit.SECONDS);
-    System.out.println("done: " + latch1.getCount());
-    assertTrue(latch1.getCount() <= 0);
+    QuoteService service = gateway.proxy().api(QuoteService.class).create();
+    int batchSize = 1_000_000;
+    long start = System.currentTimeMillis();
+    CountDownLatch latch1 = new CountDownLatch(batchSize);
+
+    Subscription sub1 = service.snapshoot(batchSize)
+        .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
+        .serialize()
+        .subscribe(onNext -> latch1.countDown());
     
+
+    latch1.await(batchSize/40_000, TimeUnit.SECONDS);
+    long end = (System.currentTimeMillis() - start);
+    System.out.println("DONE! - recived batch (size: " 
+        + (batchSize - latch1.getCount()) + "/" + batchSize + ") in "
+        + (System.currentTimeMillis() - start) + "ms: "
+        + "rate of :" + batchSize/(end/1000) +" events/sec ");
+
+    assertTrue(latch1.getCount() <= 0);
+
     sub1.unsubscribe();
     gateway.shutdown();
     node.shutdown();
