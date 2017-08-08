@@ -94,9 +94,10 @@ public class TestStreamingService {
 
     
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
-    CountDownLatch latch1 = new CountDownLatch(100_000);
+    int batchSize = 100_000;
+    CountDownLatch latch1 = new CountDownLatch(batchSize);
   
-    Subscription sub1 = service.snapshoot(100_000)
+    Subscription sub1 = service.snapshoot(batchSize)
         .onBackpressureBuffer()
         .serialize()
         .subscribeOn(Schedulers.computation())
