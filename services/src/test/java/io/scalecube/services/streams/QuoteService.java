@@ -5,8 +5,10 @@ import io.scalecube.services.annotations.ServiceMethod;
 
 import rx.Observable;
 
-@Service
+@Service(QuoteService.NAME)
 public interface QuoteService {
+
+  String NAME = "sc-quote-service";
 
   @ServiceMethod
   Observable<String> quotes(int index);

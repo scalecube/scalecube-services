@@ -3,6 +3,7 @@ package io.scalecube.services.streams;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 
 import org.junit.Test;
 
@@ -88,32 +89,67 @@ public class TestStreamingService {
 
   @Test
   public void test_quotes_snapshot() throws InterruptedException {
+    int batchSize = 1_000_000;
+
     Microservices gateway = Microservices.builder().build();
 
     Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
-    int batchSize = 1_000_000;
-    long start = System.currentTimeMillis();
+
     CountDownLatch latch1 = new CountDownLatch(batchSize);
 
     Subscription sub1 = service.snapshoot(batchSize)
         .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
         .serialize()
         .subscribe(onNext -> latch1.countDown());
-    
 
-    latch1.await(batchSize/40_000, TimeUnit.SECONDS);
+    long start = System.currentTimeMillis();
+    latch1.await(batchSize / 60_000, TimeUnit.SECONDS);
     long end = (System.currentTimeMillis() - start);
-    System.out.println("DONE! - recived batch (size: " 
+
+    System.out.println("TIME IS UP! - recived batch (size: "
         + (batchSize - latch1.getCount()) + "/" + batchSize + ") in "
         + (System.currentTimeMillis() - start) + "ms: "
-        + "rate of :" + batchSize/(end/1000) +" events/sec ");
+        + "rate of :" + batchSize / (end / 1000) + " events/sec ");
 
     assertTrue(latch1.getCount() <= 0);
+
+    sub1.unsubscribe();
+    gateway.shutdown();
+    node.shutdown();
+  }
+
+  @Test
+  public void test_call_quotes_snapshot() throws InterruptedException {
+    int batchSize = 1_000_000;
+    Microservices gateway = Microservices.builder().build();
+
+    Microservices node = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new SimpleQuoteService()).build();
+
+    ServiceCall service = gateway.dispatcher().create();
+
+    CountDownLatch latch1 = new CountDownLatch(batchSize);
+    Subscription sub1 = service.listen(ServiceCall.request(QuoteService.NAME, "snapshoot")
+        .data(batchSize)
+        .build())
+
+        .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
+        .serialize()
+        .subscribe(onNext -> latch1.countDown());
+
+    long start = System.currentTimeMillis();
+    latch1.await(batchSize / 50_000, TimeUnit.SECONDS);
+    long end = (System.currentTimeMillis() - start);
+
+    System.out.println("TIME IS UP! - recived batch (size: "
+        + (batchSize - latch1.getCount()) + "/" + batchSize + ") in "
+        + (System.currentTimeMillis() - start) + "ms: "
+        + "rate of :" + batchSize / (end / 1000) + " events/sec ");
 
     sub1.unsubscribe();
     gateway.shutdown();

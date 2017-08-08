@@ -79,6 +79,18 @@ public class RemoteServiceInstance implements ServiceInstance {
     return futureInvoke(requestMessage, message -> message);
   }
 
+  public Observable<?> listen(Message request) throws Exception {
+
+    // Resolve method
+    String methodName = request.header(ServiceHeaders.METHOD);
+    checkArgument(methodName != null, "Method name can't be null");
+
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    checkArgument(serviceName != null, "Service request can't be null");
+
+    return observable(request, message -> message);
+  }
+  
   @Override
   public Object invoke(Message request) throws Exception {
     checkArgument(request != null, "Service request can't be null");

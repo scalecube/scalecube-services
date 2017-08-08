@@ -7,6 +7,8 @@ import io.scalecube.transport.Message.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Observable;
+
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -68,6 +70,41 @@ public class ServiceCall {
           "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
           methodName, request.data(), ex);
       throw new IllegalStateException("No reachable member with such service: " + methodName);
+    }
+  }
+
+  public <T> Observable<?> listen(Message request) {
+    
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    String methodName = request.header(ServiceHeaders.METHOD);
+    try {
+
+      Optional<ServiceInstance> optionalServiceInstance = router.route(request);
+
+      if (optionalServiceInstance.isPresent()) {
+        return this.listen(request, optionalServiceInstance.get(), timeout);
+      } else {
+        LOGGER.error(
+            "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
+            serviceName, request);
+        throw new IllegalStateException("No reachable member with such service: " + methodName);
+      }
+
+    } catch (Throwable ex) {
+      LOGGER.error(
+          "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
+          methodName, request.data(), ex);
+      throw new IllegalStateException("No reachable member with such service: " + methodName);
+    }
+    
+  }
+  
+  private <T> Observable<?> listen(Message request, ServiceInstance serviceInstance, Duration timeout) throws Exception {
+    if(serviceInstance.isLocal()) {
+      return (Observable<Message>) serviceInstance.invoke(request);
+    } else {
+      RemoteServiceInstance remote = (RemoteServiceInstance) serviceInstance;
+      return remote.listen(request);
     }
   }
 
@@ -169,4 +206,6 @@ public class ServiceCall {
         .header(ServiceHeaders.METHOD, methodName);
 
   }
+
+  
 }
