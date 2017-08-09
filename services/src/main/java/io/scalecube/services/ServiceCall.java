@@ -73,7 +73,8 @@ public class ServiceCall {
     }
   }
 
-  public <T> Observable<?> listen(Message request) {
+  
+  public <T> Observable<Message> listen(Message request) {
     
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
     String methodName = request.header(ServiceHeaders.METHOD);
@@ -99,7 +100,7 @@ public class ServiceCall {
     
   }
   
-  private <T> Observable<?> listen(Message request, ServiceInstance serviceInstance, Duration timeout) throws Exception {
+  private <T> Observable<Message> listen(Message request, ServiceInstance serviceInstance, Duration timeout) throws Exception {
     if(serviceInstance.isLocal()) {
       return (Observable<Message>) serviceInstance.invoke(request);
     } else {

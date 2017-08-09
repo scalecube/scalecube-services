@@ -79,7 +79,16 @@ public class RemoteServiceInstance implements ServiceInstance {
     return futureInvoke(requestMessage, message -> message);
   }
 
-  public Observable<?> listen(Message request) throws Exception {
+  /**
+   * listen on message Observable. invoke a service request by a given service name and method name. expected headers in
+   * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
+   * invoke.
+   * 
+   * @param request request with given headers.
+   * @return Observable of message stream from the requested service.
+   * @throws Exception in case of an error
+   */
+  public Observable<Message> listen(Message request) throws Exception {
 
     // Resolve method
     String methodName = request.header(ServiceHeaders.METHOD);
@@ -88,9 +97,9 @@ public class RemoteServiceInstance implements ServiceInstance {
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
     checkArgument(serviceName != null, "Service request can't be null");
 
-    return observable(request, message -> message);
+    return (Observable<Message>) observable(request, message -> message);
   }
-  
+
   @Override
   public Object invoke(Message request) throws Exception {
     checkArgument(request != null, "Service request can't be null");
@@ -111,7 +120,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     } else if (method.getReturnType().equals(Observable.class)) {
       return invokeObservable(request, method);
     } else {
-      throw new UnsupportedOperationException("Unsupported return type for method: " + method);
+      throw new UnsupportedOperationException("Unsupported remote call with return type for method: " + method);
     }
   }
 
@@ -121,6 +130,30 @@ public class RemoteServiceInstance implements ServiceInstance {
     } else {
       return futureInvoke(request, Message::data);
     }
+  }
+
+  private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
+
+    ServiceResponse responseFuture = new ServiceResponse(fn);
+
+    Message requestMessage = composeRequest(request, responseFuture.correlationId());
+
+    CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
+    // check that send operation completed successfully else report an error
+    sendFuture.whenComplete((success, error) -> {
+      if (error != null) {
+        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
+            requestMessage.correlationId(),
+            requestMessage, error);
+
+        // if send future faild then complete the response future Exceptionally.
+        Optional<ServiceResponse> future = ServiceResponse.get(requestMessage.correlationId());
+        if (future.isPresent()) {
+          future.get().completeExceptionally(error);
+        }
+      }
+    });
+    return responseFuture.future();
   }
 
   private Object invokeObservable(Message request, Method method) {
@@ -163,30 +196,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     } else {
       return Object.class;
     }
-  }
-
-  private CompletableFuture<Object> futureInvoke(final Message request, Function<Message, Object> fn) throws Exception {
-
-    ServiceResponse responseFuture = new ServiceResponse(fn);
-
-    Message requestMessage = composeRequest(request, responseFuture.correlationId());
-
-    CompletableFuture<Void> sendFuture = sendRemote(requestMessage);
-    // check that send operation completed successfully else report an error
-    sendFuture.whenComplete((success, error) -> {
-      if (error != null) {
-        LOGGER.debug("cid [{}] send remote service request message failed {} , error {}",
-            requestMessage.correlationId(),
-            requestMessage, error);
-
-        // if send future faild then complete the response future Exceptionally.
-        Optional<ServiceResponse> future = ServiceResponse.get(requestMessage.correlationId());
-        if (future.isPresent()) {
-          future.get().completeExceptionally(error);
-        }
-      }
-    });
-    return responseFuture.future();
   }
 
   private CompletableFuture<Void> sendRemote(Message requestMessage) {
