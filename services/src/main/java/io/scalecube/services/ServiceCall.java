@@ -115,9 +115,16 @@ public class ServiceCall {
     }
   }
 
-  
-  public <T> Observable<Message> listen(Message request) {
-    
+  /**
+   * listen on a message stream from endpoint. Sends a request message and invoke a service by a given service name and
+   * method name. expected headers in request: ServiceHeaders.SERVICE_REQUEST the logical name of the service.
+   * ServiceHeaders.METHOD the method name to invoke.
+   * 
+   * @param request request with given headers.
+   * @return Message Observable stream from service requests.
+   */
+  public Observable<Message> listen(Message request) {
+
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
     String methodName = request.header(ServiceHeaders.METHOD);
     try {
@@ -139,10 +146,11 @@ public class ServiceCall {
           methodName, request.data(), ex);
       throw new IllegalStateException("No reachable member with such service: " + methodName);
     }
-    
+
   }
-  
-  private <T> Observable<T> listen(Message request, ServiceInstance serviceInstance, Duration timeout) throws Exception {
+
+  private <T> Observable<T> listen(Message request, ServiceInstance serviceInstance, Duration timeout)
+      throws Exception {
     return (Observable<T>) serviceInstance.listen(request);
   }
 
@@ -203,5 +211,5 @@ public class ServiceCall {
 
   }
 
-  
+
 }
