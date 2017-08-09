@@ -132,7 +132,7 @@ public class ServiceCall {
       Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
       if (optionalServiceInstance.isPresent()) {
-        return this.listen(request, optionalServiceInstance.get(), timeout);
+        return this.listen(request, optionalServiceInstance.get());
       } else {
         LOGGER.error(
             "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
@@ -149,8 +149,7 @@ public class ServiceCall {
 
   }
 
-  private <T> Observable<T> listen(Message request, ServiceInstance serviceInstance, Duration timeout)
-      throws Exception {
+  private <T> Observable<T> listen(Message request, ServiceInstance serviceInstance) throws Exception {
     return (Observable<T>) serviceInstance.listen(request);
   }
 
@@ -208,8 +207,5 @@ public class ServiceCall {
     return Message.builder()
         .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
         .header(ServiceHeaders.METHOD, methodName);
-
   }
-
-
 }
