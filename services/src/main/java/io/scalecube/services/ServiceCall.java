@@ -73,42 +73,6 @@ public class ServiceCall {
     }
   }
 
-  
-  public <T> Observable<Message> listen(Message request) {
-    
-    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-    String methodName = request.header(ServiceHeaders.METHOD);
-    try {
-
-      Optional<ServiceInstance> optionalServiceInstance = router.route(request);
-
-      if (optionalServiceInstance.isPresent()) {
-        return this.listen(request, optionalServiceInstance.get(), timeout);
-      } else {
-        LOGGER.error(
-            "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
-            serviceName, request);
-        throw new IllegalStateException("No reachable member with such service: " + methodName);
-      }
-
-    } catch (Throwable ex) {
-      LOGGER.error(
-          "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
-          methodName, request.data(), ex);
-      throw new IllegalStateException("No reachable member with such service: " + methodName);
-    }
-    
-  }
-  
-  private <T> Observable<Message> listen(Message request, ServiceInstance serviceInstance, Duration timeout) throws Exception {
-    if(serviceInstance.isLocal()) {
-      return (Observable<Message>) serviceInstance.invoke(request);
-    } else {
-      RemoteServiceInstance remote = (RemoteServiceInstance) serviceInstance;
-      return remote.listen(request);
-    }
-  }
-
   /**
    * Dispatch a request message and invoke a service by a given service name and method name. expected headers in
    * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
@@ -149,6 +113,37 @@ public class ServiceCall {
 
       return (CompletableFuture<Message>) timeoutAfter(resultFuture, timeout);
     }
+  }
+
+  
+  public <T> Observable<Message> listen(Message request) {
+    
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    String methodName = request.header(ServiceHeaders.METHOD);
+    try {
+
+      Optional<ServiceInstance> optionalServiceInstance = router.route(request);
+
+      if (optionalServiceInstance.isPresent()) {
+        return this.listen(request, optionalServiceInstance.get(), timeout);
+      } else {
+        LOGGER.error(
+            "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
+            serviceName, request);
+        throw new IllegalStateException("No reachable member with such service: " + methodName);
+      }
+
+    } catch (Throwable ex) {
+      LOGGER.error(
+          "Failed  to invoke service, No reachable member with such service method [{}], args [{}], error [{}]",
+          methodName, request.data(), ex);
+      throw new IllegalStateException("No reachable member with such service: " + methodName);
+    }
+    
+  }
+  
+  private <T> Observable<T> listen(Message request, ServiceInstance serviceInstance, Duration timeout) throws Exception {
+    return (Observable<T>) serviceInstance.listen(request);
   }
 
   private <T> Message toMessage(Message request, T result) {

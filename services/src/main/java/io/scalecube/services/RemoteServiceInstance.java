@@ -97,7 +97,24 @@ public class RemoteServiceInstance implements ServiceInstance {
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
     checkArgument(serviceName != null, "Service request can't be null");
 
-    return (Observable<Message>) observable(request, message -> message);
+    final String cid = IdGenerator.generateId();
+
+    final Message message = Message.with(request)
+        .correlationId(cid)
+        .build();
+
+    final Observable<Message> observer = this.sender.listen()
+        .filter(msg -> msg.correlationId().equals(cid));
+
+    sender.send(address, message).whenComplete((response, error) -> {
+      if (error != null) {
+        // if failed to reach endpoint unsubsribe.
+        observer.unsubscribeOn(Schedulers.computation());
+      }
+
+    });
+
+    return observer;
   }
 
   @Override
@@ -156,37 +173,12 @@ public class RemoteServiceInstance implements ServiceInstance {
     return responseFuture.future();
   }
 
-  private Object invokeObservable(Message request, Method method) {
+  private Object invokeObservable(Message request, Method method) throws Exception {
     if (extractGenericReturnType(method).equals(Message.class)) {
-      return observable(request, message -> message);
+      return listen(request);
     } else {
-      return observable(request, Message::data);
+      return listen(request).map(msg -> msg.data());
     }
-  }
-
-  private Observable<?> observable(final Message request, final Function<Message, ?> func) {
-
-    final String cid = IdGenerator.generateId();
-
-    final Message message = Message.with(request)
-        .correlationId(cid)
-        .build();
-
-    final Observable<Object> observer = this.sender.listen()
-        .filter(msg -> msg.correlationId().equals(cid))
-        .map(t -> {
-          return func.apply(t);
-        });
-
-    sender.send(address, message).whenComplete((response, error) -> {
-      if (error != null) {
-        // if failed to reach endpoint unsubsribe.
-        observer.unsubscribeOn(Schedulers.computation());
-      }
-
-    });
-
-    return observer;
   }
 
   private Type extractGenericReturnType(Method method) {

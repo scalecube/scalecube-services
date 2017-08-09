@@ -3,6 +3,8 @@ package io.scalecube.services;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
+import rx.Observable;
+
 import java.util.Map;
 
 public interface ServiceInstance {
@@ -11,6 +13,8 @@ public interface ServiceInstance {
 
   Object invoke(Message request) throws Exception;
 
+  public <T> Observable<T> listen(Message request) throws Exception;
+  
   String memberId();
 
   Boolean isLocal();
@@ -18,4 +22,6 @@ public interface ServiceInstance {
   Map<String, String> tags();
 
   Address address();
+
+ 
 }

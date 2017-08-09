@@ -8,8 +8,6 @@ import io.scalecube.services.ServiceCall;
 import org.junit.Test;
 
 import rx.Subscription;
-import rx.observers.Observers;
-import rx.observers.Subscribers;
 import rx.schedulers.Schedulers;
 
 import java.util.concurrent.CountDownLatch;

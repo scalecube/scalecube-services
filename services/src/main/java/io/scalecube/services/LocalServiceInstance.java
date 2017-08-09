@@ -6,6 +6,8 @@ import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
+import rx.Observable;
+
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
@@ -71,6 +73,11 @@ public class LocalServiceInstance implements ServiceInstance {
     }
   }
 
+  @Override
+  public <T> Observable<T> listen(Message request) throws Exception {
+    return (Observable<T>) this.invoke(request);
+  }
+  
   public String serviceName() {
     return serviceName;
   }
