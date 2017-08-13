@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
@@ -18,9 +19,7 @@ public class DispatchingFutureTest {
   public void test_dispatching_future() throws Exception {
 
     Microservices member = Microservices.builder().build();
-    ServiceResponse response = new ServiceResponse(fn -> {
-      return null;
-    });
+    ServiceResponse response = ServiceResponse.correlationId(IdGenerator.generateId());
 
     Message request = Message.builder().correlationId(response.correlationId())
         .header(ServiceHeaders.SERVICE_RESPONSE, "").build();
@@ -50,9 +49,7 @@ public class DispatchingFutureTest {
   public void test_dispatching_future_error() throws Exception {
 
     Microservices member = Microservices.builder().build();
-    ServiceResponse response = new ServiceResponse(fn -> {
-      return null;
-    });
+    ServiceResponse response = ServiceResponse.correlationId(IdGenerator.generateId());
 
     Message request = Message.builder().correlationId(response.correlationId())
         .header(ServiceHeaders.SERVICE_RESPONSE, "").build();
@@ -83,9 +80,7 @@ public class DispatchingFutureTest {
   public void test_dispatching_future_completeExceptionally() throws Exception {
 
     Microservices member = Microservices.builder().build();
-    ServiceResponse response = new ServiceResponse(fn -> {
-      return null;
-    });
+    ServiceResponse response = ServiceResponse.correlationId(IdGenerator.generateId());
 
     Message request = Message.builder().correlationId(response.correlationId())
         .header(ServiceHeaders.SERVICE_RESPONSE, "").build();

@@ -17,12 +17,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -581,20 +581,6 @@ public class ServiceTest extends BaseTest {
         .build();
 
     // Create microservices cluster member.
-    Microservices provider2 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .seeds(provider.cluster().address())
-        .build();
-
-    // Create microservices cluster member.
-    Microservices provider3 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .seeds(provider.cluster().address())
-        .build();
-
-    // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
@@ -604,11 +590,12 @@ public class ServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // Init params
-    int warmUpCount = 1_000;
-    int count = 100_000;
+    int warmUpCount = 10_000;
+    int count = 300_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
+    System.out.println("starting warm-up.");
     for (int i = 0; i < warmUpCount; i++) {
       CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
       future.whenComplete((success, error) -> {
@@ -617,26 +604,53 @@ public class ServiceTest extends BaseTest {
         }
       });
     }
-    warmUpLatch.await(30, TimeUnit.SECONDS);
+    warmUpLatch.await(4, TimeUnit.SECONDS);
     assertTrue(warmUpLatch.getCount() == 0);
+    System.out.println("finished warm-up.");
+
 
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
+
     for (int i = 0; i < count; i++) {
+      sleep(i, 5, 300);
       CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
       future.whenComplete((success, error) -> {
         if (error == null) {
           countLatch.countDown();
+        } else {
+          System.out.println("failed: " + error);
+          fail("test_naive_stress_not_breaking_the_system failed: " + error);
+          drainLatch(count, countLatch);
         }
       });
     }
+
+    ScheduledFuture<?> sched = Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
+      System.out.print(countLatch.getCount() + ", ");
+    }, 1, 1, TimeUnit.SECONDS);
+
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
     countLatch.await(60, TimeUnit.SECONDS);
-    System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
+
+    System.out.println("Finished receiving " + (count - countLatch.getCount()) + " messages in "
+        + (System.currentTimeMillis() - startTime));
+
+    System.out.println("Rate: " + ((count - countLatch.getCount()) / ((System.currentTimeMillis() - startTime) / 1000))
+        + " round-trips/sec");
+
     assertTrue(countLatch.getCount() == 0);
     provider.cluster().shutdown();
+
     consumer.cluster().shutdown();
+    sched.cancel(true);
+  }
+
+  private void drainLatch(int count, CountDownLatch countLatch) {
+    for (int j = 0; j < count; j++) {
+      countLatch.countDown();
+    }
   }
 
   @Test
@@ -726,7 +740,8 @@ public class ServiceTest extends BaseTest {
         .build();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CoarseGrainedService service =
+        gateway.proxy().timeout(Duration.ofSeconds(1)).api(CoarseGrainedService.class).create();
     service.callGreetingTimeout("joe")
         .whenComplete((success, error) -> {
           if (error != null) {
@@ -761,12 +776,15 @@ public class ServiceTest extends BaseTest {
         .build();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CoarseGrainedService service =
+        gateway.proxy().timeout(Duration.ofSeconds(30)).api(CoarseGrainedService.class).create();
     service.callGreetingWithDispatcher("joe")
         .whenComplete((success, error) -> {
           if (error == null) {
             assertEquals(success, " hello to: joe");
             countLatch.countDown();
+          } else {
+            System.out.println("failed with error: " + error);
           }
         });
 
@@ -842,6 +860,7 @@ public class ServiceTest extends BaseTest {
   private GreetingService createProxy(Microservices gateway) {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
+        .timeout(Duration.ofSeconds(30))
         .create();
   }
 
@@ -871,5 +890,17 @@ public class ServiceTest extends BaseTest {
     } catch (InterruptedException e) {
       throw new AssertionError();
     }
+  }
+
+  private int sleep(int i, int ms, int every) {
+    try {
+      if (i % every == 0) {
+        Thread.sleep(ms);
+      }
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+    return ms;
   }
 }

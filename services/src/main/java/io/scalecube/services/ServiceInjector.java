@@ -10,6 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.stream.Collectors;
 
@@ -102,6 +105,19 @@ public class ServiceInjector {
     }
   }
 
-
+  /**
+   * extract parameterized return value of a method.
+   * 
+   * @param method to extract type from.
+   * @return the generic type of the return value or object.
+   */
+  public static Type extractParameterizedReturnType(Method method) {
+    Type type = method.getGenericReturnType();
+    if (type instanceof ParameterizedType) {
+      return ((ParameterizedType) type).getActualTypeArguments()[0];
+    } else {
+      return Object.class;
+    }
+  }
 
 }

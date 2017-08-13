@@ -5,7 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
-final class IdGenerator {
+public final class IdGenerator {
 
   private static final int DEFAULT_SIZE = 10;
 
@@ -43,6 +43,13 @@ final class IdGenerator {
     return generateId(length, ThreadLocalRandom.current());
   }
 
+  /**
+   * Generate id.
+   * 
+   * @param length of the id.
+   * @param random random factor.
+   * @return id as string.
+   */
   public static String generateId(int length, Random random) {
     byte[] buffer = new byte[length];
 
