@@ -28,7 +28,7 @@ public class TestStreamingService extends BaseTest {
     });
     latch.await(1, TimeUnit.SECONDS);
     sub.unsubscribe();
-    assertTrue(latch.getCount() <= 0);
+    assertTrue(latch.getCount() == 0);
   }
 
   @Test
@@ -60,7 +60,7 @@ public class TestStreamingService extends BaseTest {
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
-    
+
     Subscription sub1 = service.quotes(2)
         .subscribe(onNext -> {
           System.out.println("test_remote_quotes_service-2: " + onNext);
@@ -79,7 +79,6 @@ public class TestStreamingService extends BaseTest {
     sub2.unsubscribe();
     assertTrue(latch1.getCount() == 0);
     assertTrue(latch2.getCount() == 0);
-    System.out.println("done");
     gateway.shutdown();
     node.shutdown();
   }
@@ -131,17 +130,18 @@ public class TestStreamingService extends BaseTest {
     ServiceCall service = gateway.dispatcher().create();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Subscription sub1 = service.listen(ServiceCall.request(QuoteService.NAME, "snapshoot")
+    Subscription sub1 = service.listen(ServiceCall
+        .request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
         .build())
 
-        .subscribeOn(Schedulers.from(Executors.newWorkStealingPool()))
+        .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
         .serialize()
         .subscribe(onNext -> latch1.countDown());
-    
-    
+
+
     long start = System.currentTimeMillis();
-    latch1.await(batchSize / 50_000, TimeUnit.SECONDS);
+    latch1.await(batchSize / 40_000, TimeUnit.SECONDS);
     long end = (System.currentTimeMillis() - start);
 
     System.out.println("TIME IS UP! - recived batch (size: "
