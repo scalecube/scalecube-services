@@ -9,6 +9,8 @@ import io.scalecube.services.routing.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Observable;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -20,8 +22,8 @@ import java.util.stream.Collectors;
  * Service Injector scan and injects beans to a given Microservices instance.
  *
  */
-public class ServiceInjector {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceInjector.class);
+public class Reflect {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
 
   /**
    * Injector builder.
@@ -111,7 +113,7 @@ public class ServiceInjector {
    * @param method to extract type from.
    * @return the generic type of the return value or object.
    */
-  public static Type extractParameterizedReturnType(Method method) {
+  public static Type parameterizedReturnType(Method method) {
     Type type = method.getGenericReturnType();
     if (type instanceof ParameterizedType) {
       return ((ParameterizedType) type).getActualTypeArguments()[0];
@@ -120,4 +122,13 @@ public class ServiceInjector {
     }
   }
 
+  public static Type parameterizedType(Object object) {
+    if(object!=null) {
+      Type type = object.getClass().getGenericSuperclass();
+      if (type instanceof ParameterizedType) {
+        return ((ParameterizedType) type).getActualTypeArguments()[0];
+      }  
+    }
+    return Object.class;
+  }
 }

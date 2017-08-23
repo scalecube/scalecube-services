@@ -65,7 +65,7 @@ public class ServiceProxyFactory {
         } else if (method.getReturnType().equals(CompletableFuture.class)) {
           reuslt.whenComplete((value, ex) -> {
             if (ex == null) {
-              if (!ServiceInjector.extractParameterizedReturnType(method).equals(Message.class)) {
+              if (!Reflect.parameterizedReturnType(method).equals(Message.class)) {
                 future.complete(value.data());
               } else {
                 future.complete((T) value);

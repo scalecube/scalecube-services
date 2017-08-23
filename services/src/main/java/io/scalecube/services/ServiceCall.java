@@ -8,6 +8,8 @@ import io.scalecube.transport.Message.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Observable;
+
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -39,21 +41,14 @@ public class ServiceCall {
    * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
-    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-    String methodName = request.header(ServiceHeaders.METHOD);
 
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
     if (optionalServiceInstance.isPresent()) {
       return this.invoke(request, optionalServiceInstance.get(), timeout);
     } else {
-      LOGGER.error(
-          "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
-          serviceName, request);
-      throw new IllegalStateException("No reachable member with such service: " + methodName);
+      throw noReachableMemberException(request);
     }
-
-
   }
 
   /**
@@ -103,9 +98,18 @@ public class ServiceCall {
     } else {
       return serviceInstance.invoke(request);
     }
-
   }
 
+  public Observable<Message> listen(Message request) {
+    Optional<ServiceInstance> optionalServiceInstance = router.route(request);
+   
+    if(optionalServiceInstance.isPresent()){
+      return optionalServiceInstance.get().listen(request);
+    } else {
+      throw noReachableMemberException(request);
+    }
+  }
+  
   /**
    * helper method to get service request builder with needed headers.
    * 
@@ -116,7 +120,8 @@ public class ServiceCall {
   public static Builder request(String serviceName, String methodName) {
     return Message.builder()
         .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
-        .header(ServiceHeaders.METHOD, methodName);
+        .header(ServiceHeaders.METHOD, methodName)
+        .correlationId(IdGenerator.generateId());
 
   }
 
@@ -126,5 +131,15 @@ public class ServiceCall {
         .header(ServiceHeaders.METHOD, request.header(ServiceHeaders.METHOD))
         .correlationId(correlationId)
         .build();
+  }
+  
+  private IllegalStateException noReachableMemberException(Message request) {
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    String methodName = request.header(ServiceHeaders.METHOD);
+
+    LOGGER.error(
+        "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
+        serviceName, request);
+    return new IllegalStateException("No reachable member with such service: " + methodName);
   }
 }

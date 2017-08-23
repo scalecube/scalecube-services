@@ -18,7 +18,7 @@ public class ServiceDispatcherTest {
     ServicesConfig services = ServicesConfig.empty();
     ServiceRegistry registry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
 
-    ServiceDispatcher dispatcher = new ServiceDispatcher(cluster, registry);
+    ServiceDispatcher dispatcher = new ServiceDispatcher(sender, registry);
 
     cluster.send(cluster.address(), Message.builder().data("1").build());
     cluster.send(cluster.address(), Message.builder()

@@ -10,7 +10,7 @@ import java.util.Optional;
 
 public class ServiceDispatcher {
 
-  private final Cluster cluster;
+  private final ServiceCommunicator cluster;
   private final ServiceRegistry registry;
 
   /**
@@ -19,7 +19,7 @@ public class ServiceDispatcher {
    * @param cluster instance to listen on events.
    * @param registry service registry instance for dispatching.
    */
-  public ServiceDispatcher(Cluster cluster, ServiceRegistry registry) {
+  public ServiceDispatcher(ServiceCommunicator cluster, ServiceRegistry registry) {
     this.cluster = cluster;
     this.registry = registry;
 

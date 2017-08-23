@@ -18,7 +18,7 @@ public class DispatchingFuture {
   /**
    * the instance of the relevant cluster.
    */
-  private Cluster cluster;
+  private ServiceCommunicator cluster;
 
   /**
    * create a method dispatching future with relevant original request.
@@ -27,7 +27,7 @@ public class DispatchingFuture {
    * @param request the original request this response correlated to.
    * @return new instance of a dispatching future.
    */
-  public static DispatchingFuture from(Cluster cluster, Message request) {
+  public static DispatchingFuture from(ServiceCommunicator cluster, Message request) {
     return new DispatchingFuture(cluster, request);
   }
 
@@ -37,7 +37,7 @@ public class DispatchingFuture {
    * @param cluster instance.
    * @param request original service request.
    */
-  private DispatchingFuture(Cluster cluster, Message request) {
+  private DispatchingFuture(ServiceCommunicator cluster, Message request) {
     this.request = request;
     this.cluster = cluster;
   }
@@ -53,9 +53,9 @@ public class DispatchingFuture {
     if (value instanceof Throwable) {
       completeExceptionally(Throwable.class.cast(value));
     } else if (value instanceof CompletableFuture<?>) {
-      handleComputable(cluster, CompletableFuture.class.cast(value));
+      handleComputable(CompletableFuture.class.cast(value));
     } else if (value == null) {
-      handleComputable(cluster, CompletableFuture.completedFuture(null));
+      handleComputable(CompletableFuture.completedFuture(null));
     }
   }
 
@@ -68,14 +68,14 @@ public class DispatchingFuture {
     Message errorResponseMsg = Message.builder()
         .data(error)
         .header(ServiceHeaders.SERVICE_RESPONSE, "Response")
-        .header("exception", "true")
+        .header(ServiceHeaders.EXCEPTION, "")
         .correlationId(request.correlationId())
         .build();
     cluster.send(request.sender(), errorResponseMsg);
   }
 
 
-  private void handleComputable(final Cluster cluster, CompletableFuture<?> result) {
+  private void handleComputable(CompletableFuture<?> result) {
     result.whenComplete((success, error) -> {
       Message futureMessage = null;
       if (error == null) {

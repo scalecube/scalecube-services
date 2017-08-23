@@ -28,7 +28,7 @@ public class DispatchingFutureTest {
     field.setAccessible(true);
     field.set(request, member.cluster().address());
 
-    DispatchingFuture dispatcher = DispatchingFuture.from(member.cluster(), request);
+    DispatchingFuture dispatcher = DispatchingFuture.from(member.sender(), request);
     dispatcher.complete(new Throwable());
 
     CountDownLatch latch = new CountDownLatch(1);
@@ -58,7 +58,7 @@ public class DispatchingFutureTest {
     field.setAccessible(true);
     field.set(request, member.cluster().address());
 
-    DispatchingFuture dispatcher = DispatchingFuture.from(member.cluster(), request);
+    DispatchingFuture dispatcher = DispatchingFuture.from(member.sender(), request);
     
     CountDownLatch latch = new CountDownLatch(1);
     response.future().whenComplete((result, error) -> {
@@ -89,7 +89,7 @@ public class DispatchingFutureTest {
     field.setAccessible(true);
     field.set(request, member.cluster().address());
 
-    DispatchingFuture dispatcher = DispatchingFuture.from(member.cluster(), request);
+    DispatchingFuture dispatcher = DispatchingFuture.from(member.sender(), request);
     
     CountDownLatch latch = new CountDownLatch(1);
     response.future().whenComplete((result, error) -> {

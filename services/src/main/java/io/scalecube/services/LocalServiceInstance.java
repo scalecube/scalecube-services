@@ -6,6 +6,9 @@ import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
+import rx.Observable;
+
+import java.awt.SecondaryLoop;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
@@ -58,7 +61,7 @@ public class LocalServiceInstance implements ServiceInstance {
     final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
     return invokeMethod(request, method);
   }
-
+  
   private Object invoke(final Message request, final Method method)
       throws IllegalAccessException, InvocationTargetException {
     Object result;
@@ -73,6 +76,24 @@ public class LocalServiceInstance implements ServiceInstance {
     return result;
   }
 
+  @Override
+  public Observable<Message> listen(Message request) {
+    checkArgument(request != null, "message can't be null.");
+    checkArgument(request.correlationId() != null, "subscribe request must contain correlationId.");
+
+    final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
+    checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
+
+    final String cid = request.correlationId();
+    try {
+      final Observable<?> observable = (Observable<?>) invoke(request, method);
+      return observable.map(message -> asResponse(message, cid));
+
+    } catch (IllegalAccessException | InvocationTargetException ex) {
+      return Observable.from(new Message[] {asResponse(ex, cid)});
+    }
+  }
+
   private CompletableFuture<Message> invokeMethod(final Message request, final Method method) {
 
     final CompletableFuture<Message> resultMessage = new CompletableFuture<>();
@@ -82,10 +103,10 @@ public class LocalServiceInstance implements ServiceInstance {
         final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
         resultFuture.whenComplete((success, error) -> {
           if (error == null) {
-            if (ServiceInjector.extractParameterizedReturnType(method).equals(Message.class)) {
+            if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
               resultMessage.complete((Message) success);
             } else {
-              resultMessage.complete(asResponseMessage(success, request.correlationId()));
+              resultMessage.complete(asResponse(success, request.correlationId()));
             }
           } else {
             resultMessage.completeExceptionally(error);
@@ -99,9 +120,15 @@ public class LocalServiceInstance implements ServiceInstance {
     return resultMessage;
   }
 
-  private Message asResponseMessage(Object data, String correlationId) {
+  private Message asResponse(Object data, String correlationId) {
     if (data instanceof Message) {
-      return (Message) data;
+      Message msg = (Message) data;
+      return (Message.builder().data(msg.data()).correlationId(correlationId).build());
+    } else if (data instanceof Throwable) {
+      return (Message.builder().data(data)
+          .correlationId(correlationId)
+          .header(ServiceHeaders.EXCEPTION, "")
+          .build());
     } else {
       return Message.builder()
           .data(data)
@@ -109,7 +136,6 @@ public class LocalServiceInstance implements ServiceInstance {
           .build();
     }
   }
-
 
   public String serviceName() {
     return serviceName;
@@ -135,7 +161,6 @@ public class LocalServiceInstance implements ServiceInstance {
   public Map<String, String> tags() {
     return Collections.unmodifiableMap(tags);
   }
-
 
   @Override
   public Address address() {

@@ -119,7 +119,7 @@ public class Microservices {
     this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
 
-    new ServiceDispatcher(cluster, serviceRegistry);
+    new ServiceDispatcher(this.sender, serviceRegistry);
     this.sender.listen()
         .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
         .subscribe(message -> ServiceResponse.handleReply(message));
@@ -173,7 +173,7 @@ public class Microservices {
         sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
       }
 
-      return ServiceInjector.builder(new Microservices(cluster, sender, servicesConfig)).inject();
+      return Reflect.builder(new Microservices(cluster, sender, servicesConfig)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {

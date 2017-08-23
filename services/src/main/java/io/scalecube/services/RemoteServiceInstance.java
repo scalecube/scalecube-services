@@ -8,6 +8,8 @@ import io.scalecube.transport.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Observable;
+
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -38,9 +40,18 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.sender = sender;
   }
 
+
   @Override
-  public String serviceName() {
-    return serviceName;
+  public Observable<Message> listen(Message request) {
+
+    sendRemote(request).whenComplete((success, error) -> {
+
+    });
+
+    return sender.listen()
+        .filter(
+            message -> message.correlationId().equals(request.correlationId())
+            );
   }
 
   /**
@@ -55,6 +66,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   public CompletableFuture<Message> dispatch(Message request) throws Exception {
     return invoke(request);
   }
+
 
   @Override
   public CompletableFuture<Message> invoke(Message request) {
@@ -115,4 +127,8 @@ public class RemoteServiceInstance implements ServiceInstance {
     return tags;
   }
 
+  @Override
+  public String serviceName() {
+    return serviceName;
+  }
 }
