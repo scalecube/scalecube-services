@@ -77,8 +77,8 @@ public class TestStreamingService extends BaseTest {
     latch2.await(1, TimeUnit.SECONDS);
     sub1.unsubscribe();
     sub2.unsubscribe();
-    assertTrue(latch1.getCount() <= 0);
-    assertTrue(latch2.getCount() <= 0);
+    assertTrue(latch1.getCount() == 0);
+    assertTrue(latch2.getCount() == 0);
     System.out.println("done");
     gateway.shutdown();
     node.shutdown();
@@ -112,7 +112,7 @@ public class TestStreamingService extends BaseTest {
         + (System.currentTimeMillis() - start) + "ms: "
         + "rate of :" + batchSize / (end / 1000) + " events/sec ");
 
-    assertTrue(latch1.getCount() <= 0);
+    assertTrue(latch1.getCount() == 0);
 
     sub1.unsubscribe();
     gateway.shutdown();
