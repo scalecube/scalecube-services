@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
@@ -7,6 +8,8 @@ import com.google.common.reflect.Reflection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import rx.Observable;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -46,13 +49,21 @@ public class ServiceProxyFactory {
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         Object data = method.getParameterCount() != 0 ? args[0] : null;
-        final Message reqMsg = Message.withData(data)
-            .header(ServiceHeaders.SERVICE_REQUEST, serviceDefinition.serviceName())
-            .header(ServiceHeaders.METHOD, method.getName())
+        final Message reqMsg = ServiceCall.request(serviceDefinition.serviceName(),
+            method.getName())
+            .data(data)
             .build();
 
-        return toReturnValue(method,
-            dispatcher.invoke(reqMsg));
+        if (method.getReturnType().equals(Observable.class)) {
+          if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
+            return dispatcher.listen(reqMsg);
+          } else {
+            return dispatcher.listen(reqMsg).map(message -> message.data());
+          }
+        } else {
+          return toReturnValue(method,
+              dispatcher.invoke(reqMsg));
+        }
 
       }
 

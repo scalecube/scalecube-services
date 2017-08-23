@@ -60,6 +60,7 @@ public class LocalServiceInstance implements ServiceInstance {
     checkArgument(request != null, "message can't be null");
     final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
     return invokeMethod(request, method);
+  
   }
   
   private Object invoke(final Message request, final Method method)
@@ -81,7 +82,7 @@ public class LocalServiceInstance implements ServiceInstance {
     checkArgument(request != null, "message can't be null.");
     checkArgument(request.correlationId() != null, "subscribe request must contain correlationId.");
 
-    final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
+    final Method method = getMethod(request);
     checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
 
     final String cid = request.correlationId();
@@ -169,5 +170,10 @@ public class LocalServiceInstance implements ServiceInstance {
 
   public Object serviceObject() {
     return this.serviceObject;
+  }
+
+
+  public Method getMethod(Message request) {
+    return this.methods.get(request.header(ServiceHeaders.METHOD));
   }
 }

@@ -31,12 +31,14 @@ import java.util.concurrent.CompletableFuture;
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
  * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
  * 
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
+ * <p>
+ * ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
  * build the service component itself. the Service component is simply java class that implements the service Interface
  * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
  * streaming patters but does not force application developers to it.
  * 
- * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * <p>
+ * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -147,7 +149,7 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
-    private TransportConfig transportConfig;
+    private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
     private boolean reuseClusterTransport;
 
@@ -157,33 +159,35 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-
-      ClusterConfig cfg = getClusterConfig(servicesConfig);
-
-      // if transport config is not specifically set use same config as cluster.
-      if (transportConfig == null) {
-        transportConfig = cfg.getTransportConfig();
-      }
-
-      Cluster cluster = Cluster.joinAwait(cfg);
-      ServiceCommunicator sender = new ClusterServiceCommunicator(cluster);
+      
+      ServiceCommunicator sender;
+      Cluster cluster = null;
 
       if (!this.reuseClusterTransport) {
         // create cluster and transport with given config.
         sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
+        ClusterConfig cfg = getClusterConfig(servicesConfig, sender.address());
+        cluster = Cluster.joinAwait(cfg);
+
+      } else {
+        ClusterConfig cfg = getClusterConfig(servicesConfig, null);
+        cluster = Cluster.joinAwait(cfg);
+        sender = new ClusterServiceCommunicator(cluster);
       }
 
       return Reflect.builder(new Microservices(cluster, sender, servicesConfig)).inject();
     }
 
-    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
+    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
         Map<String, String> metadata = new HashMap<>();
         metadata.putAll(clusterConfig.metadata());
         metadata.putAll(Microservices.metadata(servicesConfig));
+        if (address != null) {
+          metadata.put("service-address", address.toString());
+        }
         clusterConfig.metadata(metadata);
       }
-
       return clusterConfig.build();
     }
 

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.functions.Action0;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -104,11 +105,14 @@ public class ServiceCall {
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
    
     if(optionalServiceInstance.isPresent()){
-      return optionalServiceInstance.get().listen(request);
+      Observable<Message> subscription = optionalServiceInstance.get().listen(request);
+      
+      return subscription;
     } else {
       throw noReachableMemberException(request);
     }
   }
+  
   
   /**
    * helper method to get service request builder with needed headers.

@@ -6,6 +6,7 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,11 +89,12 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     member.metadata().entrySet().stream()
         .filter(entry -> "service".equals(entry.getValue())) // filter service tags
         .forEach(entry -> {
+          Address serviceAddress = getServiceAddress(member);
           ServiceInfo info = ServiceInfo.from(entry.getKey());
           ServiceReference serviceRef = new ServiceReference(
               member.id(),
               info.getServiceName(),
-              member.address());
+              serviceAddress);
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
@@ -102,6 +104,15 @@ public class ServiceRegistryImpl implements ServiceRegistry {
             serviceInstances.remove(serviceRef);
           }
         });
+  }
+
+  private Address getServiceAddress(Member member) {
+    String serviceAddressAsString = member.metadata().get("service-address");
+    if(serviceAddressAsString!=null) {
+      return Address.from(serviceAddressAsString);
+    } else {
+      return member.address();
+    }
   }
 
   /**

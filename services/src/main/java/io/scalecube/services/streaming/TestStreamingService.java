@@ -56,12 +56,10 @@ public class TestStreamingService {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
-
-
+    
     Subscription sub1 = service.quotes(2)
         .subscribe(onNext -> {
           System.out.println("test_remote_quotes_service-2: " + onNext);
@@ -136,10 +134,11 @@ public class TestStreamingService {
         .data(batchSize)
         .build())
 
-        .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
+        .subscribeOn(Schedulers.from(Executors.newWorkStealingPool()))
         .serialize()
         .subscribe(onNext -> latch1.countDown());
-
+    
+    
     long start = System.currentTimeMillis();
     latch1.await(batchSize / 50_000, TimeUnit.SECONDS);
     long end = (System.currentTimeMillis() - start);
