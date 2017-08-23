@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
 
@@ -14,7 +15,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class TestStreamingService {
+public class TestStreamingService extends BaseTest {
 
   @Test
   public void test_quotes() throws InterruptedException {

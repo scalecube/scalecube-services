@@ -4,11 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 
 import org.junit.Test;
 
-public class ServiceReferenceTest {
+public class ServiceReferenceTest extends BaseTest {
 
   @Test
   public void test_ServiceReference() {

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
@@ -12,7 +13,7 @@ import java.lang.reflect.Field;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class DispatchingFutureTest {
+public class DispatchingFutureTest extends BaseTest {
 
 
   @Test

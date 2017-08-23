@@ -3,13 +3,14 @@ package io.scalecube.services;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;
 
-public class ServiceHeadersTest {
+public class ServiceHeadersTest extends BaseTest {
 
   @Test
   public void test_ServiceHeaders() {

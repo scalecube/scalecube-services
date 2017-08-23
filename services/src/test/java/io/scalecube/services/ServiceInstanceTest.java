@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -13,7 +14,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 
-public class ServiceInstanceTest {
+public class ServiceInstanceTest extends BaseTest {
 
   @Test
   public void test_localService_instance() {

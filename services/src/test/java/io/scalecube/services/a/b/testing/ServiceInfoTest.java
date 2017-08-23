@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.ServiceInfo;
+import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
 
@@ -11,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class ServiceInfoTest {
+public class ServiceInfoTest extends BaseTest {
 
   @Test
   public void test_service_info() {

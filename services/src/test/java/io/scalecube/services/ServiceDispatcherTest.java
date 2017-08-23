@@ -3,11 +3,12 @@ package io.scalecube.services;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
-public class ServiceDispatcherTest {
+public class ServiceDispatcherTest extends BaseTest {
 
   @Test
   public void test_service_dispatcher() {

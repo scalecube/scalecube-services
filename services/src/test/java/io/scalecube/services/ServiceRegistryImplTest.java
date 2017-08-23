@@ -6,10 +6,11 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
+import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
 
-public class ServiceRegistryImplTest {
+public class ServiceRegistryImplTest extends BaseTest {
 
   @Test
   public void test_service_registry() {
