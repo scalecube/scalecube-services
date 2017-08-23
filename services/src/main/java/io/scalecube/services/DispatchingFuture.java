@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Message;
 
 import java.util.concurrent.CompletableFuture;

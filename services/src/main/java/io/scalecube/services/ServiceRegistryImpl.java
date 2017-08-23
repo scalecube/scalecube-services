@@ -108,7 +108,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private Address getServiceAddress(Member member) {
     String serviceAddressAsString = member.metadata().get("service-address");
-    if(serviceAddressAsString!=null) {
+    if (serviceAddressAsString != null) {
       return Address.from(serviceAddressAsString);
     } else {
       return member.address();

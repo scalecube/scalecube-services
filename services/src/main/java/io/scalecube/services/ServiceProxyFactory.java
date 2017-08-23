@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 

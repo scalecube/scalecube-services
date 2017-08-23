@@ -2,8 +2,6 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.scalecube.transport.Address;
-
 import com.google.common.base.Splitter;
 
 import java.util.HashMap;

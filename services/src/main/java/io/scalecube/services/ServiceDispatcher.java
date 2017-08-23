@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static io.scalecube.services.ServiceHeaders.serviceMethod;
 import static io.scalecube.services.ServiceHeaders.serviceRequest;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Message;
 
 import rx.Observable;

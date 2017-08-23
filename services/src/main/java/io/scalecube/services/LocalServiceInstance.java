@@ -8,7 +8,6 @@ import io.scalecube.transport.Message;
 
 import rx.Observable;
 
-import java.awt.SecondaryLoop;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;

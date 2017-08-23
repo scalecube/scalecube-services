@@ -9,8 +9,6 @@ import io.scalecube.services.routing.Router;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import rx.Observable;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -122,12 +120,18 @@ public class Reflect {
     }
   }
 
+  /**
+   * Util function that returns the parameterizedType of a given object.
+   * 
+   * @param object to inspect
+   * @return the parameterized Type of a given object or Object class if unknown.
+   */
   public static Type parameterizedType(Object object) {
-    if(object!=null) {
+    if (object != null) {
       Type type = object.getClass().getGenericSuperclass();
       if (type instanceof ParameterizedType) {
         return ((ParameterizedType) type).getActualTypeArguments()[0];
-      }  
+      }
     }
     return Object.class;
   }

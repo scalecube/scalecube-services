@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
-import rx.functions.Action0;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -101,19 +100,25 @@ public class ServiceCall {
     }
   }
 
+  /**
+   * sending subscription request message to a service that returns Observable.
+   * 
+   * @param request containing subscription data.
+   * @return rx.Observable for the specific stream.
+   */
   public Observable<Message> listen(Message request) {
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
-   
-    if(optionalServiceInstance.isPresent()){
+
+    if (optionalServiceInstance.isPresent()) {
       Observable<Message> subscription = optionalServiceInstance.get().listen(request);
-      
+
       return subscription;
     } else {
       throw noReachableMemberException(request);
     }
   }
-  
-  
+
+
   /**
    * helper method to get service request builder with needed headers.
    * 
@@ -136,7 +141,7 @@ public class ServiceCall {
         .correlationId(correlationId)
         .build();
   }
-  
+
   private IllegalStateException noReachableMemberException(Message request) {
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
     String methodName = request.header(ServiceHeaders.METHOD);
