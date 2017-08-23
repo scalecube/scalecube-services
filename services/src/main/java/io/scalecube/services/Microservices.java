@@ -2,14 +2,16 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Cluster;
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
+import io.scalecube.transport.TransportConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -107,15 +110,18 @@ public class Microservices {
 
   private final ServiceDispatcherFactory dispatcherFactory;
 
-  private Microservices(Cluster cluster, ServicesConfig services, boolean isSeed) {
+  private final ServiceCommunicator sender;
+
+  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
     this.cluster = cluster;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, services, serviceProcessor, isSeed);
-    
+    this.sender = sender;
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
+
     this.proxyFactory = new ServiceProxyFactory(serviceRegistry);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
 
     new ServiceDispatcher(cluster, serviceRegistry);
-    this.cluster.listen().subscribe(message -> handleReply(message));
+    this.sender.listen().subscribe(message -> handleReply(message));
   }
 
 
@@ -153,9 +159,13 @@ public class Microservices {
 
   public static final class Builder {
 
-    private Integer port = null;
-    private Address[] seeds;
     private ServicesConfig servicesConfig = ServicesConfig.empty();
+
+    private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
+
+    private TransportConfig transportConfig;
+
+    private boolean reuseClusterTransport;
 
     /**
      * microsrrvices instance builder.
@@ -163,37 +173,53 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
+
       ClusterConfig cfg = getClusterConfig(servicesConfig);
-      return new Microservices(Cluster.joinAwait(cfg), servicesConfig, seeds == null);
+
+      // if transport config is not specifically set use same config as cluster.
+      if (transportConfig == null) {
+        transportConfig = cfg.getTransportConfig();
+      }
+
+      Cluster cluster = Cluster.joinAwait(cfg);
+      ServiceCommunicator sender = new ClusterServiceCommunicator(cluster);
+
+      if (!this.reuseClusterTransport) {
+        // create cluster and transport with given config.
+        sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
+      }
+
+      return ServiceInjector.builder(new Microservices(cluster, sender, servicesConfig)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
-      Map<String, String> metadata = new HashMap<>();
-
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        metadata = Microservices.metadata(servicesConfig);
+        Map<String, String> metadata = new HashMap<>();
+        metadata.putAll(clusterConfig.metadata());
+        metadata.putAll(Microservices.metadata(servicesConfig));
+        clusterConfig.metadata(metadata);
       }
 
-      ClusterConfig cfg;
-      if (port != null && seeds != null) {
-        cfg = ConfigAssist.create(port, seeds, metadata);
-      } else if (seeds != null) {
-        cfg = ConfigAssist.create(seeds, metadata);
-      } else if (port != null) {
-        cfg = ConfigAssist.create(port, metadata);
-      } else {
-        cfg = ConfigAssist.create(metadata);
-      }
-      return cfg;
+      return clusterConfig.build();
+    }
+
+    public Builder reuseClusterTransport(boolean reuse) {
+      this.reuseClusterTransport = reuse;
+      return this;
     }
 
     public Builder port(int port) {
-      this.port = port;
+      this.clusterConfig.port(port);
       return this;
     }
 
     public Builder seeds(Address... seeds) {
-      this.seeds = seeds;
+      this.clusterConfig.seedMembers(seeds);
+      return this;
+    }
+
+    public Builder clusterConfig(ClusterConfig.Builder clusterConfig) {
+      this.clusterConfig = clusterConfig;
       return this;
     }
 
@@ -213,6 +239,10 @@ public class Microservices {
       return this;
     }
 
+    public ServicesConfig.Builder services() {
+      return ServicesConfig.builder(this);
+    }
+
     /**
      * Services list to be registered.
      * 
@@ -225,9 +255,11 @@ public class Microservices {
       return this;
     }
 
-    public ServicesConfig.Builder services() {
-      return ServicesConfig.builder(this);
+    public Builder serviceTransport(TransportConfig transportConfig) {
+      this.transportConfig = transportConfig;
+      return this;
     }
+
   }
 
   public static Builder builder() {
@@ -254,6 +286,10 @@ public class Microservices {
       this.router = routerType;
       return this;
     }
+
+    public Class<? extends Router> router() {
+      return this.router;
+    }
   }
 
   public DispatcherContext dispatcher() {
@@ -271,6 +307,7 @@ public class Microservices {
 
     private Duration timeout = Duration.ofSeconds(30);
 
+    @SuppressWarnings("unchecked")
     public <T> T create() {
       LOGGER.debug("create service api {} router {}", this.api, router);
       return (T) createProxy(this.api, this.router, this.timeout);
@@ -279,10 +316,6 @@ public class Microservices {
     public ProxyContext timeout(Duration duration) {
       this.timeout = duration;
       return this;
-    }
-
-    public Class<?> api() {
-      return api;
     }
 
     public <T> ProxyContext api(Class<T> api) {
@@ -311,5 +344,14 @@ public class Microservices {
 
     return servicesTags;
   }
+
+  public ServiceCommunicator sender() {
+    return sender;
+  }
+
+  public CompletableFuture<Void> shutdown() {
+    return this.cluster.shutdown();
+  }
+
 
 }

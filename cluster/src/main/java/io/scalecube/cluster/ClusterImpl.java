@@ -56,7 +56,6 @@ final class ClusterImpl implements Cluster {
   private final ConcurrentMap<String, Member> members = new ConcurrentHashMap<>();
   private final ConcurrentMap<Address, String> memberAddressIndex = new ConcurrentHashMap<>();
 
-
   // Cluster components
   private Transport transport;
   private FailureDetector failureDetector;
@@ -66,21 +65,21 @@ final class ClusterImpl implements Cluster {
   private Flowable<Message> messageObservable;
   private Flowable<Message> gossipObservable;
 
-  ClusterImpl(ClusterConfig config) {
+  public ClusterImpl(ClusterConfig config) {
     checkNotNull(config);
     this.config = config;
   }
 
-  CompletableFuture<Cluster> join0() {
+  public CompletableFuture<Cluster> join0() {
     CompletableFuture<Transport> transportFuture = Transport.bind(config.getTransportConfig());
     CompletableFuture<Void> clusterFuture = transportFuture.thenCompose(boundTransport -> {
       transport = boundTransport;
       messageObservable = transport.listen()
           .filter(msg -> !SYSTEM_MESSAGES.contains(msg.qualifier())); // filter out system gossips
 
-      membership = new MembershipProtocol(transport, config.getMembershipConfig());
-      gossip = new GossipProtocol(transport, membership, config.getGossipConfig());
-      failureDetector = new FailureDetector(transport, membership, config.getFailureDetectorConfig());
+      membership = new MembershipProtocol(transport, config);
+      gossip = new GossipProtocol(transport, membership, config);
+      failureDetector = new FailureDetector(transport, membership, config);
       membership.setFailureDetector(failureDetector);
       membership.setGossipProtocol(gossip);
 

@@ -1,5 +1,6 @@
 package io.scalecube.cluster.fdetector;
 
+
 import io.reactivex.Flowable;
 
 /**

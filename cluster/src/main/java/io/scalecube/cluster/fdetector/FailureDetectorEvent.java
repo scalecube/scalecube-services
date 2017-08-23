@@ -2,7 +2,6 @@ package io.scalecube.cluster.fdetector;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.MemberStatus;
-import io.scalecube.transport.Address;
 
 import javax.annotation.concurrent.Immutable;
 

@@ -2,7 +2,10 @@
 
 [![Build Status](https://travis-ci.org/scalecube/scalecube.svg?branch=master)](https://travis-ci.org/scalecube/scalecube)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-cluster)
+[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/7a02aba38e5d4744ae3e3100a6b542a5)](https://www.codacy.com/app/ronenn/scalecube?utm_source=github.com&utm_medium=referral&utm_content=scalecube/scalecube&utm_campaign=Badge_Coverage)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/a162edec5ca347ef87db19320e41138a)](https://www.codacy.com/app/ScaleCube/scalecube?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=scalecube/scalecube&amp;utm_campaign=Badge_Grade)
 [![Join the chat at https://gitter.im/scalecube/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalecube/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40ScaleCube)](https://twitter.com/scalecube)
 
 ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
 ScaleCube project provides the tools to develop, test and scale microservice components in distributed manner with ease.
@@ -26,11 +29,11 @@ based on gossip protocol ad without single point-of-failure or bottlenecks.
 
 User Guide:
 
-* [Services Overview] (http://scalecube.io/services.html)
-* [Defining Services] (http://scalecube.io/user-reference/services/DefineService.html)
-* [Implementing services] (http://scalecube.io/user-reference/services/ServiceImplementation.html)
-* [Provisioning Clustered Services] (http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
-* [Consuming services] (http://scalecube.io/user-reference/services/ConsumingServices.html)
+* [Services Overview](http://scalecube.io/services.html)
+* [Defining Services](http://scalecube.io/user-reference/services/DefineService.html)
+* [Implementing services](http://scalecube.io/user-reference/services/ServiceImplementation.html)
+* [Provisioning Clustered Services](http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
+* [Consuming services](http://scalecube.io/user-reference/services/ConsumingServices.html)
 
 ### CLUSTER
 
@@ -53,15 +56,15 @@ Using ScaleCube Cluster as simple as few lines of code:
  
 ``` java
 // Start cluster node Alice as a seed node of the cluster, listen and print all incoming messages
-ICluster alice = Cluster.joinAwait();
+Cluster alice = Cluster.joinAwait();
 alice.listen().subscribe(msg -> System.out.println("Alice received: " + msg.data()));
 
 // Join cluster node Bob to cluster with Alice, listen and print all incoming messages
-ICluster bob = Cluster.joinAwait(alice.address());
+Cluster bob = Cluster.joinAwait(alice.address());
 bob.listen().subscribe(msg -> System.out.println("Bob received: " + msg.data()));
 
 // Join cluster node Carol to cluster with Alice (and Bob which is resolved via Alice)
-ICluster carol = Cluster.joinAwait(alice.address());
+Cluster carol = Cluster.joinAwait(alice.address());
 
 // Send from Carol greeting message to all other cluster members (which is Alice and Bob)
 carol.otherMembers().forEach(member -> carol.send(member, Message.fromData("Greetings from Carol")));

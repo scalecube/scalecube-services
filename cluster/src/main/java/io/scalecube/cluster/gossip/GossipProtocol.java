@@ -85,7 +85,7 @@ public final class GossipProtocol implements IGossipProtocol {
     this.transport = transport;
     this.membership = membership;
     this.config = config;
-    String nameFormat = "sc-gossip-" + transport.address().toString();
+    String nameFormat = "sc-gossip-" + Integer.toString(transport.address().port());
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);
@@ -163,6 +163,7 @@ public final class GossipProtocol implements IGossipProtocol {
   @Override
   public Flowable<Message> listen() {
     return subject;
+
   }
 
   // ================================================
@@ -238,7 +239,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   private List<Gossip> selectGossipsToSend(Member member) {
     int periodsToSpread =
-        ClusterMath.gossipPeriodsToSpread(config.getGossipRepeatMultiplier(), remoteMembers.size() + 1);
+        ClusterMath.gossipPeriodsToSpread(config.getGossipRepeatMult(), remoteMembers.size() + 1);
     return gossips.values().stream()
         .filter(gossipState -> gossipState.infectionPeriod() + periodsToSpread >= period) // max rounds
         .filter(gossipState -> !gossipState.isInfected(member.id())) // already infected
@@ -275,7 +276,7 @@ public final class GossipProtocol implements IGossipProtocol {
 
   private void sweepGossips() {
     // Select gossips to sweep
-    int periodsToSweep = ClusterMath.gossipPeriodsToSweep(config.getGossipRepeatMultiplier(), remoteMembers.size() + 1);
+    int periodsToSweep = ClusterMath.gossipPeriodsToSweep(config.getGossipRepeatMult(), remoteMembers.size() + 1);
     Set<GossipState> gossipsToRemove = gossips.values().stream()
         .filter(gossipState -> period > gossipState.infectionPeriod() + periodsToSweep)
         .collect(Collectors.toSet());

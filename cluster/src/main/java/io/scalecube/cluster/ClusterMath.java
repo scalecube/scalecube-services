@@ -47,6 +47,10 @@ public final class ClusterMath {
     return repeatMult * ceilLog2(clusterSize);
   }
 
+  public static long suspicionTimeout(int suspicionMult, int clusterSize, long pingInterval) {
+    return suspicionMult * ceilLog2(clusterSize) * pingInterval;
+  }
+
   /**
    * Returns ceil(log2(n + 1)).
    */

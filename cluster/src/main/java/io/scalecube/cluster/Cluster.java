@@ -1,6 +1,5 @@
 package io.scalecube.cluster;
 
-import io.scalecube.cluster.membership.MembershipConfig;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
@@ -81,7 +80,7 @@ public interface Cluster {
    */
   static CompletableFuture<Cluster> join(Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
-        .membershipConfig(MembershipConfig.builder().seedMembers(Arrays.asList(seedMembers)).build())
+        .seedMembers(seedMembers)
         .build();
     return join(config);
   }
@@ -91,11 +90,8 @@ public interface Cluster {
    */
   static CompletableFuture<Cluster> join(Map<String, String> metadata, Address... seedMembers) {
     ClusterConfig config = ClusterConfig.builder()
-        .membershipConfig(
-            MembershipConfig.builder()
-                .seedMembers(Arrays.asList(seedMembers))
-                .metadata(metadata)
-                .build())
+        .seedMembers(Arrays.asList(seedMembers))
+        .metadata(metadata)
         .build();
     return join(config);
   }

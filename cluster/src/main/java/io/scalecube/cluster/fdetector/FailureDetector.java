@@ -86,7 +86,7 @@ public final class FailureDetector implements IFailureDetector {
     this.transport = transport;
     this.membership = membership;
     this.config = config;
-    String nameFormat = "sc-fdetector-" + transport.address().toString();
+    String nameFormat = "sc-fdetector-" + Integer.toString(transport.address().port());
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
     this.scheduler = Schedulers.from(executor);

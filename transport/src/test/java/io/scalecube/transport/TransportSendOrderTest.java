@@ -215,7 +215,7 @@ public class TransportSendOrderTest extends BaseTest {
     ArrayList<Message> messages = new ArrayList<>(received);
     assertEquals(total, messages.size());
     for (int k = 0; k < total; k++) {
-      assertEquals("q" + k, messages.get(k).header(MessageHeaders.QUALIFIER));
+      assertEquals("q" + k, messages.get(k).qualifier());
     }
   }
 

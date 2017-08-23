@@ -27,13 +27,13 @@ final class Addressing {
   /**
    * The minimum server port number. Set at 1100 to avoid returning privileged port numbers.
    */
-  static final int MIN_PORT_NUMBER = 1100;
+  private static final int MIN_PORT_NUMBER = 1100;
 
   /**
    * The maximum server port number. It should only use up to 49151, as from 49152 up to 65535 are reserved for
    * ephemeral ports.
    */
-  static final int MAX_PORT_NUMBER = 49151;
+  private static final int MAX_PORT_NUMBER = 49151;
 
   private Addressing() {}
 
@@ -47,7 +47,7 @@ final class Addressing {
    * @return Next available port
    * @throws NoSuchElementException if port wasn't found in the given interval
    */
-  static int getNextAvailablePort(InetAddress inetAddress, int fromPort, int portCount) {
+  public static int getNextAvailablePort(InetAddress inetAddress, int fromPort, int portCount) {
     int toPort = Math.min(MAX_PORT_NUMBER, fromPort + portCount) - 1;
     for (int port = fromPort; port <= toPort; port++) {
       if (isAvailablePort(inetAddress, port)) {
@@ -62,7 +62,7 @@ final class Addressing {
    *
    * @param port the port to check for availability
    */
-  static boolean isAvailablePort(InetAddress inetAddress, int port) {
+  public static boolean isAvailablePort(InetAddress inetAddress, int port) {
     if (port < MIN_PORT_NUMBER || port > MAX_PORT_NUMBER) {
       throw new IllegalArgumentException("Invalid port number: " + port);
     }
@@ -98,7 +98,7 @@ final class Addressing {
    * @throws IllegalArgumentException if {@code listenAddress} can't be resolved or if it reprensents wildcard address,
    *         or if it doesn't belong to any active network interface.
    */
-  static InetAddress getLocalIpAddress(String listenAddress, String listenInterface, boolean preferIPv6) {
+  public static InetAddress getLocalIpAddress(String listenAddress, String listenInterface, boolean preferIPv6) {
     InetAddress ipAddress;
     if (!Strings.isNullOrEmpty(listenAddress) && !Strings.isNullOrEmpty(listenInterface)) {
       throw new IllegalArgumentException("Not allowed to set both listenAddress and listenInterface, choose one");
@@ -133,7 +133,7 @@ final class Addressing {
    * @throws RuntimeException wrapped {@link UnknownHostException} in case when local host name couldn't be resolved
    *         into an address.
    */
-  static InetAddress getLocalIpAddress() {
+  public static InetAddress getLocalIpAddress() {
     try {
       return InetAddress.getLocalHost();
     } catch (UnknownHostException e) {
@@ -145,7 +145,7 @@ final class Addressing {
    * @return {@link InetAddress} by network interface name and a flag indicating whether returned IP address will be
    *         IPv4 or IPv6.
    */
-  static InetAddress getNetworkInterfaceIpAddress(String listenInterface, boolean preferIPv6) {
+  private static InetAddress getNetworkInterfaceIpAddress(String listenInterface, boolean preferIPv6) {
     try {
       NetworkInterface ni = NetworkInterface.getByName(listenInterface);
       if (ni == null) {
@@ -183,7 +183,7 @@ final class Addressing {
   /**
    * @return boolean indicating whether given address belongs to any active network interface.
    */
-  static boolean isValidLocalIpAddress(InetAddress listenAddress) {
+  private static boolean isValidLocalIpAddress(InetAddress listenAddress) {
     List<NetworkInterface> networkInterfaces;
     try {
       networkInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces());

@@ -64,7 +64,7 @@ final class TransportImpl implements Transport {
 
   private volatile boolean stopped = false;
 
-  TransportImpl(TransportConfig config) {
+  public TransportImpl(TransportConfig config) {
     checkArgument(config != null);
     this.config = config;
     this.serializerHandler = new MessageSerializerHandler();
@@ -76,7 +76,7 @@ final class TransportImpl implements Transport {
   /**
    * Starts to accept connections on local address.
    */
-  CompletableFuture<Transport> bind0() {
+  public CompletableFuture<Transport> bind0() {
     incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
     // Resolve listen IP address
@@ -181,7 +181,7 @@ final class TransportImpl implements Transport {
   @Override
   public final Flowable<Message> listen() {
     checkState(!stopped, "Transport is stopped");
-    return incomingMessagesSubject;
+    return incomingMessagesSubject.onBackpressureBuffer();
   }
 
   @Override

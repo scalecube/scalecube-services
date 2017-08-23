@@ -11,6 +11,23 @@ import java.util.Map;
  */
 public final class Message {
 
+  /**
+   * This header is supposed to be used by application in case if same data type can be reused for several messages
+   * so it will allow to qualify the specific message type.
+   */
+  public static final String HEADER_QUALIFIER = "q";
+
+  /**
+   * This header is supposed to be used by application in order to correlate request and response messages.
+   */
+  public static final String HEADER_CORRELATION_ID = "cid";
+
+  /**
+   * This is a system header which used by transport for serialization and deserialization purpose. It is not supposed
+   * to be used by application directly and it is subject to changes in future releases.
+   */
+  public static final String HEADER_DATA_TYPE = "_type";
+
   private Map<String, String> headers = Collections.emptyMap();
   private Object data;
   private Address sender;
@@ -134,11 +151,11 @@ public final class Message {
   }
 
   public String qualifier() {
-    return header(MessageHeaders.QUALIFIER);
+    return header(HEADER_QUALIFIER);
   }
 
   public String correlationId() {
-    return header(MessageHeaders.CORRELATION_ID);
+    return header(HEADER_CORRELATION_ID);
   }
 
   /**
@@ -184,11 +201,11 @@ public final class Message {
     }
 
     public Builder qualifier(String qualifier) {
-      return header(MessageHeaders.QUALIFIER, qualifier);
+      return header(HEADER_QUALIFIER, qualifier);
     }
 
     public Builder correlationId(String correlationId) {
-      return header(MessageHeaders.CORRELATION_ID, correlationId);
+      return header(HEADER_CORRELATION_ID, correlationId);
     }
 
     public Message build() {

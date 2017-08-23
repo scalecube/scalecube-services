@@ -3,6 +3,7 @@ package io.scalecube.cluster.membership;
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 
+import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
@@ -46,7 +47,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   private enum MembershipUpdateReason {
-    FAILURE_DETECTOR_EVENT, MEMBERSHIP_GOSSIP, SYNC, SUSPICION_TIMEOUT
+    FAILURE_DETECTOR_EVENT,
+    MEMBERSHIP_GOSSIP,
+    SYNC,
+    INITIAL_SYNC,
+    SUSPICION_TIMEOUT
   }
 
   // Qualifiers
@@ -99,7 +104,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
     Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
 
-    String nameFormat = "sc-membership-" + transport.address().toString();
+    String nameFormat = "sc-membership-" + Integer.toString(transport.address().port());
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
 
@@ -153,6 +158,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   @Override
   public Flowable<MembershipEvent> listen() {
     return subject;
+
   }
 
   @Override
@@ -271,7 +277,9 @@ public final class MembershipProtocol implements IMembershipProtocol {
         .timeout(config.getSyncTimeout(), TimeUnit.MILLISECONDS, scheduler)
         .subscribe(
             message -> {
-              onSyncAck(message);
+              SyncData syncData = message.data();
+              LOGGER.info("Joined cluster '{}': {}", syncData.getSyncGroup(), syncData.getMembership());
+              onSyncAck(message, true);
               schedulePeriodicSync();
               syncResponseFuture.complete(null);
             },
@@ -333,8 +341,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private void onSyncAck(Message syncAckMsg) {
+    onSyncAck(syncAckMsg, false);
+  }
+
+  private void onSyncAck(Message syncAckMsg, boolean initial) {
     LOGGER.debug("Received SyncAck: {}", syncAckMsg);
-    syncMembership(syncAckMsg.data());
+    syncMembership(syncAckMsg.data(), initial);
   }
 
   /**
@@ -342,7 +354,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
    */
   private void onSync(Message syncMsg) {
     LOGGER.debug("Received Sync: {}", syncMsg);
-    syncMembership(syncMsg.data());
+    syncMembership(syncMsg.data(), false);
     Message syncAckMsg = prepareSyncDataMsg(SYNC_ACK, syncMsg.correlationId());
     transport.send(syncMsg.sender(), syncAckMsg);
   }
@@ -359,7 +371,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
       return;
     }
     LOGGER.debug("Received status change on failure detector event: {}", fdEvent);
-    if (fdEvent.status() == MemberStatus.ALIVE) {
+    if (fdEvent.status() == ALIVE) {
       // TODO: Consider to make more elegant solution
       // Alive won't override SUSPECT so issue instead extra sync with member to force it spread alive with inc + 1
       Message syncMsg = prepareSyncDataMsg(SYNC, null);
@@ -404,11 +416,12 @@ public final class MembershipProtocol implements IMembershipProtocol {
     return Message.withData(syncData).qualifier(qualifier).correlationId(cid).build();
   }
 
-  private void syncMembership(SyncData syncData) {
+  private void syncMembership(SyncData syncData, boolean initial) {
     for (MembershipRecord r1 : syncData.getMembership()) {
       MembershipRecord r0 = membershipTable.get(r1.id());
       if (!r1.equals(r0)) {
-        updateMembership(r1, MembershipUpdateReason.SYNC);
+        MembershipUpdateReason reason = initial ? MembershipUpdateReason.INITIAL_SYNC : MembershipUpdateReason.SYNC;
+        updateMembership(r1, reason);
       }
     }
   }
@@ -461,12 +474,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
     } else if (r0 == null && r1.isAlive()) {
       subject.onNext(MembershipEvent.createAdded(r1.member()));
     } else if (r0 != null && !r0.member().equals(r1.member())) {
-      LOGGER.info("Received membership update r0={} ato r1={}", r0, r1);
       subject.onNext(MembershipEvent.createUpdated(r0.member(), r1.member()));
     }
 
     // Spread gossip (unless already gossiped)
-    if (reason != MembershipUpdateReason.MEMBERSHIP_GOSSIP) {
+    if (reason != MembershipUpdateReason.MEMBERSHIP_GOSSIP && reason != MembershipUpdateReason.INITIAL_SYNC) {
       spreadMembershipGossip(r1);
     }
   }
@@ -479,8 +491,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private void scheduleSuspicionTimeoutTask(MembershipRecord record) {
-    suspicionTimeoutTasks.computeIfAbsent(record.id(),
-        id -> executor.schedule(() -> onSuspicionTimeout(id), config.getSuspectTimeout(), TimeUnit.MILLISECONDS));
+
+    long suspicionTimeout =
+        ClusterMath.suspicionTimeout(config.getSuspicionMult(), membershipTable.size(), config.getPingInterval());
+    suspicionTimeoutTasks.computeIfAbsent(record.id(), id ->
+        executor.schedule(() -> onSuspicionTimeout(id), suspicionTimeout, TimeUnit.MILLISECONDS));
   }
 
   private void onSuspicionTimeout(String memberId) {
