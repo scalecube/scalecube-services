@@ -796,7 +796,7 @@ public class ServiceTest extends BaseTest {
   }
 
 
-  @Ignore
+  
   @Test
   public void test_service_tags() {
     Microservices gateway = Microservices.builder()
