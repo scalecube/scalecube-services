@@ -5,13 +5,13 @@ import io.scalecube.transport.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * ServiceResponse handles the response of a service request based on correlationId. it holds a mapping between
@@ -22,61 +22,26 @@ public class ServiceResponse {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceResponse.class);
 
+  private final String correlationId;
+
+  /**
+   * used to complete the request future with timeout exception in case no response comes from service.
+   */
+  private static final ScheduledExecutorService delayer =
+      ThreadFactory.singleScheduledExecutorService(ThreadFactory.SC_SERVICES_TIMEOUT);
+
   private static final ConcurrentMap<String, ServiceResponse> futures = new ConcurrentHashMap<>();
 
-  private final String correlationId;
-  private final Function<Message, Object> function;
-  private final CompletableFuture<Object> messageFuture;
+  private final CompletableFuture<Message> messageFuture;
 
-  public ServiceResponse(Function<Message, Object> fn) {
-    this.correlationId = generateId();
-    this.function = fn;
+  private ServiceResponse(String cid) {
+    this.correlationId = cid;
     this.messageFuture = new CompletableFuture<>();
     futures.putIfAbsent(this.correlationId, this);
   }
-
-  /**
-   * return a Optional pending ResponseFuture by given correlationId.
-   * 
-   * @param correlationId or the request.
-   * @return ResponseFuture pending completion.
-   */
-  public static Optional<ServiceResponse> get(String correlationId) {
-    return Optional.of(futures.get(correlationId));
-  }
-
-  /**
-   * complete the expected future response successfully and apply the function.
-   * 
-   * @param message the response message for completing the future.
-   */
-  public void complete(Message message) {
-    if (message.header("exception") == null) {
-      messageFuture.complete(function.apply(message));
-    } else {
-      LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
-      messageFuture.completeExceptionally(message.data());
-    }
-    futures.remove(this.correlationId);
-  }
-
-  /**
-   * complete the expected future response exceptionally with a given exception.
-   * 
-   * @param exception that caused this future to complete exceptionally.
-   */
-  public void completeExceptionally(Throwable exception) {
-    messageFuture.completeExceptionally(exception);
-    futures.remove(this.correlationId);
-  }
-
-  /**
-   * future of this correlated response.
-   * 
-   * @return CompletableFuture for this response.
-   */
-  public CompletableFuture<Object> future() {
-    return messageFuture;
+  
+  public static ServiceResponse correlationId(String cid) {
+    return new ServiceResponse(cid);
   }
 
   /**
@@ -88,8 +53,78 @@ public class ServiceResponse {
     return correlationId;
   }
 
-  private String generateId() {
-    return new UUID(ThreadLocalRandom.current().nextLong(), ThreadLocalRandom.current().nextLong()).toString();
+
+  /**
+   * handle a response message coming from the network.
+   * 
+   * @param message with correlation id.
+   */
+  public static void handleReply(Message message) {
+    String correlationId = message.correlationId();
+    ServiceResponse response = futures.get(correlationId);
+    if (response != null) {
+      if (message.header("exception") == null) {
+        response.complete(message);
+      } else {
+        LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
+        response.completeExceptionally(message.data());
+      }
+    }
+  }
+ 
+
+
+  /**
+   * complete the expected future response successfully and apply the function.
+   * 
+   * @param message the response message for completing the future.
+   */
+  public void complete(final Message message) {
+    if (message.header("exception") == null) {
+      this.messageFuture.complete(message);
+    } else {
+      LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
+      this.messageFuture.completeExceptionally(message.data());
+    }
+    futures.remove(correlationId);
   }
 
+  /**
+   * complete the expected future response exceptionally with a given exception.
+   * 
+   * @param exception that caused this future to complete exceptionally.
+   */
+  public void completeExceptionally(Throwable exception) {
+    this.messageFuture.completeExceptionally(exception);
+    futures.remove(correlationId);
+  }
+
+  /**
+   * future of this correlated response.
+   * 
+   * @return CompletableFuture for this response.
+   */
+  public CompletableFuture<Message> future() {
+    return this.messageFuture;
+  }
+
+
+  public void withTimeout(final Duration timeout) {
+    timeoutAfter(this.future(), timeout);
+  }
+
+  private static CompletableFuture<?> timeoutAfter(final CompletableFuture<?> resultFuture, Duration timeout) {
+
+    if (!resultFuture.isDone()) {
+      // schedule to terminate the target goal in future in case it was not done yet
+      delayer.schedule(() -> {
+        // by this time the target goal should have finished.
+        if (!resultFuture.isDone()) {
+          // target goal not finished in time so cancel it with timeout.
+          resultFuture.completeExceptionally(new TimeoutException("expecting response reached timeout!"));
+        }
+      }, timeout.toMillis(), TimeUnit.MILLISECONDS);
+    }
+    return resultFuture;
+  }
 }

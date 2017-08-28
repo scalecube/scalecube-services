@@ -6,9 +6,11 @@ import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Local service instance invokes the service instance hosted on this local process.
@@ -51,25 +53,63 @@ public class LocalServiceInstance implements ServiceInstance {
 
 
   @Override
-  public Object invoke(Message message) throws Exception {
-    checkArgument(message != null, "message can't be null");
+  public CompletableFuture<Message> invoke(final Message request) {
+    checkArgument(request != null, "message can't be null");
+    final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
+    return invokeMethod(request, method);
+  }
 
+  private Object invoke(final Message request, final Method method)
+      throws IllegalAccessException, InvocationTargetException {
+    Object result;
+    // handle invoke
+    if (method.getParameters().length == 0) {
+      result = method.invoke(serviceObject);
+    } else if (method.getParameters()[0].getType().isAssignableFrom(Message.class)) {
+      result = method.invoke(serviceObject, request);
+    } else {
+      result = method.invoke(serviceObject, new Object[] {request.data()});
+    }
+    return result;
+  }
+
+  private CompletableFuture<Message> invokeMethod(final Message request, final Method method) {
+
+    final CompletableFuture<Message> resultMessage = new CompletableFuture<>();
     try {
-      Method method = this.methods.get(message.header(ServiceHeaders.METHOD));
-      Object result;
-
-      if (method.getParameters().length == 0) {
-        result = method.invoke(serviceObject);
-      } else if (method.getParameters()[0].getType().isAssignableFrom(Message.class)) {
-        result = method.invoke(serviceObject, message);
-      } else {
-        result = method.invoke(serviceObject, new Object[] {message.data()});
+      final Object result = invoke(request, method);
+      if (result instanceof CompletableFuture) {
+        final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
+        resultFuture.whenComplete((success, error) -> {
+          if (error == null) {
+            if (ServiceInjector.extractParameterizedReturnType(method).equals(Message.class)) {
+              resultMessage.complete((Message) success);
+            } else {
+              resultMessage.complete(asResponseMessage(success, request.correlationId()));
+            }
+          } else {
+            resultMessage.completeExceptionally(error);
+          }
+        });
       }
-      return result;
     } catch (Exception ex) {
-      return ex;
+      resultMessage.completeExceptionally(ex);
+    }
+
+    return resultMessage;
+  }
+
+  private Message asResponseMessage(Object data, String correlationId) {
+    if (data instanceof Message) {
+      return (Message) data;
+    } else {
+      return Message.builder()
+          .data(data)
+          .correlationId(correlationId)
+          .build();
     }
   }
+
 
   public String serviceName() {
     return serviceName;
@@ -101,7 +141,7 @@ public class LocalServiceInstance implements ServiceInstance {
   public Address address() {
     return this.address;
   }
-  
+
   public Object serviceObject() {
     return this.serviceObject;
   }

@@ -21,9 +21,9 @@ public class TransportServiceCommunicator implements ServiceCommunicator {
 
   @Override
   public CompletableFuture<Void> send(Address address, Message message) {
-    CompletableFuture<Void> messageFuture = new CompletableFuture<>();
-    transport.send(address, message, messageFuture);
-    return messageFuture;
+    CompletableFuture<Void> future = new CompletableFuture<Void>();
+    transport.send(address, message, future);
+    return future;
   }
 
   @Override

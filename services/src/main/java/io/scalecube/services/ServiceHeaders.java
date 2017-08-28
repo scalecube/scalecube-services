@@ -13,11 +13,6 @@ public final class ServiceHeaders {
    */
   public static final String METHOD = "m";
 
-  /**
-   * This header is supposed to be used by application in case when registering a service at discovery. the service
-   * header is used to mark this registration as a microservice instance.
-   */
-  public static final String SERVICE = "service";
 
   /**
    * This header is supposed to be used by application in case when sending service request. the service-request header
@@ -40,13 +35,6 @@ public final class ServiceHeaders {
    */
   public static String serviceMethod(Message request) {
     return request.header(METHOD);
-  }
-
-  /**
-   * Extract header value from a given message. header is used to mark this registration as a microservice instance.
-   */
-  public static String service(Message request) {
-    return request.header(SERVICE);
   }
 
   /**

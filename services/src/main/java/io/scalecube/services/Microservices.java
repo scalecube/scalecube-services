@@ -9,7 +9,6 @@ import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
 
@@ -20,7 +19,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -49,7 +47,8 @@ import java.util.concurrent.CompletableFuture;
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service end-points</li>
  * 
- * </p><b>basic usage example:</b>
+ * </p>
+ * <b>basic usage example:</b>
  * 
  * <pre>
  * 
@@ -117,28 +116,13 @@ public class Microservices {
     this.sender = sender;
     this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
 
-    this.proxyFactory = new ServiceProxyFactory(serviceRegistry);
+    this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
 
     new ServiceDispatcher(cluster, serviceRegistry);
-    this.sender.listen().subscribe(message -> handleReply(message));
-  }
-
-
-  // Listen response
-  private void handleReply(Message message) {
-    if (message.header(ServiceHeaders.SERVICE_RESPONSE) != null) {
-      String correlationId = message.correlationId();
-      Optional<ServiceResponse> optinalFuture = ServiceResponse.get(message.correlationId());
-      if (optinalFuture.isPresent()) {
-        if (message.header("exception") == null) {
-          optinalFuture.get().complete(message);
-        } else {
-          LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
-          optinalFuture.get().completeExceptionally(message.data());
-        }
-      }
-    }
+    this.sender.listen()
+        .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
+        .subscribe(message -> ServiceResponse.handleReply(message));
   }
 
   public Cluster cluster() {
@@ -305,7 +289,7 @@ public class Microservices {
 
     private Class<? extends Router> router = RoundRobinServiceRouter.class;
 
-    private Duration timeout = Duration.ofSeconds(30);
+    private Duration timeout = Duration.ofSeconds(3);
 
     @SuppressWarnings("unchecked")
     public <T> T create() {
@@ -353,5 +337,7 @@ public class Microservices {
     return this.cluster.shutdown();
   }
 
-
+  public ServiceRegistry serviceRegistry() {
+    return serviceRegistry;
+  }
 }

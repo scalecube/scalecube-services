@@ -97,7 +97,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             serviceInstances.putIfAbsent(serviceRef,
-                new RemoteServiceInstance(this, sender, serviceRef, info.getTags()));
+                new RemoteServiceInstance(sender, serviceRef, info.getTags()));
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
           }

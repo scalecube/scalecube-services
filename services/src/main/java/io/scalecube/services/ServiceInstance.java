@@ -4,12 +4,13 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public interface ServiceInstance {
 
   String serviceName();
 
-  Object invoke(Message request) throws Exception;
+  CompletableFuture<Message> invoke(Message request) ;
 
   String memberId();
 

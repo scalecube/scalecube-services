@@ -56,6 +56,8 @@ public class ClusterServiceCommunicatorTest {
     service.greeting("joe").whenComplete((result, error) -> {
       if (error == null) {
         latch.countDown();
+      } else {
+        System.out.println("test_reuse_cluster_sender failed:  " + error);
       }
     });
 

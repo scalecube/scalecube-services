@@ -77,7 +77,7 @@ public class ServiceInstanceTest {
     ServiceRegistry registry = new ServiceRegistryImpl(member.cluster(), sender, config, processor);
 
     RemoteServiceInstance instance =
-        new RemoteServiceInstance(registry, sender, reference, new HashMap<>());
+        new RemoteServiceInstance(sender, reference, new HashMap<>());
 
     assertEquals(instance.toString(), "RemoteServiceInstance [address=localhost:4000, memberId=a]");
     assertTrue(instance.tags().isEmpty());
@@ -89,7 +89,7 @@ public class ServiceInstanceTest {
     try {
       instance.dispatch(Message.builder()
           .header(ServiceHeaders.METHOD, null)
-          .header(ServiceHeaders.SERVICE, "s")
+          .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
@@ -98,7 +98,7 @@ public class ServiceInstanceTest {
     try {
       instance.invoke(Message.builder()
           .header(ServiceHeaders.METHOD, "unkonwn")
-          .header(ServiceHeaders.SERVICE, "s")
+          .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.util.NoSuchElementException: No value present");
@@ -107,7 +107,7 @@ public class ServiceInstanceTest {
     try {
       instance.dispatch(Message.builder()
           .header(ServiceHeaders.METHOD, "m")
-          .header(ServiceHeaders.SERVICE, null)
+          .header(ServiceHeaders.SERVICE_REQUEST, null)
           .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
