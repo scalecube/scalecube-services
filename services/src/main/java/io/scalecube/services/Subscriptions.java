@@ -10,15 +10,22 @@ public class Subscriptions {
 
   final ConcurrentMap<String, ServiceSubscription> subscriptionsMap = new ConcurrentHashMap<>();
 
+  /**
+   * map remote subscriptions to handle cases where subscriptions needs to automatically unsubscribe. listen on cluster.
+   * changes and in case member id is removed from cluster remove the member subscriptions. listen on unsubscribe
+   * requests and unsubscribe in case remote subscription is unsubscribed.
+   * 
+   * @param microservices of the instance to listen for events.
+   */
   public Subscriptions(Microservices microservices) {
-   
+
     microservices.cluster().listenMembership()
         .filter(predicate -> predicate.isRemoved())
         .subscribe(onNext -> {
           subscriptionsMap.values().stream()
               .filter(action -> action.memberId().equals(onNext.member().id()))
               .collect(Collectors.toList())
-              
+
               .forEach(sub -> {
                 sub.unsubscribe();
                 subscriptionsMap.remove(sub.id());

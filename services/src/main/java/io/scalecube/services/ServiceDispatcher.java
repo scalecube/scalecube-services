@@ -22,19 +22,17 @@ public class ServiceDispatcher {
   /**
    * ServiceDispatcher constructor to listen on incoming network service request.
    * 
-   * @param sender instance to listen on events.
-   * @param registry service registry instance for dispatching.
+   * @param microservices instance.
    */
-  public ServiceDispatcher(ServiceCommunicator sender, Microservices microservices) {
-    this.sender = sender;
+  public ServiceDispatcher(Microservices microservices) {
+    this.sender = microservices.sender();
     this.registry = microservices.serviceRegistry();
-
     subscriptions = new Subscriptions(microservices);
+    
     // Start listen messages
     sender.listen()
         .filter(message -> serviceRequest(message) != null)
         .subscribe(this::onServiceRequest);
-
 
   }
 
@@ -53,18 +51,18 @@ public class ServiceDispatcher {
 
         } else if (method.getReturnType().equals(Observable.class)) {
           if (!subscriptions.contains(request.correlationId())) {
-
+            final String cid = request.correlationId();
             Subscription subscription = serviceInstance.get().listen(request)
                 .doOnCompleted(() -> {
-                  subscriptions.unsubscribe(request.correlationId());
+                  subscriptions.unsubscribe(cid);
                 }).doOnTerminate(() -> {
-                  subscriptions.unsubscribe(request.correlationId());
+                  subscriptions.unsubscribe(cid);
                 }).subscribe(onNext -> {
                   sender.send(request.sender(), onNext);
                 });
 
             subscriptions.put(request.correlationId(), new ServiceSubscription(
-                request.correlationId(),
+                cid,
                 subscription,
                 sender.cluster().member().id()));
           }

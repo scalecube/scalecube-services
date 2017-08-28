@@ -45,7 +45,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
     final Observable<Message> result = sender.listen()
         .doOnUnsubscribe(() -> {
-          sendRemote(Messages.asUnsubscribeRequest(request));
+          sendRemote(Messages.asUnsubscribeRequest(request.correlationId()));
         }).filter(
             message -> message.correlationId().equals(request.correlationId()));
 
