@@ -61,7 +61,7 @@ public class ServiceResponse {
    */
   public static void handleReply(Message message) {
     String correlationId = message.correlationId();
-    ServiceResponse response = futures.get(correlationId);
+    ServiceResponse response = futures.remove(correlationId);
     if (response != null) {
       if (message.header("exception") == null) {
         response.complete(message);
@@ -86,7 +86,6 @@ public class ServiceResponse {
       LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
       this.messageFuture.completeExceptionally(message.data());
     }
-    futures.remove(correlationId);
   }
 
   /**
@@ -96,7 +95,6 @@ public class ServiceResponse {
    */
   public void completeExceptionally(Throwable exception) {
     this.messageFuture.completeExceptionally(exception);
-    futures.remove(correlationId);
   }
 
   /**
