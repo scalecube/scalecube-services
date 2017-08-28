@@ -15,7 +15,7 @@ public interface ServiceInstance {
   Observable<Message> listen(Message request);
   
   String serviceName();
-  
+
   String memberId();
 
   Boolean isLocal();

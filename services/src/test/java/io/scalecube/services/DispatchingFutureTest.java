@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.membership.IdGenerator;
+
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -59,8 +60,6 @@ public class DispatchingFutureTest extends BaseTest {
     field.setAccessible(true);
     field.set(request, member.cluster().address());
 
-    DispatchingFuture dispatcher = DispatchingFuture.from(member.sender(), request);
-    
     CountDownLatch latch = new CountDownLatch(1);
     response.future().whenComplete((result, error) -> {
       assertTrue(error!=null);

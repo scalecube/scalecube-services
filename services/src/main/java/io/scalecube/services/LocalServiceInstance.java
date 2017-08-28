@@ -59,7 +59,6 @@ public class LocalServiceInstance implements ServiceInstance {
     checkArgument(request != null, "message can't be null");
     final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
     return invokeMethod(request, method);
-
   }
 
   private Object invoke(final Message request, final Method method)
@@ -119,6 +118,7 @@ public class LocalServiceInstance implements ServiceInstance {
 
     return resultMessage;
   }
+
 
   public String serviceName() {
     return serviceName;
