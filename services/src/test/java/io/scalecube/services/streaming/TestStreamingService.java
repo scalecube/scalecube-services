@@ -2,12 +2,15 @@ package io.scalecube.services.streaming;
 
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
 
+import rx.Observable;
+import rx.Subscriber;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -38,10 +41,12 @@ public class TestStreamingService extends BaseTest {
     QuoteService service = node.proxy().api(QuoteService.class).create();
 
     CountDownLatch latch = new CountDownLatch(3);
-    Subscription sub = service.quotes(2).subscribe(onNext -> {
-      System.out.println("test_local_quotes_service: " + onNext);
+    Observable<String> obs =  service.quotes(2);
+    
+    Subscription sub = obs.subscribe(onNext->{
       latch.countDown();
     });
+    
     latch.await(1, TimeUnit.SECONDS);
 
     sub.unsubscribe();
@@ -130,8 +135,7 @@ public class TestStreamingService extends BaseTest {
     ServiceCall service = gateway.dispatcher().create();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Subscription sub1 = service.listen(ServiceCall
-        .request(QuoteService.NAME, "snapshoot")
+    Subscription sub1 = service.listen(Messages.request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
         .build())
 

@@ -17,23 +17,29 @@ public class ServiceDispatcher {
   private final ServiceCommunicator sender;
   private final ServiceRegistry registry;
 
+  Subscriptions subscriptions;
+
   /**
    * ServiceDispatcher constructor to listen on incoming network service request.
    * 
    * @param sender instance to listen on events.
    * @param registry service registry instance for dispatching.
    */
-  public ServiceDispatcher(ServiceCommunicator sender, ServiceRegistry registry) {
+  public ServiceDispatcher(ServiceCommunicator sender, Microservices microservices) {
     this.sender = sender;
-    this.registry = registry;
+    this.registry = microservices.serviceRegistry();
 
+    subscriptions = new Subscriptions(microservices);
     // Start listen messages
     sender.listen()
         .filter(message -> serviceRequest(message) != null)
         .subscribe(this::onServiceRequest);
+
+
   }
 
   private void onServiceRequest(final Message request) {
+
     Optional<ServiceInstance> serviceInstance =
         registry.getLocalInstance(serviceRequest(request), serviceMethod(request));
 
@@ -44,15 +50,26 @@ public class ServiceDispatcher {
         Method method = instance.getMethod(request);
         if (method.getReturnType().equals(CompletableFuture.class)) {
           result.complete(serviceInstance.get().invoke(request));
-        
+
         } else if (method.getReturnType().equals(Observable.class)) {
-          Subscription subscription = serviceInstance.get().listen(request)
-              .subscribe(onNext -> {
-                sender.send(request.sender(), onNext);
-              });
-          
+          if (!subscriptions.contains(request.correlationId())) {
+
+            Subscription subscription = serviceInstance.get().listen(request)
+                .doOnCompleted(() -> {
+                  subscriptions.unsubscribe(request.correlationId());
+                }).doOnTerminate(() -> {
+                  subscriptions.unsubscribe(request.correlationId());
+                }).subscribe(onNext -> {
+                  sender.send(request.sender(), onNext);
+                });
+
+            subscriptions.put(request.correlationId(), new ServiceSubscription(
+                request.correlationId(),
+                subscription,
+                sender.cluster().member().id()));
+          }
         }
-        
+
       } else {
         result.completeExceptionally(new IllegalStateException("Service instance is missing: " + request.qualifier()));
       }

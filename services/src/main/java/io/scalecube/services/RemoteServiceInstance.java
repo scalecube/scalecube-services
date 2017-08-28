@@ -40,18 +40,18 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.sender = sender;
   }
 
-
   @Override
-  public Observable<Message> listen(Message request) {
+  public Observable<Message> listen(final Message request) {
 
-    sendRemote(request).whenComplete((success, error) -> {
+    final Observable<Message> result = sender.listen()
+        .doOnUnsubscribe(() -> {
+          sendRemote(Messages.asUnsubscribeRequest(request));
+        }).filter(
+            message -> message.correlationId().equals(request.correlationId()));
 
-    });
+    sendRemote(request);
 
-    return sender.listen()
-        .filter(
-            message -> message.correlationId().equals(request.correlationId())
-            );
+    return result;
   }
 
   /**

@@ -59,9 +59,9 @@ public class LocalServiceInstance implements ServiceInstance {
     checkArgument(request != null, "message can't be null");
     final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
     return invokeMethod(request, method);
-  
+
   }
-  
+
   private Object invoke(final Message request, final Method method)
       throws IllegalAccessException, InvocationTargetException {
     Object result;
@@ -87,10 +87,10 @@ public class LocalServiceInstance implements ServiceInstance {
     final String cid = request.correlationId();
     try {
       final Observable<?> observable = (Observable<?>) invoke(request, method);
-      return observable.map(message -> asResponse(message, cid));
+      return observable.map(message -> Messages.asResponse(message, cid));
 
     } catch (IllegalAccessException | InvocationTargetException ex) {
-      return Observable.from(new Message[] {asResponse(ex, cid)});
+      return Observable.from(new Message[] {Messages.asResponse(ex, cid)});
     }
   }
 
@@ -106,7 +106,7 @@ public class LocalServiceInstance implements ServiceInstance {
             if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
               resultMessage.complete((Message) success);
             } else {
-              resultMessage.complete(asResponse(success, request.correlationId()));
+              resultMessage.complete(Messages.asResponse(success, request.correlationId()));
             }
           } else {
             resultMessage.completeExceptionally(error);
@@ -118,23 +118,6 @@ public class LocalServiceInstance implements ServiceInstance {
     }
 
     return resultMessage;
-  }
-
-  private Message asResponse(Object data, String correlationId) {
-    if (data instanceof Message) {
-      Message msg = (Message) data;
-      return (Message.builder().data(msg.data()).correlationId(correlationId).build());
-    } else if (data instanceof Throwable) {
-      return (Message.builder().data(data)
-          .correlationId(correlationId)
-          .header(ServiceHeaders.EXCEPTION, "")
-          .build());
-    } else {
-      return Message.builder()
-          .data(data)
-          .correlationId(correlationId)
-          .build();
-    }
   }
 
   public String serviceName() {

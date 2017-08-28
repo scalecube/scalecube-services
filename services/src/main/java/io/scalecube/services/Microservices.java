@@ -119,7 +119,7 @@ public class Microservices {
     this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
 
-    new ServiceDispatcher(this.sender, serviceRegistry);
+    new ServiceDispatcher(this.sender, this);
     this.sender.listen()
         .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
         .subscribe(message -> ServiceResponse.handleReply(message));
@@ -163,9 +163,11 @@ public class Microservices {
 
       if (!this.reuseClusterTransport) {
         // create cluster and transport with given config.
-        sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
-        ClusterConfig cfg = getClusterConfig(servicesConfig, sender.address());
+        TransportServiceCommunicator transportSender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
+        ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
         cluster = Cluster.joinAwait(cfg);
+        transportSender.cluster(cluster);
+        sender = transportSender;
 
       } else {
         ClusterConfig cfg = getClusterConfig(servicesConfig, null);

@@ -3,7 +3,6 @@ package io.scalecube.services;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.Message.Builder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,17 +81,16 @@ public class ServiceCall {
     if (!serviceInstance.isLocal()) {
       String cid = IdGenerator.generateId();
 
-      Message requestMessage = asRequest(request, cid);
-
       final ServiceResponse responseFuture = ServiceResponse.correlationId(cid);
 
-      serviceInstance.invoke(requestMessage).whenComplete((success, error) -> {
-        if (error == null) {
-          responseFuture.withTimeout(duration);
-        } else {
-          responseFuture.completeExceptionally(error);
-        }
-      });
+      serviceInstance.invoke(Messages.asRequest(request, cid))
+          .whenComplete((success, error) -> {
+            if (error == null) {
+              responseFuture.withTimeout(duration);
+            } else {
+              responseFuture.completeExceptionally(error);
+            }
+          });
 
       return responseFuture.future();
     } else {
@@ -116,30 +114,6 @@ public class ServiceCall {
     } else {
       throw noReachableMemberException(request);
     }
-  }
-
-
-  /**
-   * helper method to get service request builder with needed headers.
-   * 
-   * @param serviceName the requested service name.
-   * @param methodName the requested service method name.
-   * @return Builder for requested message.
-   */
-  public static Builder request(String serviceName, String methodName) {
-    return Message.builder()
-        .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
-        .header(ServiceHeaders.METHOD, methodName)
-        .correlationId(IdGenerator.generateId());
-
-  }
-
-  private Message asRequest(Message request, final String correlationId) {
-    return Message.withData(request.data())
-        .header(ServiceHeaders.SERVICE_REQUEST, request.header(ServiceHeaders.SERVICE_REQUEST))
-        .header(ServiceHeaders.METHOD, request.header(ServiceHeaders.METHOD))
-        .correlationId(correlationId)
-        .build();
   }
 
   private IllegalStateException noReachableMemberException(Message request) {

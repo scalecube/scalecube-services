@@ -48,7 +48,7 @@ public class ServiceProxyFactory {
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         Object data = method.getParameterCount() != 0 ? args[0] : null;
-        final Message reqMsg = ServiceCall.request(serviceDefinition.serviceName(),
+        final Message reqMsg = Messages.request(serviceDefinition.serviceName(),
             method.getName())
             .data(data)
             .build();

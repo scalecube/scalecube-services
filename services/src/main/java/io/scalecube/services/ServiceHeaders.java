@@ -31,6 +31,12 @@ public final class ServiceHeaders {
    */
   public static final String EXCEPTION = "exception";
 
+
+  public static final String DISPATCHER_SERVICE = "sc-service-dispatcher";
+
+
+  public static final String UNSUBSCIBE = "unsubscribe";
+
   private ServiceHeaders() {
     // Do not instantiate
   }

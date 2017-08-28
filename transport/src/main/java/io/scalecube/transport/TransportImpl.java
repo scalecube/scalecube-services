@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.observables.SyncOnSubscribe;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -43,6 +44,8 @@ final class TransportImpl implements Transport {
   private static final CompletableFuture<Void> COMPLETED_PROMISE = CompletableFuture.completedFuture(null);
 
   private final TransportConfig config;
+
+  
 
   private final Subject<Message, Message> incomingMessagesSubject = PublishSubject.<Message>create().toSerialized();
 

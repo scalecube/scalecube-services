@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -15,4 +16,5 @@ public interface ServiceCommunicator {
 
   Observable<Message> listen();
 
+  Cluster cluster();
 }

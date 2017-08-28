@@ -36,4 +36,9 @@ public class ClusterServiceCommunicator implements ServiceCommunicator {
     return cluster.listen();
   }
 
+  @Override
+  public Cluster cluster() {
+    return cluster;
+  }
+
 }

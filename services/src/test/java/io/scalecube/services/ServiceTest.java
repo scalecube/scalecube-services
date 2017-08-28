@@ -13,7 +13,6 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
