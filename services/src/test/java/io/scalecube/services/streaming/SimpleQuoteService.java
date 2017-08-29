@@ -20,6 +20,21 @@ public class SimpleQuoteService implements QuoteService {
   public SimpleQuoteService() {}
 
   @Override
+  public Observable<String> justOne() {
+    return Observable.just("1");
+  }
+
+  @Override
+  public Observable<String> scheduled(int interval) {
+    job.scheduleAtFixedRate(() -> {
+      quotes.onNext("quote : " + i.get());
+      i.incrementAndGet();
+    }, interval, interval, TimeUnit.MILLISECONDS);
+
+    return quotes.serialize();
+  }
+
+  @Override
   public Observable<String> quotes(int maxSize) {
     job.scheduleAtFixedRate(() -> {
       if ((i.get() % maxSize) == 0) {

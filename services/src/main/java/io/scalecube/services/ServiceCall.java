@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
@@ -40,11 +42,14 @@ public class ServiceCall {
    * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
-
+    Messages.validate().serviceRequest(request);
+    
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
     if (optionalServiceInstance.isPresent()) {
-      return this.invoke(request, optionalServiceInstance.get(), timeout);
+      ServiceInstance instance = optionalServiceInstance.get();
+      validateHasMethod(request, instance);
+      return this.invoke(request, instance, timeout);
     } else {
       throw noReachableMemberException(request);
     }
@@ -61,6 +66,7 @@ public class ServiceCall {
    * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(Message request, ServiceInstance serviceInstance) throws Exception {
+    Messages.validate().serviceRequest(request);
     return invoke(request, serviceInstance, timeout);
   }
 
@@ -77,7 +83,10 @@ public class ServiceCall {
    */
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
-
+    
+    Messages.validate().serviceRequest(request);
+    validateHasMethod(request, serviceInstance);
+    
     if (!serviceInstance.isLocal()) {
       String cid = IdGenerator.generateId();
 
@@ -105,15 +114,24 @@ public class ServiceCall {
    * @return rx.Observable for the specific stream.
    */
   public Observable<Message> listen(Message request) {
+    
+    Messages.validate().serviceRequest(request);
+    
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
     if (optionalServiceInstance.isPresent()) {
-      Observable<Message> subscription = optionalServiceInstance.get().listen(request);
+      ServiceInstance instance = optionalServiceInstance.get();
+      validateHasMethod(request, instance);
 
-      return subscription;
+      return instance.listen(request);
     } else {
       throw noReachableMemberException(request);
     }
+  }
+
+  private void validateHasMethod(Message request, ServiceInstance instance) {
+    checkArgument( instance.hasMethod(request.header(ServiceHeaders.METHOD)),
+        "instance has no such requested method");
   }
 
   private IllegalStateException noReachableMemberException(Message request) {

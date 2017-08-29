@@ -86,10 +86,10 @@ public class LocalServiceInstance implements ServiceInstance {
     final String cid = request.correlationId();
     try {
       final Observable<?> observable = (Observable<?>) invoke(request, method);
-      return observable.map(message -> Messages.asResponse(message, cid));
+      return observable.map(message -> Messages.asResponse(message, cid, memberId));
 
     } catch (IllegalAccessException | InvocationTargetException ex) {
-      return Observable.from(new Message[] {Messages.asResponse(ex, cid)});
+      return Observable.from(new Message[] {Messages.asResponse(ex, cid, memberId)});
     }
   }
 
@@ -105,7 +105,7 @@ public class LocalServiceInstance implements ServiceInstance {
             if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
               resultMessage.complete((Message) success);
             } else {
-              resultMessage.complete(Messages.asResponse(success, request.correlationId()));
+              resultMessage.complete(Messages.asResponse(success, request.correlationId(), memberId));
             }
           } else {
             resultMessage.completeExceptionally(error);
@@ -157,5 +157,10 @@ public class LocalServiceInstance implements ServiceInstance {
 
   public Method getMethod(Message request) {
     return this.methods.get(request.header(ServiceHeaders.METHOD));
+  }
+
+  @Override
+  public boolean hasMethod(String methodName) {
+    return methods.containsKey(methodName);
   }
 }

@@ -35,7 +35,7 @@ public class ServiceCallTest extends BaseTest {
     ServiceCall service = microservices.dispatcher().create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingNoParams").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -54,7 +54,7 @@ public class ServiceCallTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.cluster().shutdown();
+    microservices.shutdown();
   }
 
   @Test
@@ -74,7 +74,7 @@ public class ServiceCallTest extends BaseTest {
     ServiceCall service = consumer.dispatcher().create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingNoParams").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -93,8 +93,8 @@ public class ServiceCallTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.cluster().shutdown();
-    consumer.cluster().shutdown();
+    provider.shutdown();
+    consumer.shutdown();
   }
 
   @Test
@@ -112,7 +112,7 @@ public class ServiceCallTest extends BaseTest {
     ServiceCall service = gateway.dispatcher().create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingVoid")
         .data(new GreetingRequest("joe"))
         .build());
@@ -129,8 +129,8 @@ public class ServiceCallTest extends BaseTest {
     // but at least we didn't get exception :)
     System.out.println("test_remote_void_greeting done.");
     await(timeLatch, 1, TimeUnit.SECONDS);
-    gateway.cluster().shutdown();
-    node1.cluster().shutdown();
+    gateway.shutdown();
+    node1.shutdown();
   }
 
   @Test
@@ -142,7 +142,7 @@ public class ServiceCallTest extends BaseTest {
         .build().dispatcher().create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingVoid")
         .data(new GreetingRequest("joe"))
         .build());
@@ -179,7 +179,7 @@ public class ServiceCallTest extends BaseTest {
     ServiceCall service = consumer.dispatcher().create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greeting")
         .data("joe")
         .build());
@@ -197,8 +197,8 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.cluster().shutdown();
-    consumer.cluster().shutdown();
+    provider.shutdown();
+    consumer.shutdown();
   }
 
 
@@ -214,7 +214,7 @@ public class ServiceCallTest extends BaseTest {
     ServiceCall service = microservices.dispatcher().create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequest")
         .data(new GreetingRequest("joe"))
         .build());
@@ -233,7 +233,7 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 3, TimeUnit.SECONDS);
-    microservices.cluster().shutdown();
+    microservices.shutdown();
   }
 
   @Test
@@ -253,7 +253,7 @@ public class ServiceCallTest extends BaseTest {
     ServiceCall service = consumer.dispatcher().create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequest")
         .data(new GreetingRequest("joe"))
         .build());
@@ -272,8 +272,8 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.cluster().shutdown();
-    consumer.cluster().shutdown();
+    provider.shutdown();
+    consumer.shutdown();
   }
 
   @Test
@@ -288,7 +288,7 @@ public class ServiceCallTest extends BaseTest {
         .create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequestTimeout")
         .data(new GreetingRequest("joe", Duration.ofSeconds(2)))
         .build(), Duration.ofMillis(1));
@@ -328,7 +328,7 @@ public class ServiceCallTest extends BaseTest {
         .create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequestTimeout")
         .data(new GreetingRequest("joe", Duration.ofSeconds(4)))
         .build());
@@ -365,7 +365,7 @@ public class ServiceCallTest extends BaseTest {
         .create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
         .data(Message.builder().data("joe").build())
         .build(), Duration.ofMillis(1));
@@ -384,7 +384,7 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.cluster().shutdown();
+    microservices.shutdown();
   }
 
   @Test
@@ -405,7 +405,7 @@ public class ServiceCallTest extends BaseTest {
         .create();
 
     // call the service.
-    CompletableFuture<Message> future = service.invoke(Messages
+    CompletableFuture<Message> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
         .data(Message.builder().data("joe").build())
         .build());
@@ -426,7 +426,8 @@ public class ServiceCallTest extends BaseTest {
     });
 
     await(timeLatch, 20, TimeUnit.SECONDS);
-    consumer.cluster().shutdown();
+    consumer.shutdown();
+    provider.shutdown();
   }
 
   @Test
@@ -451,12 +452,12 @@ public class ServiceCallTest extends BaseTest {
         .create();
 
     // call the service.
-    CompletableFuture<Message> result1 = service.invoke(Messages
+    CompletableFuture<Message> result1 = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
         .data(Message.builder().data("joe").build())
         .build());
 
-    CompletableFuture<Message> result2 = service.invoke(Messages
+    CompletableFuture<Message> result2 = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
         .data(Message.builder().data("joe").build())
         .build());
@@ -479,8 +480,8 @@ public class ServiceCallTest extends BaseTest {
     });
     await(timeLatch, 2, TimeUnit.SECONDS);
 
-    provider2.cluster().shutdown();
-    provider1.cluster().shutdown();
+    provider2.shutdown();
+    provider1.shutdown();
 
   }
 
@@ -496,7 +497,7 @@ public class ServiceCallTest extends BaseTest {
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       // call the service.
-      CompletableFuture<Message> future = service.invoke(Messages
+      CompletableFuture<Message> future = service.invoke(Messages.builder()
           .request(SERVICE_NAME, "unknown")
           .data(Message.builder().data("joe").build())
           .build());
@@ -507,8 +508,8 @@ public class ServiceCallTest extends BaseTest {
     }
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    gateway.cluster().shutdown();
-    provider1.cluster().shutdown();
+    gateway.shutdown();
+    provider1.shutdown();
   }
 
   @Test
@@ -537,7 +538,7 @@ public class ServiceCallTest extends BaseTest {
     // Warm up
     for (int i = 0; i < warmUpCount; i++) {
       // call the service.
-      CompletableFuture<Message> future = service.invoke(Messages
+      CompletableFuture<Message> future = service.invoke(Messages.builder()
           .request(SERVICE_NAME, "greetingMessage")
           .data(Message.builder().data("naive_stress_test").build())
           .build());
@@ -556,7 +557,7 @@ public class ServiceCallTest extends BaseTest {
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
     for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = service.invoke(Messages
+      CompletableFuture<Message> future = service.invoke(Messages.builder()
           .request(SERVICE_NAME, "greetingMessage")
           .data(Message.builder().data("naive_stress_test").build())
           .build());
@@ -571,6 +572,8 @@ public class ServiceCallTest extends BaseTest {
     countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
+    provider.shutdown();
+    consumer.shutdown();
   }
 
  
@@ -606,7 +609,7 @@ public class ServiceCallTest extends BaseTest {
 
     for (int i = 0; i < 100; i++) {
       // call the service.
-      CompletableFuture<Message> future = service.invoke(Messages
+      CompletableFuture<Message> future = service.invoke(Messages.builder()
           .request(CANARY_SERVICE, "greeting")
           .data("joe")
           .build());
@@ -623,28 +626,34 @@ public class ServiceCallTest extends BaseTest {
     }
 
     
-    await(timeLatch, 3, TimeUnit.SECONDS);
-    assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
+    await(timeLatch, 5, TimeUnit.SECONDS);
+    System.out.println("responses: " + responses.get());
+    System.out.println("count: " + count.get());
     System.out.println("Service B was called: " + count.get()  + " times.");
+    
+    assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
+    services1.shutdown();
+    services2.shutdown();
+    gateway.shutdown();
+    
   }
 
   @Test
   public void test_dispatcher_remote_greeting_request_completes_before_timeout() {
-    Duration duration = Duration.ofSeconds(1);
 
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
         .build();
 
-    Microservices.builder()
+    Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
 
     ServiceCall service = gateway.dispatcher().timeout(Duration.ofSeconds(3)).create();
 
-    CompletableFuture<Message> result = service.invoke(Messages.request(
+    CompletableFuture<Message> result = service.invoke(Messages.builder().request(
         "io.scalecube.services.GreetingService", "greetingRequest")
         .data(new GreetingRequest("joe"))
         .build());
@@ -665,6 +674,9 @@ public class ServiceCallTest extends BaseTest {
       }
     });
     await(timeLatch, 10, TimeUnit.SECONDS);
+    assertTrue(timeLatch.getCount()==0);
+    gateway.shutdown();
+    node.shutdown();
   }
 
   @Test
@@ -677,7 +689,7 @@ public class ServiceCallTest extends BaseTest {
     ServiceCall service = gateway.dispatcher().timeout(Duration.ofSeconds(3)).create();
 
     CompletableFuture<Message> result = service.invoke(
-        Messages.request(
+        Messages.builder().request(
             "io.scalecube.services.GreetingService", "greetingRequest")
             .data(new GreetingRequest("joe"))
             .build());
@@ -698,6 +710,8 @@ public class ServiceCallTest extends BaseTest {
       }
     });
     await(timeLatch, 10, TimeUnit.SECONDS);
+    assertTrue(timeLatch.getCount()==0);
+    gateway.shutdown();
   }
 
   private Microservices createProvider(Microservices gateway) {

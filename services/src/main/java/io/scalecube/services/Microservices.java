@@ -149,34 +149,24 @@ public class Microservices {
 
     private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
-    private boolean reuseClusterTransport;
-
     /**
      * microsrrvices instance builder.
      * 
      * @return Microservices instance.
      */
     public Microservices build() {
-      
-      ServiceCommunicator sender;
+
       Cluster cluster = null;
-
-      if (!this.reuseClusterTransport) {
-        // create cluster and transport with given config.
-        TransportServiceCommunicator transportSender =
-            new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
-        ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
-        cluster = Cluster.joinAwait(cfg);
-        transportSender.cluster(cluster);
-        sender = transportSender;
-
-      } else {
-        ClusterConfig cfg = getClusterConfig(servicesConfig, null);
-        cluster = Cluster.joinAwait(cfg);
-        sender = new ClusterServiceCommunicator(cluster);
-      }
-
-      return Reflect.builder(new Microservices(cluster, sender, servicesConfig)).inject();
+      
+      // create cluster and transport with given config.
+      TransportServiceCommunicator transportSender =
+          new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
+      
+      ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
+      cluster = Cluster.joinAwait(cfg);
+      transportSender.cluster(cluster);
+      
+      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
@@ -190,11 +180,6 @@ public class Microservices {
         clusterConfig.metadata(metadata);
       }
       return clusterConfig.build();
-    }
-
-    public Builder reuseClusterTransport(boolean reuse) {
-      this.reuseClusterTransport = reuse;
-      return this;
     }
 
     public Builder port(int port) {
@@ -324,10 +309,15 @@ public class Microservices {
 
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
-
+    
     config.getServiceConfigs().stream().forEach(serviceConfig -> {
+      
       serviceConfig.serviceNames().stream().forEach(name -> {
-        servicesTags.put(new ServiceInfo(name, serviceConfig.getTags()).toMetadata(), "service");
+        
+        servicesTags.put(new ServiceInfo(name,
+            serviceConfig.methods(name), 
+            serviceConfig.getTags()).toMetadata(), 
+            "service");
       });
     });
 
@@ -339,6 +329,7 @@ public class Microservices {
   }
 
   public CompletableFuture<Void> shutdown() {
+    this.sender.shutdown();
     return this.cluster.shutdown();
   }
 

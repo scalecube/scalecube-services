@@ -89,7 +89,23 @@ public class ServicesConfig {
       }
 
       public Set<String> serviceNames() {
-        return serviceDefinitions.stream().map(definition -> definition.serviceName()).collect(Collectors.toSet());
+        return serviceDefinitions.stream()
+            .map(definition -> definition.serviceName())
+            .collect(Collectors.toSet());
+      }
+
+      /**
+       * return method names for a given service name.
+       * 
+       * @param serviceName to retrieve.
+       * @return list of declared method names for a given service.
+       */
+      public Set<String> methods(String serviceName) {
+        return serviceDefinitions.stream()
+            .filter(def -> def.serviceName().equals(serviceName))
+            .findFirst().get()
+            .methods()
+            .keySet();
       }
     }
 

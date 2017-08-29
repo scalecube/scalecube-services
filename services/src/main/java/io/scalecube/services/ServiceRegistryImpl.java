@@ -94,6 +94,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           ServiceReference serviceRef = new ServiceReference(
               member.id(),
               info.getServiceName(),
+              info.methods(),
               serviceAddress);
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
@@ -133,7 +134,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
 
       ServiceReference serviceRef =
-          new ServiceReference(memberId, serviceDefinition.serviceName(), sender.address());
+          new ServiceReference(memberId, serviceDefinition.serviceName(), serviceDefinition.methods().keySet(),
+              sender.address());
 
       ServiceInstance serviceInstance =
           new LocalServiceInstance(serviceObject, sender.address(), memberId, serviceDefinition.serviceName(),
@@ -181,7 +183,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(), sender.address());
+
+    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(),
+        serviceDefinition.methods().keySet(), sender.address());
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {

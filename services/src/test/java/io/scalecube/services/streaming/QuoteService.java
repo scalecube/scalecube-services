@@ -15,5 +15,11 @@ public interface QuoteService {
 
   @ServiceMethod
   Observable<String> snapshoot(int size);
+
+  @ServiceMethod
+  Observable<String> justOne();
+
+  @ServiceMethod
+  Observable<String> scheduled(int interval);
   
 }

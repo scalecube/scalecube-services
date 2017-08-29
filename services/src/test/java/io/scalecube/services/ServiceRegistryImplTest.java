@@ -7,6 +7,7 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.services.annotations.AnnotationServiceProcessor;
 import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.testlib.BaseTest;
+import io.scalecube.transport.Transport;
 
 import org.junit.Test;
 
@@ -20,20 +21,21 @@ public class ServiceRegistryImplTest extends BaseTest {
     ServicesConfig services = ServicesConfig.empty();
     ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
 
-    ServiceCommunicator sender = new ClusterServiceCommunicator(cluster);
+    ServiceCommunicator sender = new TransportServiceCommunicator(Transport.bindAwait());
 
     ServiceRegistryImpl registry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
 
     assertTrue(registry.services().isEmpty());
     
     cluster.shutdown();
+    sender.shutdown();
 
   }
 
   @Test
   public void test_service_registry_errors() {
     Cluster cluster = Cluster.joinAwait();
-    ServiceCommunicator sender = new ClusterServiceCommunicator(cluster);
+    ServiceCommunicator sender = new TransportServiceCommunicator(Transport.bindAwait());
     ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
     ServicesConfig services = ServicesConfig.empty();
 
@@ -60,6 +62,8 @@ public class ServiceRegistryImplTest extends BaseTest {
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: serviceProcessor can't be null");
     }
+    sender.shutdown();
+    cluster.shutdown();
 
   }
 

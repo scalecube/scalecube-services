@@ -35,15 +35,16 @@ public class DispatchingFutureTest extends BaseTest {
 
     CountDownLatch latch = new CountDownLatch(1);
     response.future().whenComplete((result, error) -> {
-      assertTrue(error!=null);
+      assertTrue(error != null);
       latch.countDown();
     });
 
     response.complete(
         Message.builder().header("exception", "true").data(new Exception()).build());
-    
+
     latch.await(1, TimeUnit.SECONDS);
-    member.cluster().shutdown();
+    assertTrue(latch.getCount() == 0);
+    member.shutdown();
 
   }
 
@@ -62,20 +63,21 @@ public class DispatchingFutureTest extends BaseTest {
 
     CountDownLatch latch = new CountDownLatch(1);
     response.future().whenComplete((result, error) -> {
-      assertTrue(error!=null);
-      assertEquals(error.getMessage(),"hello");
+      assertTrue(error != null);
+      assertEquals(error.getMessage(), "hello");
       latch.countDown();
     });
 
     response.complete(
         Message.builder().header("exception", "true").data(new Exception("hello")).build());
-    
+
     latch.await(1, TimeUnit.SECONDS);
-    member.cluster().shutdown();
+    assertTrue(latch.getCount() == 0);
+    member.shutdown();
 
   }
-  
-  
+
+
   @Test
   public void test_dispatching_future_completeExceptionally() throws Exception {
 
@@ -90,18 +92,19 @@ public class DispatchingFutureTest extends BaseTest {
     field.set(request, member.cluster().address());
 
     DispatchingFuture dispatcher = DispatchingFuture.from(member.sender(), request);
-    
+
     CountDownLatch latch = new CountDownLatch(1);
     response.future().whenComplete((result, error) -> {
-      assertTrue(error!=null);
-      assertEquals(error.getMessage(),"hello");
+      assertTrue(error != null);
+      assertEquals(error.getMessage(), "hello");
       latch.countDown();
     });
 
     response.completeExceptionally(new Exception("hello"));
-    
+
     latch.await(1, TimeUnit.SECONDS);
-    member.cluster().shutdown();
+    assertTrue(latch.getCount() == 0);
+    member.shutdown();
 
   }
 

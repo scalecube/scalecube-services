@@ -2,8 +2,8 @@ package io.scalecube.examples;
 
 import static java.util.stream.Collectors.joining;
 
-import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Cluster;
+import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 
 import com.google.common.collect.ImmutableMap;

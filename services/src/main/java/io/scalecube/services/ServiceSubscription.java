@@ -26,4 +26,8 @@ public class ServiceSubscription {
     return id;
   }
 
+  @Override
+  public String toString() {
+    return "ServiceSubscription [id=" + id + ", subscription=" + subscription + ", memberId=" + memberId + "]";
+  }
 }

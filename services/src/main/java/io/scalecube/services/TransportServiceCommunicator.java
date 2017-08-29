@@ -46,5 +46,12 @@ public class TransportServiceCommunicator implements ServiceCommunicator {
     this.cluster = cluster;
   }
 
+  @Override
+  public CompletableFuture<Void> shutdown() {
+    CompletableFuture<Void> promise = new CompletableFuture<Void>();
+    this.transport.stop(promise);
+    return promise;
+  }
+
 
 }

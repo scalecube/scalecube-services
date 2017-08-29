@@ -4,14 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
-import io.scalecube.services.annotations.AnnotationServiceProcessor;
-import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 
 public class ServiceInstanceTest extends BaseTest {
@@ -70,12 +70,9 @@ public class ServiceInstanceTest extends BaseTest {
   public void test_remote_service_instance() {
 
     Microservices member = Microservices.builder().build();
-    ServiceReference reference = new ServiceReference("a", "b", Address.create("localhost", 4000));
-    ServicesConfig config = ServicesConfig.empty();
+    ServiceReference reference = new ServiceReference("a", "b",Collections.EMPTY_SET, Address.create("localhost", 4000));
 
-    ServiceProcessor processor = new AnnotationServiceProcessor();
-    ServiceCommunicator sender = new ClusterServiceCommunicator(member.cluster());
-    ServiceRegistry registry = new ServiceRegistryImpl(member.cluster(), sender, config, processor);
+    ServiceCommunicator sender = new TransportServiceCommunicator(Transport.bindAwait());
 
     RemoteServiceInstance instance =
         new RemoteServiceInstance(sender, reference, new HashMap<>());
@@ -91,6 +88,7 @@ public class ServiceInstanceTest extends BaseTest {
       instance.dispatch(Message.builder()
           .header(ServiceHeaders.METHOD, null)
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
+          .correlationId("1")
           .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
@@ -100,6 +98,7 @@ public class ServiceInstanceTest extends BaseTest {
       instance.invoke(Message.builder()
           .header(ServiceHeaders.METHOD, "unkonwn")
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
+          .correlationId("1")
           .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.util.NoSuchElementException: No value present");
@@ -109,6 +108,7 @@ public class ServiceInstanceTest extends BaseTest {
       instance.dispatch(Message.builder()
           .header(ServiceHeaders.METHOD, "m")
           .header(ServiceHeaders.SERVICE_REQUEST, null)
+          .correlationId("1")
           .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
@@ -117,6 +117,8 @@ public class ServiceInstanceTest extends BaseTest {
     try {
       instance.invoke(Message.builder()
           .header(ServiceHeaders.METHOD, null)
+          .header(ServiceHeaders.SERVICE_REQUEST, "s")
+          .correlationId("1")
           .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
@@ -128,7 +130,7 @@ public class ServiceInstanceTest extends BaseTest {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
     }
 
-    member.cluster().shutdown();
+    member.shutdown();
 
   }
 

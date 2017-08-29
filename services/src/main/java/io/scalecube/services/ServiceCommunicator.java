@@ -17,4 +17,6 @@ public interface ServiceCommunicator {
   Observable<Message> listen();
 
   Cluster cluster();
+
+  CompletableFuture<Void> shutdown();
 }

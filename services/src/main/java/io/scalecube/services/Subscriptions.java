@@ -2,13 +2,17 @@ package io.scalecube.services;
 
 import io.scalecube.transport.Message;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 public class Subscriptions {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Subscriptions.class);
 
-  final ConcurrentMap<String, ServiceSubscription> subscriptionsMap = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, ServiceSubscription> subscriptionsMap = new ConcurrentHashMap<>();
 
   /**
    * map remote subscriptions to handle cases where subscriptions needs to automatically unsubscribe. listen on cluster.
@@ -26,26 +30,33 @@ public class Subscriptions {
               .filter(action -> action.memberId().equals(onNext.member().id()))
               .collect(Collectors.toList())
 
-              .forEach(sub -> {
-                sub.unsubscribe();
-                subscriptionsMap.remove(sub.id());
-              });;
+              .forEach(subscription -> {
+                subscription.unsubscribe();
+                subscriptionsMap.remove(subscription.id());
+                LOGGER.info("Member removed removing subscription {}", subscription);
+              });
         });
 
-    microservices.sender().listen().filter(request -> request.headers().containsKey(ServiceHeaders.DISPATCHER_SERVICE))
-        .filter(request -> request.header(ServiceHeaders.DISPATCHER_SERVICE).equals(ServiceHeaders.UNSUBSCIBE))
+    microservices.sender().listen().filter(request -> request.headers().containsKey(ServiceHeaders.OBSERVER))
+        .filter(request -> request.header(ServiceHeaders.OBSERVER).equals(ServiceHeaders.UNSUBSCIBE))
         .subscribe(onNext -> onUnsubscribed(onNext));
   }
 
-  private void onUnsubscribed(Message request) {
-    this.unsubscribe(request.correlationId());
-  }
-
+  /**
+   * Unsubscribe and remove the subscription for a given correlation id.
+   * 
+   * @param id correlation id of the subscription.
+   */
   public void unsubscribe(String id) {
     ServiceSubscription sub = subscriptionsMap.remove(id);
     if (sub != null) {
       sub.unsubscribe();
+      LOGGER.info("Removing subscription: {}", sub);
     }
+  }
+
+  private void onUnsubscribed(Message request) {
+    this.unsubscribe(request.correlationId());
   }
 
   public void put(String id, ServiceSubscription serviceSubscription) {

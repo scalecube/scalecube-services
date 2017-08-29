@@ -68,8 +68,8 @@ public class ServiceTest extends BaseTest {
 
     await(timeLatch, 10, TimeUnit.SECONDS);
 
-    node2.cluster().shutdown();
-    gateway.cluster().shutdown();
+    node2.shutdown();
+    gateway.shutdown();
 
   }
 
@@ -100,7 +100,8 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 60, TimeUnit.SECONDS);
-    node1.cluster().shutdown();
+    assertTrue(timeLatch.getCount() == 0);
+    node1.shutdown();
 
   }
 
@@ -132,7 +133,7 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.cluster().shutdown();
+    microservices.shutdown();
   }
 
   @Test
@@ -163,7 +164,7 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.cluster().shutdown();
+    microservices.shutdown();
   }
 
   @Test
@@ -193,8 +194,8 @@ public class ServiceTest extends BaseTest {
 
     Thread.sleep(1000);
 
-    gateway.cluster().shutdown();
-    node1.cluster().shutdown();
+    gateway.shutdown();
+    node1.shutdown();
   }
 
   @Test
@@ -216,7 +217,7 @@ public class ServiceTest extends BaseTest {
     // but at least we didn't get exception :)
     assertTrue(true);
     System.out.println("test_local_void_greeting done.");
-    node1.cluster().shutdown();
+    node1.shutdown();
   }
 
   @Test
@@ -252,8 +253,8 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.cluster().shutdown();
-    consumer.cluster().shutdown();
+    provider.shutdown();
+    consumer.shutdown();
   }
 
   @Test
@@ -289,8 +290,8 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.cluster().shutdown();
-    consumer.cluster().shutdown();
+    provider.shutdown();
+    consumer.shutdown();
   }
 
   @Test
@@ -320,7 +321,7 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.cluster().shutdown();
+    microservices.shutdown();
   }
 
   @Test
@@ -358,8 +359,8 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.cluster().shutdown();
-    consumer.cluster().shutdown();
+    provider.shutdown();
+    consumer.shutdown();
   }
 
   @Test
@@ -391,7 +392,7 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 5, TimeUnit.SECONDS);
-    node1.cluster().shutdown();
+    node1.shutdown();
   }
 
   @Test
@@ -431,8 +432,8 @@ public class ServiceTest extends BaseTest {
     } catch (Exception ex) {
       fail();
     }
-    provider.cluster().shutdown();
-    consumer.cluster().shutdown();
+    provider.shutdown();
+    consumer.shutdown();
   }
 
   @Test
@@ -462,7 +463,7 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.cluster().shutdown();
+    microservices.shutdown();
   }
 
   @Test
@@ -501,7 +502,9 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 20, TimeUnit.SECONDS);
-    consumer.cluster().shutdown();
+    assertTrue(timeLatch.getCount()==0);
+    consumer.shutdown();
+    provider.shutdown();
   }
 
   @Test
@@ -544,10 +547,10 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 2, TimeUnit.SECONDS);
-
-    provider2.cluster().shutdown();
-    provider1.cluster().shutdown();
-
+    assertTrue(timeLatch.getCount()==0);
+    provider2.shutdown();
+    provider1.shutdown();
+    gateway.shutdown();
   }
 
   @Test
@@ -567,8 +570,8 @@ public class ServiceTest extends BaseTest {
     }
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    gateway.cluster().shutdown();
-    provider1.cluster().shutdown();
+    gateway.shutdown();
+    provider1.shutdown();
   }
 
   @Test
@@ -640,9 +643,9 @@ public class ServiceTest extends BaseTest {
         + " round-trips/sec");
 
     assertTrue(countLatch.getCount() == 0);
-    provider.cluster().shutdown();
-
-    consumer.cluster().shutdown();
+    
+    provider.shutdown();
+    consumer.shutdown();
     sched.cancel(true);
   }
 
@@ -681,8 +684,8 @@ public class ServiceTest extends BaseTest {
 
     countLatch.await(5, TimeUnit.SECONDS);
     assertTrue(countLatch.getCount() == 0);
-    gateway.cluster().shutdown();
-    provider.cluster().shutdown();
+    gateway.shutdown();
+    provider.shutdown();
 
   }
 
@@ -716,8 +719,8 @@ public class ServiceTest extends BaseTest {
 
     countLatch.await(5, TimeUnit.SECONDS);
     assertTrue(countLatch.getCount() == 0);
-    gateway.cluster().shutdown();
-    provider.cluster().shutdown();
+    gateway.shutdown();
+    provider.shutdown();
 
   }
 
@@ -752,8 +755,8 @@ public class ServiceTest extends BaseTest {
 
     countLatch.await(5, TimeUnit.SECONDS);
     assertTrue(countLatch.getCount() == 0);
-    gateway.cluster().shutdown();
-    provider.cluster().shutdown();
+    gateway.shutdown();
+    provider.shutdown();
 
   }
 
@@ -789,13 +792,13 @@ public class ServiceTest extends BaseTest {
 
     countLatch.await(5, TimeUnit.SECONDS);
     assertTrue(countLatch.getCount() == 0);
-    gateway.cluster().shutdown();
-    provider.cluster().shutdown();
+    gateway.shutdown();
+    provider.shutdown();
 
   }
 
 
-  
+
   @Test
   public void test_service_tags() {
     Microservices gateway = Microservices.builder()
@@ -838,9 +841,9 @@ public class ServiceTest extends BaseTest {
     await(timeLatch, 1, TimeUnit.SECONDS);
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
 
-    gateway.cluster().shutdown();
-    services1.cluster().shutdown();
-    services2.cluster().shutdown();
+    gateway.shutdown();
+    services1.shutdown();
+    services2.shutdown();
   }
 
   @Test
@@ -853,7 +856,12 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl()).build();
 
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));
-    assertTrue(ms.cluster().member().metadata().containsKey("io.scalecube.services.GreetingService:tags:"));
+    assertTrue(ServiceInfo.from( ms.cluster().member().metadata()
+        .entrySet().stream()
+        .filter( item->item.getValue().equals("service" ) )
+        .findFirst().get().getKey())
+        .getServiceName().equals("io.scalecube.services.GreetingService")
+        );
   }
 
   private GreetingService createProxy(Microservices gateway) {

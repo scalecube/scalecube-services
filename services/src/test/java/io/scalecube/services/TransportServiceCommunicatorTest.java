@@ -31,7 +31,7 @@ public class TransportServiceCommunicatorTest extends BaseTest {
     sender.send(transport.address(), Message.builder().data("ping").build());
     latch.await(1, TimeUnit.SECONDS);
     assertTrue(latch.getCount() == 0);
-    
+    sender.shutdown();
 
   }
 

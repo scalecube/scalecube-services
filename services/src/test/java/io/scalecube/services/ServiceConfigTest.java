@@ -28,7 +28,7 @@ public class ServiceConfigTest extends BaseTest {
     assertEquals(node.sender().address().port(), 3000);
     assertEquals(node.cluster().address().port(), 4000);
 
-    node.cluster().shutdown();
+    node.shutdown();
 
   }
 

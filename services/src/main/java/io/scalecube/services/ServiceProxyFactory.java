@@ -48,11 +48,7 @@ public class ServiceProxyFactory {
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         Object data = method.getParameterCount() != 0 ? args[0] : null;
-        final Message reqMsg = Messages.request(serviceDefinition.serviceName(),
-            method.getName())
-            .data(data)
-            .build();
-
+        final Message reqMsg = getRequestMessage(serviceDefinition, method, data);
         if (method.getReturnType().equals(Observable.class)) {
           if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
             return dispatcher.listen(reqMsg);
@@ -64,6 +60,20 @@ public class ServiceProxyFactory {
               dispatcher.invoke(reqMsg));
         }
 
+      }
+
+      private Message getRequestMessage(ServiceDefinition serviceDefinition, Method method, Object data) {
+        if (data instanceof Message) {
+          return Messages.builder().request(serviceDefinition.serviceName(),
+              method.getName())
+              .data(((Message) data).data())
+              .build();
+        } else {
+          return Messages.builder().request(serviceDefinition.serviceName(),
+              method.getName())
+              .data(data)
+              .build();
+        }
       }
 
       private CompletableFuture<T> toReturnValue(final Method method, final CompletableFuture<Message> reuslt) {
@@ -81,11 +91,13 @@ public class ServiceProxyFactory {
                 future.complete((T) value);
               }
             } else {
+              LOGGER.error("return value is exception: {}", ex);
               future.completeExceptionally(ex);
             }
           });
           return future;
         } else {
+          LOGGER.error("return value is not supported type.");
           future.completeExceptionally(new UnsupportedOperationException());
         }
         return future;

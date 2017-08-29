@@ -23,4 +23,6 @@ public interface ServiceInstance {
   Map<String, String> tags();
 
   Address address();
+
+  boolean hasMethod(String methodName);
 }

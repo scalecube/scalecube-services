@@ -12,6 +12,5 @@ before_install:
 
 after_success:
   - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r ./services/target/site/jacoco/jacoco.xml
-  - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r ./cluster/target/site/jacoco/jacoco.xml
-  - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r ./transport/target/site/jacoco/jacoco.xml
+
   

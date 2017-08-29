@@ -2,11 +2,13 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.base.Splitter;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Helper class used to register service with tags as metadata in the scalecube cluster. parsing from service info to
@@ -14,21 +16,35 @@ import java.util.Map;
  */
 public class ServiceInfo {
 
-  private static final String EQ = "=";
-
-  private static final String KEY_VALUE_SEPERATOR = ":eq:";
-
-  private static final String TAG_SEPERATOR = "|tag|";
-
-  private static final String TAGS_SPERATOR = ":tags:";
+  private static final ObjectMapper json = ServiceInfo.newMapper();
 
   private String serviceName;
 
   private Map<String, String> tags;
 
-  public ServiceInfo(String serviceName, Map<String, String> tags) {
+  private Set<String> methods;
+
+  private ServiceInfo() {
+    // default ctor.
+  }
+
+  private static ObjectMapper newMapper() {
+    ObjectMapper json = new ObjectMapper();
+    json.setVisibility(json.getSerializationConfig().getDefaultVisibilityChecker()
+        .withFieldVisibility(Visibility.ANY)
+        .withGetterVisibility(Visibility.NONE)
+        .withSetterVisibility(Visibility.NONE)
+        .withCreatorVisibility(Visibility.NONE));
+    json.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    return json;
+  }
+
+
+
+  public ServiceInfo(String serviceName, Set<String> methods, Map<String, String> tags) {
     this.serviceName = serviceName;
     this.tags = tags;
+    this.methods = methods;
   }
 
   public Map<String, String> getTags() {
@@ -47,19 +63,11 @@ public class ServiceInfo {
    */
   public static ServiceInfo from(String metadata) {
     checkNotNull(metadata);
-    int index = metadata.indexOf(TAGS_SPERATOR, 0);
-    String name = metadata.substring(0, index);
-    String tagsAsString = metadata.substring(index + TAGS_SPERATOR.length());
-    List<String> list = Splitter.on(TAG_SEPERATOR).splitToList(tagsAsString);
-
-    Map<String, String> tags = new HashMap<>();
-    for (String element : list) {
-      if (element.length() > 0) {
-        List<String> kv = Splitter.on(EQ).splitToList(element);
-        tags.put(kv.get(0).replaceAll(KEY_VALUE_SEPERATOR, EQ), kv.get(1).replaceAll(KEY_VALUE_SEPERATOR, EQ));
-      }
+    try {
+      return json.readValue(metadata, ServiceInfo.class);
+    } catch (Exception e) {
+      return null;
     }
-    return new ServiceInfo(name, tags);
   }
 
   /**
@@ -68,15 +76,14 @@ public class ServiceInfo {
    * @return initialized service info - SERVICE_NAME:tags:key1=value1|tag|key2=value2|tag|..
    */
   public String toMetadata() {
-    StringBuilder sb = new StringBuilder(serviceName);
-    sb.append(TAGS_SPERATOR);
-    tags.entrySet().stream().forEach(kv -> {
-      sb.append(kv.getKey().replaceAll(EQ, KEY_VALUE_SEPERATOR));
-      sb.append(EQ);
-      sb.append(kv.getValue().replaceAll(EQ, KEY_VALUE_SEPERATOR));
-      sb.append(TAG_SEPERATOR);
-    });
+    try {
+      return json.writeValueAsString(this);
+    } catch (JsonProcessingException e) {
+      return null;
+    }
+  }
 
-    return sb.toString();
+  public Set<String> methods() {
+    return this.methods;
   }
 }
