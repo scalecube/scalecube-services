@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
 
@@ -12,7 +13,7 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class TransportServiceCommunicatorTest {
+public class TransportServiceCommunicatorTest extends BaseTest {
 
   @Test
   public void test_transport_sender() throws InterruptedException {
@@ -30,7 +31,7 @@ public class TransportServiceCommunicatorTest {
     sender.send(transport.address(), Message.builder().data("ping").build());
     latch.await(1, TimeUnit.SECONDS);
     assertTrue(latch.getCount() == 0);
-    
+    sender.shutdown();
 
   }
 

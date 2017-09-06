@@ -7,10 +7,11 @@ import io.scalecube.services.Microservices.Builder;
 import io.scalecube.services.Microservices.DispatcherContext;
 import io.scalecube.services.Microservices.ProxyContext;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
+import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
 
-public class MicroservicesTest {
+public class MicroservicesTest extends BaseTest {
 
   @Test
   public void test_microservices_config() {

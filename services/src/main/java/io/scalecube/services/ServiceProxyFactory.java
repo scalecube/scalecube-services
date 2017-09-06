@@ -8,6 +8,8 @@ import com.google.common.reflect.Reflection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Observable;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.time.Duration;
@@ -46,14 +48,32 @@ public class ServiceProxyFactory {
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         Object data = method.getParameterCount() != 0 ? args[0] : null;
-        final Message reqMsg = Message.withData(data)
-            .header(ServiceHeaders.SERVICE_REQUEST, serviceDefinition.serviceName())
-            .header(ServiceHeaders.METHOD, method.getName())
-            .build();
+        final Message reqMsg = getRequestMessage(serviceDefinition, method, data);
+        if (method.getReturnType().equals(Observable.class)) {
+          if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
+            return dispatcher.listen(reqMsg);
+          } else {
+            return dispatcher.listen(reqMsg).map(message -> message.data());
+          }
+        } else {
+          return toReturnValue(method,
+              dispatcher.invoke(reqMsg));
+        }
 
-        return toReturnValue(method,
-            dispatcher.invoke(reqMsg));
+      }
 
+      private Message getRequestMessage(ServiceDefinition serviceDefinition, Method method, Object data) {
+        if (data instanceof Message) {
+          return Messages.builder().request(serviceDefinition.serviceName(),
+              method.getName())
+              .data(((Message) data).data())
+              .build();
+        } else {
+          return Messages.builder().request(serviceDefinition.serviceName(),
+              method.getName())
+              .data(data)
+              .build();
+        }
       }
 
       private CompletableFuture<T> toReturnValue(final Method method, final CompletableFuture<Message> reuslt) {
@@ -65,17 +85,19 @@ public class ServiceProxyFactory {
         } else if (method.getReturnType().equals(CompletableFuture.class)) {
           reuslt.whenComplete((value, ex) -> {
             if (ex == null) {
-              if (!ServiceInjector.extractParameterizedReturnType(method).equals(Message.class)) {
+              if (!Reflect.parameterizedReturnType(method).equals(Message.class)) {
                 future.complete(value.data());
               } else {
                 future.complete((T) value);
               }
             } else {
+              LOGGER.error("return value is exception: {}", ex);
               future.completeExceptionally(ex);
             }
           });
           return future;
         } else {
+          LOGGER.error("return value is not supported type.");
           future.completeExceptionally(new UnsupportedOperationException());
         }
         return future;

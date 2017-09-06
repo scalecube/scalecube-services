@@ -2,9 +2,11 @@ package io.scalecube.services;
 
 import static org.junit.Assert.assertEquals;
 
+import io.scalecube.testlib.BaseTest;
+
 import org.junit.Test;
 
-public class ServiceDefinitionTest {
+public class ServiceDefinitionTest extends BaseTest {
 
   @Test
   public void test_service_definition() {

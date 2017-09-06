@@ -1,15 +1,21 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Observable;
+import rx.Observer;
+import rx.Subscription;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
+
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class RemoteServiceInstance implements ServiceInstance {
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
@@ -19,7 +25,10 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String serviceName;
   private final Map<String, String> tags;
   private final ServiceCommunicator sender;
+  private final Set<String> methods;
 
+  private final Subject<Message, Message> serviceResponses;
+  private final Observable<Message> transportObservable;
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -28,19 +37,61 @@ public class RemoteServiceInstance implements ServiceInstance {
    * @param serviceReference service reference of this instance.
    * @param tags describing this service instance metadata.
    */
-  public RemoteServiceInstance(ServiceCommunicator sender,
-      ServiceReference serviceReference,
+  public RemoteServiceInstance(ServiceCommunicator sender, ServiceReference serviceReference,
       Map<String, String> tags) {
+
     this.serviceName = serviceReference.serviceName();
+    this.methods = serviceReference.methods();
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = tags;
     this.sender = sender;
+
+    this.serviceResponses = PublishSubject.<Message>create().toSerialized();
+    this.transportObservable = sender.listen();
+    if (this.sender.cluster() != null) {
+      this.sender.cluster().listenMembership()
+          .filter(predicate -> predicate.isRemoved())
+          .filter(predicate -> predicate.member().id().equals(this.memberId))
+          .subscribe(onNext -> {
+            Observer obs = (Observer) serviceResponses;
+            obs.onCompleted();
+          });
+    }
   }
 
   @Override
-  public String serviceName() {
-    return serviceName;
+  public Observable<Message> listen(final Message request) {
+
+    final String cid = request.correlationId();
+    
+    AtomicReference<Subscription> subscription = new AtomicReference<>();
+    Observable<Message> observer = transportObservable.doOnUnsubscribe(() -> {
+      Message unsubscribeRequest = Messages.asUnsubscribeRequest(cid);
+      LOGGER.info("sending remote unsubscribed event: {}", unsubscribeRequest);
+      subscription.get().unsubscribe();
+      sendRemote(unsubscribeRequest).whenComplete((success, error) -> {
+        if (error != null) {
+          LOGGER.error("Failed sending remote unsubscribed event: {} {}", unsubscribeRequest, error);
+        }
+      });
+    });
+
+    Subscription sub = observer
+        .filter(message -> message.correlationId().equals(cid))
+        .subscribe(onNext -> {
+          serviceResponses.onNext(onNext);
+        });
+    
+    subscription.set(sub);
+
+    sendRemote(request).whenComplete((success, error) -> {
+      if (error != null) {
+        LOGGER.error("Failed sending remote subscribe request: {} {}", request, error);
+      }
+    });
+
+    return serviceResponses;
   }
 
   /**
@@ -49,16 +100,19 @@ public class RemoteServiceInstance implements ServiceInstance {
    * invoke.
    * 
    * @param request request with given headers.
-   * @return CompletableFuture with dispatching result
+   * @return CompletableFuture with dispatching transportObservable
    * @throws Exception in case of an error
    */
   public CompletableFuture<Message> dispatch(Message request) throws Exception {
     return invoke(request);
   }
 
+
   @Override
   public CompletableFuture<Message> invoke(Message request) {
-    checkArgument(request != null, "Service request can't be null");
+
+    Messages.validate().serviceRequest(request);
+
     CompletableFuture<Message> result = new CompletableFuture<Message>();
 
     futureInvoke(request)
@@ -66,6 +120,7 @@ public class RemoteServiceInstance implements ServiceInstance {
           if (error == null) {
             result.complete(Message.builder().data("remote send completed").build());
           } else {
+            LOGGER.error("Failed to send request {} to target address {}", request, address);
             result.completeExceptionally(error);
           }
         });
@@ -74,19 +129,12 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   private CompletableFuture<Void> futureInvoke(final Message request) {
-
-    final String methodName = request.header(ServiceHeaders.METHOD);
-    checkArgument(methodName != null, "Method name can't be null");
-
-    final String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-    checkArgument(serviceName != null, "Service request can't be null");
-
     return sendRemote(request);
   }
 
-  private CompletableFuture<Void> sendRemote(Message requestMessage) {
-    LOGGER.debug("cid [{}] send remote service request message {}", requestMessage.correlationId(), requestMessage);
-    return this.sender.send(address, requestMessage);
+  private CompletableFuture<Void> sendRemote(Message request) {
+    LOGGER.debug("cid [{}] send remote service request message {}", request.correlationId(), request);
+    return this.sender.send(address, request);
   }
 
   @Override
@@ -115,4 +163,13 @@ public class RemoteServiceInstance implements ServiceInstance {
     return tags;
   }
 
+  @Override
+  public String serviceName() {
+    return serviceName;
+  }
+
+  @Override
+  public boolean hasMethod(String methodName) {
+    return methods.contains(methodName);
+  }
 }

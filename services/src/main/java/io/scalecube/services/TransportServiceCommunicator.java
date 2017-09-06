@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.cluster.Cluster;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Transport;
@@ -13,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 public class TransportServiceCommunicator implements ServiceCommunicator {
 
   private Transport transport;
+  private Cluster cluster;
 
   public TransportServiceCommunicator(Transport transport) {
     checkArgument(transport != null, "transport can't be null");
@@ -35,4 +37,21 @@ public class TransportServiceCommunicator implements ServiceCommunicator {
   public Observable<Message> listen() {
     return this.transport.listen();
   }
+
+  public Cluster cluster() {
+    return this.cluster;
+  }
+
+  public void cluster(Cluster cluster) {
+    this.cluster = cluster;
+  }
+
+  @Override
+  public CompletableFuture<Void> shutdown() {
+    CompletableFuture<Void> promise = new CompletableFuture<Void>();
+    this.transport.stop(promise);
+    return promise;
+  }
+
+
 }

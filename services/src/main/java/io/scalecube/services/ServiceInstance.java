@@ -3,14 +3,18 @@ package io.scalecube.services;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
+import rx.Observable;
+
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface ServiceInstance {
 
-  String serviceName();
-
   CompletableFuture<Message> invoke(Message request) ;
+
+  Observable<Message> listen(Message request);
+  
+  String serviceName();
 
   String memberId();
 
@@ -19,4 +23,6 @@ public interface ServiceInstance {
   Map<String, String> tags();
 
   Address address();
+
+  boolean hasMethod(String methodName);
 }

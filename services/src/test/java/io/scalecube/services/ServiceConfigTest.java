@@ -4,11 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.TransportConfig;
 
 import org.junit.Test;
 
-public class ServiceConfigTest {
+public class ServiceConfigTest extends BaseTest {
 
   @Test
   public void test_services_config_port_increment_false() {
@@ -27,7 +28,7 @@ public class ServiceConfigTest {
     assertEquals(node.sender().address().port(), 3000);
     assertEquals(node.cluster().address().port(), 4000);
 
-    node.cluster().shutdown();
+    node.shutdown();
 
   }
 

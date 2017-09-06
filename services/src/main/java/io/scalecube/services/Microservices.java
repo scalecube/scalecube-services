@@ -119,7 +119,7 @@ public class Microservices {
     this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
 
-    new ServiceDispatcher(cluster, serviceRegistry);
+    new ServiceDispatcher(this);
     this.sender.listen()
         .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
         .subscribe(message -> ServiceResponse.handleReply(message));
@@ -147,9 +147,7 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
-    private TransportConfig transportConfig;
-
-    private boolean reuseClusterTransport;
+    private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
     /**
      * microsrrvices instance builder.
@@ -158,38 +156,30 @@ public class Microservices {
      */
     public Microservices build() {
 
-      ClusterConfig cfg = getClusterConfig(servicesConfig);
-
-      // if transport config is not specifically set use same config as cluster.
-      if (transportConfig == null) {
-        transportConfig = cfg.getTransportConfig();
-      }
-
-      Cluster cluster = Cluster.joinAwait(cfg);
-      ServiceCommunicator sender = new ClusterServiceCommunicator(cluster);
-
-      if (!this.reuseClusterTransport) {
-        // create cluster and transport with given config.
-        sender = new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
-      }
-
-      return ServiceInjector.builder(new Microservices(cluster, sender, servicesConfig)).inject();
+      Cluster cluster = null;
+      
+      // create cluster and transport with given config.
+      TransportServiceCommunicator transportSender =
+          new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
+      
+      ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
+      cluster = Cluster.joinAwait(cfg);
+      transportSender.cluster(cluster);
+      
+      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig)).inject();
     }
 
-    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig) {
+    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
         Map<String, String> metadata = new HashMap<>();
         metadata.putAll(clusterConfig.metadata());
         metadata.putAll(Microservices.metadata(servicesConfig));
+        if (address != null) {
+          metadata.put("service-address", address.toString());
+        }
         clusterConfig.metadata(metadata);
       }
-
       return clusterConfig.build();
-    }
-
-    public Builder reuseClusterTransport(boolean reuse) {
-      this.reuseClusterTransport = reuse;
-      return this;
     }
 
     public Builder port(int port) {
@@ -319,10 +309,15 @@ public class Microservices {
 
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
-
+    
     config.getServiceConfigs().stream().forEach(serviceConfig -> {
+      
       serviceConfig.serviceNames().stream().forEach(name -> {
-        servicesTags.put(new ServiceInfo(name, serviceConfig.getTags()).toMetadata(), "service");
+        
+        servicesTags.put(new ServiceInfo(name,
+            serviceConfig.methods(name), 
+            serviceConfig.getTags()).toMetadata(), 
+            "service");
       });
     });
 
@@ -334,6 +329,7 @@ public class Microservices {
   }
 
   public CompletableFuture<Void> shutdown() {
+    this.sender.shutdown();
     return this.cluster.shutdown();
   }
 

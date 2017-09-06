@@ -1,12 +1,15 @@
 package io.scalecube.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.Message.Builder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import rx.Observable;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -39,21 +42,17 @@ public class ServiceCall {
    * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
-    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-    String methodName = request.header(ServiceHeaders.METHOD);
-
+    Messages.validate().serviceRequest(request);
+    
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
     if (optionalServiceInstance.isPresent()) {
-      return this.invoke(request, optionalServiceInstance.get(), timeout);
+      ServiceInstance instance = optionalServiceInstance.get();
+      validateHasMethod(request, instance);
+      return this.invoke(request, instance, timeout);
     } else {
-      LOGGER.error(
-          "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
-          serviceName, request);
-      throw new IllegalStateException("No reachable member with such service: " + methodName);
+      throw noReachableMemberException(request);
     }
-
-
   }
 
   /**
@@ -67,6 +66,7 @@ public class ServiceCall {
    * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(Message request, ServiceInstance serviceInstance) throws Exception {
+    Messages.validate().serviceRequest(request);
     return invoke(request, serviceInstance, timeout);
   }
 
@@ -83,48 +83,64 @@ public class ServiceCall {
    */
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
-
+    
+    Messages.validate().serviceRequest(request);
+    validateHasMethod(request, serviceInstance);
+    
     if (!serviceInstance.isLocal()) {
       String cid = IdGenerator.generateId();
 
-      Message requestMessage = asRequest(request, cid);
-
       final ServiceResponse responseFuture = ServiceResponse.correlationId(cid);
 
-      serviceInstance.invoke(requestMessage).whenComplete((success, error) -> {
-        if (error == null) {
-          responseFuture.withTimeout(duration);
-        } else {
-          responseFuture.completeExceptionally(error);
-        }
-      });
+      serviceInstance.invoke(Messages.asRequest(request, cid))
+          .whenComplete((success, error) -> {
+            if (error == null) {
+              responseFuture.withTimeout(duration);
+            } else {
+              responseFuture.completeExceptionally(error);
+            }
+          });
 
       return responseFuture.future();
     } else {
       return serviceInstance.invoke(request);
     }
-
   }
 
   /**
-   * helper method to get service request builder with needed headers.
+   * sending subscription request message to a service that returns Observable.
    * 
-   * @param serviceName the requested service name.
-   * @param methodName the requested service method name.
-   * @return Builder for requested message.
+   * @param request containing subscription data.
+   * @return rx.Observable for the specific stream.
    */
-  public static Builder request(String serviceName, String methodName) {
-    return Message.builder()
-        .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
-        .header(ServiceHeaders.METHOD, methodName);
+  public Observable<Message> listen(Message request) {
+    
+    Messages.validate().serviceRequest(request);
+    
+    Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
+    if (optionalServiceInstance.isPresent()) {
+      ServiceInstance instance = optionalServiceInstance.get();
+      validateHasMethod(request, instance);
+
+      return instance.listen(request);
+    } else {
+      throw noReachableMemberException(request);
+    }
   }
 
-  private Message asRequest(Message request, final String correlationId) {
-    return Message.withData(request.data())
-        .header(ServiceHeaders.SERVICE_REQUEST, request.header(ServiceHeaders.SERVICE_REQUEST))
-        .header(ServiceHeaders.METHOD, request.header(ServiceHeaders.METHOD))
-        .correlationId(correlationId)
-        .build();
+  private void validateHasMethod(Message request, ServiceInstance instance) {
+    checkArgument( instance.hasMethod(request.header(ServiceHeaders.METHOD)),
+        "instance has no such requested method");
+  }
+
+  private IllegalStateException noReachableMemberException(Message request) {
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    String methodName = request.header(ServiceHeaders.METHOD);
+
+    LOGGER.error(
+        "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
+        serviceName, request);
+    return new IllegalStateException("No reachable member with such service: " + methodName);
   }
 }

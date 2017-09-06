@@ -63,7 +63,7 @@ public class ServiceResponse {
     String correlationId = message.correlationId();
     ServiceResponse response = futures.remove(correlationId);
     if (response != null) {
-      if (message.header("exception") == null) {
+      if (message.header(ServiceHeaders.EXCEPTION) == null) {
         response.complete(message);
       } else {
         LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);

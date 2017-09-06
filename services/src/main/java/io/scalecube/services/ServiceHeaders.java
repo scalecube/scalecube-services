@@ -26,6 +26,15 @@ public final class ServiceHeaders {
    */
   public static final String SERVICE_RESPONSE = "service-response";
 
+  /**
+   * This header is supposed to be used by application in case when sending service error response.
+   */
+  public static final String EXCEPTION = "exception";
+
+  public static final String UNSUBSCIBE = "unsubscribe";
+
+  public static final String OBSERVER = "observer";
+  
   private ServiceHeaders() {
     // Do not instantiate
   }
