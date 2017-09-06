@@ -20,6 +20,7 @@ import rx.Subscriber;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.net.UnknownHostException;
 import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.List;
@@ -156,7 +157,7 @@ public class TransportTest extends BaseTest {
     } catch (ExecutionException e) {
       Throwable cause = e.getCause();
       assertNotNull(cause);
-      assertEquals("Unexpected exception class", UnresolvedAddressException.class, cause.getClass());
+      assertEquals("Unexpected exception class", UnknownHostException.class, cause.getClass());
     }
   }
 
