@@ -21,7 +21,6 @@ import rx.Subscriber;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.UnknownHostException;
-import java.nio.channels.UnresolvedAddressException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
