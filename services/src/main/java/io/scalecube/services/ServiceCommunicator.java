@@ -19,4 +19,6 @@ public interface ServiceCommunicator {
   Cluster cluster();
 
   CompletableFuture<Void> shutdown();
+
+  boolean isStopped();
 }

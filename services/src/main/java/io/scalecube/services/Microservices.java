@@ -4,8 +4,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.services.annotations.AnnotationServiceProcessor;
-import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -99,8 +97,7 @@ import java.util.concurrent.CompletableFuture;
 public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
-  private static final ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
-
+ 
   private final Cluster cluster;
 
   private final ServiceRegistry serviceRegistry;
@@ -114,7 +111,7 @@ public class Microservices {
   private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
     this.cluster = cluster;
     this.sender = sender;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services);
 
     this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
@@ -157,15 +154,15 @@ public class Microservices {
     public Microservices build() {
 
       Cluster cluster = null;
-      
+
       // create cluster and transport with given config.
-      TransportServiceCommunicator transportSender =
-          new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
-      
+      ServiceTransport transportSender =
+          new ServiceTransport(Transport.bindAwait(transportConfig));
+
       ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
       cluster = Cluster.joinAwait(cfg);
       transportSender.cluster(cluster);
-      
+
       return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig)).inject();
     }
 
@@ -309,14 +306,14 @@ public class Microservices {
 
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
-    
+
     config.getServiceConfigs().stream().forEach(serviceConfig -> {
-      
+
       serviceConfig.serviceNames().stream().forEach(name -> {
-        
+
         servicesTags.put(new ServiceInfo(name,
-            serviceConfig.methods(name), 
-            serviceConfig.getTags()).toMetadata(), 
+            serviceConfig.methods(name),
+            serviceConfig.getTags()).toMetadata(),
             "service");
       });
     });
@@ -324,13 +321,33 @@ public class Microservices {
     return servicesTags;
   }
 
+  /**
+   * returns service communication.
+   * 
+   * @return service communication.
+   */
   public ServiceCommunicator sender() {
     return sender;
   }
 
+  /**
+   * Shutdown services transport and cluster transport.
+   *  
+   * @return future with cluster shutdown result.
+   */
   public CompletableFuture<Void> shutdown() {
-    this.sender.shutdown();
-    return this.cluster.shutdown();
+    CompletableFuture<Void> result = new CompletableFuture<Void>();
+    
+    if (!this.sender.isStopped()) {
+      this.sender.shutdown();
+    }
+    
+    if (!this.cluster.isStopped()) {
+      return this.cluster.shutdown();
+    } else {
+      result.completeExceptionally(new IllegalStateException("Cluster transport alredy stopped"));
+      return result;
+    }    
   }
 
   public ServiceRegistry serviceRegistry() {

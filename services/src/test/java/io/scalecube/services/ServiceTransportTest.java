@@ -13,13 +13,13 @@ import org.junit.Test;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-public class TransportServiceCommunicatorTest extends BaseTest {
+public class ServiceTransportTest extends BaseTest {
 
   @Test
   public void test_transport_sender() throws InterruptedException {
 
     Transport transport = Transport.bindAwait();
-    TransportServiceCommunicator sender = new TransportServiceCommunicator(transport);
+    ServiceTransport sender = new ServiceTransport(transport);
 
     assertEquals(transport.address(), sender.address());
 
@@ -39,7 +39,7 @@ public class TransportServiceCommunicatorTest extends BaseTest {
   public void test_transport_sender_errors() throws InterruptedException {
 
     try {
-      new TransportServiceCommunicator(null);
+      new ServiceTransport(null);
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: transport can't be null");
     }
