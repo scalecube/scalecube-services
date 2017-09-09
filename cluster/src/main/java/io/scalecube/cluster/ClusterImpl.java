@@ -231,4 +231,9 @@ final class ClusterImpl implements Cluster {
     return transport.networkEmulator();
   }
 
+  @Override
+  public boolean isStopped() {
+    return this.transport.isStopped();
+  }
+
 }

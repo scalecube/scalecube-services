@@ -109,7 +109,7 @@ public class TestStreamingService extends BaseTest {
         .subscribe(onNext -> latch1.countDown());
 
     long start = System.currentTimeMillis();
-    latch1.await(batchSize / 30_000, TimeUnit.SECONDS);
+    latch1.await(batchSize / 20_000, TimeUnit.SECONDS);
     long end = (System.currentTimeMillis() - start);
 
     System.out.println("TIME IS UP! - recived batch (size: "

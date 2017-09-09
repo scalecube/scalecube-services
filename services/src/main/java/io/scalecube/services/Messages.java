@@ -48,8 +48,22 @@ public class Messages {
           .correlationId(IdGenerator.generateId());
     }
 
-  }
+    /**
+     * helper method to get service request builder with needed headers.
+     * 
+     * @param api service interface class.
+     * @param methodName the requested service method name.
+     * @return Builder for requested message.
+     */
+    public Builder request(Class<?> api, String methodName) {
+      String serviceName = Reflect.serviceName(api);
+      return Message.builder()
+          .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
+          .header(ServiceHeaders.METHOD, methodName)
+          .correlationId(IdGenerator.generateId());
+    }
 
+  }
 
   /**
    * converts a message to a service request message with correlation id.

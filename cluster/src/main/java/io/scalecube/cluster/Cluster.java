@@ -192,4 +192,11 @@ public interface Cluster {
   @Nonnull
   NetworkEmulator networkEmulator();
 
+  /**
+   * check if transport communication is stopped.
+   * 
+   * @return Returns true if cluster transport communication is stopped false otherwise.
+   */
+  boolean isStopped();
+
 }

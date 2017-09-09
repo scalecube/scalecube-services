@@ -72,7 +72,7 @@ public class ServiceInstanceTest extends BaseTest {
     Microservices member = Microservices.builder().build();
     ServiceReference reference = new ServiceReference("a", "b",Collections.EMPTY_SET, Address.create("localhost", 4000));
 
-    ServiceCommunicator sender = new TransportServiceCommunicator(Transport.bindAwait());
+    ServiceCommunicator sender = new ServiceTransport(Transport.bindAwait());
 
     RemoteServiceInstance instance =
         new RemoteServiceInstance(sender, reference, new HashMap<>());
