@@ -133,8 +133,8 @@ public class Messages {
   }
 
   public static boolean isLeaveNotification(Message message) {
-    return (message !=null 
-        && message.header(ServiceHeaders.MEMBERSHIP) !=null
+    return (message != null
+        && message.header(ServiceHeaders.MEMBERSHIP) != null
         && message.header(ServiceHeaders.MEMBERSHIP).equals("leave"));
   }
 

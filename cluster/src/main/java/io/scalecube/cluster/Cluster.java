@@ -121,7 +121,7 @@ public interface Cluster {
   /**
    * Spreads given message between cluster members using gossiping protocol.
    */
-  void spreadGossip(Message message);
+  CompletableFuture<String> spreadGossip(Message message);
 
   /**
    * Listens for gossips from other cluster members.

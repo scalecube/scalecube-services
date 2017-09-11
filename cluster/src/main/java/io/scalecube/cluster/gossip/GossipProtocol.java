@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -53,6 +54,8 @@ public final class GossipProtocol implements IGossipProtocol {
   private long period = 0;
   private long gossipCounter = 0;
   private Map<String, GossipState> gossips = Maps.newHashMap();
+  private Map<String, CompletableFuture<String>> futures = Maps.newHashMap();
+
   private List<Member> remoteMembers = new ArrayList<>();
   private int remoteMembersIndex = -1;
 
@@ -160,8 +163,10 @@ public final class GossipProtocol implements IGossipProtocol {
   }
 
   @Override
-  public void spread(Message message) {
-    executor.execute(() -> onSpreadGossip(message));
+  public CompletableFuture<String> spread(Message message) {
+    CompletableFuture<String> future = new CompletableFuture<>();
+    executor.execute(() -> futures.put(onSpreadGossip(message), future));
+    return future;
   }
 
   @Override
@@ -197,10 +202,11 @@ public final class GossipProtocol implements IGossipProtocol {
   // ============== Event Listeners =================
   // ================================================
 
-  private void onSpreadGossip(Message message) {
+  private String onSpreadGossip(Message message) {
     Gossip gossip = new Gossip(generateGossipId(), message);
     GossipState gossipState = new GossipState(gossip, period);
     gossips.put(gossip.gossipId(), gossipState);
+    return gossip.gossipId();
   }
 
   private void onGossipReq(Message message) {
@@ -293,6 +299,10 @@ public final class GossipProtocol implements IGossipProtocol {
     LOGGER.debug("Sweep gossips: {}", gossipsToRemove);
     for (GossipState gossipState : gossipsToRemove) {
       gossips.remove(gossipState.gossip().gossipId());
+      CompletableFuture<String> future = futures.remove(gossipState.gossip().gossipId());
+      if (future != null) {
+        future.complete(gossipState.gossip().gossipId());
+      }
     }
   }
 

@@ -156,8 +156,8 @@ final class ClusterImpl implements Cluster {
   }
 
   @Override
-  public void spreadGossip(Message message) {
-    gossip.spread(message);
+  public CompletableFuture<String> spreadGossip(Message message) {
+    return gossip.spread(message);
   }
 
   @Override
