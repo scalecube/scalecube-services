@@ -34,6 +34,8 @@ public final class ServiceHeaders {
   public static final String UNSUBSCIBE = "unsubscribe";
 
   public static final String OBSERVER = "observer";
+
+  public static final String MEMBERSHIP = "sc/services/membership";
   
   private ServiceHeaders() {
     // Do not instantiate

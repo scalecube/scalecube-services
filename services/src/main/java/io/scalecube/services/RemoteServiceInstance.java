@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class RemoteServiceInstance implements ServiceInstance {
+ 
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
 
   private final Address address;
@@ -152,13 +153,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public String toString() {
-    return "RemoteServiceInstance [address=" + address
-        + ", memberId=" + memberId
-        + "]";
-  }
-
-  @Override
   public Map<String, String> tags() {
     return tags;
   }
@@ -171,5 +165,11 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public boolean hasMethod(String methodName) {
     return methods.contains(methodName);
+  }
+  
+  @Override
+  public String toString() {
+    return "RemoteServiceInstance [serviceName=" + serviceName + ", address=" + address + ", memberId=" + memberId
+        + ", methods=" + methods + ", tags=" + tags + "]";
   }
 }

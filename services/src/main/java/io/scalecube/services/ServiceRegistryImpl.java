@@ -32,6 +32,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final Cluster cluster;
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
+  private final ConcurrentMap<ServiceReference, String> excludedInstances = new ConcurrentHashMap<>();
 
   private final ConcurrentMap<String, ServiceDefinition> definitionsCache = new ConcurrentHashMap<>();
 
@@ -49,7 +50,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     checkArgument(cluster != null, "cluster can't be null");
     checkArgument(sender != null, "transport can't be null");
     checkArgument(services != null, "services can't be null");
-    
+
     this.cluster = cluster;
     this.sender = sender;
     listenCluster();
@@ -71,6 +72,25 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       }
     });
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
+
+    cluster.listenGossips()
+        .filter(message -> Messages.isLeaveNotification(message))
+        .subscribe(onLeave -> {
+          Member member = onLeave.data();
+          memberServices(member.id()).forEach(ref -> {
+            if (!this.cluster.member().id().equals(member.id())) {
+              excludedInstances.putIfAbsent(ref, "leaving cluster");
+              LOGGER.info("Member {} is leaving the cluster service reference is excluded {} : {}", member, ref);
+            }
+          });
+        });
+  }
+
+  private List<ServiceReference> memberServices(final String memberId) {
+    return serviceInstances.entrySet().stream()
+        .filter(predicate -> predicate.getKey().memberId().equals(memberId))
+        .map(mapper -> mapper.getKey())
+        .collect(Collectors.toList());
   }
 
   private void loadClusterServices() {
@@ -95,8 +115,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             serviceInstances.putIfAbsent(serviceRef,
                 new RemoteServiceInstance(sender, serviceRef, info.getTags()));
+            LOGGER.info("Service Reference was ADDED since new Member {} has joined the cluster {} : {}", member, serviceRef);
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
+            excludedInstances.remove(serviceRef);
+            LOGGER.info("Service Reference was REMOVED since Member {} have left the cluster {} : {}", member, serviceRef);
           }
         });
   }
@@ -121,7 +144,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      ServiceDefinition serviceDefinition =  ServiceDefinition.from(serviceInterface);
+      ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
 
       // cache the service definition.
       definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
@@ -148,6 +171,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
       ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
       serviceInstances.remove(serviceReference);
+      excludedInstances.remove(serviceReference);
 
     });
   }
@@ -157,6 +181,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     checkArgument(serviceName != null, "Service name can't be null");
     return serviceInstances.entrySet().stream()
         .filter(entry -> isValid(entry.getKey(), serviceName))
+        .filter(entry -> !excludedInstances.containsKey(entry.getKey()))
         .map(Map.Entry::getValue)
         .collect(Collectors.toList());
   }
@@ -190,7 +215,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public ServiceDefinition registerInterface(Class<?> serviceInterface) {
-    ServiceDefinition serviceDefinition =  ServiceDefinition.from(serviceInterface);
+    ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
     definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
     return serviceDefinition;
   }

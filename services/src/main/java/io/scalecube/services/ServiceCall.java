@@ -45,7 +45,7 @@ public class ServiceCall {
     Messages.validate().serviceRequest(request);
     
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
-
+    
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();
       validateHasMethod(request, instance);

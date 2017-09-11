@@ -44,6 +44,7 @@ public class GracefulShutdownTest extends BaseTest {
     // continue with the test while node1 is still active in the cluster
     while (members.gateway().cluster().member(members.node1().cluster().address()).isPresent()
         || postShutdown.get() >= 0) {
+      
       CompletableFuture<Message> future = service.invoke(request);
       future.whenComplete((result, ex) -> {
         if (ex == null) {
@@ -60,8 +61,8 @@ public class GracefulShutdownTest extends BaseTest {
       });
 
       if (count.get() == 0) {
-        // remove node1 from the cluster after 10 messages
-        members.node1().cluster().shutdown();
+        //  node1 leave the cluster after on 0.
+        members.node1().leave();
       }
 
       // sending messages after member is gone.

@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;
@@ -125,6 +126,16 @@ public class Messages {
 
   public static MessageValidator validate() {
     return validator;
+  }
+
+  public static Message asLeaveNotification(Member member) {
+    return Message.builder().data(member).header(ServiceHeaders.MEMBERSHIP, "leave").data(member).build();
+  }
+
+  public static boolean isLeaveNotification(Message message) {
+    return (message !=null 
+        && message.header(ServiceHeaders.MEMBERSHIP) !=null
+        && message.header(ServiceHeaders.MEMBERSHIP).equals("leave"));
   }
 
 }
