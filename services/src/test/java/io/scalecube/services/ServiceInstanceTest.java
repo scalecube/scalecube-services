@@ -70,14 +70,17 @@ public class ServiceInstanceTest extends BaseTest {
   public void test_remote_service_instance() {
 
     Microservices member = Microservices.builder().build();
-    ServiceReference reference = new ServiceReference("a", "b",Collections.EMPTY_SET, Address.create("localhost", 4000));
+    ServiceReference reference =
+        new ServiceReference("a", "b", Collections.EMPTY_SET, Address.create("localhost", 4000));
 
     ServiceCommunicator sender = new ServiceTransport(Transport.bindAwait());
 
     RemoteServiceInstance instance =
         new RemoteServiceInstance(sender, reference, new HashMap<>());
 
-    assertEquals(instance.toString(), "RemoteServiceInstance [address=localhost:4000, memberId=a]");
+    assertEquals(instance.toString(),
+        "RemoteServiceInstance [serviceName=b, address=localhost:4000, memberId=a, methods=[], tags={}]");
+    
     assertTrue(instance.tags().isEmpty());
     assertEquals(instance.memberId(), "a");
     assertEquals(instance.address(), Address.create("localhost", 4000));
