@@ -126,15 +126,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         });
   }
 
-  private Address getServiceAddress(Member member) {
-    String serviceAddressAsString = member.metadata().get("service-address");
-    if (serviceAddressAsString != null) {
-      return Address.from(serviceAddressAsString);
-    } else {
-      return member.address();
-    }
-  }
-
   /**
    * register a service instance at the cluster.
    */
@@ -200,15 +191,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return Collections.unmodifiableCollection(serviceInstances.values());
   }
 
-  private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-
-    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(),
-        serviceDefinition.methods().keySet(), sender.address());
-  }
-
-  private boolean isValid(ServiceReference reference, String qualifier) {
-    return reference.serviceName().equals(qualifier);
-  }
 
   @Override
   public Optional<ServiceDefinition> getServiceDefinition(String serviceName) {
@@ -220,6 +202,24 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
     definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
     return serviceDefinition;
+  }
+
+  private Address getServiceAddress(Member member) {
+    String serviceAddressAsString = member.metadata().get("service-address");
+    if (serviceAddressAsString != null) {
+      return Address.from(serviceAddressAsString);
+    } else {
+      return member.address();
+    }
+  }
+
+  private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
+    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(),
+        serviceDefinition.methods().keySet(), sender.address());
+  }
+
+  private boolean isValid(ServiceReference reference, String qualifier) {
+    return reference.serviceName().equals(qualifier);
   }
 
 }
