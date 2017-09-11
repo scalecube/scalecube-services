@@ -26,7 +26,8 @@ public interface IGossipProtocol {
 
   /**
    * Spreads given message between cluster members.
-   * @return 
+   * 
+   * @return future result with gossip id once gossip fully spread.
    */
   CompletableFuture<String> spread(Message message);
 
