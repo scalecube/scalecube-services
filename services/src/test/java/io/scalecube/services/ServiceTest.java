@@ -502,7 +502,7 @@ public class ServiceTest extends BaseTest {
     });
 
     await(timeLatch, 20, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
+    assertTrue(timeLatch.getCount() == 0);
     consumer.shutdown();
     provider.shutdown();
   }
@@ -547,7 +547,7 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 2, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
+    assertTrue(timeLatch.getCount() == 0);
     provider2.shutdown();
     provider1.shutdown();
     gateway.shutdown();
@@ -643,7 +643,7 @@ public class ServiceTest extends BaseTest {
         + " round-trips/sec");
 
     assertTrue(countLatch.getCount() == 0);
-    
+
     provider.shutdown();
     consumer.shutdown();
     sched.cancel(true);
@@ -823,6 +823,8 @@ public class ServiceTest extends BaseTest {
         .router(CanaryTestingRouter.class)
         .api(CanaryService.class).create();
 
+    sleep(1000);
+    
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger responses = new AtomicInteger(0);
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -846,6 +848,8 @@ public class ServiceTest extends BaseTest {
     services2.shutdown();
   }
 
+
+
   @Test
   public void test_services_contribute_to_cluster_metadata() {
     Map<String, String> metadata = new HashMap<>();
@@ -856,12 +860,11 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl()).build();
 
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));
-    assertTrue(ServiceInfo.from( ms.cluster().member().metadata()
+    assertTrue(ServiceInfo.from(ms.cluster().member().metadata()
         .entrySet().stream()
-        .filter( item->item.getValue().equals("service" ) )
+        .filter(item -> item.getValue().equals("service"))
         .findFirst().get().getKey())
-        .getServiceName().equals("io.scalecube.services.GreetingService")
-        );
+        .getServiceName().equals("io.scalecube.services.GreetingService"));
   }
 
   private GreetingService createProxy(Microservices gateway) {
@@ -900,14 +903,19 @@ public class ServiceTest extends BaseTest {
   }
 
   private int sleep(int i, int ms, int every) {
+    if (i % every == 0) {
+      sleep(ms);
+    }
+    return ms;
+  }
+
+  private void sleep(int ms) {
     try {
-      if (i % every == 0) {
-        Thread.sleep(ms);
-      }
+      Thread.sleep(ms);
     } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
-    return ms;
   }
+
 }

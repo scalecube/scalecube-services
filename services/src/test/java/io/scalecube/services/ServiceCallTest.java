@@ -599,6 +599,8 @@ public class ServiceCallTest extends BaseTest {
 
     System.out.println( gateway.cluster().members());
     
+    sleep(1000);
+    
     ServiceCall service = gateway.dispatcher()
         .router(CanaryTestingRouter.class)
         .create();
@@ -732,6 +734,14 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.await(timeout, timeUnit);
     } catch (InterruptedException e) {
       throw new AssertionError();
+    }
+  }
+  private void sleep(int ms) {
+    try {
+      Thread.sleep(ms);
+    } catch (InterruptedException e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
     }
   }
 }
