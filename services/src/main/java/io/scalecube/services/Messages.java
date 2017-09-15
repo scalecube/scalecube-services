@@ -127,15 +127,4 @@ public class Messages {
   public static MessageValidator validate() {
     return validator;
   }
-
-  public static Message asLeaveNotification(Member member) {
-    return Message.builder().data(member).header(ServiceHeaders.MEMBERSHIP, "leave").data(member).build();
-  }
-
-  public static boolean isLeaveNotification(Message message) {
-    return (message != null
-        && message.header(ServiceHeaders.MEMBERSHIP) != null
-        && message.header(ServiceHeaders.MEMBERSHIP).equals("leave"));
-  }
-
 }
