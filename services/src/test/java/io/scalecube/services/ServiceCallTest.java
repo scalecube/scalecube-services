@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
@@ -612,7 +613,7 @@ public class ServiceCallTest extends BaseTest {
     for (int i = 0; i < 100; i++) {
       // call the service.
       CompletableFuture<Message> future = service.invoke(Messages.builder()
-          .request(CANARY_SERVICE, "greeting")
+          .request(CanaryService.class, "greeting")
           .data("joe")
           .build());
 

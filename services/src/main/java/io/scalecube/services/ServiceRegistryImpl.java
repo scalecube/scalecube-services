@@ -69,21 +69,18 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         loadMemberServices(DiscoveryType.ADDED, event.member());
       } else if (event.isRemoved()) {
         loadMemberServices(DiscoveryType.REMOVED, event.member());
+      } else if (event.isLeaveNotification()) {
+        Member member = event.member();
+        LOGGER.info("LEAVE_NOTIFICATION recived for member: {}", member);
+        memberServices(member.id()).forEach(ref -> {
+          if (!this.cluster.member().id().equals(member.id())) {
+            excludedInstances.putIfAbsent(ref, "leaving cluster");
+            LOGGER.info("Member {} is leaving the cluster service reference is excluded {} : {}", member, ref);
+          }
+        });
       }
     });
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
-
-    cluster.listenGossips()
-        .filter(message -> Messages.isLeaveNotification(message))
-        .subscribe(onLeave -> {
-          Member member = onLeave.data();
-          memberServices(member.id()).forEach(ref -> {
-            if (!this.cluster.member().id().equals(member.id())) {
-              excludedInstances.putIfAbsent(ref, "leaving cluster");
-              LOGGER.info("Member {} is leaving the cluster service reference is excluded {} : {}", member, ref);
-            }
-          });
-        });
   }
 
   private List<ServiceReference> memberServices(final String memberId) {

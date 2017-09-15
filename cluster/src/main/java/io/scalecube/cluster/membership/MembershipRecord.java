@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static io.scalecube.cluster.membership.MemberStatus.DEAD;
 import static io.scalecube.cluster.membership.MemberStatus.SUSPECT;
+import static io.scalecube.cluster.membership.MemberStatus.LEAVING;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Address;
@@ -66,6 +67,10 @@ final class MembershipRecord {
     return status == DEAD;
   }
 
+  public boolean isLeaveNotification() {
+    return status == LEAVING; 
+  }
+  
   public int incarnation() {
     return incarnation;
   }
@@ -117,4 +122,6 @@ final class MembershipRecord {
   public String toString() {
     return "{m: " + member + ", s: " + status + ", inc: " + incarnation + '}';
   }
+
+  
 }

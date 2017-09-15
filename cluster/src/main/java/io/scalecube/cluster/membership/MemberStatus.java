@@ -16,6 +16,10 @@ public enum MemberStatus {
    * Member declared as dead after being {@link #SUSPECT} for configured time or when node has been gracefully shutdown
    * and left cluster.
    */
-  DEAD
+  DEAD,
 
+  /**
+   * Member declares about his wish to leave the cluster gracefully.
+   */
+  LEAVING
 }

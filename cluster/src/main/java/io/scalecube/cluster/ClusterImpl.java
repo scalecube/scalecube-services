@@ -182,9 +182,8 @@ final class ClusterImpl implements Cluster {
 
   @Override
   public Optional<Member> member(Address address) {
-    return Optional.ofNullable(memberAddressIndex.get(address)).flatMap(memberId ->
-        Optional.ofNullable(members.get(memberId))
-    );
+    return Optional.ofNullable(memberAddressIndex.get(address))
+        .flatMap(memberId -> Optional.ofNullable(members.get(memberId)));
   }
 
   @Override
@@ -236,4 +235,18 @@ final class ClusterImpl implements Cluster {
     return this.transport.isStopped();
   }
 
+  /**
+   * notify the cluster that this nodes is leaving by sending leaving notification gossip. once the gossip is sent and
+   * removed from gossips shutdown the cluster.
+   * 
+   */
+  public CompletableFuture<Void> leave() {
+    CompletableFuture<Void> leaveFuture = new CompletableFuture<Void>();
+    membership.leave()
+        .whenComplete((gossipId, error) -> {
+          this.shutdown();
+          leaveFuture.complete(null);
+        });
+    return leaveFuture;
+  }
 }

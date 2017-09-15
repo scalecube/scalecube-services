@@ -350,16 +350,4 @@ public class Microservices {
   public ServiceRegistry serviceRegistry() {
     return serviceRegistry;
   }
-
-  /**
-   * notify the cluster that this nodes is leaving by sending leaving notification gossip. once the gossip is sent and
-   * removed from gossips shutdown the cluster.
-   * 
-   */
-  public void leave() {
-    this.cluster().spreadGossip(Messages.asLeaveNotification(this.cluster().member()))
-        .whenComplete((gossipId, error) -> {
-          this.cluster().shutdown();
-        });
-  }
 }

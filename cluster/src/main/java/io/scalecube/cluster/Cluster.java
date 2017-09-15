@@ -199,4 +199,11 @@ public interface Cluster {
    */
   boolean isStopped();
 
+  /**
+   * sends membership notification that this member is leaving and when complete shutdown cluster node. 
+   * 
+   * @return complete future when node leave is completed.
+   */
+  CompletableFuture<Void> leave();
+
 }

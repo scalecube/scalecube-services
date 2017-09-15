@@ -15,7 +15,7 @@ import javax.annotation.concurrent.Immutable;
 public final class MembershipEvent {
 
   public enum Type {
-    ADDED, REMOVED, UPDATED
+    ADDED, REMOVED, UPDATED, LEAVE_NOTIFICATION
   }
 
   private final Type type;
@@ -35,6 +35,10 @@ public final class MembershipEvent {
 
   static MembershipEvent createAdded(Member member) {
     return new MembershipEvent(Type.ADDED, null, member);
+  }
+
+  public static MembershipEvent createLeaveNotification(Member member) {
+    return new MembershipEvent(Type.LEAVE_NOTIFICATION, null, member);
   }
 
   static MembershipEvent createUpdated(Member oldMember, Member newMember) {
@@ -57,6 +61,10 @@ public final class MembershipEvent {
     return type == Type.UPDATED;
   }
 
+  public boolean isLeaveNotification() {
+    return type == MembershipEvent.Type.LEAVE_NOTIFICATION;
+  }
+
   public Member member() {
     return type == Type.REMOVED ? oldMember : newMember;
   }
@@ -76,4 +84,6 @@ public final class MembershipEvent {
         + ", oldMember=" + oldMember
         + '}';
   }
+
+
 }

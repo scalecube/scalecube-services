@@ -2,6 +2,7 @@ package io.scalecube.cluster.membership;
 
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static io.scalecube.cluster.membership.MemberStatus.DEAD;
+import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
 
 import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
@@ -48,11 +49,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   private enum MembershipUpdateReason {
-    FAILURE_DETECTOR_EVENT,
-    MEMBERSHIP_GOSSIP,
-    SYNC,
-    INITIAL_SYNC,
-    SUSPICION_TIMEOUT
+    FAILURE_DETECTOR_EVENT, MEMBERSHIP_GOSSIP, SYNC, INITIAL_SYNC, SUSPICION_TIMEOUT
   }
 
   // Qualifiers
@@ -439,6 +436,13 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void updateMembership(MembershipRecord r1, MembershipUpdateReason reason) {
     Preconditions.checkArgument(r1 != null, "Membership record can't be null");
 
+    if (r1.isLeaveNotification()) {
+      
+      subject.onNext(MembershipEvent.createLeaveNotification(r1.member()));
+      
+      return;
+    }
+
     // Get current record
     MembershipRecord r0 = membershipTable.get(r1.id());
 
@@ -481,6 +485,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
       subject.onNext(MembershipEvent.createUpdated(r0.member(), r1.member()));
     }
 
+
     // Spread gossip (unless already gossiped)
     if (reason != MembershipUpdateReason.MEMBERSHIP_GOSSIP && reason != MembershipUpdateReason.INITIAL_SYNC) {
       spreadMembershipGossip(r1);
@@ -497,8 +502,8 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void scheduleSuspicionTimeoutTask(MembershipRecord record) {
     long suspicionTimeout =
         ClusterMath.suspicionTimeout(config.getSuspicionMult(), membershipTable.size(), config.getPingInterval());
-    suspicionTimeoutTasks.computeIfAbsent(record.id(), id ->
-        executor.schedule(() -> onSuspicionTimeout(id), suspicionTimeout, TimeUnit.MILLISECONDS));
+    suspicionTimeoutTasks.computeIfAbsent(record.id(),
+        id -> executor.schedule(() -> onSuspicionTimeout(id), suspicionTimeout, TimeUnit.MILLISECONDS));
   }
 
   private void onSuspicionTimeout(String memberId) {
@@ -514,6 +519,17 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void spreadMembershipGossip(MembershipRecord record) {
     Message membershipMsg = Message.withData(record).qualifier(MEMBERSHIP_GOSSIP).build();
     gossipProtocol.spread(membershipMsg);
+  }
+
+  public CompletableFuture<String> leave() {
+    return gossipProtocol.spread(asLeaveNotification());
+  }
+
+  private Message asLeaveNotification() {
+    MembershipRecord record = new MembershipRecord(this.member(), MemberStatus.LEAVING, 1);
+    Message leaveMessage =
+        Message.withData(record).qualifier(MEMBERSHIP_GOSSIP).build();
+    return leaveMessage;
   }
 
 }
