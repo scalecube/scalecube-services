@@ -211,17 +211,24 @@ final class ClusterImpl implements Cluster {
   @Override
   public CompletableFuture<Void> shutdown() {
     LOGGER.info("Cluster member {} is shutting down...", membership.member());
+    CompletableFuture<Void> shutdownFuture = new CompletableFuture<Void>();
+    membership.leave()
+        .whenComplete((gossipId, error) -> {
+          LOGGER.info("Cluster member notified about his leaving and shutting down... {}", membership.member());
+          // stop algorithms
+          membership.stop();
+          gossip.stop();
+          failureDetector.stop();
+          // stop transport
+          CompletableFuture<Void> transportStoppedFuture = new CompletableFuture<>();
+          transport.stop(transportStoppedFuture);
 
-    // stop algorithms
-    membership.stop();
-    gossip.stop();
-    failureDetector.stop();
-
-    // stop transport
-    CompletableFuture<Void> transportStoppedFuture = new CompletableFuture<>();
-    transport.stop(transportStoppedFuture);
-
-    return transportStoppedFuture;
+          shutdownFuture.complete(null);
+          LOGGER.info("Cluster member has shut down... {}", membership.member());
+        });
+    return shutdownFuture;
+    
+    
   }
 
   @Nonnull
@@ -236,15 +243,13 @@ final class ClusterImpl implements Cluster {
   }
 
   /**
-   * notify the cluster that this nodes is leaving by sending leaving notification gossip. once the gossip is sent and
-   * removed from gossips shutdown the cluster.
+   * notify the cluster that this nodes is leaving by sending leaving notification gossip.
    * 
    */
   public CompletableFuture<Void> leave() {
     CompletableFuture<Void> leaveFuture = new CompletableFuture<Void>();
     membership.leave()
         .whenComplete((gossipId, error) -> {
-          this.shutdown();
           leaveFuture.complete(null);
         });
     return leaveFuture;

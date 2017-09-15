@@ -32,7 +32,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final Cluster cluster;
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
-  private final ConcurrentMap<ServiceReference, String> excludedInstances = new ConcurrentHashMap<>();
 
   private final ConcurrentMap<String, ServiceDefinition> definitionsCache = new ConcurrentHashMap<>();
 
@@ -69,25 +68,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         loadMemberServices(DiscoveryType.ADDED, event.member());
       } else if (event.isRemoved()) {
         loadMemberServices(DiscoveryType.REMOVED, event.member());
-      } else if (event.isLeaveNotification()) {
-        Member member = event.member();
-        LOGGER.info("LEAVE_NOTIFICATION recived for member: {}", member);
-        memberServices(member.id()).forEach(ref -> {
-          if (!this.cluster.member().id().equals(member.id())) {
-            excludedInstances.putIfAbsent(ref, "leaving cluster");
-            LOGGER.info("Member {} is leaving the cluster service reference is excluded {} : {}", member, ref);
-          }
-        });
       }
     });
     Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
-  }
-
-  private List<ServiceReference> memberServices(final String memberId) {
-    return serviceInstances.entrySet().stream()
-        .filter(predicate -> predicate.getKey().memberId().equals(memberId))
-        .map(mapper -> mapper.getKey())
-        .collect(Collectors.toList());
   }
 
   private void loadClusterServices() {
@@ -116,7 +99,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                 serviceRef);
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
-            excludedInstances.remove(serviceRef);
             LOGGER.info("Service Reference was REMOVED since Member {} have left the cluster {} : {}", member,
                 serviceRef);
           }
@@ -161,8 +143,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
       ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
       serviceInstances.remove(serviceReference);
-      excludedInstances.remove(serviceReference);
-
     });
   }
 
@@ -171,7 +151,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     checkArgument(serviceName != null, "Service name can't be null");
     return serviceInstances.entrySet().stream()
         .filter(entry -> isValid(entry.getKey(), serviceName))
-        .filter(entry -> !excludedInstances.containsKey(entry.getKey()))
         .map(Map.Entry::getValue)
         .collect(Collectors.toList());
   }

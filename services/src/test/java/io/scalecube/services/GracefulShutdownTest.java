@@ -62,7 +62,7 @@ public class GracefulShutdownTest extends BaseTest {
 
       if (count.get() == 0) {
         //  node1 leave the cluster after on 0.
-        members.node1().cluster().leave();
+        members.node1().cluster().shutdown();
       }
 
       // sending messages after member is gone.

@@ -436,13 +436,6 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private void updateMembership(MembershipRecord r1, MembershipUpdateReason reason) {
     Preconditions.checkArgument(r1 != null, "Membership record can't be null");
 
-    if (r1.isLeaveNotification()) {
-      
-      subject.onNext(MembershipEvent.createLeaveNotification(r1.member()));
-      
-      return;
-    }
-
     // Get current record
     MembershipRecord r0 = membershipTable.get(r1.id());
 
@@ -526,7 +519,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private Message asLeaveNotification() {
-    MembershipRecord record = new MembershipRecord(this.member(), MemberStatus.LEAVING, 1);
+    MembershipRecord record = new MembershipRecord(this.member(), MemberStatus.DEAD, 1);
     Message leaveMessage =
         Message.withData(record).qualifier(MEMBERSHIP_GOSSIP).build();
     return leaveMessage;
