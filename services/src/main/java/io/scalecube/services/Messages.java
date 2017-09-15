@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;

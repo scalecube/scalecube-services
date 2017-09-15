@@ -2,7 +2,6 @@ package io.scalecube.cluster.membership;
 
 import static io.scalecube.cluster.membership.MemberStatus.ALIVE;
 import static io.scalecube.cluster.membership.MemberStatus.DEAD;
-import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
 
 import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
@@ -10,8 +9,8 @@ import io.scalecube.cluster.fdetector.FailureDetectorEvent;
 import io.scalecube.cluster.fdetector.IFailureDetector;
 import io.scalecube.cluster.gossip.IGossipProtocol;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -36,12 +35,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class MembershipProtocol implements IMembershipProtocol {
@@ -49,7 +48,11 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   private enum MembershipUpdateReason {
-    FAILURE_DETECTOR_EVENT, MEMBERSHIP_GOSSIP, SYNC, INITIAL_SYNC, SUSPICION_TIMEOUT
+    FAILURE_DETECTOR_EVENT, 
+    MEMBERSHIP_GOSSIP, 
+    SYNC, 
+    INITIAL_SYNC, 
+    SUSPICION_TIMEOUT
   }
 
   // Qualifiers
@@ -519,7 +522,7 @@ public final class MembershipProtocol implements IMembershipProtocol {
   }
 
   private Message asLeaveNotification() {
-    MembershipRecord record = new MembershipRecord(this.member(), MemberStatus.DEAD, 1);
+    MembershipRecord record = new MembershipRecord(this.member(), DEAD, 1);
     Message leaveMessage =
         Message.withData(record).qualifier(MEMBERSHIP_GOSSIP).build();
     return leaveMessage;
