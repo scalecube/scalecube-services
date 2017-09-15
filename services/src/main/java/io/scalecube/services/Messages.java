@@ -108,7 +108,7 @@ public class Messages {
   }
 
   /**
-   * build unsubscribed service request for the original correltion id which as subscription was created with.
+   * build unsubscribed service request for the original correlation id which as subscription was created with.
    * 
    * @param correlationId which the original request that created the subscription.
    * @return unsubscribed request message.
