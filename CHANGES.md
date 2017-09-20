@@ -1,6 +1,6 @@
 # Changes
 
-## 1.0.6
+## 1.0.6 / 2017-09-20
 
 * Supports graceful shutdown of cluster member by spreading leaving notification
 * Support rx.Observables as service response type
