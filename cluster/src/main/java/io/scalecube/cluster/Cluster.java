@@ -185,25 +185,18 @@ public interface Cluster {
   CompletableFuture<Void> shutdown();
 
   /**
+   * Check if cluster instance has been shut down.
+   * 
+   * @return Returns true if cluster instance has been shut down; false otherwise.
+   */
+  boolean isShutdown();
+
+  /**
    * Returns network emulator associated with this instance of cluster. It always returns non null instance even if
    * network emulator is disabled by transport config. In case when network emulator is disable all calls to network
    * emulator instance will result in no operation.
    */
   @Nonnull
   NetworkEmulator networkEmulator();
-
-  /**
-   * check if transport communication is stopped.
-   * 
-   * @return Returns true if cluster transport communication is stopped false otherwise.
-   */
-  boolean isStopped();
-
-  /**
-   * sends membership notification that this member is leaving and when complete shutdown cluster node. 
-   * 
-   * @return complete future when node leave is completed.
-   */
-  CompletableFuture<Void> leave();
 
 }

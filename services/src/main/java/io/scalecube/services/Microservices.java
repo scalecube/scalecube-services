@@ -336,7 +336,7 @@ public class Microservices {
       this.sender.shutdown();
     }
 
-    if (!this.cluster.isStopped()) {
+    if (!this.cluster.isShutdown()) {
       return this.cluster.shutdown();
     } else {
       result.completeExceptionally(new IllegalStateException("Cluster transport alredy stopped"));

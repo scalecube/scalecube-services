@@ -5,8 +5,8 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterMath;
-import io.scalecube.cluster.fdetector.FailureDetector;
-import io.scalecube.cluster.gossip.GossipProtocol;
+import io.scalecube.cluster.fdetector.FailureDetectorImpl;
+import io.scalecube.cluster.gossip.GossipProtocolImpl;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Transport;
@@ -34,9 +34,9 @@ public class MembershipProtocolTest extends BaseTest {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    MembershipProtocol cm_a = createMembership(a, members);
-    MembershipProtocol cm_b = createMembership(b, members);
-    MembershipProtocol cm_c = createMembership(c, members);
+    MembershipProtocolImpl cm_a = createMembership(a, members);
+    MembershipProtocolImpl cm_b = createMembership(b, members);
+    MembershipProtocolImpl cm_c = createMembership(c, members);
 
     try {
       awaitSeconds(1);
@@ -59,9 +59,9 @@ public class MembershipProtocolTest extends BaseTest {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    MembershipProtocol cm_a = createMembership(a, members);
-    MembershipProtocol cm_b = createMembership(b, members);
-    MembershipProtocol cm_c = createMembership(c, members);
+    MembershipProtocolImpl cm_a = createMembership(a, members);
+    MembershipProtocolImpl cm_b = createMembership(b, members);
+    MembershipProtocolImpl cm_c = createMembership(c, members);
 
     // Block traffic
     a.networkEmulator().block(members);
@@ -102,9 +102,9 @@ public class MembershipProtocolTest extends BaseTest {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    MembershipProtocol cm_a = createMembership(a, members);
-    MembershipProtocol cm_b = createMembership(b, members);
-    MembershipProtocol cm_c = createMembership(c, members);
+    MembershipProtocolImpl cm_a = createMembership(a, members);
+    MembershipProtocolImpl cm_b = createMembership(b, members);
+    MembershipProtocolImpl cm_c = createMembership(c, members);
 
     try {
       awaitSeconds(1);
@@ -158,9 +158,9 @@ public class MembershipProtocolTest extends BaseTest {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    MembershipProtocol cm_a = createMembership(a, members);
-    MembershipProtocol cm_b = createMembership(b, members);
-    MembershipProtocol cm_c = createMembership(c, members);
+    MembershipProtocolImpl cm_a = createMembership(a, members);
+    MembershipProtocolImpl cm_b = createMembership(b, members);
+    MembershipProtocolImpl cm_c = createMembership(c, members);
 
     try {
       awaitSeconds(1);
@@ -228,9 +228,9 @@ public class MembershipProtocolTest extends BaseTest {
     Transport c = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address());
 
-    MembershipProtocol cm_a = createMembership(a, members);
-    MembershipProtocol cm_b = createMembership(b, members);
-    MembershipProtocol cm_c = createMembership(c, members);
+    MembershipProtocolImpl cm_a = createMembership(a, members);
+    MembershipProtocolImpl cm_b = createMembership(b, members);
+    MembershipProtocolImpl cm_c = createMembership(c, members);
 
     try {
       awaitSeconds(1);
@@ -284,10 +284,10 @@ public class MembershipProtocolTest extends BaseTest {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    MembershipProtocol cm_a = createMembership(a, members);
-    MembershipProtocol cm_b = createMembership(b, members);
-    MembershipProtocol cm_c = createMembership(c, members);
-    MembershipProtocol cm_d = createMembership(d, members);
+    MembershipProtocolImpl cm_a = createMembership(a, members);
+    MembershipProtocolImpl cm_b = createMembership(b, members);
+    MembershipProtocolImpl cm_c = createMembership(c, members);
+    MembershipProtocolImpl cm_d = createMembership(d, members);
 
     try {
       awaitSeconds(1);
@@ -339,13 +339,13 @@ public class MembershipProtocolTest extends BaseTest {
     Transport d = Transport.bindAwait(true);
     List<Address> members = ImmutableList.of(a.address(), b.address(), c.address(), d.address());
 
-    MembershipProtocol cm_a = createMembership(a, members);
-    MembershipProtocol cm_b = createMembership(b, members);
-    MembershipProtocol cm_c = createMembership(c, members);
-    MembershipProtocol cm_d = createMembership(d, members);
+    MembershipProtocolImpl cm_a = createMembership(a, members);
+    MembershipProtocolImpl cm_b = createMembership(b, members);
+    MembershipProtocolImpl cm_c = createMembership(c, members);
+    MembershipProtocolImpl cm_d = createMembership(d, members);
 
-    MembershipProtocol cm_restartedC = null;
-    MembershipProtocol cm_restartedD = null;
+    MembershipProtocolImpl cm_restartedC = null;
+    MembershipProtocolImpl cm_restartedD = null;
 
     try {
       awaitSeconds(1);
@@ -402,11 +402,11 @@ public class MembershipProtocolTest extends BaseTest {
     Transport d = Transport.bindAwait(true);
     Transport e = Transport.bindAwait(true);
 
-    MembershipProtocol cm_a = createMembership(a, Collections.emptyList());
-    MembershipProtocol cm_b = createMembership(b, Collections.singletonList(a.address()));
-    MembershipProtocol cm_c = createMembership(c, Collections.singletonList(a.address()));
-    MembershipProtocol cm_d = createMembership(d, Collections.singletonList(b.address()));
-    MembershipProtocol cm_e = createMembership(e, Collections.singletonList(b.address()));
+    MembershipProtocolImpl cm_a = createMembership(a, Collections.emptyList());
+    MembershipProtocolImpl cm_b = createMembership(b, Collections.singletonList(a.address()));
+    MembershipProtocolImpl cm_c = createMembership(c, Collections.singletonList(a.address()));
+    MembershipProtocolImpl cm_d = createMembership(d, Collections.singletonList(b.address()));
+    MembershipProtocolImpl cm_e = createMembership(e, Collections.singletonList(b.address()));
 
     try {
       awaitSeconds(3);
@@ -434,7 +434,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  private MembershipProtocol createMembership(Transport transport, List<Address> seedAddresses) {
+  private MembershipProtocolImpl createMembership(Transport transport, List<Address> seedAddresses) {
     // Create faster config for local testing
     ClusterConfig config = ClusterConfig.builder()
         .seedMembers(seedAddresses)
@@ -445,9 +445,9 @@ public class MembershipProtocolTest extends BaseTest {
         .build();
 
     // Create components
-    MembershipProtocol membership = new MembershipProtocol(transport, config);
-    FailureDetector failureDetector = new FailureDetector(transport, membership, config);
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, membership, config);
+    MembershipProtocolImpl membership = new MembershipProtocolImpl(transport, config);
+    FailureDetectorImpl failureDetector = new FailureDetectorImpl(transport, membership, config);
+    GossipProtocolImpl gossipProtocol = new GossipProtocolImpl(transport, membership, config);
     membership.setGossipProtocol(gossipProtocol);
     membership.setFailureDetector(failureDetector);
 
@@ -462,15 +462,15 @@ public class MembershipProtocolTest extends BaseTest {
     return membership;
   }
 
-  private void stopAll(MembershipProtocol... memberships) {
-    for (MembershipProtocol membership : memberships) {
+  private void stopAll(MembershipProtocolImpl... memberships) {
+    for (MembershipProtocolImpl membership : memberships) {
       if (membership != null) {
         stop(membership);
       }
     }
   }
 
-  private void stop(MembershipProtocol membership) {
+  private void stop(MembershipProtocolImpl membership) {
     membership.stop();
     membership.getGossipProtocol().stop();
     membership.getFailureDetector().stop();
@@ -485,7 +485,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  private void assertTrusted(MembershipProtocol membership, Address... expected) {
+  private void assertTrusted(MembershipProtocolImpl membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, MemberStatus.ALIVE);
     assertEquals("Expected " + expected.length + " trusted members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
@@ -494,7 +494,7 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  private void assertSuspected(MembershipProtocol membership, Address... expected) {
+  private void assertSuspected(MembershipProtocolImpl membership, Address... expected) {
     List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected " + expected.length + " suspect members " + Arrays.toString(expected)
         + ", but actual: " + actual, expected.length, actual.size());
@@ -503,12 +503,12 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  private void assertNoSuspected(MembershipProtocol membership) {
+  private void assertNoSuspected(MembershipProtocolImpl membership) {
     List<Address> actual = getAddressesWithStatus(membership, MemberStatus.SUSPECT);
     assertEquals("Expected no suspected, but actual: " + actual, 0, actual.size());
   }
 
-  private List<Address> getAddressesWithStatus(MembershipProtocol membership, MemberStatus status) {
+  private List<Address> getAddressesWithStatus(MembershipProtocolImpl membership, MemberStatus status) {
     return membership.getMembershipRecords().stream()
         .filter(member -> member.status() == status)
         .map(MembershipRecord::address)

@@ -12,7 +12,7 @@ import rx.Observable;
 /**
  * @author Anton Kharenko
  */
-public class DummyMembershipProtocol implements IMembershipProtocol {
+public class DummyMembershipProtocol implements MembershipProtocol {
 
   private Member localMember;
   private List<Member> remoteMembers = new ArrayList<>();

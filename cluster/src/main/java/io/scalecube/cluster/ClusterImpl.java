@@ -1,18 +1,18 @@
 package io.scalecube.cluster;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_ACK;
-import static io.scalecube.cluster.fdetector.FailureDetector.PING_REQ;
-import static io.scalecube.cluster.gossip.GossipProtocol.GOSSIP_REQ;
-import static io.scalecube.cluster.membership.MembershipProtocol.MEMBERSHIP_GOSSIP;
-import static io.scalecube.cluster.membership.MembershipProtocol.SYNC;
-import static io.scalecube.cluster.membership.MembershipProtocol.SYNC_ACK;
+import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING;
+import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_ACK;
+import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_REQ;
+import static io.scalecube.cluster.gossip.GossipProtocolImpl.GOSSIP_REQ;
+import static io.scalecube.cluster.membership.MembershipProtocolImpl.MEMBERSHIP_GOSSIP;
+import static io.scalecube.cluster.membership.MembershipProtocolImpl.SYNC;
+import static io.scalecube.cluster.membership.MembershipProtocolImpl.SYNC_ACK;
 
-import io.scalecube.cluster.fdetector.FailureDetector;
-import io.scalecube.cluster.gossip.GossipProtocol;
+import io.scalecube.cluster.fdetector.FailureDetectorImpl;
+import io.scalecube.cluster.gossip.GossipProtocolImpl;
 import io.scalecube.cluster.membership.MembershipEvent;
-import io.scalecube.cluster.membership.MembershipProtocol;
+import io.scalecube.cluster.membership.MembershipProtocolImpl;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.NetworkEmulator;
@@ -58,9 +58,9 @@ final class ClusterImpl implements Cluster {
 
   // Cluster components
   private Transport transport;
-  private FailureDetector failureDetector;
-  private GossipProtocol gossip;
-  private MembershipProtocol membership;
+  private FailureDetectorImpl failureDetector;
+  private GossipProtocolImpl gossip;
+  private MembershipProtocolImpl membership;
 
   private Observable<Message> messageObservable;
   private Observable<Message> gossipObservable;
@@ -77,9 +77,9 @@ final class ClusterImpl implements Cluster {
       messageObservable = transport.listen()
           .filter(msg -> !SYSTEM_MESSAGES.contains(msg.qualifier())); // filter out system gossips
 
-      membership = new MembershipProtocol(transport, config);
-      gossip = new GossipProtocol(transport, membership, config);
-      failureDetector = new FailureDetector(transport, membership, config);
+      membership = new MembershipProtocolImpl(transport, config);
+      gossip = new GossipProtocolImpl(transport, membership, config);
+      failureDetector = new FailureDetectorImpl(transport, membership, config);
       membership.setFailureDetector(failureDetector);
       membership.setGossipProtocol(gossip);
 
@@ -211,24 +211,22 @@ final class ClusterImpl implements Cluster {
   @Override
   public CompletableFuture<Void> shutdown() {
     LOGGER.info("Cluster member {} is shutting down...", membership.member());
-    CompletableFuture<Void> shutdownFuture = new CompletableFuture<Void>();
+    CompletableFuture<Void> transportStoppedFuture = new CompletableFuture<>();
     membership.leave()
         .whenComplete((gossipId, error) -> {
           LOGGER.info("Cluster member notified about his leaving and shutting down... {}", membership.member());
+
           // stop algorithms
           membership.stop();
           gossip.stop();
           failureDetector.stop();
+
           // stop transport
-          CompletableFuture<Void> transportStoppedFuture = new CompletableFuture<>();
           transport.stop(transportStoppedFuture);
 
-          shutdownFuture.complete(null);
           LOGGER.info("Cluster member has shut down... {}", membership.member());
         });
-    return shutdownFuture;
-    
-    
+    return transportStoppedFuture;
   }
 
   @Nonnull
@@ -238,20 +236,7 @@ final class ClusterImpl implements Cluster {
   }
 
   @Override
-  public boolean isStopped() {
-    return this.transport.isStopped();
-  }
-
-  /**
-   * notify the cluster that this nodes is leaving by sending leaving notification gossip.
-   * 
-   */
-  public CompletableFuture<Void> leave() {
-    CompletableFuture<Void> leaveFuture = new CompletableFuture<Void>();
-    membership.leave()
-        .whenComplete((gossipId, error) -> {
-          leaveFuture.complete(null);
-        });
-    return leaveFuture;
+  public boolean isShutdown() {
+    return this.transport.isStopped(); // since transport is the last component stopped on shutdown
   }
 }

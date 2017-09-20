@@ -166,36 +166,6 @@ public class ClusterTest extends BaseTest {
   }
 
   @Test
-  public void testLeaveCluster() throws Exception {
-    // Start seed member
-    Cluster seedNode = Cluster.joinAwait();
-
-    // Start nodes
-    Cluster node1 = Cluster.joinAwait(seedNode.address());
-    Cluster node2 = Cluster.joinAwait(seedNode.address());
-    Cluster node3 = Cluster.joinAwait(seedNode.address());
-
-    CountDownLatch leave = new CountDownLatch(1);
-    node2.leave().whenComplete((done, error) -> {
-      leave.countDown();
-    });
-
-    leave.await(5, TimeUnit.SECONDS);
-    assertTrue(!node2.isStopped());
-    assertTrue(!seedNode.members().contains(node2.member()));
-    seedNode.shutdown();
-
-    assertTrue(!node1.members().contains(node2.member()));
-    node1.shutdown();
-
-    assertTrue(!node3.members().contains(node2.member()));
-    node3.shutdown();
-
-    node2.shutdown();
-
-  }
-
-  @Test
   public void testShutdownCluster() throws Exception {
     // Start seed member
     Cluster seedNode = Cluster.joinAwait();
@@ -214,7 +184,7 @@ public class ClusterTest extends BaseTest {
     assertTrue(!seedNode.members().contains(node2.member()));
     assertTrue(!node1.members().contains(node2.member()));
     assertTrue(!node3.members().contains(node2.member()));
-    assertTrue(node2.isStopped());
+    assertTrue(node2.isShutdown());
 
     seedNode.shutdown();
     node1.shutdown();

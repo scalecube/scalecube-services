@@ -55,7 +55,7 @@ public class ServiceTransport implements ServiceCommunicator {
 
   @Override
   public boolean isStopped() {
-    return cluster.isStopped();
+    return cluster.isShutdown();
   }
 
 
