@@ -165,13 +165,10 @@ public class Microservices {
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        Map<String, String> metadata = new HashMap<>();
-        metadata.putAll(clusterConfig.metadata());
-        metadata.putAll(Microservices.metadata(servicesConfig));
+        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
         if (address != null) {
-          metadata.put("service-address", address.toString());
+          clusterConfig.addMetadata("service-address", address.toString());
         }
-        clusterConfig.metadata(metadata);
       }
       return clusterConfig.build();
     }
