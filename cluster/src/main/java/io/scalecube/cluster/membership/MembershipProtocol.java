@@ -48,10 +48,10 @@ public final class MembershipProtocol implements IMembershipProtocol {
   private static final Logger LOGGER = LoggerFactory.getLogger(MembershipProtocol.class);
 
   private enum MembershipUpdateReason {
-    FAILURE_DETECTOR_EVENT, 
-    MEMBERSHIP_GOSSIP, 
-    SYNC, 
-    INITIAL_SYNC, 
+    FAILURE_DETECTOR_EVENT,
+    MEMBERSHIP_GOSSIP,
+    SYNC,
+    INITIAL_SYNC,
     SUSPICION_TIMEOUT
   }
 

@@ -65,7 +65,7 @@ final class MembershipRecord {
   public boolean isDead() {
     return status == DEAD;
   }
- 
+
   public int incarnation() {
     return incarnation;
   }
@@ -117,6 +117,4 @@ final class MembershipRecord {
   public String toString() {
     return "{m: " + member + ", s: " + status + ", inc: " + incarnation + '}';
   }
-
-  
 }

@@ -76,6 +76,4 @@ public final class MembershipEvent {
         + ", oldMember=" + oldMember
         + '}';
   }
-
-
 }

@@ -17,4 +17,5 @@ public enum MemberStatus {
    * and left cluster.
    */
   DEAD
+
 }
