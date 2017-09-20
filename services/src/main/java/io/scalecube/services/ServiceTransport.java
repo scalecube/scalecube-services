@@ -11,12 +11,12 @@ import rx.Observable;
 
 import java.util.concurrent.CompletableFuture;
 
-public class TransportServiceCommunicator implements ServiceCommunicator {
+public class ServiceTransport implements ServiceCommunicator {
 
   private Transport transport;
   private Cluster cluster;
 
-  public TransportServiceCommunicator(Transport transport) {
+  public ServiceTransport(Transport transport) {
     checkArgument(transport != null, "transport can't be null");
     this.transport = transport;
   }
@@ -51,6 +51,11 @@ public class TransportServiceCommunicator implements ServiceCommunicator {
     CompletableFuture<Void> promise = new CompletableFuture<Void>();
     this.transport.stop(promise);
     return promise;
+  }
+
+  @Override
+  public boolean isStopped() {
+    return cluster.isShutdown();
   }
 
 

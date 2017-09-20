@@ -121,7 +121,7 @@ public interface Cluster {
   /**
    * Spreads given message between cluster members using gossiping protocol.
    */
-  void spreadGossip(Message message);
+  CompletableFuture<String> spreadGossip(Message message);
 
   /**
    * Listens for gossips from other cluster members.
@@ -183,6 +183,13 @@ public interface Cluster {
    * @return Listenable future which is completed once graceful shutdown is finished.
    */
   CompletableFuture<Void> shutdown();
+
+  /**
+   * Check if cluster instance has been shut down.
+   * 
+   * @return Returns true if cluster instance has been shut down; false otherwise.
+   */
+  boolean isShutdown();
 
   /**
    * Returns network emulator associated with this instance of cluster. It always returns non null instance even if

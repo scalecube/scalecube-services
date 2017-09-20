@@ -1,8 +1,6 @@
 package io.scalecube.services;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
-import io.scalecube.services.annotations.AnnotationServiceProcessor;
-import io.scalecube.services.annotations.ServiceProcessor;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +13,6 @@ import java.util.stream.Collectors;
 public class ServicesConfig {
 
   private static final ServicesConfig EMPTY_SERVICES_CONFIG = new ServicesConfig();
-  private static final ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
 
   private List<ServiceConfig> servicesConfig = new ArrayList<>();
 
@@ -57,13 +54,13 @@ public class ServicesConfig {
 
       public ServiceConfig(Builder builder, Object service) {
         this.service = service;
-        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service);
+        this.serviceDefinitions = ServiceDefinition.from(service);
         this.builder = builder;
       }
 
       public ServiceConfig(Object service) {
         this.service = service;
-        this.serviceDefinitions = serviceProcessor.serviceDefinitions(service);
+        this.serviceDefinitions = ServiceDefinition.from(service);
         this.builder = null;
       }
 

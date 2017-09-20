@@ -1,10 +1,15 @@
 package io.scalecube.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.scalecube.services.Microservices.ProxyContext;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
+import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.Router;
+
+import com.google.common.base.Strings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +19,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -135,4 +145,48 @@ public class Reflect {
     }
     return Object.class;
   }
+
+  /**
+   * Util function to extract service name from service api.
+   * 
+   * @param serviceInterface with @Service annotation.
+   * @return service name.
+   */
+  public static String serviceName(Class<?> serviceInterface) {
+    // Service name
+    Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
+    checkArgument(serviceAnnotation != null, "Not a service interface: %s", serviceInterface);
+    return Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
+  }
+
+  /**
+   * Util function to get service Method map from service api.
+   * 
+   * @param serviceInterface with @Service annotation.
+   * @return service name.
+   */
+  public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
+    Map<String, Method> methods = Arrays.stream(serviceInterface.getMethods())
+        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+        .collect(Collectors.toMap(method -> {
+          ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+          return Strings.isNullOrEmpty(methodAnnotation.value()) ? method.getName() : methodAnnotation.value();
+        }, Function.identity()));
+
+    return Collections.unmodifiableMap(methods);
+  }
+
+  /**
+   * Util function to get service interfaces collections from service instance.
+   * 
+   * @param serviceObject with extends service interface with @Service annotation.
+   * @return service interface class.
+   */
+  public static Collection<Class<?>> serviceInterfaces(Object serviceObject) {
+    Class<?>[] interfaces = serviceObject.getClass().getInterfaces();
+    return Arrays.stream(interfaces)
+        .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
+        .collect(Collectors.toList());
+  }
+
 }

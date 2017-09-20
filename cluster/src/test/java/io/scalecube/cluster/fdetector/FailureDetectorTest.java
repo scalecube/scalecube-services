@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
-import io.scalecube.cluster.membership.IMembershipProtocol;
+import io.scalecube.cluster.membership.MembershipProtocol;
 import io.scalecube.cluster.membership.MemberStatus;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
@@ -40,10 +40,10 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
-    FailureDetector fd_b = createFD(b, members);
-    FailureDetector fd_c = createFD(c, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
+    FailureDetectorImpl fd_a = createFD(a, members);
+    FailureDetectorImpl fd_b = createFD(b, members);
+    FailureDetectorImpl fd_c = createFD(c, members);
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
       start(fdetectors);
@@ -69,10 +69,10 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
-    FailureDetector fd_b = createFD(b, members);
-    FailureDetector fd_c = createFD(c, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
+    FailureDetectorImpl fd_a = createFD(a, members);
+    FailureDetectorImpl fd_b = createFD(b, members);
+    FailureDetectorImpl fd_c = createFD(c, members);
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // block all traffic
     a.networkEmulator().block(members);
@@ -106,10 +106,10 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
-    FailureDetector fd_b = createFD(b, members);
-    FailureDetector fd_c = createFD(c, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
+    FailureDetectorImpl fd_a = createFD(a, members);
+    FailureDetectorImpl fd_b = createFD(b, members);
+    FailureDetectorImpl fd_c = createFD(c, members);
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     // Traffic issue at connection A -> B
     a.networkEmulator().block(b.address());
@@ -138,11 +138,11 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
+    FailureDetectorImpl fd_a = createFD(a, members);
     FailureDetectorConfig fd_b_config = ClusterConfig.builder().pingTimeout(500).pingInterval(1000).build();
-    FailureDetector fd_b = createFD(b, members, fd_b_config);
-    FailureDetector fd_c = createFD(c, members, ClusterConfig.defaultConfig());
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
+    FailureDetectorImpl fd_b = createFD(b, members, fd_b_config);
+    FailureDetectorImpl fd_c = createFD(c, members, ClusterConfig.defaultConfig());
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b, fd_c);
 
     try {
       start(fdetectors);
@@ -169,11 +169,11 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
-    FailureDetector fd_b = createFD(b, members);
-    FailureDetector fd_c = createFD(c, members);
-    FailureDetector fd_d = createFD(d, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
+    FailureDetectorImpl fd_a = createFD(a, members);
+    FailureDetectorImpl fd_b = createFD(b, members);
+    FailureDetectorImpl fd_c = createFD(c, members);
+    FailureDetectorImpl fd_d = createFD(d, members);
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic on member A to all cluster members
     a.networkEmulator().block(members);
@@ -222,11 +222,11 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address(), c.address(), d.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
-    FailureDetector fd_b = createFD(b, members);
-    FailureDetector fd_c = createFD(c, members);
-    FailureDetector fd_d = createFD(d, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
+    FailureDetectorImpl fd_a = createFD(a, members);
+    FailureDetectorImpl fd_b = createFD(b, members);
+    FailureDetectorImpl fd_c = createFD(c, members);
+    FailureDetectorImpl fd_d = createFD(d, members);
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b, fd_c, fd_d);
 
     // Block traffic to node D on other members
     a.networkEmulator().block(d.address());
@@ -277,9 +277,9 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
-    FailureDetector fd_b = createFD(b, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b);
+    FailureDetectorImpl fd_a = createFD(a, members);
+    FailureDetectorImpl fd_b = createFD(b, members);
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b);
 
     // Traffic is blocked initially on both sides: A--X-->B, B--X-->A
     a.networkEmulator().block(b.address());
@@ -320,10 +320,10 @@ public class FailureDetectorTest extends BaseTest {
     List<Address> members = Arrays.asList(a.address(), b.address(), x.address());
 
     // Create failure detectors
-    FailureDetector fd_a = createFD(a, members);
-    FailureDetector fd_b = createFD(b, members);
-    FailureDetector fd_x = createFD(x, members);
-    List<FailureDetector> fdetectors = Arrays.asList(fd_a, fd_b, fd_x);
+    FailureDetectorImpl fd_a = createFD(a, members);
+    FailureDetectorImpl fd_b = createFD(b, members);
+    FailureDetectorImpl fd_x = createFD(x, members);
+    List<FailureDetectorImpl> fdetectors = Arrays.asList(fd_a, fd_b, fd_x);
 
     Future<List<FailureDetectorEvent>> list_a = listenNextEventFor(fd_a, members);
     Future<List<FailureDetectorEvent>> list_b = listenNextEventFor(fd_b, members);
@@ -331,7 +331,7 @@ public class FailureDetectorTest extends BaseTest {
 
     // Restarted member attributes are not initialized
     Transport xx;
-    FailureDetector fd_xx;
+    FailureDetectorImpl fd_xx;
 
     try {
       start(fdetectors);
@@ -371,7 +371,7 @@ public class FailureDetectorTest extends BaseTest {
     }
   }
 
-  private FailureDetector createFD(Transport transport, List<Address> members) {
+  private FailureDetectorImpl createFD(Transport transport, List<Address> members) {
     FailureDetectorConfig failureDetectorConfig = ClusterConfig.builder() // faster config for local testing
         .pingTimeout(100)
         .pingInterval(200)
@@ -380,9 +380,9 @@ public class FailureDetectorTest extends BaseTest {
     return createFD(transport, members, failureDetectorConfig);
   }
 
-  private FailureDetector createFD(Transport transport, List<Address> addresses, FailureDetectorConfig config) {
-    IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), addresses);
-    return new FailureDetector(transport, dummyMembership, config);
+  private FailureDetectorImpl createFD(Transport transport, List<Address> addresses, FailureDetectorConfig config) {
+    MembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), addresses);
+    return new FailureDetectorImpl(transport, dummyMembership, config);
   }
 
   private void destroyTransport(Transport transport) {
@@ -397,17 +397,17 @@ public class FailureDetectorTest extends BaseTest {
     }
   }
 
-  private void start(List<FailureDetector> fdetectors) {
-    for (FailureDetector fd : fdetectors) {
+  private void start(List<FailureDetectorImpl> fdetectors) {
+    for (FailureDetectorImpl fd : fdetectors) {
       fd.start();
     }
   }
 
-  private void stop(List<FailureDetector> fdetectors) {
-    for (FailureDetector fd : fdetectors) {
+  private void stop(List<FailureDetectorImpl> fdetectors) {
+    for (FailureDetectorImpl fd : fdetectors) {
       fd.stop();
     }
-    for (FailureDetector fd : fdetectors) {
+    for (FailureDetectorImpl fd : fdetectors) {
       destroyTransport(fd.getTransport());
     }
   }
@@ -436,7 +436,7 @@ public class FailureDetectorTest extends BaseTest {
     }
   }
 
-  private Future<List<FailureDetectorEvent>> listenNextEventFor(FailureDetector fd, List<Address> addresses) {
+  private Future<List<FailureDetectorEvent>> listenNextEventFor(FailureDetectorImpl fd, List<Address> addresses) {
     addresses = new ArrayList<>(addresses);
     addresses.remove(fd.getTransport().address()); // exclude self
     checkArgument(!addresses.isEmpty());

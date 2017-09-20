@@ -5,7 +5,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
-import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -31,7 +30,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   private final Cluster cluster;
-  private final ServiceProcessor serviceProcessor;
 
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
 
@@ -45,17 +43,13 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param cluster the cluster instance related to the service registry.
    * @param sender to be used for service communication.
    * @param services optional services if relevant to this instance.
-   * @param serviceProcessor - service processor.
    */
-  public ServiceRegistryImpl(Cluster cluster, ServiceCommunicator sender, ServicesConfig services,
-      ServiceProcessor serviceProcessor) {
+  public ServiceRegistryImpl(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
 
     checkArgument(cluster != null, "cluster can't be null");
     checkArgument(sender != null, "transport can't be null");
     checkArgument(services != null, "services can't be null");
-    checkArgument(serviceProcessor != null, "serviceProcessor can't be null");
 
-    this.serviceProcessor = serviceProcessor;
     this.cluster = cluster;
     this.sender = sender;
     listenCluster();
@@ -101,19 +95,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             serviceInstances.putIfAbsent(serviceRef,
                 new RemoteServiceInstance(sender, serviceRef, info.getTags()));
+            LOGGER.info("Service Reference was ADDED since new Member {} has joined the cluster {} : {}", member,
+                serviceRef);
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
+            LOGGER.info("Service Reference was REMOVED since Member {} have left the cluster {} : {}", member,
+                serviceRef);
           }
         });
-  }
-
-  private Address getServiceAddress(Member member) {
-    String serviceAddressAsString = member.metadata().get("service-address");
-    if (serviceAddressAsString != null) {
-      return Address.from(serviceAddressAsString);
-    } else {
-      return member.address();
-    }
   }
 
   /**
@@ -121,14 +110,13 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    */
   public void registerService(ServiceConfig serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
-    Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject.getService());
+    Collection<Class<?>> serviceInterfaces = Reflect.serviceInterfaces(serviceObject.getService());
 
     String memberId = cluster.member().id();
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      ServiceDefinition serviceDefinition =
-          serviceProcessor.introspectServiceInterface(serviceInterface);
+      ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
 
       // cache the service definition.
       definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
@@ -148,16 +136,13 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public void unregisterService(Object serviceObject) {
     checkArgument(serviceObject != null, "Service object can't be null.");
-    Collection<Class<?>> serviceInterfaces = serviceProcessor.extractServiceInterfaces(serviceObject);
+    Collection<Class<?>> serviceInterfaces = Reflect.serviceInterfaces(serviceObject);
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      ServiceDefinition serviceDefinition =
-          serviceProcessor.introspectServiceInterface(serviceInterface);
-
+      ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
       ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
       serviceInstances.remove(serviceReference);
-
     });
   }
 
@@ -182,15 +167,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return Collections.unmodifiableCollection(serviceInstances.values());
   }
 
-  private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-
-    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(),
-        serviceDefinition.methods().keySet(), sender.address());
-  }
-
-  private boolean isValid(ServiceReference reference, String qualifier) {
-    return reference.serviceName().equals(qualifier);
-  }
 
   @Override
   public Optional<ServiceDefinition> getServiceDefinition(String serviceName) {
@@ -199,9 +175,27 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public ServiceDefinition registerInterface(Class<?> serviceInterface) {
-    ServiceDefinition serviceDefinition = serviceProcessor.introspectServiceInterface(serviceInterface);
+    ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
     definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
     return serviceDefinition;
+  }
+
+  private Address getServiceAddress(Member member) {
+    String serviceAddressAsString = member.metadata().get("service-address");
+    if (serviceAddressAsString != null) {
+      return Address.from(serviceAddressAsString);
+    } else {
+      return member.address();
+    }
+  }
+
+  private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
+    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(),
+        serviceDefinition.methods().keySet(), sender.address());
+  }
+
+  private boolean isValid(ServiceReference reference, String qualifier) {
+    return reference.serviceName().equals(qualifier);
   }
 
 }

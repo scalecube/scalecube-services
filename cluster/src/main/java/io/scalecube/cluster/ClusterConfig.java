@@ -208,7 +208,7 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
   public static final class Builder {
 
     private List<Address> seedMembers = Collections.emptyList();
-    private Map<String, String> metadata = Collections.emptyMap();
+    private Map<String, String> metadata = new HashMap<>();
     private int syncInterval = DEFAULT_SYNC_INTERVAL;
     private int syncTimeout = DEFAULT_SYNC_TIMEOUT;
     private String syncGroup = DEFAULT_SYNC_GROUP;
@@ -231,8 +231,14 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
       return this;
     }
 
-    public Map<String, String> metadata() {
-      return this.metadata;
+    public Builder addMetadata(String key, String value) {
+      this.metadata.put(key, value);
+      return this;
+    }
+
+    public Builder addMetadata(Map<String, String> metadata) {
+      this.metadata.putAll(metadata);
+      return this;
     }
     
     public Builder seedMembers(Address... seedMembers) {

@@ -4,7 +4,7 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterMath;
 import io.scalecube.cluster.Member;
 import io.scalecube.cluster.membership.DummyMembershipProtocol;
-import io.scalecube.cluster.membership.IMembershipProtocol;
+import io.scalecube.cluster.membership.MembershipProtocol;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.Message;
@@ -96,7 +96,7 @@ public class GossipProtocolTest extends BaseTest {
   @Test
   public void testGossipProtocol() throws Exception {
     // Init gossip protocol instances
-    List<GossipProtocol> gossipProtocols = initGossipProtocols(membersNum, lossPercent, meanDelay);
+    List<GossipProtocolImpl> gossipProtocols = initGossipProtocols(membersNum, lossPercent, meanDelay);
 
     // Subscribe on gossips
     long disseminationTime = 0;
@@ -110,7 +110,7 @@ public class GossipProtocolTest extends BaseTest {
       final CountDownLatch latch = new CountDownLatch(membersNum - 1);
       final Map<Member, Member> receivers = new ConcurrentHashMap<>();
       final AtomicBoolean doubleDelivery = new AtomicBoolean(false);
-      for (final GossipProtocol protocol : gossipProtocols) {
+      for (final GossipProtocolImpl protocol : gossipProtocols) {
         protocol.listen().subscribe(gossip -> {
           if (gossipData.equals(gossip.data())) {
             boolean firstTimeAdded = receivers.put(protocol.getMember(), protocol.getMember()) == null;
@@ -178,31 +178,31 @@ public class GossipProtocolTest extends BaseTest {
     }
   }
 
-  private LongSummaryStatistics computeMessageSentStats(List<GossipProtocol> gossipProtocols) {
+  private LongSummaryStatistics computeMessageSentStats(List<GossipProtocolImpl> gossipProtocols) {
     List<Long> messageSentPerNode = new ArrayList<>(gossipProtocols.size());
-    for (GossipProtocol gossipProtocol : gossipProtocols) {
+    for (GossipProtocolImpl gossipProtocol : gossipProtocols) {
       Transport transport = gossipProtocol.getTransport();
       messageSentPerNode.add(transport.networkEmulator().totalMessageSentCount());
     }
     return messageSentPerNode.stream().mapToLong(v -> v).summaryStatistics();
   }
 
-  private LongSummaryStatistics computeMessageLostStats(List<GossipProtocol> gossipProtocols) {
+  private LongSummaryStatistics computeMessageLostStats(List<GossipProtocolImpl> gossipProtocols) {
     List<Long> messageLostPerNode = new ArrayList<>(gossipProtocols.size());
-    for (GossipProtocol gossipProtocol : gossipProtocols) {
+    for (GossipProtocolImpl gossipProtocol : gossipProtocols) {
       Transport transport = gossipProtocol.getTransport();
       messageLostPerNode.add(transport.networkEmulator().totalMessageLostCount());
     }
     return messageLostPerNode.stream().mapToLong(v -> v).summaryStatistics();
   }
 
-  private List<GossipProtocol> initGossipProtocols(int count, int lostPercent, int meanDelay) {
+  private List<GossipProtocolImpl> initGossipProtocols(int count, int lostPercent, int meanDelay) {
     final List<Transport> transports = initTransports(count, lostPercent, meanDelay);
     List<Address> members = new ArrayList<>();
     for (Transport transport : transports) {
       members.add(transport.address());
     }
-    List<GossipProtocol> gossipProtocols = new ArrayList<>();
+    List<GossipProtocolImpl> gossipProtocols = new ArrayList<>();
     for (Transport transport : transports) {
       gossipProtocols.add(initGossipProtocol(transport, members));
     }
@@ -226,27 +226,27 @@ public class GossipProtocolTest extends BaseTest {
     return transports;
   }
 
-  private GossipProtocol initGossipProtocol(Transport transport, List<Address> members) {
-    IMembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), members);
+  private GossipProtocolImpl initGossipProtocol(Transport transport, List<Address> members) {
+    MembershipProtocol dummyMembership = new DummyMembershipProtocol(transport.address(), members);
     GossipConfig gossipConfig = ClusterConfig.builder()
         .gossipFanout(gossipFanout)
         .gossipInterval(gossipInterval)
         .gossipRepeatMult(gossipRepeatMultiplier)
         .build();
-    GossipProtocol gossipProtocol = new GossipProtocol(transport, dummyMembership, gossipConfig);
+    GossipProtocolImpl gossipProtocol = new GossipProtocolImpl(transport, dummyMembership, gossipConfig);
     gossipProtocol.start();
     return gossipProtocol;
   }
 
-  private void destroyGossipProtocols(List<GossipProtocol> gossipProtocols) {
+  private void destroyGossipProtocols(List<GossipProtocolImpl> gossipProtocols) {
     // Stop all gossip protocols
-    for (GossipProtocol gossipProtocol : gossipProtocols) {
+    for (GossipProtocolImpl gossipProtocol : gossipProtocols) {
       gossipProtocol.stop();
     }
 
     // Stop all transports
     List<CompletableFuture<Void>> futures = new ArrayList<>();
-    for (GossipProtocol gossipProtocol : gossipProtocols) {
+    for (GossipProtocolImpl gossipProtocol : gossipProtocols) {
       CompletableFuture<Void> close = new CompletableFuture<>();
       gossipProtocol.getTransport().stop(close);
       futures.add(close);

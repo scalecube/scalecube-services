@@ -4,8 +4,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.services.annotations.AnnotationServiceProcessor;
-import io.scalecube.services.annotations.ServiceProcessor;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -29,14 +27,12 @@ import java.util.concurrent.CompletableFuture;
  * run a whole system of microservices from a single command. removing most of the boilerplate code, ScaleCube-Services
  * focuses development on the essence of the service and makes it easy to create explicit and typed protocols that
  * compose. True isolation is achieved through shared-nothing design. This means the services in ScaleCube are
- * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilence and elasticity
- * 
- * <p>ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
+ * autonomous, loosely coupled and mobile (location transparent)—necessary requirements for resilance and elasticity
+ * ScaleCube services requires developers only to two simple Annotations declaring a Service but not regards how you
  * build the service component itself. the Service component is simply java class that implements the service Interface
  * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
- * streaming patters but does not force application developers to it.
- * 
- * <p>ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
+ * streaming patters but does not force application developers to it. ScaleCube-Services is not yet-anther RPC system in
+ * the sense its is cluster aware to provide:
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -47,7 +43,6 @@ import java.util.concurrent.CompletableFuture;
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service end-points</li>
  * 
- * </p>
  * <b>basic usage example:</b>
  * 
  * <pre>
@@ -99,7 +94,6 @@ import java.util.concurrent.CompletableFuture;
 public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
-  private static final ServiceProcessor serviceProcessor = new AnnotationServiceProcessor();
 
   private final Cluster cluster;
 
@@ -114,7 +108,7 @@ public class Microservices {
   private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
     this.cluster = cluster;
     this.sender = sender;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services, serviceProcessor);
+    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services);
 
     this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
@@ -157,27 +151,24 @@ public class Microservices {
     public Microservices build() {
 
       Cluster cluster = null;
-      
+
       // create cluster and transport with given config.
-      TransportServiceCommunicator transportSender =
-          new TransportServiceCommunicator(Transport.bindAwait(transportConfig));
-      
+      ServiceTransport transportSender =
+          new ServiceTransport(Transport.bindAwait(transportConfig));
+
       ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
       cluster = Cluster.joinAwait(cfg);
       transportSender.cluster(cluster);
-      
+
       return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        Map<String, String> metadata = new HashMap<>();
-        metadata.putAll(clusterConfig.metadata());
-        metadata.putAll(Microservices.metadata(servicesConfig));
+        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
         if (address != null) {
-          metadata.put("service-address", address.toString());
+          clusterConfig.addMetadata("service-address", address.toString());
         }
-        clusterConfig.metadata(metadata);
       }
       return clusterConfig.build();
     }
@@ -309,14 +300,14 @@ public class Microservices {
 
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
-    
+
     config.getServiceConfigs().stream().forEach(serviceConfig -> {
-      
+
       serviceConfig.serviceNames().stream().forEach(name -> {
-        
+
         servicesTags.put(new ServiceInfo(name,
-            serviceConfig.methods(name), 
-            serviceConfig.getTags()).toMetadata(), 
+            serviceConfig.methods(name),
+            serviceConfig.getTags()).toMetadata(),
             "service");
       });
     });
@@ -324,13 +315,33 @@ public class Microservices {
     return servicesTags;
   }
 
+  /**
+   * returns service communication.
+   * 
+   * @return service communication.
+   */
   public ServiceCommunicator sender() {
     return sender;
   }
 
+  /**
+   * Shutdown services transport and cluster transport.
+   * 
+   * @return future with cluster shutdown result.
+   */
   public CompletableFuture<Void> shutdown() {
-    this.sender.shutdown();
-    return this.cluster.shutdown();
+    CompletableFuture<Void> result = new CompletableFuture<Void>();
+
+    if (!this.sender.isStopped()) {
+      this.sender.shutdown();
+    }
+
+    if (!this.cluster.isShutdown()) {
+      return this.cluster.shutdown();
+    } else {
+      result.completeExceptionally(new IllegalStateException("Cluster transport alredy stopped"));
+      return result;
+    }
   }
 
   public ServiceRegistry serviceRegistry() {
