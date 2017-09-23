@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.utils.Preconditions.checkArgument;
 
 import io.scalecube.services.Microservices.ProxyContext;
 import io.scalecube.services.annotations.Inject;
@@ -9,7 +9,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.Router;
 
-import com.google.common.base.Strings;
+import io.scalecube.utils.Strings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
