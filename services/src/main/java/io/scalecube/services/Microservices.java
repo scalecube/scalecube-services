@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
+
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.routing.RoundRobinServiceRouter;

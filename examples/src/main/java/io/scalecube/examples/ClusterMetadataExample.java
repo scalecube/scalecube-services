@@ -30,9 +30,11 @@ public class ClusterMetadataExample {
     Cluster alice = Cluster.joinAwait();
 
     // Join Joe to cluster with metadata
-    Map<String, String> metadata = Collections.unmodifiableMap(new HashMap<String,String>() {{
-      put("name", "Joe");
-    }});
+    Map<String, String> metadata = Collections.unmodifiableMap(new HashMap<String, String>() {
+      {
+        put("name", "Joe");
+      }
+    });
     Cluster joe = Cluster.joinAwait(metadata, alice.address());
 
     // Subscribe Joe to listen for incoming messages and print them to system out

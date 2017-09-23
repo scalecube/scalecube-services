@@ -1,7 +1,5 @@
 package io.scalecube.transport;
 
-import static io.scalecube.transport.Strings.checkNotNullOrEmpty;
-
 import com.google.common.base.Throwables;
 
 import java.io.IOException;

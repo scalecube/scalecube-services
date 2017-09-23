@@ -28,7 +28,8 @@ public class ClusterJoinExamples {
     Cluster bob = Cluster.joinAwait(alice.address());
 
     // Join Carol to cluster with metadata
-    Map<String, String> metadata = Collections.unmodifiableMap(new HashMap<String,String>() {{
+    Map<String, String> metadata = Collections.unmodifiableMap(new HashMap<String, String>() {
+      {
         put("name", "Carol");
       }
     });
