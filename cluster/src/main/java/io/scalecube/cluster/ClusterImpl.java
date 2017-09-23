@@ -1,6 +1,5 @@
 package io.scalecube.cluster;
 
-import static java.util.Objects.requireNonNull;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_REQ;
@@ -8,6 +7,7 @@ import static io.scalecube.cluster.gossip.GossipProtocolImpl.GOSSIP_REQ;
 import static io.scalecube.cluster.membership.MembershipProtocolImpl.MEMBERSHIP_GOSSIP;
 import static io.scalecube.cluster.membership.MembershipProtocolImpl.SYNC;
 import static io.scalecube.cluster.membership.MembershipProtocolImpl.SYNC_ACK;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.fdetector.FailureDetectorImpl;
 import io.scalecube.cluster.gossip.GossipProtocolImpl;
@@ -25,10 +25,8 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -36,7 +34,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import javax.annotation.Nonnull; 
+import javax.annotation.Nonnull;
+
 /**
  * Cluster implementation.
  * 
@@ -46,7 +45,8 @@ final class ClusterImpl implements Cluster {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterImpl.class);
 
-  private static final Set<String> SYSTEM_MESSAGES = Strings.asSet( PING, PING_REQ, PING_ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
+  private static final Set<String> SYSTEM_MESSAGES =
+      Strings.asSet(PING, PING_REQ, PING_ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
 
   private static final Set<String> SYSTEM_GOSSIPS = Strings.asSet(MEMBERSHIP_GOSSIP);
 
