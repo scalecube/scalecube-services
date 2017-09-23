@@ -78,7 +78,7 @@
         <module>benchmark</module>
         <module>examples</module>
         <module>services</module>
-        <module>Utils</module>
+        <module>utils</module>
 </modules>
 
     <dependencyManagement>
