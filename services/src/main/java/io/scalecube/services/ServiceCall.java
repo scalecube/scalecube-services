@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.utils.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.routing.Router;

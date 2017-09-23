@@ -1,6 +1,7 @@
 package io.scalecube.transport;
 
-import com.google.common.base.Strings;
+import io.scalecube.utils.Strings;
+
 import com.google.common.base.Throwables;
 
 import java.io.IOException;

@@ -1,6 +1,5 @@
 package io.scalecube.cluster;
 
-import static com.google.common.base.Preconditions.checkNotNull;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_REQ;
@@ -8,6 +7,7 @@ import static io.scalecube.cluster.gossip.GossipProtocolImpl.GOSSIP_REQ;
 import static io.scalecube.cluster.membership.MembershipProtocolImpl.MEMBERSHIP_GOSSIP;
 import static io.scalecube.cluster.membership.MembershipProtocolImpl.SYNC;
 import static io.scalecube.cluster.membership.MembershipProtocolImpl.SYNC_ACK;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.fdetector.FailureDetectorImpl;
 import io.scalecube.cluster.gossip.GossipProtocolImpl;
@@ -16,9 +16,8 @@ import io.scalecube.cluster.membership.MembershipProtocolImpl;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.NetworkEmulator;
+import io.scalecube.utils.Strings;
 import io.scalecube.transport.Transport;
-
-import com.google.common.collect.ImmutableSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,9 +46,9 @@ final class ClusterImpl implements Cluster {
   private static final Logger LOGGER = LoggerFactory.getLogger(ClusterImpl.class);
 
   private static final Set<String> SYSTEM_MESSAGES =
-      ImmutableSet.of(PING, PING_REQ, PING_ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
+      Strings.asSet(PING, PING_REQ, PING_ACK, SYNC, SYNC_ACK, GOSSIP_REQ);
 
-  private static final Set<String> SYSTEM_GOSSIPS = ImmutableSet.of(MEMBERSHIP_GOSSIP);
+  private static final Set<String> SYSTEM_GOSSIPS = Strings.asSet(MEMBERSHIP_GOSSIP);
 
   private final ClusterConfig config;
 
@@ -66,7 +65,7 @@ final class ClusterImpl implements Cluster {
   private Observable<Message> gossipObservable;
 
   public ClusterImpl(ClusterConfig config) {
-    checkNotNull(config);
+    requireNonNull(config);
     this.config = config;
   }
 

@@ -4,8 +4,8 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.transport.Message;
 
-import com.google.common.collect.ImmutableMap;
-
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * in this example we see how to attach logical name to a cluster member we nick name Joe
  * </p>
  * 
- * @author ronen_h, Anton Kharenko
+ * @author Ronen Nachmias, Anton Kharenko
  */
 public class ClusterMetadataExample {
 
@@ -30,7 +30,11 @@ public class ClusterMetadataExample {
     Cluster alice = Cluster.joinAwait();
 
     // Join Joe to cluster with metadata
-    Map<String, String> metadata = ImmutableMap.of("name", "Joe");
+    Map<String, String> metadata = Collections.unmodifiableMap(new HashMap<String, String>() {
+      {
+        put("name", "Joe");
+      }
+    });
     Cluster joe = Cluster.joinAwait(metadata, alice.address());
 
     // Subscribe Joe to listen for incoming messages and print them to system out

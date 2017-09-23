@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
@@ -195,7 +195,7 @@ public class Microservices {
      * @return builder.
      */
     public Builder services(Object... services) {
-      checkNotNull(services);
+      requireNonNull(services);
 
       this.servicesConfig = ServicesConfig.builder(this)
           .services(services)
@@ -215,7 +215,7 @@ public class Microservices {
      * @return builder.
      */
     public Builder services(ServicesConfig servicesConfig) {
-      checkNotNull(servicesConfig);
+      requireNonNull(servicesConfig);
       this.servicesConfig = servicesConfig;
       return this;
     }

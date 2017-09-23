@@ -1,6 +1,6 @@
 package io.scalecube.transport;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static io.scalecube.utils.Preconditions.checkArgument;
 
 import java.util.Collections;
 import java.util.HashMap;

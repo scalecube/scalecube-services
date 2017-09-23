@@ -3,8 +3,6 @@ package io.scalecube.transport;
 import static io.protostuff.LinkedBuffer.MIN_BUFFER_SIZE;
 import static io.scalecube.transport.RecyclableLinkedBuffer.DEFAULT_MAX_CAPACITY;
 
-import com.google.common.collect.ImmutableMap;
-
 import io.protostuff.Input;
 import io.protostuff.Output;
 import io.protostuff.ProtostuffIOUtil;
@@ -16,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
@@ -40,14 +39,16 @@ final class MessageSchema implements Schema<Message> {
   private static final RecyclableLinkedBuffer recyclableLinkedBuffer =
       new RecyclableLinkedBuffer(MIN_BUFFER_SIZE, DEFAULT_MAX_CAPACITY);
 
-  private static final Map<String, Integer> fieldMap = ImmutableMap.<String, Integer>builder()
-      .put("headerKeys", HEADER_KEYS_FIELD_NUMBER)
-      .put("headerValues", HEADER_VALUES_FIELD_NUMBER)
-      .put("data", DATA_FIELD_NUMBER)
-      .put("senderHost", SENDER_HOST_FIELD_NUMBER)
-      .put("senderPort", SENDER_PORT_FIELD_NUMBER)
-      .build();
 
+  private static final Map<String, Integer> fieldMap = Collections.unmodifiableMap(new HashMap<String, Integer>() {
+    {
+      put("headerKeys", HEADER_KEYS_FIELD_NUMBER);
+      put("headerValues", HEADER_VALUES_FIELD_NUMBER);
+      put("data", DATA_FIELD_NUMBER);
+      put("senderHost", SENDER_HOST_FIELD_NUMBER);
+      put("senderPort", SENDER_PORT_FIELD_NUMBER);
+    }
+  });
   private final Map<String, Optional<Class>> classCache = new ConcurrentHashMap<>();
 
   @Override
