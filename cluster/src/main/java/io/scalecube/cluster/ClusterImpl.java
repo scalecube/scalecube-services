@@ -16,7 +16,7 @@ import io.scalecube.cluster.membership.MembershipProtocolImpl;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.NetworkEmulator;
-import io.scalecube.transport.Strings;
+import io.scalecube.utils.Strings;
 import io.scalecube.transport.Transport;
 
 import org.slf4j.Logger;

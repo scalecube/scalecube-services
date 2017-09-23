@@ -1,6 +1,6 @@
-package io.scalecube.transport;
+package io.scalecube.utils;
 
-import static io.scalecube.transport.Preconditions.checkArgument;
+import static io.scalecube.utils.Preconditions.checkArgument;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -10,7 +10,7 @@ import javax.annotation.Nullable;
 
 public class Strings {
 
-  static boolean isNullOrEmpty(@Nullable String string) {
+  public static boolean isNullOrEmpty(@Nullable String string) {
     return string == null || string.isEmpty();
   }
 

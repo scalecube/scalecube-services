@@ -1,6 +1,6 @@
 package io.scalecube.transport;
 
-import static io.scalecube.transport.Strings.checkNotNullOrEmpty;
+import static io.scalecube.utils.Strings.checkNotNullOrEmpty;
 
 import java.util.Objects;
 import java.util.regex.Matcher;
