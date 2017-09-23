@@ -6,8 +6,8 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 
-import com.google.common.collect.ImmutableMap;
-
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -28,7 +28,10 @@ public class ClusterJoinExamples {
     Cluster bob = Cluster.joinAwait(alice.address());
 
     // Join Carol to cluster with metadata
-    Map<String, String> metadata = ImmutableMap.of("name", "Carol");
+    Map<String, String> metadata = Collections.unmodifiableMap(new HashMap<String,String>() {{
+        put("name", "Carol");
+      }
+    });
     Cluster carol = Cluster.joinAwait(metadata, alice.address());
 
     // Start Dan on port 3000

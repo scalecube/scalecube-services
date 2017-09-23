@@ -114,8 +114,8 @@ public class Microservices {
 
     new ServiceDispatcher(this);
     this.sender.listen()
-    .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-    .subscribe(message -> ServiceResponse.handleReply(message));
+        .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
+        .subscribe(message -> ServiceResponse.handleReply(message));
   }
 
   public Cluster cluster() {

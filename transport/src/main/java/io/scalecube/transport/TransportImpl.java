@@ -1,7 +1,7 @@
 package io.scalecube.transport;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
+import static io.scalecube.transport.Preconditions.checkArgument;
+import static io.scalecube.transport.Preconditions.checkState;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;

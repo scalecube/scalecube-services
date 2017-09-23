@@ -1,8 +1,6 @@
 package io.scalecube.transport;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
-import com.google.common.base.Strings;
+import static io.scalecube.transport.Strings.checkNotNullOrEmpty;
 
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -21,7 +19,7 @@ public final class Address {
   private final int port;
 
   private Address(@CheckForNull String host, int port) {
-    checkArgument(!Strings.isNullOrEmpty(host));
+    checkNotNullOrEmpty(host);
     this.host = host;
     this.port = port;
   }
@@ -33,7 +31,7 @@ public final class Address {
    * @param hostAndPort must come in form {@code host:port}
    */
   public static Address from(@CheckForNull String hostAndPort) {
-    checkArgument(!Strings.isNullOrEmpty(hostAndPort));
+    checkNotNullOrEmpty(hostAndPort);
 
     Matcher matcher = ADDRESS_FORMAT.matcher(hostAndPort);
     if (!matcher.find()) {
@@ -41,7 +39,7 @@ public final class Address {
     }
 
     String host = matcher.group(1);
-    checkArgument(!Strings.isNullOrEmpty(host));
+    checkNotNullOrEmpty(host);
     String host1 =
         "localhost".equals(host) || "127.0.0.1".equals(host) ? Addressing.getLocalIpAddress().getHostAddress() : host;
     int port = Integer.parseInt(matcher.group(2));
