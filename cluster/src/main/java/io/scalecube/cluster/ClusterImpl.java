@@ -1,6 +1,6 @@
 package io.scalecube.cluster;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_ACK;
 import static io.scalecube.cluster.fdetector.FailureDetectorImpl.PING_REQ;
@@ -66,7 +66,7 @@ final class ClusterImpl implements Cluster {
   private Observable<Message> gossipObservable;
 
   public ClusterImpl(ClusterConfig config) {
-    checkNotNull(config);
+    requireNonNull(config);
     this.config = config;
   }
 

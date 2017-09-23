@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -62,7 +62,7 @@ public class ServiceInfo {
    * @return initialized service info.
    */
   public static ServiceInfo from(String metadata) {
-    checkNotNull(metadata);
+    requireNonNull(metadata);
     try {
       return json.readValue(metadata, ServiceInfo.class);
     } catch (Exception e) {

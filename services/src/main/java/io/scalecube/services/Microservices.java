@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
+import static java.util.Objects.requireNonNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
@@ -115,8 +114,8 @@ public class Microservices {
 
     new ServiceDispatcher(this);
     this.sender.listen()
-        .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-        .subscribe(message -> ServiceResponse.handleReply(message));
+    .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
+    .subscribe(message -> ServiceResponse.handleReply(message));
   }
 
   public Cluster cluster() {
@@ -195,7 +194,7 @@ public class Microservices {
      * @return builder.
      */
     public Builder services(Object... services) {
-      checkNotNull(services);
+      requireNonNull(services);
 
       this.servicesConfig = ServicesConfig.builder(this)
           .services(services)
@@ -215,7 +214,7 @@ public class Microservices {
      * @return builder.
      */
     public Builder services(ServicesConfig servicesConfig) {
-      checkNotNull(servicesConfig);
+      requireNonNull(servicesConfig);
       this.servicesConfig = servicesConfig;
       return this;
     }
