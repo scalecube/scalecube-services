@@ -96,7 +96,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
             if (!serviceInstances.containsKey(serviceRef)) {
               serviceInstances.putIfAbsent(serviceRef,
                   new RemoteServiceInstance(sender, serviceRef, info.getTags()));
-              LOGGER.info("Service Reference was ADDED since new Member {} has joined the cluster {} : {}", member,
+              LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}", member,
                   serviceRef);
             }
           } else if (type.equals(DiscoveryType.REMOVED)) {
