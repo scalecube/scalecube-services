@@ -101,7 +101,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
             }
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
-            LOGGER.info("Service Reference was REMOVED since Member {} have left the cluster {} : {}", member,
+            LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}", member,
                 serviceRef);
           }
         });
