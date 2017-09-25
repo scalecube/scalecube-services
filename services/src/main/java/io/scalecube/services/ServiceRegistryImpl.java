@@ -93,10 +93,12 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceRef);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-            serviceInstances.putIfAbsent(serviceRef,
-                new RemoteServiceInstance(sender, serviceRef, info.getTags()));
-            LOGGER.info("Service Reference was ADDED since new Member {} has joined the cluster {} : {}", member,
-                serviceRef);
+            if (!serviceInstances.containsKey(serviceRef)) {
+              serviceInstances.putIfAbsent(serviceRef,
+                  new RemoteServiceInstance(sender, serviceRef, info.getTags()));
+              LOGGER.info("Service Reference was ADDED since new Member {} has joined the cluster {} : {}", member,
+                  serviceRef);
+            }
           } else if (type.equals(DiscoveryType.REMOVED)) {
             serviceInstances.remove(serviceRef);
             LOGGER.info("Service Reference was REMOVED since Member {} have left the cluster {} : {}", member,
