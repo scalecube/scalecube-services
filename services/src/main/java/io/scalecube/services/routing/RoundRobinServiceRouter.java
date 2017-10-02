@@ -8,6 +8,8 @@ import io.scalecube.transport.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -41,7 +43,12 @@ public class RoundRobinServiceRouter implements Router {
       LOGGER.warn("route selection return null since no service instance was found for {}", serviceName);
       return Optional.empty();
     }
+  }
 
+  @Override
+  public Collection<ServiceInstance> routes(Message request) {
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
   }
 
 }

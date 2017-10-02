@@ -5,6 +5,8 @@ import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
 import io.scalecube.transport.Message;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -27,6 +29,12 @@ public class RandomServiceRouter implements Router {
     } else {
       return Optional.empty();
     }
+  }
+
+  @Override
+  public Collection<ServiceInstance> routes(Message request) {
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
   }
 
 }

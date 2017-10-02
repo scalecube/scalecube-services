@@ -10,8 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
+import rx.subjects.PublishSubject;
+import rx.subjects.Subject;
 
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
@@ -43,9 +46,9 @@ public class ServiceCall {
    */
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
     Messages.validate().serviceRequest(request);
-    
+
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
-    
+
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();
       validateHasMethod(request, instance);
@@ -83,10 +86,10 @@ public class ServiceCall {
    */
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
-    
+
     Messages.validate().serviceRequest(request);
     validateHasMethod(request, serviceInstance);
-    
+
     if (!serviceInstance.isLocal()) {
       String cid = IdGenerator.generateId();
 
@@ -108,15 +111,40 @@ public class ServiceCall {
   }
 
   /**
+   * Dispatch a request message and invoke all service endpoints by a given service name and method name. expected
+   * headers in request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the
+   * method name to invoke. retrieves routes from router by calling router.routes and send async to each endpoint once a
+   * response is returned emit the response to the observable.
+   * 
+   * @param request request with given headers.
+   * @param duration of the response before TimeException is returned.
+   * @return Observable with stream of results for each service call dispatching result.
+   */
+  public Observable<Message> invokeAll(final Message request, final Duration duration) {
+    Subject<Message, Message> responsesSubject = PublishSubject.<Message>create().toSerialized();
+    Collection<ServiceInstance> instances = router.routes(request);
+    instances.forEach(instance -> {
+      invoke(request, duration).whenComplete((resp, error) -> {
+        if (resp != null) {
+          responsesSubject.onNext(resp);
+        } else {
+          responsesSubject.onNext(Messages.asError(error,request.correlationId(),instance.memberId()));
+        }
+      });
+    });
+    return responsesSubject.onBackpressureBuffer().asObservable();
+  }
+
+  /**
    * sending subscription request message to a service that returns Observable.
    * 
    * @param request containing subscription data.
    * @return rx.Observable for the specific stream.
    */
   public Observable<Message> listen(Message request) {
-    
+
     Messages.validate().serviceRequest(request);
-    
+
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
     if (optionalServiceInstance.isPresent()) {
@@ -130,7 +158,7 @@ public class ServiceCall {
   }
 
   private void validateHasMethod(Message request, ServiceInstance instance) {
-    checkArgument( instance.hasMethod(request.header(ServiceHeaders.METHOD)),
+    checkArgument(instance.hasMethod(request.header(ServiceHeaders.METHOD)),
         "instance has no such requested method");
   }
 
