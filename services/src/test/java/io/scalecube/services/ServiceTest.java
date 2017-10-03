@@ -13,6 +13,7 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -29,6 +30,87 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ServiceTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
+
+  @Test
+  public void test_service_tags() {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    Microservices services1 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
+        .build()
+        .build();
+
+    Microservices services2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
+        .build()
+        .build();
+
+    CanaryService service = gateway.proxy()
+        .router(CanaryTestingRouter.class)
+        .api(CanaryService.class).create();
+
+    sleep(1000);
+
+    AtomicInteger count = new AtomicInteger(0);
+    AtomicInteger responses = new AtomicInteger(0);
+    CountDownLatch timeLatch = new CountDownLatch(1);
+    for (int i = 0; i < 100; i++) {
+      service.greeting("joe").whenComplete((success, error) -> {
+        responses.incrementAndGet();
+        if (success.startsWith("B")) {
+          count.incrementAndGet();
+          if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
+            timeLatch.countDown();
+          }
+        }
+      });
+    }
+    
+    services2.shutdown();
+    services1.shutdown();
+    gateway.shutdown();
+  }
+
+  @Test
+  public void test_service_invoke_all() {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    Microservices services1 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    Microservices services2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    ServiceCall call = gateway.dispatcher().create();
+    CountDownLatch latch = new CountDownLatch(2);
+    call.invokeAll(Messages.builder().request(GreetingService.class, "greeting")
+        .data("joe")
+        .build()).subscribe(onNext -> {
+          System.out.println(onNext.data().toString());
+          latch.countDown();
+        });
+
+    await(latch, 2, TimeUnit.SECONDS);
+    assertTrue(latch.getCount() == 0);
+    
+    services2.shutdown();
+    services1.shutdown();
+    gateway.shutdown();
+  }
 
   @Test
   public void test_remote_greeting_request_completes_before_timeout() {
@@ -796,59 +878,6 @@ public class ServiceTest extends BaseTest {
     provider.shutdown();
 
   }
-
-
-
-  @Test
-  public void test_service_tags() {
-    Microservices gateway = Microservices.builder()
-        .port(port.incrementAndGet())
-        .build();
-
-    Microservices services1 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
-        .build()
-        .build();
-
-    Microservices services2 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
-        .build()
-        .build();
-
-    CanaryService service = gateway.proxy()
-        .router(CanaryTestingRouter.class)
-        .api(CanaryService.class).create();
-
-    sleep(1000);
-    
-    AtomicInteger count = new AtomicInteger(0);
-    AtomicInteger responses = new AtomicInteger(0);
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    for (int i = 0; i < 100; i++) {
-      service.greeting("joe").whenComplete((success, error) -> {
-        responses.incrementAndGet();
-        if (success.startsWith("B")) {
-          count.incrementAndGet();
-          if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
-            timeLatch.countDown();
-          }
-        }
-      });
-    }
-
-    await(timeLatch, 1, TimeUnit.SECONDS);
-    assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
-
-    gateway.shutdown();
-    services1.shutdown();
-    services2.shutdown();
-  }
-
-
 
   @Test
   public void test_services_contribute_to_cluster_metadata() {
