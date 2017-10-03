@@ -136,7 +136,7 @@ public class ServiceCall {
    * @return Observable with stream of results for each service call dispatching result.
    */
   public Observable<Message> invokeAll(final Message request, final Duration duration) {
-   final Subject<Message, Message> responsesSubject = PublishSubject.<Message>create().toSerialized();
+    final Subject<Message, Message> responsesSubject = PublishSubject.<Message>create().toSerialized();
     Collection<ServiceInstance> instances = router.routes(request);
     instances.forEach(instance -> {
       invoke(request, duration).whenComplete((resp, error) -> {
