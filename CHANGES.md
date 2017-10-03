@@ -1,5 +1,9 @@
 # Changes
 
+## 1.0.6 / TBD
+
+* inroduce ServiceCall.invokeAll service endpoints 
+
 ## 1.0.6 / 2017-09-20
 
 * Supports graceful shutdown of cluster member by spreading leaving notification
