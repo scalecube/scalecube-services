@@ -71,42 +71,7 @@ public class ServiceTest extends BaseTest {
         }
       });
     }
-    
-    services2.shutdown();
-    services1.shutdown();
-    gateway.shutdown();
-  }
 
-  @Test
-  public void test_service_invoke_all() {
-    Microservices gateway = Microservices.builder()
-        .port(port.incrementAndGet())
-        .build();
-
-    Microservices services1 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl())
-        .build();
-
-    Microservices services2 = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl())
-        .build();
-
-    ServiceCall call = gateway.dispatcher().create();
-    CountDownLatch latch = new CountDownLatch(2);
-    call.invokeAll(Messages.builder().request(GreetingService.class, "greeting")
-        .data("joe")
-        .build()).subscribe(onNext -> {
-          System.out.println(onNext.data().toString());
-          latch.countDown();
-        });
-
-    await(latch, 2, TimeUnit.SECONDS);
-    assertTrue(latch.getCount() == 0);
-    
     services2.shutdown();
     services1.shutdown();
     gateway.shutdown();

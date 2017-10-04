@@ -21,7 +21,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServiceCallTest extends BaseTest {
 
-  private static final String CANARY_SERVICE = "io.scalecube.services.a.b.testing.CanaryService";
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
   private static AtomicInteger port = new AtomicInteger(4000);
 
@@ -160,7 +159,7 @@ public class ServiceCallTest extends BaseTest {
     // but at least we didn't get exception :)
     System.out.println("test_local_void_greeting done.");
     await(timeLatch, 1, TimeUnit.SECONDS);
-    
+
   }
 
   @Test
@@ -201,8 +200,6 @@ public class ServiceCallTest extends BaseTest {
     provider.shutdown();
     consumer.shutdown();
   }
-
-
 
   @Test
   public void test_local_async_greeting_return_GreetingResponse() {
@@ -577,7 +574,6 @@ public class ServiceCallTest extends BaseTest {
     consumer.shutdown();
   }
 
- 
   @Test
   public void test_service_tags() {
     Microservices gateway = Microservices.builder()
@@ -598,10 +594,10 @@ public class ServiceCallTest extends BaseTest {
         .build()
         .build();
 
-    System.out.println( gateway.cluster().members());
-    
+    System.out.println(gateway.cluster().members());
+
     sleep(1000);
-    
+
     ServiceCall service = gateway.dispatcher()
         .router(CanaryTestingRouter.class)
         .create();
@@ -628,17 +624,17 @@ public class ServiceCallTest extends BaseTest {
       });
     }
 
-    
+
     await(timeLatch, 5, TimeUnit.SECONDS);
     System.out.println("responses: " + responses.get());
     System.out.println("count: " + count.get());
-    System.out.println("Service B was called: " + count.get()  + " times.");
-    
+    System.out.println("Service B was called: " + count.get() + " times.");
+
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
     services1.shutdown();
     services2.shutdown();
     gateway.shutdown();
-    
+
   }
 
   @Test
@@ -677,7 +673,7 @@ public class ServiceCallTest extends BaseTest {
       }
     });
     await(timeLatch, 10, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
+    assertTrue(timeLatch.getCount() == 0);
     gateway.shutdown();
     node.shutdown();
   }
@@ -713,9 +709,82 @@ public class ServiceCallTest extends BaseTest {
       }
     });
     await(timeLatch, 10, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
+    assertTrue(timeLatch.getCount() == 0);
     gateway.shutdown();
   }
+
+  @Test
+  public void test_service_invoke_all() {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    Microservices services1 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    Microservices services2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    ServiceCall call = gateway.dispatcher().create();
+    CountDownLatch latch = new CountDownLatch(2);
+    call.invokeAll(Messages.builder().request(GreetingService.class, "greeting")
+        .data("joe")
+        .build()).subscribe(onNext -> {
+          System.out.println(onNext.data().toString());
+          latch.countDown();
+        });
+
+    await(latch, 2, TimeUnit.SECONDS);
+    assertTrue(latch.getCount() == 0);
+
+    services2.shutdown();
+    services1.shutdown();
+    gateway.shutdown();
+  }
+
+  @Test
+  public void test_service_invoke_all_error_case() {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    Microservices services1 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    Microservices services2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    ServiceCall call = gateway.dispatcher().create();
+    CountDownLatch latch = new CountDownLatch(2);
+
+    call.invokeAll(Messages.builder().request(GreetingService.class, "greetingRequestTimeout")
+        .data(new GreetingRequest("joe", Duration.ofSeconds(4)))
+        .build(), Duration.ofSeconds(1)).subscribe(onNext -> {
+          System.out.println(onNext.data().toString());
+          assertTrue(onNext.data() instanceof TimeoutException);
+          latch.countDown();
+        });
+
+    await(latch, 2, TimeUnit.SECONDS);
+    assertTrue(latch.getCount() == 0);
+
+    services2.shutdown();
+    services1.shutdown();
+    gateway.shutdown();
+  }
+
 
   private Microservices createProvider(Microservices gateway) {
     return Microservices.builder()
@@ -737,6 +806,7 @@ public class ServiceCallTest extends BaseTest {
       throw new AssertionError();
     }
   }
+
   private void sleep(int ms) {
     try {
       Thread.sleep(ms);
