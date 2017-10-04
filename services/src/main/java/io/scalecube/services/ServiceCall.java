@@ -52,7 +52,7 @@ public class ServiceCall {
 
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();
-      instance.checkHasMethod(request.header(ServiceHeaders.METHOD));
+      instance.checkMethodExists(request.header(ServiceHeaders.METHOD));
       return this.invoke(request, instance, timeout);
     } else {
       throw noReachableMemberException(request);
@@ -89,7 +89,7 @@ public class ServiceCall {
 
     Objects.requireNonNull(serviceInstance);
     Messages.validate().serviceRequest(request);
-    serviceInstance.checkHasMethod(request.header(ServiceHeaders.METHOD));
+    serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
 
     if (!serviceInstance.isLocal()) {
       String cid = IdGenerator.generateId();
@@ -138,6 +138,7 @@ public class ServiceCall {
   public Observable<Message> invokeAll(final Message request, final Duration duration) {
     final Subject<Message, Message> responsesSubject = PublishSubject.<Message>create().toSerialized();
     Collection<ServiceInstance> instances = router.routes(request);
+    
     instances.forEach(instance -> {
       invoke(request, duration).whenComplete((resp, error) -> {
         if (resp != null) {
@@ -164,7 +165,7 @@ public class ServiceCall {
 
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();
-      checkArgument(instance.hasMethod(request.header(ServiceHeaders.METHOD)),
+      checkArgument(instance.methodExists(request.header(ServiceHeaders.METHOD)),
           "instance has no such requested method");
 
       return instance.listen(request);

@@ -24,7 +24,7 @@ public interface ServiceInstance {
 
   Address address();
 
-  boolean hasMethod(String methodName);
+  boolean methodExists(String methodName);
 
-  void checkHasMethod(String header);
+  void checkMethodExists(String header);
 }

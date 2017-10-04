@@ -165,13 +165,13 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public boolean hasMethod(String methodName) {
+  public boolean methodExists(String methodName) {
     return methods.contains(methodName);
   }
   
   @Override
-  public void checkHasMethod(String methodName) {
-    checkArgument(this.hasMethod(methodName), "instance has no such requested method");
+  public void checkMethodExists(String methodName) {
+    checkArgument(this.methodExists(methodName), "instance has no such requested method");
   }
   
   @Override
