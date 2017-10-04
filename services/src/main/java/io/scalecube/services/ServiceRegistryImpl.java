@@ -151,10 +151,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public List<ServiceInstance> serviceLookup(final String serviceName) {
     checkArgument(serviceName != null, "Service name can't be null");
-    return serviceInstances.entrySet().stream()
+    return Collections.unmodifiableList(serviceInstances.entrySet().stream()
         .filter(entry -> isValid(entry.getKey(), serviceName))
         .map(Map.Entry::getValue)
-        .collect(Collectors.toList());
+        .collect(Collectors.toList()));
   }
 
   @Override
