@@ -15,6 +15,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class RoundRobinServiceRouter implements Router {
 
@@ -31,7 +32,11 @@ public class RoundRobinServiceRouter implements Router {
   public Optional<ServiceInstance> route(Message request) {
 
     String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceName);
+
+    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceName)
+        .stream().filter(instance -> instance.methodExists(request.header(ServiceHeaders.METHOD)))
+        .collect(Collectors.toList());
+
     if (serviceInstances.size() > 1) {
       AtomicInteger counter = counterByServiceName
           .computeIfAbsent(serviceName, or -> new AtomicInteger());

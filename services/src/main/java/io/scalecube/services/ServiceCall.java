@@ -52,7 +52,6 @@ public class ServiceCall {
 
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();
-      instance.checkMethodExists(request.header(ServiceHeaders.METHOD));
       return this.invoke(request, instance, timeout);
     } else {
       throw noReachableMemberException(request);
@@ -138,7 +137,7 @@ public class ServiceCall {
   public Observable<Message> invokeAll(final Message request, final Duration duration) {
     final Subject<Message, Message> responsesSubject = PublishSubject.<Message>create().toSerialized();
     Collection<ServiceInstance> instances = router.routes(request);
-    
+
     instances.forEach(instance -> {
       invoke(request, duration).whenComplete((resp, error) -> {
         if (resp != null) {
