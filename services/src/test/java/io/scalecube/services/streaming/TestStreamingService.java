@@ -263,7 +263,7 @@ public class TestStreamingService extends BaseTest {
     try {
       service.listen(scheduled);
     } catch (Exception ex) {
-      if (ex.getMessage().contains("instance has no such requested method")) {
+      if (ex.getMessage().contains("No reachable member with such service: unknonwn")) {
         latch1.countDown();
       }
     }

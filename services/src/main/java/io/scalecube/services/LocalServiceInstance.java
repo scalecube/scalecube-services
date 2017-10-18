@@ -160,7 +160,13 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public boolean hasMethod(String methodName) {
+  public boolean methodExists(String methodName) {
     return methods.containsKey(methodName);
+  }
+
+
+  @Override
+  public void checkMethodExists(String methodName) {
+    checkArgument(methodExists(methodName), "instance has no such requested method");
   }
 }

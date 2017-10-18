@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -163,8 +165,13 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public boolean hasMethod(String methodName) {
+  public boolean methodExists(String methodName) {
     return methods.contains(methodName);
+  }
+  
+  @Override
+  public void checkMethodExists(String methodName) {
+    checkArgument(this.methodExists(methodName), "instance has no such requested method");
   }
   
   @Override
@@ -172,4 +179,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     return "RemoteServiceInstance [serviceName=" + serviceName + ", address=" + address + ", memberId=" + memberId
         + ", methods=" + methods + ", tags=" + tags + "]";
   }
+
+ 
 }

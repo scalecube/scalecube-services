@@ -108,6 +108,18 @@ public class Messages {
   }
 
   /**
+   * Utility method to build service error response message.
+   * 
+   * @param error to be use for the response.
+   * @param correlationId of a the given request.
+   * @param memberId that created the response.
+   * @return response message or response error message in case data is exception.
+   */
+  public static Message asError(Throwable error, String correlationId, String memberId) {
+    return asResponse(error, correlationId, memberId);
+  }
+
+  /**
    * build unsubscribed service request for the original correlation id which as subscription was created with.
    * 
    * @param correlationId which the original request that created the subscription.
@@ -126,4 +138,6 @@ public class Messages {
   public static MessageValidator validate() {
     return validator;
   }
+
+
 }

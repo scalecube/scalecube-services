@@ -15,18 +15,18 @@ import org.junit.Test;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ServiceCallTest extends BaseTest {
 
-  private static final String CANARY_SERVICE = "io.scalecube.services.a.b.testing.CanaryService";
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
   private static AtomicInteger port = new AtomicInteger(4000);
 
   @Test
-  public void test_local_async_no_params() {
+  public void test_local_async_no_params() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -55,11 +55,11 @@ public class ServiceCallTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.shutdown();
+    microservices.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_no_params() {
+  public void test_remote_async_greeting_no_params() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -94,12 +94,12 @@ public class ServiceCallTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.shutdown();
-    consumer.shutdown();
+    provider.shutdown().get();
+    consumer.shutdown().get();
   }
 
   @Test
-  public void test_remote_void_greeting() {
+  public void test_remote_void_greeting() throws InterruptedException, ExecutionException {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
@@ -130,17 +130,18 @@ public class ServiceCallTest extends BaseTest {
     // but at least we didn't get exception :)
     System.out.println("test_remote_void_greeting done.");
     await(timeLatch, 1, TimeUnit.SECONDS);
-    gateway.shutdown();
-    node1.shutdown();
+    gateway.shutdown().get();
+    node1.shutdown().get();
   }
 
   @Test
-  public void test_local_void_greeting() {
+  public void test_local_void_greeting() throws InterruptedException, ExecutionException {
     // Create microservices instance.
-    ServiceCall service = Microservices.builder()
+    Microservices node = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build().dispatcher().create();
+        .build();
+    ServiceCall service = node.dispatcher().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -160,11 +161,11 @@ public class ServiceCallTest extends BaseTest {
     // but at least we didn't get exception :)
     System.out.println("test_local_void_greeting done.");
     await(timeLatch, 1, TimeUnit.SECONDS);
-    
+    node.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_return_string() {
+  public void test_remote_async_greeting_return_string() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -198,14 +199,12 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.shutdown();
-    consumer.shutdown();
+    provider.shutdown().get();
+    consumer.shutdown().get();
   }
 
-
-
   @Test
-  public void test_local_async_greeting_return_GreetingResponse() {
+  public void test_local_async_greeting_return_GreetingResponse() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -234,11 +233,11 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 3, TimeUnit.SECONDS);
-    microservices.shutdown();
+    microservices.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_return_GreetingResponse() {
+  public void test_remote_async_greeting_return_GreetingResponse() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -273,18 +272,18 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    provider.shutdown();
-    consumer.shutdown();
+    provider.shutdown().get();
+    consumer.shutdown().get();
   }
 
   @Test
-  public void test_local_greeting_request_timeout_expires() {
+  public void test_local_greeting_request_timeout_expires() throws InterruptedException, ExecutionException {
     // Create microservices instance.
-    ServiceCall service = Microservices.builder()
+    Microservices node = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
-        .dispatcher()
+        .build();
+    ServiceCall service = node.dispatcher()
         .timeout(Duration.ofSeconds(1))
         .create();
 
@@ -308,10 +307,11 @@ public class ServiceCallTest extends BaseTest {
     });
 
     await(timeLatch, 1, TimeUnit.SECONDS);
+    node.shutdown().get();
   }
 
   @Test
-  public void test_remote_greeting_request_timeout_expires() {
+  public void test_remote_greeting_request_timeout_expires() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -350,10 +350,12 @@ public class ServiceCallTest extends BaseTest {
     } catch (Exception ex) {
       fail();
     }
+    provider.shutdown().get();
+    consumer.shutdown().get();
   }
 
   @Test
-  public void test_local_async_greeting_return_Message() {
+  public void test_local_async_greeting_return_Message() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -385,11 +387,11 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    microservices.shutdown();
+    microservices.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_return_Message() {
+  public void test_remote_async_greeting_return_Message() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -427,12 +429,12 @@ public class ServiceCallTest extends BaseTest {
     });
 
     await(timeLatch, 20, TimeUnit.SECONDS);
-    consumer.shutdown();
-    provider.shutdown();
+    consumer.shutdown().get();
+    provider.shutdown().get();
   }
 
   @Test
-  public void test_round_robin_selection_logic() {
+  public void test_round_robin_selection_logic() throws InterruptedException, ExecutionException {
     Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
@@ -481,13 +483,14 @@ public class ServiceCallTest extends BaseTest {
     });
     await(timeLatch, 2, TimeUnit.SECONDS);
 
-    provider2.shutdown();
-    provider1.shutdown();
-
+    provider2.shutdown().get();
+    provider1.shutdown().get();
+    gateway.shutdown().get();
   }
 
   @Test
-  public void test_async_greeting_return_string_service_not_found_error_case() {
+  public void test_async_greeting_return_string_service_not_found_error_case()
+      throws InterruptedException, ExecutionException {
     Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
@@ -509,12 +512,12 @@ public class ServiceCallTest extends BaseTest {
     }
 
     await(timeLatch, 1, TimeUnit.SECONDS);
-    gateway.shutdown();
-    provider1.shutdown();
+    gateway.shutdown().get();
+    provider1.shutdown().get();
   }
 
   @Test
-  public void test_naive_stress_not_breaking_the_system() throws InterruptedException {
+  public void test_naive_stress_not_breaking_the_system() throws InterruptedException, ExecutionException {
     // Create microservices cluster member.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -573,13 +576,12 @@ public class ServiceCallTest extends BaseTest {
     countLatch.await(60, TimeUnit.SECONDS);
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
-    provider.shutdown();
-    consumer.shutdown();
+    provider.shutdown().get();
+    consumer.shutdown().get();
   }
 
- 
   @Test
-  public void test_service_tags() {
+  public void test_service_tags() throws InterruptedException, ExecutionException {
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
         .build();
@@ -598,10 +600,10 @@ public class ServiceCallTest extends BaseTest {
         .build()
         .build();
 
-    System.out.println( gateway.cluster().members());
-    
+    System.out.println(gateway.cluster().members());
+
     sleep(1000);
-    
+
     ServiceCall service = gateway.dispatcher()
         .router(CanaryTestingRouter.class)
         .create();
@@ -628,21 +630,22 @@ public class ServiceCallTest extends BaseTest {
       });
     }
 
-    
+
     await(timeLatch, 5, TimeUnit.SECONDS);
     System.out.println("responses: " + responses.get());
     System.out.println("count: " + count.get());
-    System.out.println("Service B was called: " + count.get()  + " times.");
-    
+    System.out.println("Service B was called: " + count.get() + " times.");
+
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
-    services1.shutdown();
-    services2.shutdown();
-    gateway.shutdown();
-    
+    services1.shutdown().get();
+    services2.shutdown().get();
+    gateway.shutdown().get();
+
   }
 
   @Test
-  public void test_dispatcher_remote_greeting_request_completes_before_timeout() {
+  public void test_dispatcher_remote_greeting_request_completes_before_timeout()
+      throws InterruptedException, ExecutionException {
 
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
@@ -677,13 +680,14 @@ public class ServiceCallTest extends BaseTest {
       }
     });
     await(timeLatch, 10, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
-    gateway.shutdown();
-    node.shutdown();
+    assertTrue(timeLatch.getCount() == 0);
+    gateway.shutdown().get();
+    node.shutdown().get();
   }
 
   @Test
-  public void test_dispatcher_local_greeting_request_completes_before_timeout() {
+  public void test_dispatcher_local_greeting_request_completes_before_timeout()
+      throws InterruptedException, ExecutionException {
 
     Microservices gateway = Microservices.builder()
         .services(new GreetingServiceImpl())
@@ -713,9 +717,82 @@ public class ServiceCallTest extends BaseTest {
       }
     });
     await(timeLatch, 10, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
-    gateway.shutdown();
+    assertTrue(timeLatch.getCount() == 0);
+    gateway.shutdown().get();
   }
+
+  @Test
+  public void test_service_invoke_all() throws InterruptedException, ExecutionException {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    Microservices services1 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    Microservices services2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    ServiceCall call = gateway.dispatcher().create();
+    CountDownLatch latch = new CountDownLatch(2);
+    call.invokeAll(Messages.builder().request(GreetingService.class, "greeting")
+        .data("joe")
+        .build()).subscribe(onNext -> {
+          System.out.println(onNext.data().toString());
+          latch.countDown();
+        });
+
+    await(latch, 2, TimeUnit.SECONDS);
+    assertTrue(latch.getCount() == 0);
+
+    services2.shutdown().get();
+    services1.shutdown().get();
+    gateway.shutdown().get();
+  }
+
+  @Test
+  public void test_service_invoke_all_error_case() throws InterruptedException, ExecutionException {
+    Microservices gateway = Microservices.builder()
+        .port(port.incrementAndGet())
+        .build();
+
+    Microservices services1 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    Microservices services2 = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    ServiceCall call = gateway.dispatcher().create();
+    CountDownLatch latch = new CountDownLatch(2);
+
+    call.invokeAll(Messages.builder().request(GreetingService.class, "greetingRequestTimeout")
+        .data(new GreetingRequest("joe", Duration.ofSeconds(4)))
+        .build(), Duration.ofSeconds(1)).subscribe(onNext -> {
+          System.out.println(onNext.data().toString());
+          assertTrue(onNext.data() instanceof TimeoutException);
+          latch.countDown();
+        });
+
+    await(latch, 2, TimeUnit.SECONDS);
+    assertTrue(latch.getCount() == 0);
+
+    services2.shutdown().get();
+    services1.shutdown().get();
+    gateway.shutdown().get();
+  }
+
 
   private Microservices createProvider(Microservices gateway) {
     return Microservices.builder()
@@ -737,6 +814,7 @@ public class ServiceCallTest extends BaseTest {
       throw new AssertionError();
     }
   }
+
   private void sleep(int ms) {
     try {
       Thread.sleep(ms);

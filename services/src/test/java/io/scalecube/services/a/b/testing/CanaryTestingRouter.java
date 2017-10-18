@@ -6,6 +6,8 @@ import io.scalecube.services.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 
 
@@ -27,5 +29,11 @@ public class CanaryTestingRouter implements Router {
           instance);
     });
     return Optional.of(weightedRandom.next());
+  }
+
+  @Override
+  public Collection<ServiceInstance> routes(Message request) {
+    String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
   }
 }
