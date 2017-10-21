@@ -7,10 +7,14 @@
 [![Join the chat at https://gitter.im/scalecube/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalecube/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40ScaleCube)](https://twitter.com/scalecube)
 
-ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
-ScaleCube project provides the tools to develop, test and scale microservice components in distributed manner with ease.
+Developing distributed applications at scale is not a simple task and feels unnatural as it hides inherent risks and complexities. Microservices is not a silver bullet. it involves dealing with cross-cutting concerns that are inherent to the architecture - one of the main concerns that come with microservices architecture is the stability of the overall system teams will usually prefer a natural growth as stability evolves rather than scaling from day one. 
 
-The project focuses on ensuring that your application realises the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
+developing debugging and testing microservices at scale might become an almost impossible task for smaller development teams. usually, its a practice saved to the big guys. one alternative is to give-up on microservices architecture at first and refactor later which slows down the team productivity. with scalecube you don't have to give up on microservices! scalecube allows you to enjoy both worlds. it separates between the logical entity of a service and its physical attributes. you can now develop the system on same JVM as you would with a monolith and re-package its modules when you feel ready or required to scale. at that point with scalecube breaking the monolith becomes a packaging task rather than a refactoring task.
+
+ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
+ScaleCube project provides the tools to develop, test and scale microservice components in a distributed manner with ease.
+
+The project focuses on ensuring that your application realizes the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
 while delivering a high productivity development environment, and seamless production deployment experience.
 
 Web Site: [http://scalecube.io](http://scalecube.io/)
