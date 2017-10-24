@@ -8,9 +8,9 @@
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40ScaleCube)](https://twitter.com/scalecube)
 
 ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
-ScaleCube project provides the tools to develop, test and scale microservice components in distributed manner with ease.
+ScaleCube project provides the tools to develop, test and scale microservice components in a distributed manner with ease.
 
-The project focuses on ensuring that your application realises the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
+The project focuses on ensuring that your application realizes the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
 while delivering a high productivity development environment, and seamless production deployment experience.
 
 Web Site: [http://scalecube.io](http://scalecube.io/)
@@ -27,6 +27,25 @@ Next is described modules in the top to bottom order from the higher level featu
 ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery 
 based on gossip protocol ad without single point-of-failure or bottlenecks.
 
+ScaleCube Services Features:
+
+* Provision and interconnect microservices as a unified system (cluster)</li>
+* Async RPC with java-8 CompleteableFutures support
+* Reactive Streams support with RxJava.
+* No single-point-of-failure or single-point-of-bottleneck
+* Cluster aware and distributed
+* Modular, flexible deployment models and topology
+* Zero configuration, automatic peer-to-peer service discovery using gossip
+* Simple non-blocking, asynchronous programming model
+* Resilient due to failure detection, fault tolerance, and elasticity
+* Routing and balancing strategies for both stateless and stateful services
+* Low latency and high throughput
+* Takes advantage of the JVM and scales over available cores
+* Embeddable to existing Java applications
+* Message Driven based on google-protocol-buffers
+* Natural Circuit-Breaker due to tight integration with scalecube-cluster failure detector.
+* Support Service instance tagging. 
+
 User Guide:
 
 * [Services Overview](http://scalecube.io/services.html)
@@ -34,6 +53,9 @@ User Guide:
 * [Implementing services](http://scalecube.io/user-reference/services/ServiceImplementation.html)
 * [Provisioning Clustered Services](http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
 * [Consuming services](http://scalecube.io/user-reference/services/ConsumingServices.html)
+
+[Please read ScaleCube-services Motivation](https://github.com/scalecube/scalecube/wiki)
+
 
 ### CLUSTER
 
