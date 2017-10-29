@@ -12,9 +12,9 @@ public interface Counter {
   /**
    * Increment the counter by {@code n}.
    *
-   * @param n the amount by which the counter will be increased
+   * @param num the amount by which the counter will be increased
    */
-  public void inc(long n);
+  public void inc(long num);
 
   /**
    * Decrement the counter by one.
@@ -24,9 +24,9 @@ public interface Counter {
   /**
    * Decrement the counter by {@code n}.
    *
-   * @param n the amount by which the counter will be increased
+   * @param num the amount by which the counter will be increased
    */
-  public void dec(long n);
+  public void dec(long num);
 
   /**
    * Returns the counter's current value.

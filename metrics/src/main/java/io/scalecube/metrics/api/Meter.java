@@ -14,7 +14,7 @@ public interface Meter {
   /**
    * Mark the occurrence of a given number of events.
    *
-   * @param n the number of events
+   * @param num the number of events
    */
-  public void mark(long n);
+  public void mark(long num);
 }
