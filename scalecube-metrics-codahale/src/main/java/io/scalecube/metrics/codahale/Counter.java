@@ -14,8 +14,8 @@ public class Counter implements io.scalecube.metrics.api.Counter {
   }
 
   @Override
-  public void inc(long n) {
-    counter.inc(n);
+  public void inc(long num) {
+    counter.inc(num);
   }
 
   @Override
@@ -24,8 +24,8 @@ public class Counter implements io.scalecube.metrics.api.Counter {
   }
 
   @Override
-  public void dec(long n) {
-    counter.dec(n);
+  public void dec(long num) {
+    counter.dec(num);
   }
 
   @Override

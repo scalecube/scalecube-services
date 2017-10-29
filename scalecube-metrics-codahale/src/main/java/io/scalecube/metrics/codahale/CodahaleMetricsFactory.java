@@ -1,12 +1,13 @@
 package io.scalecube.metrics.codahale;
 
-import com.codahale.metrics.MetricRegistry;
-import io.scalecube.metrics.api.*;
 import io.scalecube.metrics.api.Counter;
 import io.scalecube.metrics.api.Gauge;
 import io.scalecube.metrics.api.Histogram;
 import io.scalecube.metrics.api.Meter;
+import io.scalecube.metrics.api.MetricFactory;
 import io.scalecube.metrics.api.Timer;
+
+import com.codahale.metrics.MetricRegistry;
 
 public class CodahaleMetricsFactory implements MetricFactory {
   private final MetricRegistry registry;

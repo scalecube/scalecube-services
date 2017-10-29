@@ -13,7 +13,7 @@ public class Meter implements io.scalecube.metrics.api.Meter {
   }
 
   @Override
-  public void mark(long n) {
-    meter.mark(n);
+  public void mark(long num) {
+    meter.mark(num);
   }
 }
