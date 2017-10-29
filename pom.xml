@@ -79,7 +79,8 @@
         <module>examples</module>
         <module>services</module>
     	<module>metrics</module>
-  </modules>
+    	<module>scalecube-metrics-codahale</module>
+    </modules>
 
     <dependencyManagement>
         <dependencies>
