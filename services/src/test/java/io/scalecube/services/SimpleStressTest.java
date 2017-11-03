@@ -25,6 +25,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SimpleStressTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
+
+  MetricRegistry registry = new MetricRegistry();
+  ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
+      .convertRatesTo(TimeUnit.SECONDS)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .build();
+  MetricFactory metrics = new CodahaleMetricsFactory(registry);
   
   @Test
   public void test_naive_dispatcher_stress() throws InterruptedException, ExecutionException {
@@ -40,13 +47,8 @@ public class SimpleStressTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    MetricRegistry registry = new MetricRegistry();
-    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
-        .convertRatesTo(TimeUnit.SECONDS)
-        .convertDurationsTo(TimeUnit.MILLISECONDS)
-        .build();
     reporter.start(1, TimeUnit.SECONDS);
-    MetricFactory metrics = new CodahaleMetricsFactory(registry);
+    
     ServiceCall service = consumer.dispatcher().metrics(metrics).create();
 
 
@@ -111,7 +113,8 @@ public class SimpleStressTest extends BaseTest {
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
-
+    reporter.start(1, TimeUnit.SECONDS);
+    
     // Get a proxy to the service api.
     GreetingService service = createProxy(consumer);
 
@@ -177,6 +180,7 @@ public class SimpleStressTest extends BaseTest {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
         .timeout(Duration.ofSeconds(30))
+        .metrics(metrics)
         .create();
   }
 }

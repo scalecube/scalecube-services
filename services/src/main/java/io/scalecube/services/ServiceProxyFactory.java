@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.metrics.api.MetricFactory;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
@@ -34,13 +35,14 @@ public class ServiceProxyFactory {
    * 
    * @param serviceInterface the service interface, api, of the service.
    * @param routerType the type of routing method class to be used.
+   * @param metrics optional performance metrics.
    * @return newly created service proxy object.
    */
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
-      Duration timeout) {
+      Duration timeout, MetricFactory metrics) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
-    dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).create();
+    dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).metrics(metrics).create();
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
