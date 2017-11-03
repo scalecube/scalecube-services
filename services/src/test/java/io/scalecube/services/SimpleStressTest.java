@@ -93,6 +93,7 @@ public class SimpleStressTest extends BaseTest {
     }
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
     countLatch.await(60, TimeUnit.SECONDS);
+    reporter.stop();
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
     provider.shutdown().get();
@@ -134,6 +135,7 @@ public class SimpleStressTest extends BaseTest {
       });
     }
     warmUpLatch.await(4, TimeUnit.SECONDS);
+    
     assertTrue(warmUpLatch.getCount() == 0);
     System.out.println("finished warm-up.");
 
@@ -169,6 +171,7 @@ public class SimpleStressTest extends BaseTest {
     System.out.println("Rate: " + ((count - countLatch.getCount()) / ((System.currentTimeMillis() - startTime) / 1000))
         + " round-trips/sec");
 
+    reporter.stop();
     assertTrue(countLatch.getCount() == 0);
 
     provider.shutdown().get();
