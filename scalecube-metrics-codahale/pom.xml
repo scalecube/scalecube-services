@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>scalecube-metrics-codahale</artifactId>
-	<name>Scalecube/Metrics-codahale</name>
+	<name>ScaleCube/Metrics-codahale</name>
 
 	<url>http://maven.apache.org</url>
 	<properties>
@@ -28,11 +28,11 @@
 			<artifactId>metrics-core</artifactId>
 			<version>${metrics.version}</version>
 		</dependency>
-		 <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>scalecube-testlib</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-testlib</artifactId>
+			<version>${project.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>
