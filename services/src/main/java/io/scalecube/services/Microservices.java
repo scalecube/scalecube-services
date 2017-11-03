@@ -128,8 +128,9 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout, MetricFactory metrics) {
-    return proxyFactory.createProxy(serviceInterface, router, timeout,metrics);
+  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout,
+      MetricFactory metrics) {
+    return proxyFactory.createProxy(serviceInterface, router, timeout, metrics);
   }
 
   public Collection<ServiceInstance> services() {
