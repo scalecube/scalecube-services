@@ -45,10 +45,11 @@ public class ServiceCall {
   public ServiceCall(Router router, Duration timeout, MetricFactory metrics) {
     this.router = router;
     this.timeout = timeout;
+    
     if (metrics != null) {
       requestMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-request");
       responseMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-response");
-      responseMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-error");
+      errorMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-error");
     }
   }
 

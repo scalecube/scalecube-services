@@ -3,8 +3,13 @@ package io.scalecube.services;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.scalecube.metrics.api.MetricFactory;
+import io.scalecube.metrics.codahale.CodahaleMetricsFactory;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
+
+import com.codahale.metrics.ConsoleReporter;
+import com.codahale.metrics.MetricRegistry;
 
 import org.junit.Test;
 
@@ -35,13 +40,20 @@ public class SimpleStressTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    ServiceCall service = consumer.dispatcher().create();
+    MetricRegistry registry = new MetricRegistry();
+    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
+        .convertRatesTo(TimeUnit.SECONDS)
+        .convertDurationsTo(TimeUnit.MILLISECONDS)
+        .build();
+    reporter.start(1, TimeUnit.SECONDS);
+    MetricFactory metrics = new CodahaleMetricsFactory(registry);
+    ServiceCall service = consumer.dispatcher().metrics(metrics).create();
 
 
 
     // Init params
     int warmUpCount = 1_000;
-    int count = 100_000;
+    int count = 3_00_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
