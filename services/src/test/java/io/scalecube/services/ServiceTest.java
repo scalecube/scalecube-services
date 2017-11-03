@@ -56,7 +56,7 @@ public class ServiceTest extends BaseTest {
         .router(CanaryTestingRouter.class)
         .api(CanaryService.class).create();
 
-    sleep(1000);
+    Util.sleep(1000);
 
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger responses = new AtomicInteger(0);
@@ -622,86 +622,9 @@ public class ServiceTest extends BaseTest {
     provider1.shutdown();
   }
 
-  @Test
-  public void test_naive_stress_not_breaking_the_system() throws InterruptedException, ExecutionException {
-    // Create microservices cluster member.
-    Microservices provider = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
+  
 
-    // Create microservices cluster member.
-    Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
-        .build();
-
-    // Get a proxy to the service api.
-    GreetingService service = createProxy(consumer);
-
-    // Init params
-    int warmUpCount = 10_000;
-    int count = 300_000;
-    CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
-
-    // Warm up
-    System.out.println("starting warm-up.");
-    for (int i = 0; i < warmUpCount; i++) {
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          warmUpLatch.countDown();
-        }
-      });
-    }
-    warmUpLatch.await(4, TimeUnit.SECONDS);
-    assertTrue(warmUpLatch.getCount() == 0);
-    System.out.println("finished warm-up.");
-
-
-    // Measure
-    CountDownLatch countLatch = new CountDownLatch(count);
-    long startTime = System.currentTimeMillis();
-
-    for (int i = 0; i < count; i++) {
-      sleep(i, 5, 300);
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          countLatch.countDown();
-        } else {
-          System.out.println("failed: " + error);
-          fail("test_naive_stress_not_breaking_the_system failed: " + error);
-          drainLatch(count, countLatch);
-        }
-      });
-    }
-
-    ScheduledFuture<?> sched = Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
-      System.out.print(countLatch.getCount() + ", ");
-    }, 1, 1, TimeUnit.SECONDS);
-
-    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
-    countLatch.await(60, TimeUnit.SECONDS);
-
-    System.out.println("Finished receiving " + (count - countLatch.getCount()) + " messages in "
-        + (System.currentTimeMillis() - startTime));
-
-    System.out.println("Rate: " + ((count - countLatch.getCount()) / ((System.currentTimeMillis() - startTime) / 1000))
-        + " round-trips/sec");
-
-    assertTrue(countLatch.getCount() == 0);
-
-    provider.shutdown().get();
-    consumer.shutdown().get();
-    sched.cancel(true);
-  }
-
-  private void drainLatch(int count, CountDownLatch countLatch) {
-    for (int j = 0; j < count; j++) {
-      countLatch.countDown();
-    }
-  }
+  
 
   @Test
   public void test_serviceA_calls_serviceB_using_setter() throws InterruptedException, ExecutionException {
@@ -896,21 +819,4 @@ public class ServiceTest extends BaseTest {
       throw new AssertionError();
     }
   }
-
-  private int sleep(int i, int ms, int every) {
-    if (i % every == 0) {
-      sleep(ms);
-    }
-    return ms;
-  }
-
-  private void sleep(int ms) {
-    try {
-      Thread.sleep(ms);
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-  }
-
 }

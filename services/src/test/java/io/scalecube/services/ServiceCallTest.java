@@ -516,70 +516,7 @@ public class ServiceCallTest extends BaseTest {
     provider1.shutdown().get();
   }
 
-  @Test
-  public void test_naive_stress_not_breaking_the_system() throws InterruptedException, ExecutionException {
-    // Create microservices cluster member.
-    Microservices provider = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .build();
-
-    // Create microservices cluster member.
-    Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
-        .build();
-
-    ServiceCall service = consumer.dispatcher().create();
-
-
-
-    // Init params
-    int warmUpCount = 1_000;
-    int count = 100_000;
-    CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
-
-    // Warm up
-    for (int i = 0; i < warmUpCount; i++) {
-      // call the service.
-      CompletableFuture<Message> future = service.invoke(Messages.builder()
-          .request(SERVICE_NAME, "greetingMessage")
-          .data(Message.builder().data("naive_stress_test").build())
-          .build());
-
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          warmUpLatch.countDown();
-        }
-      });
-    }
-    warmUpLatch.await(30, TimeUnit.SECONDS);
-    assertTrue(warmUpLatch.getCount() == 0);
-
-
-    // Measure
-    CountDownLatch countLatch = new CountDownLatch(count);
-    long startTime = System.currentTimeMillis();
-    for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = service.invoke(Messages.builder()
-          .request(SERVICE_NAME, "greetingMessage")
-          .data(Message.builder().data("naive_stress_test").build())
-          .build());
-
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          countLatch.countDown();
-        }
-      });
-    }
-    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
-    countLatch.await(60, TimeUnit.SECONDS);
-    System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
-    assertTrue(countLatch.getCount() == 0);
-    provider.shutdown().get();
-    consumer.shutdown().get();
-  }
-
+  
   @Test
   public void test_service_tags() throws InterruptedException, ExecutionException {
     Microservices gateway = Microservices.builder()

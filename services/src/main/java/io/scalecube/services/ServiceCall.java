@@ -33,6 +33,15 @@ public class ServiceCall {
   Meter responseMeter;
   Meter errorMeter;
 
+  /**
+   * ServiceCall is a service communication pattern for async request reply and reactive streams. it communicates with
+   * local and remote services using messages and handles. it acts as proxy and middle-ware between service consumer and
+   * service provider.
+   * 
+   * @param router strategy to select service instance.
+   * @param timeout waiting for response.
+   * @param metrics provider to collect metrics regards service execution.
+   */
   public ServiceCall(Router router, Duration timeout, MetricFactory metrics) {
     this.router = router;
     this.timeout = timeout;
@@ -97,7 +106,7 @@ public class ServiceCall {
    */
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
-    
+
     Metrics.mark(requestMeter);
     Objects.requireNonNull(serviceInstance);
     Messages.validate().serviceRequest(request);
