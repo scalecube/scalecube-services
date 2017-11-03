@@ -10,7 +10,7 @@
 	</parent>
 
 	<artifactId>scalecube-metrics-codahale</artifactId>
-	<name>Scalecube/Metrics-Codahale</name>
+	<name>Scalecube/Metrics-codahale</name>
 
 	<url>http://maven.apache.org</url>
 	<properties>
