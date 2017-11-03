@@ -79,7 +79,6 @@
         <module>examples</module>
         <module>services</module>
     	<module>metrics</module>
-    	<module>metrics-codahale</module>
     </modules>
 
     <dependencyManagement>
