@@ -10,10 +10,11 @@ public interface MetricFactory {
   Timer createTimer(final String component, final String methodName);
 
   Counter createCounter(final String component, final String methodName);
-
-  <T> Gauge<T> registerGauge(String component, String methodName, Gauge<T> metric);
-
+  
   Meter createMeter(String component, String methodName, String eventType);
 
   Histogram createHistogram(String component, String methodName, boolean biased);
+  
+  <T> Gauge<T> registerGauge(String component, String methodName, Gauge<T> metric);
+  
 }

@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.metrics.api.MetricFactory;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -144,7 +145,7 @@ public class Microservices {
     private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
     /**
-     * microsrrvices instance builder.
+     * Microservices instance builder.
      * 
      * @return Microservices instance.
      */
@@ -237,9 +238,16 @@ public class Microservices {
 
     private Class<? extends Router> router = RoundRobinServiceRouter.class;
 
+    private MetricFactory metrics = null;
+
     public ServiceCall create() {
       LOGGER.debug("create service api {} router {}", router);
-      return dispatcherFactory.createDispatcher(this.router, this.timeout);
+      return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
+    }
+
+    public DispatcherContext metrics(MetricFactory metrics) {
+      this.metrics = metrics;
+      return this;
     }
 
     public DispatcherContext timeout(Duration timeout) {

@@ -29,18 +29,6 @@ public class CodahaleMetricsFactory implements MetricFactory {
   }
 
   @Override
-  public <T> Gauge<T> registerGauge(final String component, final String methodName, final Gauge<T> gauge) {
-    registry.register(MetricRegistry.name(component, methodName), new com.codahale.metrics.Gauge<T>() {
-      @Override
-      public T getValue() {
-        return gauge.getValue();
-      }
-    });
-
-    return gauge;
-  }
-
-  @Override
   public Meter createMeter(final String component, final String methodName, final String eventType) {
     final com.codahale.metrics.Meter meter = registry.meter(MetricRegistry.name(component, methodName, eventType));
     return new io.scalecube.metrics.codahale.Meter(meter);
@@ -50,5 +38,17 @@ public class CodahaleMetricsFactory implements MetricFactory {
   public Histogram createHistogram(final String component, final String methodName, final boolean biased) {
     final com.codahale.metrics.Histogram histogram = registry.histogram(MetricRegistry.name(component, methodName));
     return new io.scalecube.metrics.codahale.Histogram(histogram);
+  }
+  
+  @Override
+  public <T> Gauge<T> registerGauge(final String component, final String methodName, final Gauge<T> gauge) {
+    registry.register(MetricRegistry.name(component, methodName), new com.codahale.metrics.Gauge<T>() {
+      @Override
+      public T getValue() {
+        return gauge.getValue();
+      }
+    });
+
+    return gauge;
   }
 }

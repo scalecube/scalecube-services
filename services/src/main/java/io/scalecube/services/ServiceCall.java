@@ -3,6 +3,9 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.metrics.api.Meter;
+import io.scalecube.metrics.api.MetricFactory;
+import io.scalecube.metrics.api.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
@@ -26,9 +29,18 @@ public class ServiceCall {
   private Duration timeout;
   private Router router;
 
-  public ServiceCall(Router router, Duration timeout) {
+  Meter requestMeter;
+  Meter responseMeter;
+  Meter errorMeter;
+
+  public ServiceCall(Router router, Duration timeout, MetricFactory metrics) {
     this.router = router;
     this.timeout = timeout;
+    if (metrics != null) {
+      requestMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-request");
+      responseMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-response");
+      responseMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-error");
+    }
   }
 
   public CompletableFuture<Message> invoke(Message message) {
@@ -85,7 +97,8 @@ public class ServiceCall {
    */
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
-
+    
+    Metrics.mark(requestMeter);
     Objects.requireNonNull(serviceInstance);
     Messages.validate().serviceRequest(request);
     serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
@@ -98,8 +111,10 @@ public class ServiceCall {
       serviceInstance.invoke(Messages.asRequest(request, cid))
           .whenComplete((success, error) -> {
             if (error == null) {
+              Metrics.mark(responseMeter);
               responseFuture.withTimeout(duration);
             } else {
+              Metrics.mark(errorMeter);
               responseFuture.completeExceptionally(error);
             }
           });
@@ -109,6 +124,8 @@ public class ServiceCall {
       return serviceInstance.invoke(request);
     }
   }
+
+
 
   /**
    * Invoke all service instances with a given request message with a given service name and method name. expected
