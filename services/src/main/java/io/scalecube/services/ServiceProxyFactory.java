@@ -1,6 +1,8 @@
 package io.scalecube.services;
 
+import io.scalecube.metrics.api.Meter;
 import io.scalecube.metrics.api.MetricFactory;
+import io.scalecube.metrics.api.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
@@ -43,13 +45,14 @@ public class ServiceProxyFactory {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
     dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).metrics(metrics).create();
-    
+
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
-        metrics.meter().get(serviceInterface, method.getName(), "request");
+        mark(serviceInterface, metrics, method,"request");
+
         Object data = method.getParameterCount() != 0 ? args[0] : null;
         final Message reqMsg = getRequestMessage(serviceDefinition, method, data);
         if (method.getReturnType().equals(Observable.class)) {
@@ -63,6 +66,13 @@ public class ServiceProxyFactory {
               dispatcher.invoke(reqMsg));
         }
 
+      }
+
+      private <T> void mark(Class<T> serviceInterface, MetricFactory metrics, Method method, String eventType) {
+        if (metrics != null) {
+          Meter meter = metrics.meter().get(serviceInterface, method.getName(), eventType);
+          Metrics.mark(meter);
+        }
       }
 
       private Message getRequestMessage(ServiceDefinition serviceDefinition, Method method, Object data) {
@@ -88,12 +98,14 @@ public class ServiceProxyFactory {
         } else if (method.getReturnType().equals(CompletableFuture.class)) {
           reuslt.whenComplete((value, ex) -> {
             if (ex == null) {
+              mark(serviceInterface, metrics, method,"response");
               if (!Reflect.parameterizedReturnType(method).equals(Message.class)) {
                 future.complete(value.data());
               } else {
                 future.complete((T) value);
               }
             } else {
+              mark(serviceInterface, metrics, method,"error");
               LOGGER.error("return value is exception: {}", ex);
               future.completeExceptionally(ex);
             }
