@@ -47,7 +47,7 @@ public class SimpleStressTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    //reporter.start(1, TimeUnit.SECONDS);
+    reporter.start(5, TimeUnit.SECONDS);
     
     ServiceCall service = consumer.dispatcher().metrics(metrics).create();
 
@@ -93,7 +93,7 @@ public class SimpleStressTest extends BaseTest {
     }
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
     countLatch.await(60, TimeUnit.SECONDS);
-    //reporter.stop();
+    reporter.stop();
     System.out.println("Finished receiving " + count + " messages in " + (System.currentTimeMillis() - startTime));
     assertTrue(countLatch.getCount() == 0);
     provider.shutdown().get();
@@ -114,7 +114,7 @@ public class SimpleStressTest extends BaseTest {
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
-    //reporter.start(1, TimeUnit.SECONDS);
+    reporter.start(5, TimeUnit.SECONDS);
     
     // Get a proxy to the service api.
     GreetingService service = createProxy(consumer);
@@ -171,7 +171,7 @@ public class SimpleStressTest extends BaseTest {
     System.out.println("Rate: " + ((count - countLatch.getCount()) / ((System.currentTimeMillis() - startTime) / 1000))
         + " round-trips/sec");
 
-    //reporter.stop();
+    reporter.stop();
     assertTrue(countLatch.getCount() == 0);
 
     provider.shutdown().get();
