@@ -27,7 +27,7 @@ public class CodahaleMetricsFactory implements MetricFactory {
 
     @Override
     public <T> Meter get(final Class<T> component, final String methodName, final String eventType) {
-      return get(component, methodName, eventType);
+      return get(component.getName(), methodName, eventType);
     }
   };
 
