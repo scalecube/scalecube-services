@@ -47,9 +47,9 @@ public class ServiceCall {
     this.timeout = timeout;
     
     if (metrics != null) {
-      requestMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-request");
-      responseMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-response");
-      errorMeter = metrics.createMeter(ServiceCall.class.getName(), "invoke", "service-error");
+      requestMeter = metrics.meter().get(ServiceCall.class.getName(), "invoke", "service-request");
+      responseMeter = metrics.meter().get(ServiceCall.class, "invoke", "service-response");
+      errorMeter = metrics.meter().get(ServiceCall.class.getName(), "invoke", "service-error");
     }
   }
 

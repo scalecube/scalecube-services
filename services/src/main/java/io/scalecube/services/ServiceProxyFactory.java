@@ -43,12 +43,13 @@ public class ServiceProxyFactory {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
     dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).metrics(metrics).create();
-
+    
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
+        metrics.meter().get(serviceInterface, method.getName(), "request");
         Object data = method.getParameterCount() != 0 ? args[0] : null;
         final Message reqMsg = getRequestMessage(serviceDefinition, method, data);
         if (method.getReturnType().equals(Observable.class)) {

@@ -15,12 +15,12 @@ public class CodahaleMetricsFactoryTest extends BaseTest{
   @Test
   public void testCreateCounter() throws Exception {
    
-    
     MetricRegistry metrics = new MetricRegistry();
     
     MetricFactory factory = new CodahaleMetricsFactory(metrics);
     
-    Counter counter = factory.createCounter("greetingService", "sayHello");
+    Counter counter = factory.counter().get("greetingService", "sayHello");
+    
     counter.inc(1);
     assertEquals(counter.getCount(), 1);
     

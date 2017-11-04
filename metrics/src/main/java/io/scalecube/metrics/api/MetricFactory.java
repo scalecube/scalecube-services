@@ -6,15 +6,15 @@ package io.scalecube.metrics.api;
  * graphite trees).
  */
 public interface MetricFactory {
-
-  Timer createTimer(final String component, final String methodName);
-
-  Counter createCounter(final String component, final String methodName);
+ 
+  GaugeFactory gauge();
   
-  Meter createMeter(String component, String methodName, String eventType);
+  MeterFactory meter();
 
-  Histogram createHistogram(String component, String methodName, boolean biased);
+  TimerFactory timer();
   
-  <T> Gauge<T> registerGauge(String component, String methodName, Gauge<T> metric);
+  CounterFactory counter();
+
+  HistogramFactory histogram();
   
 }
