@@ -7,4 +7,14 @@ public class Metrics {
       meter.mark();
     }
   }
+
+  public static void mark(MetricFactory metrics, Class component, String methodName, String eventType) {
+    mark(metrics, component.getName(), methodName, eventType);
+  }
+
+  public static void mark(MetricFactory metrics, String component, String methodName, String eventType) {
+    if (metrics != null) {
+      mark(metrics.meter().get(component, methodName, eventType));
+    }
+  }
 }

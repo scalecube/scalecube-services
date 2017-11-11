@@ -2,8 +2,8 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
+import io.scalecube.metrics.api.MetricFactory;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.transport.Address;
 
@@ -29,41 +29,43 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     ADDED, REMOVED, DISCOVERED
   }
 
-  private final Cluster cluster;
-
   private final ConcurrentMap<ServiceReference, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
 
   private final ConcurrentMap<String, ServiceDefinition> definitionsCache = new ConcurrentHashMap<>();
 
-  private ServiceCommunicator sender;
+  private Microservices microservices;
+
+  private MetricFactory metrics;
 
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
    *
-   * @param cluster the cluster instance related to the service registry.
-   * @param sender to be used for service communication.
-   * @param services optional services if relevant to this instance.
+   * @param microservices instance related to the service registry.
+   * @param services services if relevant to this instance.
+   * @param metrics nul1lable metrics factory if relevant to this instance.
    */
-  public ServiceRegistryImpl(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
+  public ServiceRegistryImpl(Microservices microservices, ServicesConfig services, MetricFactory metrics) {
 
-    checkArgument(cluster != null, "cluster can't be null");
-    checkArgument(sender != null, "transport can't be null");
+    checkArgument(microservices != null, "microservices can't be null");
     checkArgument(services != null, "services can't be null");
 
-    this.cluster = cluster;
-    this.sender = sender;
-    listenCluster();
-
+    this.microservices = microservices;
+    this.metrics = metrics;
     if (!services.services().isEmpty()) {
       for (ServiceConfig service : services.services()) {
         registerService(service);
       }
     }
     loadClusterServices();
+    listenCluster();
+  }
+
+  public ServiceRegistryImpl(Microservices microservices, ServicesConfig services) {
+    this(microservices, services, null);
   }
 
   private void listenCluster() {
-    cluster.listenMembership().subscribe(event -> {
+    microservices.cluster().listenMembership().subscribe(event -> {
       if (event.isAdded()) {
         loadMemberServices(DiscoveryType.ADDED, event.member());
       } else if (event.isRemoved()) {
@@ -74,7 +76,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   private void loadClusterServices() {
-    cluster.otherMembers().forEach(member -> {
+    this.microservices.cluster().otherMembers().forEach(member -> {
       loadMemberServices(DiscoveryType.DISCOVERED, member);
     });
   }
@@ -95,7 +97,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             if (!serviceInstances.containsKey(serviceRef)) {
               serviceInstances.putIfAbsent(serviceRef,
-                  new RemoteServiceInstance(sender, serviceRef, info.getTags()));
+                  new RemoteServiceInstance(microservices.sender(), serviceRef, info.getTags()));
               LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}", member,
                   serviceRef);
             }
@@ -114,7 +116,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     checkArgument(serviceObject != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = Reflect.serviceInterfaces(serviceObject.getService());
 
-    String memberId = cluster.member().id();
+    String memberId = microservices.cluster().member().id();
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
@@ -125,11 +127,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
       ServiceReference serviceRef =
           new ServiceReference(memberId, serviceDefinition.serviceName(), serviceDefinition.methods().keySet(),
-              sender.address());
+              microservices.sender().address());
 
       ServiceInstance serviceInstance =
-          new LocalServiceInstance(serviceObject, sender.address(), memberId, serviceDefinition.serviceName(),
-              serviceDefinition.methods());
+          new LocalServiceInstance(serviceObject, microservices.sender().address(), memberId,
+              serviceDefinition.serviceName(),
+              serviceDefinition.methods(),
+              this.metrics);
+
       serviceInstances.putIfAbsent(serviceRef, serviceInstance);
 
     });
@@ -192,8 +197,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(cluster.member().id(), serviceDefinition.serviceName(),
-        serviceDefinition.methods().keySet(), sender.address());
+    return new ServiceReference(microservices.cluster().member().id(), serviceDefinition.serviceName(),
+        serviceDefinition.methods().keySet(), microservices.sender().address());
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {

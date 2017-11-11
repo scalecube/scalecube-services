@@ -106,18 +106,25 @@ public class Microservices {
 
   private final ServiceCommunicator sender;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
+  private MetricFactory metrics;
+
+  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, MetricFactory metrics) {
     this.cluster = cluster;
     this.sender = sender;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services);
+    this.metrics = metrics;
+    this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
 
-    this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
-
+    this.proxyFactory = new ServiceProxyFactory(this);
     new ServiceDispatcher(this);
+
     this.sender.listen()
         .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
         .subscribe(message -> ServiceResponse.handleReply(message));
+  }
+
+  public MetricFactory metrics() {
+    return this.metrics;
   }
 
   public Cluster cluster() {
@@ -145,6 +152,8 @@ public class Microservices {
 
     private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
+    private MetricFactory metrics;
+
     /**
      * Microservices instance builder.
      * 
@@ -162,7 +171,7 @@ public class Microservices {
       cluster = Cluster.joinAwait(cfg);
       transportSender.cluster(cluster);
 
-      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig)).inject();
+      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig, this.metrics)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
@@ -223,7 +232,14 @@ public class Microservices {
     }
 
     public Builder serviceTransport(TransportConfig transportConfig) {
+      checkNotNull(transportConfig);
       this.transportConfig = transportConfig;
+      return this;
+    }
+
+    public Builder metrics(MetricFactory metrics) {
+      checkNotNull(metrics);
+      this.metrics = metrics;
       return this;
     }
 

@@ -32,30 +32,33 @@ public class SimpleStressTest extends BaseTest {
       .convertDurationsTo(TimeUnit.MILLISECONDS)
       .build();
   MetricFactory metrics = new CodahaleMetricsFactory(registry);
-  
+
   @Test
   public void test_naive_dispatcher_stress() throws InterruptedException, ExecutionException {
+
     // Create microservices cluster member.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .metrics(metrics)
         .build();
 
     // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .metrics(metrics)
         .build();
 
     reporter.start(5, TimeUnit.SECONDS);
-    
+
     ServiceCall service = consumer.dispatcher().metrics(metrics).create();
 
 
 
     // Init params
     int warmUpCount = 1_000;
-    int count = 3_00_000;
+    int count = 6_00_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
@@ -100,28 +103,30 @@ public class SimpleStressTest extends BaseTest {
     consumer.shutdown().get();
   }
 
-  
+
   @Test
   public void test_naive_proxy_stress() throws InterruptedException, ExecutionException {
     // Create microservices cluster member.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .metrics(metrics)
         .build();
 
     // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .metrics(metrics)
         .build();
     reporter.start(5, TimeUnit.SECONDS);
-    
+
     // Get a proxy to the service api.
     GreetingService service = createProxy(consumer);
 
     // Init params
-    int warmUpCount = 10_000;
-    int count = 300_000;
+    int warmUpCount = 30_000;
+    int count = 600_000;
     CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
 
     // Warm up
@@ -135,7 +140,7 @@ public class SimpleStressTest extends BaseTest {
       });
     }
     warmUpLatch.await(4, TimeUnit.SECONDS);
-    
+
     assertTrue(warmUpLatch.getCount() == 0);
     System.out.println("finished warm-up.");
 
@@ -178,7 +183,7 @@ public class SimpleStressTest extends BaseTest {
     consumer.shutdown().get();
     sched.cancel(true);
   }
-  
+
   private GreetingService createProxy(Microservices gateway) {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
