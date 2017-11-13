@@ -35,7 +35,7 @@ public class SimpleStressTest extends BaseTest {
 
   @Test
   public void test_naive_dispatcher_stress() throws InterruptedException, ExecutionException {
-
+    
     // Create microservices cluster member.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -52,7 +52,7 @@ public class SimpleStressTest extends BaseTest {
 
     reporter.start(5, TimeUnit.SECONDS);
 
-    ServiceCall service = consumer.dispatcher().metrics(metrics).create();
+    ServiceCall service = consumer.dispatcher().create();
 
 
 
@@ -188,7 +188,6 @@ public class SimpleStressTest extends BaseTest {
     return gateway.proxy()
         .api(GreetingService.class) // create proxy for GreetingService API
         .timeout(Duration.ofSeconds(30))
-        .metrics(metrics)
         .create();
   }
 }

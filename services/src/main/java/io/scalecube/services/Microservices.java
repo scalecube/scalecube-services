@@ -135,8 +135,7 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout,
-      MetricFactory metrics) {
+  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
     return proxyFactory.createProxy(serviceInterface, router, timeout, metrics);
   }
 
@@ -255,16 +254,9 @@ public class Microservices {
 
     private Class<? extends Router> router = RoundRobinServiceRouter.class;
 
-    private MetricFactory metrics = null;
-
     public ServiceCall create() {
       LOGGER.debug("create service api {} router {}", router);
       return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
-    }
-
-    public DispatcherContext metrics(MetricFactory metrics) {
-      this.metrics = metrics;
-      return this;
     }
 
     public DispatcherContext timeout(Duration timeout) {
@@ -297,12 +289,10 @@ public class Microservices {
 
     private Duration timeout = Duration.ofSeconds(3);
 
-    private MetricFactory metrics;
-
     @SuppressWarnings("unchecked")
     public <T> T create() {
       LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, this.router, this.timeout, this.metrics);
+      return (T) createProxy(this.api, this.router, this.timeout);
     }
 
     public ProxyContext timeout(Duration duration) {
@@ -324,10 +314,6 @@ public class Microservices {
       return this;
     }
 
-    public ProxyContext metrics(MetricFactory metrics) {
-      this.metrics = metrics;
-      return this;
-    }
   }
 
   private static Map<String, String> metadata(ServicesConfig config) {

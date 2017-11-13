@@ -44,7 +44,7 @@ public class ServiceProxyFactory {
       Duration timeout, MetricFactory metrics) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
-    dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).metrics(metrics).create();
+    dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).create();
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
