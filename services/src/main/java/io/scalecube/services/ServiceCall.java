@@ -3,9 +3,10 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
-import io.scalecube.metrics.api.Meter;
 import io.scalecube.metrics.api.MetricFactory;
 import io.scalecube.metrics.api.Metrics;
+import io.scalecube.metrics.api.Timer;
+import io.scalecube.metrics.api.Timer.Context;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
@@ -28,10 +29,8 @@ public class ServiceCall {
 
   private Duration timeout;
   private Router router;
-
-  Meter requestMeter;
-  Meter responseMeter;
-  Meter errorMeter;
+  private Timer timer;
+  private MetricFactory metrics;
 
   /**
    * ServiceCall is a service communication pattern for async request reply and reactive streams. it communicates with
@@ -45,12 +44,12 @@ public class ServiceCall {
   public ServiceCall(Router router, Duration timeout, MetricFactory metrics) {
     this.router = router;
     this.timeout = timeout;
-    
-    if (metrics != null) {
-      requestMeter = metrics.meter().get(ServiceCall.class.getName(), "invoke", "service-request");
-      responseMeter = metrics.meter().get(ServiceCall.class, "invoke", "service-response");
-      errorMeter = metrics.meter().get(ServiceCall.class.getName(), "invoke", "service-error");
-    }
+    this.metrics = metrics;
+    this.timer = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
+  }
+
+  public ServiceCall(Router router, Duration timeout) {
+    this(router, timeout, null);
   }
 
   public CompletableFuture<Message> invoke(Message message) {
@@ -108,7 +107,7 @@ public class ServiceCall {
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
 
-    Metrics.mark(requestMeter);
+    Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
     Objects.requireNonNull(serviceInstance);
     Messages.validate().serviceRequest(request);
     serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
@@ -118,13 +117,15 @@ public class ServiceCall {
 
       final ServiceResponse responseFuture = ServiceResponse.correlationId(cid);
 
+      final Context ctx = timer.time();
       serviceInstance.invoke(Messages.asRequest(request, cid))
           .whenComplete((success, error) -> {
+            ctx.stop();
             if (error == null) {
-              Metrics.mark(responseMeter);
+              Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
               responseFuture.withTimeout(duration);
             } else {
-              Metrics.mark(errorMeter);
+              Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
               responseFuture.completeExceptionally(error);
             }
           });

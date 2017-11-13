@@ -97,9 +97,13 @@ public class LocalServiceInstance implements ServiceInstance {
     final String cid = request.correlationId();
     try {
       final Observable<?> observable = (Observable<?>) invoke(request, method);
-      return observable.map(message -> Messages.asResponse(message, cid, memberId));
+      return observable.map(message -> {
+        Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "onNext");
+        return Messages.asResponse(message, cid, memberId);
+      });
 
     } catch (IllegalAccessException | InvocationTargetException ex) {
+      Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
       return Observable.from(new Message[] {Messages.asResponse(ex, cid, memberId)});
     }
   }
@@ -109,23 +113,31 @@ public class LocalServiceInstance implements ServiceInstance {
     final CompletableFuture<Message> resultMessage = new CompletableFuture<>();
     try {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "request");
-      final Object result = invoke(request, method);
-      if (result instanceof CompletableFuture) {
-        final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
-        resultFuture.whenComplete((success, error) -> {
-          if (error == null) {
-            Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
-            if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
-              resultMessage.complete((Message) success);
+      CompletableFuture.supplyAsync(() -> {
+        try {
+          return invoke(request, method);
+        } catch (IllegalAccessException | InvocationTargetException ex) {
+          return ex;
+        }
+      }).whenComplete((result, ex) -> {
+        if (result instanceof CompletableFuture) {
+          final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
+          resultFuture.whenComplete((success, error) -> {
+            if (error == null) {
+              Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
+              if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
+                resultMessage.complete((Message) success);
+              } else {
+                resultMessage.complete(Messages.asResponse(success, request.correlationId(), memberId));
+              }
             } else {
-              resultMessage.complete(Messages.asResponse(success, request.correlationId(), memberId));
+              Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
+              resultMessage.completeExceptionally(error);
             }
-          } else {
-            Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-            resultMessage.completeExceptionally(error);
-          }
-        });
-      }
+          });
+        }
+      });
+
     } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "exception");
       resultMessage.completeExceptionally(ex);

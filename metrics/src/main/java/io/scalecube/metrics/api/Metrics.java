@@ -17,4 +17,12 @@ public class Metrics {
       mark(metrics.meter().get(component, methodName, eventType));
     }
   }
+
+  public static Timer timer(MetricFactory metrics, String component, String methodName) {
+    if (metrics != null) {
+      return metrics.timer().get(component, methodName);
+    } else {
+      return null;
+    }
+  }
 }
