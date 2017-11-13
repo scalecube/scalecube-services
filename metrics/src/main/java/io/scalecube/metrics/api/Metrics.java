@@ -18,6 +18,14 @@ public class Metrics {
     }
   }
 
+  /**
+   * if metrics is not null returns a Timer instance for a given component and method name.
+   * 
+   * @param metrics factory instance to get timer.
+   * @param component name for the requested timer.
+   * @param methodName for the requested timer.
+   * @return timer instance.
+   */
   public static Timer timer(MetricFactory metrics, String component, String methodName) {
     if (metrics != null) {
       return metrics.timer().get(component, methodName);
