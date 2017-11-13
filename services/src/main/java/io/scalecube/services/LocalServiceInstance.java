@@ -113,31 +113,23 @@ public class LocalServiceInstance implements ServiceInstance {
     final CompletableFuture<Message> resultMessage = new CompletableFuture<>();
     try {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "request");
-      CompletableFuture.supplyAsync(() -> {
-        try {
-          return invoke(request, method);
-        } catch (IllegalAccessException | InvocationTargetException ex) {
-          return ex;
-        }
-      }).whenComplete((result, ex) -> {
-        if (result instanceof CompletableFuture) {
-          final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
-          resultFuture.whenComplete((success, error) -> {
-            if (error == null) {
-              Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
-              if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
-                resultMessage.complete((Message) success);
-              } else {
-                resultMessage.complete(Messages.asResponse(success, request.correlationId(), memberId));
-              }
+      final Object result = invoke(request, method);
+      if (result instanceof CompletableFuture) {
+        final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
+        resultFuture.whenComplete((success, error) -> {
+          if (error == null) {
+            Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
+            if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
+              resultMessage.complete((Message) success);
             } else {
-              Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-              resultMessage.completeExceptionally(error);
+              resultMessage.complete(Messages.asResponse(success, request.correlationId(), memberId));
             }
-          });
-        }
-      });
-
+          } else {
+            Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
+            resultMessage.completeExceptionally(error);
+          }
+        });
+      }
     } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "exception");
       resultMessage.completeExceptionally(ex);
