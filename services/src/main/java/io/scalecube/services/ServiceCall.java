@@ -117,10 +117,10 @@ public class ServiceCall {
 
       final ServiceResponse responseFuture = ServiceResponse.correlationId(cid);
 
-      final Context ctx = timer.time();
+      final Context ctx = Metrics.time(timer);
       serviceInstance.invoke(Messages.asRequest(request, cid))
           .whenComplete((success, error) -> {
-            ctx.stop();
+            Metrics.stop(ctx);
             if (error == null) {
               Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
               responseFuture.withTimeout(duration);

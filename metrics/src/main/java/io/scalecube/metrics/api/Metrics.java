@@ -1,5 +1,7 @@
 package io.scalecube.metrics.api;
 
+import io.scalecube.metrics.api.Timer.Context;
+
 public class Metrics {
 
   public static void mark(Meter meter) {
@@ -31,6 +33,19 @@ public class Metrics {
       return metrics.timer().get(component, methodName);
     } else {
       return null;
+    }
+  }
+
+  public static Context time(Timer timer) {
+    if (timer != null) {
+      return timer.time();
+    }
+    return null;
+  }
+
+  public static void stop(Context ctx) {
+    if (ctx != null) {
+      ctx.stop();
     }
   }
 }
