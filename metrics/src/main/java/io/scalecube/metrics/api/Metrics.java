@@ -49,6 +49,14 @@ public class Metrics {
     }
   }
 
+  /**
+   * if metrics is not null returns a Counter instance for a given component and method name.
+   * 
+   * @param metrics factory instance to get timer.
+   * @param component name for the requested timer.
+   * @param methodName for the requested timer.
+   * @return counter instance.
+   */
   public static Counter counter(MetricFactory metrics, String component, String methodName) {
     if (metrics != null) {
       return metrics.counter().get(component, methodName);
