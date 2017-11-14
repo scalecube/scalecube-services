@@ -343,7 +343,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
     // Update local member reference
     Member curMember = memberRef.get();
     String memberId = curMember.id();
-    Member newMember = new Member(memberId, curMember.hostAddress(), metadata);
+    Member newMember = new Member(memberId, curMember.address(), metadata);
     memberRef.set(newMember);
 
     // Update membership table
@@ -393,7 +393,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
       // TODO: Consider to make more elegant solution
       // Alive won't override SUSPECT so issue instead extra sync with member to force it spread alive with inc + 1
       Message syncMsg = prepareSyncDataMsg(SYNC, null);
-      transport.send(fdEvent.member().hostAddress(), syncMsg);
+      transport.send(fdEvent.member().address(), syncMsg);
     } else {
       MembershipRecord r1 = new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation());
       updateMembership(r1, MembershipUpdateReason.FAILURE_DETECTOR_EVENT);
