@@ -10,6 +10,7 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class TransportConfig {
 
+  public static final String DEFAULT_HOST_ADDRESS = null;
   public static final String DEFAULT_LISTEN_ADDRESS = null;
   public static final String DEFAULT_LISTEN_INTERFACE = null; // Default listen settings fallback to getLocalHost
   public static final boolean DEFAULT_PREFER_IP6 = false;
@@ -22,6 +23,7 @@ public final class TransportConfig {
   public static final int DEFAULT_BOSS_THREADS = 2;
   public static final int DEFAULT_WORKER_THREADS = 0;
 
+  private final String hostAddress;
   private final String listenAddress;
   private final String listenInterface;
   private final boolean preferIPv6;
@@ -35,6 +37,7 @@ public final class TransportConfig {
   private final int workerThreads;
 
   private TransportConfig(Builder builder) {
+    this.hostAddress = builder.hostAddress;
     this.listenAddress = builder.listenAddress;
     this.listenInterface = builder.listenInterface;
     this.preferIPv6 = builder.preferIPv6;
@@ -54,6 +57,10 @@ public final class TransportConfig {
 
   public static Builder builder() {
     return new Builder();
+  }
+
+  public String getHostAddress() {
+    return hostAddress;
   }
 
   public String getListenAddress() {
@@ -102,7 +109,8 @@ public final class TransportConfig {
 
   @Override
   public String toString() {
-    return "TransportConfig{listenAddress=" + listenAddress
+    return "TransportConfig{hostAddress=" + hostAddress
+        + ", listenAddress=" + listenAddress
         + ", listenInterface=" + listenInterface
         + ", preferIPv6=" + preferIPv6
         + ", port=" + port
@@ -118,6 +126,7 @@ public final class TransportConfig {
 
   public static final class Builder {
 
+    private String hostAddress = DEFAULT_HOST_ADDRESS;
     private String listenAddress = DEFAULT_LISTEN_ADDRESS;
     private String listenInterface = DEFAULT_LISTEN_INTERFACE;
     private boolean preferIPv6 = DEFAULT_PREFER_IP6;
@@ -136,6 +145,7 @@ public final class TransportConfig {
      * Fills config with values equal to provided config.
      */
     public Builder fillFrom(TransportConfig config) {
+      this.hostAddress = config.hostAddress;
       this.listenAddress = config.listenAddress;
       this.listenInterface = config.listenInterface;
       this.preferIPv6 = config.preferIPv6;
@@ -147,6 +157,11 @@ public final class TransportConfig {
       this.enableEpoll = config.enableEpoll;
       this.bossThreads = config.bossThreads;
       this.workerThreads = config.workerThreads;
+      return this;
+    }
+
+    public Builder hostAddress(String hostAddress) {
+      this.hostAddress = hostAddress;
       return this;
     }
 

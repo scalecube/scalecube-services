@@ -61,6 +61,7 @@ final class TransportImpl implements Transport {
   private NetworkEmulatorHandler networkEmulatorHandler;
 
   private Address address;
+  private Address hostAddress;
   private ServerChannel serverChannel;
 
   private volatile boolean stopped = false;
@@ -113,6 +114,8 @@ final class TransportImpl implements Transport {
         }
       }
     });
+
+    hostAddress = config.getHostAddress() != null ? Address.create(config.getHostAddress(), address.port()) : address;
     return result;
   }
 
@@ -125,6 +128,12 @@ final class TransportImpl implements Transport {
   @Nonnull
   public Address address() {
     return address;
+  }
+
+  @Override
+  @Nonnull
+  public Address hostAddress() {
+    return hostAddress;
   }
 
   @Override

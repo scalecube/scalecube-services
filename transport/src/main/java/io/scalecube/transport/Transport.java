@@ -61,6 +61,12 @@ public interface Transport {
   Address address();
 
   /**
+   * Returns host {@link Address} on which the current instance is accessible for incoming messages.
+   */
+  @Nonnull
+  Address hostAddress();
+
+  /**
    * Stop transport, disconnect all connections and release all resources which belong to this transport. <br/>
    * After transport is stopped it can't be used again. Observable returned from method {@link #listen()} will
    * immediately emit onComplete event for all subscribers.

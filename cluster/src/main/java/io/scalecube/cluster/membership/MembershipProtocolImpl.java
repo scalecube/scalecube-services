@@ -102,7 +102,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
   public MembershipProtocolImpl(Transport transport, MembershipConfig config) {
     this.transport = transport;
     this.config = config;
-    Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
+    Member member = new Member(IdGenerator.generateId(), transport.hostAddress(), config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
 
     String nameFormat = "sc-membership-" + Integer.toString(transport.address().port());
