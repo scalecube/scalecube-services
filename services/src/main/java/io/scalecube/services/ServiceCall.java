@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.metrics.api.Counter;
 import io.scalecube.metrics.api.MetricFactory;
 import io.scalecube.metrics.api.Metrics;
 import io.scalecube.metrics.api.Timer;
@@ -29,7 +30,7 @@ public class ServiceCall {
 
   private Duration timeout;
   private Router router;
-  private Timer timer;
+  private Timer latency;
   private MetricFactory metrics;
 
   /**
@@ -45,7 +46,7 @@ public class ServiceCall {
     this.router = router;
     this.timeout = timeout;
     this.metrics = metrics;
-    this.timer = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
+    this.latency = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
   }
 
   public ServiceCall(Router router, Duration timeout) {
@@ -107,7 +108,6 @@ public class ServiceCall {
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
 
-    Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
     Objects.requireNonNull(serviceInstance);
     Messages.validate().serviceRequest(request);
     serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
@@ -117,9 +117,13 @@ public class ServiceCall {
 
       final ServiceResponse responseFuture = ServiceResponse.correlationId(cid);
 
-      final Context ctx = Metrics.time(timer);
+      final Context ctx = Metrics.time(latency);
+      Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
+      Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
+      Metrics.inc(counter);
       serviceInstance.invoke(Messages.asRequest(request, cid))
           .whenComplete((success, error) -> {
+            Metrics.dec(counter);
             Metrics.stop(ctx);
             if (error == null) {
               Metrics.mark(metrics, ServiceCall.class, "invoke", "response");

@@ -48,4 +48,24 @@ public class Metrics {
       ctx.stop();
     }
   }
+
+  public static Counter counter(MetricFactory metrics, String component, String methodName) {
+    if (metrics != null) {
+      return metrics.counter().get(component, methodName);
+    } else {
+      return null;
+    }
+  }
+
+  public static void inc(Counter counter) {
+    if (counter != null) {
+      counter.inc();
+    }
+  }
+
+  public static void dec(Counter counter) {
+    if (counter != null) {
+      counter.dec();
+    }
+  }
 }
