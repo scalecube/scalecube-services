@@ -105,7 +105,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
     Member member = new Member(IdGenerator.generateId(), transport.hostAddress(), config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
 
-    String nameFormat = "sc-membership-" + Integer.toString(transport.address().port());
+    String nameFormat = "sc-membership-" + Integer.toString(transport.hostAddress().port());
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
 
@@ -116,7 +116,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
   // Remove duplicates and local address
   private List<Address> cleanUpSeedMembers(Collection<Address> seedMembers) {
     Set<Address> seedMembersSet = new HashSet<>(seedMembers); // remove duplicates
-    seedMembersSet.remove(transport.address()); // remove local address
+    seedMembersSet.remove(transport.hostAddress()); // remove local address
     return Collections.unmodifiableList(new ArrayList<>(seedMembersSet));
   }
 
@@ -343,7 +343,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
     // Update local member reference
     Member curMember = memberRef.get();
     String memberId = curMember.id();
-    Member newMember = new Member(memberId, curMember.address(), metadata);
+    Member newMember = new Member(memberId, curMember.hostAddress(), metadata);
     memberRef.set(newMember);
 
     // Update membership table
@@ -393,7 +393,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
       // TODO: Consider to make more elegant solution
       // Alive won't override SUSPECT so issue instead extra sync with member to force it spread alive with inc + 1
       Message syncMsg = prepareSyncDataMsg(SYNC, null);
-      transport.send(fdEvent.member().address(), syncMsg);
+      transport.send(fdEvent.member().hostAddress(), syncMsg);
     } else {
       MembershipRecord r1 = new MembershipRecord(r0.member(), fdEvent.status(), r0.incarnation());
       updateMembership(r1, MembershipUpdateReason.FAILURE_DETECTOR_EVENT);
