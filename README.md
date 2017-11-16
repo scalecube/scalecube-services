@@ -7,6 +7,9 @@
 [![Join the chat at https://gitter.im/scalecube/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalecube/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40ScaleCube)](https://twitter.com/scalecube)
 
+## Welcome to scalecube! if you are new to scalecube:
+[Please read ScaleCube-services Motivations and vision](https://github.com/scalecube/scalecube/wiki)
+
 ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
 ScaleCube project provides the tools to develop, test and scale microservice components in a distributed manner with ease.
 
@@ -53,8 +56,6 @@ User Guide:
 * [Implementing services](http://scalecube.io/user-reference/services/ServiceImplementation.html)
 * [Provisioning Clustered Services](http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
 * [Consuming services](http://scalecube.io/user-reference/services/ConsumingServices.html)
-
-[Please read ScaleCube-services Motivation](https://github.com/scalecube/scalecube/wiki)
 
 
 ### CLUSTER
