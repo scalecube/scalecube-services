@@ -61,7 +61,6 @@ final class TransportImpl implements Transport {
   private NetworkEmulatorHandler networkEmulatorHandler;
 
   private Address address;
-  private Address hostAddress;
   private ServerChannel serverChannel;
 
   private volatile boolean stopped = false;
@@ -82,40 +81,43 @@ final class TransportImpl implements Transport {
     incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
 
     // Resolve listen IP address
-    final InetAddress listenAddress =
-        Addressing.getLocalIpAddress(config.getListenAddress(), config.getListenInterface(), config.isPreferIPv6());
+    final InetAddress localAddress =
+        Addressing.getLocalIpAddress(config.getBindAddress(), config.getBindInterface(), config.isPreferIPv6());
 
     // Resolve listen port
     int bindPort = config.isPortAutoIncrement()
-        ? Addressing.getNextAvailablePort(listenAddress, config.getPort(), config.getPortCount()) // Find available port
-        : config.getPort();
+        // Find available port
+        ? Addressing.getNextAvailablePort(localAddress, config.getBindPort(), config.getPortCount())
+        : config.getBindPort();
 
     // Listen address
-    address = Address.create(listenAddress.getHostAddress(), bindPort);
+    Address bindAddress = Address.create(localAddress.getHostAddress(), bindPort);
+    address = Address.create(config.getListenAddress() != null ? config.getListenAddress() : bindAddress.host(),
+                              config.getListenPort() != null ? config.getListenPort() : bindAddress.port());
 
     ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(listenAddress, address.port());
+    ChannelFuture bindFuture = server.bind(localAddress, bindAddress.port());
     final CompletableFuture<Transport> result = new CompletableFuture<>();
     bindFuture.addListener((ChannelFutureListener) channelFuture -> {
       if (channelFuture.isSuccess()) {
         serverChannel = (ServerChannel) channelFuture.channel();
-        networkEmulator = new NetworkEmulator(address, config.isUseNetworkEmulator());
+        networkEmulator = new NetworkEmulator(bindAddress, config.isUseNetworkEmulator());
         networkEmulatorHandler = config.isUseNetworkEmulator() ? new NetworkEmulatorHandler(networkEmulator) : null;
-        LOGGER.info("Bound to: {}", address);
+        LOGGER.info("Bound to: {}", bindAddress);
         result.complete(TransportImpl.this);
       } else {
         Throwable cause = channelFuture.cause();
         if (config.isPortAutoIncrement() && isAddressAlreadyInUseException(cause)) {
-          LOGGER.warn("Can't bind to address {}, try again on different port [cause={}]", address, cause.toString());
+          LOGGER.warn("Can't bind to address {}, try again on different port [cause={}]",
+                  bindAddress, cause.toString());
           bind0().thenAccept(result::complete);
         } else {
-          LOGGER.error("Failed to bind to: {}, cause: {}", address, cause);
+          LOGGER.error("Failed to bind to: {}, cause: {}", bindAddress, cause);
           result.completeExceptionally(cause);
         }
       }
     });
 
-    hostAddress = config.getHostAddress() != null ? Address.create(config.getHostAddress(), address.port()) : address;
     return result;
   }
 
@@ -128,12 +130,6 @@ final class TransportImpl implements Transport {
   @Nonnull
   public Address address() {
     return address;
-  }
-
-  @Override
-  @Nonnull
-  public Address hostAddress() {
-    return hostAddress;
   }
 
   @Override

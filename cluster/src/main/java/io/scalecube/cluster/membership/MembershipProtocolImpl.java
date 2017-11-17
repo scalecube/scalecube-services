@@ -102,10 +102,10 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
   public MembershipProtocolImpl(Transport transport, MembershipConfig config) {
     this.transport = transport;
     this.config = config;
-    Member member = new Member(IdGenerator.generateId(), transport.hostAddress(), config.getMetadata());
+    Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
 
-    String nameFormat = "sc-membership-" + Integer.toString(transport.hostAddress().port());
+    String nameFormat = "sc-membership-" + Integer.toString(transport.address().port());
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
 
@@ -116,7 +116,7 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
   // Remove duplicates and local address
   private List<Address> cleanUpSeedMembers(Collection<Address> seedMembers) {
     Set<Address> seedMembersSet = new HashSet<>(seedMembers); // remove duplicates
-    seedMembersSet.remove(transport.hostAddress()); // remove local address
+    seedMembersSet.remove(transport.address()); // remove local address
     return Collections.unmodifiableList(new ArrayList<>(seedMembersSet));
   }
 
