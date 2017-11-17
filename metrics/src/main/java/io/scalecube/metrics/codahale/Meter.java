@@ -16,4 +16,9 @@ public class Meter implements io.scalecube.metrics.api.Meter {
   public void mark(long num) {
     meter.mark(num);
   }
+  
+  @Override
+  public long getCount() {
+    return meter.getCount();
+  }
 }

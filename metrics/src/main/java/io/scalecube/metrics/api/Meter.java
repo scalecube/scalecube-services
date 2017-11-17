@@ -17,4 +17,11 @@ public interface Meter {
    * @param num the number of events
    */
   public void mark(long num);
+
+  /**
+   * Returns the number of events which have been marked.
+   *
+   * @return the number of events which have been marked
+   */
+  long getCount();
 }
