@@ -180,8 +180,11 @@ To add a dependency on ScaleCube Transport using Maven, use the following:
   
 * Ronen Nachmias 
 
-  [posts](https://www.linkedin.com/in/ronenhm/detail/recent-activity/posts/)
+  [posts](https://www.linkedin.com/today/author/ronenhm?trk=pprof-feed)
 
+* Research
+
+[1] [SWIM Membership protocol](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf)
 
 ## License
 
