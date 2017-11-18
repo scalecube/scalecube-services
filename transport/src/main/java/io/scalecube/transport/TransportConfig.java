@@ -11,9 +11,11 @@ import javax.annotation.concurrent.Immutable;
 public final class TransportConfig {
 
   public static final String DEFAULT_LISTEN_ADDRESS = null;
-  public static final String DEFAULT_LISTEN_INTERFACE = null; // Default listen settings fallback to getLocalHost
+  public static final Integer DEFAULT_LISTEN_PORT = null;
   public static final boolean DEFAULT_PREFER_IP6 = false;
-  public static final int DEFAULT_PORT = 4801;
+  public static final String DEFAULT_BIND_ADDRESS = null;
+  public static final String DEFAULT_BIND_INTERFACE = null; // Default listen settings fallback to getLocalHost
+  public static final int DEFAULT_BIND_PORT = 4801;
   public static final int DEFAULT_PORT_COUNT = 100;
   public static final boolean DEFAULT_PORT_AUTO_INCREMENT = true;
   public static final int DEFAULT_CONNECT_TIMEOUT = 3000;
@@ -23,9 +25,11 @@ public final class TransportConfig {
   public static final int DEFAULT_WORKER_THREADS = 0;
 
   private final String listenAddress;
-  private final String listenInterface;
+  private final Integer listenPort;
   private final boolean preferIPv6;
-  private final int port;
+  private final String bindAddress;
+  private final String bindInterface;
+  private final int bindPort;
   private final int portCount;
   private final boolean portAutoIncrement;
   private final int connectTimeout;
@@ -36,9 +40,11 @@ public final class TransportConfig {
 
   private TransportConfig(Builder builder) {
     this.listenAddress = builder.listenAddress;
-    this.listenInterface = builder.listenInterface;
+    this.listenPort = builder.listenPort;
     this.preferIPv6 = builder.preferIPv6;
-    this.port = builder.port;
+    this.bindAddress = builder.bindAddress;
+    this.bindInterface = builder.bindInterface;
+    this.bindPort = builder.bindPort;
     this.portCount = builder.portCount;
     this.portAutoIncrement = builder.portAutoIncrement;
     this.connectTimeout = builder.connectTimeout;
@@ -60,16 +66,24 @@ public final class TransportConfig {
     return listenAddress;
   }
 
-  public String getListenInterface() {
-    return listenInterface;
+  public Integer getListenPort() {
+    return listenPort;
+  }
+
+  public String getBindAddress() {
+    return bindAddress;
+  }
+
+  public String getBindInterface() {
+    return bindInterface;
   }
 
   public boolean isPreferIPv6() {
     return preferIPv6;
   }
 
-  public int getPort() {
-    return port;
+  public int getBindPort() {
+    return bindPort;
   }
 
   public int getPortCount() {
@@ -103,25 +117,29 @@ public final class TransportConfig {
   @Override
   public String toString() {
     return "TransportConfig{listenAddress=" + listenAddress
-        + ", listenInterface=" + listenInterface
-        + ", preferIPv6=" + preferIPv6
-        + ", port=" + port
-        + ", portCount=" + portCount
-        + ", portAutoIncrement=" + portAutoIncrement
-        + ", connectTimeout=" + connectTimeout
-        + ", useNetworkEmulator=" + useNetworkEmulator
-        + ", enableEpoll=" + enableEpoll
-        + ", bossThreads=" + bossThreads
-        + ", workerThreads=" + workerThreads
-        + '}';
+            + ", listenPort=" + listenPort
+            + ", preferIPv6=" + preferIPv6
+            + ", bindAddress=" + bindAddress
+            + ", bindInterface=" + bindInterface
+            + ", bindPort=" + bindPort
+            + ", portCount=" + portCount
+            + ", portAutoIncrement=" + portAutoIncrement
+            + ", connectTimeout=" + connectTimeout
+            + ", useNetworkEmulator=" + useNetworkEmulator
+            + ", enableEpoll=" + enableEpoll
+            + ", bossThreads=" + bossThreads
+            + ", workerThreads=" + workerThreads
+            + '}';
   }
 
   public static final class Builder {
 
     private String listenAddress = DEFAULT_LISTEN_ADDRESS;
-    private String listenInterface = DEFAULT_LISTEN_INTERFACE;
+    private Integer listenPort = DEFAULT_LISTEN_PORT;
+    private String bindAddress = DEFAULT_BIND_ADDRESS;
+    private String bindInterface = DEFAULT_BIND_INTERFACE;
     private boolean preferIPv6 = DEFAULT_PREFER_IP6;
-    private int port = DEFAULT_PORT;
+    private int bindPort = DEFAULT_BIND_PORT;
     private int portCount = DEFAULT_PORT_COUNT;
     private boolean portAutoIncrement = DEFAULT_PORT_AUTO_INCREMENT;
     private boolean useNetworkEmulator = DEFAULT_USE_NETWORK_EMULATOR;
@@ -137,9 +155,11 @@ public final class TransportConfig {
      */
     public Builder fillFrom(TransportConfig config) {
       this.listenAddress = config.listenAddress;
-      this.listenInterface = config.listenInterface;
+      this.listenPort = config.listenPort;
+      this.bindInterface = config.bindInterface;
+      this.bindAddress = config.bindAddress;
       this.preferIPv6 = config.preferIPv6;
-      this.port = config.port;
+      this.bindPort = config.bindPort;
       this.portCount = config.portCount;
       this.portAutoIncrement = config.portAutoIncrement;
       this.connectTimeout = config.connectTimeout;
@@ -150,13 +170,17 @@ public final class TransportConfig {
       return this;
     }
 
+    public Builder hostAddress(String hostAddress) {
+      return this;
+    }
+
     public Builder listenAddress(String listenAddress) {
       this.listenAddress = listenAddress;
       return this;
     }
 
     public Builder listenInterface(String listenInterface) {
-      this.listenInterface = listenInterface;
+      this.bindInterface = listenInterface;
       return this;
     }
 
@@ -166,7 +190,7 @@ public final class TransportConfig {
     }
 
     public Builder port(int port) {
-      this.port = port;
+      this.bindPort = port;
       return this;
     }
 

@@ -211,7 +211,7 @@ public class GossipProtocolTest extends BaseTest {
 
   private List<Transport> initTransports(int count, int lostPercent, int meanDelay) {
     List<Transport> transports = new ArrayList<>(count);
-    int startPort = TransportConfig.DEFAULT_PORT;
+    int startPort = TransportConfig.DEFAULT_BIND_PORT;
     for (int i = 0; i < count; i++) {
       TransportConfig transportConfig = TransportConfig.builder()
           .useNetworkEmulator(true)
