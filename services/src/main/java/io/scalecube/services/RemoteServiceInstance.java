@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class RemoteServiceInstance implements ServiceInstance {
- 
+
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
 
   private final Address address;
@@ -67,7 +67,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   public Observable<Message> listen(final Message request) {
 
     final String cid = request.correlationId();
-    
+
     AtomicReference<Subscription> subscription = new AtomicReference<>();
     Observable<Message> observer = transportObservable.doOnUnsubscribe(() -> {
       Message unsubscribeRequest = Messages.asUnsubscribeRequest(cid);
@@ -80,16 +80,15 @@ public class RemoteServiceInstance implements ServiceInstance {
       });
     });
 
-    Subscription sub = observer
+    subscription.set(observer
         .filter(message -> message.correlationId().equals(cid))
         .subscribe(onNext -> {
           serviceResponses.onNext(onNext);
-        });
-    
-    subscription.set(sub);
+        }));
 
     sendRemote(request).whenComplete((success, error) -> {
       if (error != null) {
+        subscription.get().unsubscribe();
         LOGGER.error("Failed sending remote subscribe request: {} {}", request, error);
       }
     });
@@ -168,17 +167,17 @@ public class RemoteServiceInstance implements ServiceInstance {
   public boolean methodExists(String methodName) {
     return methods.contains(methodName);
   }
-  
+
   @Override
   public void checkMethodExists(String methodName) {
     checkArgument(this.methodExists(methodName), "instance has no such requested method");
   }
-  
+
   @Override
   public String toString() {
     return "RemoteServiceInstance [serviceName=" + serviceName + ", address=" + address + ", memberId=" + memberId
         + ", methods=" + methods + ", tags=" + tags + "]";
   }
 
- 
+
 }
