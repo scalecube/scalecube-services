@@ -37,4 +37,8 @@ public class Timer implements io.scalecube.metrics.api.Timer {
   public Context time() {
     return new Context(timer.time());
   }
+
+  public long getCount() {
+    return this.timer.getCount();
+  }
 }

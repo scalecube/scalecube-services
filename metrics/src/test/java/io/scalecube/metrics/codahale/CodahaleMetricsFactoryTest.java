@@ -6,6 +6,7 @@ import io.scalecube.metrics.api.Counter;
 import io.scalecube.metrics.api.Gauge;
 import io.scalecube.metrics.api.Meter;
 import io.scalecube.metrics.api.MetricFactory;
+import io.scalecube.metrics.api.Timer;
 import io.scalecube.testlib.BaseTest;
 
 import com.codahale.metrics.MetricRegistry;
@@ -53,5 +54,13 @@ public class CodahaleMetricsFactoryTest extends BaseTest {
       }
     });
     assertEquals(gauge.getValue().longValue(), 1L);
+  }
+
+  @Test
+  public void testTimer() throws Exception {
+    Timer timer = factory.timer().get("greetingService", "sayHello");
+    timer.time();
+    timer.time().stop();
+    assertEquals(timer.getCount(), 1);
   }
 }

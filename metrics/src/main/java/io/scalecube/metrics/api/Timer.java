@@ -48,4 +48,11 @@ public interface Timer {
    * @see Context
    */
   public Context time();
+
+  /**
+   * Returns the number of events which have been marked.
+   *
+   * @return the number of events which have been marked
+   */
+  public long getCount();
 }
