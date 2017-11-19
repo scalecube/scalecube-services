@@ -53,7 +53,7 @@ public class SimpleStressTest extends BaseTest {
         .metrics(metrics)
         .build();
 
-    reporter.start(1, TimeUnit.SECONDS);
+    reporter.start(10, TimeUnit.SECONDS);
 
     ServiceCall greetings = consumer.dispatcher()
         .timeout(Duration.ofSeconds(30))
@@ -100,7 +100,7 @@ public class SimpleStressTest extends BaseTest {
         .seeds(provider.cluster().address())
         .metrics(metrics)
         .build();
-    reporter.start(1, TimeUnit.SECONDS);
+    reporter.start(10, TimeUnit.SECONDS);
 
     // Get a proxy to the service api.
     GreetingService service = consumer.proxy()
