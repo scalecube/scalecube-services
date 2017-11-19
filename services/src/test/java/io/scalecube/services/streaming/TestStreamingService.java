@@ -2,11 +2,11 @@ package io.scalecube.services.streaming;
 
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.metrics.api.MetricFactory;
-import io.scalecube.metrics.codahale.CodahaleMetricsFactory;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.metrics.CodahaleMetricsFactory;
+import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -31,8 +31,9 @@ public class TestStreamingService extends BaseTest {
       .convertRatesTo(TimeUnit.SECONDS)
       .convertDurationsTo(TimeUnit.MILLISECONDS)
       .build();
+  
   MetricFactory metrics = new CodahaleMetricsFactory(registry);
-
+  
   @Test
   public void test_quotes() throws InterruptedException {
 

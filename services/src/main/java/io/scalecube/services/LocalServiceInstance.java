@@ -2,9 +2,9 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.metrics.api.MetricFactory;
-import io.scalecube.metrics.api.Metrics;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
+import io.scalecube.services.metrics.MetricFactory;
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 

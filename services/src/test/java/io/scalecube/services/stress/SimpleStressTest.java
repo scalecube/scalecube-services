@@ -1,8 +1,11 @@
-package io.scalecube.services;
+package io.scalecube.services.stress;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.scalecube.services.Messages;
+import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.metrics.CodahaleMetricsFactory;
 import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.testlib.BaseTest;
@@ -17,13 +20,13 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleStressTest extends BaseTest {
-
+  
+  int count = 600_000;
+  
   private static AtomicInteger port = new AtomicInteger(4000);
 
   MetricRegistry registry = new MetricRegistry();
@@ -52,48 +55,25 @@ public class SimpleStressTest extends BaseTest {
 
     reporter.start(1, TimeUnit.SECONDS);
 
-    ServiceCall service = consumer.dispatcher().create();
-
-
-
-    // Init params
-    int warmUpCount = 1_000;
-    int count = 6_00_000;
-    CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
-
-    // Warm up
-    for (int i = 0; i < warmUpCount; i++) {
-      // call the service.
-      CompletableFuture<Message> future = service.invoke(Messages.builder()
-          .request(GreetingService.class, "greetingMessage")
-          .data(Message.builder().data("naive_stress_test").build())
-          .build());
-
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          warmUpLatch.countDown();
-        }
-      });
-    }
-    warmUpLatch.await(30, TimeUnit.SECONDS);
-    assertTrue(warmUpLatch.getCount() == 0);
-
+    ServiceCall greetings = consumer.dispatcher()
+        .timeout(Duration.ofSeconds(30))
+        .create();
 
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
     for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = service.invoke(Messages.builder()
+      CompletableFuture<Message> future = greetings.invoke(Messages.builder()
           .request(GreetingService.class, "greetingMessage")
-          .data(Message.builder().data("naive_stress_test").build())
+          .data("1")
           .build());
-
+      
       future.whenComplete((success, error) -> {
-        if (error == null) {
-          countLatch.countDown();
-        }
+        countLatch.countDown();
+
       });
     }
+    
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
     countLatch.await(60, TimeUnit.SECONDS);
     reporter.stop();
@@ -102,6 +82,7 @@ public class SimpleStressTest extends BaseTest {
     provider.shutdown().get();
     consumer.shutdown().get();
   }
+
 
 
   @Test
@@ -122,35 +103,16 @@ public class SimpleStressTest extends BaseTest {
     reporter.start(1, TimeUnit.SECONDS);
 
     // Get a proxy to the service api.
-    GreetingService service = createProxy(consumer);
-
-    // Init params
-    int warmUpCount = 30_000;
-    int count = 600_000;
-    CountDownLatch warmUpLatch = new CountDownLatch(warmUpCount);
-
-    // Warm up
-    System.out.println("starting warm-up.");
-    for (int i = 0; i < warmUpCount; i++) {
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
-      future.whenComplete((success, error) -> {
-        if (error == null) {
-          warmUpLatch.countDown();
-        }
-      });
-    }
-    warmUpLatch.await(4, TimeUnit.SECONDS);
-
-    assertTrue(warmUpLatch.getCount() == 0);
-    System.out.println("finished warm-up.");
-
-
+    GreetingService service = consumer.proxy()
+        .api(GreetingService.class) // create proxy for GreetingService API
+        .timeout(Duration.ofSeconds(30))
+        .create();
+    
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
 
     for (int i = 0; i < count; i++) {
-      Util.sleep(i, 5, 300);
       CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
       future.whenComplete((success, error) -> {
         if (error == null) {
@@ -158,14 +120,9 @@ public class SimpleStressTest extends BaseTest {
         } else {
           System.out.println("failed: " + error);
           fail("test_naive_stress_not_breaking_the_system failed: " + error);
-          Util.drainLatch(count, countLatch);
         }
       });
     }
-
-    ScheduledFuture<?> sched = Executors.newScheduledThreadPool(1).scheduleAtFixedRate(() -> {
-      System.out.print(countLatch.getCount() + ", ");
-    }, 1, 1, TimeUnit.SECONDS);
 
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
     countLatch.await(60, TimeUnit.SECONDS);
@@ -181,13 +138,7 @@ public class SimpleStressTest extends BaseTest {
 
     provider.shutdown().get();
     consumer.shutdown().get();
-    sched.cancel(true);
+    
   }
 
-  private GreetingService createProxy(Microservices gateway) {
-    return gateway.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
-        .timeout(Duration.ofSeconds(30))
-        .create();
-  }
 }

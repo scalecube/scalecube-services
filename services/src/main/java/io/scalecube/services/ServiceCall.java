@@ -3,13 +3,14 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
-import io.scalecube.metrics.api.Counter;
-import io.scalecube.metrics.api.MetricFactory;
-import io.scalecube.metrics.api.Metrics;
-import io.scalecube.metrics.api.Timer;
-import io.scalecube.metrics.api.Timer.Context;
+import io.scalecube.services.metrics.MetricFactory;
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Timer;
+import com.codahale.metrics.Timer.Context;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -18,11 +18,11 @@
 			<artifactId>scalecube-cluster</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scalecube-metrics</artifactId>
-			<version>${project.version}</version>
+			<groupId>io.dropwizard.metrics</groupId>
+			<artifactId>metrics-core</artifactId>
+			<version>${metrics.version}</version>
 		</dependency>
 		
 		<dependency>

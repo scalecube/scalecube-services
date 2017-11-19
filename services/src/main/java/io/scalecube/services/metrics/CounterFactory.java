@@ -1,4 +1,6 @@
-package io.scalecube.metrics.api;
+package io.scalecube.services.metrics;
+
+import com.codahale.metrics.Counter;
 
 public interface CounterFactory {
 

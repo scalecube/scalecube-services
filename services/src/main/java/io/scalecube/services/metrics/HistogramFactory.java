@@ -1,6 +1,6 @@
-package io.scalecube.metrics.api;
+package io.scalecube.services.metrics;
 
-import io.scalecube.metrics.codahale.Histogram;
+import com.codahale.metrics.Histogram;
 
 public interface HistogramFactory {
 

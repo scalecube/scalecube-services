@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import io.scalecube.metrics.api.MetricFactory;
+import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 

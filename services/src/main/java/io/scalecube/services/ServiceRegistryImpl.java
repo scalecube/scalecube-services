@@ -3,8 +3,8 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.Member;
-import io.scalecube.metrics.api.MetricFactory;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
+import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
