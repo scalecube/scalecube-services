@@ -79,7 +79,6 @@
 		<module>benchmark</module>
 		<module>examples</module>
 		<module>services</module>
-		<module>metrics</module>
 	</modules>
 
 	<dependencyManagement>
