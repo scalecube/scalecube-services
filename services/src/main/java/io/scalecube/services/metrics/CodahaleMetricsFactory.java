@@ -53,7 +53,7 @@ public class CodahaleMetricsFactory implements MetricFactory {
   private final GaugeFactory gaugeFactory = new GaugeFactory() {
     @Override
     public <T> Gauge<T> register(final String component, final String methodName, final Gauge<T> gauge) {
-      registry.register(MetricRegistry.name(component, methodName), new com.codahale.metrics.Gauge<T>() {
+      registry.register(MetricRegistry.name(component, methodName), new Gauge<T>() {
         @Override
         public T getValue() {
           return gauge.getValue();
