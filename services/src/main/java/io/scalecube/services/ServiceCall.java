@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
-import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
@@ -32,7 +31,7 @@ public class ServiceCall {
   private Duration timeout;
   private Router router;
   private Timer latency;
-  private MetricFactory metrics;
+  private Metrics metrics;
 
   /**
    * ServiceCall is a service communication pattern for async request reply and reactive streams. it communicates with
@@ -43,7 +42,7 @@ public class ServiceCall {
    * @param timeout waiting for response.
    * @param metrics provider to collect metrics regards service execution.
    */
-  public ServiceCall(Router router, Duration timeout, MetricFactory metrics) {
+  public ServiceCall(Router router, Duration timeout, Metrics metrics) {
     this.router = router;
     this.timeout = timeout;
     this.metrics = metrics;

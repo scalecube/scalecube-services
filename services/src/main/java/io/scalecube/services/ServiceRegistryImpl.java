@@ -4,7 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
-import io.scalecube.services.metrics.MetricFactory;
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -35,7 +35,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private Microservices microservices;
 
-  private MetricFactory metrics;
+  private Metrics metrics;
 
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
@@ -44,7 +44,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param services services if relevant to this instance.
    * @param metrics nul1lable metrics factory if relevant to this instance.
    */
-  public ServiceRegistryImpl(Microservices microservices, ServicesConfig services, MetricFactory metrics) {
+  public ServiceRegistryImpl(Microservices microservices, ServicesConfig services, Metrics metrics) {
 
     checkArgument(microservices != null, "microservices can't be null");
     checkArgument(services != null, "services can't be null");

@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
-import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
@@ -29,7 +28,7 @@ public class LocalServiceInstance implements ServiceInstance {
   private final String memberId;
   private final Map<String, String> tags;
   private final Address address;
-  private MetricFactory metrics;
+  private Metrics metrics;
 
   /**
    * LocalServiceInstance instance constructor.
@@ -41,7 +40,7 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param metrics factory measuring service kpis
    */
   public LocalServiceInstance(ServiceConfig serviceConfig, Address address, String memberId, String serviceName,
-      Map<String, Method> methods, MetricFactory metrics) {
+      Map<String, Method> methods, Metrics metrics) {
     checkArgument(serviceConfig != null, "serviceConfig can't be null");
     checkArgument(serviceConfig.getService() != null, "serviceConfig.service can't be null");
     checkArgument(address != null, "address can't be null");

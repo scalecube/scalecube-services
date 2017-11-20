@@ -6,8 +6,6 @@ import static org.junit.Assert.fail;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.metrics.CodahaleMetricsFactory;
-import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -24,9 +22,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleStressTest extends BaseTest {
-  
+
   int count = 600_000;
-  
+
   private static AtomicInteger port = new AtomicInteger(4000);
 
   MetricRegistry registry = new MetricRegistry();
@@ -34,7 +32,7 @@ public class SimpleStressTest extends BaseTest {
       .convertRatesTo(TimeUnit.SECONDS)
       .convertDurationsTo(TimeUnit.MILLISECONDS)
       .build();
-  
+
   @Test
   public void test_naive_dispatcher_stress() throws InterruptedException, ExecutionException {
 
@@ -66,13 +64,13 @@ public class SimpleStressTest extends BaseTest {
           .request(GreetingService.class, "greetingMessage")
           .data("1")
           .build());
-      
+
       future.whenComplete((success, error) -> {
         countLatch.countDown();
 
       });
     }
-    
+
     System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
     countLatch.await(60, TimeUnit.SECONDS);
     reporter.stop();
@@ -106,7 +104,7 @@ public class SimpleStressTest extends BaseTest {
         .api(GreetingService.class) // create proxy for GreetingService API
         .timeout(Duration.ofSeconds(30))
         .create();
-    
+
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
@@ -137,7 +135,7 @@ public class SimpleStressTest extends BaseTest {
 
     provider.shutdown().get();
     consumer.shutdown().get();
-    
+
   }
 
 }

@@ -4,8 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.services.metrics.CodahaleMetricsFactory;
-import io.scalecube.services.metrics.MetricFactory;
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
@@ -109,9 +108,9 @@ public class Microservices {
 
   private final ServiceCommunicator sender;
 
-  private MetricFactory metrics;
+  private Metrics metrics;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, MetricFactory metrics) {
+  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, Metrics metrics) {
     this.cluster = cluster;
     this.sender = sender;
     this.metrics = metrics;
@@ -126,7 +125,7 @@ public class Microservices {
         .subscribe(message -> ServiceResponse.handleReply(message));
   }
 
-  public MetricFactory metrics() {
+  public Metrics metrics() {
     return this.metrics;
   }
 
@@ -154,7 +153,7 @@ public class Microservices {
 
     private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
-    private MetricFactory metrics;
+    private Metrics metrics;
 
     /**
      * Microservices instance builder.
@@ -241,7 +240,7 @@ public class Microservices {
 
     public Builder metrics(MetricRegistry metrics) {
       checkNotNull(metrics);
-      this.metrics = new CodahaleMetricsFactory(metrics);
+      this.metrics = new Metrics(metrics);
       return this;
     }
 
