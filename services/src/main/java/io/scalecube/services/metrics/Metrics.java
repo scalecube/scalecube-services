@@ -95,10 +95,43 @@ public class Metrics {
     return this.timerFactory;
   }
 
+  /**
+   * if metrics is not null returns a Timer instance for a given component and method name.
+   * 
+   * @param metrics factory instance to get timer.
+   * @param component name for the requested timer.
+   * @param methodName for the requested timer.
+   * @return timer instance.
+   */
+  public static Timer timer(Metrics metrics, String component, String methodName) {
+    if (metrics != null) {
+      return metrics.timer().get(component, methodName);
+    } else {
+      return null;
+    }
+  }
+  
   public CounterFactory counter() {
     return counterFactory;
   }
 
+  /**
+   * if metrics is not null returns a Counter instance for a given component and method name.
+   * 
+   * @param metrics factory instance to get timer.
+   * @param component name for the requested timer.
+   * @param methodName for the requested timer.
+   * @return counter instance.
+   */
+  public static Counter counter(Metrics metrics, String component, String methodName) {
+    if (metrics != null) {
+      return metrics.counter().get(component, methodName);
+    } else {
+      return null;
+    }
+  }
+
+  
   public GaugeFactory gauge() {
     return gaugeFactory;
   }
@@ -130,22 +163,6 @@ public class Metrics {
     }
   }
 
-  /**
-   * if metrics is not null returns a Timer instance for a given component and method name.
-   * 
-   * @param metrics factory instance to get timer.
-   * @param component name for the requested timer.
-   * @param methodName for the requested timer.
-   * @return timer instance.
-   */
-  public static Timer timer(Metrics metrics, String component, String methodName) {
-    if (metrics != null) {
-      return metrics.timer().get(component, methodName);
-    } else {
-      return null;
-    }
-  }
-
   public static Context time(Timer timer) {
     if (timer != null) {
       return timer.time();
@@ -156,22 +173,6 @@ public class Metrics {
   public static void stop(Context ctx) {
     if (ctx != null) {
       ctx.stop();
-    }
-  }
-
-  /**
-   * if metrics is not null returns a Counter instance for a given component and method name.
-   * 
-   * @param metrics factory instance to get timer.
-   * @param component name for the requested timer.
-   * @param methodName for the requested timer.
-   * @return counter instance.
-   */
-  public static Counter counter(Metrics metrics, String component, String methodName) {
-    if (metrics != null) {
-      return metrics.counter().get(component, methodName);
-    } else {
-      return null;
     }
   }
 
