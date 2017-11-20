@@ -5,12 +5,9 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.metrics.CodahaleMetricsFactory;
-import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
-import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 
 import org.junit.Test;
@@ -27,13 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class TestStreamingService extends BaseTest {
 
   MetricRegistry registry = new MetricRegistry();
-  ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
-      .convertRatesTo(TimeUnit.SECONDS)
-      .convertDurationsTo(TimeUnit.MILLISECONDS)
-      .build();
   
-  MetricFactory metrics = new CodahaleMetricsFactory(registry);
-  
+
   @Test
   public void test_quotes() throws InterruptedException {
 
@@ -105,13 +97,12 @@ public class TestStreamingService extends BaseTest {
   @Test
   public void test_quotes_snapshot() throws InterruptedException {
     int batchSize = 500_000;
-    reporter.start(1, TimeUnit.SECONDS);
     Microservices gateway = Microservices.builder().build();
 
     Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
-        .metrics(metrics)
+        .metrics(registry)
         .build();
 
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
@@ -131,9 +122,8 @@ public class TestStreamingService extends BaseTest {
         + (batchSize - latch1.getCount()) + "/" + batchSize + ") in "
         + (System.currentTimeMillis() - start) + "ms: "
         + "rate of :" + batchSize / (end / 1000) + " events/sec ");
-
+    System.out.println(registry.getMeters());
     assertTrue(latch1.getCount() == 0);
-    reporter.stop();
     sub1.unsubscribe();
     gateway.shutdown();
     node.shutdown();

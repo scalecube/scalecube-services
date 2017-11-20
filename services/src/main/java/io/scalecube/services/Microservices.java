@@ -4,12 +4,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.services.metrics.CodahaleMetricsFactory;
 import io.scalecube.services.metrics.MetricFactory;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
+
+import com.codahale.metrics.MetricRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,9 +239,9 @@ public class Microservices {
       return this;
     }
 
-    public Builder metrics(MetricFactory metrics) {
+    public Builder metrics(MetricRegistry metrics) {
       checkNotNull(metrics);
-      this.metrics = metrics;
+      this.metrics = new CodahaleMetricsFactory(metrics);
       return this;
     }
 

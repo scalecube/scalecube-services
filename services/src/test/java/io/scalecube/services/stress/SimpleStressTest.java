@@ -34,8 +34,7 @@ public class SimpleStressTest extends BaseTest {
       .convertRatesTo(TimeUnit.SECONDS)
       .convertDurationsTo(TimeUnit.MILLISECONDS)
       .build();
-  MetricFactory metrics = new CodahaleMetricsFactory(registry);
-
+  
   @Test
   public void test_naive_dispatcher_stress() throws InterruptedException, ExecutionException {
 
@@ -43,14 +42,14 @@ public class SimpleStressTest extends BaseTest {
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .metrics(metrics)
+        .metrics(registry)
         .build();
 
     // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
-        .metrics(metrics)
+        .metrics(registry)
         .build();
 
     reporter.start(10, TimeUnit.SECONDS);
@@ -91,14 +90,14 @@ public class SimpleStressTest extends BaseTest {
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .metrics(metrics)
+        .metrics(registry)
         .build();
 
     // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(provider.cluster().address())
-        .metrics(metrics)
+        .metrics(registry)
         .build();
     reporter.start(10, TimeUnit.SECONDS);
 
