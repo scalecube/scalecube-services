@@ -3,7 +3,6 @@
 ## 1.0.7 / NEXT RELEASE
 
 * Introduce ServiceCall.invokeAll service endpoints 
-* Introduce metrics module and codahle provider for collecting KPIs
 * Metrics added to ServiceCall request / response / error rates KPIs 
 
 ## 1.0.6 / 2017-09-20
