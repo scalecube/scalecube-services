@@ -321,7 +321,7 @@ public class Microservices {
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
 
-    config.getServiceConfigs().stream().forEach(serviceConfig -> {
+    config.services().stream().forEach(serviceConfig -> {
 
       serviceConfig.serviceNames().stream().forEach(name -> {
 

@@ -41,8 +41,7 @@ public class ServiceConfigTest extends BaseTest {
     builder.build();
 
     assertTrue(!config.services().isEmpty());
-    assertTrue(!config.getServiceConfigs().isEmpty());
-    assertTrue(!config.getServiceConfigs().get(0).getDefinitions().isEmpty());
+    assertTrue(!config.services().get(0).getDefinitions().isEmpty());
   }
 
 }
