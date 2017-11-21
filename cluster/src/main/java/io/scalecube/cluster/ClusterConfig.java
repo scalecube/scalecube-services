@@ -57,6 +57,9 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
   public static final int DEFAULT_LOCAL_GOSSIP_INTERVAL = 100;
   public static final int DEFAULT_LOCAL_CONNECT_TIMEOUT = 1_000;
 
+  public static final String DEFAULT_MEMBER_HOST = null;
+  public static final Integer DEFAULT_MEMBER_PORT = null;
+
   private final List<Address> seedMembers;
   private final Map<String, String> metadata;
   private final int syncInterval;
@@ -73,6 +76,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
   private final int gossipRepeatMult;
 
   private final TransportConfig transportConfig;
+  private final String memberHost;
+  private final Integer memberPort;
 
   private ClusterConfig(Builder builder) {
     this.seedMembers = Collections.unmodifiableList(builder.seedMembers);
@@ -91,6 +96,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
     this.gossipRepeatMult = builder.gossipRepeatMult;
 
     this.transportConfig = builder.transportConfigBuilder.build();
+    this.memberHost = builder.memberHost;
+    this.memberPort = builder.memberPort;
   }
 
   public static Builder builder() {
@@ -187,6 +194,14 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
     return transportConfig;
   }
 
+  public String getMemberHost() {
+    return memberHost;
+  }
+
+  public Integer getMemberPort() {
+    return memberPort;
+  }
+
   @Override
   public String toString() {
     return "ClusterConfig{seedMembers=" + seedMembers
@@ -202,6 +217,8 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
         + ", gossipFanout=" + gossipFanout
         + ", gossipRepeatMult=" + gossipRepeatMult
         + ", transportConfig=" + transportConfig
+        + ", memberHost=" + memberHost
+        + ", memberPort=" + memberPort
         + '}';
   }
 
@@ -223,6 +240,9 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
     private int gossipRepeatMult = DEFAULT_GOSSIP_REPEAT_MULT;
 
     private TransportConfig.Builder transportConfigBuilder = TransportConfig.builder();
+
+    private String memberHost = DEFAULT_MEMBER_HOST;
+    private Integer memberPort = DEFAULT_MEMBER_PORT;
 
     private Builder() {}
 
@@ -338,6 +358,31 @@ public final class ClusterConfig implements FailureDetectorConfig, GossipConfig,
       this.transportConfigBuilder.useNetworkEmulator(useNetworkEmulator);
       return this;
     }
+
+    /**
+     * Member address overrides.
+     */
+
+    /**
+     * Override the member host in cases when the transport address is not the address to be broadcast.
+     * @param memberHost Member host to broadcast
+     * @return this builder
+     */
+    public Builder memberHost(String memberHost) {
+      this.memberHost = memberHost;
+      return this;
+    }
+
+    /**
+     * Override the member port in cases when the transport port is not the post to be broadcast.
+     * @param memberPort Member port to broadcast
+     * @return this builder
+     */
+    public Builder memberPort(Integer memberPort) {
+      this.memberPort = memberPort;
+      return this;
+    }
+
 
     public ClusterConfig build() {
       Preconditions.checkState(pingTimeout < pingInterval, "Ping timeout can't be bigger than ping interval");

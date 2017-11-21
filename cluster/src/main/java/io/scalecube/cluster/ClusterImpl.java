@@ -127,7 +127,7 @@ final class ClusterImpl implements Cluster {
 
   @Override
   public Address address() {
-    return transport.address();
+    return member().address();
   }
 
   @Override

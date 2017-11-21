@@ -16,6 +16,8 @@ import com.google.common.collect.ImmutableList;
 
 import org.junit.Test;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -426,6 +428,73 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
+  @Test
+  public void testOverrideMemberAddress() throws UnknownHostException {
+    String localAddress = InetAddress.getLocalHost().getHostName();
+
+    Transport a = Transport.bindAwait(true);
+    Transport b = Transport.bindAwait(true);
+    Transport c = Transport.bindAwait(true);
+    Transport d = Transport.bindAwait(true);
+    Transport e = Transport.bindAwait(true);
+
+    MembershipProtocolImpl cm_a = createMembership(a, testConfig(Collections.emptyList()).memberHost(localAddress).build());
+    MembershipProtocolImpl cm_b = createMembership(b, testConfig(Collections.singletonList(a.address())).memberHost(localAddress).build());
+    MembershipProtocolImpl cm_c = createMembership(c, testConfig(Collections.singletonList(a.address())).memberHost(localAddress).build());
+    MembershipProtocolImpl cm_d = createMembership(d, testConfig(Collections.singletonList(b.address())).memberHost(localAddress).build());
+    MembershipProtocolImpl cm_e = createMembership(e, testConfig(Collections.singletonList(b.address())).memberHost(localAddress).build());
+
+    try {
+      awaitSeconds(3);
+
+      assertTrusted(cm_a, cm_a.member().address(), cm_b.member().address(), cm_c.member().address(), cm_d.member().address(), cm_e.member().address());
+      assertNoSuspected(cm_a);
+      assertTrusted(cm_b, cm_a.member().address(), cm_b.member().address(), cm_c.member().address(), cm_d.member().address(), cm_e.member().address());
+      assertNoSuspected(cm_b);
+      assertTrusted(cm_c, cm_a.member().address(), cm_b.member().address(), cm_c.member().address(), cm_d.member().address(), cm_e.member().address());
+      assertNoSuspected(cm_c);
+      assertTrusted(cm_d, cm_a.member().address(), cm_b.member().address(), cm_c.member().address(), cm_d.member().address(), cm_e.member().address());
+      assertNoSuspected(cm_d);
+      assertTrusted(cm_e, cm_a.member().address(), cm_b.member().address(), cm_c.member().address(), cm_d.member().address(), cm_e.member().address());
+      assertNoSuspected(cm_e);
+    } finally {
+      stopAll(cm_a, cm_b, cm_c, cm_d, cm_e);
+    }
+  }
+
+  @Test
+  public void testMemberAddressOverrides()  {
+    Transport t = Transport.bindAwait(true);
+    String host = "host1";
+
+    // Default behavior
+    Address address = MembershipProtocolImpl.memberAddress(t,
+            testConfig(Collections.emptyList())
+            .build());
+    assertEquals(t.address(), address);
+
+    // Override host only
+    address = MembershipProtocolImpl.memberAddress(t,
+              testConfig(Collections.emptyList())
+                .memberHost(host)
+              .build());
+    assertEquals(Address.create(host, t.address().port()), address);
+
+    // Override host and port
+    address = MembershipProtocolImpl.memberAddress(t,
+              testConfig(Collections.emptyList())
+                .memberHost(host).memberPort(80)
+              .build());
+    assertEquals(Address.create(host, 80), address);
+
+    // Override port only (override is ignored)
+    address = MembershipProtocolImpl.memberAddress(t,
+            testConfig(Collections.emptyList())
+                .memberPort(8080)
+            .build());
+    assertEquals(t.address(), address);
+  }
+
   private void awaitSeconds(long seconds) {
     try {
       TimeUnit.SECONDS.sleep(seconds);
@@ -434,16 +503,28 @@ public class MembershipProtocolTest extends BaseTest {
     }
   }
 
-  private MembershipProtocolImpl createMembership(Transport transport, List<Address> seedAddresses) {
-    // Create faster config for local testing
-    ClusterConfig config = ClusterConfig.builder()
-        .seedMembers(seedAddresses)
-        .syncInterval(2000)
-        .syncTimeout(1000)
-        .pingInterval(TEST_PING_INTERVAL)
-        .pingTimeout(100)
-        .build();
+  private ClusterConfig overrideConfig(Address seedAddress, String memberHost) {
+    return testConfig(seedAddress != null
+            ? Collections.singletonList(seedAddress)
+            : Collections.emptyList()
+    ).memberHost(memberHost).build();
+  }
 
+  private ClusterConfig.Builder testConfig(List<Address> seedAddresses) {
+    // Create faster config for local testing
+    return ClusterConfig.builder()
+            .seedMembers(seedAddresses)
+            .syncInterval(2000)
+            .syncTimeout(1000)
+            .pingInterval(TEST_PING_INTERVAL)
+            .pingTimeout(100);
+  }
+
+  private MembershipProtocolImpl createMembership(Transport transport, List<Address> seedAddresses) {
+    return createMembership(transport, testConfig(seedAddresses).build());
+  }
+
+  private MembershipProtocolImpl createMembership(Transport transport, ClusterConfig config) {
     // Create components
     MembershipProtocolImpl membership = new MembershipProtocolImpl(transport, config);
     FailureDetectorImpl failureDetector = new FailureDetectorImpl(transport, membership, config);
