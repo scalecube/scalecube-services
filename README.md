@@ -7,10 +7,14 @@
 [![Join the chat at https://gitter.im/scalecube/Lobby](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/scalecube/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/fold_left.svg?style=social&label=Follow%20%40ScaleCube)](https://twitter.com/scalecube)
 
-ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
-ScaleCube project provides the tools to develop, test and scale microservice components in distributed manner with ease.
+## Welcome to scalecube! if you are new to scalecube:
+[Please read ScaleCube-services Motivations and vision](https://github.com/scalecube/scalecube/wiki)
 
-The project focuses on ensuring that your application realises the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
+## Overview
+ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
+ScaleCube project provides the tools to develop, test and scale microservice components in a distributed manner with ease.
+
+The project focuses on ensuring that your application realizes the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
 while delivering a high productivity development environment, and seamless production deployment experience.
 
 Web Site: [http://scalecube.io](http://scalecube.io/)
@@ -27,6 +31,25 @@ Next is described modules in the top to bottom order from the higher level featu
 ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery 
 based on gossip protocol ad without single point-of-failure or bottlenecks.
 
+ScaleCube Services Features:
+
+* Provision and interconnect microservices as a unified system (cluster)</li>
+* Async RPC with java-8 CompleteableFutures support
+* Reactive Streams support with RxJava.
+* No single-point-of-failure or single-point-of-bottleneck
+* Cluster aware and distributed
+* Modular, flexible deployment models and topology
+* Zero configuration, automatic peer-to-peer service discovery using gossip
+* Simple non-blocking, asynchronous programming model
+* Resilient due to failure detection, fault tolerance, and elasticity
+* Routing and balancing strategies for both stateless and stateful services
+* Low latency and high throughput
+* Takes advantage of the JVM and scales over available cores
+* Embeddable to existing Java applications
+* Message Driven based on google-protocol-buffers
+* Natural Circuit-Breaker due to tight integration with scalecube-cluster failure detector.
+* Support Service instance tagging. 
+
 User Guide:
 
 * [Services Overview](http://scalecube.io/services.html)
@@ -34,6 +57,7 @@ User Guide:
 * [Implementing services](http://scalecube.io/user-reference/services/ServiceImplementation.html)
 * [Provisioning Clustered Services](http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
 * [Consuming services](http://scalecube.io/user-reference/services/ConsumingServices.html)
+
 
 ### CLUSTER
 
@@ -141,13 +165,26 @@ To add a dependency on ScaleCube Transport using Maven, use the following:
 ```
 
 ## Contributing
-
+* Follow/Star us on github.
 * Fork (and then git clone https://github.com/--your-username-here--/scalecube.git).
 * Create a branch (git checkout -b branch_name).
 * Commit your changes (git commit -am "Description of contribution").
 * Push the branch (git push origin branch_name).
 * Open a Pull Request.
 * Thank you for your contribution! Wait for a response...
+
+## References
+* Anton Kharenko
+
+  [blog](http://www.antonkharenko.com/)
+  
+* Ronen Nachmias 
+
+  [posts](https://www.linkedin.com/today/author/ronenhm?trk=pprof-feed)
+
+* Research
+
+[1] [SWIM Membership protocol](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf)
 
 ## License
 

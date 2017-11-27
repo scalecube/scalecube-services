@@ -21,4 +21,8 @@ public interface MembershipConfig {
 
   int getSuspicionMult();
 
+  String getMemberHost();
+
+  Integer getMemberPort();
+
 }

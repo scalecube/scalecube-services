@@ -102,10 +102,12 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
   public MembershipProtocolImpl(Transport transport, MembershipConfig config) {
     this.transport = transport;
     this.config = config;
-    Member member = new Member(IdGenerator.generateId(), transport.address(), config.getMetadata());
+
+    Address address = memberAddress(transport, config);
+    Member member = new Member(IdGenerator.generateId(), address, config.getMetadata());
     this.memberRef = new AtomicReference<>(member);
 
-    String nameFormat = "sc-membership-" + Integer.toString(transport.address().port());
+    String nameFormat = "sc-membership-" + Integer.toString(address.port());
     this.executor = Executors.newSingleThreadScheduledExecutor(
         new ThreadFactoryBuilder().setNameFormat(nameFormat).setDaemon(true).build());
 
@@ -113,10 +115,26 @@ public final class MembershipProtocolImpl implements MembershipProtocol {
     this.seedMembers = cleanUpSeedMembers(config.getSeedMembers());
   }
 
+  /**
+   * Returns the accessible member address, either from the transport or the overridden variables.
+   * @param transport transport
+   * @param config membership config parameters
+   * @return Accessible member address
+   */
+  protected static Address memberAddress(Transport transport, MembershipConfig config) {
+    Address memberAddress = transport.address();
+    if (config.getMemberHost() != null) {
+      int memberPort = config.getMemberPort() != null ? config.getMemberPort() : memberAddress.port();
+      memberAddress = Address.create(config.getMemberHost(), memberPort);
+    }
+
+    return memberAddress;
+  }
+
   // Remove duplicates and local address
   private List<Address> cleanUpSeedMembers(Collection<Address> seedMembers) {
     Set<Address> seedMembersSet = new HashSet<>(seedMembers); // remove duplicates
-    seedMembersSet.remove(transport.address()); // remove local address
+    seedMembersSet.remove(member().address()); // remove local address
     return Collections.unmodifiableList(new ArrayList<>(seedMembersSet));
   }
 
