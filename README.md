@@ -10,6 +10,7 @@
 ## Welcome to scalecube! if you are new to scalecube:
 [Please read ScaleCube-services Motivations and vision](https://github.com/scalecube/scalecube/wiki)
 
+## Overview
 ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
 ScaleCube project provides the tools to develop, test and scale microservice components in a distributed manner with ease.
 
@@ -164,13 +165,26 @@ To add a dependency on ScaleCube Transport using Maven, use the following:
 ```
 
 ## Contributing
-
+* Follow/Star us on github.
 * Fork (and then git clone https://github.com/--your-username-here--/scalecube.git).
 * Create a branch (git checkout -b branch_name).
 * Commit your changes (git commit -am "Description of contribution").
 * Push the branch (git push origin branch_name).
 * Open a Pull Request.
 * Thank you for your contribution! Wait for a response...
+
+## References
+* Anton Kharenko
+
+  [blog](http://www.antonkharenko.com/)
+  
+* Ronen Nachmias 
+
+  [posts](https://www.linkedin.com/today/author/ronenhm?trk=pprof-feed)
+
+* Research
+
+[1] [SWIM Membership protocol](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf)
 
 ## License
 
