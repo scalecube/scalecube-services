@@ -38,6 +38,15 @@ public class Metrics {
     return getCounter(component.getName(), methodName);
   }
 
+  /**
+   * Register a Gauge and service registry.
+   * 
+   * @param metrics factory instance to get timer.
+   * @param component name for the requested timer.
+   * @param methodName for the requested timer.
+   * @return gauge instance.
+   * @return gauge registered in the service registry.
+   */
   public <T> Gauge<T> register(final String component, final String methodName, final Gauge<T> gauge) {
     registry.register(MetricRegistry.name(component, methodName), new Gauge<T>() {
       @Override
@@ -56,7 +65,7 @@ public class Metrics {
   public Histogram getHistogram(final String component, final String methodName, final boolean biased) {
     return registry.histogram(MetricRegistry.name(component, methodName));
   }
-  
+
   public <T> Histogram getHistogram(final Class<T> component, final String methodName, final boolean biased) {
     return getHistogram(component.getName(), methodName, biased);
   }
