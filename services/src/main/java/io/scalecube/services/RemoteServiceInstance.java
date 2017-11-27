@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class RemoteServiceInstance implements ServiceInstance {
- 
+
   private static final Logger LOGGER = LoggerFactory.getLogger(RemoteServiceInstance.class);
 
   private final Address address;
@@ -67,17 +67,13 @@ public class RemoteServiceInstance implements ServiceInstance {
   public Observable<Message> listen(final Message request) {
 
     final String cid = request.correlationId();
-    
+
     AtomicReference<Subscription> subscription = new AtomicReference<>();
     Observable<Message> observer = transportObservable.doOnUnsubscribe(() -> {
       Message unsubscribeRequest = Messages.asUnsubscribeRequest(cid);
       LOGGER.info("sending remote unsubscribed event: {}", unsubscribeRequest);
       subscription.get().unsubscribe();
-      sendRemote(unsubscribeRequest).whenComplete((success, error) -> {
-        if (error != null) {
-          LOGGER.error("Failed sending remote unsubscribed event: {} {}", unsubscribeRequest, error);
-        }
-      });
+      sendRemote(unsubscribeRequest);
     });
 
     Subscription sub = observer
@@ -85,15 +81,9 @@ public class RemoteServiceInstance implements ServiceInstance {
         .subscribe(onNext -> {
           serviceResponses.onNext(onNext);
         });
-    
+
     subscription.set(sub);
-
-    sendRemote(request).whenComplete((success, error) -> {
-      if (error != null) {
-        LOGGER.error("Failed sending remote subscribe request: {} {}", request, error);
-      }
-    });
-
+    sendRemote(request);
     return serviceResponses;
   }
 
@@ -113,31 +103,22 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public CompletableFuture<Message> invoke(Message request) {
-
     Messages.validate().serviceRequest(request);
-
     CompletableFuture<Message> result = new CompletableFuture<Message>();
-
-    futureInvoke(request)
-        .whenComplete((success, error) -> {
-          if (error == null) {
-            result.complete(Message.builder().data("remote send completed").build());
-          } else {
-            LOGGER.error("Failed to send request {} to target address {}", request, address);
-            result.completeExceptionally(error);
-          }
-        });
-
+    
+    try {
+      sendRemote(request);
+      result.complete(Message.builder().data("remote send completed").build());
+    } catch (Exception error) {
+      LOGGER.error("Failed to send request {} to target address {}", request, address);
+      result.completeExceptionally(error);
+    }
     return result;
   }
 
-  private CompletableFuture<Void> futureInvoke(final Message request) {
-    return sendRemote(request);
-  }
-
-  private CompletableFuture<Void> sendRemote(Message request) {
+  private void sendRemote(Message request) {
     LOGGER.debug("cid [{}] send remote service request message {}", request.correlationId(), request);
-    return this.sender.send(address, request);
+    this.sender.send(address, request);
   }
 
   @Override
@@ -168,17 +149,17 @@ public class RemoteServiceInstance implements ServiceInstance {
   public boolean methodExists(String methodName) {
     return methods.contains(methodName);
   }
-  
+
   @Override
   public void checkMethodExists(String methodName) {
     checkArgument(this.methodExists(methodName), "instance has no such requested method");
   }
-  
+
   @Override
   public String toString() {
     return "RemoteServiceInstance [serviceName=" + serviceName + ", address=" + address + ", memberId=" + memberId
         + ", methods=" + methods + ", tags=" + tags + "]";
   }
 
- 
+
 }

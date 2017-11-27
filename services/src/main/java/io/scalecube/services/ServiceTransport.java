@@ -15,7 +15,6 @@ public class ServiceTransport implements ServiceCommunicator {
 
   private Transport transport;
   private Cluster cluster;
-  private static final CompletableFuture<Void> COMPLETED_PROMISE = CompletableFuture.completedFuture(null);
 
   public ServiceTransport(Transport transport) {
     checkArgument(transport != null, "transport can't be null");
@@ -23,11 +22,11 @@ public class ServiceTransport implements ServiceCommunicator {
   }
 
   @Override
-  public CompletableFuture<Void> send(Address address, Message message) {
-    transport.send(address, message, COMPLETED_PROMISE);
-    return COMPLETED_PROMISE;
+  public void send(Address address, Message message) {
+    transport.send(address, message);
   }
 
+  
   @Override
   public Address address() {
     return this.transport.address();
