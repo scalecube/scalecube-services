@@ -10,9 +10,9 @@
 ## Welcome to scalecube! if you are new to scalecube:
 [Please read ScaleCube-services Motivations and vision](https://github.com/scalecube/scalecube/wiki)
 
-## Overview
-ScaleCube, the art of scaling, in microservice architecture scalecube is a strategy in which components can scale on X, Y, Z axis. 
-ScaleCube project provides the tools to develop, test and scale microservice components in a distributed manner with ease.
+## Overview 
+ScaleCube project provides the tools to develop, test and scale distributed components in a cluster with ease.
+it provides a general propuse cluster-membership library based on [SWIM Membership protocol](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf) with gossip protocol as improvment. scalecube-cluster is built as such it is Embeddable and can be used by any cluster-aware application which requires cluster membership, node discovery, faliure-detection and gossip style of communication between member nodes. based on that unique properties scalecube implements aditional seperated module implementing microservices coordination library that features service discovery, fault-tollarance at scale.
 
 The project focuses on ensuring that your application realizes the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
 while delivering a high productivity development environment, and seamless production deployment experience.
@@ -181,10 +181,6 @@ To add a dependency on ScaleCube Transport using Maven, use the following:
 * Ronen Nachmias 
 
   [posts](https://www.linkedin.com/today/author/ronenhm?trk=pprof-feed)
-
-* Research
-
-[1] [SWIM Membership protocol](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf)
 
 ## License
 
