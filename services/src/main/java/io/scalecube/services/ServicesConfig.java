@@ -16,10 +16,6 @@ public class ServicesConfig {
 
   private List<ServiceConfig> servicesConfig = new ArrayList<>();
 
-  public List<ServiceConfig> getServiceConfigs() {
-    return servicesConfig;
-  }
-
   public void setServiceTags(List<ServiceConfig> serviceTags) {
     this.servicesConfig = serviceTags;
   }

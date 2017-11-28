@@ -73,26 +73,17 @@ public class RemoteServiceInstance implements ServiceInstance {
       Message unsubscribeRequest = Messages.asUnsubscribeRequest(cid);
       LOGGER.info("sending remote unsubscribed event: {}", unsubscribeRequest);
       subscription.get().unsubscribe();
-      sendRemote(unsubscribeRequest).whenComplete((success, error) -> {
-        if (error != null) {
-          LOGGER.error("Failed sending remote unsubscribed event: {} {}", unsubscribeRequest, error);
-        }
-      });
+      sendRemote(unsubscribeRequest);
     });
 
-    subscription.set(observer
+    Subscription sub = observer
         .filter(message -> message.correlationId().equals(cid))
         .subscribe(onNext -> {
           serviceResponses.onNext(onNext);
-        }));
+        });
 
-    sendRemote(request).whenComplete((success, error) -> {
-      if (error != null) {
-        subscription.get().unsubscribe();
-        LOGGER.error("Failed sending remote subscribe request: {} {}", request, error);
-      }
-    });
-
+    subscription.set(sub);
+    sendRemote(request);
     return serviceResponses;
   }
 
@@ -112,31 +103,22 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public CompletableFuture<Message> invoke(Message request) {
-
     Messages.validate().serviceRequest(request);
-
     CompletableFuture<Message> result = new CompletableFuture<Message>();
-
-    futureInvoke(request)
-        .whenComplete((success, error) -> {
-          if (error == null) {
-            result.complete(Message.builder().data("remote send completed").build());
-          } else {
-            LOGGER.error("Failed to send request {} to target address {}", request, address);
-            result.completeExceptionally(error);
-          }
-        });
-
+    
+    try {
+      sendRemote(request);
+      result.complete(Message.builder().data("remote send completed").build());
+    } catch (Exception error) {
+      LOGGER.error("Failed to send request {} to target address {}", request, address);
+      result.completeExceptionally(error);
+    }
     return result;
   }
 
-  private CompletableFuture<Void> futureInvoke(final Message request) {
-    return sendRemote(request);
-  }
-
-  private CompletableFuture<Void> sendRemote(Message request) {
+  private void sendRemote(Message request) {
     LOGGER.debug("cid [{}] send remote service request message {}", request.correlationId(), request);
-    return this.sender.send(address, request);
+    this.sender.send(address, request);
   }
 
   @Override

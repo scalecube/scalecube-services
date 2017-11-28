@@ -8,6 +8,8 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
+import com.codahale.metrics.MetricRegistry;
+
 import org.junit.Test;
 
 import rx.Observable;
@@ -20,6 +22,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class TestStreamingService extends BaseTest {
+
+  MetricRegistry registry = new MetricRegistry();
+  
 
   @Test
   public void test_quotes() throws InterruptedException {
@@ -92,12 +97,13 @@ public class TestStreamingService extends BaseTest {
   @Test
   public void test_quotes_snapshot() throws InterruptedException {
     int batchSize = 500_000;
-
     Microservices gateway = Microservices.builder().build();
 
     Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .metrics(registry)
+        .build();
 
     QuoteService service = gateway.proxy().api(QuoteService.class).create();
 
@@ -116,12 +122,12 @@ public class TestStreamingService extends BaseTest {
         + (batchSize - latch1.getCount()) + "/" + batchSize + ") in "
         + (System.currentTimeMillis() - start) + "ms: "
         + "rate of :" + batchSize / (end / 1000) + " events/sec ");
-
+    System.out.println(registry.getMeters());
     assertTrue(latch1.getCount() == 0);
-
     sub1.unsubscribe();
     gateway.shutdown();
     node.shutdown();
+
   }
 
   @Test
@@ -308,7 +314,7 @@ public class TestStreamingService extends BaseTest {
     assertTrue(latch1.getCount() == 0);
     assertTrue(sub1.get().isUnsubscribed());
     gateway.shutdown();
-    
+
 
   }
 }

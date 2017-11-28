@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 
@@ -13,8 +14,8 @@ public class ServiceDispatcherFactory {
     this.routerFactory = new RouterFactory(serviceRegistry);
   }
 
-  public ServiceCall createDispatcher(Class<? extends Router> routerType, Duration timeout) {
-    return new ServiceCall(routerFactory.getRouter(routerType), timeout);
+  public ServiceCall createDispatcher(Class<? extends Router> routerType, Duration timeout, Metrics metrics) {
+    return new ServiceCall(routerFactory.getRouter(routerType), timeout, metrics);
   }
 
 }

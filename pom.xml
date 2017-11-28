@@ -66,6 +66,7 @@
         <netty.version>4.1.5.Final</netty.version>
         <protostuff.version>1.6.0</protostuff.version>
         <protobuf.version>3.4.0</protobuf.version>
+        <metrics.version>3.1.2</metrics.version>
         
     	<argLine>-Xms1024m -Xmx2048m</argLine>
   

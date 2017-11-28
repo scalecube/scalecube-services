@@ -2,7 +2,8 @@
 
 ## 1.0.7 / NEXT RELEASE
 
-* introduce ServiceCall.invokeAll service endpoints 
+* Introduce ServiceCall.invokeAll service endpoints 
+* Metrics added to ServiceCall request / response / error rates KPIs 
 
 ## 1.0.6 / 2017-09-20
 
