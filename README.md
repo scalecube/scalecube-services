@@ -12,7 +12,7 @@
 
 ## Overview 
 ScaleCube project provides the tools to develop, test and scale distributed components in a cluster with ease.
-it provides a general propuse cluster-membership library based on [SWIM Membership protocol](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf) with gossip protocol as improvment. scalecube-cluster is built as such it is Embeddable and can be used by any cluster-aware application which requires cluster membership, node discovery, faliure-detection and gossip style of communication between member nodes. based on that unique properties scalecube implements aditional seperated module implementing microservices coordination library that features service discovery, fault-tollarance at scale.
+it provides a general purpose cluster-membership library based on [SWIM Membership protocol](http://www.cs.cornell.edu/~asdas/research/dsn02-swim.pdf) with gossip protocol as improvement. scalecube-cluster is Embeddable and can be used by any cluster-aware application that requires cluster membership, node discovery, failure-detection and gossip style of communication across member nodes. based on that unique properties scalecube implements aditional seperated module for microservices coordination library that features service discovery, fault-tolerance at scale.
 
 The project focuses on ensuring that your application realizes the full potential of the [Reactive Manifesto](http://www.reactivemanifesto.org/), 
 while delivering a high productivity development environment, and seamless production deployment experience.
