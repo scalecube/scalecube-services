@@ -4,7 +4,12 @@
 
 * Introduce ServiceCall.invokeAll service endpoints 
 * Metrics added to ServiceCall request / response / error rates KPIs 
-
+* Add member host/port overrides on member config
+ 
+ Shout-out:
+- Mike Barker on first contribution.
+  
+  
 ## 1.0.6 / 2017-09-20
 
 * Supports graceful shutdown of cluster member by spreading leaving notification
