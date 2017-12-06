@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
@@ -34,10 +35,11 @@ public class ServiceProxyFactory {
    * 
    * @param serviceInterface the service interface, api, of the service.
    * @param routerType the type of routing method class to be used.
+   * @param metrics optional performance metrics.
    * @return newly created service proxy object.
    */
   public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
-      Duration timeout) {
+      Duration timeout, Metrics metrics) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
     dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).create();
@@ -46,6 +48,8 @@ public class ServiceProxyFactory {
 
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+
+        Metrics.mark(serviceInterface, metrics, method, "request");
 
         Object data = method.getParameterCount() != 0 ? args[0] : null;
         final Message reqMsg = getRequestMessage(serviceDefinition, method, data);
@@ -59,7 +63,6 @@ public class ServiceProxyFactory {
           return toReturnValue(method,
               dispatcher.invoke(reqMsg));
         }
-
       }
 
       private Message getRequestMessage(ServiceDefinition serviceDefinition, Method method, Object data) {
@@ -85,12 +88,14 @@ public class ServiceProxyFactory {
         } else if (method.getReturnType().equals(CompletableFuture.class)) {
           reuslt.whenComplete((value, ex) -> {
             if (ex == null) {
+              Metrics.mark(serviceInterface, metrics, method, "response");
               if (!Reflect.parameterizedReturnType(method).equals(Message.class)) {
                 future.complete(value.data());
               } else {
                 future.complete((T) value);
               }
             } else {
+              Metrics.mark(serviceInterface, metrics, method, "error");
               LOGGER.error("return value is exception: {}", ex);
               future.completeExceptionally(ex);
             }

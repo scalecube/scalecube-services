@@ -3,8 +3,13 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Timer;
+import com.codahale.metrics.Timer.Context;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,10 +30,27 @@ public class ServiceCall {
 
   private Duration timeout;
   private Router router;
+  private Timer latency;
+  private Metrics metrics;
 
-  public ServiceCall(Router router, Duration timeout) {
+  /**
+   * ServiceCall is a service communication pattern for async request reply and reactive streams. it communicates with
+   * local and remote services using messages and handles. it acts as proxy and middle-ware between service consumer and
+   * service provider.
+   * 
+   * @param router strategy to select service instance.
+   * @param timeout waiting for response.
+   * @param metrics provider to collect metrics regards service execution.
+   */
+  public ServiceCall(Router router, Duration timeout, Metrics metrics) {
     this.router = router;
     this.timeout = timeout;
+    this.metrics = metrics;
+    this.latency = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
+  }
+
+  public ServiceCall(Router router, Duration timeout) {
+    this(router, timeout, null);
   }
 
   public CompletableFuture<Message> invoke(Message message) {
@@ -95,11 +117,19 @@ public class ServiceCall {
 
       final ServiceResponse responseFuture = ServiceResponse.correlationId(cid);
 
+      final Context ctx = Metrics.time(latency);
+      Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
+      Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
+      Metrics.inc(counter);
       serviceInstance.invoke(Messages.asRequest(request, cid))
           .whenComplete((success, error) -> {
+            Metrics.dec(counter);
+            Metrics.stop(ctx);
             if (error == null) {
+              Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
               responseFuture.withTimeout(duration);
             } else {
+              Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
               responseFuture.completeExceptionally(error);
             }
           });
@@ -109,6 +139,8 @@ public class ServiceCall {
       return serviceInstance.invoke(request);
     }
   }
+
+
 
   /**
    * Invoke all service instances with a given request message with a given service name and method name. expected

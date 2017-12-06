@@ -39,7 +39,7 @@ public class ServiceResponse {
     this.messageFuture = new CompletableFuture<>();
     futures.putIfAbsent(this.correlationId, this);
   }
-  
+
   public static ServiceResponse correlationId(String cid) {
     return new ServiceResponse(cid);
   }
@@ -71,8 +71,6 @@ public class ServiceResponse {
       }
     }
   }
- 
-
 
   /**
    * complete the expected future response successfully and apply the function.
@@ -125,4 +123,5 @@ public class ServiceResponse {
     }
     return resultFuture;
   }
+
 }

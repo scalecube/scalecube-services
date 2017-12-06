@@ -3,60 +3,41 @@ package io.scalecube.services;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.cluster.Cluster;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Transport;
 
 import org.junit.Test;
+
+import java.util.concurrent.ExecutionException;
 
 public class ServiceRegistryImplTest extends BaseTest {
 
   @Test
-  public void test_service_registry() {
-
-    Cluster cluster = Cluster.joinAwait();
-
+  public void test_service_registry() throws InterruptedException, ExecutionException {
     ServicesConfig services = ServicesConfig.empty();
-
-    ServiceCommunicator sender = new ServiceTransport(Transport.bindAwait());
-
-    ServiceRegistryImpl registry = new ServiceRegistryImpl(cluster, sender, services);
-
+    Microservices ms = Microservices.builder().build();
+    ServiceRegistryImpl registry = new ServiceRegistryImpl(Microservices.builder().build(), services);
     assertTrue(registry.services().isEmpty());
-    
-    cluster.shutdown();
-    sender.shutdown();
-
+    ms.shutdown().get();
   }
 
   @Test
-  public void test_service_registry_errors() {
-    Cluster cluster = Cluster.joinAwait();
-    ServiceCommunicator sender = new ServiceTransport(Transport.bindAwait());
-    
+  public void test_service_registry_errors() throws InterruptedException, ExecutionException {
+
     ServicesConfig services = ServicesConfig.empty();
 
     try {
-      new ServiceRegistryImpl(null, sender, services);
+      new ServiceRegistryImpl(null, services);
     } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: cluster can't be null");
+      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: microservices can't be null");
     }
 
+    Microservices ms = Microservices.builder().build();
     try {
-      new ServiceRegistryImpl(cluster, null, services);
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: transport can't be null");
-    }
-
-    try {
-      new ServiceRegistryImpl(cluster, sender, null);
+      new ServiceRegistryImpl(ms, null);
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: services can't be null");
     }
-
-    sender.shutdown();
-    cluster.shutdown();
-
+    ms.shutdown().get();
   }
 
 }

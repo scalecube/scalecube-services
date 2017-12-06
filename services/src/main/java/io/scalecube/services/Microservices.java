@@ -4,11 +4,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
+
+import com.codahale.metrics.MetricRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,18 +108,25 @@ public class Microservices {
 
   private final ServiceCommunicator sender;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services) {
+  private Metrics metrics;
+
+  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, Metrics metrics) {
     this.cluster = cluster;
     this.sender = sender;
-    this.serviceRegistry = new ServiceRegistryImpl(cluster, sender, services);
+    this.metrics = metrics;
+    this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
 
-    this.proxyFactory = new ServiceProxyFactory(this);
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
-
+    this.proxyFactory = new ServiceProxyFactory(this);
     new ServiceDispatcher(this);
+
     this.sender.listen()
         .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
         .subscribe(message -> ServiceResponse.handleReply(message));
+  }
+
+  public Metrics metrics() {
+    return this.metrics;
   }
 
   public Cluster cluster() {
@@ -128,7 +138,7 @@ public class Microservices {
   }
 
   private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
-    return proxyFactory.createProxy(serviceInterface, router, timeout);
+    return proxyFactory.createProxy(serviceInterface, router, timeout, metrics);
   }
 
   public Collection<ServiceInstance> services() {
@@ -143,8 +153,10 @@ public class Microservices {
 
     private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
+    private Metrics metrics;
+
     /**
-     * microsrrvices instance builder.
+     * Microservices instance builder.
      * 
      * @return Microservices instance.
      */
@@ -160,7 +172,7 @@ public class Microservices {
       cluster = Cluster.joinAwait(cfg);
       transportSender.cluster(cluster);
 
-      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig)).inject();
+      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig, this.metrics)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
@@ -221,7 +233,14 @@ public class Microservices {
     }
 
     public Builder serviceTransport(TransportConfig transportConfig) {
+      checkNotNull(transportConfig);
       this.transportConfig = transportConfig;
+      return this;
+    }
+
+    public Builder metrics(MetricRegistry metrics) {
+      checkNotNull(metrics);
+      this.metrics = new Metrics(metrics);
       return this;
     }
 
@@ -239,7 +258,7 @@ public class Microservices {
 
     public ServiceCall create() {
       LOGGER.debug("create service api {} router {}", router);
-      return dispatcherFactory.createDispatcher(this.router, this.timeout);
+      return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
     }
 
     public DispatcherContext timeout(Duration timeout) {
@@ -296,12 +315,13 @@ public class Microservices {
       this.router = router;
       return this;
     }
+
   }
 
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
 
-    config.getServiceConfigs().stream().forEach(serviceConfig -> {
+    config.services().stream().forEach(serviceConfig -> {
 
       serviceConfig.serviceNames().stream().forEach(name -> {
 

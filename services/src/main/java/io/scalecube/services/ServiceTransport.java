@@ -22,12 +22,11 @@ public class ServiceTransport implements ServiceCommunicator {
   }
 
   @Override
-  public CompletableFuture<Void> send(Address address, Message message) {
-    CompletableFuture<Void> future = new CompletableFuture<Void>();
-    transport.send(address, message, future);
-    return future;
+  public void send(Address address, Message message) {
+    transport.send(address, message);
   }
 
+  
   @Override
   public Address address() {
     return this.transport.address();
