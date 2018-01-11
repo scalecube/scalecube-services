@@ -4,9 +4,10 @@ import com.google.common.base.Throwables;
 
 import rx.Observable;
 
+import java.util.concurrent.CompletableFuture;
+
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Transport is responsible for maintaining existing p2p connections to/from other transports.
