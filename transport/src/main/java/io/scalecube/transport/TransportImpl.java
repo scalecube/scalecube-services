@@ -93,6 +93,15 @@ final class TransportImpl implements Transport {
     return bind0(server, listenAddress, bindPort, bindPort + config.getPortCount());
   }
 
+  /**
+   * Helper bind method to start accepting connections on {@code listenAddress} and {@code bindPort}.
+   *
+   * @param bindPort bind port.
+   * @param finalBindPort maximum port to bind.
+   * @throws NoSuchElementException if {@code bindPort} greater than {@code finalBindPort}.
+   * @throws IllegalArgumentException if {@code bindPort} doesnt belong to the range [{@link Addressing#MIN_PORT_NUMBER}
+   *         .. {@link Addressing#MAX_PORT_NUMBER}].
+   */
   private CompletableFuture<Transport> bind0(ServerBootstrap server, InetAddress listenAddress, int bindPort,
       int finalBindPort) {
 
@@ -101,14 +110,14 @@ final class TransportImpl implements Transport {
     final CompletableFuture<Transport> result = new CompletableFuture<>();
 
     // Perform basic bind port validation
-    if (bindPort > finalBindPort) {
-      result.completeExceptionally(
-          new NoSuchElementException("Could not find an available port from: " + bindPort + " to: " + finalBindPort));
-      return result;
-    }
     if (bindPort < MIN_PORT_NUMBER || bindPort > MAX_PORT_NUMBER) {
       result.completeExceptionally(
           new IllegalArgumentException("Invalid port number: " + bindPort));
+      return result;
+    }
+    if (bindPort > finalBindPort) {
+      result.completeExceptionally(
+          new NoSuchElementException("Could not find an available port from: " + bindPort + " to: " + finalBindPort));
       return result;
     }
 
