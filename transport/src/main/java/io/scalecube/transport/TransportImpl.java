@@ -2,6 +2,8 @@ package io.scalecube.transport;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
+import static io.scalecube.transport.Addressing.MAX_PORT_NUMBER;
+import static io.scalecube.transport.Addressing.MIN_PORT_NUMBER;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
@@ -31,6 +33,7 @@ import rx.subjects.Subject;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -78,23 +81,49 @@ final class TransportImpl implements Transport {
    * Starts to accept connections on local address.
    */
   public CompletableFuture<Transport> bind0() {
-    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
+    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
 
     // Resolve listen IP address
-    final InetAddress listenAddress =
+    InetAddress listenAddress =
         Addressing.getLocalIpAddress(config.getListenAddress(), config.getListenInterface(), config.isPreferIPv6());
 
-    // Resolve listen port
-    int bindPort = config.isPortAutoIncrement()
-        ? Addressing.getNextAvailablePort(listenAddress, config.getPort(), config.getPortCount()) // Find available port
-        : config.getPort();
+    // Listen port
+    int bindPort = config.getPort();
 
-    // Listen address
-    address = Address.create(listenAddress.getHostAddress(), bindPort);
+    return bind0(server, listenAddress, bindPort, bindPort + config.getPortCount());
+  }
 
-    ServerBootstrap server = bootstrapFactory.serverBootstrap().childHandler(incomingChannelInitializer);
-    ChannelFuture bindFuture = server.bind(listenAddress, address.port());
+  /**
+   * Helper bind method to start accepting connections on {@code listenAddress} and {@code bindPort}.
+   *
+   * @param bindPort bind port.
+   * @param finalBindPort maximum port to bind.
+   * @throws NoSuchElementException if {@code bindPort} greater than {@code finalBindPort}.
+   * @throws IllegalArgumentException if {@code bindPort} doesnt belong to the range [{@link Addressing#MIN_PORT_NUMBER}
+   *         .. {@link Addressing#MAX_PORT_NUMBER}].
+   */
+  private CompletableFuture<Transport> bind0(ServerBootstrap server, InetAddress listenAddress, int bindPort,
+      int finalBindPort) {
+
+    incomingMessagesSubject.subscribeOn(Schedulers.from(bootstrapFactory.getWorkerGroup()));
+
     final CompletableFuture<Transport> result = new CompletableFuture<>();
+
+    // Perform basic bind port validation
+    if (bindPort < MIN_PORT_NUMBER || bindPort > MAX_PORT_NUMBER) {
+      result.completeExceptionally(
+          new IllegalArgumentException("Invalid port number: " + bindPort));
+      return result;
+    }
+    if (bindPort > finalBindPort) {
+      result.completeExceptionally(
+          new NoSuchElementException("Could not find an available port from: " + bindPort + " to: " + finalBindPort));
+      return result;
+    }
+
+    // Get address object and bind
+    address = Address.create(listenAddress.getHostAddress(), bindPort);
+    ChannelFuture bindFuture = server.bind(listenAddress, address.port());
     bindFuture.addListener((ChannelFutureListener) channelFuture -> {
       if (channelFuture.isSuccess()) {
         serverChannel = (ServerChannel) channelFuture.channel();
@@ -106,7 +135,7 @@ final class TransportImpl implements Transport {
         Throwable cause = channelFuture.cause();
         if (config.isPortAutoIncrement() && isAddressAlreadyInUseException(cause)) {
           LOGGER.warn("Can't bind to address {}, try again on different port [cause={}]", address, cause.toString());
-          bind0().thenAccept(result::complete);
+          bind0(server, listenAddress, bindPort + 1, finalBindPort).thenAccept(result::complete);
         } else {
           LOGGER.error("Failed to bind to: {}, cause: {}", address, cause);
           result.completeExceptionally(cause);

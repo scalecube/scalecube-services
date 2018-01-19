@@ -3,18 +3,15 @@ package io.scalecube.transport;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 
-import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /**
  * Utility class which finds local IP address and currently available server ports.
@@ -27,65 +24,14 @@ final class Addressing {
   /**
    * The minimum server port number. Set at 1100 to avoid returning privileged port numbers.
    */
-  private static final int MIN_PORT_NUMBER = 1100;
+  public static final int MIN_PORT_NUMBER = 1100;
 
   /**
-   * The maximum server port number. It should only use up to 49151, as from 49152 up to 65535 are reserved for
-   * ephemeral ports.
+   * The maximum server port number.
    */
-  private static final int MAX_PORT_NUMBER = 49151;
+  public static final int MAX_PORT_NUMBER = 65535;
 
   private Addressing() {}
-
-  /**
-   * Finds next available port on given local IP address starting from given port and incrementing port for port count
-   * iterations.
-   *
-   * @param inetAddress local IP address on which check for port availability
-   * @param fromPort starting port
-   * @param portCount number of ports to check
-   * @return Next available port
-   * @throws NoSuchElementException if port wasn't found in the given interval
-   */
-  public static int getNextAvailablePort(InetAddress inetAddress, int fromPort, int portCount) {
-    int toPort = Math.min(MAX_PORT_NUMBER, fromPort + portCount) - 1;
-    for (int port = fromPort; port <= toPort; port++) {
-      if (isAvailablePort(inetAddress, port)) {
-        return port;
-      }
-    }
-    throw new NoSuchElementException("Could not find an available port from " + fromPort + " to " + toPort);
-  }
-
-  /**
-   * Checks to see if a specific port is available.
-   *
-   * @param port the port to check for availability
-   */
-  public static boolean isAvailablePort(InetAddress inetAddress, int port) {
-    if (port < MIN_PORT_NUMBER || port > MAX_PORT_NUMBER) {
-      throw new IllegalArgumentException("Invalid port number: " + port);
-    }
-
-    Socket socket = null;
-    try {
-      socket = new Socket(inetAddress, port);
-
-      // If the code makes it this far without an exception it means
-      // something is using the port and has responded.
-      return false;
-    } catch (IOException ignore) {
-      return true;
-    } finally {
-      if (socket != null) {
-        try {
-          socket.close();
-        } catch (IOException ignore) {
-          // Should not be thrown
-        }
-      }
-    }
-  }
 
   /**
    * Returns {@link InetAddress} by given IP address or network interface name.

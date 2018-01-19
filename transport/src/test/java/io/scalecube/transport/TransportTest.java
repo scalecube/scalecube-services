@@ -20,6 +20,8 @@ import rx.Subscriber;
 
 import java.io.IOException;
 import java.net.BindException;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,6 +132,64 @@ public class TransportTest extends BaseTest {
     } finally {
       destroyTransport(transport1);
       destroyTransport(transport2);
+    }
+  }
+
+  @Test
+  public void testNoBindExceptionWithPortAutoIncrement() throws Exception {
+    TransportConfig config = TransportConfig.builder()
+        .port(6000)
+        .portAutoIncrement(true)
+        .portCount(100)
+        .build();
+    Transport transport1 = null;
+    Transport transport2 = null;
+
+    try {
+      transport1 = Transport.bindAwait(config);
+      transport2 = Transport.bindAwait(config);
+    } finally {
+      destroyTransport(transport1);
+      destroyTransport(transport2);
+    }
+  }
+
+  @Test
+  public void testNoBindExceptionWithPortAutoIncrementWithHalfClosedSocket() throws Exception {
+    // Create half-closed socket scenario setup: server socket, connecting client socket, accepted socket
+    // on server side being closed, connected socket doesn't react on server's close
+
+    ServerSocket serverSocket = new ServerSocket(6000);
+    Thread acceptor = new Thread(() -> {
+      while (true) {
+        Socket accepted = null;
+        try {
+          accepted = serverSocket.accept();
+          accepted.close();
+        } catch (Exception ignore) {
+        }
+      }
+    });
+    acceptor.setDaemon(true);
+    acceptor.start();
+
+    Socket socket = new Socket(serverSocket.getInetAddress(), serverSocket.getLocalPort());
+
+    // Pretend that this port was chosen as bind port for the transport
+    int transportBindPort = socket.getLocalPort();
+
+    TransportConfig config = TransportConfig.builder()
+        .port(transportBindPort)
+        .portAutoIncrement(true)
+        .portCount(100)
+        .build();
+    Transport transport1 = null;
+    try {
+      transport1 = Transport.bindAwait(config);
+    } finally {
+      destroyTransport(transport1);
+      serverSocket.close();
+      socket.close();
     }
   }
 
