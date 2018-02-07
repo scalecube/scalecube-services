@@ -14,6 +14,8 @@ import rx.Subscription;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -44,7 +46,7 @@ public class RemoteServiceInstance implements ServiceInstance {
       Map<String, String> tags) {
 
     this.serviceName = serviceReference.serviceName();
-    this.methods = serviceReference.methods();
+    this.methods = Collections.unmodifiableSet(serviceReference.methods());
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = tags;
@@ -153,6 +155,11 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public void checkMethodExists(String methodName) {
     checkArgument(this.methodExists(methodName), "instance has no such requested method");
+  }
+
+  @Override
+  public Collection<String> methods() {
+    return methods;
   }
 
   @Override

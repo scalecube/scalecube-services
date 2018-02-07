@@ -1,5 +1,9 @@
 # Changes
 
+## 1.0.8 / 2018-02-07
+
+* Update ServiceRegistry api, expose 'methods' on ServiceInstance
+
 ## 1.0.7 / 2017-12-05
 
 * Introduce ServiceCall.invokeAll service endpoints 
