@@ -1,6 +1,8 @@
 package io.scalecube.services;
 
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
@@ -21,8 +23,7 @@ public class ServiceInstanceTest extends BaseTest {
 
     Address address = Address.create("localhost", 4000);
     ServiceConfig conf = new ServiceConfig(new GreetingServiceImpl());
-    LocalServiceInstance instance = new LocalServiceInstance(conf, address,
-        "a", "b", new HashMap<>());
+    LocalServiceInstance instance = new LocalServiceInstance(conf, address, "a", "b", new HashMap<>());
     assertEquals(instance.toString(), "LocalServiceInstance [serviceObject=GreetingServiceImpl [], memberId=a]");
     assertTrue(instance.tags().isEmpty());
     assertEquals(instance.memberId(), "a");
@@ -71,7 +72,7 @@ public class ServiceInstanceTest extends BaseTest {
 
     Microservices member = Microservices.builder().build();
     ServiceReference reference =
-        new ServiceReference("a", "b", Collections.EMPTY_SET, Address.create("localhost", 4000));
+        new ServiceReference("a", "b", Collections.singleton("sayHello"), Address.create("localhost", 4000));
 
     ServiceCommunicator sender = new ServiceTransport(Transport.bindAwait());
 
@@ -79,13 +80,15 @@ public class ServiceInstanceTest extends BaseTest {
         new RemoteServiceInstance(sender, reference, new HashMap<>());
 
     assertEquals(instance.toString(),
-        "RemoteServiceInstance [serviceName=b, address=localhost:4000, memberId=a, methods=[], tags={}]");
+        "RemoteServiceInstance [serviceName=b, address=localhost:4000, memberId=a, methods=[sayHello], tags={}]");
     
     assertTrue(instance.tags().isEmpty());
     assertEquals(instance.memberId(), "a");
     assertEquals(instance.address(), Address.create("localhost", 4000));
     assertTrue(!instance.isLocal());
     assertEquals(instance.serviceName(), "b");
+    assertEquals(1, instance.methods().size());
+    assertThat(instance.methods(), hasItem("sayHello"));
 
     try {
       instance.dispatch(Message.builder()
