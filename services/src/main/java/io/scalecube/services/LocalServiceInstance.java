@@ -11,6 +11,7 @@ import rx.Observable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -50,7 +51,7 @@ public class LocalServiceInstance implements ServiceInstance {
 
     this.serviceObject = serviceConfig.getService();
     this.serviceName = serviceName;
-    this.methods = methods;
+    this.methods = Collections.unmodifiableMap(methods);
     this.memberId = memberId;
     this.tags = serviceConfig.getTags();
     this.address = address;
@@ -186,5 +187,10 @@ public class LocalServiceInstance implements ServiceInstance {
   @Override
   public void checkMethodExists(String methodName) {
     checkArgument(methodExists(methodName), "instance has no such requested method");
+  }
+
+  @Override
+  public Collection<String> methods() {
+    return methods.keySet();
   }
 }
