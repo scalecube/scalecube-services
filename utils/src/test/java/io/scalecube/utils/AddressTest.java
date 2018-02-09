@@ -1,12 +1,14 @@
-package io.scalecube.transport;
+package io.scalecube.utils;
 
 import static org.junit.Assert.assertEquals;
 
+import io.scalecube.testlib.BaseTest;
+import io.scalecube.transport.Address;
+import io.scalecube.transport.Addressing;
+
 import org.junit.Test;
 
-import io.scalecube.testlib.BaseTest;
-
-public class AddressTest  extends BaseTest {
+public class AddressTest extends BaseTest {
 
   @Test
   public void testParseHostPort() throws Exception {
