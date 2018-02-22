@@ -27,6 +27,26 @@ import java.util.stream.Collector;
  */
 public class Routers {
 
+  private static final class RandomCollection<E> {
+    private final NavigableMap<Double, E> map = new TreeMap<Double, E>();
+    private double total = 0;
+
+    public void add(double weight, E result) {
+      if (weight > 0 && !map.containsValue(result)) {
+        map.put(total += weight, result);
+      }
+    }
+
+    public E next() {
+      double value = ThreadLocalRandom.current().nextDouble() * total;
+      return map.ceilingEntry(value).getValue();
+    }
+  }
+
+  private final static BiPredicate<ServiceInstance, Message> methodExists =
+      (instance, request) -> instance.methodExists(request.header(ServiceHeaders.METHOD));
+
+
   /**
    * Random selection router.
    * 
@@ -46,23 +66,12 @@ public class Routers {
     return RoundRobinServiceRouter.class;
   }
 
-
-  private static final class RandomCollection<E> {
-    private final NavigableMap<Double, E> map = new TreeMap<Double, E>();
-    private double total = 0;
-
-    public RandomCollection() {}
-
-    public void add(double weight, E result) {
-      if (weight > 0 && !map.containsValue(result)) {
-        map.put(total += weight, result);
-      }
-    }
-
-    public E next() {
-      double value = ThreadLocalRandom.current().nextDouble() * total;
-      return map.ceilingEntry(value).getValue();
-    }
+  private final static <T> Collector<T, List<T>, List<T>> toImmutableList() {
+    return Collector.of(ArrayList::new, List::add,
+        (left, right) -> {
+          left.addAll(right);
+          return left;
+        }, Collections::unmodifiableList);
   }
 
   /**
@@ -104,40 +113,17 @@ public class Routers {
   }
 
   /**
-   * Simple router for single key-value.
+   * Router for multiple key-value.
    * 
-   * @param key the tag that the {@link ServiceInstance} should have.
-   * @param value the value that must be equals the tag's value.
-   * @return a router that routes only instances that has a tag with the given key-value pair.
+   * @param containsAll a map with all tags that the {@link ServiceInstance} should have.
+   * 
+   * @return a router that routes only instances that has all {@link ServiceInstance#tags() tags} on the map's key and
+   *         which are {@link String#equals(Object) equal} to the corresponding value
+   * @see Routers#withAllTags(Map, BiPredicate)
    */
-  public static Class<? extends Router> withTag(String key, String value) {
 
-    final Predicate<ServiceInstance> hasKeyWithValue =
-        instance -> value.equals(instance.tags().get(key));
-
-    class RouterWithTag implements Router {
-      private final ServiceRegistry serviceRegistry;
-
-      @SuppressWarnings("unused")
-      public RouterWithTag(ServiceRegistry serviceRegistry) {
-        this.serviceRegistry = serviceRegistry;
-      }
-
-      @Override
-      public Optional<ServiceInstance> route(Message request) {
-        return routes(request).stream().unordered().findFirst();
-      }
-
-      @Override
-      public Collection<ServiceInstance> routes(Message request) {
-        String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-        Predicate<ServiceInstance> hasMethod = instance -> methodExists.test(instance, request);
-        return serviceRegistry.serviceLookup(serviceName).stream()
-            .filter(hasMethod.and(hasKeyWithValue)).collect(toImmutableList());
-      }
-    }
-
-    return RouterWithTag.class;
+  public static Class<? extends Router> withAllTags(Map<String, String> containsAll) {
+    return withAllTags(containsAll, String::equals);
   }
 
   /**
@@ -196,20 +182,6 @@ public class Routers {
   /**
    * Router for multiple key-value.
    * 
-   * @param containsAll a map with all tags that the {@link ServiceInstance} should have.
-   * 
-   * @return a router that routes only instances that has all {@link ServiceInstance#tags() tags} on the map's key and
-   *         which are {@link String#equals(Object) equal} to the corresponding value
-   * @see Routers#withAllTags(Map, BiPredicate)
-   */
-
-  public static Class<? extends Router> withAllTags(Map<String, String> containsAll) {
-    return withAllTags(containsAll, String::equals);
-  }
-
-  /**
-   * Router for multiple key-value.
-   * 
    * @param matchAll a map with all tags that the {@link ServiceInstance} should have.
    * 
    * @return a router that routes only instances that has all {@link ServiceInstance#tags() tags} on the map's key and
@@ -220,14 +192,40 @@ public class Routers {
     return withAllTags(matchAll, String::matches);
   }
 
-  static final BiPredicate<ServiceInstance, Message> methodExists =
-      (instance, request) -> instance.methodExists(request.header(ServiceHeaders.METHOD));
+  /**
+   * Simple router for single key-value.
+   * 
+   * @param key the tag that the {@link ServiceInstance} should have.
+   * @param value the value that must be equals the tag's value.
+   * @return a router that routes only instances that has a tag with the given key-value pair.
+   */
+  public static Class<? extends Router> withTag(String key, String value) {
 
-  static <T> Collector<T, List<T>, List<T>> toImmutableList() {
-    return Collector.of(ArrayList::new, List::add,
-        (left, right) -> {
-          left.addAll(right);
-          return left;
-        }, Collections::unmodifiableList);
+    final Predicate<ServiceInstance> hasKeyWithValue =
+        instance -> value.equals(instance.tags().get(key));
+
+    class RouterWithTag implements Router {
+      private final ServiceRegistry serviceRegistry;
+
+      @SuppressWarnings("unused")
+      public RouterWithTag(ServiceRegistry serviceRegistry) {
+        this.serviceRegistry = serviceRegistry;
+      }
+
+      @Override
+      public Optional<ServiceInstance> route(Message request) {
+        return routes(request).stream().unordered().findFirst();
+      }
+
+      @Override
+      public Collection<ServiceInstance> routes(Message request) {
+        String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+        Predicate<ServiceInstance> hasMethod = instance -> methodExists.test(instance, request);
+        return serviceRegistry.serviceLookup(serviceName).stream()
+            .filter(hasMethod.and(hasKeyWithValue)).collect(toImmutableList());
+      }
+    }
+
+    return RouterWithTag.class;
   }
 }
