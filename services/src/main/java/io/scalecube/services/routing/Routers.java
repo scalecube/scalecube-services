@@ -43,7 +43,7 @@ public class Routers {
     }
   }
 
-  private final static BiPredicate<ServiceInstance, Message> methodExists =
+  private static final BiPredicate<ServiceInstance, Message> methodExists =
       (instance, request) -> instance.methodExists(request.header(ServiceHeaders.METHOD));
 
 
@@ -66,7 +66,7 @@ public class Routers {
     return RoundRobinServiceRouter.class;
   }
 
-  private final static <T> Collector<T, List<T>, List<T>> toImmutableList() {
+  private static final <T> Collector<T, List<T>, List<T>> toImmutableList() {
     return Collector.of(ArrayList::new, List::add,
         (left, right) -> {
           left.addAll(right);
