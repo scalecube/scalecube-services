@@ -1,6 +1,13 @@
 package io.scalecube.services.routing;
 
-import io.scalecube.services.ServiceHeaders;
+
+import static io.scalecube.services.routing.Routing.serviceLookup;
+import static java.util.Collections.shuffle;
+import static java.util.Collections.unmodifiableList;
+import static java.util.stream.Collectors.collectingAndThen;
+import static java.util.stream.Collectors.toCollection;
+import static java.util.stream.Collectors.toList;
+
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
 import io.scalecube.transport.Message;
@@ -8,6 +15,8 @@ import io.scalecube.transport.Message;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -43,29 +52,6 @@ public class Routers {
     }
   }
 
-  private static final BiPredicate<ServiceInstance, Message> methodExists =
-      (instance, request) -> instance.methodExists(request.header(ServiceHeaders.METHOD));
-
-
-  /**
-   * Random selection router.
-   * 
-   * @return a router that randomly selects {@link ServiceInstance}
-   */
-  public static Class<? extends Router> random() {
-    return RandomServiceRouter.class;
-  }
-
-  /**
-   * Round-robin selection router.
-   * 
-   * @return a router that selects {@link ServiceInstance} in RoundRobin algorithm
-   * @see RoundRobinServiceRouter
-   */
-  public static Class<? extends Router> roundRobin() {
-    return RoundRobinServiceRouter.class;
-  }
-
   private static final <T> Collector<T, List<T>, List<T>> toImmutableList() {
     return Collector.of(ArrayList::new, List::add,
         (left, right) -> {
@@ -74,42 +60,94 @@ public class Routers {
         }, Collections::unmodifiableList);
   }
 
+  private static final Collector<?, ?, ?> SHUFFLER = collectingAndThen(
+      toList(),
+      list -> {
+        shuffle(list);
+        return list;
+      });
+
+  @SuppressWarnings("unchecked")
+  public static <T> Collector<T, ?, List<T>> toShuffledList() {
+    return (Collector<T, ?, List<T>>) SHUFFLER;
+  }
+
+  /**
+   * Random selection router.
+   * 
+   * @return a router that randomly selects {@link ServiceInstance}
+   */
+  public static Routing random() {
+    return (serviceRegistry, request) -> serviceLookup(serviceRegistry, request)
+        .collect(collectingAndThen(toShuffledList(), Collections::unmodifiableList));
+  }
+
+  /**
+   * Round-robin selection router.
+   * 
+   * @return a router that selects {@link ServiceInstance} in RoundRobin algorithm
+   * @see RoundRobinServiceRouter
+   */
+  public static Routing roundRobin() {
+    return new Routing() {
+      Deque<ServiceInstance> serviceLookup = new LinkedList<>();
+
+      @Override
+      public Optional<ServiceInstance> route(ServiceRegistry registry, Message request) {
+        if (serviceLookup.isEmpty()) {
+          routes(registry, request);
+        }
+        Optional<ServiceInstance> result = Optional.empty();
+        try {
+          return result = Optional.ofNullable(serviceLookup.pollFirst());
+        } finally {
+          result.ifPresent(serviceLookup::offerLast);
+        }
+      }
+
+      @Override
+      public Collection<ServiceInstance> routes(ServiceRegistry serviceRegistry, Message request) {
+        serviceLookup =
+            serviceLookup(serviceRegistry, request).collect(toCollection(LinkedList::new));
+        return unmodifiableList((LinkedList<ServiceInstance>) (serviceLookup));
+      }
+
+      @Override
+      public String toString() {
+        return "Round Robin Routing";
+      }
+    };
+  }
+
+
+
   /**
    * A Weighted random router.
    * 
    * @return a router that balances {@link ServiceInstance}s with weighted random using the tag "Weight"
    */
-  public static Class<? extends Router> weightedRandom() {
+  public static Routing weightedRandom() {
 
-    class WeightedRandom implements Router {
-
-      private ServiceRegistry serviceRegistry;
-
-      @SuppressWarnings("unused")
-      public WeightedRandom(ServiceRegistry serviceRegistry) {
-        this.serviceRegistry = serviceRegistry;
-      }
+    return new Routing() {
 
       @Override
-      public Optional<ServiceInstance> route(Message request) {
-        String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+      public Optional<ServiceInstance> route(ServiceRegistry serviceRegistry, Message request) {
         RandomCollection<ServiceInstance> weightedRandom = new RandomCollection<>();
-        serviceRegistry.serviceLookup(serviceName).stream().forEach(instance -> {
+
+        serviceLookup(serviceRegistry, request).forEach(instance -> {
           weightedRandom.add(
-              Double.valueOf(instance.tags().get("Weight")),
+              Double.valueOf(instance.tags().getOrDefault("Weight", "0")),
               instance);
         });
         return Optional.of(weightedRandom.next());
       }
 
       @Override
-      public Collection<ServiceInstance> routes(Message request) {
-        String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-        return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
+      public Collection<ServiceInstance> routes(ServiceRegistry serviceRegistry, Message request) {
+        return serviceLookup(serviceRegistry, request).collect(toImmutableList());
       }
-    }
+    };
 
-    return WeightedRandom.class;
   }
 
   /**
@@ -122,7 +160,7 @@ public class Routers {
    * @see Routers#withAllTags(Map, BiPredicate)
    */
 
-  public static Class<? extends Router> withAllTags(Map<String, String> containsAll) {
+  public static Routing withAllTags(Map<String, String> containsAll) {
     return withAllTags(containsAll, String::equals);
   }
 
@@ -136,7 +174,7 @@ public class Routers {
    * @see Routers#withAllTags(Map)
    * @implNote the evaluation is always done on all keys
    */
-  public static Class<? extends Router> withAllTags(Map<String, String> matchAll,
+  public static Routing withAllTags(Map<String, String> matchAll,
       BiPredicate<String, String> testMatch) {
 
     final Predicate<ServiceInstance> hasKeysWithValue =
@@ -145,7 +183,8 @@ public class Routers {
             AtomicReference<Boolean> result = new AtomicReference<>(true);
             matchAll.forEach((matchKey, matchValue) -> {
               result.accumulateAndGet(
-                  testMatch.test(instance.tags().get(matchKey), matchValue), Boolean::logicalAnd);
+                  testMatch.test(instance.tags().get(matchKey), matchValue),
+                  Boolean::logicalAnd);
             });
             return result.get();
           } else {
@@ -153,30 +192,9 @@ public class Routers {
           }
         };
 
-    class RouterWithTags implements Router {
-      private final ServiceRegistry serviceRegistry;
+    return (ServiceRegistry serviceRegistry, Message request) -> serviceLookup(serviceRegistry, request)
+        .filter(hasKeysWithValue).collect(toImmutableList());
 
-      @SuppressWarnings("unused")
-
-      public RouterWithTags(ServiceRegistry serviceRegistry) {
-        this.serviceRegistry = serviceRegistry;
-      }
-
-      @Override
-      public Optional<ServiceInstance> route(Message request) {
-        return routes(request).stream().unordered().findFirst();
-      }
-
-      @Override
-      public Collection<ServiceInstance> routes(Message request) {
-        String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-        Predicate<ServiceInstance> hasMethod = instance -> Routers.methodExists.test(instance, request);
-        return serviceRegistry.serviceLookup(serviceName).stream()
-            .filter(hasMethod.and(hasKeysWithValue)).collect(toImmutableList());
-      }
-    }
-
-    return RouterWithTags.class;
   }
 
   /**
@@ -188,7 +206,7 @@ public class Routers {
    *         which {@link String#matches(String) match} the corresponding value's regular expression
    * @see Routers#withAllTags(Map, BiPredicate)
    */
-  public static Class<? extends Router> withAllTagsMetchingRegex(Map<String, String> matchAll) {
+  public static Routing withAllTagsMetchingRegex(Map<String, String> matchAll) {
     return withAllTags(matchAll, String::matches);
   }
 
@@ -199,33 +217,12 @@ public class Routers {
    * @param value the value that must be equals the tag's value.
    * @return a router that routes only instances that has a tag with the given key-value pair.
    */
-  public static Class<? extends Router> withTag(String key, String value) {
+  public static Routing withTag(String key, String value) {
 
     final Predicate<ServiceInstance> hasKeyWithValue =
         instance -> value.equals(instance.tags().get(key));
 
-    class RouterWithTag implements Router {
-      private final ServiceRegistry serviceRegistry;
-
-      @SuppressWarnings("unused")
-      public RouterWithTag(ServiceRegistry serviceRegistry) {
-        this.serviceRegistry = serviceRegistry;
-      }
-
-      @Override
-      public Optional<ServiceInstance> route(Message request) {
-        return routes(request).stream().unordered().findFirst();
-      }
-
-      @Override
-      public Collection<ServiceInstance> routes(Message request) {
-        String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-        Predicate<ServiceInstance> hasMethod = instance -> methodExists.test(instance, request);
-        return serviceRegistry.serviceLookup(serviceName).stream()
-            .filter(hasMethod.and(hasKeyWithValue)).collect(toImmutableList());
-      }
-    }
-
-    return RouterWithTag.class;
+    return (ServiceRegistry serviceRegistry, Message request) -> serviceLookup(serviceRegistry, request)
+        .filter(hasKeyWithValue).collect(toImmutableList());
   }
 }
