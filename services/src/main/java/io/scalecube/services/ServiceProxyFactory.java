@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routing;
 import io.scalecube.transport.Message;
 
 import com.google.common.reflect.Reflection;
@@ -34,15 +35,15 @@ public class ServiceProxyFactory {
    * createProxy creates a java generic proxy instance by a given service interface.
    * 
    * @param serviceInterface the service interface, api, of the service.
-   * @param routerType the type of routing method class to be used.
+   * @param routing the routing to be used.
    * @param metrics optional performance metrics.
    * @return newly created service proxy object.
    */
-  public <T> T createProxy(Class<T> serviceInterface, final Class<? extends Router> routerType,
+  public <T> T createProxy(Class<T> serviceInterface, Routing routing,
       Duration timeout, Metrics metrics) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
-    dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).create();
+    dispatcher = microservices.dispatcher().routing(routing).timeout(timeout).create();
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
@@ -89,10 +90,12 @@ public class ServiceProxyFactory {
           reuslt.whenComplete((value, ex) -> {
             if (ex == null) {
               Metrics.mark(serviceInterface, metrics, method, "response");
-              if (!Reflect.parameterizedReturnType(method).equals(Message.class)) {
-                future.complete(value.data());
+              if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
+                @SuppressWarnings("unchecked")
+                T result = (T) value;
+                future.complete(result);
               } else {
-                future.complete((T) value);
+                future.complete(value.data());
               }
             } else {
               Metrics.mark(serviceInterface, metrics, method, "error");
