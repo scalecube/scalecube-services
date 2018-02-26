@@ -8,6 +8,7 @@ import static java.util.stream.Collectors.collectingAndThen;
 import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
+import io.scalecube.services.ServiceHeaders;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
 import io.scalecube.transport.Message;
@@ -22,8 +23,13 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
@@ -90,26 +96,38 @@ public class Routers {
    */
   public static Routing roundRobin() {
     return new Routing() {
-      Deque<ServiceInstance> serviceLookup = new LinkedList<>();
+      final List<ServiceInstance> serviceLookup = new CopyOnWriteArrayList<>();
+      Map<String, LongAdder> counters = new ConcurrentHashMap<>();
 
       @Override
-      public Optional<ServiceInstance> route(ServiceRegistry registry, Message request) {
+      public Optional<ServiceInstance> route(ServiceRegistry serviceRegistry, Message request) {
         if (serviceLookup.isEmpty()) {
-          routes(registry, request);
+          routes(serviceRegistry, request);
         }
-        Optional<ServiceInstance> result = Optional.empty();
-        try {
-          return result = Optional.ofNullable(serviceLookup.pollFirst());
-        } finally {
-          result.ifPresent(serviceLookup::offerLast);
+
+        LongAdder thisMethodCounter =
+            counters.computeIfAbsent(request.header(ServiceHeaders.METHOD), (s) -> new LongAdder());
+        if (serviceLookup.isEmpty()) {
+          serviceLookup.addAll(routes(serviceRegistry, request));
+          if (serviceLookup.isEmpty()) {
+            return Optional.empty();
+          }
         }
+
+        thisMethodCounter.increment();
+        int index = thisMethodCounter.intValue();
+        if (index >= serviceLookup.size()) {
+          thisMethodCounter.reset();
+          index = index % serviceLookup.size();
+        }
+        return Optional.of(serviceLookup.get(index));
       }
 
       @Override
       public Collection<ServiceInstance> routes(ServiceRegistry serviceRegistry, Message request) {
-        serviceLookup =
-            serviceLookup(serviceRegistry, request).collect(toCollection(LinkedList::new));
-        return unmodifiableList((LinkedList<ServiceInstance>) (serviceLookup));
+        serviceLookup(serviceRegistry, request).filter(instance -> !serviceLookup.contains(instance))
+            .forEach(serviceLookup::add);
+        return unmodifiableList(serviceLookup);
       }
 
       @Override
@@ -220,7 +238,9 @@ public class Routers {
   public static Routing withTag(String key, String value) {
 
     final Predicate<ServiceInstance> hasKeyWithValue =
-        instance -> value.equals(instance.tags().get(key));
+        instance -> {
+          return value.equals(instance.tags().get(key));
+        };
 
     return (ServiceRegistry serviceRegistry, Message request) -> serviceLookup(serviceRegistry, request)
         .filter(hasKeyWithValue).collect(toImmutableList());
