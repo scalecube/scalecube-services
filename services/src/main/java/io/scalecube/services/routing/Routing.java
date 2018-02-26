@@ -17,7 +17,20 @@ import java.util.stream.Stream;
 
 @FunctionalInterface
 public interface Routing {
-
+ 
+  /**
+   * Most implementations of Routing would like to test that a method exists in the {@link ServiceInstance service
+   * instance}. <br />
+   * This {@link BiPredicate} tests a service instance and a message.
+   * 
+   * @returns true if the instance {@link ServiceInstance#methodExists has} the {@link ServiceHeaders.METHOD method}
+   *          which requested in the message {@link Message#header(String) header}
+   * 
+   */
+  public static final BiPredicate<ServiceInstance, Message> methodExists =
+      (instance, request) -> instance.methodExists(request.header(ServiceHeaders.METHOD));
+      
+      
   /**
    * Routing is a selection mechanism to find a service that will be able to reply a request.
    * 
@@ -39,17 +52,7 @@ public interface Routing {
    */
   Collection<ServiceInstance> routes(ServiceRegistry registry, Message request);
 
-  /**
-   * Most implementations of Routing would like to test that a method exists in the {@link ServiceInstance service
-   * instance}. <br />
-   * This {@link BiPredicate} tests a service instance and a message.
-   * 
-   * @returns true if the instance {@link ServiceInstance#methodExists has} the {@link ServiceHeaders.METHOD method}
-   *          which requested in the message {@link Message#header(String) header}
-   * 
-   */
-  public static final BiPredicate<ServiceInstance, Message> methodExists =
-      (instance, request) -> instance.methodExists(request.header(ServiceHeaders.METHOD));
+
 
 
   public static Stream<ServiceInstance> serviceLookup(ServiceRegistry serviceRegistry, Message request) {

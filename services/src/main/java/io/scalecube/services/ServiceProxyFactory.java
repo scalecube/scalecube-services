@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
 import io.scalecube.services.metrics.Metrics;
-import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routing;
 import io.scalecube.transport.Message;
 
@@ -21,8 +20,6 @@ public class ServiceProxyFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
 
   private ServiceRegistry serviceRegistry;
-
-  private ServiceCall dispatcher;
 
   private Microservices microservices;
 

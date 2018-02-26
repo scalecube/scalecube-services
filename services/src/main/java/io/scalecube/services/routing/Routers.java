@@ -5,7 +5,6 @@ import static io.scalecube.services.routing.Routing.serviceLookup;
 import static java.util.Collections.shuffle;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.collectingAndThen;
-import static java.util.stream.Collectors.toCollection;
 import static java.util.stream.Collectors.toList;
 
 import io.scalecube.services.ServiceHeaders;
@@ -16,18 +15,14 @@ import io.scalecube.transport.Message;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.BiPredicate;
@@ -58,6 +53,18 @@ public class Routers {
     }
   }
 
+  private static final Collector<?, ?, ?> SHUFFLER = collectingAndThen(
+      toList(),
+      list -> {
+        shuffle(list);
+        return list;
+      });
+  
+  @SuppressWarnings("unchecked")
+  public static <T> Collector<T, ?, List<T>> toShuffledList() {
+    return (Collector<T, ?, List<T>>) SHUFFLER;
+  }
+  
   private static final <T> Collector<T, List<T>, List<T>> toImmutableList() {
     return Collector.of(ArrayList::new, List::add,
         (left, right) -> {
@@ -66,17 +73,6 @@ public class Routers {
         }, Collections::unmodifiableList);
   }
 
-  private static final Collector<?, ?, ?> SHUFFLER = collectingAndThen(
-      toList(),
-      list -> {
-        shuffle(list);
-        return list;
-      });
-
-  @SuppressWarnings("unchecked")
-  public static <T> Collector<T, ?, List<T>> toShuffledList() {
-    return (Collector<T, ?, List<T>>) SHUFFLER;
-  }
 
   /**
    * Random selection router.

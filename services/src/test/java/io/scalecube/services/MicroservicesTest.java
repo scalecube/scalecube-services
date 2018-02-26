@@ -30,6 +30,7 @@ public class MicroservicesTest extends BaseTest {
     Microservices micro = Microservices.builder().services(servicesConfig).build();
     DispatcherContext dispatcher = micro.dispatcher();
     dispatcher.router(RoundRobinServiceRouter.class);
+    //XXX Is this test testing assignment by java???
     assertTrue(dispatcher.router().equals(RoundRobinServiceRouter.class));
     assertTrue(servicesConfig.services().isEmpty());
     micro.shutdown();
@@ -42,6 +43,7 @@ public class MicroservicesTest extends BaseTest {
     Microservices micro = Microservices.builder().services(servicesConfig).build();
     ProxyContext proxy = micro.proxy();
 
+    // XXX testing the default value? What if we would want to change the default one day? 
     assertTrue(proxy.router().equals(RoundRobinServiceRouter.class));
     micro.shutdown();
   }
