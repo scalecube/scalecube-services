@@ -43,9 +43,9 @@ public class ServiceProxyFactory {
       Duration timeout, Metrics metrics) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
-    dispatcher = microservices.dispatcher().routing(routing).timeout(timeout).create();
-
+    final Microservices final_microservices = this.microservices;
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
+      ServiceCall dispatcher = final_microservices.dispatcher().routing(routing).timeout(timeout).create();
 
       @Override
       public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
