@@ -273,8 +273,6 @@ public class Microservices {
       return this;
     }
 
-
-
     public DispatcherContext router(Class<? extends Router> routerType) {
       return this.routing(Routing.fromRouter(routerType));
     }

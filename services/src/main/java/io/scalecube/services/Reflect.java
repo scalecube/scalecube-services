@@ -8,6 +8,7 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routing;
 
 import com.google.common.base.Strings;
 
@@ -66,10 +67,8 @@ public class Reflect {
      */
     private void inject(Microservices microservices) {
       microservices.services().stream()
-          .filter(instance -> instance.isLocal())
-          .collect(Collectors.toList()).forEach(instance -> {
-            scanServiceFields(((LocalServiceInstance) instance).serviceObject());
-          });
+          .filter(ServiceInstance::isLocal).map(LocalServiceInstance.class::cast)
+          .forEach(instance -> scanServiceFields(instance.serviceObject()));
     }
 
     private void scanServiceFields(Object service) {
@@ -88,7 +87,7 @@ public class Reflect {
       }
     }
 
-    private boolean isService(Field field) {
+    private static boolean isService(Field field) {
       return field.getType().isAnnotationPresent(Service.class);
     }
 
@@ -96,7 +95,9 @@ public class Reflect {
       ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
       ProxyContext builder = this.microservices.proxy().api(field.getType());
       if (!annotation.router().equals(Router.class)) {
-        builder.router(annotation.router());
+        Class<? extends Router> router = annotation.router();
+        Routing routing =  Routing.fromRouter(router); 
+        builder.routing(routing);
       }
       if (annotation.timeout() > 0) {
         long nanos = annotation.timeUnit().toNanos(annotation.timeout());
@@ -105,7 +106,7 @@ public class Reflect {
       setField(field, service, builder.create());
     }
 
-    private void setField(Field field, Object object, Object value) {
+    private static void setField(Field field, Object object, Object value) {
       try {
         field.setAccessible(true);
         field.set(object, value);
