@@ -19,9 +19,9 @@ public class ServerStreamTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  ChannelContext channelContext;
+  private ChannelContext channelContext;
 
-  ServerStream serverStream;
+  private ServerStream serverStream;
 
   @Before
   public void setUp() {

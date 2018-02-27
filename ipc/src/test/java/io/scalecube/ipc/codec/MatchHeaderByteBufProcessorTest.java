@@ -17,9 +17,9 @@ import org.junit.Test;
 
 public class MatchHeaderByteBufProcessorTest {
 
-  JsonCodec.MatchHeaderByteBufProcessor processor;
+  private JsonCodec.MatchHeaderByteBufProcessor processor;
 
-  int startIndex = 10;
+  private int startIndex = 10;
 
   @Before
   public void init() {
@@ -28,16 +28,16 @@ public class MatchHeaderByteBufProcessorTest {
 
   @Test
   public void shouldChangeStateWtihoutEscapeWhenWasEscaped() {
-    processor.state = STATE_STRING | STATE_ESCAPED;
+    processor.setState(STATE_STRING | STATE_ESCAPED);
     assertTrue(processor.process(ASCII_DOUBLE_QUOTES));
-    assertEquals(STATE_STRING, processor.state);
+    assertEquals(STATE_STRING, processor.getState());
   }
 
   @Test
   public void shouldUpdateLeftIndexWhenFirstOpenBraces() {
     assertTrue(processor.process(ASCII_OPENING_BRACE));
-    assertEquals(startIndex, processor.leftBraces);
-    assertTrue((processor.state & STATE_OBJECT) != 0);
+    assertEquals(startIndex, processor.getLeftBraces());
+    assertTrue((processor.getState() & STATE_OBJECT) != 0);
   }
 
   @Test(expected = IllegalStateException.class)
@@ -48,48 +48,48 @@ public class MatchHeaderByteBufProcessorTest {
   @Test
   public void shouldMoveToStringStateWhenUnescapedDoubleQuotes() {
     processor.process(ASCII_DOUBLE_QUOTES);
-    assertTrue((processor.state & STATE_STRING) != 0);
+    assertTrue((processor.getState() & STATE_STRING) != 0);
   }
 
   @Test
   public void shouldNotCountBracesWhenStringState() {
-    assertTrue((processor.state & STATE_START) != 0);
+    assertTrue((processor.getState() & STATE_START) != 0);
     processor.process(ASCII_OPENING_BRACE);
-    assertTrue((processor.state & STATE_OBJECT) != 0);
+    assertTrue((processor.getState() & STATE_OBJECT) != 0);
     processor.process(ASCII_DOUBLE_QUOTES);
-    assertTrue((processor.state & STATE_STRING) != 0);
-    int oldBracesCounter = processor.bracesCounter;
+    assertTrue((processor.getState() & STATE_STRING) != 0);
+    int oldBracesCounter = processor.getBracesCounter();
     assertTrue(processor.process(ASCII_OPENING_BRACE));
-    assertEquals(oldBracesCounter, processor.bracesCounter);
+    assertEquals(oldBracesCounter, processor.getBracesCounter());
   }
 
   @Test
   public void shouldIncrementCounterWhenOpenBraces() {
-    assertTrue((processor.state & STATE_START) != 0);
+    assertTrue((processor.getState() & STATE_START) != 0);
     processor.process(ASCII_OPENING_BRACE);
-    assertTrue((processor.state & STATE_OBJECT) != 0);
-    int oldBracesCounter = processor.bracesCounter;
+    assertTrue((processor.getState() & STATE_OBJECT) != 0);
+    int oldBracesCounter = processor.getBracesCounter();
     assertTrue(processor.process(ASCII_OPENING_BRACE));
-    assertEquals(oldBracesCounter + 1, processor.bracesCounter);
+    assertEquals(oldBracesCounter + 1, processor.getBracesCounter());
   }
 
   @Test
   public void shouldIncrementCounterWhenCloseBraces() {
-    assertTrue((processor.state & STATE_START) != 0);
+    assertTrue((processor.getState() & STATE_START) != 0);
     processor.process(ASCII_OPENING_BRACE);
-    assertTrue((processor.state & STATE_OBJECT) != 0);
-    int oldBracesCounter = processor.bracesCounter;
+    assertTrue((processor.getState() & STATE_OBJECT) != 0);
+    int oldBracesCounter = processor.getBracesCounter();
     processor.process(ASCII_CLOSING_BRACE);
-    assertEquals(oldBracesCounter - 1, processor.bracesCounter);
+    assertEquals(oldBracesCounter - 1, processor.getBracesCounter());
   }
 
   @Test
   public void shouldReturnFalseWhenObjectAndBracesCounter0() {
-    assertTrue((processor.state & STATE_START) != 0);
+    assertTrue((processor.getState() & STATE_START) != 0);
     processor.process(ASCII_OPENING_BRACE);
-    assertTrue((processor.state & STATE_OBJECT) != 0);
-    int oldBracesCounter = processor.bracesCounter;
+    assertTrue((processor.getState() & STATE_OBJECT) != 0);
+    int oldBracesCounter = processor.getBracesCounter();
     assertFalse(processor.process(ASCII_CLOSING_BRACE));
-    assertEquals(oldBracesCounter - 1, processor.bracesCounter);
+    assertEquals(oldBracesCounter - 1, processor.getBracesCounter());
   }
 }

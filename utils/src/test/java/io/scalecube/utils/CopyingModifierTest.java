@@ -8,27 +8,6 @@ public class CopyingModifierTest {
 
   @Test
   public void testCopyingModifierConfig() throws Exception {
-
-    class ConfigurableComponent {
-      final Config config;
-
-      ConfigurableComponent(Config config) {
-        this.config = config;
-      }
-
-      ConfigurableComponent setA(int a) {
-        return new ConfigurableComponent(config.copyAndSet(cfg -> cfg.a = a));
-      }
-
-      ConfigurableComponent setB(int b) {
-        return new ConfigurableComponent(config.copyAndSet(cfg -> cfg.b = b));
-      }
-
-      ConfigurableComponent setC(int c) {
-        return new ConfigurableComponent(config.copyAndSet(cfg -> cfg.c = c));
-      }
-    }
-
     ConfigurableComponent component = new ConfigurableComponent(new Config()).setA(1).setB(2);
     assertEquals(1, component.config.a);
     assertEquals(2, component.config.b);
@@ -36,7 +15,7 @@ public class CopyingModifierTest {
   }
 
   private static class Config implements CopyingModifier<Config> {
-    int a = 100, b = 200, c = 300;
+    private int a = 100, b = 200, c = 300;
 
     private Config() {}
 
@@ -44,6 +23,26 @@ public class CopyingModifierTest {
       this.a = other.a;
       this.b = other.b;
       this.c = other.c;
+    }
+  }
+
+  private static class ConfigurableComponent {
+    private final Config config;
+
+    private ConfigurableComponent(Config config) {
+      this.config = config;
+    }
+
+    private ConfigurableComponent setA(int a) {
+      return new ConfigurableComponent(config.copyAndSet(cfg -> cfg.a = a));
+    }
+
+    private ConfigurableComponent setB(int b) {
+      return new ConfigurableComponent(config.copyAndSet(cfg -> cfg.b = b));
+    }
+
+    private ConfigurableComponent setC(int c) {
+      return new ConfigurableComponent(config.copyAndSet(cfg -> cfg.c = c));
     }
   }
 }

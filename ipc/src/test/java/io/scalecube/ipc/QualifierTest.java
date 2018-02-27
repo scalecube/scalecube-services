@@ -34,14 +34,14 @@ public class QualifierTest {
   }
 
   @Test
-  public void testFromString_QualifierForDefaultMethod() {
+  public void testFromStringQualifierForDefaultMethod() {
     Qualifier qualifier = Qualifier.fromString("io.scalecube.context");
     assertEquals(CONTEXT_NAMESPACE, qualifier.getNamespace());
     assertNull(qualifier.getAction());
   }
 
   @Test
-  public void testFromString_QualifierForDefaultMethodWithSlashAfterNamespace() {
+  public void testFromStringQualifierForDefaultMethodWithSlashAfterNamespace() {
     // valid, first slash is delimiter
     Qualifier qualifier = Qualifier.fromString("io.scalecube.context/");
     assertEquals(CONTEXT_NAMESPACE, qualifier.getNamespace());
@@ -49,7 +49,7 @@ public class QualifierTest {
   }
 
   @Test
-  public void testFromString_QualifierWithSlashAsAction() {
+  public void testFromStringQualifierWithSlashAsAction() {
     // valid, second slash is action
     Qualifier qualifier = Qualifier.fromString("io.scalecube.context//");
     assertEquals(CONTEXT_NAMESPACE, qualifier.getNamespace());
@@ -57,14 +57,14 @@ public class QualifierTest {
   }
 
   @Test
-  public void testFromString_FromStringWithMalformedVersion() {
+  public void testFromStringFromStringWithMalformedVersion() {
     Qualifier q = Qualifier.fromString("io.scalecube.context/yadayada/y");
     assertEquals(CONTEXT_NAMESPACE, q.getNamespace());
     assertEquals("yadayada/y", q.getAction());
   }
 
   @Test
-  public void testFromString_FromStringWithVersion() {
+  public void testFromStringFromStringWithVersion() {
     Qualifier q = Qualifier.fromString("io.scalecube.context/yadayada/1.0");
     assertEquals(CONTEXT_NAMESPACE, q.getNamespace());
     assertEquals("yadayada/1.0", q.getAction());

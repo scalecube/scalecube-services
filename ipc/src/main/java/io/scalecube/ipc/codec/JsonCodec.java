@@ -15,24 +15,24 @@ import java.util.function.Function;
 
 public final class JsonCodec {
 
-  static final byte ASCII_COLON = 58; // :
-  static final byte ASCII_DOUBLE_QUOTES = 34; // "
-  static final byte ASCII_OPENING_BRACE = 123; // {
-  static final byte ASCII_CLOSING_BRACE = 125; // }
-  static final byte ASCII_COMMA = 44; // ,
-  static final byte ASCII_ESCAPE = 92; // \
+  public static final byte ASCII_COLON = 58; // :
+  public static final byte ASCII_DOUBLE_QUOTES = 34; // "
+  public static final byte ASCII_OPENING_BRACE = 123; // {
+  public static final byte ASCII_CLOSING_BRACE = 125; // }
+  public static final byte ASCII_COMMA = 44; // ,
+  public static final byte ASCII_ESCAPE = 92; // \
 
   // Also allowed to be escaped in string vvalues
-  static final byte ASCII_SLASH = 47; // / (solidus)
-  static final byte ASCII_BACKSPACE = 8; // backspace
-  static final byte ASCII_FORM_FEED = 12; // form feed
+  public static final byte ASCII_SLASH = 47; // / (solidus)
+  public static final byte ASCII_BACKSPACE = 8; // backspace
+  public static final byte ASCII_FORM_FEED = 12; // form feed
 
   // Insignificant whitespaces
-  static final byte ASCII_WHITE_SPACE = 32; // Space
-  static final byte ASCII_HORIZONTAL_TAB = 9; // Horizontal tab
-  static final byte ASCII_NEW_LINE = 10; // Line feed or New line
-  static final byte ASCII_CR = 13; // Carriage return
-  static final byte ASCII_U_HEX = 117; // Escape any hex symbol
+  public static final byte ASCII_WHITE_SPACE = 32; // Space
+  public static final byte ASCII_HORIZONTAL_TAB = 9; // Horizontal tab
+  public static final byte ASCII_NEW_LINE = 10; // Line feed or New line
+  public static final byte ASCII_CR = 13; // Carriage return
+  public static final byte ASCII_U_HEX = 117; // Escape any hex symbol
 
   private JsonCodec() {
     // Do not instantiate
@@ -256,37 +256,69 @@ public final class JsonCodec {
     bb.writeByte(ASCII_DOUBLE_QUOTES);
   }
 
-  static class MatchHeaderByteBufProcessor implements ByteProcessor {
+  public static class MatchHeaderByteBufProcessor implements ByteProcessor {
 
-    static final Recycler<MatchHeaderByteBufProcessor> RECYCLER = new Recycler<MatchHeaderByteBufProcessor>() {
+    private static final Recycler<MatchHeaderByteBufProcessor> RECYCLER = new Recycler<MatchHeaderByteBufProcessor>() {
       @Override
       protected MatchHeaderByteBufProcessor newObject(Handle<MatchHeaderByteBufProcessor> handle) {
         return new MatchHeaderByteBufProcessor(handle);
       }
     };
 
-    static final int STATE_START = 1;
-    static final int STATE_OBJECT = 2;
-    static final int STATE_ESCAPED = 4;
-    static final int STATE_STRING = 8;
+    public static final int STATE_START = 1;
+    public static final int STATE_OBJECT = 2;
+    public static final int STATE_ESCAPED = 4;
+    public static final int STATE_STRING = 8;
 
-    int leftBraces = -1;
-    int bracesCounter = 0;
-    int index = 0;
-    int state = STATE_START;
-    final Recycler.Handle<MatchHeaderByteBufProcessor> handle;
+    private int leftBraces = -1;
+    private int bracesCounter = 0;
+    private int index = 0;
+    private int state = STATE_START;
+    private final Recycler.Handle<MatchHeaderByteBufProcessor> handle;
 
-    MatchHeaderByteBufProcessor(Recycler.Handle<MatchHeaderByteBufProcessor> handle) {
+    private MatchHeaderByteBufProcessor(Recycler.Handle<MatchHeaderByteBufProcessor> handle) {
       this.handle = handle;
     }
 
-    static MatchHeaderByteBufProcessor newInstance(int readerIndex) {
+    public static MatchHeaderByteBufProcessor newInstance(int readerIndex) {
       MatchHeaderByteBufProcessor matchHeaderByteBufProcessor = RECYCLER.get();
       matchHeaderByteBufProcessor.index = readerIndex;
       return matchHeaderByteBufProcessor;
     }
 
-    void recycle() {
+    public void setState(int state) {
+      this.state = state;
+    }
+
+    public int getState() {
+      return state;
+    }
+
+    public int getLeftBraces() {
+      return leftBraces;
+    }
+
+    public void setLeftBraces(int leftBraces) {
+      this.leftBraces = leftBraces;
+    }
+
+    public int getBracesCounter() {
+      return bracesCounter;
+    }
+
+    public void setBracesCounter(int bracesCounter) {
+      this.bracesCounter = bracesCounter;
+    }
+
+    public int getIndex() {
+      return index;
+    }
+
+    public void setIndex(int index) {
+      this.index = index;
+    }
+
+    private void recycle() {
       state = STATE_START;
       index = 0;
       leftBraces = -1;
@@ -339,31 +371,31 @@ public final class JsonCodec {
     }
   }
 
-  static class StringMatchProcessor implements ByteProcessor {
+  private static class StringMatchProcessor implements ByteProcessor {
 
-    static final Recycler<StringMatchProcessor> RECYCLER = new Recycler<StringMatchProcessor>() {
+    private static final Recycler<StringMatchProcessor> RECYCLER = new Recycler<StringMatchProcessor>() {
       @Override
       protected StringMatchProcessor newObject(Handle<StringMatchProcessor> handle) {
         return new StringMatchProcessor(handle);
       }
     };
 
-    String stringToMatch;
-    int index;
-    final Recycler.Handle<StringMatchProcessor> handle;
+    private String stringToMatch;
+    private int index;
+    private final Recycler.Handle<StringMatchProcessor> handle;
 
-    StringMatchProcessor(Recycler.Handle<StringMatchProcessor> handle) {
+    private StringMatchProcessor(Recycler.Handle<StringMatchProcessor> handle) {
       this.handle = handle;
     }
 
-    static StringMatchProcessor newInstance(String stringToMatch) {
+    private static StringMatchProcessor newInstance(String stringToMatch) {
       StringMatchProcessor stringMatchProcessor = RECYCLER.get();
       stringMatchProcessor.stringToMatch = stringToMatch;
       stringMatchProcessor.index = 0;
       return stringMatchProcessor;
     }
 
-    void recycle() {
+    private void recycle() {
       handle.recycle(this);
     }
 
@@ -373,31 +405,31 @@ public final class JsonCodec {
     }
   }
 
-  static class GetHeaderProcessor implements ByteProcessor {
+  private static class GetHeaderProcessor implements ByteProcessor {
 
-    static final Recycler<GetHeaderProcessor> RECYCLER = new Recycler<GetHeaderProcessor>() {
+    private static final Recycler<GetHeaderProcessor> RECYCLER = new Recycler<GetHeaderProcessor>() {
       @Override
       protected GetHeaderProcessor newObject(Handle<GetHeaderProcessor> handle) {
         return new GetHeaderProcessor(handle);
       }
     };
 
-    int firstQuotes = -1;
-    int quotes = -1;
-    boolean inEscapeState = false;
-    boolean isParsingHex = false;
-    byte[] parsingHex = new byte[4];
-    boolean isParsingString = false;
-    int escapedHexCounter = 0;
-    ByteBuf targetBuf;
-    int readerIndex;
-    final Recycler.Handle<GetHeaderProcessor> handle;
+    private int firstQuotes = -1;
+    private int quotes = -1;
+    private boolean inEscapeState = false;
+    private boolean isParsingHex = false;
+    private byte[] parsingHex = new byte[4];
+    private boolean isParsingString = false;
+    private int escapedHexCounter = 0;
+    private ByteBuf targetBuf;
+    private int readerIndex;
+    private final Recycler.Handle<GetHeaderProcessor> handle;
 
-    GetHeaderProcessor(Recycler.Handle<GetHeaderProcessor> handle) {
+    private GetHeaderProcessor(Recycler.Handle<GetHeaderProcessor> handle) {
       this.handle = handle;
     }
 
-    static GetHeaderProcessor newInstance(int readerIndex) {
+    private static GetHeaderProcessor newInstance(int readerIndex) {
       GetHeaderProcessor getHeaderProcessor = RECYCLER.get();
       getHeaderProcessor.readerIndex = readerIndex;
       getHeaderProcessor.firstQuotes = -1;
@@ -410,7 +442,7 @@ public final class JsonCodec {
       return getHeaderProcessor;
     }
 
-    void recycle() {
+    private void recycle() {
       targetBuf.release();
       handle.recycle(this);
     }

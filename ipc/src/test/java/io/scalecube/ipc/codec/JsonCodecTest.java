@@ -128,6 +128,8 @@ public class JsonCodecTest {
         case ServiceMessage.DATA_NAME:
           messageBuilder = messageBuilder.data(((ByteBuf) value).toString(CharsetUtil.UTF_8));
           break;
+        default:
+          // no-op
       }
     });
     ServiceMessage message = messageBuilder.build();
