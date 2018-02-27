@@ -19,7 +19,7 @@ import java.util.List;
  * @author Anton Kharenko
  * @author Artem Vysochyn
  */
-final class Addressing {
+public final class Addressing {
 
   /**
    * The minimum server port number. Set at 1100 to avoid returning privileged port numbers.
@@ -31,7 +31,9 @@ final class Addressing {
    */
   public static final int MAX_PORT_NUMBER = 65535;
 
-  private Addressing() {}
+  private Addressing() {
+    // Do not instantiate
+  }
 
   /**
    * Returns {@link InetAddress} by given IP address or network interface name.
