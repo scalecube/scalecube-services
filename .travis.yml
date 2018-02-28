@@ -13,4 +13,9 @@ before_install:
 after_success:
   - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r ./services/target/site/jacoco/jacoco.xml
 
-  
+deploy:
+  provider: script
+  script: "mvn deploy -DskipTests=true -Dmaven.javadoc.skip=true -B -V -s travis-settings.xml"
+  skip_cleanup: true
+  on:
+    branch: master 
