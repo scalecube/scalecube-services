@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 import rx.subjects.PublishSubject;
-import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
 import java.util.Objects;
@@ -29,7 +28,7 @@ public final class ChannelContext {
   private static final ConcurrentMap<ChannelContext, String> channelContextToId = new ConcurrentHashMap<>();
 
   private final Subject<Event, Event> eventSubject = PublishSubject.<Event>create().toSerialized();
-  private final Subject<Void, Void> closeSubject = ReplaySubject.<Void>create().toSerialized();
+  private final Subject<Void, Void> closeSubject = PublishSubject.<Void>create().toSerialized();
 
   private final String id;
   private final Address address;
