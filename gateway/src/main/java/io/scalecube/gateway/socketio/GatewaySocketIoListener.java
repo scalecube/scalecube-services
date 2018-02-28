@@ -8,12 +8,14 @@ import io.scalecube.ipc.codec.ServiceMessageCodec;
 import io.scalecube.ipc.netty.ChannelSupport;
 import io.scalecube.socketio.Session;
 import io.scalecube.socketio.SocketIOListener;
+import io.scalecube.transport.Address;
 
 import io.netty.buffer.ByteBuf;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -37,10 +39,12 @@ public final class GatewaySocketIoListener implements SocketIOListener {
     String channelContextId = IdGenerator.generateId();
     sessionIdToChannelContextId.put(session.getSessionId(), channelContextId);
 
-    ChannelContext channelContext = ChannelContext.create(channelContextId, session.getRemoteAddress());
-    eventStream.subscribe(channelContext.listen(),
-        cause -> LOGGER.error("Unsubscribed socketio {} due to unhandled exception caught: {}", channelContext, cause),
-        aVoid -> LOGGER.debug("Unsubscribed socketio {} due to completion", channelContext));
+    InetSocketAddress remoteAddress = (InetSocketAddress) session.getRemoteAddress();
+    String host = remoteAddress.getAddress().getHostAddress();
+    int port = remoteAddress.getPort();
+    ChannelContext channelContext = ChannelContext.create(channelContextId, Address.create(host, port));
+
+    eventStream.subscribe(channelContext);
 
     channelContext.listenMessageWrite().subscribe(
         event -> {
