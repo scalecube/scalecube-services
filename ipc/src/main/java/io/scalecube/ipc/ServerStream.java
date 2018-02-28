@@ -3,15 +3,11 @@ package io.scalecube.ipc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import rx.Observable;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
-
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public final class ServerStream implements EventStream {
+public final class ServerStream extends DefaultEventStream {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServerStream.class);
 
@@ -20,25 +16,15 @@ public final class ServerStream implements EventStream {
   public static final Throwable INVALID_IDENTITY_EXCEPTION =
       new IllegalArgumentException("ServiceMessage: identity is invalid or missing");
 
-  private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
-
-  private ServerStream() {}
+  private ServerStream() {
+    super(ServerStream::mapEventOnReceive);
+  }
 
   /**
    * Return new instance of server stream.
    */
   public static ServerStream newServerStream() {
     return new ServerStream();
-  }
-
-  @Override
-  public void subscribe(Observable<Event> observable, Consumer<Throwable> onError, Consumer<Void> onCompleted) {
-    observable.subscribe(subject::onNext, onError::accept, () -> onCompleted.accept(null));
-  }
-
-  @Override
-  public void close() {
-    subject.onCompleted();
   }
 
   /**
@@ -48,7 +34,7 @@ public final class ServerStream implements EventStream {
    * @param message message to send; must contain valid senderId.
    */
   public void send(ServiceMessage message) {
-    onSend(message,
+    send(message,
         (identity, message1) -> {
           ChannelContext channelContext = ChannelContext.getIfExist(identity);
           if (channelContext == null) {
@@ -60,31 +46,7 @@ public final class ServerStream implements EventStream {
         throwable -> LOGGER.warn("Failed to handle message: {}, cause: {}", message, throwable));
   }
 
-  /**
-   * Sends a message to client identified by message's senderId, and applying server stream semantic for outbound
-   * messages.
-   *
-   * @param message message to send; must contain valid senderId.
-   */
-  public void send(ServiceMessage message,
-      BiConsumer<String, ServiceMessage> consumer0, Consumer<Throwable> consumer1) {
-    onSend(message, consumer0, consumer1);
-  }
-
-  /**
-   * Subscription point for events coming on server channels. Applying server stream semantic for inbound messages.
-   */
-  @Override
-  public Observable<Event> listen() {
-    return subject.onBackpressureBuffer().asObservable().map(event -> {
-      Optional<ServiceMessage> message = event.getMessage();
-      return message.isPresent()
-          ? Event.copyFrom(event).message(onReceive(message.get(), event.getIdentity())).build() // copy and modify
-          : event; // pass it through
-    });
-  }
-
-  private void onSend(ServiceMessage message,
+  private void send(ServiceMessage message,
       BiConsumer<String, ServiceMessage> consumer0, Consumer<Throwable> consumer1) {
     if (!message.hasSenderId()
         || message.getSenderId().startsWith(SENDER_ID_DELIMITER)
@@ -116,11 +78,16 @@ public final class ServerStream implements EventStream {
     consumer0.accept(serverId, message1);
   }
 
-  private ServiceMessage onReceive(ServiceMessage message, String identity) {
-    String newSenderId = identity;
-    if (message.hasSenderId()) {
-      newSenderId = message.getSenderId() + SENDER_ID_DELIMITER + identity;
+  private static Event mapEventOnReceive(Event event) {
+    Optional<ServiceMessage> message = event.getMessage();
+    if (!message.isPresent()) {
+      return event; // pass it through
     }
-    return ServiceMessage.copyFrom(message).senderId(newSenderId).build();
+    String senderId = event.getIdentity();
+    if (message.get().hasSenderId()) {
+      senderId = message.get().getSenderId() + SENDER_ID_DELIMITER + event.getIdentity();
+    }
+    ServiceMessage message1 = ServiceMessage.copyFrom(message.get()).senderId(senderId).build();
+    return Event.copyFrom(event).message(message1).build(); // copy and modify
   }
 }

@@ -35,11 +35,8 @@ public final class GatewayHttpChannelInitializer extends ChannelInitializer {
     this.config = config;
     this.corsHeadersHandler = new CorsHeadersHandler(config);
     this.messageHandler = new GatewayHttpMessageHandler();
-    EventStream eventStream = config.getServerStream();
-    this.channelContextHandler =
-        new ChannelContextHandler(channelContext -> eventStream.subscribe(channelContext.listen(),
-            cause -> LOGGER.error("Unsubscribed http {} due to unhandled exception caught: {}", channelContext, cause),
-            aVoid -> LOGGER.debug("Unsubscribed http {} due to completion", channelContext)));
+    EventStream serverStream = config.getServerStream();
+    this.channelContextHandler = new ChannelContextHandler(serverStream::subscribe);
   }
 
   @Override
