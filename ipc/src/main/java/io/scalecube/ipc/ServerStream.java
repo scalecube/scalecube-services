@@ -35,18 +35,20 @@ public final class ServerStream extends DefaultEventStream {
    */
   public void send(ServiceMessage message) {
     send(message,
-        (identity, message1) -> {
-          ChannelContext channelContext = ChannelContext.getIfExist(identity);
-          if (channelContext == null) {
-            LOGGER.warn("Failed to handle message: {}, channel context is null by id: {}", message, identity);
-          } else {
-            channelContext.postMessageWrite(message1);
-          }
-        },
+        (identity, message1) -> ChannelContext.getIfExist(identity).postMessageWrite(message1),
         throwable -> LOGGER.warn("Failed to handle message: {}, cause: {}", message, throwable));
   }
 
-  private void send(ServiceMessage message,
+  /**
+   * This method applies server stream semantic for outbound messages and giving mechanism to react on successful and
+   * unsuccessfull outcomes.
+   * 
+   * @param message message to send; must contain valid senderId.
+   * @param consumer0 action to proceed with message after figuring out its identity; in the biConsumer first param is
+   *        extracted identity, second - a message to work with further.
+   * @param consumer1 throwable consumer.
+   */
+  public void send(ServiceMessage message,
       BiConsumer<String, ServiceMessage> consumer0, Consumer<Throwable> consumer1) {
     if (!message.hasSenderId()
         || message.getSenderId().startsWith(SENDER_ID_DELIMITER)
@@ -74,8 +76,13 @@ public final class ServerStream extends DefaultEventStream {
       }
     }
 
-    ServiceMessage message1 = ServiceMessage.copyFrom(message).senderId(newSenderId).build(); // copy and modify
-    consumer0.accept(serverId, message1);
+    try {
+      // copy and modify
+      ServiceMessage message1 = ServiceMessage.copyFrom(message).senderId(newSenderId).build();
+      consumer0.accept(serverId, message1);
+    } catch (Exception throwable) {
+      consumer1.accept(throwable);
+    }
   }
 
   private static Event mapEventOnReceive(Event event) {

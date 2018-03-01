@@ -5,16 +5,16 @@ import io.scalecube.ipc.ChannelContext;
 import io.scalecube.transport.Address;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.Attribute;
 
 import java.net.InetSocketAddress;
 import java.util.function.Consumer;
 
 @Sharable
-public final class ChannelContextHandler extends ChannelInboundHandlerAdapter {
+public final class ChannelContextHandler extends ChannelDuplexHandler {
 
   private final Consumer<ChannelContext> channelContextConsumer;
 
@@ -26,17 +26,22 @@ public final class ChannelContextHandler extends ChannelInboundHandlerAdapter {
   public void channelActive(ChannelHandlerContext ctx) throws Exception {
     Channel channel = ctx.channel();
     Attribute<ChannelContext> attribute = channel.attr(ChannelSupport.CHANNEL_CTX_ATTR_KEY);
-    ChannelContext channelContext = attribute.get();
-    if (channelContext == null) {
+    if (attribute.get() == null) {
       InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
       String host = remoteAddress.getAddress().getHostAddress();
       int port = remoteAddress.getPort();
-      ChannelContext channelContext1 = ChannelContext.create(IdGenerator.generateId(), Address.create(host, port));
+      ChannelContext channelContext = ChannelContext.create(IdGenerator.generateId(), Address.create(host, port));
+      attribute.set(channelContext); // set channel attribute
 
-      attribute.set(channelContext1);
+      channelContextConsumer.accept(channelContext);
+      channelContext.listenClose(channelContext1 -> {
+        if (channel.isActive()) {
+          channel.close();
+        }
+      });
+
+      // fire event to complete channelContext registration
       channel.pipeline().fireUserEventTriggered(ChannelSupport.CHANNEL_CTX_CREATED_EVENT);
-
-      channelContextConsumer.accept(channelContext1);
     }
     super.channelActive(ctx);
   }

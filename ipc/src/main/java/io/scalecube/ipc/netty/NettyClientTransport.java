@@ -23,7 +23,7 @@ public final class NettyClientTransport {
   }
 
   /**
-   * a-sync connect to remote address or retrieve existing connection.
+   * Async connect to remote address or retrieve existing connection.
    * 
    * @param address address to connect to.
    * @return channel context.
@@ -31,11 +31,11 @@ public final class NettyClientTransport {
   public CompletableFuture<ChannelContext> getOrConnect(Address address) {
     CompletableFuture<ChannelContext> promise = outgoingChannels.computeIfAbsent(address, this::connect);
     promise.whenComplete((channelContext, throwable) -> {
-      if (throwable != null) {
+      if (throwable != null) { // remove reference right away
         outgoingChannels.remove(address, promise);
       }
-      if (channelContext != null) {
-        channelContext.listenClose().subscribe(aVoid -> outgoingChannels.remove(address, promise));
+      if (channelContext != null) { // in case connected subscribe on close event
+        channelContext.listenClose(ctx -> outgoingChannels.remove(address, promise));
       }
     });
     return promise;
@@ -50,18 +50,20 @@ public final class NettyClientTransport {
             promise.completeExceptionally(channelFuture.cause());
             return;
           }
+          // this line would activate setting of channel ctx attribute
           channel.pipeline().fireChannelActive();
           try {
+            // try get channel ctx and complete
             promise.complete(ChannelSupport.getChannelContextOrThrow(channel));
-          } catch (Exception e) {
-            promise.completeExceptionally(e);
+          } catch (Exception throwable) {
+            promise.completeExceptionally(throwable);
           }
         });
     return promise;
   }
 
   /**
-   * disconnect all channels.
+   * Disconnect all channels.
    */
   public void close() {
     // close all channels

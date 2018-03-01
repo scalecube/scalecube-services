@@ -9,9 +9,9 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ServerChannel;
 
 import java.net.BindException;
 import java.net.InetAddress;
@@ -25,7 +25,7 @@ public final class NettyServerTransport {
   private final ListeningServerStream.Config config;
   private final ServerBootstrap serverBootstrap;
 
-  private Channel serverChannel; // calculated
+  private ServerChannel serverChannel; // calculated
   private Address address; // calculated
 
   // Public constructor
@@ -78,8 +78,7 @@ public final class NettyServerTransport {
       if (channelFuture.isSuccess()) {
         result.complete(NettyServerTransport.this);
       } else {
-        Throwable cause = channelFuture.cause();
-        result.completeExceptionally(cause);
+        result.completeExceptionally(channelFuture.cause());
       }
     });
     return result;
@@ -107,7 +106,7 @@ public final class NettyServerTransport {
     ChannelFuture bindFuture = serverBootstrap.bind(listenAddress, address.port());
     bindFuture.addListener((ChannelFutureListener) channelFuture -> {
       if (channelFuture.isSuccess()) {
-        serverChannel = channelFuture.channel();
+        serverChannel = (ServerChannel) channelFuture.channel();
         result.complete(NettyServerTransport.this);
       } else {
         Throwable cause = channelFuture.cause();

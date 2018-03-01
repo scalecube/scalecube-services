@@ -2,6 +2,8 @@ package io.scalecube.ipc;
 
 import rx.Observable;
 
+import java.util.function.Consumer;
+
 public interface EventStream {
 
   void subscribe(ChannelContext channelContext);
@@ -25,4 +27,6 @@ public interface EventStream {
   }
 
   void close();
+
+  void listenClose(Consumer<Void> onClose);
 }

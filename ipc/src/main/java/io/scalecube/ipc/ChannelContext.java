@@ -19,16 +19,16 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 
 public final class ChannelContext {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChannelContext.class);
 
   private static final ConcurrentMap<String, ChannelContext> idToChannelContext = new ConcurrentHashMap<>();
-  private static final ConcurrentMap<ChannelContext, String> channelContextToId = new ConcurrentHashMap<>();
 
-  private final Subject<Event, Event> eventSubject = PublishSubject.<Event>create().toSerialized();
-  private final Subject<Void, Void> closeSubject = PublishSubject.<Void>create().toSerialized();
+  private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
+  private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
 
   private final String id;
   private final Address address;
@@ -49,8 +49,7 @@ public final class ChannelContext {
   public static ChannelContext create(String id, Address address) {
     ChannelContext channelContext = new ChannelContext(id, address);
     idToChannelContext.put(id, channelContext);
-    channelContextToId.put(channelContext, id);
-    LOGGER.debug("Created {} for session: {}", channelContext, id);
+    LOGGER.debug("Created {}", channelContext);
     return channelContext;
   }
 
@@ -71,19 +70,11 @@ public final class ChannelContext {
   }
 
   public Observable<Event> listen() {
-    return eventSubject.onBackpressureBuffer().asObservable();
+    return subject.onBackpressureBuffer().asObservable();
   }
 
-  public Observable<Void> listenClose() {
-    return closeSubject.onBackpressureBuffer().asObservable();
-  }
-
-  public Observable<Event> listenMessageReceived() {
+  public Observable<Event> listenReadSuccess() {
     return listen().filter(Event::isReadSuccess);
-  }
-
-  public Observable<Event> listenReadError() {
-    return listen().filter(Event::isReadError);
   }
 
   public Observable<Event> listenMessageWrite() {
@@ -91,39 +82,41 @@ public final class ChannelContext {
   }
 
   public void postReadSuccess(ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(ReadSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(ReadSuccess, this).message(message).build());
   }
 
   public void postReadError(Throwable throwable) {
-    eventSubject.onNext(new Event.Builder(ReadError, this).error(throwable).build());
+    subject.onNext(new Event.Builder(ReadError, this).error(throwable).build());
   }
 
   public void postMessageWrite(ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(MessageWrite, this).message(message).build());
+    subject.onNext(new Event.Builder(MessageWrite, this).message(message).build());
   }
 
   public void postWriteError(Throwable throwable, ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(WriteError, this).error(throwable).message(message).build());
+    subject.onNext(new Event.Builder(WriteError, this).error(throwable).message(message).build());
   }
 
   public void postWriteSuccess(ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(WriteSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(WriteSuccess, this).message(message).build());
   }
 
   /**
-   * Issues close on this channel context: emits onCompleted on eventSubject, emits signal on closeSubject (which then
-   * gets onCompleted too), and eventually removes itseld from the hash map. Subsequent {@link #getIfExist(String)}
-   * would return null after this operation.
+   * Issues close on this channel context: emits onCompleted on subject, and eventually removes itseld from the hash
+   * map. Subsequent {@link #getIfExist(String)} would return null after this operation.
    */
   public void close() {
-    String id = channelContextToId.remove(this);
-    if (id != null) {
-      idToChannelContext.remove(id);
-    }
-    eventSubject.onCompleted();
-    closeSubject.onNext(null);
+    subject.onCompleted();
     closeSubject.onCompleted();
-    LOGGER.debug("Removed and closed {} for session: {}", this, id);
+    ChannelContext channelContext = idToChannelContext.remove(id);
+    if (channelContext != null) {
+      LOGGER.debug("Closed and removed {}", channelContext);
+    }
+  }
+
+  public void listenClose(Consumer<ChannelContext> onClose) {
+    closeSubject.subscribe(event -> {
+    }, throwable -> onClose.accept(this), () -> onClose.accept(this));
   }
 
   @Override

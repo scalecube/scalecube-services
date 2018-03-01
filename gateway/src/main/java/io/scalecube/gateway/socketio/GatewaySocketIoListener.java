@@ -45,6 +45,11 @@ public final class GatewaySocketIoListener implements SocketIOListener {
     ChannelContext channelContext = ChannelContext.create(channelContextId, Address.create(host, port));
 
     eventStream.subscribe(channelContext);
+    channelContext.listenClose(channelContext1 -> {
+      if (session.getState() == Session.State.CONNECTED) {
+        session.disconnect();
+      }
+    });
 
     channelContext.listenMessageWrite().subscribe(
         event -> {
