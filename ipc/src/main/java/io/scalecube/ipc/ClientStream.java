@@ -28,8 +28,7 @@ public final class ClientStream extends DefaultEventStream {
   private ClientStream(Bootstrap bootstrap) {
     clientTransport = new NettyClientTransport(bootstrap, this::subscribe);
     // register cleanup process upfront
-    listen().subscribe(event -> {
-    }, throwable -> clientTransport.close(), clientTransport::close);
+    subscribeOnClose(aVoid -> clientTransport.close());
   }
 
   public static ClientStream newClientStream() {

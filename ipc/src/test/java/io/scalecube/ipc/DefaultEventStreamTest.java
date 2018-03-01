@@ -91,9 +91,36 @@ public class DefaultEventStreamTest {
     }, throwable -> {
     }, () -> eventSubjectClosed.set(true));
     // You can watch-out for close at Observable that was invented for exact reason
-    ctx0.listenClose().subscribe(aVoid -> channelContextClosed.set(true));
+    ctx0.subscribeOnClose(ctx -> channelContextClosed.set(true));
     ctx0.close();
     assertTrue(eventSubjectClosed.get());
     assertTrue(channelContextClosed.get());
+  }
+
+  @Test
+  public void testChannelContextClosedCheckItsState() {
+    AtomicBoolean channelContextCompleted = new AtomicBoolean();
+    ChannelContext[] channelContexts = new ChannelContext[1];
+    ctx0.subscribeOnClose(ctx -> {
+      channelContexts[0] = ctx;
+      // try listen
+      ctx.listen().subscribe(event -> {
+      }, throwable -> {
+      }, () -> channelContextCompleted.set(true));
+    });
+    // emit close
+    ctx0.close();
+    // assert that context removed from channel contexs map and cannot emit events
+    assertEquals(null, ChannelContext.getIfExist(channelContexts[0].getId()));
+    // assert that you can't listen
+    assertTrue(channelContextCompleted.get());
+  }
+
+  @Test
+  public void testDefaultEventStreamSubscribeOnClose() {
+    AtomicBoolean eventStreamClosed = new AtomicBoolean();
+    eventStream.subscribeOnClose(aVoid -> eventStreamClosed.set(true));
+    eventStream.close();
+    assertTrue(eventStreamClosed.get());
   }
 }

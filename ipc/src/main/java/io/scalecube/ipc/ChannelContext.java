@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Consumer;
 
 public final class ChannelContext {
 
@@ -26,8 +27,7 @@ public final class ChannelContext {
 
   private static final ConcurrentMap<String, ChannelContext> idToChannelContext = new ConcurrentHashMap<>();
 
-  private final Subject<Event, Event> eventSubject = PublishSubject.<Event>create().toSerialized();
-  private final Subject<Void, Void> closeSubject = PublishSubject.<Void>create().toSerialized();
+  private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
 
   private final String id;
   private final Address address;
@@ -69,11 +69,7 @@ public final class ChannelContext {
   }
 
   public Observable<Event> listen() {
-    return eventSubject.onBackpressureBuffer().asObservable();
-  }
-
-  public Observable<Void> listenClose() {
-    return closeSubject.onBackpressureBuffer().asObservable();
+    return subject.onBackpressureBuffer().asObservable();
   }
 
   public Observable<Event> listenReadSuccess() {
@@ -85,36 +81,44 @@ public final class ChannelContext {
   }
 
   public void postReadSuccess(ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(ReadSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(ReadSuccess, this).message(message).build());
   }
 
   public void postReadError(Throwable throwable) {
-    eventSubject.onNext(new Event.Builder(ReadError, this).error(throwable).build());
+    subject.onNext(new Event.Builder(ReadError, this).error(throwable).build());
   }
 
   public void postMessageWrite(ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(MessageWrite, this).message(message).build());
+    subject.onNext(new Event.Builder(MessageWrite, this).message(message).build());
   }
 
   public void postWriteError(Throwable throwable, ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(WriteError, this).error(throwable).message(message).build());
+    subject.onNext(new Event.Builder(WriteError, this).error(throwable).message(message).build());
   }
 
   public void postWriteSuccess(ServiceMessage message) {
-    eventSubject.onNext(new Event.Builder(WriteSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(WriteSuccess, this).message(message).build());
   }
 
   /**
-   * Issues close on this channel context: emits onCompleted on eventSubject, emits signal on closeSubject (which then
-   * gets onCompleted too), and eventually removes itseld from the hash map. Subsequent {@link #getIfExist(String)}
-   * would return null after this operation.
+   * Issues close on this channel context: emits onCompleted on subject, and eventually removes itseld from the hash
+   * map. Subsequent {@link #getIfExist(String)} would return null after this operation.
    */
   public void close() {
-    eventSubject.onCompleted();
-    closeSubject.onNext(null);
-    closeSubject.onCompleted();
-    idToChannelContext.remove(id);
+    subject.onCompleted(); // complete
+    idToChannelContext.remove(id); // remove
     LOGGER.debug("Closed and removed {}", this);
+  }
+
+  /**
+   * Subscription point for listening when channel ctx stop emitting events and closed, regardless of was it by onError
+   * or onCompleted (in case concerned subscribe on observable {@link #listen()}.
+   * 
+   * @param onClose logic provider; given channelContext would be completed and unsubscribed.
+   */
+  public void subscribeOnClose(Consumer<ChannelContext> onClose) {
+    subject.subscribe(event -> {
+    }, throwable -> onClose.accept(this), () -> onClose.accept(this));
   }
 
   @Override

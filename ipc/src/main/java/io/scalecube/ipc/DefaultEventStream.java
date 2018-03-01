@@ -4,6 +4,7 @@ import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class DefaultEventStream implements EventStream {
@@ -39,5 +40,11 @@ public class DefaultEventStream implements EventStream {
   @Override
   public final void close() {
     subject.onCompleted();
+  }
+
+  @Override
+  public final void subscribeOnClose(Consumer<Void> onClose) {
+    subject.subscribe(event -> {
+    }, throwable -> onClose.accept(null), () -> onClose.accept(null));
   }
 }

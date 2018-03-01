@@ -13,6 +13,8 @@ import rx.Observable;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
+import java.util.function.Consumer;
+
 public final class ListeningServerStream implements EventStream {
 
   // listens to bind on server transport
@@ -86,6 +88,11 @@ public final class ListeningServerStream implements EventStream {
     serverStream.close();
   }
 
+  @Override
+  public void subscribeOnClose(Consumer<Void> onClose) {
+    serverStream.subscribeOnClose(onClose);
+  }
+
   /**
    * Subscription point for bind operation on internal server transport. NOTE that after calling {@link #close()}
    * subscribing to bind would still result in arriving result.
@@ -123,8 +130,7 @@ public final class ListeningServerStream implements EventStream {
   private void onBind(ListeningServerStream serverStream, NettyServerTransport transport, Throwable cause) {
     if (transport != null) {
       // register cleanup process upfront
-      serverStream.listen().subscribe(event -> {
-      }, throwable -> unbindTransport(transport), () -> unbindTransport(transport));
+      serverStream.subscribeOnClose(aVoid -> unbindTransport(transport));
       // emit bind success
       transport.getAddress().ifPresent(address -> {
         serverStream.bindSubject.onNext(address);
