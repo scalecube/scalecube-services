@@ -3,83 +3,90 @@ package io.scalecube.ipc;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Address;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import rx.Observable;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+public final class ExchangeStream {
 
-public final class ExchangeStream implements EventStream {
-  private static final Address ADDRESS = Address.from("ExchangeStream:0");
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeStream.class);
 
-  // private final String streamId = IdGenerator.generateId();
+  private static final Bootstrap DEFAULT_BOOTSTRAP;
+  // Pre-configure default bootstrap
+  static {
+    DEFAULT_BOOTSTRAP = new Bootstrap()
+        .group(new NioEventLoopGroup(0))
+        .channel(NioSocketChannel.class)
+        .option(ChannelOption.TCP_NODELAY, true)
+        .option(ChannelOption.SO_KEEPALIVE, true)
+        .option(ChannelOption.SO_REUSEADDR, true);
+  }
 
-  private static final ServiceMessage onCompletedMessage =
-      ServiceMessage.withQualifier("io.scalecube.ipc/onCompleted")/* .streamId(streamId) */.build();
+  private final ServerStream serverStream;
+  private final ClientStream clientStream;
 
-  private static final ConcurrentMap<String, ExchangeStream> idToExchangeStream = new ConcurrentHashMap<>();
+  private ChannelContext channelContext; // calculated
 
-  // private final Address address;
-  // private final ClientStream clientStream;
-  private final ChannelContext channelContext = ChannelContext.create(IdGenerator.generateId(), ADDRESS);
-  private final ServerStream serverStream = ServerStream.newServerStream();
+  //// Constructors
 
-  public ExchangeStream(Address address, ClientStream clientStream) {
-    // this.address = address;
-    // this.clientStream = clientStream;
-    serverStream.subscribe(channelContext);
+  private ExchangeStream(ExchangeStream other) {
+    this(other.serverStream, other.clientStream);
+  }
 
+  private ExchangeStream(ServerStream serverStream, ClientStream clientStream) {
+    this.serverStream = serverStream;
+    this.clientStream = clientStream;
+  }
+
+  public static ExchangeStream newExchangeStream() {
+    return newExchangeStream(DEFAULT_BOOTSTRAP);
+  }
+
+  public static ExchangeStream newExchangeStream(Bootstrap bootstrap) {
+    ServerStream serverStream = ServerStream.newServerStream();
+    ClientStream clientStream = ClientStream.newClientStream(bootstrap);
+
+    // request logic
     serverStream.listen()
         .filter(Event::isMessageWrite)
+        .subscribe(event -> clientStream.send(event.getAddress(), event.getMessage().get()));
+
+    // response logic
+    clientStream.listen()
+        .filter(Event::isReadSuccess)
         .map(event -> event.getMessage().get())
-        .subscribe(message -> clientStream.send(address, message));
+        .subscribe(message -> serverStream.send(message,
+            (identity, message1) -> ChannelContext.getIfExist(identity).postReadSuccess(message1),
+            throwable -> LOGGER.warn("Failed to handle message: {}, cause: {}", message, throwable)));
 
-    // clientStream.listen();
-    // serverStream.send();
-
-    idToExchangeStream.put(channelContext.getId(), this);
+    return new ExchangeStream(serverStream, clientStream);
   }
 
-  public void onNext(ServiceMessage message) {
-    // clientStream.send(address, ServiceMessage.copyFrom(message).streamId(streamId).build());
-    channelContext.postMessageWrite(message);
+  public ExchangeStream send(Address address, ServiceMessage message) {
+    ExchangeStream stream = new ExchangeStream(this);
+
+    // create new 'exchange point' and subscribe serverStream on it
+    stream.channelContext = ChannelContext.create(IdGenerator.generateId(), address);
+    stream.serverStream.subscribe(stream.channelContext);
+
+    // emit message write request, there by activate serverStream
+    stream.channelContext.postMessageWrite(message);
+
+    return stream;
   }
 
-  public void onCompleted() {
-    channelContext.postMessageWrite(onCompletedMessage);
-  }
-
-  @Override
-  public void subscribe(ChannelContext channelContext) {
-    // no-op
-  }
-
-  @Override
   public Observable<Event> listen() {
-    return channelContext;
+    return channelContext.listenReadSuccess();
   }
 
-  @Override
   public void close() {
     channelContext.close();
     serverStream.close();
-  }
-
-  public static void main(String[] args) {
-    ClientStream clientStream0 = ClientStream.newClientStream();
-    ClientStream clientStream1 = ClientStream.newClientStream();
-
-    ExchangeStream stream0 = new ExchangeStream(Address.from("127.0.0.1:5801"), clientStream0);
-    stream0.onNext(ServiceMessage.withQualifier("a").build());
-    stream0.onNext(ServiceMessage.withQualifier("b").build());
-    stream0.onNext(ServiceMessage.withQualifier("c").build());
-    stream0.onCompleted();
-
-    ExchangeStream stream1 = new ExchangeStream(Address.from("127.0.0.1:5802"), clientStream1);
-    stream1.onNext(ServiceMessage.withQualifier("x").build());
-    stream1.onNext(ServiceMessage.withQualifier("y").build());
-    stream1.onNext(ServiceMessage.withQualifier("z").build());
-    stream1.onCompleted();
-
-
   }
 }

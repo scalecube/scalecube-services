@@ -25,7 +25,6 @@ public final class ChannelContext {
   private static final Logger LOGGER = LoggerFactory.getLogger(ChannelContext.class);
 
   private static final ConcurrentMap<String, ChannelContext> idToChannelContext = new ConcurrentHashMap<>();
-  private static final ConcurrentMap<ChannelContext, String> channelContextToId = new ConcurrentHashMap<>();
 
   private final Subject<Event, Event> eventSubject = PublishSubject.<Event>create().toSerialized();
   private final Subject<Void, Void> closeSubject = PublishSubject.<Void>create().toSerialized();
@@ -49,8 +48,7 @@ public final class ChannelContext {
   public static ChannelContext create(String id, Address address) {
     ChannelContext channelContext = new ChannelContext(id, address);
     idToChannelContext.put(id, channelContext);
-    channelContextToId.put(channelContext, id);
-    LOGGER.debug("Created {} for session: {}", channelContext, id);
+    LOGGER.debug("Created {}", channelContext);
     return channelContext;
   }
 
@@ -78,12 +76,8 @@ public final class ChannelContext {
     return closeSubject.onBackpressureBuffer().asObservable();
   }
 
-  public Observable<Event> listenMessageReceived() {
+  public Observable<Event> listenReadSuccess() {
     return listen().filter(Event::isReadSuccess);
-  }
-
-  public Observable<Event> listenReadError() {
-    return listen().filter(Event::isReadError);
   }
 
   public Observable<Event> listenMessageWrite() {
@@ -116,14 +110,11 @@ public final class ChannelContext {
    * would return null after this operation.
    */
   public void close() {
-    String id = channelContextToId.remove(this);
-    if (id != null) {
-      idToChannelContext.remove(id);
-    }
     eventSubject.onCompleted();
     closeSubject.onNext(null);
     closeSubject.onCompleted();
-    LOGGER.debug("Removed and closed {} for session: {}", this, id);
+    idToChannelContext.remove(id);
+    LOGGER.debug("Closed and removed {}", this);
   }
 
   @Override

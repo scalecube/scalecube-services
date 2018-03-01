@@ -12,6 +12,8 @@ import io.scalecube.transport.Address;
  */
 public final class GatewayRunner {
 
+  public static final Address SERVICE_ADDRESS = Address.create("127.0.1.1", 5801);
+
   /**
    * Main method.
    */
@@ -19,15 +21,11 @@ public final class GatewayRunner {
     ClientStream clientStream = ClientStream.newClientStream();
     ServerStream serverStream = ServerStream.newServerStream();
 
-    serverStream.listenReadSuccess().subscribe(event -> {
-      System.out.println("Sending ...");
-      clientStream.send(Address.create("127.0.0.1", 5801), event.getMessage().get());
-    });
+    serverStream.listenReadSuccess()
+        .subscribe(event -> clientStream.send(SERVICE_ADDRESS, event.getMessage().get()));
 
-    clientStream.listenReadSuccess().subscribe(event -> {
-      System.out.println("Got reply: " + event + " sending it back to gateway client");
-      serverStream.send(event.getMessage().get());
-    });
+    clientStream.listenReadSuccess()
+        .subscribe(event -> serverStream.send(event.getMessage().get()));
 
     GatewaySocketIoServer.onPort(4040, serverStream).start();
     GatewayHttpServer.onPort(8080, serverStream).start();
