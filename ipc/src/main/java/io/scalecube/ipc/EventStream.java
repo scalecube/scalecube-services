@@ -28,5 +28,5 @@ public interface EventStream {
 
   void close();
 
-  void subscribeOnClose(Consumer<Void> onClose);
+  void listenClose(Consumer<Void> onClose);
 }

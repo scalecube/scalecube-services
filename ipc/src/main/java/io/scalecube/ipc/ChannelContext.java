@@ -28,6 +28,7 @@ public final class ChannelContext {
   private static final ConcurrentMap<String, ChannelContext> idToChannelContext = new ConcurrentHashMap<>();
 
   private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
+  private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
 
   private final String id;
   private final Address address;
@@ -105,19 +106,16 @@ public final class ChannelContext {
    * map. Subsequent {@link #getIfExist(String)} would return null after this operation.
    */
   public void close() {
-    subject.onCompleted(); // complete
-    idToChannelContext.remove(id); // remove
-    LOGGER.debug("Closed and removed {}", this);
+    subject.onCompleted();
+    closeSubject.onCompleted();
+    ChannelContext channelContext = idToChannelContext.remove(id);
+    if (channelContext != null) {
+      LOGGER.debug("Closed and removed {}", channelContext);
+    }
   }
 
-  /**
-   * Subscription point for listening when channel ctx stop emitting events and closed, regardless of was it by onError
-   * or onCompleted (in case concerned subscribe on observable {@link #listen()}.
-   * 
-   * @param onClose logic provider; given channelContext would be completed and unsubscribed.
-   */
-  public void subscribeOnClose(Consumer<ChannelContext> onClose) {
-    subject.subscribe(event -> {
+  public void listenClose(Consumer<ChannelContext> onClose) {
+    closeSubject.subscribe(event -> {
     }, throwable -> onClose.accept(this), () -> onClose.accept(this));
   }
 

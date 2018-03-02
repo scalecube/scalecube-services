@@ -10,6 +10,7 @@ import java.util.function.Function;
 public class DefaultEventStream implements EventStream {
 
   private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
+  private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
 
   private final Function<Event, Event> eventMapper;
 
@@ -40,11 +41,12 @@ public class DefaultEventStream implements EventStream {
   @Override
   public final void close() {
     subject.onCompleted();
+    closeSubject.onCompleted();
   }
 
   @Override
-  public final void subscribeOnClose(Consumer<Void> onClose) {
-    subject.subscribe(event -> {
+  public final void listenClose(Consumer<Void> onClose) {
+    closeSubject.subscribe(event -> {
     }, throwable -> onClose.accept(null), () -> onClose.accept(null));
   }
 }

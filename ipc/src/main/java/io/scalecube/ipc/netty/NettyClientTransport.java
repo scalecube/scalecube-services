@@ -35,7 +35,7 @@ public final class NettyClientTransport {
         outgoingChannels.remove(address, promise);
       }
       if (channelContext != null) { // in case connected subscribe on close event
-        channelContext.subscribeOnClose(ctx -> outgoingChannels.remove(address, promise));
+        channelContext.listenClose(ctx -> outgoingChannels.remove(address, promise));
       }
     });
     return promise;

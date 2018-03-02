@@ -1,10 +1,13 @@
 package io.scalecube.ipc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import io.scalecube.ipc.Event.Topic;
 import io.scalecube.transport.Address;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import rx.subjects.ReplaySubject;
@@ -12,18 +15,31 @@ import rx.subjects.Subject;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ClientStreamTest {
 
+  private ListeningServerStream serverStream;
+  private Address address;
+
+  @Before
+  public void setUp() throws Exception {
+    serverStream = ListeningServerStream.newServerStream().bind();
+    address = serverStream.listenBind().toBlocking().toFuture().get(3, TimeUnit.SECONDS);
+  }
+
+  @After
+  public void cleanUp() throws Exception {
+    serverStream.close();
+    address = serverStream.listenUnbind().toBlocking().toFuture().get(3, TimeUnit.SECONDS);
+  }
+
   @Test
   public void testClientStreamEmitsWriteEvents() throws Exception {
-    ListeningServerStream serverStream = ListeningServerStream.newServerStream().bind();
-    Address address = serverStream.listenBind().toBlocking().toFuture().get();
-
     ClientStream clientStream = ClientStream.newClientStream();
 
     Subject<Event, Event> emittedEventsSubject = ReplaySubject.create();
-    clientStream.listen().subscribe(emittedEventsSubject::onNext);
+    clientStream.listen().subscribe(emittedEventsSubject);
 
     clientStream.send(address, ServiceMessage.withQualifier("q/hello").build());
 
@@ -35,11 +51,8 @@ public class ClientStreamTest {
 
   @Test
   public void testClientStreamSendsToServerStream() throws Exception {
-    ListeningServerStream serverStream = ListeningServerStream.newServerStream().bind();
-    Address address = serverStream.listenBind().toBlocking().toFuture().get();
-
     Subject<Event, Event> requestSubject = ReplaySubject.create();
-    serverStream.listen().subscribe(requestSubject::onNext);
+    serverStream.listen().subscribe(requestSubject);
 
     ClientStream clientStream = ClientStream.newClientStream();
     clientStream.send(address, ServiceMessage.withQualifier("hola").build());
@@ -50,19 +63,38 @@ public class ClientStreamTest {
   }
 
   @Test
-  public void testClientStreamRecvEchoFromServerStream() throws Exception {
-    ListeningServerStream serverStream = ListeningServerStream.newServerStream().bind();
+  public void testClientStreamReceivesFromServerStream() throws Exception {
     serverStream.listenReadSuccess().subscribe(event -> serverStream.send(event.getMessage().get()));
 
     ClientStream clientStream = ClientStream.newClientStream();
     Subject<Event, Event> responseSubject = ReplaySubject.create();
     clientStream.listenReadSuccess().subscribe(responseSubject);
 
-    Address address = serverStream.listenBind().toBlocking().toFuture().get();
     clientStream.send(address, ServiceMessage.withQualifier("echo").build());
 
     List<Event> events = responseSubject.buffer(1).timeout(3, TimeUnit.SECONDS).toBlocking().first();
     assertEquals(1, events.size());
     assertEquals(Topic.ReadSuccess, events.get(0).getTopic());
+  }
+
+  @Test
+  public void testClientStreamOnClose() throws Exception {
+    ClientStream clientStream = ClientStream.newClientStream();
+    AtomicBoolean onCloseBoolean = new AtomicBoolean();
+    clientStream.listenClose(aVoid -> onCloseBoolean.set(true));
+
+    clientStream.send(address, ServiceMessage.withQualifier("q/hello").build());
+
+    Subject<Event, Event> emittedEventsSubject = ReplaySubject.create();
+    clientStream.listen().subscribe(emittedEventsSubject);
+
+    List<Event> events = emittedEventsSubject.buffer(2).timeout(3, TimeUnit.SECONDS).toBlocking().first();
+    assertEquals(2, events.size());
+    assertEquals(Topic.MessageWrite, events.get(0).getTopic());
+    assertEquals(Topic.WriteSuccess, events.get(1).getTopic());
+
+    clientStream.close();
+
+    assertTrue(onCloseBoolean.get());
   }
 }

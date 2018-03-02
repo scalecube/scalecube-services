@@ -89,8 +89,8 @@ public final class ListeningServerStream implements EventStream {
   }
 
   @Override
-  public void subscribeOnClose(Consumer<Void> onClose) {
-    serverStream.subscribeOnClose(onClose);
+  public void listenClose(Consumer<Void> onClose) {
+    serverStream.listenClose(onClose);
   }
 
   /**
@@ -130,7 +130,7 @@ public final class ListeningServerStream implements EventStream {
   private void onBind(ListeningServerStream serverStream, NettyServerTransport transport, Throwable cause) {
     if (transport != null) {
       // register cleanup process upfront
-      serverStream.subscribeOnClose(aVoid -> unbindTransport(transport));
+      serverStream.listenClose(aVoid -> unbindTransport(serverStream, transport));
       // emit bind success
       transport.getAddress().ifPresent(address -> {
         serverStream.bindSubject.onNext(address);
@@ -142,16 +142,16 @@ public final class ListeningServerStream implements EventStream {
     }
   }
 
-  private void unbindTransport(NettyServerTransport transport) {
+  private void unbindTransport(ListeningServerStream serverStream, NettyServerTransport transport) {
     transport.unbind().whenComplete((transport1, throwable) -> {
       if (transport1 != null) {
         transport1.getAddress().ifPresent(address -> {
-          unbindSubject.onNext(address);
-          unbindSubject.onCompleted();
+          serverStream.unbindSubject.onNext(address);
+          serverStream.unbindSubject.onCompleted();
         });
       }
       if (throwable != null) {
-        unbindSubject.onError(throwable);
+        serverStream.unbindSubject.onError(throwable);
       }
     });
   }
