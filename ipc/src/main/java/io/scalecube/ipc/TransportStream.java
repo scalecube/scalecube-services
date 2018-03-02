@@ -48,6 +48,12 @@ public final class TransportStream {
     return newTransportStream(DEFAULT_BOOTSTRAP);
   }
 
+  /**
+   * Create and bootstrap a new transport stream instance.
+   * 
+   * @param bootstrap of netty configuration.
+   * @return new instance of a transport stream.
+   */
   public static TransportStream newTransportStream(Bootstrap bootstrap) {
     ServerStream serverStream = ServerStream.newServerStream();
     ClientStream clientStream = ClientStream.newClientStream(bootstrap);
