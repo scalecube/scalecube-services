@@ -68,25 +68,56 @@ public final class ExchangeStream {
     return new ExchangeStream(serverStream, clientStream);
   }
 
+  /**
+   * Sends a message to a given address. After calling this method it becomes eligible to subscribe on {@link #listen()}
+   * to receive messages from remote party.
+   *
+   * @param address of target endpoint.
+   * @param message to send.
+   * @return ExchangeStream instance with dedicated channelContext attached to serverStream to clientStream (and
+   *         opposite direction as well) communication.
+   */
   public ExchangeStream send(Address address, ServiceMessage message) {
-    ExchangeStream stream = new ExchangeStream(this);
+    ExchangeStream exchangeStream = new ExchangeStream(this);
 
     // create new 'exchange point' and subscribe serverStream on it
-    stream.channelContext = ChannelContext.create(IdGenerator.generateId(), address);
-    stream.serverStream.subscribe(stream.channelContext);
+    exchangeStream.channelContext = ChannelContext.create(IdGenerator.generateId(), address);
+    exchangeStream.serverStream.subscribe(exchangeStream.channelContext);
 
     // emit message write request, there by activate serverStream
-    stream.channelContext.postMessageWrite(message);
+    exchangeStream.channelContext.postMessageWrite(message);
 
-    return stream;
+    return exchangeStream;
   }
 
+  /**
+   * This is subscription point method after calling {@link #send(Address, ServiceMessage)}. NOTE: calling it with out
+   * corresponding send will result in IllegalStateException.
+   */
   public Observable<Event> listen() {
+    if (channelContext == null) {
+      Observable.error(new IllegalStateException("Call send() first"));
+    }
     return channelContext.listenReadSuccess();
   }
 
-  public void close() {
-    channelContext.close();
+  /**
+   * Closes shared (across {@link ExchangeStream} instances) serverStream and clientStream. After this call this
+   * instance wouldn't emit events neither on further {@link #send(Address, ServiceMessage)} call neither on
+   * corresponding {@link #listen()} call.
+   */
+  public void destroy() {
     serverStream.close();
+    clientStream.close();
+    close();
+  }
+
+  /**
+   * Closes channelContext (if any) that was created at corresponding {@link #send(Address, ServiceMessage)} call.
+   */
+  public void close() {
+    if (channelContext != null) {
+      channelContext.close();
+    }
   }
 }
