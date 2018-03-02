@@ -18,6 +18,12 @@ public class ServiceZipEchoRunner {
   public static final Address ADDRESS2 = Address.from("127.0.1.1:5803");
   public static final Address ADDRESS3 = Address.from("127.0.1.1:5804");
 
+  /**
+   * Example for using transport streams.
+   * 
+   * @param args noop
+   * @throws InterruptedException
+   */
   public static void main(String[] args) throws InterruptedException {
     TransportStream transport = TransportStream.newTransportStream();
 
@@ -40,10 +46,10 @@ public class ServiceZipEchoRunner {
             Optional<ServiceMessage> message2 = event2.getMessage();
             Optional<ServiceMessage> message3 = event3.getMessage();
 
-            System.out.println("ServiceZipEcho: " +
-                "message1.senderId=" + message1.get().getSenderId() +
-                ", message2.senderId=" + message2.get().getSenderId() +
-                ", message3.senderId=" + message3.get().getSenderId());
+            System.out.println("ServiceZipEcho: "
+                + "message1.senderId=" + message1.get().getSenderId()
+                + ", message2.senderId=" + message2.get().getSenderId()
+                + ", message3.senderId=" + message3.get().getSenderId());
 
             String qualifier1 = message1.get().getQualifier();
             String qualifier2 = message2.get().getQualifier();
