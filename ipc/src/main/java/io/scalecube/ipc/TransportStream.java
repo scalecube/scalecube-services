@@ -13,9 +13,9 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
-public final class ExchangeStream {
+public final class TransportStream {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransportStream.class);
 
   private static final Bootstrap DEFAULT_BOOTSTRAP;
   // Pre-configure default bootstrap
@@ -35,20 +35,20 @@ public final class ExchangeStream {
 
   //// Constructors
 
-  private ExchangeStream(ExchangeStream other) {
+  private TransportStream(TransportStream other) {
     this(other.serverStream, other.clientStream);
   }
 
-  private ExchangeStream(ServerStream serverStream, ClientStream clientStream) {
+  private TransportStream(ServerStream serverStream, ClientStream clientStream) {
     this.serverStream = serverStream;
     this.clientStream = clientStream;
   }
 
-  public static ExchangeStream newExchangeStream() {
-    return newExchangeStream(DEFAULT_BOOTSTRAP);
+  public static TransportStream newTransportStream() {
+    return newTransportStream(DEFAULT_BOOTSTRAP);
   }
 
-  public static ExchangeStream newExchangeStream(Bootstrap bootstrap) {
+  public static TransportStream newTransportStream(Bootstrap bootstrap) {
     ServerStream serverStream = ServerStream.newServerStream();
     ClientStream clientStream = ClientStream.newClientStream(bootstrap);
 
@@ -65,7 +65,7 @@ public final class ExchangeStream {
             (identity, message1) -> ChannelContext.getIfExist(identity).postReadSuccess(message1),
             throwable -> LOGGER.warn("Failed to handle message: {}, cause: {}", message, throwable)));
 
-    return new ExchangeStream(serverStream, clientStream);
+    return new TransportStream(serverStream, clientStream);
   }
 
   /**
@@ -74,11 +74,11 @@ public final class ExchangeStream {
    *
    * @param address of target endpoint.
    * @param message to send.
-   * @return ExchangeStream instance with dedicated channelContext attached to serverStream to clientStream (and
+   * @return TransportStream instance with dedicated channelContext attached to serverStream to clientStream (and
    *         opposite direction as well) communication.
    */
-  public ExchangeStream send(Address address, ServiceMessage message) {
-    ExchangeStream exchangeStream = new ExchangeStream(this);
+  public TransportStream send(Address address, ServiceMessage message) {
+    TransportStream exchangeStream = new TransportStream(this);
 
     // create new 'exchange point' and subscribe serverStream on it
     exchangeStream.channelContext = ChannelContext.create(IdGenerator.generateId(), address);
@@ -102,7 +102,7 @@ public final class ExchangeStream {
   }
 
   /**
-   * Closes shared (across {@link ExchangeStream} instances) serverStream and clientStream. After this call this
+   * Closes shared (across {@link TransportStream} instances) serverStream and clientStream. After this call this
    * instance wouldn't emit events neither on further {@link #send(Address, ServiceMessage)} call neither on
    * corresponding {@link #listen()} call.
    */
