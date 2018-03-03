@@ -2,27 +2,27 @@ package io.scalecube.ipc;
 
 import rx.Observable;
 
+import java.util.function.Consumer;
+
 public interface EventStream {
 
   void subscribe(ChannelContext channelContext);
 
   Observable<Event> listen();
 
-  default Observable<Event> listenReadSuccess() {
-    return listen().filter(Event::isReadSuccess);
-  }
-
-  default Observable<Event> listenReadError() {
-    return listen().filter(Event::isReadError);
-  }
-
-  default Observable<Event> listenWriteSuccess() {
-    return listen().filter(Event::isWriteSuccess);
-  }
-
-  default Observable<Event> listenWriteError() {
-    return listen().filter(Event::isWriteError);
-  }
-
   void close();
+
+  void listenClose(Consumer<Void> onClose);
+
+  default Observable<ServiceMessage> listenMessageReadSuccess() {
+    return listen().filter(Event::isReadSuccess).map(Event::getMessageOrThrow);
+  }
+
+  default Observable<ServiceMessage> listenMessageWriteError() {
+    return listen().filter(Event::isWriteError).map(Event::getMessageOrThrow);
+  }
+
+  default Observable<ServiceMessage> listenMessageWriteSuccess() {
+    return listen().filter(Event::isWriteSuccess).map(Event::getMessageOrThrow);
+  }
 }

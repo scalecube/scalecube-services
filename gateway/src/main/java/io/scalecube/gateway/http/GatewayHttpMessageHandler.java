@@ -34,8 +34,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
     }
 
     channelContext.listenMessageWrite().subscribe(
-        event -> {
-          ServiceMessage message = event.getMessage().get();
+        message -> {
           Qualifier qualifier = Qualifier.fromString(message.getQualifier());
           FullHttpResponse response;
 

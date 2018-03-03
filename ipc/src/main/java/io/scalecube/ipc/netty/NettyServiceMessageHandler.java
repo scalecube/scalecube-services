@@ -1,7 +1,6 @@
 package io.scalecube.ipc.netty;
 
 import io.scalecube.ipc.ChannelContext;
-import io.scalecube.ipc.ServiceMessage;
 import io.scalecube.ipc.codec.ServiceMessageCodec;
 
 import io.netty.buffer.ByteBuf;
@@ -20,35 +19,35 @@ public final class NettyServiceMessageHandler extends ChannelInboundHandlerAdapt
 
   @Override
   public void userEventTriggered(ChannelHandlerContext ctx, Object customEvent) throws Exception {
-    if (customEvent == ChannelSupport.CHANNEL_CTX_CREATED_EVENT) {
-
-      ChannelContext channelContext = ChannelSupport.getChannelContextIfExist(ctx);
-      if (channelContext == null) {
-        LOGGER.error("Can't find channel context on channel: {}", ctx.channel());
-        ctx.channel().close();
-        return;
-      }
-
-      channelContext.listenMessageWrite().subscribe(
-          event -> {
-            ServiceMessage message = event.getMessage().get();
-            ByteBuf buf = ServiceMessageCodec.encode(message);
-            ChannelSupport.releaseRefCount(message.getData()); // release ByteBuf
-
-            ctx.writeAndFlush(buf).addListener((ChannelFutureListener) future -> {
-              if (!future.isSuccess()) {
-                channelContext.postWriteError(future.cause(), message);
-              } else {
-                channelContext.postWriteSuccess(message);
-              }
-            });
-          },
-          throwable -> {
-            LOGGER.error("Fatal exception occured on channel context: {}, cause: {}", channelContext.getId(),
-                throwable);
-            ctx.channel().close();
-          });
+    if (customEvent != ChannelSupport.CHANNEL_CTX_CREATED_EVENT) {
+      super.userEventTriggered(ctx, customEvent);
+      return;
     }
+
+    ChannelContext channelContext = ChannelSupport.getChannelContextIfExist(ctx);
+    if (channelContext == null) {
+      LOGGER.error("Can't find channel context on channel: {}", ctx.channel());
+      ctx.channel().close();
+      return;
+    }
+
+    channelContext.listenMessageWrite().subscribe(
+        message -> {
+          ByteBuf buf = ServiceMessageCodec.encode(message);
+          ChannelSupport.releaseRefCount(message.getData()); // release ByteBuf
+
+          ctx.writeAndFlush(buf).addListener((ChannelFutureListener) future -> {
+            if (!future.isSuccess()) {
+              channelContext.postWriteError(future.cause(), message);
+            } else {
+              channelContext.postWriteSuccess(message);
+            }
+          });
+        },
+        throwable -> {
+          LOGGER.error("Fatal exception occured on channel context: {}, cause: {}", channelContext.getId(), throwable);
+          ctx.channel().close();
+        });
 
     super.userEventTriggered(ctx, customEvent);
   }

@@ -13,6 +13,8 @@ import rx.Observable;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
+import java.util.function.Consumer;
+
 public final class ListeningServerStream implements EventStream {
 
   // listens to bind on server transport
@@ -86,6 +88,11 @@ public final class ListeningServerStream implements EventStream {
     serverStream.close();
   }
 
+  @Override
+  public void listenClose(Consumer<Void> onClose) {
+    serverStream.listenClose(onClose);
+  }
+
   /**
    * Subscription point for bind operation on internal server transport. NOTE that after calling {@link #close()}
    * subscribing to bind would still result in arriving result.
@@ -123,8 +130,7 @@ public final class ListeningServerStream implements EventStream {
   private void onBind(ListeningServerStream serverStream, NettyServerTransport transport, Throwable cause) {
     if (transport != null) {
       // register cleanup process upfront
-      serverStream.listen().subscribe(event -> {
-      }, throwable -> unbindTransport(transport), () -> unbindTransport(transport));
+      serverStream.listenClose(aVoid -> unbindTransport(serverStream, transport));
       // emit bind success
       transport.getAddress().ifPresent(address -> {
         serverStream.bindSubject.onNext(address);
@@ -136,16 +142,16 @@ public final class ListeningServerStream implements EventStream {
     }
   }
 
-  private void unbindTransport(NettyServerTransport transport) {
+  private void unbindTransport(ListeningServerStream serverStream, NettyServerTransport transport) {
     transport.unbind().whenComplete((transport1, throwable) -> {
       if (transport1 != null) {
         transport1.getAddress().ifPresent(address -> {
-          unbindSubject.onNext(address);
-          unbindSubject.onCompleted();
+          serverStream.unbindSubject.onNext(address);
+          serverStream.unbindSubject.onCompleted();
         });
       }
       if (throwable != null) {
-        unbindSubject.onError(throwable);
+        serverStream.unbindSubject.onError(throwable);
       }
     });
   }

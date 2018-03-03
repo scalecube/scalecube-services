@@ -4,11 +4,13 @@ import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class DefaultEventStream implements EventStream {
 
   private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
+  private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
 
   private final Function<Event, Event> eventMapper;
 
@@ -39,5 +41,12 @@ public class DefaultEventStream implements EventStream {
   @Override
   public final void close() {
     subject.onCompleted();
+    closeSubject.onCompleted();
+  }
+
+  @Override
+  public final void listenClose(Consumer<Void> onClose) {
+    closeSubject.subscribe(event -> {
+    }, throwable -> onClose.accept(null), () -> onClose.accept(null));
   }
 }

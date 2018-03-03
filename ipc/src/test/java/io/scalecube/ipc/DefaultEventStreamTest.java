@@ -17,8 +17,8 @@ public class DefaultEventStreamTest {
   private ServiceMessage message0 = ServiceMessage.withQualifier("ok").build();
   private ServiceMessage message1 = ServiceMessage.withQualifier("hola").build();
 
-  private ChannelContext ctx0 = ChannelContext.create("sadsas78sd", Address.from("localhost:0"));
-  private ChannelContext ctx1 = ChannelContext.create("asdfa7sd8f", Address.from("localhost:1"));
+  private ChannelContext ctx0 = ChannelContext.create(Address.from("localhost:0"));
+  private ChannelContext ctx1 = ChannelContext.create(Address.from("localhost:1"));
 
   private DefaultEventStream eventStream = new DefaultEventStream();
 
@@ -76,7 +76,7 @@ public class DefaultEventStreamTest {
     ctx1.close();
 
     // After two contexts closed business layer is not affected
-    ChannelContext ctx2 = ChannelContext.create("d89asfads7f", Address.from("localhost:2"));
+    ChannelContext ctx2 = ChannelContext.create(Address.from("localhost:2"));
     eventStream.subscribe(ctx2);
     ctx2.postReadError(new RuntimeException("Can't decode incoming msg"));
     assertEquals(Topic.ReadError, events.get(2).getTopic());
@@ -91,9 +91,36 @@ public class DefaultEventStreamTest {
     }, throwable -> {
     }, () -> eventSubjectClosed.set(true));
     // You can watch-out for close at Observable that was invented for exact reason
-    ctx0.listenClose().subscribe(aVoid -> channelContextClosed.set(true));
+    ctx0.listenClose(ctx -> channelContextClosed.set(true));
     ctx0.close();
     assertTrue(eventSubjectClosed.get());
     assertTrue(channelContextClosed.get());
+  }
+
+  @Test
+  public void testChannelContextClosedCheckItsState() {
+    AtomicBoolean channelContextCompleted = new AtomicBoolean();
+    ChannelContext[] channelContexts = new ChannelContext[1];
+    ctx0.listenClose(ctx -> {
+      channelContexts[0] = ctx;
+      // try listen
+      ctx.listen().subscribe(event -> {
+      }, throwable -> {
+      }, () -> channelContextCompleted.set(true));
+    });
+    // emit close
+    ctx0.close();
+    // assert that context removed from channel contexs map and cannot emit events
+    assertEquals(null, ChannelContext.getIfExist(channelContexts[0].getId()));
+    // assert that you can't listen
+    assertTrue(channelContextCompleted.get());
+  }
+
+  @Test
+  public void testDefaultEventStreamSubscribeOnClose() {
+    AtomicBoolean eventStreamClosed = new AtomicBoolean();
+    eventStream.listenClose(aVoid -> eventStreamClosed.set(true));
+    eventStream.close();
+    assertTrue(eventStreamClosed.get());
   }
 }

@@ -1,9 +1,7 @@
 package io.scalecube.gateway.socketio;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.ipc.ChannelContext;
 import io.scalecube.ipc.EventStream;
-import io.scalecube.ipc.ServiceMessage;
 import io.scalecube.ipc.codec.ServiceMessageCodec;
 import io.scalecube.ipc.netty.ChannelSupport;
 import io.scalecube.socketio.Session;
@@ -26,9 +24,13 @@ public final class GatewaySocketIoListener implements SocketIOListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewaySocketIoListener.class);
 
-  private final EventStream eventStream;
-
+  /**
+   * A mapping between socketio {@link Session} identifier and our own generated {@link ChannelContext} identifier. Map
+   * is updated when corresponding {@link Session} disconnects.
+   */
   private final ConcurrentMap<String, String> sessionIdToChannelContextId = new ConcurrentHashMap<>();
+
+  private final EventStream eventStream;
 
   public GatewaySocketIoListener(EventStream eventStream) {
     this.eventStream = eventStream;
@@ -36,19 +38,25 @@ public final class GatewaySocketIoListener implements SocketIOListener {
 
   @Override
   public void onConnect(Session session) {
-    String channelContextId = IdGenerator.generateId();
-    sessionIdToChannelContextId.put(session.getSessionId(), channelContextId);
-
+    // create channel context
     InetSocketAddress remoteAddress = (InetSocketAddress) session.getRemoteAddress();
     String host = remoteAddress.getAddress().getHostAddress();
     int port = remoteAddress.getPort();
-    ChannelContext channelContext = ChannelContext.create(channelContextId, Address.create(host, port));
+    ChannelContext channelContext = ChannelContext.create(Address.create(host, port));
 
+    // save mapping
+    sessionIdToChannelContextId.put(session.getSessionId(), channelContext.getId());
+
+    // setup behavior
     eventStream.subscribe(channelContext);
+    channelContext.listenClose(channelContext1 -> {
+      if (session.getState() == Session.State.CONNECTED) {
+        session.disconnect();
+      }
+    });
 
     channelContext.listenMessageWrite().subscribe(
-        event -> {
-          ServiceMessage message = event.getMessage().get();
+        message -> {
           ByteBuf buf = ServiceMessageCodec.encode(message);
           ChannelSupport.releaseRefCount(message.getData()); // release ByteBuf
           try {
