@@ -1,6 +1,5 @@
 package io.scalecube.ipc.netty;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.ipc.ChannelContext;
 import io.scalecube.transport.Address;
 
@@ -30,7 +29,7 @@ public final class ChannelContextHandler extends ChannelDuplexHandler {
       InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
       String host = remoteAddress.getAddress().getHostAddress();
       int port = remoteAddress.getPort();
-      ChannelContext channelContext = ChannelContext.create(IdGenerator.generateId(), Address.create(host, port));
+      ChannelContext channelContext = ChannelContext.create(Address.create(host, port));
       attribute.set(channelContext); // set channel attribute
 
       channelContextConsumer.accept(channelContext);

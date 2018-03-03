@@ -2,16 +2,16 @@ package io.scalecube.examples.gateway;
 
 import static io.scalecube.ipc.ServiceMessage.copyFrom;
 
-import io.scalecube.ipc.Event;
-import io.scalecube.ipc.TransportStream;
+import io.scalecube.ipc.ExchangeStream;
 import io.scalecube.ipc.ListeningServerStream;
 import io.scalecube.ipc.ServiceMessage;
 import io.scalecube.transport.Address;
 
 import rx.Observable;
 
-import java.util.Optional;
-
+/**
+ * Calls three requests and joins them together asynchronously.
+ */
 public class ServiceZipEchoRunner {
 
   public static final Address ADDRESS1 = Address.from("127.0.1.1:5802");
@@ -19,41 +19,26 @@ public class ServiceZipEchoRunner {
   public static final Address ADDRESS3 = Address.from("127.0.1.1:5804");
 
   /**
-   * Example for using transport streams.
-   * 
-   * @param args noop
-   * @throws InterruptedException
+   * Main method.
    */
   public static void main(String[] args) throws InterruptedException {
-    TransportStream transport = TransportStream.newTransportStream();
+    ExchangeStream exchangeStream = ExchangeStream.newExchangeStream();
 
     ListeningServerStream serverStream = ListeningServerStream.newServerStream().withPort(5801).bind();
-    serverStream.listenReadSuccess().subscribe(event -> {
+    serverStream.listenMessageReadSuccess().subscribe(message -> {
 
-      ServiceMessage message = event.getMessage().get();
-
-      TransportStream transport1 = transport.send(ADDRESS1, copyFrom(message).qualifier("aaa").build());
-      TransportStream transport2 = transport.send(ADDRESS2, copyFrom(message).qualifier("bbb").build());
-      TransportStream transport3 = transport.send(ADDRESS3, copyFrom(message).qualifier("ccc").build());
-
-      Observable<Event> listen1 = transport1.listen();
-      Observable<Event> listen2 = transport2.listen();
-      Observable<Event> listen3 = transport3.listen();
+      Observable<ServiceMessage> listen1 =
+          exchangeStream.send(ADDRESS1, copyFrom(message).qualifier("aaa").build());
+      Observable<ServiceMessage> listen2 =
+          exchangeStream.send(ADDRESS2, copyFrom(message).qualifier("bbb").build());
+      Observable<ServiceMessage> listen3 =
+          exchangeStream.send(ADDRESS3, copyFrom(message).qualifier("ccc").build());
 
       Observable.zip(listen1, listen2, listen3,
-          (event1, event2, event3) -> {
-            Optional<ServiceMessage> message1 = event1.getMessage();
-            Optional<ServiceMessage> message2 = event2.getMessage();
-            Optional<ServiceMessage> message3 = event3.getMessage();
-
-            System.out.println("ServiceZipEcho: "
-                + "message1.senderId=" + message1.get().getSenderId()
-                + ", message2.senderId=" + message2.get().getSenderId()
-                + ", message3.senderId=" + message3.get().getSenderId());
-
-            String qualifier1 = message1.get().getQualifier();
-            String qualifier2 = message2.get().getQualifier();
-            String qualifier3 = message3.get().getQualifier();
+          (message1, message2, message3) -> {
+            String qualifier1 = message1.getQualifier();
+            String qualifier2 = message2.getQualifier();
+            String qualifier3 = message3.getQualifier();
 
             String qualifier = qualifier1 + "/" + qualifier2 + "/" + qualifier3;
 

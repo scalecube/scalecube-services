@@ -3,7 +3,6 @@ package io.scalecube.ipc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Address;
 
 import org.junit.Before;
@@ -24,7 +23,7 @@ public class ServerStreamTest {
 
   @Before
   public void setUp() {
-    channelContext = ChannelContext.create(IdGenerator.generateId(), Address.create("localhost", 0));
+    channelContext = ChannelContext.create(Address.create("localhost", 0));
     serverStream = ServerStream.newServerStream();
     serverStream.subscribe(channelContext);
   }

@@ -14,7 +14,7 @@ public final class GatewayEchoRunner {
    */
   public static void main(String[] args) throws Exception {
     ServerStream serverStream = ServerStream.newServerStream();
-    serverStream.listenReadSuccess().subscribe(event -> serverStream.send(event.getMessage().get()));
+    serverStream.listenMessageReadSuccess().subscribe(serverStream::send);
 
     GatewaySocketIoServer.onPort(4040, serverStream).start();
     GatewayHttpServer.onPort(8080, serverStream).start();
