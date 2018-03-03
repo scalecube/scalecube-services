@@ -1,6 +1,5 @@
 package io.scalecube.ipc;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.Bootstrap;
@@ -11,11 +10,12 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import rx.Emitter;
 import rx.Observable;
 
-public final class TransportStream {
+public final class ExchangeStream {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TransportStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExchangeStream.class);
 
   private static final Bootstrap DEFAULT_BOOTSTRAP;
   // Pre-configure default bootstrap
@@ -31,30 +31,28 @@ public final class TransportStream {
   private final ServerStream serverStream;
   private final ClientStream clientStream;
 
-  private ChannelContext channelContext; // calculated
-
   //// Constructors
 
-  private TransportStream(TransportStream other) {
+  private ExchangeStream(ExchangeStream other) {
     this(other.serverStream, other.clientStream);
   }
 
-  private TransportStream(ServerStream serverStream, ClientStream clientStream) {
+  private ExchangeStream(ServerStream serverStream, ClientStream clientStream) {
     this.serverStream = serverStream;
     this.clientStream = clientStream;
   }
 
-  public static TransportStream newTransportStream() {
-    return newTransportStream(DEFAULT_BOOTSTRAP);
+  /**
+   * Creates new ExchangeStream with default bootstrap.
+   */
+  public static ExchangeStream newExchangeStream() {
+    return newExchangeStream(DEFAULT_BOOTSTRAP);
   }
 
   /**
-   * Create and bootstrap a new transport stream instance.
-   * 
-   * @param bootstrap of netty configuration.
-   * @return new instance of a transport stream.
+   * Creates new ExchangeStream with custom {@link Bootstrap}.
    */
-  public static TransportStream newTransportStream(Bootstrap bootstrap) {
+  public static ExchangeStream newExchangeStream(Bootstrap bootstrap) {
     ServerStream serverStream = ServerStream.newServerStream();
     ClientStream clientStream = ClientStream.newClientStream(bootstrap);
 
@@ -64,66 +62,39 @@ public final class TransportStream {
         .subscribe(event -> clientStream.send(event.getAddress(), event.getMessage().get()));
 
     // response logic
-    clientStream.listen()
-        .filter(Event::isReadSuccess)
-        .map(event -> event.getMessage().get())
-        .subscribe(message -> serverStream.send(message,
+    clientStream.listenMessageReadSuccess().subscribe(
+        message -> serverStream.send(message,
             (identity, message1) -> ChannelContext.getIfExist(identity).postReadSuccess(message1),
             throwable -> LOGGER.warn("Failed to handle message: {}, cause: {}", message, throwable)));
 
-    return new TransportStream(serverStream, clientStream);
+    return new ExchangeStream(serverStream, clientStream);
   }
 
   /**
-   * Sends a message to a given address. After calling this method it becomes eligible to subscribe on {@link #listen()}
-   * to receive messages from remote party.
+   * Sends a message to a given address. Internally creates new instance of channelContext (a new 'exchange point')
+   * attached to serverStream<->clientStream communication, and returns subscription point back to caller.
    *
    * @param address of target endpoint.
    * @param message to send.
-   * @return TransportStream instance with dedicated channelContext attached to serverStream to clientStream (and
-   *         opposite direction as well) communication.
+   * @return subscription point for receiving messages from remote party.
    */
-  public TransportStream send(Address address, ServiceMessage message) {
-    TransportStream exchangeStream = new TransportStream(this);
-
-    // create new 'exchange point' and subscribe serverStream on it
-    exchangeStream.channelContext = ChannelContext.create(IdGenerator.generateId(), address);
-    exchangeStream.serverStream.subscribe(exchangeStream.channelContext);
-
-    // emit message write request, there by activate serverStream
-    exchangeStream.channelContext.postMessageWrite(message);
-
-    return exchangeStream;
+  public Observable<ServiceMessage> send(Address address, ServiceMessage message) {
+    ChannelContext channelContext = ChannelContext.create(address);
+    return Observable.create(emitter -> {
+      serverStream.subscribe(channelContext);
+      // subscribe
+      channelContext.listenMessageReadSuccess().subscribe(emitter);
+      // emit request
+      channelContext.postMessageWrite(message);
+    }, Emitter.BackpressureMode.BUFFER);
   }
 
   /**
-   * This is subscription point method after calling {@link #send(Address, ServiceMessage)}. NOTE: calling it with out
-   * corresponding send will result in IllegalStateException.
-   */
-  public Observable<Event> listen() {
-    if (channelContext == null) {
-      Observable.error(new IllegalStateException("Call send() first"));
-    }
-    return channelContext.listenReadSuccess();
-  }
-
-  /**
-   * Closes shared (across {@link TransportStream} instances) serverStream and clientStream. After this call this
-   * instance wouldn't emit events neither on further {@link #send(Address, ServiceMessage)} call neither on
-   * corresponding {@link #listen()} call.
-   */
-  public void destroy() {
-    serverStream.close();
-    clientStream.close();
-    close();
-  }
-
-  /**
-   * Closes channelContext (if any) that was created at corresponding {@link #send(Address, ServiceMessage)} call.
+   * Closes shared (across {@link ExchangeStream} instances) serverStream and clientStream. After this call this
+   * instance wouldn't emit events on subsequent {@link #send(Address, ServiceMessage)}.
    */
   public void close() {
-    if (channelContext != null) {
-      channelContext.close();
-    }
+    serverStream.close();
+    clientStream.close();
   }
 }

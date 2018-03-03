@@ -17,8 +17,8 @@ public class DefaultEventStreamTest {
   private ServiceMessage message0 = ServiceMessage.withQualifier("ok").build();
   private ServiceMessage message1 = ServiceMessage.withQualifier("hola").build();
 
-  private ChannelContext ctx0 = ChannelContext.create("sadsas78sd", Address.from("localhost:0"));
-  private ChannelContext ctx1 = ChannelContext.create("asdfa7sd8f", Address.from("localhost:1"));
+  private ChannelContext ctx0 = ChannelContext.create(Address.from("localhost:0"));
+  private ChannelContext ctx1 = ChannelContext.create(Address.from("localhost:1"));
 
   private DefaultEventStream eventStream = new DefaultEventStream();
 
@@ -76,7 +76,7 @@ public class DefaultEventStreamTest {
     ctx1.close();
 
     // After two contexts closed business layer is not affected
-    ChannelContext ctx2 = ChannelContext.create("d89asfads7f", Address.from("localhost:2"));
+    ChannelContext ctx2 = ChannelContext.create(Address.from("localhost:2"));
     eventStream.subscribe(ctx2);
     ctx2.postReadError(new RuntimeException("Can't decode incoming msg"));
     assertEquals(Topic.ReadError, events.get(2).getTopic());

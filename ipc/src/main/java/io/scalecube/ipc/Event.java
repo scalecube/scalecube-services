@@ -36,6 +36,10 @@ public final class Event {
     return message;
   }
 
+  public ServiceMessage getMessageOrThrow() {
+    return getMessage().get();
+  }
+
   public Address getAddress() {
     return channelContext.getAddress();
   }

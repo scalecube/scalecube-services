@@ -3,6 +3,7 @@ package io.scalecube.examples.gateway;
 import io.scalecube.gateway.http.GatewayHttpServer;
 import io.scalecube.gateway.socketio.GatewaySocketIoServer;
 import io.scalecube.ipc.ClientStream;
+import io.scalecube.ipc.Event;
 import io.scalecube.ipc.ListeningServerStream;
 import io.scalecube.ipc.ServerStream;
 import io.scalecube.transport.Address;
@@ -21,18 +22,18 @@ public final class GatewayRunner {
     ClientStream clientStream = ClientStream.newClientStream();
     ServerStream serverStream = ServerStream.newServerStream();
 
-    serverStream.listenReadSuccess()
-        .subscribe(event -> clientStream.send(SERVICE_ADDRESS, event.getMessage().get()));
-
-    clientStream.listenReadSuccess()
-        .subscribe(event -> serverStream.send(event.getMessage().get()));
+    serverStream.listenMessageReadSuccess().subscribe(message -> clientStream.send(SERVICE_ADDRESS, message));
+    clientStream.listenMessageReadSuccess().subscribe(serverStream::send);
 
     GatewaySocketIoServer.onPort(4040, serverStream).start();
     GatewayHttpServer.onPort(8080, serverStream).start();
 
     ListeningServerStream serverStream1 = ListeningServerStream.newServerStream()
         .withListenAddress("127.0.0.1").withPort(5801).bind();
-    serverStream1.listenReadSuccess().subscribe(event -> serverStream1.send(event.getMessage().get()));
+    serverStream1.listen()
+        .filter(Event::isReadSuccess)
+        .map(Event::getMessageOrThrow)
+        .subscribe(serverStream1::send);
 
     Thread.currentThread().join();
   }

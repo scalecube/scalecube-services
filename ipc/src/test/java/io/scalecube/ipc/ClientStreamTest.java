@@ -64,11 +64,14 @@ public class ClientStreamTest {
 
   @Test
   public void testClientStreamReceivesFromServerStream() throws Exception {
-    serverStream.listenReadSuccess().subscribe(event -> serverStream.send(event.getMessage().get()));
+    serverStream.listen()
+        .filter(Event::isReadSuccess)
+        .map(Event::getMessageOrThrow)
+        .subscribe(serverStream::send);
 
     ClientStream clientStream = ClientStream.newClientStream();
     Subject<Event, Event> responseSubject = ReplaySubject.create();
-    clientStream.listenReadSuccess().subscribe(responseSubject);
+    clientStream.listen().filter(Event::isReadSuccess).subscribe(responseSubject);
 
     clientStream.send(address, ServiceMessage.withQualifier("echo").build());
 
