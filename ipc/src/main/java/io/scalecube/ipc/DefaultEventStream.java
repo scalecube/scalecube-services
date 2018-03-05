@@ -55,6 +55,9 @@ public class DefaultEventStream implements EventStream {
     subject.onNext(new Event.Builder(Topic.ChannelContextInactive, channelContext).build());
   }
 
+  // Hint: this method exists only for consistency reasons; it's unlikely that onError ever be called on the
+  // ChannelContext; at the moment of writing this comment there's no such flow that would call ChannelContext's
+  // subject.onError(throwable)
   private void onChannelContextInactiveDueError(ChannelContext channelContext, Throwable throwable) {
     subject.onNext(new Event.Builder(Topic.ChannelContextInactive, channelContext).error(throwable).build());
   }
