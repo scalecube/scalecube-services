@@ -46,10 +46,8 @@ public final class ChannelContextHandler extends ChannelDuplexHandler {
   }
 
   @Override
-  public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-    Channel channel = ctx.channel();
-    channel.config().setAutoRead(false);
-    ChannelSupport.closeChannelContextIfExist(ctx.channel());
-    super.channelInactive(ctx);
+  public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+    ChannelSupport.closeChannelContextIfExist(ctx);
+    super.channelUnregistered(ctx);
   }
 }

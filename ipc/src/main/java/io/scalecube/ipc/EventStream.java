@@ -14,6 +14,10 @@ public interface EventStream {
 
   void listenClose(Consumer<Void> onClose);
 
+  default Observable<Event> listenChannelContextInactive() {
+    return listen().filter(Event::isChannelContextInactive);
+  }
+
   default Observable<ServiceMessage> listenMessageReadSuccess() {
     return listen().filter(Event::isReadSuccess).map(Event::getMessageOrThrow);
   }

@@ -18,6 +18,8 @@ import java.net.InetAddress;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 
 public final class NettyServerTransport {
@@ -25,28 +27,38 @@ public final class NettyServerTransport {
   private final ListeningServerStream.Config config;
   private final ServerBootstrap serverBootstrap;
 
-  private ServerChannel serverChannel; // calculated
-  private Address address; // calculated
+  private final ConcurrentMap<Address, ChannelContext> inboundChannels = new ConcurrentHashMap<>();
 
-  // Public constructor
+  private Address serverAddress; // calculated
+  private ServerChannel serverChannel; // calculated
+
+  /**
+   * Public constructor for this transport. {@link ListeningServerStream} call this constructor passing his config
+   * object and channelContext logic handler as second argument.
+   * 
+   * @param config from {@link ListeningServerStream} object.
+   * @param channelContextConsumer logic provider around connected {@link ChannelContext}.
+   */
   public NettyServerTransport(ListeningServerStream.Config config, Consumer<ChannelContext> channelContextConsumer) {
     this.config = config;
-    ServerBootstrap serverBootstrap = config.getServerBootstrap();
-    this.serverBootstrap = serverBootstrap.childHandler(new NettyServiceChannelInitializer(channelContextConsumer));
-  }
 
-  // Private constructor
-  private NettyServerTransport(NettyServerTransport other) {
-    this.config = other.config;
-    this.serverBootstrap = other.serverBootstrap;
+    Consumer<ChannelContext> consumer = channelContextConsumer.andThen(channelContext -> {
+      // register cleanup process upfront
+      channelContext.listenClose(input -> inboundChannels.remove(input.getAddress(), input));
+      // save accepted channel
+      inboundChannels.put(channelContext.getAddress(), channelContext);
+    });
+
+    ServerBootstrap bootstrap = config.getServerBootstrap().clone();
+    this.serverBootstrap = bootstrap.childHandler(new NettyServiceChannelInitializer(consumer));
   }
 
   /**
-   * Return server address of the corresponding server channel. If server transport is not yet bound then returned
+   * Return bound address of the corresponding server channel. If server transport is not yet bound then returned
    * optional object would be empty.
    */
-  public Optional<Address> getAddress() {
-    return Optional.ofNullable(address);
+  public Optional<Address> getServerAddress() {
+    return Optional.ofNullable(serverAddress);
   }
 
   /**
@@ -57,9 +69,11 @@ public final class NettyServerTransport {
   public CompletableFuture<NettyServerTransport> bind() {
     String listenAddress = config.getListenAddress();
     String listenInterface = config.getListenInterface();
-    InetAddress listenAddress1 = Addressing.getLocalIpAddress(listenAddress, listenInterface, config.isPreferIPv6());
-    int finalBindPort = config.getPort() + config.getPortCount();
-    return new NettyServerTransport(this).bind0(listenAddress1, config.getPort(), finalBindPort);
+    boolean preferIPv6 = config.isPreferIPv6();
+    int port = config.getPort();
+    int finalPort = port + config.getPortCount();
+    InetAddress bindAddress = Addressing.getLocalIpAddress(listenAddress, listenInterface, preferIPv6);
+    return bind0(bindAddress, port, finalPort);
   }
 
   /**
@@ -72,19 +86,19 @@ public final class NettyServerTransport {
     if (serverChannel == null) {
       // Hint: at this point NettyServerTransport isn't bound, but better return instance than exception
       result.complete(NettyServerTransport.this);
-      return result;
+    } else {
+      serverChannel.close().addListener((ChannelFutureListener) channelFuture -> {
+        if (channelFuture.isSuccess()) {
+          result.complete(NettyServerTransport.this);
+        } else {
+          result.completeExceptionally(channelFuture.cause());
+        }
+      });
     }
-    serverChannel.close().addListener((ChannelFutureListener) channelFuture -> {
-      if (channelFuture.isSuccess()) {
-        result.complete(NettyServerTransport.this);
-      } else {
-        result.completeExceptionally(channelFuture.cause());
-      }
-    });
     return result;
   }
 
-  private CompletableFuture<NettyServerTransport> bind0(InetAddress listenAddress, int bindPort, int finalBindPort) {
+  private CompletableFuture<NettyServerTransport> bind0(InetAddress bindAddress, int bindPort, int finalBindPort) {
     CompletableFuture<NettyServerTransport> result = new CompletableFuture<>();
 
     // Perform basic bind port validation
@@ -99,25 +113,34 @@ public final class NettyServerTransport {
       return result;
     }
 
-    // Get address object and bind
-    address = Address.create(listenAddress.getHostAddress(), bindPort);
-
     // Start binding
-    ChannelFuture bindFuture = serverBootstrap.bind(listenAddress, address.port());
+    ChannelFuture bindFuture = serverBootstrap.bind(bindAddress, bindPort);
     bindFuture.addListener((ChannelFutureListener) channelFuture -> {
       if (channelFuture.isSuccess()) {
-        serverChannel = (ServerChannel) channelFuture.channel();
+        // init fields
+        NettyServerTransport.this.init(bindAddress, bindPort, (ServerChannel) channelFuture.channel());
+        // complete
         result.complete(NettyServerTransport.this);
       } else {
         Throwable cause = channelFuture.cause();
         if (config.isPortAutoIncrement() && isAddressAlreadyInUseException(cause)) {
-          bind0(listenAddress, bindPort + 1, finalBindPort).thenAccept(result::complete);
+          bind0(bindAddress, bindPort + 1, finalBindPort).thenAccept(result::complete);
         } else {
           result.completeExceptionally(cause);
         }
       }
     });
     return result;
+  }
+
+  private void init(InetAddress address, int port, ServerChannel serverChannel) {
+    this.serverAddress = Address.create(address.getHostAddress(), port);
+    this.serverChannel = serverChannel;
+    this.serverChannel.closeFuture().addListener((ChannelFutureListener) channelFuture -> {
+      // close all channels
+      inboundChannels.values().forEach(ChannelContext::close);
+      inboundChannels.clear();
+    });
   }
 
   private boolean isAddressAlreadyInUseException(Throwable exception) {

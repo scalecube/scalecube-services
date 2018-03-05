@@ -1,10 +1,6 @@
 package io.scalecube.ipc;
 
-import static io.scalecube.ipc.Event.Topic.MessageWrite;
-import static io.scalecube.ipc.Event.Topic.ReadError;
-import static io.scalecube.ipc.Event.Topic.ReadSuccess;
-import static io.scalecube.ipc.Event.Topic.WriteError;
-import static io.scalecube.ipc.Event.Topic.WriteSuccess;
+import static io.scalecube.ipc.Event.Topic;
 
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Address;
@@ -84,28 +80,28 @@ public final class ChannelContext {
   }
 
   public void postReadSuccess(ServiceMessage message) {
-    subject.onNext(new Event.Builder(ReadSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(Topic.ReadSuccess, this).message(message).build());
   }
 
   public void postReadError(Throwable throwable) {
-    subject.onNext(new Event.Builder(ReadError, this).error(throwable).build());
+    subject.onNext(new Event.Builder(Topic.ReadError, this).error(throwable).build());
   }
 
   public void postMessageWrite(ServiceMessage message) {
-    subject.onNext(new Event.Builder(MessageWrite, this).message(message).build());
+    subject.onNext(new Event.Builder(Topic.MessageWrite, this).message(message).build());
   }
 
   public void postWriteError(Throwable throwable, ServiceMessage message) {
-    subject.onNext(new Event.Builder(WriteError, this).error(throwable).message(message).build());
+    subject.onNext(new Event.Builder(Topic.WriteError, this).error(throwable).message(message).build());
   }
 
   public void postWriteSuccess(ServiceMessage message) {
-    subject.onNext(new Event.Builder(WriteSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(Topic.WriteSuccess, this).message(message).build());
   }
 
   /**
-   * Issues close on this channel context: emits onCompleted on subject, and eventually removes itseld from the hash
-   * map. Subsequent {@link #getIfExist(String)} would return null after this operation.
+   * Issues close on this channel context: emits onCompleted on subject, and eventually removes itseld from the map.
+   * Subsequent {@link #getIfExist(String)} would return null after this operation.
    */
   public void close() {
     subject.onCompleted();

@@ -4,6 +4,7 @@ import static io.scalecube.ipc.Event.Topic;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -14,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import rx.subjects.BehaviorSubject;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
@@ -159,5 +161,34 @@ public class ListeningServerStreamTest {
     serverStream.close();
 
     assertTrue(onCloseBoolean.get());
+  }
+
+  @Test
+  public void testServerStreamOnCloseRemotePartyClosed() throws Exception {
+    ListeningServerStream serverStream = templateServerStream.bind();
+    Address address = serverStream.listenBind().toBlocking().toFuture().get();
+
+    ClientStream clientStream = ClientStream.newClientStream();
+    clientStream.send(address, ServiceMessage.withQualifier("q/test").build());
+
+    Subject<Event, Event> emittedEventsSubject = ReplaySubject.create();
+    clientStream.listen().subscribe(emittedEventsSubject);
+
+    List<Event> events = emittedEventsSubject.buffer(2).timeout(3, TimeUnit.SECONDS).toBlocking().first();
+    assertEquals(2, events.size());
+    assertEquals(Topic.MessageWrite, events.get(0).getTopic());
+    assertEquals(Topic.WriteSuccess, events.get(1).getTopic());
+
+    // close remote party and receive corresp events
+    BehaviorSubject<Event> channelInactiveSubject = BehaviorSubject.create();
+    serverStream.listenChannelContextInactive().subscribe(channelInactiveSubject);
+    // close connector channel at client stream
+    clientStream.close();
+    // await a bit
+    TimeUnit.SECONDS.sleep(3);
+    // assert that serverStream received event about closed client connector channel
+    Event event = channelInactiveSubject.test().getOnNextEvents().get(0);
+    assertEquals(Topic.ChannelContextInactive, event.getTopic());
+    assertFalse(event.hasError());
   }
 }

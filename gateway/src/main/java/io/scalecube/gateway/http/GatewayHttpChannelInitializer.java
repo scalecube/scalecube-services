@@ -62,8 +62,10 @@ public final class GatewayHttpChannelInitializer extends ChannelInitializer {
     // at-least-something exception handler
     pipeline.addLast(new ChannelInboundHandlerAdapter() {
       @Override
-      public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        LOGGER.warn("Exception caught for channel {}, {}", ctx.channel(), cause.getMessage(), cause);
+      public void exceptionCaught(ChannelHandlerContext ctx, Throwable throwable) {
+        // Hint: at this point one can look at throwable, make some exception translation, and via channelContext post
+        // ChannelContextError event, and hence give business layer ability to react on low level system error events
+        LOGGER.warn("Exception caught for channel {}, {}", ctx.channel(), throwable.getMessage(), throwable);
       }
     });
   }

@@ -47,6 +47,8 @@ public final class NettyServiceChannelInitializer extends ChannelInitializer {
     pipeline.addLast(new ChannelInboundHandlerAdapter() {
       @Override
       public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        // Hint: at this point one can look at throwable, make some exception translation, and via channelContext post
+        // ChannelContextError event, and hence give business layer ability to react on low level system error events
         LOGGER.warn("Exception caught for channel {}, {}", ctx.channel(), cause.getMessage(), cause);
       }
     });

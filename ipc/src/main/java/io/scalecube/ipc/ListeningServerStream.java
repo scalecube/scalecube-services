@@ -121,17 +121,17 @@ public final class ListeningServerStream implements EventStream {
         new NettyServerTransport(config, serverStream::subscribe);
 
     serverTransport.bind()
-        .whenComplete((transport, cause) -> onBind(serverStream, transport, cause));
+        .whenComplete((serverTransport1, cause) -> onBind(serverStream, serverTransport1, cause));
 
     return serverStream;
   }
 
-  private void onBind(ListeningServerStream serverStream, NettyServerTransport transport, Throwable cause) {
-    if (transport != null) {
+  private void onBind(ListeningServerStream serverStream, NettyServerTransport serverTransport, Throwable cause) {
+    if (serverTransport != null) {
       // register cleanup process upfront
-      serverStream.listenClose(aVoid -> unbindTransport(serverStream, transport));
-      // emit bind success
-      transport.getAddress().ifPresent(address -> {
+      serverStream.listenClose(aVoid -> unbind(serverStream, serverTransport));
+      // emit bind process
+      serverTransport.getServerAddress().ifPresent(address -> {
         serverStream.bindSubject.onNext(address);
         serverStream.bindSubject.onCompleted();
       });
@@ -141,10 +141,10 @@ public final class ListeningServerStream implements EventStream {
     }
   }
 
-  private void unbindTransport(ListeningServerStream serverStream, NettyServerTransport transport) {
-    transport.unbind().whenComplete((transport1, throwable) -> {
-      if (transport1 != null) {
-        transport1.getAddress().ifPresent(address -> {
+  private void unbind(ListeningServerStream serverStream, NettyServerTransport serverTransport) {
+    serverTransport.unbind().whenComplete((serverTransport1, throwable) -> {
+      if (serverTransport1 != null) {
+        serverTransport1.getServerAddress().ifPresent(address -> {
           serverStream.unbindSubject.onNext(address);
           serverStream.unbindSubject.onCompleted();
         });

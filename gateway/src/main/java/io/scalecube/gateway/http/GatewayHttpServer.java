@@ -75,7 +75,7 @@ public final class GatewayHttpServer {
       throw new IllegalStateException("Failed to start server: already started");
     }
 
-    ServerBootstrap serverBootstrap = config.serverBootstrap;
+    ServerBootstrap serverBootstrap = config.serverBootstrap.clone();
 
     serverChannel = serverBootstrap
         .childHandler(new GatewayHttpChannelInitializer(config))

@@ -16,10 +16,11 @@ public final class NettyClientTransport {
 
   private final Bootstrap bootstrap;
 
-  private final ConcurrentMap<Address, CompletableFuture<ChannelContext>> outgoingChannels = new ConcurrentHashMap<>();
+  private final ConcurrentMap<Address, CompletableFuture<ChannelContext>> outboundChannels = new ConcurrentHashMap<>();
 
   public NettyClientTransport(Bootstrap bootstrap, Consumer<ChannelContext> channelContextConsumer) {
-    this.bootstrap = bootstrap.handler(new NettyServiceChannelInitializer(channelContextConsumer));
+    Bootstrap bootstrap1 = bootstrap.clone();
+    this.bootstrap = bootstrap1.handler(new NettyServiceChannelInitializer(channelContextConsumer));
   }
 
   /**
@@ -29,13 +30,13 @@ public final class NettyClientTransport {
    * @return channel context.
    */
   public CompletableFuture<ChannelContext> getOrConnect(Address address) {
-    CompletableFuture<ChannelContext> promise = outgoingChannels.computeIfAbsent(address, this::connect);
+    CompletableFuture<ChannelContext> promise = outboundChannels.computeIfAbsent(address, this::connect);
     promise.whenComplete((channelContext, throwable) -> {
       if (throwable != null) { // remove reference right away
-        outgoingChannels.remove(address, promise);
+        outboundChannels.remove(address, promise);
       }
       if (channelContext != null) { // in case connected subscribe on close event
-        channelContext.listenClose(ctx -> outgoingChannels.remove(address, promise));
+        channelContext.listenClose(ctx -> outboundChannels.remove(address, promise));
       }
     });
     return promise;
@@ -67,8 +68,8 @@ public final class NettyClientTransport {
    */
   public void close() {
     // close all channels
-    for (Address address : outgoingChannels.keySet()) {
-      CompletableFuture<ChannelContext> promise = outgoingChannels.remove(address);
+    for (Address address : outboundChannels.keySet()) {
+      CompletableFuture<ChannelContext> promise = outboundChannels.remove(address);
       if (promise != null) {
         promise.whenComplete((channelContext, throwable) -> {
           if (channelContext != null) {

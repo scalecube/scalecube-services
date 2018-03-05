@@ -1,5 +1,7 @@
 package io.scalecube.ipc;
 
+import static io.scalecube.ipc.Event.Topic;
+
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -24,13 +26,8 @@ public class DefaultEventStream implements EventStream {
 
   @Override
   public final void subscribe(ChannelContext channelContext) {
-    // Hint: at this point when we get onError/onCompleted on the channelContext we can forward those events (not
-    // neccessarly as-is but as new Event types) to subject and hence give business layer ability to react on system
-    // level events
-    channelContext.listen().subscribe(subject::onNext,
-        throwable -> {
-        }, () -> {
-        });
+    channelContext.listen().subscribe(this::onNext, error -> onChannelContextInactiveDueError(channelContext, error));
+    channelContext.listenClose(this::onChannelContextClosed);
   }
 
   @Override
@@ -48,5 +45,17 @@ public class DefaultEventStream implements EventStream {
   public final void listenClose(Consumer<Void> onClose) {
     closeSubject.subscribe(event -> {
     }, throwable -> onClose.accept(null), () -> onClose.accept(null));
+  }
+
+  private void onNext(Event event) {
+    subject.onNext(event);
+  }
+
+  private void onChannelContextClosed(ChannelContext channelContext) {
+    subject.onNext(new Event.Builder(Topic.ChannelContextInactive, channelContext).build());
+  }
+
+  private void onChannelContextInactiveDueError(ChannelContext channelContext, Throwable throwable) {
+    subject.onNext(new Event.Builder(Topic.ChannelContextInactive, channelContext).error(throwable).build());
   }
 }
