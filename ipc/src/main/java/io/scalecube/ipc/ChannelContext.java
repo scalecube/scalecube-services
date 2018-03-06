@@ -80,23 +80,27 @@ public final class ChannelContext {
   }
 
   public void postReadSuccess(ServiceMessage message) {
-    subject.onNext(new Event.Builder(Topic.ReadSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(Topic.ReadSuccess, address, id).message(message).build());
   }
 
   public void postReadError(Throwable throwable) {
-    subject.onNext(new Event.Builder(Topic.ReadError, this).error(throwable).build());
+    subject.onNext(new Event.Builder(Topic.ReadError, address, id).error(throwable).build());
   }
 
   public void postMessageWrite(ServiceMessage message) {
-    subject.onNext(new Event.Builder(Topic.MessageWrite, this).message(message).build());
+    subject.onNext(new Event.Builder(Topic.MessageWrite, address, id).message(message).build());
   }
 
   public void postWriteError(Throwable throwable, ServiceMessage message) {
-    subject.onNext(new Event.Builder(Topic.WriteError, this).error(throwable).message(message).build());
+    subject.onNext(new Event.Builder(Topic.WriteError, address, id).error(throwable).message(message).build());
+  }
+
+  public void postWriteError(Throwable throwable, ServiceMessage message, Address address) {
+    subject.onNext(new Event.Builder(Topic.WriteError, address, id).error(throwable).message(message).build());
   }
 
   public void postWriteSuccess(ServiceMessage message) {
-    subject.onNext(new Event.Builder(Topic.WriteSuccess, this).message(message).build());
+    subject.onNext(new Event.Builder(Topic.WriteSuccess, address, id).message(message).build());
   }
 
   /**

@@ -2,10 +2,15 @@ package io.scalecube.ipc;
 
 import static io.scalecube.ipc.Event.Topic;
 
+import io.scalecube.transport.Address;
+
 import rx.Observable;
+import rx.Subscription;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -13,6 +18,8 @@ public class DefaultEventStream implements EventStream {
 
   private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
   private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
+
+  private final ConcurrentMap<ChannelContext, Subscription> subscriptions = new ConcurrentHashMap<>();
 
   private final Function<Event, Event> eventMapper;
 
@@ -26,8 +33,26 @@ public class DefaultEventStream implements EventStream {
 
   @Override
   public final void subscribe(ChannelContext channelContext) {
-    channelContext.listen().subscribe(this::onNext, error -> onChannelContextInactiveDueError(channelContext, error));
+    // register cleanup process upfront
     channelContext.listenClose(this::onChannelContextClosed);
+
+    // bind channelContext to this event stream
+    Subscription subscription = channelContext.listen()
+        .doOnUnsubscribe(() -> onChannelContextUnsubscribed(channelContext))
+        .subscribe(this::onNext);
+
+    // save subscription
+    subscriptions.put(channelContext, subscription);
+  }
+
+  @Override
+  public final void unsubscribe(Address address) {
+    // full scan and filter then unsubscribe
+    subscriptions.keySet().forEach(channelContext -> {
+      if (address.equals(channelContext.getAddress())) {
+        cleanupSubscription(channelContext);
+      }
+    });
   }
 
   @Override
@@ -37,6 +62,9 @@ public class DefaultEventStream implements EventStream {
 
   @Override
   public final void close() {
+    // full scan and unsubscribe
+    subscriptions.keySet().forEach(this::cleanupSubscription);
+    // complete observers
     subject.onCompleted();
     closeSubject.onCompleted();
   }
@@ -51,14 +79,19 @@ public class DefaultEventStream implements EventStream {
     subject.onNext(event);
   }
 
-  private void onChannelContextClosed(ChannelContext channelContext) {
-    subject.onNext(new Event.Builder(Topic.ChannelContextInactive, channelContext).build());
+  private void onChannelContextClosed(ChannelContext ctx) {
+    cleanupSubscription(ctx);
+    subject.onNext(new Event.Builder(Topic.ChannelContextClosed, ctx.getAddress(), ctx.getId()).build());
   }
 
-  // Hint: this method exists only for consistency reasons; it's unlikely that onError ever be called on the
-  // ChannelContext; at the moment of writing this comment there's no such flow that would call ChannelContext's
-  // subject.onError(throwable)
-  private void onChannelContextInactiveDueError(ChannelContext channelContext, Throwable throwable) {
-    subject.onNext(new Event.Builder(Topic.ChannelContextInactive, channelContext).error(throwable).build());
+  private void onChannelContextUnsubscribed(ChannelContext ctx) {
+    subject.onNext(new Event.Builder(Topic.ChannelContextUnsubscribed, ctx.getAddress(), ctx.getId()).build());
+  }
+
+  private void cleanupSubscription(ChannelContext channelContext) {
+    Subscription subscription = subscriptions.remove(channelContext);
+    if (subscription != null) {
+      subscription.unsubscribe();
+    }
   }
 }

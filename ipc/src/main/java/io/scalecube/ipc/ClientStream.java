@@ -23,12 +23,19 @@ public final class ClientStream extends DefaultEventStream {
         .option(ChannelOption.SO_REUSEADDR, true);
   }
 
+  private final ChannelContext helperChannelContext = ChannelContext.create(Address.from("localhost:0"));
+
   private NettyClientTransport clientTransport; // calculated
 
   private ClientStream(Bootstrap bootstrap) {
     clientTransport = new NettyClientTransport(bootstrap, this::subscribe);
     // register cleanup process upfront
-    listenClose(aVoid -> clientTransport.close());
+    listenClose(aVoid -> {
+      helperChannelContext.close();
+      clientTransport.close();
+    });
+    // register helper
+    subscribe(helperChannelContext);
   }
 
   public static ClientStream newClientStream() {
@@ -50,6 +57,9 @@ public final class ClientStream extends DefaultEventStream {
     promise.whenComplete((channelContext, throwable) -> {
       if (channelContext != null) {
         channelContext.postMessageWrite(message);
+      }
+      if (throwable != null) {
+        helperChannelContext.postWriteError(throwable, message, address);
       }
     });
   }

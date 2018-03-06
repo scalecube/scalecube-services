@@ -5,7 +5,13 @@ import java.util.Objects;
 public final class Qualifier {
 
   public static final String DELIMITER = "/";
-  public static final String ERROR_NAMESPACE = "io.scalecube.ipc.error";
+  public static final String NAMESPACE = "io.scalecube.ipc";
+  public static final String ERROR_NAMESPACE = NAMESPACE + ".error";
+
+  // qualifier for generic error
+  public static final Qualifier Q_GENERAL_FAILURE = Qualifier.fromString(ERROR_NAMESPACE + DELIMITER + 500);
+  // qualifier for onCompleted event
+  public static final Qualifier Q_ON_COMPLETED = Qualifier.fromString(NAMESPACE + "/onCompleted");
 
   private final String namespace;
   private final String action;
@@ -37,11 +43,11 @@ public final class Qualifier {
     return stringValue;
   }
 
-  public boolean isEqual(String qualifier) {
+  public boolean isEquals(String qualifier) {
     return stringValue.equals(qualifier);
   }
 
-  public boolean isEqualIgnoreCase(String qualifier) {
+  public boolean isEqualsIgnoreCase(String qualifier) {
     return stringValue.equalsIgnoreCase(qualifier);
   }
 

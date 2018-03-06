@@ -25,7 +25,7 @@ public class DefaultEventStreamTest {
   private DefaultEventStream eventStream = new DefaultEventStream();
 
   @Test
-  public void testChannelContextPostEvent() {
+  public void testChannelContextPostsEvents() {
     List<Event> events = new ArrayList<>(2);
     eventStream.listen().subscribe(events::add);
     eventStream.subscribe(ctx0);
@@ -61,7 +61,7 @@ public class DefaultEventStreamTest {
   }
 
   @Test
-  public void testUnsubscribingChannelContextIsIsolated() {
+  public void testChannelContextUnsubscribingIsIsolated() {
     BehaviorSubject<Event> subject = BehaviorSubject.create();
     eventStream.listen().subscribe(subject);
     eventStream.subscribe(ctx0);
@@ -118,27 +118,19 @@ public class DefaultEventStreamTest {
   }
 
   @Test
-  public void testDefaultEventStreamSubscribeOnClose() {
-    AtomicBoolean eventStreamClosed = new AtomicBoolean();
-    eventStream.listenClose(aVoid -> eventStreamClosed.set(true));
-    eventStream.close();
-    assertTrue(eventStreamClosed.get());
-  }
-
-  @Test
-  public void testListenChannelContextInactive() {
+  public void testListenChannelContextClosed() {
     eventStream.subscribe(ctx0);
     eventStream.subscribe(ctx1);
 
     BehaviorSubject<Event> subject = BehaviorSubject.create();
-    eventStream.listenChannelContextInactive().subscribe(subject);
+    eventStream.listenChannelContextClosed().subscribe(subject);
 
     ctx0.close();
 
     List<Event> list = subject.test().getOnNextEvents();
     assertEquals(1, list.size());
     Event event = list.get(0);
-    assertEquals(Topic.ChannelContextInactive, event.getTopic());
+    assertEquals(Topic.ChannelContextClosed, event.getTopic());
     assertEquals(ctx0.getId(), event.getIdentity());
 
     ctx1.close();
@@ -146,7 +138,32 @@ public class DefaultEventStreamTest {
     List<Event> list2 = subject.test().getOnNextEvents();
     assertEquals(1, list2.size());
     Event event2 = list2.get(0);
-    assertEquals(Topic.ChannelContextInactive, event2.getTopic());
+    assertEquals(Topic.ChannelContextClosed, event2.getTopic());
+    assertEquals(ctx1.getId(), event2.getIdentity());
+  }
+
+  @Test
+  public void testListenChannelContextUnsubscribed() {
+    eventStream.subscribe(ctx0);
+    eventStream.subscribe(ctx1);
+
+    BehaviorSubject<Event> subject = BehaviorSubject.create();
+    eventStream.listenChannelContextUnsubscribed().subscribe(subject);
+
+    eventStream.unsubscribe(ctx0.getAddress());
+
+    List<Event> list = subject.test().getOnNextEvents();
+    assertEquals(1, list.size());
+    Event event = list.get(0);
+    assertEquals(Topic.ChannelContextUnsubscribed, event.getTopic());
+    assertEquals(ctx0.getId(), event.getIdentity());
+
+    eventStream.unsubscribe(ctx1.getAddress());
+
+    List<Event> list2 = subject.test().getOnNextEvents();
+    assertEquals(1, list2.size());
+    Event event2 = list2.get(0);
+    assertEquals(Topic.ChannelContextUnsubscribed, event2.getTopic());
     assertEquals(ctx1.getId(), event2.getIdentity());
   }
 }
