@@ -9,18 +9,11 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import rx.Observable;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
-import java.util.function.Consumer;
-
 public final class ListeningServerStream implements EventStream {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ListeningServerStream.class);
 
   // listens to bind on server transport
   private final Subject<Address, Address> bindSubject = ReplaySubject.<Address>create(1).toSerialized();
@@ -69,8 +62,8 @@ public final class ListeningServerStream implements EventStream {
   }
 
   @Override
-  public void subscribe(Observable<Event> observable, Consumer<Throwable> onError, Consumer<Void> onCompleted) {
-    serverStream.subscribe(observable, onError, onCompleted);
+  public void subscribe(ChannelContext channelContext) {
+    serverStream.subscribe(channelContext);
   }
 
   @Override
@@ -119,18 +112,12 @@ public final class ListeningServerStream implements EventStream {
     ListeningServerStream serverStream = new ListeningServerStream(config);
 
     NettyServerTransport serverTransport =
-        new NettyServerTransport(config, ctx -> onChannelContext(serverStream, ctx));
+        new NettyServerTransport(config, serverStream::subscribe);
 
     serverTransport.bind()
         .whenComplete((transport, cause) -> onBind(serverStream, transport, cause));
 
     return serverStream;
-  }
-
-  private void onChannelContext(EventStream eventStream, ChannelContext channelContext) {
-    eventStream.subscribe(channelContext.listen(),
-        cause -> LOGGER.error("Unsubscribed server {} due to unhandled exception caught: {}", channelContext, cause),
-        aVoid -> LOGGER.debug("Unsubscribed server {} due to completion", channelContext));
   }
 
   private void onBind(ListeningServerStream serverStream, NettyServerTransport transport, Throwable cause) {
