@@ -26,4 +26,3 @@ deploy:
   - mvn release:perform
   on:
     branch: master
-    
