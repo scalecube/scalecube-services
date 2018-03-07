@@ -1,6 +1,7 @@
 package io.scalecube.gateway.socketio;
 
 import io.scalecube.ipc.ChannelContext;
+import io.scalecube.ipc.Event;
 import io.scalecube.ipc.EventStream;
 import io.scalecube.ipc.codec.ServiceMessageCodec;
 import io.scalecube.ipc.netty.ChannelSupport;
@@ -47,15 +48,17 @@ public final class GatewaySocketIoListener implements SocketIOListener {
     // save mapping
     sessionIdToChannelContextId.put(session.getSessionId(), channelContext.getId());
 
-    // setup behavior
+    // bind channelContext
     eventStream.subscribe(channelContext);
-    channelContext.listenClose(channelContext1 -> {
+
+    // register cleanup process upfront
+    channelContext.listenClose(input -> {
       if (session.getState() == Session.State.CONNECTED) {
         session.disconnect();
       }
     });
 
-    channelContext.listenMessageWrite().subscribe(
+    channelContext.listenWrite().map(Event::getMessageOrThrow).subscribe(
         message -> {
           ByteBuf buf = ServiceMessageCodec.encode(message);
           ChannelSupport.releaseRefCount(message.getData()); // release ByteBuf
@@ -63,7 +66,7 @@ public final class GatewaySocketIoListener implements SocketIOListener {
             session.send(buf);
             channelContext.postWriteSuccess(message);
           } catch (Exception throwable) {
-            channelContext.postWriteError(throwable, message);
+            channelContext.postWriteError(message, throwable);
           }
         },
         throwable -> {

@@ -2,15 +2,11 @@ package io.scalecube.ipc;
 
 import static io.scalecube.ipc.Event.Topic;
 
-import io.scalecube.transport.Address;
-
 import rx.Observable;
-import rx.Subscription;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
+import rx.subscriptions.CompositeSubscription;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -19,7 +15,7 @@ public class DefaultEventStream implements EventStream {
   private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
   private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
 
-  private final ConcurrentMap<ChannelContext, Subscription> subscriptions = new ConcurrentHashMap<>();
+  private final CompositeSubscription subscriptions = new CompositeSubscription();
 
   private final Function<Event, Event> eventMapper;
 
@@ -35,24 +31,8 @@ public class DefaultEventStream implements EventStream {
   public final void subscribe(ChannelContext channelContext) {
     // register cleanup process upfront
     channelContext.listenClose(this::onChannelContextClosed);
-
     // bind channelContext to this event stream
-    Subscription subscription = channelContext.listen()
-        .doOnUnsubscribe(() -> onChannelContextUnsubscribed(channelContext))
-        .subscribe(this::onNext);
-
-    // save subscription
-    subscriptions.put(channelContext, subscription);
-  }
-
-  @Override
-  public final void unsubscribe(Address address) {
-    // full scan and filter then unsubscribe
-    subscriptions.keySet().forEach(channelContext -> {
-      if (address.equals(channelContext.getAddress())) {
-        cleanupSubscription(channelContext);
-      }
-    });
+    subscriptions.add(channelContext.listen().subscribe(this::onNext));
   }
 
   @Override
@@ -62,11 +42,9 @@ public class DefaultEventStream implements EventStream {
 
   @Override
   public final void close() {
-    // full scan and unsubscribe
-    subscriptions.keySet().forEach(this::cleanupSubscription);
-    // complete observers
     subject.onCompleted();
     closeSubject.onCompleted();
+    subscriptions.clear();
   }
 
   @Override
@@ -80,18 +58,6 @@ public class DefaultEventStream implements EventStream {
   }
 
   private void onChannelContextClosed(ChannelContext ctx) {
-    cleanupSubscription(ctx);
     subject.onNext(new Event.Builder(Topic.ChannelContextClosed, ctx.getAddress(), ctx.getId()).build());
-  }
-
-  private void onChannelContextUnsubscribed(ChannelContext ctx) {
-    subject.onNext(new Event.Builder(Topic.ChannelContextUnsubscribed, ctx.getAddress(), ctx.getId()).build());
-  }
-
-  private void cleanupSubscription(ChannelContext channelContext) {
-    Subscription subscription = subscriptions.remove(channelContext);
-    if (subscription != null) {
-      subscription.unsubscribe();
-    }
   }
 }

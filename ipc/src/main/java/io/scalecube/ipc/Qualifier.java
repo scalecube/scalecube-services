@@ -4,14 +4,14 @@ import java.util.Objects;
 
 public final class Qualifier {
 
-  public static final String DELIMITER = "/";
-  public static final String NAMESPACE = "io.scalecube.ipc";
-  public static final String ERROR_NAMESPACE = NAMESPACE + ".error";
+  public static final String Q_DELIMITER = "/";
+  public static final String Q_NAMESPACE = "io.scalecube.ipc";
+  public static final String Q_ERROR_NAMESPACE = Q_NAMESPACE + ".error";
 
   // qualifier for generic error
-  public static final Qualifier Q_GENERAL_FAILURE = Qualifier.fromString(ERROR_NAMESPACE + DELIMITER + 500);
+  public static final Qualifier Q_GENERAL_FAILURE = Qualifier.fromString(Q_ERROR_NAMESPACE + Q_DELIMITER + 500);
   // qualifier for onCompleted event
-  public static final Qualifier Q_ON_COMPLETED = Qualifier.fromString(NAMESPACE + "/onCompleted");
+  public static final Qualifier Q_ON_COMPLETED = Qualifier.fromString(Q_NAMESPACE + "/onCompleted");
 
   private final String namespace;
   private final String action;
@@ -27,7 +27,7 @@ public final class Qualifier {
     if (action == null) {
       this.stringValue = namespace;
     } else {
-      this.stringValue = namespace + DELIMITER + action;
+      this.stringValue = namespace + Q_DELIMITER + action;
     }
   }
 
@@ -55,7 +55,7 @@ public final class Qualifier {
    * Constructs qualifier object from string.
    */
   public static Qualifier fromString(String qualifierAsString) throws IllegalArgumentException {
-    int indexOf = qualifierAsString.indexOf(DELIMITER);
+    int indexOf = qualifierAsString.indexOf(Q_DELIMITER);
     if (indexOf == -1) {
       // whole string is namespace
       return new Qualifier(qualifierAsString, null);
@@ -76,7 +76,7 @@ public final class Qualifier {
    * @return qualifier namespace.
    */
   public static String getQualifierNamespace(String qualifierAsString) {
-    int pos = qualifierAsString.indexOf(DELIMITER);
+    int pos = qualifierAsString.indexOf(Q_DELIMITER);
     if (pos == -1) {
       return qualifierAsString;
     }

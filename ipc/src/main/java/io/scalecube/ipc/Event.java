@@ -12,15 +12,13 @@ public final class Event {
     //
     ReadError,
     //
-    MessageWrite,
+    Write,
     //
     WriteSuccess,
     //
     WriteError,
     //
-    ChannelContextClosed,
-    //
-    ChannelContextUnsubscribed
+    ChannelContextClosed
   }
 
   private final Topic topic; // not null
@@ -83,8 +81,8 @@ public final class Event {
     return topic == Topic.ReadError;
   }
 
-  public boolean isMessageWrite() {
-    return topic == Topic.MessageWrite;
+  public boolean isWrite() {
+    return topic == Topic.Write;
   }
 
   public boolean isWriteSuccess() {
@@ -97,10 +95,6 @@ public final class Event {
 
   public boolean isChannelContextClosed() {
     return topic == Topic.ChannelContextClosed;
-  }
-
-  public boolean isChannelContextUnsubscribed() {
-    return topic == Topic.ChannelContextUnsubscribed;
   }
 
   //// Builder

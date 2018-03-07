@@ -2,7 +2,7 @@ package io.scalecube.gateway.http;
 
 import static io.scalecube.ipc.ErrorData.ERROR_CODE_NAME;
 import static io.scalecube.ipc.ErrorData.MESSAGE_NAME;
-import static io.scalecube.ipc.Qualifier.ERROR_NAMESPACE;
+import static io.scalecube.ipc.Qualifier.Q_ERROR_NAMESPACE;
 
 import io.scalecube.ipc.ErrorData;
 import io.scalecube.ipc.Qualifier;
@@ -85,7 +85,7 @@ public final class HttpCodecUtil {
    * Constructs http error response out of message qualifier.
    */
   public static HttpResponseStatus toErrorStatus(Qualifier qualifier) {
-    if (!ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
+    if (!Q_ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
       throw new IllegalArgumentException("Not an error qualifier: " + qualifier);
     }
     int code;

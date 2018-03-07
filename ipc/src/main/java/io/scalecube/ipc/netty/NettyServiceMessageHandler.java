@@ -1,6 +1,7 @@
 package io.scalecube.ipc.netty;
 
 import io.scalecube.ipc.ChannelContext;
+import io.scalecube.ipc.Event;
 import io.scalecube.ipc.codec.ServiceMessageCodec;
 
 import io.netty.buffer.ByteBuf;
@@ -31,14 +32,14 @@ public final class NettyServiceMessageHandler extends ChannelInboundHandlerAdapt
       return;
     }
 
-    channelContext.listenMessageWrite().subscribe(
+    channelContext.listenWrite().map(Event::getMessageOrThrow).subscribe(
         message -> {
           ByteBuf buf = ServiceMessageCodec.encode(message);
           ChannelSupport.releaseRefCount(message.getData()); // release ByteBuf
 
           ctx.writeAndFlush(buf).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
-              channelContext.postWriteError(future.cause(), message);
+              channelContext.postWriteError(message, future.cause());
             } else {
               channelContext.postWriteSuccess(message);
             }

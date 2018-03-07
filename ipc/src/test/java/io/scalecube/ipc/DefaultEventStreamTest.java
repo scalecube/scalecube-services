@@ -141,29 +141,4 @@ public class DefaultEventStreamTest {
     assertEquals(Topic.ChannelContextClosed, event2.getTopic());
     assertEquals(ctx1.getId(), event2.getIdentity());
   }
-
-  @Test
-  public void testListenChannelContextUnsubscribed() {
-    eventStream.subscribe(ctx0);
-    eventStream.subscribe(ctx1);
-
-    BehaviorSubject<Event> subject = BehaviorSubject.create();
-    eventStream.listenChannelContextUnsubscribed().subscribe(subject);
-
-    eventStream.unsubscribe(ctx0.getAddress());
-
-    List<Event> list = subject.test().getOnNextEvents();
-    assertEquals(1, list.size());
-    Event event = list.get(0);
-    assertEquals(Topic.ChannelContextUnsubscribed, event.getTopic());
-    assertEquals(ctx0.getId(), event.getIdentity());
-
-    eventStream.unsubscribe(ctx1.getAddress());
-
-    List<Event> list2 = subject.test().getOnNextEvents();
-    assertEquals(1, list2.size());
-    Event event2 = list2.get(0);
-    assertEquals(Topic.ChannelContextUnsubscribed, event2.getTopic());
-    assertEquals(ctx1.getId(), event2.getIdentity());
-  }
 }

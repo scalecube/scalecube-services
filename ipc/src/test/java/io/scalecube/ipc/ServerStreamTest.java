@@ -85,7 +85,7 @@ public class ServerStreamTest {
 
     serverStream.send(ServiceMessage.withQualifier("q").senderId(id).build());
 
-    assertEquals(Event.Topic.MessageWrite, topics[0]);
+    assertEquals(Event.Topic.Write, topics[0]);
     assertEquals(null, msgIdentities[0]);
   }
 
@@ -102,7 +102,7 @@ public class ServerStreamTest {
 
     serverStream.send(ServiceMessage.withQualifier("q").senderId("aaa/bbb" + "/" + id).build());
 
-    assertEquals(Event.Topic.MessageWrite, topics[0]);
+    assertEquals(Event.Topic.Write, topics[0]);
     assertEquals("aaa/bbb", msgIdentities[0]);
   }
 }

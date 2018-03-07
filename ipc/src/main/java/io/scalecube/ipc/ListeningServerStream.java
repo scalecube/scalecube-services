@@ -72,11 +72,6 @@ public final class ListeningServerStream implements EventStream {
     return serverStream.listen();
   }
 
-  @Override
-  public void unsubscribe(Address address) {
-    serverStream.unsubscribe(address);
-  }
-
   /**
    * Sends a message to client identified by message's senderId, and applying server stream semantic for outbound
    * messages.

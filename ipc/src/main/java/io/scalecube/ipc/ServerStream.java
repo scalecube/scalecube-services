@@ -5,7 +5,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 public final class ServerStream extends DefaultEventStream {
 
@@ -34,9 +33,15 @@ public final class ServerStream extends DefaultEventStream {
    * @param message message to send; must contain valid senderId.
    */
   public void send(ServiceMessage message) {
-    send(message,
-        (identity, message1) -> ChannelContext.getIfExist(identity).postMessageWrite(message1),
-        throwable -> LOGGER.warn("Failed to handle message: {}, cause: {}", message, throwable));
+    send(message, ChannelContext::postWrite, this::handleFailedMessageSend);
+  }
+
+  /**
+   * This method applies server stream semantic for outbound messages and giving mechanism to react on successful and
+   * unsuccessfull outcomes.
+   */
+  public void send(ServiceMessage message, BiConsumer<ChannelContext, ServiceMessage> consumer) {
+    send(message, consumer, this::handleFailedMessageSend);
   }
 
   /**
@@ -44,16 +49,17 @@ public final class ServerStream extends DefaultEventStream {
    * unsuccessfull outcomes.
    * 
    * @param message message to send; must contain valid senderId.
-   * @param consumer0 action to proceed with message after figuring out its identity; in the biConsumer first param is
-   *        extracted identity, second - a message to work with further.
-   * @param consumer1 throwable consumer.
+   * @param consumer action to proceed with message after figuring out its identity; in the biConsumer first param is a
+   *        {@link ChannelContext}, the second - a message to work with further.
+   * @param throwableConsumer throwable consumer; in the biConsumer first param is an error occured during message send,
+   *        the second - an original message.
    */
   public void send(ServiceMessage message,
-      BiConsumer<String, ServiceMessage> consumer0, Consumer<Throwable> consumer1) {
+      BiConsumer<ChannelContext, ServiceMessage> consumer, BiConsumer<Throwable, ServiceMessage> throwableConsumer) {
     if (!message.hasSenderId()
         || message.getSenderId().startsWith(SENDER_ID_DELIMITER)
         || message.getSenderId().endsWith(SENDER_ID_DELIMITER)) {
-      consumer1.accept(INVALID_IDENTITY_EXCEPTION);
+      throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
       return;
     }
 
@@ -65,23 +71,29 @@ public final class ServerStream extends DefaultEventStream {
       // extract last identity
       serverId = senderId.substring(delimiter + 1);
       if (serverId.isEmpty()) {
-        consumer1.accept(INVALID_IDENTITY_EXCEPTION);
+        throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
         return;
       }
       // construct new sender qualfier
       newSenderId = senderId.substring(0, delimiter);
       if (newSenderId.isEmpty()) {
-        consumer1.accept(INVALID_IDENTITY_EXCEPTION);
+        throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
         return;
       }
+    }
+
+    ChannelContext channelContext = ChannelContext.getIfExist(serverId);
+    if (channelContext == null) {
+      throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
+      return;
     }
 
     try {
       // copy and modify
       ServiceMessage message1 = ServiceMessage.copyFrom(message).senderId(newSenderId).build();
-      consumer0.accept(serverId, message1);
+      consumer.accept(channelContext, message1);
     } catch (Exception throwable) {
-      consumer1.accept(throwable);
+      throwableConsumer.accept(throwable, message);
     }
   }
 
@@ -96,5 +108,9 @@ public final class ServerStream extends DefaultEventStream {
     }
     ServiceMessage message1 = ServiceMessage.copyFrom(message.get()).senderId(senderId).build();
     return Event.copyFrom(event).message(message1).build(); // copy and modify
+  }
+
+  private void handleFailedMessageSend(Throwable throwable, ServiceMessage message) {
+    LOGGER.warn("Failed to send {} on server stream, cause: {}", message, throwable);
   }
 }

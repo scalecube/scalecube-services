@@ -2,6 +2,7 @@ package io.scalecube.examples.gateway;
 
 import io.scalecube.gateway.http.GatewayHttpServer;
 import io.scalecube.gateway.socketio.GatewaySocketIoServer;
+import io.scalecube.ipc.Event;
 import io.scalecube.ipc.ServerStream;
 
 /**
@@ -14,7 +15,9 @@ public final class GatewayEchoRunner {
    */
   public static void main(String[] args) throws Exception {
     ServerStream serverStream = ServerStream.newServerStream();
-    serverStream.listenMessageReadSuccess().subscribe(serverStream::send);
+    serverStream.listenReadSuccess()
+        .map(Event::getMessageOrThrow)
+        .subscribe(serverStream::send);
 
     GatewaySocketIoServer.onPort(4040, serverStream).start();
     GatewayHttpServer.onPort(8080, serverStream).start();

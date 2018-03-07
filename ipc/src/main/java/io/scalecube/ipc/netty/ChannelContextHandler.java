@@ -32,14 +32,17 @@ public final class ChannelContextHandler extends ChannelDuplexHandler {
       ChannelContext channelContext = ChannelContext.create(Address.create(host, port));
       attribute.set(channelContext); // set channel attribute
 
+      // bind channelContext
       channelContextConsumer.accept(channelContext);
-      channelContext.listenClose(channelContext1 -> {
+
+      // register cleanup process upfront
+      channelContext.listenClose(input -> {
         if (channel.isActive()) {
           channel.close();
         }
       });
 
-      // fire event to complete channelContext registration
+      // fire event to complete registration
       channel.pipeline().fireUserEventTriggered(ChannelSupport.CHANNEL_CTX_CREATED_EVENT);
     }
     super.channelActive(ctx);
