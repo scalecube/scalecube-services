@@ -2,11 +2,9 @@ package io.scalecube.ipc;
 
 import rx.Observable;
 
-import java.util.function.Consumer;
-
 public interface EventStream {
 
-  void subscribe(Observable<Event> observable, Consumer<Throwable> onError, Consumer<Void> onCompleted);
+  void subscribe(ChannelContext channelContext);
 
   Observable<Event> listen();
 

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.transport.Address;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -11,8 +12,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import rx.subjects.PublishSubject;
-
-import java.net.InetSocketAddress;
 
 public class ServerStreamTest {
 
@@ -25,103 +24,13 @@ public class ServerStreamTest {
 
   @Before
   public void setUp() {
-    channelContext = ChannelContext.create(IdGenerator.generateId(), new InetSocketAddress("localhost", 0));
+    channelContext = ChannelContext.create(IdGenerator.generateId(), Address.create("localhost", 0));
     serverStream = ServerStream.newServerStream();
-    serverStream.subscribe(channelContext.listen(),
-        throwable -> {
-        },
-        aVoid -> {
-        });
+    serverStream.subscribe(channelContext);
   }
 
   @Test
-  public void testSetSenderIdOnSendOnNull() {
-    expectedException.expect(IllegalArgumentException.class);
-    ServiceMessage message = ServiceMessage.builder().senderId(null).build();
-    serverStream.send(message,
-        (i, m) -> {
-        },
-        e -> {
-          throw new IllegalArgumentException(e);
-        });
-  }
-
-  @Test
-  public void testSetSenderIdOnSendOnEmptyString() {
-    expectedException.expect(IllegalArgumentException.class);
-    ServiceMessage message = ServiceMessage.builder().senderId("").build();
-    serverStream.send(message,
-        (i, m) -> {
-        },
-        e -> {
-          throw new IllegalArgumentException(e);
-        });
-  }
-
-  @Test
-  public void testSetSenderIdOnSendWithDelimiterThenEmpty() {
-    expectedException.expect(IllegalArgumentException.class);
-    String senderId = "auifas/";
-    ServiceMessage message = ServiceMessage.builder().senderId(senderId).build();
-    serverStream.send(message,
-        (i, m) -> {
-        },
-        e -> {
-          throw new IllegalArgumentException(e);
-        });
-  }
-
-  @Test
-  public void testSetSenderIdOnSendBeginsWithDelimiter() {
-    expectedException.expect(IllegalArgumentException.class);
-    String senderId = "/au/ifas";
-    ServiceMessage message = ServiceMessage.builder().senderId(senderId).build();
-    serverStream.send(message,
-        (i, m) -> {
-        },
-        e -> {
-          throw new IllegalArgumentException(e);
-        });
-  }
-
-  @Test
-  public void testSetSenderIdOnSendNoDelimiter() {
-    String senderId = "auifasdihfaasd87f2";
-    String[] identity = new String[1];
-    ServiceMessage[] messages = new ServiceMessage[1];
-    ServiceMessage message = ServiceMessage.builder().senderId(senderId).build();
-    serverStream.send(message,
-        (i, m) -> {
-          identity[0] = i;
-          messages[0] = m;
-        },
-        e -> {
-          throw new IllegalArgumentException(e);
-        });
-    assertEquals(senderId, identity[0]);
-    assertEquals(null, messages[0].getSenderId());
-  }
-
-  @Test
-  public void testSetSenderIdOnSend() {
-    String senderId = "au/ifas/cafe";
-    String[] identity = new String[1];
-    ServiceMessage[] messages = new ServiceMessage[1];
-    ServiceMessage message = ServiceMessage.builder().senderId(senderId).build();
-    serverStream.send(message,
-        (i, m) -> {
-          identity[0] = i;
-          messages[0] = m;
-        },
-        e -> {
-          throw new IllegalArgumentException(e);
-        });
-    assertEquals("cafe", identity[0]);
-    assertEquals("au/ifas", messages[0].getSenderId());
-  }
-
-  @Test
-  public void testServerStreamMessageWithNoIdentity() throws Exception {
+  public void testServerStreamListenMessageWithNoIdentity() throws Exception {
     String id = channelContext.getId();
 
     String[] identities = new String[1];
@@ -138,7 +47,7 @@ public class ServerStreamTest {
   }
 
   @Test
-  public void testServerStreamMessageHasAlreadyIdentity() throws Exception {
+  public void testServerStreamListenMessageHasAlreadyIdentity() throws Exception {
     String id = channelContext.getId();
 
     String[] identities = new String[1];
@@ -156,7 +65,7 @@ public class ServerStreamTest {
   }
 
   @Test
-  public void testServerStreamMessageSendWithNoIdentity() throws Exception {
+  public void testServerStreamSendMessageWithNoIdentity() throws Exception {
     PublishSubject<Object> subject = PublishSubject.create();
     channelContext.listen().subscribe(subject);
     serverStream.send(ServiceMessage.withQualifier("q").build());
@@ -165,7 +74,7 @@ public class ServerStreamTest {
   }
 
   @Test
-  public void testServerStreamMessageSendWithShortIdentity() throws Exception {
+  public void testServerStreamSendMessageWithShortIdentity() throws Exception {
     String id = channelContext.getId();
 
     Event.Topic[] topics = new Event.Topic[1];
@@ -182,7 +91,7 @@ public class ServerStreamTest {
   }
 
   @Test
-  public void testServerStreamMessageSendWithLongIdentity() throws Exception {
+  public void testServerStreamSendMessageWithLongIdentity() throws Exception {
     String id = channelContext.getId();
 
     Event.Topic[] topics = new Event.Topic[1];

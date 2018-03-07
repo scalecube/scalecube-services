@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -72,7 +71,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
         loadMemberServices(DiscoveryType.REMOVED, event.member());
       }
     });
-    Executors.newScheduledThreadPool(1).scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
+    ThreadFactory.singleScheduledExecutorService("service-registry-discovery")
+        .scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
   }
 
   private void loadClusterServices() {

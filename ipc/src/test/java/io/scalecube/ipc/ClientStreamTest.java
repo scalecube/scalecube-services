@@ -2,6 +2,7 @@ package io.scalecube.ipc;
 
 import static org.junit.Assert.assertEquals;
 
+import io.scalecube.ipc.Event.Topic;
 import io.scalecube.transport.Address;
 
 import org.junit.Test;
@@ -28,8 +29,8 @@ public class ClientStreamTest {
 
     List<Event> events = emittedEventsSubject.buffer(2).timeout(3, TimeUnit.SECONDS).toBlocking().first();
     assertEquals(2, events.size());
-    assertEquals(Event.Topic.MessageWrite, events.get(0).getTopic());
-    assertEquals(Event.Topic.WriteSuccess, events.get(1).getTopic());
+    assertEquals(Topic.MessageWrite, events.get(0).getTopic());
+    assertEquals(Topic.WriteSuccess, events.get(1).getTopic());
   }
 
   @Test
@@ -45,7 +46,7 @@ public class ClientStreamTest {
 
     List<Event> events = requestSubject.buffer(1).timeout(3, TimeUnit.SECONDS).toBlocking().first();
     assertEquals(1, events.size());
-    assertEquals(Event.Topic.ReadSuccess, events.get(0).getTopic());
+    assertEquals(Topic.ReadSuccess, events.get(0).getTopic());
   }
 
   @Test
@@ -62,6 +63,6 @@ public class ClientStreamTest {
 
     List<Event> events = responseSubject.buffer(1).timeout(3, TimeUnit.SECONDS).toBlocking().first();
     assertEquals(1, events.size());
-    assertEquals(Event.Topic.ReadSuccess, events.get(0).getTopic());
+    assertEquals(Topic.ReadSuccess, events.get(0).getTopic());
   }
 }

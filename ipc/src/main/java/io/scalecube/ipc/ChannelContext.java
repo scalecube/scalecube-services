@@ -15,8 +15,6 @@ import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,21 +32,12 @@ public final class ChannelContext {
 
   private final String id;
   private final Address address;
-  private final String addressAsString;
 
-  private ChannelContext(String id, SocketAddress address) {
+  private ChannelContext(String id, Address address) {
     Objects.requireNonNull(id);
     Objects.requireNonNull(address);
-
-    InetSocketAddress address1 = (InetSocketAddress) address;
-    if (address1.isUnresolved()) {
-      throw new IllegalArgumentException(
-          "ChannelContext can't be constructed with unresolved socket address: " + address);
-    }
-
     this.id = id;
-    this.address = Address.create(address1.getAddress().getHostAddress(), address1.getPort());
-    this.addressAsString = this.address.toString();
+    this.address = address;
   }
 
   /**
@@ -57,7 +46,7 @@ public final class ChannelContext {
    * @param id channel context identity.
    * @param address a remote socket address of the channel context; must be resolved socket address.
    */
-  public static ChannelContext create(String id, SocketAddress address) {
+  public static ChannelContext create(String id, Address address) {
     ChannelContext channelContext = new ChannelContext(id, address);
     idToChannelContext.put(id, channelContext);
     channelContextToId.put(channelContext, id);
@@ -139,6 +128,6 @@ public final class ChannelContext {
 
   @Override
   public String toString() {
-    return "ChannelContext{id=" + id + ", address=" + addressAsString + "}";
+    return "ChannelContext{id=" + id + ", address=" + address + "}";
   }
 }
