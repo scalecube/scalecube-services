@@ -22,7 +22,7 @@ deploy:
       branch: develop
   # deploy releases
   - provider: script
-    script: "mvn release:release -DautoVersionSubmodules=true -DscmCommentPrefix='[skip ci]' -DskipTests=true -Dmaven.javadoc.skip=true -B -V -s travis-settings.xml"
+    script: "mvn release:prepare release:perform -DautoVersionSubmodules=true -DscmCommentPrefix='[skip ci]' -DskipTests=true -Dmaven.javadoc.skip=true -B -V -s travis-settings.xml"
     on:
       branch: master
 
