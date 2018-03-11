@@ -1,5 +1,7 @@
 package io.scalecube.ipc;
 
+import io.scalecube.transport.Address;
+
 import rx.Observable;
 
 import java.util.function.Consumer;
@@ -9,6 +11,8 @@ public interface EventStream {
   void subscribe(ChannelContext channelContext);
 
   Observable<Event> listen();
+
+  void unsubscribe(Address address);
 
   void close();
 
@@ -36,5 +40,13 @@ public interface EventStream {
 
   default Observable<Event> listenChannelContextClosed() {
     return listen().filter(Event::isChannelContextClosed);
+  }
+
+  default Observable<Event> listenChannelContextSubscribed() {
+    return listen().filter(Event::isChannelContextSubscribed);
+  }
+
+  default Observable<Event> listenChannelContextUnsubscribed() {
+    return listen().filter(Event::isChannelContextUnsubscribed);
   }
 }

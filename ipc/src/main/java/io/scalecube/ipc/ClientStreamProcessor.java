@@ -4,37 +4,36 @@ import io.scalecube.transport.Address;
 
 import rx.Emitter;
 import rx.Observable;
+import rx.Observer;
 import rx.Subscription;
 import rx.subscriptions.CompositeSubscription;
+
+import java.net.ConnectException;
 
 public final class ClientStreamProcessor implements StreamProcessor {
 
   private final ChannelContext localContext;
   private final ChannelContext remoteContext;
+  private final ServerStream localStream;
 
   private final Subscription subscription;
 
   /**
    * @param address of the target endpoing of where to send request traffic.
-   * @param serverStream shared {@link ServerStream}.
+   * @param localStream shared serverStream (among {@link ClientStreamProcessor} objects created by the same factory).
    */
-  private ClientStreamProcessor(Address address, ServerStream serverStream) {
-    localContext = ChannelContext.create(address);
+  public ClientStreamProcessor(Address address, ServerStream localStream) {
+    this.localContext = ChannelContext.create(address);
+    this.remoteContext = ChannelContext.create(address);
+    this.localStream = localStream;
 
-    // bind remote context
-    serverStream.subscribe(remoteContext = ChannelContext.create(address));
-
-    // request logic
+    // request logic: local context => remote context
     subscription = localContext.listenWrite()
         .map(Event::getMessageOrThrow)
         .subscribe(remoteContext::postWrite);
-  }
 
-  /**
-   * Factory method. Creates new {@link Factory} on the given clientStream.
-   */
-  public static Factory newFactory(ClientStream clientStream) {
-    return new Factory(clientStream);
+    // bind remote context
+    localStream.subscribe(remoteContext);
   }
 
   @Override
@@ -61,87 +60,45 @@ public final class ClientStreamProcessor implements StreamProcessor {
       CompositeSubscription subscriptions = new CompositeSubscription();
       emitter.setCancellation(subscriptions::clear);
 
-      subscriptions.add(remoteContext.listenReadSuccess()
-          .map(Event::getMessageOrThrow)
-          .flatMap(this::toResponse)
-          .subscribe(emitter));
+      subscriptions.add(
+          // response logic: remote read => onResponse
+          remoteContext.listenReadSuccess()
+              .map(Event::getMessageOrThrow)
+              .subscribe(message -> onResponse(message, emitter)));
 
-      subscriptions.add(remoteContext.listenWriteError()
-          .map(Event::getErrorOrThrow)
-          .subscribe(emitter::onError));
+      subscriptions.add(
+          // error logic: failed remote write => observer error
+          remoteContext.listenWriteError()
+              .map(Event::getErrorOrThrow)
+              .subscribe(emitter::onError));
+
+      subscriptions.add(
+          // remote context unsubscribed: observer completed
+          localStream.listenChannelContextUnsubscribed()
+              .subscribe(event -> emitter.onError(new ConnectException())));
 
     }, Emitter.BackpressureMode.BUFFER);
   }
 
   @Override
   public void close() {
+    subscription.unsubscribe();
     localContext.close();
     remoteContext.close();
-    subscription.unsubscribe();
   }
 
-  private Observable<? extends ServiceMessage> toResponse(ServiceMessage message) {
+  private void onResponse(ServiceMessage message, Observer<ServiceMessage> emitter) {
     String qualifier = message.getQualifier();
     if (Qualifier.Q_ON_COMPLETED.asString().equalsIgnoreCase(qualifier)) { // remote => onCompleted
-      return Observable.empty();
+      emitter.onCompleted();
+      return;
     }
     String qualifierNamespace = Qualifier.getQualifierNamespace(qualifier);
     if (Qualifier.Q_ERROR_NAMESPACE.equalsIgnoreCase(qualifierNamespace)) { // remote => onError
       // Hint: at this point more sophisticated exception mapping logic is needed
-      return Observable.error(new RuntimeException(qualifier));
+      emitter.onError(new RuntimeException(qualifier));
+      return;
     }
-    return Observable.just(message); // remote => normal response
-  }
-
-  /**
-   * Factory for creating {@link ClientStreamProcessor} instances.
-   */
-  public static final class Factory {
-
-    private final ServerStream localStream = ServerStream.newServerStream();
-
-    private final CompositeSubscription subscriptions = new CompositeSubscription();
-
-    /**
-     * Constructor for {@link Factory}. Right away defines shared logic (across all of {@link ClientStreamProcessor}
-     * objects) for bidirectional communication with respect to client side semantics.
-     *
-     * @param remoteStream injected {@link ClientStream}; factory object wouldn't close it in {@link #close()} method.
-     */
-    private Factory(ClientStream remoteStream) {
-      // request logic
-      subscriptions.add(localStream.listenWrite()
-          .subscribe(event -> remoteStream.send(event.getAddress(), event.getMessageOrThrow())));
-
-      // response logic
-      subscriptions.add(remoteStream.listenReadSuccess()
-          .map(Event::getMessageOrThrow)
-          .subscribe(message -> localStream.send(message, ChannelContext::postReadSuccess)));
-
-      // response logic
-      subscriptions.add(remoteStream.listenWriteError()
-          .subscribe(event -> localStream.send(event.getMessageOrThrow(), (channelContext, message1) -> {
-            Address address = event.getAddress();
-            Throwable throwable = event.getErrorOrThrow();
-            channelContext.postWriteError(address, message1, throwable);
-          })));
-    }
-
-    /**
-     * Creates new {@link ClientStreamProcessor} per address. This is address of the target endpoing of where to send
-     * request traffic.
-     */
-    public ClientStreamProcessor newStreamProcessor(Address address) {
-      return new ClientStreamProcessor(address, localStream);
-    }
-
-    /**
-     * Closes internal shared serverStream (across all of {@link ClientStreamProcessor} objects) and cleanups
-     * subscriptions.
-     */
-    public void close() {
-      localStream.close();
-      subscriptions.clear();
-    }
+    emitter.onNext(message); // remote => normal response
   }
 }

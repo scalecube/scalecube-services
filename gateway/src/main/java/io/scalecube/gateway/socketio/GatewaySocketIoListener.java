@@ -48,15 +48,15 @@ public final class GatewaySocketIoListener implements SocketIOListener {
     // save mapping
     sessionIdToChannelContextId.put(session.getSessionId(), channelContext.getId());
 
-    // bind channelContext
-    eventStream.subscribe(channelContext);
-
     // register cleanup process upfront
     channelContext.listenClose(input -> {
       if (session.getState() == Session.State.CONNECTED) {
         session.disconnect();
       }
     });
+
+    // bind channelContext
+    eventStream.subscribe(channelContext);
 
     channelContext.listenWrite().map(Event::getMessageOrThrow).subscribe(
         message -> {

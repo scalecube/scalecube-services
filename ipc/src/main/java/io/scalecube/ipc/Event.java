@@ -18,7 +18,11 @@ public final class Event {
     //
     WriteError,
     //
-    ChannelContextClosed
+    ChannelContextClosed,
+    //
+    ChannelContextSubscribed,
+    //
+    ChannelContextUnsubscribed
   }
 
   private final Topic topic; // not null
@@ -95,6 +99,14 @@ public final class Event {
 
   public boolean isChannelContextClosed() {
     return topic == Topic.ChannelContextClosed;
+  }
+
+  public boolean isChannelContextSubscribed() {
+    return topic == Topic.ChannelContextSubscribed;
+  }
+
+  public boolean isChannelContextUnsubscribed() {
+    return topic == Topic.ChannelContextUnsubscribed;
   }
 
   //// Builder
