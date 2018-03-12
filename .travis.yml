@@ -9,23 +9,18 @@ before_install:
 - sudo apt-get install jq
 - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url)
 
-#remove this when done: {
-install: true
-script:
-- mvn -version
-# }
-
 after_success:
-- java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r ./services/target/site/jacoco/jacoco.xml
+- java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter
+  -l Java -r ./services/target/site/jacoco/jacoco.xml
+before-deploy:
+- src/main/scripts/cd/before-deploy.sh  
 deploy:
 - provider: script
-  script: mvn deploy -DskipTests=true -Dmaven.javadoc.skip=true -B -V -s travis-settings.xml
+  script: mvn -P release deploy -DskipTests=true -Dmaven.javadoc.skip=true -B -V -s travis-settings.xml
   on:
     branch: develop
 - provider: script
   script:
-  - mvn release:prepare -DautoVersionSubmodules=true -DscmCommentPrefix='[skip ci] [maven-release-plugin]' -DskipTests=true -Dmaven.javadoc.skip=true -B -V -s travis-settings.xml
-  - mvn release:perform
+  - src/main/scripts/cd/deploy.sh
   on:
     branch: master
-    
