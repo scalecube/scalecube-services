@@ -73,8 +73,8 @@ public final class ListeningServerStream implements EventStream {
   }
 
   @Override
-  public void unsubscribe(Address address) {
-    serverStream.unsubscribe(address);
+  public void onNext(Address address, Event event) {
+    serverStream.onNext(address, event);
   }
 
   /**

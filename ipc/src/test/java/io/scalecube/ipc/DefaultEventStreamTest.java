@@ -139,29 +139,6 @@ public class DefaultEventStreamTest {
   }
 
   @Test
-  public void testEventStreamUnsubscribe() {
-    eventStream.subscribe(ctx0);
-    eventStream.subscribe(ctx1);
-
-    BehaviorSubject<Event> subject = BehaviorSubject.create();
-    eventStream.listenChannelContextUnsubscribed().subscribe(subject);
-
-    // unsubscribe by address must fire channelContext unsubscrived event
-    eventStream.unsubscribe(ctx0.getAddress());
-
-    List<Event> list = subject.test().assertValueCount(1).getOnNextEvents();
-    assertEquals(Topic.ChannelContextUnsubscribed, list.get(0).getTopic());
-    assertEquals(ctx0.getId(), list.get(0).getIdentity());
-
-    // unsubscribe by address must fire channelContext unsubscrived event
-    eventStream.unsubscribe(ctx1.getAddress());
-
-    List<Event> list2 = subject.test().assertValueCount(1).getOnNextEvents();
-    assertEquals(Topic.ChannelContextUnsubscribed, list2.get(0).getTopic());
-    assertEquals(ctx1.getId(), list2.get(0).getIdentity());
-  }
-
-  @Test
   public void testEventStreamSubscribe() {
     BehaviorSubject<Event> subject = BehaviorSubject.create();
     eventStream.listenChannelContextSubscribed().subscribe(subject);
@@ -255,23 +232,5 @@ public class DefaultEventStreamTest {
     assertEquals(Topic.ReadSuccess, events.get(1).getTopic());
     assertEquals(Topic.ChannelContextUnsubscribed, events.get(2).getTopic());
     assertEquals(Topic.ChannelContextClosed, events.get(3).getTopic());
-  }
-
-  @Test
-  public void testEventStreamUnsubscribeChannelContextSeveralTimes() {
-    eventStream.subscribe(ctx0);
-
-    BehaviorSubject<Event> subject = BehaviorSubject.create();
-    eventStream.listenChannelContextUnsubscribed().subscribe(subject);
-
-    eventStream.unsubscribe(ctx0.getAddress());
-    eventStream.unsubscribe(ctx0.getAddress());
-    eventStream.unsubscribe(ctx0.getAddress());
-    eventStream.unsubscribe(ctx0.getAddress());
-    eventStream.unsubscribe(ctx0.getAddress());
-
-    List<Event> list = subject.test().assertValueCount(1).getOnNextEvents();
-    assertEquals(Topic.ChannelContextUnsubscribed, list.get(0).getTopic());
-    assertEquals(ctx0.getId(), list.get(0).getIdentity());
   }
 }

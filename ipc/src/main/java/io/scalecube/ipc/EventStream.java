@@ -12,7 +12,7 @@ public interface EventStream {
 
   Observable<Event> listen();
 
-  void unsubscribe(Address address);
+  void onNext(Address address, Event event);
 
   void close();
 

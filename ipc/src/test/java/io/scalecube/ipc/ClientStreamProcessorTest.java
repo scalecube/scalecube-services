@@ -16,11 +16,16 @@ import org.junit.Test;
 
 import rx.observers.AssertableSubscriber;
 
+import java.io.IOException;
 import java.net.ConnectException;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 public class ClientStreamProcessorTest {
+
+  private static final Duration TIMEOUT = Duration.ofMillis(1000);
+  private static final int CONNECT_TIMEOUT_MILLIS = (int) TIMEOUT.toMillis();
 
   private ClientStream clientStream;
   private ListeningServerStream serverStream;
@@ -33,7 +38,7 @@ public class ClientStreamProcessorTest {
     bootstrap = new Bootstrap()
         .group(new NioEventLoopGroup(0))
         .channel(NioSocketChannel.class)
-        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000)
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MILLIS)
         .option(ChannelOption.TCP_NODELAY, true)
         .option(ChannelOption.SO_KEEPALIVE, true)
         .option(ChannelOption.SO_REUSEADDR, true);
@@ -99,8 +104,8 @@ public class ClientStreamProcessorTest {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echo").build());
       subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(100, TimeUnit.MILLISECONDS)
-          .awaitValueCount(1, 100, TimeUnit.MILLISECONDS)
+          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
+          .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertCompleted();
     } finally {
       streamProcessor.close();
@@ -114,7 +119,7 @@ public class ClientStreamProcessorTest {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echoVoid").build());
       subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(100, TimeUnit.MILLISECONDS)
+          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertCompleted()
           .assertNoValues();
     } finally {
@@ -129,7 +134,7 @@ public class ClientStreamProcessorTest {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echoError").build());
       subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(100, TimeUnit.MILLISECONDS)
+          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertNoValues()
           .assertError(RuntimeException.class);
     } finally {
@@ -144,8 +149,8 @@ public class ClientStreamProcessorTest {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echoStream").build());
       subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(100, TimeUnit.MILLISECONDS)
-          .awaitValueCount(42, 100, TimeUnit.MILLISECONDS)
+          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
+          .awaitValueCount(42, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertCompleted();
     } finally {
       streamProcessor.close();
@@ -176,8 +181,8 @@ public class ClientStreamProcessorTest {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echo").build());
       subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(100, TimeUnit.MILLISECONDS)
-          .awaitValueCount(1, 100, TimeUnit.MILLISECONDS)
+          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
+          .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertCompleted();
 
       // close remote server stream
@@ -186,11 +191,10 @@ public class ClientStreamProcessorTest {
       Address unbindAddress = serverStream.listenUnbind().single().toBlocking().first();
       assertEquals(address, unbindAddress);
 
-      // no errors, no values - just onCompleted
       subscriber1
           .awaitTerminalEventAndUnsubscribeOnTimeout(3, TimeUnit.SECONDS)
           .assertNoValues()
-          .assertError(ConnectException.class);
+          .assertError(IOException.class);
     } finally {
       streamProcessor.close();
     }

@@ -5,47 +5,33 @@ import io.scalecube.transport.Address;
 import rx.Emitter;
 import rx.Observable;
 import rx.Observer;
-import rx.Subscription;
 import rx.subscriptions.CompositeSubscription;
 
-import java.net.ConnectException;
+import java.io.IOException;
 
 public final class ClientStreamProcessor implements StreamProcessor {
 
-  private final ChannelContext localContext;
-  private final ChannelContext remoteContext;
   private final ServerStream localStream;
-
-  private final Subscription subscription;
+  private final ChannelContext localContext;
 
   /**
    * @param address of the target endpoing of where to send request traffic.
    * @param localStream shared serverStream (among {@link ClientStreamProcessor} objects created by the same factory).
    */
   public ClientStreamProcessor(Address address, ServerStream localStream) {
-    this.localContext = ChannelContext.create(address);
-    this.remoteContext = ChannelContext.create(address);
     this.localStream = localStream;
-
-    // request logic: local context => remote context
-    subscription = localContext.listenWrite()
-        .map(Event::getMessageOrThrow)
-        .subscribe(remoteContext::postWrite);
-
-    // bind remote context
-    localStream.subscribe(remoteContext);
+    this.localContext = ChannelContext.create(address);
+    localStream.subscribe(localContext);
   }
 
   @Override
   public void onCompleted() {
     onNext(onCompletedMessage);
-    localContext.close();
   }
 
   @Override
   public void onError(Throwable throwable) {
     onNext(onErrorMessage);
-    localContext.close();
   }
 
   @Override
@@ -60,31 +46,31 @@ public final class ClientStreamProcessor implements StreamProcessor {
       CompositeSubscription subscriptions = new CompositeSubscription();
       emitter.setCancellation(subscriptions::clear);
 
+      // response logic: remote read => onResponse
       subscriptions.add(
-          // response logic: remote read => onResponse
-          remoteContext.listenReadSuccess()
+          localContext.listenReadSuccess()
               .map(Event::getMessageOrThrow)
               .subscribe(message -> onResponse(message, emitter)));
 
+      // error logic: failed remote write => observer error
       subscriptions.add(
-          // error logic: failed remote write => observer error
-          remoteContext.listenWriteError()
+          localContext.listenWriteError()
               .map(Event::getErrorOrThrow)
               .subscribe(emitter::onError));
 
+      // connection logic: connection lost => observer error
       subscriptions.add(
-          // connection lost logic: unsubscribed => observer error
-          localStream.listenChannelContextUnsubscribed()
-              .subscribe(event -> emitter.onError(new ConnectException())));
+          localStream.listenChannelContextClosed()
+              .subscribe(event -> onChannelContextClosed(event, emitter)));
 
     }, Emitter.BackpressureMode.BUFFER);
   }
 
   @Override
   public void close() {
-    subscription.unsubscribe();
+    // this alone will unsubscribe this channel context
+    // from local server stream => no more requests, no more replies
     localContext.close();
-    remoteContext.close();
   }
 
   private void onResponse(ServiceMessage message, Observer<ServiceMessage> emitter) {
@@ -100,5 +86,10 @@ public final class ClientStreamProcessor implements StreamProcessor {
       return;
     }
     emitter.onNext(message); // remote => normal response
+  }
+
+  private void onChannelContextClosed(Event event, Observer<ServiceMessage> emitter) {
+    // Hint: at this point 'event' contains ClientStream's ChannelContext (i.e. remote one) where close() was emitted
+    emitter.onError(new IOException("ChannelContext closed on address: " + event.getAddress()));
   }
 }

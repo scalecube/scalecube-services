@@ -101,6 +101,10 @@ public final class ChannelContext {
     return address;
   }
 
+  public void onNext(Event event) {
+    subject.onNext(event);
+  }
+
   public Observable<Event> listen() {
     return subject.onBackpressureBuffer().asObservable();
   }
@@ -126,15 +130,15 @@ public final class ChannelContext {
   }
 
   public void postReadSuccess(ServiceMessage message) {
-    subject.onNext(new Event.Builder(Topic.ReadSuccess, address, id).message(message).build());
+    onNext(new Event.Builder(Topic.ReadSuccess, address, id).message(message).build());
   }
 
   public void postReadError(Throwable throwable) {
-    subject.onNext(new Event.Builder(Topic.ReadError, address, id).error(throwable).build());
+    onNext(new Event.Builder(Topic.ReadError, address, id).error(throwable).build());
   }
 
   public void postWrite(ServiceMessage message) {
-    subject.onNext(new Event.Builder(Topic.Write, address, id).message(message).build());
+    onNext(new Event.Builder(Topic.Write, address, id).message(message).build());
   }
 
   public void postWriteError(ServiceMessage message, Throwable throwable) {
@@ -142,11 +146,11 @@ public final class ChannelContext {
   }
 
   public void postWriteError(Address address, ServiceMessage message, Throwable throwable) {
-    subject.onNext(new Event.Builder(Topic.WriteError, address, id).error(throwable).message(message).build());
+    onNext(new Event.Builder(Topic.WriteError, address, id).error(throwable).message(message).build());
   }
 
   public void postWriteSuccess(ServiceMessage message) {
-    subject.onNext(new Event.Builder(Topic.WriteSuccess, address, id).message(message).build());
+    onNext(new Event.Builder(Topic.WriteSuccess, address, id).message(message).build());
   }
 
   /**

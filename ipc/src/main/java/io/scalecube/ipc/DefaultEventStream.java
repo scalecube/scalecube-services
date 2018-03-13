@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class DefaultEventStream implements EventStream {
 
@@ -52,12 +53,9 @@ public class DefaultEventStream implements EventStream {
   }
 
   @Override
-  public void unsubscribe(Address address) {
-    // fullscan and filter, then remove and unsubscribe
-    subscriptions.keySet().stream()
-        .filter(ctx -> ctx.getAddress().equals(address))
-        .map(subscriptions::remove)
-        .forEach(Subscription::unsubscribe);
+  public void onNext(Address address, Event event) {
+    Stream<ChannelContext> channelContextStream = subscriptions.keySet().stream();
+    channelContextStream.filter(ctx -> ctx.getAddress().equals(address)).forEach(ctx -> ctx.onNext(event));
   }
 
   @Override

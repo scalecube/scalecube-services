@@ -36,11 +36,10 @@ public final class ServerStreamProcessorFactory {
               channelContext.postReadSuccess(message);
             }));
 
-    // connection lost logic: unsubscribe by address
+    // connection logic: connection lost => local stream
     subscriptions.add(
         remoteStream.listenChannelContextClosed()
-            .map(Event::getAddress)
-            .subscribe(localStream::unsubscribe));
+            .subscribe(event -> localStream.onNext(event.getAddress(), event)));
   }
 
   private void init(ChannelContext channelContext) {

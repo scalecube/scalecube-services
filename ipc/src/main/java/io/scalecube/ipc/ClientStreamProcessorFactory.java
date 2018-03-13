@@ -37,11 +37,10 @@ public final class ClientStreamProcessorFactory {
               channelContext.postWriteError(address, message1, throwable);
             })));
 
-    // connection lost logic: unsubscribe by address
+    // connection logic: connection lost => local stream
     subscriptions.add(
         remoteStream.listenChannelContextClosed()
-            .map(Event::getAddress)
-            .subscribe(localStream::unsubscribe));
+            .subscribe(event -> localStream.onNext(event.getAddress(), event)));
   }
 
   /**
@@ -52,8 +51,7 @@ public final class ClientStreamProcessorFactory {
   }
 
   /**
-   * Creates new {@link ClientStreamProcessor} per address. This is address of the target endpoing of where to send
-   * request traffic.
+   * Creates new {@link ClientStreamProcessor} per address.
    */
   public ClientStreamProcessor newClientStreamProcessor(Address address) {
     return new ClientStreamProcessor(address, localStream);
