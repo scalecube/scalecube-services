@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routing;
 import io.scalecube.transport.Message;
 
 import com.codahale.metrics.Counter;
@@ -29,7 +30,8 @@ public class ServiceCall {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
 
   private Duration timeout;
-  private Router router;
+  private Routing routing;
+  private ServiceRegistry serviceRegistry;
   private Timer latency;
   private Metrics metrics;
 
@@ -38,19 +40,21 @@ public class ServiceCall {
    * local and remote services using messages and handles. it acts as proxy and middle-ware between service consumer and
    * service provider.
    * 
-   * @param router strategy to select service instance.
+   * @param routing strategy to select service instance.
+   * @param serviceRegistry the registry to search services on
    * @param timeout waiting for response.
    * @param metrics provider to collect metrics regards service execution.
    */
-  public ServiceCall(Router router, Duration timeout, Metrics metrics) {
-    this.router = router;
+  public ServiceCall(Routing routing, ServiceRegistry serviceRegistry, Duration timeout, Metrics metrics) {
+    this.routing = routing;
+    this.serviceRegistry = serviceRegistry;
     this.timeout = timeout;
     this.metrics = metrics;
     this.latency = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
   }
 
-  public ServiceCall(Router router, Duration timeout) {
-    this(router, timeout, null);
+  public ServiceCall(Routing routing, ServiceRegistry serviceRegistry, Duration timeout) {
+    this(routing, serviceRegistry, timeout, null);
   }
 
   public CompletableFuture<Message> invoke(Message message) {
@@ -70,7 +74,7 @@ public class ServiceCall {
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
     Messages.validate().serviceRequest(request);
 
-    Optional<ServiceInstance> optionalServiceInstance = router.route(request);
+    Optional<ServiceInstance> optionalServiceInstance = routing.route(serviceRegistry, request);
 
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();
@@ -168,7 +172,7 @@ public class ServiceCall {
    */
   public Observable<Message> invokeAll(final Message request, final Duration duration) {
     final Subject<Message, Message> responsesSubject = PublishSubject.<Message>create().toSerialized();
-    Collection<ServiceInstance> instances = router.routes(request);
+    Collection<ServiceInstance> instances = routing.routes(serviceRegistry, request);
 
     instances.forEach(instance -> {
       invoke(request, duration).whenComplete((resp, error) -> {
@@ -192,7 +196,7 @@ public class ServiceCall {
 
     Messages.validate().serviceRequest(request);
 
-    Optional<ServiceInstance> optionalServiceInstance = router.route(request);
+    Optional<ServiceInstance> optionalServiceInstance = routing.route(serviceRegistry, request);
 
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();

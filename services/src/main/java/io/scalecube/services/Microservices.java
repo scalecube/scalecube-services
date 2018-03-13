@@ -7,6 +7,8 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routers;
+import io.scalecube.services.routing.Routing;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Transport;
 import io.scalecube.transport.TransportConfig;
@@ -137,8 +139,8 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
-    return proxyFactory.createProxy(serviceInterface, router, timeout, metrics);
+  private <T> T createProxy(Class<T> serviceInterface, Routing routing, Duration timeout) {
+    return proxyFactory.createProxy(serviceInterface, routing, timeout, metrics);
   }
 
   public Collection<ServiceInstance> services() {
@@ -254,11 +256,11 @@ public class Microservices {
   public class DispatcherContext {
     private Duration timeout = Duration.ofSeconds(30);
 
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
+    private Routing routing = Routers.roundRobin();
 
     public ServiceCall create() {
-      LOGGER.debug("create service api {} router {}", router);
-      return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
+      LOGGER.debug("create service api with routing {}", routing);
+      return dispatcherFactory.createDispatcher(routing, timeout, metrics);
     }
 
     public DispatcherContext timeout(Duration timeout) {
@@ -266,13 +268,18 @@ public class Microservices {
       return this;
     }
 
-    public DispatcherContext router(Class<? extends Router> routerType) {
-      this.router = routerType;
+    public DispatcherContext routing(Routing routing) {
+      this.routing = routing;
       return this;
     }
 
+    public DispatcherContext router(Class<? extends Router> routerType) {
+      return this.routing(Routing.fromRouter(routerType));
+    }
+    
+    @Deprecated
     public Class<? extends Router> router() {
-      return this.router;
+      return null;
     }
   }
 
@@ -287,14 +294,14 @@ public class Microservices {
   public class ProxyContext {
     private Class<?> api;
 
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
+    private Routing routing = Routers.roundRobin();
 
     private Duration timeout = Duration.ofSeconds(3);
 
     @SuppressWarnings("unchecked")
     public <T> T create() {
-      LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, this.router, this.timeout);
+      LOGGER.debug("create service api {} router {}", this.api, this.routing.getClass().getSimpleName());
+      return (T) createProxy(this.api, this.routing, this.timeout);
     }
 
     public ProxyContext timeout(Duration duration) {
@@ -307,12 +314,18 @@ public class Microservices {
       return this;
     }
 
-    public Class<? extends Router> router() {
-      return router;
+    @Deprecated
+    public Class<?> router() {
+      return Object.class;
     }
 
     public ProxyContext router(Class<? extends Router> router) {
-      this.router = router;
+      this.routing = Routing.fromRouter(router);
+      return this;
+    }
+
+    public ProxyContext routing(Routing routing) {
+      this.routing = routing;
       return this;
     }
 
