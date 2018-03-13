@@ -233,4 +233,45 @@ public class DefaultEventStreamTest {
     assertEquals(Topic.ChannelContextUnsubscribed, events.get(0).getTopic());
     assertEquals(Topic.ChannelContextClosed, events.get(1).getTopic());
   }
+
+  @Test
+  public void testEventStreamSubscribeChannelContextSeveralTimes() {
+    BehaviorSubject<Event> subject = BehaviorSubject.create();
+    eventStream.listen().subscribe(subject);
+
+    AssertableSubscriber<Event> subscriber = subject.test();
+
+    eventStream.subscribe(ctx0);
+    eventStream.subscribe(ctx0);
+    eventStream.subscribe(ctx0);
+    eventStream.subscribe(ctx0);
+    eventStream.subscribe(ctx0);
+
+    ctx0.postReadSuccess(message0);
+    ctx0.close();
+
+    List<Event> events = subscriber.assertValueCount(4).getOnNextEvents();
+    assertEquals(Topic.ChannelContextSubscribed, events.get(0).getTopic());
+    assertEquals(Topic.ReadSuccess, events.get(1).getTopic());
+    assertEquals(Topic.ChannelContextUnsubscribed, events.get(2).getTopic());
+    assertEquals(Topic.ChannelContextClosed, events.get(3).getTopic());
+  }
+
+  @Test
+  public void testEventStreamUnsubscribeChannelContextSeveralTimes() {
+    eventStream.subscribe(ctx0);
+
+    BehaviorSubject<Event> subject = BehaviorSubject.create();
+    eventStream.listenChannelContextUnsubscribed().subscribe(subject);
+
+    eventStream.unsubscribe(ctx0.getAddress());
+    eventStream.unsubscribe(ctx0.getAddress());
+    eventStream.unsubscribe(ctx0.getAddress());
+    eventStream.unsubscribe(ctx0.getAddress());
+    eventStream.unsubscribe(ctx0.getAddress());
+
+    List<Event> list = subject.test().assertValueCount(1).getOnNextEvents();
+    assertEquals(Topic.ChannelContextUnsubscribed, list.get(0).getTopic());
+    assertEquals(ctx0.getId(), list.get(0).getIdentity());
+  }
 }

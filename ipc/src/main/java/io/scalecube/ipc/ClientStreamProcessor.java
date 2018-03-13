@@ -73,7 +73,7 @@ public final class ClientStreamProcessor implements StreamProcessor {
               .subscribe(emitter::onError));
 
       subscriptions.add(
-          // remote context unsubscribed: observer completed
+          // connection lost logic: unsubscribed => observer error
           localStream.listenChannelContextUnsubscribed()
               .subscribe(event -> emitter.onError(new ConnectException())));
 

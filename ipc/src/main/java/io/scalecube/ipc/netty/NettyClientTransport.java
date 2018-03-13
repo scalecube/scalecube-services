@@ -35,7 +35,7 @@ public final class NettyClientTransport {
       if (throwable != null) { // remove reference right away
         outboundChannels.remove(address, promise);
       }
-      if (channelContext != null) { // in case connected subscribe on close event
+      if (channelContext != null) { // register cleanup process upfront
         channelContext.listenClose(ctx -> outboundChannels.remove(address, promise));
       }
     });

@@ -11,6 +11,7 @@ import rx.subjects.Subject;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -33,16 +34,16 @@ public class DefaultEventStream implements EventStream {
 
   @Override
   public final void subscribe(ChannelContext channelContext) {
-    // register cleanup process upfront
-    channelContext.listenClose(this::onChannelContextClosed);
-
-    Subscription subscription = channelContext.listen()
-        .doOnUnsubscribe(() -> onChannelContextUnsubscribed(channelContext))
-        .subscribe(this::onNext);
-
-    subscriptions.put(channelContext, subscription);
-
-    onChannelContextSubscribed(channelContext);
+    AtomicBoolean valueComputed = new AtomicBoolean();
+    subscriptions.computeIfAbsent(channelContext, channelContext1 -> {
+      Subscription subscription = subscribe0(channelContext1);
+      valueComputed.set(true);
+      return subscription;
+    });
+    if (valueComputed.get()) { // computed in lambda
+      channelContext.listenClose(this::onChannelContextClosed);
+      onChannelContextSubscribed(channelContext);
+    }
   }
 
   @Override
@@ -62,7 +63,12 @@ public class DefaultEventStream implements EventStream {
   @Override
   public final void close() {
     // cleanup subscriptions
-    subscriptions.forEach((ctx, subscription) -> subscription.unsubscribe());
+    for (ChannelContext channelContext : subscriptions.keySet()) {
+      Subscription subscription = subscriptions.remove(channelContext);
+      if (subscription != null) {
+        subscription.unsubscribe();
+      }
+    }
     subscriptions.clear();
     // complete subjects
     subject.onCompleted();
@@ -75,8 +81,10 @@ public class DefaultEventStream implements EventStream {
     }, throwable -> onClose.accept(null), () -> onClose.accept(null));
   }
 
-  private void onNext(Event event) {
-    subject.onNext(event);
+  private Subscription subscribe0(ChannelContext channelContext) {
+    return channelContext.listen()
+        .doOnUnsubscribe(() -> onChannelContextUnsubscribed(channelContext))
+        .subscribe(subject::onNext);
   }
 
   private void onChannelContextClosed(ChannelContext ctx) {
