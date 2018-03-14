@@ -170,6 +170,8 @@ public final class Message {
   }
 
   /**
+   * Returns header value by given header name.
+   * 
    * @param name header name
    * @return the message header by given header name
    */
@@ -177,10 +179,20 @@ public final class Message {
     return headers.get(name);
   }
 
+  /**
+   * Returns message qualifier
+   * 
+   * @return qualifier string
+   */
   public String qualifier() {
     return header(HEADER_QUALIFIER);
   }
 
+  /**
+   * Returns message correlation id.
+   * 
+   * @return correlation id
+   */
   public String correlationId() {
     return header(HEADER_CORRELATION_ID);
   }
@@ -196,6 +208,11 @@ public final class Message {
     return (T) data;
   }
 
+  /**
+   * Returns {@link Address} of the sender of this message.
+   * 
+   * @return address
+   */
   public Address sender() {
     return sender;
   }
