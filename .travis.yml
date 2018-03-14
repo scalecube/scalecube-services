@@ -8,7 +8,7 @@ notifications:
 before_install:
 - sudo apt-get install jq
 - ./src/main/scripts/cd/before-deploy.sh
-- wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url)
+- (wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url) && cp $HOME/codacy-coverage-reporter-assembly-latest.jar $HOME/codacy) ||   cp $HOME/codacy/codacy-coverage-reporter-assembly-latest.jar ~   
 after_success:
 - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter
   -l Java -r ./services/target/site/jacoco/jacoco.xml
@@ -24,3 +24,9 @@ deploy:
   - ./src/main/scripts/cd/deploy.sh
   on:
     branch: master
+    
+cache:
+  directories:
+  - $HOME/codacy
+before_cache:
+  - mkdir -p $HOME/codacy
