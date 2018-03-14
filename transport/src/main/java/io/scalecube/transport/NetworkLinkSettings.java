@@ -17,20 +17,30 @@ public final class NetworkLinkSettings {
   private final int lossPercent;
   private final int meanDelay;
 
+  /**
+   * Constructor for link settings.
+   * 
+   * @param lossPercent loss in percent
+   * @param mean mean dealy
+   */
   public NetworkLinkSettings(int lossPercent, int mean) {
     this.lossPercent = lossPercent;
     this.meanDelay = mean;
   }
 
   /**
-   * @return probability of message loss in percents.
+   * Returns probability of message loss in percents.
+   * 
+   * @return loss in percents
    */
   public int lossPercent() {
     return lossPercent;
   }
 
   /**
-   * @return mean network delay for message in milliseconds.
+   * Returns mean network delay for message in milliseconds.
+   * 
+   * @return mean delay
    */
   public int meanDelay() {
     return meanDelay;
@@ -46,7 +56,9 @@ public final class NetworkLinkSettings {
   }
 
   /**
-   * @return delays are emulated using exponential distribution of probabilities.
+   * Evaluates network delay according to exponential distribution of probabilities.
+   * 
+   * @return delay
    */
   public long evaluateDelay() {
     if (meanDelay > 0) {

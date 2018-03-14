@@ -177,7 +177,9 @@ public final class NetworkEmulator {
   }
 
   /**
-   * @return total message sent count computed by network emulator. If network emulator is disabled returns zero.
+   * Returns total message sent count computed by network emulator. If network emulator is disabled returns zero.
+   * 
+   * @return total message sent
    */
   public long totalMessageSentCount() {
     if (!enabled) {
@@ -188,7 +190,9 @@ public final class NetworkEmulator {
   }
 
   /**
-   * @return total message lost count computed by network emulator. If network emulator is disabled returns zero.
+   * Returns total message lost count computed by network emulator. If network emulator is disabled returns zero.
+   * 
+   * @return total message lost
    */
   public long totalMessageLostCount() {
     if (!enabled) {

@@ -67,7 +67,9 @@ public interface Transport {
   }
 
   /**
-   * @return local {@link Address} on which current instance of transport listens for incoming messages.
+   * Returns local {@link Address} on which current instance of transport listens for incoming messages.
+   *
+   * @return address
    */
   @Nonnull
   Address address();
