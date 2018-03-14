@@ -8,7 +8,14 @@ notifications:
 before_install:
 - sudo apt-get install jq
 - ./src/main/scripts/cd/before-deploy.sh
-- (wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url) && cp $HOME/codacy-coverage-reporter-assembly-latest.jar $HOME/codacy) ||   cp $HOME/codacy/codacy-coverage-reporter-assembly-latest.jar ~   
+# get latest version of codacy reporter from sonatype
+- latest=$(curl "https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/maven-metadata.xml" | xpath -e "/metadata/versioning/release/text()")
+# select the uri of the laterst assembly jar
+- query='/content/data/content-item[./text/text()="codacy-coverage-reporter-'$latest'-assembly.jar"]/resourceURI/text()'
+# get the full release url
+- releaseurl=$(curl "https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/$latest/" | xpath -e $query)
+# get the file
+- wget -O ~/codacy-coverage-reporter-assembly-latest.jar $releaseurl   
 after_success:
 - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter
   -l Java -r ./services/target/site/jacoco/jacoco.xml
@@ -24,9 +31,3 @@ deploy:
   - ./src/main/scripts/cd/deploy.sh
   on:
     branch: master
-    
-cache:
-  directories:
-  - $HOME/codacy
-before_cache:
-  - mkdir -p $HOME/codacy
