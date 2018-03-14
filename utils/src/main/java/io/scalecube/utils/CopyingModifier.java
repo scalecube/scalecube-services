@@ -5,11 +5,18 @@ import com.google.common.base.Throwables;
 import java.lang.reflect.Constructor;
 import java.util.function.Consumer;
 
+/**
+ * Utility functional object for calling copy-constructor and appying specified lamda on a copy.
+ * 
+ * @param <E> element type on which to apply operation
+ */
 public interface CopyingModifier<E> {
 
   /**
    * Copy and set facility function. Finds on E object a copying constructor, then creates a copy of E and applies given
    * modifier function on copy. Then returns that copy to client.
+   * 
+   * @param modifier lambda to call when copy-constructor would create an object of E
    */
   default E copyAndSet(Consumer<E> modifier) {
     try {
