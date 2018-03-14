@@ -180,7 +180,7 @@ public final class Message {
   }
 
   /**
-   * Returns message qualifier
+   * Returns message qualifier.
    * 
    * @return qualifier string
    */
