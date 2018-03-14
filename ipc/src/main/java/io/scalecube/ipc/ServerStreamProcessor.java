@@ -1,7 +1,5 @@
 package io.scalecube.ipc;
 
-import io.scalecube.transport.Address;
-
 import rx.Emitter;
 import rx.Observable;
 import rx.Observer;
@@ -9,7 +7,7 @@ import rx.subscriptions.CompositeSubscription;
 
 import java.io.IOException;
 
-public final class ClientStreamProcessor implements StreamProcessor {
+public final class ServerStreamProcessor implements StreamProcessor {
 
   private final EventStream localStream;
   private final ChannelContext localContext;
@@ -17,13 +15,12 @@ public final class ClientStreamProcessor implements StreamProcessor {
   /**
    * Constructor for this stream processor.
    * 
-   * @param address of the target endpoing of where to send request traffic
+   * @param localContext local channel context
    * @param localStream local event stream
    */
-  public ClientStreamProcessor(Address address, EventStream localStream) {
+  public ServerStreamProcessor(ChannelContext localContext, EventStream localStream) {
+    this.localContext = localContext;
     this.localStream = localStream;
-    this.localContext = ChannelContext.create(address);
-    localStream.subscribe(localContext);
   }
 
   @Override
@@ -32,7 +29,7 @@ public final class ClientStreamProcessor implements StreamProcessor {
   }
 
   @Override
-  public void onError(Throwable throwable) {
+  public void onError(Throwable e) {
     onNext(onErrorMessage);
   }
 

@@ -11,8 +11,8 @@ public final class ClientStreamProcessorFactory {
   private final CompositeSubscription subscriptions = new CompositeSubscription();
 
   /**
-   * Constructor for {@link ClientStreamProcessorFactory}. Right away defines logic for bidirectional communication with
-   * respect to client side semantics.
+   * Constructor for this factory. Right away defines logic for bidirectional communication with respect to client side
+   * semantics.
    *
    * @param remoteStream injected {@link ClientStream}; factory wouldn't close it in {@link #close()} method.
    */
@@ -44,14 +44,21 @@ public final class ClientStreamProcessorFactory {
   }
 
   /**
-   * Creates new {@link ClientStreamProcessorFactory} on the given clientStream.
+   * Creates stream processor factory.
+   * 
+   * @param clientStream client stream defined and created somewhere
+   * @return stream processor factory
+   * @see #ClientStreamProcessorFactory(ClientStream)
    */
   public static ClientStreamProcessorFactory newClientStreamProcessorFactory(ClientStream clientStream) {
     return new ClientStreamProcessorFactory(clientStream);
   }
 
   /**
-   * Creates new {@link ClientStreamProcessor} per address.
+   * Creates new {@link ClientStreamProcessor}.
+   * 
+   * @param address target endpoint address
+   * @return stream processor
    */
   public ClientStreamProcessor newClientStreamProcessor(Address address) {
     return new ClientStreamProcessor(address, localStream);
