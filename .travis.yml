@@ -14,8 +14,7 @@ before_install:
 - mvn dependency:get dependency:copy -DoutputDirectory=~ -DoutputAbsoluteArtifactFilename=true -Dmdep.stripVersion=true -DrepoUrl=https://oss.sonatype.org/service/local/repositories/releases/content/ -Dartifact=com.codacy:codacy-coverage-reporter:$latest:jar:assembly
 
 after_success:
-- java -cp ~/codacy-coverage-reporter-assembly.jar com.codacy.CodacyCoverageReporter
-  -l Java -r ./services/target/site/jacoco/jacoco.xml
+- java -jar ~/codacy-coverage-reporter-assembly.jar -l Java -r ./services/target/site/jacoco/jacoco.xml
 before-deploy:
 - ./src/main/scripts/cd/before-deploy.sh  
 deploy:
