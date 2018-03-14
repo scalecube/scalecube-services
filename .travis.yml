@@ -16,7 +16,7 @@ before-deploy:
 - ./src/main/scripts/cd/before-deploy.sh  
 deploy:
 - provider: script
-  script: mvn -P release deploy -DskipTests=true -Dmaven.javadoc.skip=true -B -V -s travis-settings.xml
+  script: mvn -P release deploy -DskipTests=true -B -V -s travis-settings.xml
   on:
     branch: develop
 - provider: script
