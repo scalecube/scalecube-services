@@ -8,9 +8,10 @@ import java.util.function.Consumer;
 
 public final class ServerStreamProcessorFactory {
 
-  private final ServerStream remoteStream;
-  private final DefaultEventStream localStream = new DefaultEventStream();
-  private final Consumer<ServerStreamProcessor> streamProcessorConsumer;
+  private final ListeningServerStream remoteEventStream;
+  private final DefaultEventStream localEventStream = new DefaultEventStream();
+
+  private final Consumer<StreamProcessor> streamProcessorConsumer;
 
   private final CompositeSubscription subscriptions = new CompositeSubscription();
 
@@ -18,17 +19,17 @@ public final class ServerStreamProcessorFactory {
    * Constructor for this factory. Right away defines logic for bidirectional communication with respect to server side
    * semantics.
    * 
-   * @param remoteStream injected {@link ServerStream}; factory wouldn't close it in {@link #close()} method.
-   * @param streamProcessorConsumer consumer of {@link ServerStreamProcessor} instance.
+   * @param remoteEventStream given {@link ServerStream} object created and operated somewhere.
+   * @param streamProcessorConsumer consumer of {@link StreamProcessor} instance.
    */
-  private ServerStreamProcessorFactory(ServerStream remoteStream,
-      Consumer<ServerStreamProcessor> streamProcessorConsumer) {
-    this.remoteStream = remoteStream;
+  private ServerStreamProcessorFactory(ListeningServerStream remoteEventStream,
+      Consumer<StreamProcessor> streamProcessorConsumer) {
+    this.remoteEventStream = remoteEventStream;
     this.streamProcessorConsumer = streamProcessorConsumer;
 
     // request logic: remote stream => local stream
     subscriptions.add(
-        remoteStream.listenReadSuccess()
+        remoteEventStream.listenReadSuccess()
             .subscribe(event -> {
               Address address = event.getAddress();
               ServiceMessage message = event.getMessageOrThrow();
@@ -42,8 +43,8 @@ public final class ServerStreamProcessorFactory {
 
     // connection logic: connection lost => local stream
     subscriptions.add(
-        remoteStream.listenChannelContextClosed()
-            .subscribe(event -> localStream.onNext(event.getAddress(), event)));
+        remoteEventStream.listenChannelContextClosed()
+            .subscribe(event -> localEventStream.onNext(event.getAddress(), event)));
   }
 
   private void initChannelContext(ChannelContext channelContext) {
@@ -55,31 +56,35 @@ public final class ServerStreamProcessorFactory {
           // reset outgoing message identity with channelContext's identity
           return ServiceMessage.copyFrom(message).senderId(id).build();
         })
-        .subscribe(remoteStream::send);
+        .subscribe(remoteEventStream::send);
 
-    streamProcessorConsumer.accept(new ServerStreamProcessor(channelContext, localStream));
+    streamProcessorConsumer.accept(new DefaultStreamProcessor(channelContext, localEventStream));
 
     // bind channel context
-    localStream.subscribe(channelContext);
+    localEventStream.subscribe(channelContext);
   }
 
   /**
    * Creates stream processor factory.
    * 
-   * @param remoteStream server stream created somewhere; this stream is a source for incoming events upon which factory
-   *        will apply its processing logic and server side semantics.
-   * @param streamProcessorConsumer consumer of {@link ServerStreamProcessor} instance for integration with application
-   *        level; this is an integration point for functionality defined on top of this factory.
+   * @param remoteEventStream server stream created somewhere; this stream is a source for incoming events upon which
+   *        factory will apply its processing logic and server side semantics.
+   * @param streamProcessorConsumer consumer of {@link StreamProcessor} instance for integration with application level;
+   *        this is an integration point for functionality defined on top of this factory.
    * @return stream processor factory
-   * @see #ServerStreamProcessorFactory(ServerStream, Consumer)
+   * @see #ServerStreamProcessorFactory(ListeningServerStream, Consumer)
    */
-  public static ServerStreamProcessorFactory newServerStreamProcessorFactory(ServerStream remoteStream,
-      Consumer<ServerStreamProcessor> streamProcessorConsumer) {
-    return new ServerStreamProcessorFactory(remoteStream, streamProcessorConsumer);
+  public static ServerStreamProcessorFactory newServerStreamProcessorFactory(ListeningServerStream remoteEventStream,
+      Consumer<StreamProcessor> streamProcessorConsumer) {
+    return new ServerStreamProcessorFactory(remoteEventStream, streamProcessorConsumer);
   }
 
+  /**
+   * Clears subscriptions and closes local {@link EventStream} (which inherently unsubscribes all subscribed channel
+   * contexts on it).
+   */
   public void close() {
     subscriptions.clear();
-    localStream.close();
+    localEventStream.close();
   }
 }

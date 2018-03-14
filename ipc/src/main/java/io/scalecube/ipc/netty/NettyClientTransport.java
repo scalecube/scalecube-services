@@ -5,6 +5,7 @@ import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 
 import java.util.concurrent.CompletableFuture;
@@ -31,35 +32,36 @@ public final class NettyClientTransport {
    */
   public CompletableFuture<ChannelContext> getOrConnect(Address address) {
     CompletableFuture<ChannelContext> promise = outboundChannels.computeIfAbsent(address, this::connect);
-    promise.whenComplete((channelContext, throwable) -> {
-      if (throwable != null) { // remove reference right away
+    return promise.whenComplete((channelContext, throwable) -> {
+      if (throwable != null) {
+        // cleanup map entry right away
         outboundChannels.remove(address, promise);
       }
-      if (channelContext != null) { // register cleanup process upfront
-        channelContext.listenClose(ctx -> outboundChannels.remove(address, promise));
+      if (channelContext != null) {
+        // register cleanup process upfront
+        channelContext.listenClose(input -> outboundChannels.remove(address, promise));
       }
     });
-    return promise;
   }
 
   private CompletableFuture<ChannelContext> connect(Address address) {
     CompletableFuture<ChannelContext> promise = new CompletableFuture<>();
-    bootstrap.connect(address.host(), address.port())
-        .addListener((ChannelFutureListener) channelFuture -> {
-          Channel channel = channelFuture.channel();
-          if (!channelFuture.isSuccess()) {
-            promise.completeExceptionally(channelFuture.cause());
-            return;
-          }
-          // this line would activate setting of channel ctx attribute
-          channel.pipeline().fireChannelActive();
-          try {
-            // try get channel ctx and complete
-            promise.complete(ChannelSupport.getChannelContextOrThrow(channel));
-          } catch (Exception throwable) {
-            promise.completeExceptionally(throwable);
-          }
-        });
+    ChannelFuture connectFuture = bootstrap.connect(address.host(), address.port());
+    connectFuture.addListener((ChannelFutureListener) channelFuture -> {
+      Channel channel = channelFuture.channel();
+      if (!channelFuture.isSuccess()) {
+        promise.completeExceptionally(channelFuture.cause());
+        return;
+      }
+      // this line would activate setting of channel ctx attribute
+      channel.pipeline().fireChannelActive();
+      try {
+        // try get channel ctx and complete
+        promise.complete(ChannelSupport.getChannelContextOrThrow(channel));
+      } catch (Exception throwable) {
+        promise.completeExceptionally(throwable);
+      }
+    });
     return promise;
   }
 

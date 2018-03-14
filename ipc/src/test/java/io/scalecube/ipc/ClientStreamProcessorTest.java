@@ -14,6 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import rx.Subscriber;
 import rx.observers.AssertableSubscriber;
 
 import java.io.IOException;
@@ -28,8 +29,8 @@ public class ClientStreamProcessorTest {
   private static final int CONNECT_TIMEOUT_MILLIS = (int) TIMEOUT.toMillis();
 
   private ClientStream clientStream;
-  private ListeningServerStream serverStream;
-  private ClientStreamProcessorFactory factory;
+  private ListeningServerStream listeningServerStream;
+  private ClientStreamProcessorFactory clientStreamProcessorFactory;
   private Address address;
   private Bootstrap bootstrap;
 
@@ -44,62 +45,63 @@ public class ClientStreamProcessorTest {
         .option(ChannelOption.SO_REUSEADDR, true);
 
     clientStream = ClientStream.newClientStream(bootstrap);
-    factory = ClientStreamProcessorFactory.newClientStreamProcessorFactory(clientStream);
+    clientStreamProcessorFactory = ClientStreamProcessorFactory.newClientStreamProcessorFactory(clientStream);
 
-    serverStream = ListeningServerStream.newServerStream().withListenAddress("localhost").bind();
-    address = serverStream.listenBind().single().toBlocking().first();
+    listeningServerStream = ListeningServerStream.newServerStream().withListenAddress("localhost").bind();
+    address = listeningServerStream.listenBind().single().toBlocking().first();
 
     // setup echo service
-    serverStream.listenReadSuccess()
+    listeningServerStream.listenReadSuccess()
         .map(Event::getMessageOrThrow)
         .filter(message -> "q/echo".equalsIgnoreCase(message.getQualifier()))
         .subscribe(message -> {
           // send original message back to client then send onCompleted
-          serverStream.send(copyFrom(message).build());
-          serverStream.send(copyFrom(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
+          listeningServerStream.send(copyFrom(message).build());
+          listeningServerStream.send(copyFrom(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
         });
 
     // setup echo service replying with void
-    serverStream.listenReadSuccess()
+    listeningServerStream.listenReadSuccess()
         .map(Event::getMessageOrThrow)
         .filter(message -> "q/echoVoid".equalsIgnoreCase(message.getQualifier()))
         .subscribe(message -> {
           // just send onCompleted
-          serverStream.send(copyFrom(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
+          listeningServerStream.send(copyFrom(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
         });
 
     // setup error service
-    serverStream.listenReadSuccess()
+    listeningServerStream.listenReadSuccess()
         .map(Event::getMessageOrThrow)
         .filter(message -> "q/echoError".equalsIgnoreCase(message.getQualifier()))
         .subscribe(message -> {
           // respond with error
-          serverStream.send(copyFrom(message).qualifier(Qualifier.Q_GENERAL_FAILURE).build());
+          listeningServerStream.send(copyFrom(message).qualifier(Qualifier.Q_GENERAL_FAILURE).build());
         });
 
     // setup service with several responses with onCompleted message following everyting sent
-    serverStream.listenReadSuccess()
+    listeningServerStream.listenReadSuccess()
         .map(Event::getMessageOrThrow)
         .filter(message -> "q/echoStream".equalsIgnoreCase(message.getQualifier()))
         .subscribe(message -> {
           // respond with several response messages then send onCompleted
-          IntStream.rangeClosed(1, 42).forEach(i -> serverStream.send(copyFrom(message).qualifier("q/" + i).build()));
-          serverStream.send(copyFrom(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
+          IntStream.rangeClosed(1, 42)
+              .forEach(i -> listeningServerStream.send(copyFrom(message).qualifier("q/" + i).build()));
+          listeningServerStream.send(copyFrom(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
         });
   }
 
   @After
   public void cleanUp() {
-    factory.close();
+    clientStreamProcessorFactory.close();
     clientStream.close();
-    serverStream.close();
-    serverStream.listenUnbind().single().toBlocking().first();
+    listeningServerStream.close();
+    listeningServerStream.listenUnbind().single().toBlocking().first();
     bootstrap.group().shutdownGracefully();
   }
 
   @Test
   public void testEcho() throws Exception {
-    ClientStreamProcessor streamProcessor = factory.newClientStreamProcessor(address);
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echo").build());
@@ -114,7 +116,7 @@ public class ClientStreamProcessorTest {
 
   @Test
   public void testEchoVoid() throws Exception {
-    ClientStreamProcessor streamProcessor = factory.newClientStreamProcessor(address);
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echoVoid").build());
@@ -129,7 +131,7 @@ public class ClientStreamProcessorTest {
 
   @Test
   public void testEchoError() throws Exception {
-    ClientStreamProcessor streamProcessor = factory.newClientStreamProcessor(address);
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echoError").build());
@@ -144,7 +146,7 @@ public class ClientStreamProcessorTest {
 
   @Test
   public void testEchoStream() throws Exception {
-    ClientStreamProcessor streamProcessor = factory.newClientStreamProcessor(address);
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echoStream").build());
@@ -160,12 +162,12 @@ public class ClientStreamProcessorTest {
   @Test
   public void testListenFailedWhenSendFailed() throws Exception {
     Address failingAddress = Address.from("localhost:0");
-    ClientStreamProcessor streamProcessor = factory.newClientStreamProcessor(failingAddress);
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(failingAddress);
     try {
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
       streamProcessor.onNext(ServiceMessage.withQualifier("q/echo").build());
       subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(3, TimeUnit.SECONDS)
+          .awaitTerminalEventAndUnsubscribeOnTimeout(CONNECT_TIMEOUT_MILLIS * 2, TimeUnit.MILLISECONDS)
           .assertNoValues()
           .assertError(ConnectException.class);
     } finally {
@@ -175,7 +177,7 @@ public class ClientStreamProcessorTest {
 
   @Test
   public void testListenFailedWhenRemotePartyClosed() throws Exception {
-    ClientStreamProcessor streamProcessor = factory.newClientStreamProcessor(address);
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       // send and receive echo message
       AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
@@ -187,14 +189,58 @@ public class ClientStreamProcessorTest {
 
       // close remote server stream
       AssertableSubscriber<ServiceMessage> subscriber1 = streamProcessor.listen().test();
-      serverStream.close();
-      Address unbindAddress = serverStream.listenUnbind().single().toBlocking().first();
+      listeningServerStream.close();
+      Address unbindAddress = listeningServerStream.listenUnbind().single().toBlocking().first();
       assertEquals(address, unbindAddress);
 
+      // wait few seconds (it's not determined how long
+      // connecting party, i.e. ClientStream, should wait for signal that remote has closed socket)
       subscriber1
           .awaitTerminalEventAndUnsubscribeOnTimeout(3, TimeUnit.SECONDS)
           .assertNoValues()
           .assertError(IOException.class);
+    } finally {
+      streamProcessor.close();
+    }
+  }
+
+  @Test
+  public void testSendOrder() throws Exception {
+    // PublishSubject<ServiceMessage> subject = PublishSubject.create();
+    //
+    // AssertableSubscriber<ServiceMessage> subscriber =
+    // subject.takeLast(2 + 1, TIMEOUT.toMillis() * 3, TimeUnit.MILLISECONDS).test();
+
+    // setup listewner which saves received messages so we could examine them later
+    listeningServerStream.listenReadSuccess()
+        .map(Event::getMessageOrThrow)
+        .subscribe(new Subscriber<ServiceMessage>() {
+
+          @Override
+          public void onNext(ServiceMessage message) {
+            System.out.println("recv: " + message);
+          }
+
+          @Override
+          public void onCompleted() {}
+
+          @Override
+          public void onError(Throwable e) {}
+        });
+
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
+    try {
+      // send msg several times and termination signal as last
+      IntStream.rangeClosed(1, 1).forEach(i -> streamProcessor.onNext(ServiceMessage.withQualifier("q/" + i).build()));
+      streamProcessor.onCompleted();
+
+      Thread.sleep(1000);
+
+      // subscriber
+      // .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis() * 3, TimeUnit.MILLISECONDS)
+      // .awaitValueCount(2, TIMEOUT.toMillis() * 3, TimeUnit.MILLISECONDS)
+      // .assertNoErrors()
+      // .assertCompleted();
     } finally {
       streamProcessor.close();
     }

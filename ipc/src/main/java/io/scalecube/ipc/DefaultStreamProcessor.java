@@ -7,20 +7,26 @@ import rx.subscriptions.CompositeSubscription;
 
 import java.io.IOException;
 
-public final class ServerStreamProcessor implements StreamProcessor {
+public final class DefaultStreamProcessor implements StreamProcessor {
 
-  private final EventStream localStream;
-  private final ChannelContext localContext;
+  ServiceMessage onErrorMessage =
+      ServiceMessage.withQualifier(Qualifier.Q_GENERAL_FAILURE).build();
+
+  ServiceMessage onCompletedMessage =
+      ServiceMessage.withQualifier(Qualifier.Q_ON_COMPLETED).build();
+
+  private final ChannelContext localChannelContext;
+  private final EventStream localEventStream;
 
   /**
    * Constructor for this stream processor.
    * 
-   * @param localContext local channel context
-   * @param localStream local event stream
+   * @param localChannelContext local channel context
+   * @param localEventStream local event stream
    */
-  public ServerStreamProcessor(ChannelContext localContext, EventStream localStream) {
-    this.localContext = localContext;
-    this.localStream = localStream;
+  public DefaultStreamProcessor(ChannelContext localChannelContext, EventStream localEventStream) {
+    this.localChannelContext = localChannelContext;
+    this.localEventStream = localEventStream;
   }
 
   @Override
@@ -35,7 +41,7 @@ public final class ServerStreamProcessor implements StreamProcessor {
 
   @Override
   public void onNext(ServiceMessage message) {
-    localContext.postWrite(message);
+    localChannelContext.postWrite(message);
   }
 
   @Override
@@ -47,19 +53,19 @@ public final class ServerStreamProcessor implements StreamProcessor {
 
       // message logic: remote read => onMessage
       subscriptions.add(
-          localContext.listenReadSuccess()
+          localChannelContext.listenReadSuccess()
               .map(Event::getMessageOrThrow)
               .subscribe(message -> onMessage(message, emitter)));
 
       // error logic: failed remote write => observer error
       subscriptions.add(
-          localContext.listenWriteError()
+          localChannelContext.listenWriteError()
               .map(Event::getErrorOrThrow)
               .subscribe(emitter::onError));
 
       // connection logic: connection lost => observer error
       subscriptions.add(
-          localStream.listenChannelContextClosed()
+          localEventStream.listenChannelContextClosed()
               .subscribe(event -> onChannelContextClosed(event, emitter)));
 
     }, Emitter.BackpressureMode.BUFFER);
@@ -69,7 +75,7 @@ public final class ServerStreamProcessor implements StreamProcessor {
   public void close() {
     // this alone will unsubscribe this channel context
     // from local stream => no more requests, no more replies
-    localContext.close();
+    localChannelContext.close();
   }
 
   private void onMessage(ServiceMessage message, Observer<ServiceMessage> emitter) {

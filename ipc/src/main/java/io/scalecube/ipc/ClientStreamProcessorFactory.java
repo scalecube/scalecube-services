@@ -6,7 +6,7 @@ import rx.subscriptions.CompositeSubscription;
 
 public final class ClientStreamProcessorFactory {
 
-  private final ServerStream localStream = ServerStream.newServerStream();
+  private final ServerStream localEventStream = ServerStream.newServerStream();
 
   private final CompositeSubscription subscriptions = new CompositeSubscription();
 
@@ -14,24 +14,24 @@ public final class ClientStreamProcessorFactory {
    * Constructor for this factory. Right away defines logic for bidirectional communication with respect to client side
    * semantics.
    *
-   * @param remoteStream injected {@link ClientStream}; factory wouldn't close it in {@link #close()} method.
+   * @param remoteEventStream given {@link ClientStream} object created and operated somewhere.
    */
-  private ClientStreamProcessorFactory(ClientStream remoteStream) {
+  private ClientStreamProcessorFactory(ClientStream remoteEventStream) {
     // request logic: local stream => remote stream
     subscriptions.add(
-        localStream.listenWrite()
-            .subscribe(event -> remoteStream.send(event.getAddress(), event.getMessageOrThrow())));
+        localEventStream.listenWrite()
+            .subscribe(event -> remoteEventStream.send(event.getAddress(), event.getMessageOrThrow())));
 
     // response logic: remote stream => local stream
     subscriptions.add(
-        remoteStream.listenReadSuccess()
+        remoteEventStream.listenReadSuccess()
             .map(Event::getMessageOrThrow)
-            .subscribe(message -> localStream.send(message, ChannelContext::postReadSuccess)));
+            .subscribe(message -> localEventStream.send(message, ChannelContext::postReadSuccess)));
 
     // error logic: failed remote write => local stream
     subscriptions.add(
-        remoteStream.listenWriteError()
-            .subscribe(event -> localStream.send(event.getMessageOrThrow(), (channelContext, message1) -> {
+        remoteEventStream.listenWriteError()
+            .subscribe(event -> localEventStream.send(event.getMessageOrThrow(), (channelContext, message1) -> {
               Address address = event.getAddress();
               Throwable throwable = event.getErrorOrThrow();
               channelContext.postWriteError(address, message1, throwable);
@@ -39,36 +39,39 @@ public final class ClientStreamProcessorFactory {
 
     // connection logic: connection lost => local stream
     subscriptions.add(
-        remoteStream.listenChannelContextClosed()
-            .subscribe(event -> localStream.onNext(event.getAddress(), event)));
+        remoteEventStream.listenChannelContextClosed()
+            .subscribe(event -> localEventStream.onNext(event.getAddress(), event)));
   }
 
   /**
    * Creates stream processor factory.
    * 
-   * @param clientStream client stream defined and created somewhere
+   * @param remoteEventStream client stream defined and created somewhere
    * @return stream processor factory
    * @see #ClientStreamProcessorFactory(ClientStream)
    */
-  public static ClientStreamProcessorFactory newClientStreamProcessorFactory(ClientStream clientStream) {
-    return new ClientStreamProcessorFactory(clientStream);
+  public static ClientStreamProcessorFactory newClientStreamProcessorFactory(ClientStream remoteEventStream) {
+    return new ClientStreamProcessorFactory(remoteEventStream);
   }
 
   /**
-   * Creates new {@link ClientStreamProcessor}.
+   * Creates new {@link StreamProcessor} which operates on top client side semantics.
    * 
    * @param address target endpoint address
    * @return stream processor
    */
-  public ClientStreamProcessor newClientStreamProcessor(Address address) {
-    return new ClientStreamProcessor(address, localStream);
+  public StreamProcessor newClientStreamProcessor(Address address) {
+    ChannelContext channelContext = ChannelContext.create(address);
+    localEventStream.subscribe(channelContext);
+    return new DefaultStreamProcessor(channelContext, localEventStream);
   }
 
   /**
-   * Closes internal shared serverStream (among {@link ClientStreamProcessor} objects created by the same factory).
+   * Clears subscriptions and closes local {@link EventStream} (which inherently unsubscribes all subscribed channel
+   * contexts on it).
    */
   public void close() {
     subscriptions.clear();
-    localStream.close();
+    localEventStream.close();
   }
 }
