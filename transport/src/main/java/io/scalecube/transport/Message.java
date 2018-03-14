@@ -205,17 +205,13 @@ public final class Message {
     private Object data;
 
     private Builder() {}
-    
-    public Map<String, String> headers() {
-      return this.headers;
-    }
-
-    private Object data() {
-      return this.data;
-    }
 
     static Builder getInstance() {
       return new Builder();
+    }
+    
+    private Object data() {
+      return this.data;
     }
 
     public Builder data(Object data) {
@@ -223,6 +219,10 @@ public final class Message {
       return this;
     }
 
+    private Map<String, String> headers() {
+      return this.headers;
+    }
+    
     public Builder headers(Map<String, String> headers) {
       this.headers.putAll(headers);
       return this;
