@@ -11,7 +11,7 @@ before_install:
 # get latest version of codacy reporter from sonatype
 - latest=$(curl "https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/maven-metadata.xml" | xpath -e "/metadata/versioning/release/text()")
 # select the uri of the laterst assembly jar
-- mvn dependency:get dependency:copy -DoutputDirectory=~ -DoutputAbsoluteArtifactFilename=true -Dmdep.stripVersion=true -DrepoUrl=https://oss.sonatype.org/service/local/repositories/releases/content/ -DartifactId=codacy-coverage-reporter -Dversion=$latest -DgroupId=com.codacy -Dclassifier=assembly
+- mvn dependency:get dependency:copy -DoutputDirectory=~ -DoutputAbsoluteArtifactFilename=true -Dmdep.stripVersion=true -DrepoUrl=https://oss.sonatype.org/service/local/repositories/releases/content/  -DgroupId=com.codacy -DartifactId=codacy-coverage-reporter -Dversion=$latest -Dpackaging=jar -Dclassifier=assembly
 after_success:
 - java -cp ~/codacy-coverage-reporter-assembly.jar com.codacy.CodacyCoverageReporter
   -l Java -r ./services/target/site/jacoco/jacoco.xml
