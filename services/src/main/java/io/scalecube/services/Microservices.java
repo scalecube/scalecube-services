@@ -36,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
  * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
  * streaming patters but does not force application developers to it. ScaleCube-Services is not yet-anther RPC system in
  * the sense its is cluster aware to provide:
+ * <ul>
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -45,49 +46,48 @@ import java.util.concurrent.CompletableFuture;
  * advantage of composing and chaining service calls and service results.</li>
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service end-points</li>
+ * </ul>
  * 
  * <b>basic usage example:</b>
  * 
  * <pre>
- * 
- * <b><font color="green">//Define a service interface and implement it.</font></b>
  * {@code
- *    <b>{@literal @}Service</b>
- *    <b><font color="9b0d9b">public interface</font></b> GreetingService {  
- *
- *         <b>{@literal @}ServiceMethod</b>
+ *    // Define a service interface and implement it:
+ *    &#64; Service
+ *    public interface GreetingService {
+ *         &#64; ServiceMethod
  *         CompletableFuture<String> asyncGreeting(String string);
  *     }
- *    
- *     <b><font color="9b0d9b">public class</font></b> GreetingServiceImpl implements GreetingService {
  *
- *       {@literal @}Override
- *       <b><font color="9b0d9b">public</font></b> CompletableFuture<String> asyncGreeting(String name) {
- *         <b><font color="9b0d9b">return</font></b> CompletableFuture.completedFuture(" hello to: " + name);
+ *     public class GreetingServiceImpl implements GreetingService {
+ *       &#64; Override
+ *       public CompletableFuture<String> asyncGreeting(String name) {
+ *         return CompletableFuture.completedFuture(" hello to: " + name);
  *       }
  *     }
- *     <b><font color="green">//Build a microservices cluster instance.</font></b>
+ *
+ *     // Build a microservices cluster instance:
  *     Microservices microservices = Microservices.builder()
- *       <b><font color="green">//Introduce GreetingServiceImpl pojo as a micro-service.</font></b>
- *         .services(<b><font color="9b0d9b">new</font></b> GreetingServiceImpl())
+ *          // Introduce GreetingServiceImpl pojo as a micro-service:
+ *         .services(new GreetingServiceImpl())
  *         .build();
- * 
- *     <b><font color="green">//Create microservice proxy to GreetingService.class interface.</font></b>
+ *
+ *     // Create microservice proxy to GreetingService.class interface:
  *     GreetingService service = microservices.proxy()
  *         .api(GreetingService.class)
  *         .create();
- * 
- *     <b><font color="green">//Invoke the greeting service async.</font></b>
+ *
+ *     // Invoke the greeting service async:
  *     CompletableFuture<String> future = service.asyncGreeting("joe");
- * 
- *     <b><font color="green">//handle completable success or error.</font></b>
+ *
+ *     // handle completable success or error:
  *     future.whenComplete((result, ex) -> {
- *      if (ex == <b><font color="9b0d9b">null</font></b>) {
- *        // print the greeting.
- *         System.<b><font color="9b0d9b">out</font></b>.println(result);
+ *      if (ex == null) {
+ *        // print the greeting:
+ *         System.out.println(result);
  *       } else {
- *         // print the greeting.
- *         System.<b><font color="9b0d9b">out</font></b>.println(ex);
+ *         // print the greeting:
+ *         System.out.println(ex);
  *       }
  *     });
  * }

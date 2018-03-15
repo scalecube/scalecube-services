@@ -25,6 +25,11 @@ public class ServiceProxyFactory {
 
   private Microservices microservices;
 
+  /**
+   * Constructor for this proxy factory
+   * 
+   * @param microservices {@link Microservices} instance
+   */
   public ServiceProxyFactory(Microservices microservices) {
     this.microservices = microservices;
     this.serviceRegistry = microservices.serviceRegistry();
@@ -33,6 +38,7 @@ public class ServiceProxyFactory {
   /**
    * createProxy creates a java generic proxy instance by a given service interface.
    * 
+   * @param <T> service interface type
    * @param serviceInterface the service interface, api, of the service.
    * @param routerType the type of routing method class to be used.
    * @param metrics optional performance metrics.
