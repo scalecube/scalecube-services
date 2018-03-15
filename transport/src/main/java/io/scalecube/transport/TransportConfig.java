@@ -134,6 +134,8 @@ public final class TransportConfig {
 
     /**
      * Fills config with values equal to provided config.
+     *
+     * @param config trasport config
      */
     public Builder fillFrom(TransportConfig config) {
       this.listenAddress = config.listenAddress;

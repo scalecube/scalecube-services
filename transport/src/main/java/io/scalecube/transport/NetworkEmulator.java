@@ -48,13 +48,19 @@ public final class NetworkEmulator {
 
   /**
    * Returns link settings applied to the given destination.
+   * 
+   * @param destination address of target endpoint
+   * @return network settings
    */
   public NetworkLinkSettings getLinkSettings(Address destination) {
-    return customLinkSettings.containsKey(destination) ? customLinkSettings.get(destination) : defaultLinkSettings;
+    return customLinkSettings.getOrDefault(destination, defaultLinkSettings);
   }
 
   /**
    * Returns link settings applied to the given destination.
+   * 
+   * @param address socket address of target endpoint
+   * @return network settings
    */
   public NetworkLinkSettings getLinkSettings(InetSocketAddress address) {
     // Check hostname:port
@@ -75,6 +81,10 @@ public final class NetworkEmulator {
 
   /**
    * Sets given network emulator settings for specific link. If network emulator is disabled do nothing.
+   * 
+   * @param destination address of target endpoint
+   * @param lossPercent loss in percents
+   * @param meanDelay mean delay
    */
   public void setLinkSettings(Address destination, int lossPercent, int meanDelay) {
     if (!enabled) {
@@ -90,6 +100,9 @@ public final class NetworkEmulator {
 
   /**
    * Sets default network emulator settings. If network emulator is disabled do nothing.
+   * 
+   * @param lossPercent loss in percents
+   * @param meanDelay mean delay
    */
   public void setDefaultLinkSettings(int lossPercent, int meanDelay) {
     if (!enabled) {
@@ -103,6 +116,8 @@ public final class NetworkEmulator {
 
   /**
    * Blocks messages to the given destinations. If network emulator is disabled do nothing.
+   * 
+   * @param destinations collection of target endpoints where to apply
    */
   public void block(Address... destinations) {
     block(Arrays.asList(destinations));
@@ -110,6 +125,8 @@ public final class NetworkEmulator {
 
   /**
    * Blocks messages to the given destinations. If network emulator is disabled do nothing.
+   * 
+   * @param destinations collection of target endpoints where to apply
    */
   public void block(Collection<Address> destinations) {
     if (!enabled) {
@@ -124,13 +141,17 @@ public final class NetworkEmulator {
 
   /**
    * Unblocks messages to given destinations. If network emulator is disabled do nothing.
+   * 
+   * @param destinations collection of target endpoints where to apply
    */
-  public void unblock(Address... destination) {
-    unblock(Arrays.asList(destination));
+  public void unblock(Address... destinations) {
+    unblock(Arrays.asList(destinations));
   }
 
   /**
    * Unblocks messages to given destinations. If network emulator is disabled do nothing.
+   * 
+   * @param destinations collection of target endpoints where to apply
    */
   public void unblock(Collection<Address> destinations) {
     if (!enabled) {
@@ -157,6 +178,8 @@ public final class NetworkEmulator {
 
   /**
    * Returns total message sent count computed by network emulator. If network emulator is disabled returns zero.
+   * 
+   * @return total message sent
    */
   public long totalMessageSentCount() {
     if (!enabled) {
@@ -168,6 +191,8 @@ public final class NetworkEmulator {
 
   /**
    * Returns total message lost count computed by network emulator. If network emulator is disabled returns zero.
+   * 
+   * @return total message lost
    */
   public long totalMessageLostCount() {
     if (!enabled) {

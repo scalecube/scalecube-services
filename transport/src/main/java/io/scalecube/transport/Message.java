@@ -105,6 +105,7 @@ public final class Message {
 
   /**
    * Instantiates new message with the same data and headers as at given message.
+   * 
    * @param message the message to be copied
    * @return a new message, with the same data and headers
    */
@@ -114,8 +115,9 @@ public final class Message {
 
   /**
    * Instantiates new message builder with the same data and headers as at given message.
+   * 
    * @param message the message to instantiate the new builder from
-   * @return a builder with initial data and headers from the message 
+   * @return a builder with initial data and headers from the message
    */
   public static Builder with(Message message) {
     return withData(message.data).headers(message.headers);
@@ -123,6 +125,8 @@ public final class Message {
 
   /**
    * Instantiates new empty message builder.
+   *
+   * @return new builder
    */
   public static Builder builder() {
     return Builder.getInstance();
@@ -166,30 +170,49 @@ public final class Message {
   }
 
   /**
-   * Returns the message header by given header name.
+   * Returns header value by given header name.
+   * 
+   * @param name header name
+   * @return the message header by given header name
    */
   public String header(String name) {
     return headers.get(name);
   }
 
+  /**
+   * Returns message qualifier.
+   * 
+   * @return qualifier string
+   */
   public String qualifier() {
     return header(HEADER_QUALIFIER);
   }
 
+  /**
+   * Returns message correlation id.
+   * 
+   * @return correlation id
+   */
   public String correlationId() {
     return header(HEADER_CORRELATION_ID);
   }
 
   /**
    * Return the message data, which can be byte array, string or any type.
-   * 
+   *
+   * @param <T> data type
    * @return payload of the message or null if message is without any payload
    */
-  @SuppressWarnings("unchecked")
   public <T> T data() {
+    // noinspection unchecked
     return (T) data;
   }
 
+  /**
+   * Returns {@link Address} of the sender of this message.
+   * 
+   * @return address
+   */
   public Address sender() {
     return sender;
   }
@@ -209,7 +232,7 @@ public final class Message {
     static Builder getInstance() {
       return new Builder();
     }
-    
+
     private Object data() {
       return this.data;
     }
@@ -222,7 +245,7 @@ public final class Message {
     private Map<String, String> headers() {
       return this.headers;
     }
-    
+
     public Builder headers(Map<String, String> headers) {
       this.headers.putAll(headers);
       return this;
