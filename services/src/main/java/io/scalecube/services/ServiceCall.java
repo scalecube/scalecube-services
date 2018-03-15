@@ -49,10 +49,24 @@ public class ServiceCall {
     this.latency = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
   }
 
+  /**
+   * ServiceCall is a service communication pattern for async request reply and reactive streams. it communicates with
+   * local and remote services using messages and handles. it acts as proxy and middle-ware between service consumer and
+   * service provider.
+   *
+   * @param router strategy to select service instance.
+   * @param timeout waiting for response.
+   */
   public ServiceCall(Router router, Duration timeout) {
     this(router, timeout, null);
   }
 
+  /**
+   * Invokes and returns promise for invocation.
+   * 
+   * @param message message to sedn
+   * @return promise
+   */
   public CompletableFuture<Message> invoke(Message message) {
     return invoke(message, timeout);
   }
@@ -60,12 +74,12 @@ public class ServiceCall {
   /**
    * Invoke a request message and invoke a service by a given service name and method name. expected headers in request:
    * ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to invoke
-   * message uses the router to select the target endpoint service instance in the cluster.
+   * message uses the router to select the target endpoint service instance in the cluster. Throws Exception in case of
+   * an error or TimeoutException if no response if a given duration.
    * 
    * @param request request with given headers.
-   * @timeout duration of the response before TimeException is returned.
+   * @param timeout timeout
    * @return CompletableFuture with service call dispatching result.
-   * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
     Messages.validate().serviceRequest(request);
@@ -98,12 +112,12 @@ public class ServiceCall {
   /**
    * Invoke a request message and invoke a service by a given service name and method name. expected headers in request:
    * ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to invoke.
+   * Throws Exception in case of an error or TimeoutException if no response if a given duration.
    * 
    * @param request request with given headers.
    * @param serviceInstance target instance to invoke.
    * @param duration of the response before TimeException is returned.
    * @return CompletableFuture with service call dispatching result.
-   * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {

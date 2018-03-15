@@ -18,7 +18,8 @@ public class ThreadFactory {
   /**
    * Used to create and cache shared thread pools with given name.
    * 
-   * @name the requested name of the single thread executor if not cached will be created.
+   * @param name the requested name of the single thread executor if not cached will be created.
+   * @return computed or existing scheduled executor
    */
   public static ScheduledExecutorService singleScheduledExecutorService(String name) {
     return schedulers.computeIfAbsent(name, ThreadFactory::compute);

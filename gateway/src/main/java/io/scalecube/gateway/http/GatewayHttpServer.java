@@ -1,7 +1,6 @@
 package io.scalecube.gateway.http;
 
 import io.scalecube.ipc.ServerStream;
-import io.scalecube.utils.CopyingModifier;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -10,6 +9,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 import java.net.InetSocketAddress;
+import java.util.function.Consumer;
 
 import javax.net.ssl.SSLContext;
 
@@ -99,7 +99,7 @@ public final class GatewayHttpServer {
 
   //// Config
 
-  public static class Config implements CopyingModifier<Config> {
+  public static class Config implements Cloneable {
 
     private static final int DEFAULT_MAX_FRAME_LENGTH = 2048000;
     private static final boolean DEFAULT_CORS_ENABLED = false;
@@ -130,16 +130,25 @@ public final class GatewayHttpServer {
 
     private Config() {}
 
-    private Config(Config other) {
-      this.sslContext = other.sslContext;
-      this.port = other.port;
-      this.maxFrameLength = other.maxFrameLength;
-      this.corsEnabled = other.corsEnabled;
-      this.accessControlAllowOrigin = other.accessControlAllowOrigin;
-      this.accessControlAllowMethods = other.accessControlAllowMethods;
-      this.accessControlMaxAge = other.accessControlMaxAge;
-      this.serverStream = other.serverStream;
-      this.serverBootstrap = other.serverBootstrap;
+    @Override
+    protected Config clone() {
+      Config clone = new Config();
+      clone.sslContext = sslContext;
+      clone.port = port;
+      clone.maxFrameLength = maxFrameLength;
+      clone.corsEnabled = corsEnabled;
+      clone.accessControlAllowOrigin = accessControlAllowOrigin;
+      clone.accessControlAllowMethods = accessControlAllowMethods;
+      clone.accessControlMaxAge = accessControlMaxAge;
+      clone.serverStream = serverStream;
+      clone.serverBootstrap = serverBootstrap;
+      return clone;
+    }
+
+    private Config copyAndSet(Consumer<Config> consumer) {
+      Config clone;
+      consumer.accept(clone = this.clone());
+      return clone;
     }
 
     public SSLContext getSslContext() {
