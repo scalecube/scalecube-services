@@ -83,7 +83,7 @@ public final class NetworkEmulator {
    * Sets given network emulator settings for specific link. If network emulator is disabled do nothing.
    * 
    * @param destination address of target endpoint
-   * @param lossPercent loss in percentage
+   * @param lossPercent loss in percents
    * @param meanDelay mean delay
    */
   public void setLinkSettings(Address destination, int lossPercent, int meanDelay) {
@@ -101,7 +101,7 @@ public final class NetworkEmulator {
   /**
    * Sets default network emulator settings. If network emulator is disabled do nothing.
    * 
-   * @param lossPercent loss in percentage
+   * @param lossPercent loss in percents
    * @param meanDelay mean delay
    */
   public void setDefaultLinkSettings(int lossPercent, int meanDelay) {
