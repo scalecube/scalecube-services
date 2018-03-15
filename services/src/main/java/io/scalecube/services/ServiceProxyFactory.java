@@ -26,7 +26,7 @@ public class ServiceProxyFactory {
   private Microservices microservices;
 
   /**
-   * Constructor for this proxy factory
+   * Constructor for this proxy factory.
    * 
    * @param microservices {@link Microservices} instance
    */
