@@ -99,7 +99,7 @@ public final class GatewayHttpServer {
 
   //// Config
 
-  public static class Config implements Cloneable {
+  public static class Config {
 
     private static final int DEFAULT_MAX_FRAME_LENGTH = 2048000;
     private static final boolean DEFAULT_CORS_ENABLED = false;
@@ -130,25 +130,17 @@ public final class GatewayHttpServer {
 
     private Config() {}
 
-    @Override
-    protected Config clone() {
-      Config clone = new Config();
-      clone.sslContext = sslContext;
-      clone.port = port;
-      clone.maxFrameLength = maxFrameLength;
-      clone.corsEnabled = corsEnabled;
-      clone.accessControlAllowOrigin = accessControlAllowOrigin;
-      clone.accessControlAllowMethods = accessControlAllowMethods;
-      clone.accessControlMaxAge = accessControlMaxAge;
-      clone.serverStream = serverStream;
-      clone.serverBootstrap = serverBootstrap;
-      return clone;
-    }
-
-    private Config copyAndSet(Consumer<Config> consumer) {
-      Config clone;
-      consumer.accept(clone = this.clone());
-      return clone;
+    private Config(Config other, Consumer<Config> modifier) {
+      this.sslContext = other.sslContext;
+      this.port = other.port;
+      this.maxFrameLength = other.maxFrameLength;
+      this.corsEnabled = other.corsEnabled;
+      this.accessControlAllowOrigin = other.accessControlAllowOrigin;
+      this.accessControlAllowMethods = other.accessControlAllowMethods;
+      this.accessControlMaxAge = other.accessControlMaxAge;
+      this.serverStream = other.serverStream;
+      this.serverBootstrap = other.serverBootstrap;
+      modifier.accept(this);
     }
 
     public SSLContext getSslContext() {
@@ -156,7 +148,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setSslContext(SSLContext sslContext) {
-      return copyAndSet(config1 -> config1.sslContext = sslContext);
+      return new Config(this, config -> config.sslContext = sslContext);
     }
 
     public int getPort() {
@@ -164,7 +156,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setPort(int port) {
-      return copyAndSet(config1 -> config1.port = port);
+      return new Config(this, config -> config.port = port);
     }
 
     public int getMaxFrameLength() {
@@ -172,7 +164,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setMaxFrameLength(int maxFrameLength) {
-      return copyAndSet(config1 -> config1.maxFrameLength = maxFrameLength);
+      return new Config(this, config -> config.maxFrameLength = maxFrameLength);
     }
 
     public boolean isCorsEnabled() {
@@ -180,7 +172,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setCorsEnabled(boolean corsEnabled) {
-      return copyAndSet(config1 -> config1.corsEnabled = corsEnabled);
+      return new Config(this, config -> config.corsEnabled = corsEnabled);
     }
 
     public String getAccessControlAllowOrigin() {
@@ -188,7 +180,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setAccessControlAllowOrigin(String accessControlAllowOrigin) {
-      return copyAndSet(config1 -> config1.accessControlAllowOrigin = accessControlAllowOrigin);
+      return new Config(this, config -> config.accessControlAllowOrigin = accessControlAllowOrigin);
     }
 
     public String getAccessControlAllowMethods() {
@@ -196,7 +188,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setAccessControlAllowMethods(String accessControlAllowMethods) {
-      return copyAndSet(config1 -> config1.accessControlAllowMethods = accessControlAllowMethods);
+      return new Config(this, config -> config.accessControlAllowMethods = accessControlAllowMethods);
     }
 
     public int getAccessControlMaxAge() {
@@ -204,7 +196,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setAccessControlMaxAge(int accessControlMaxAge) {
-      return copyAndSet(config1 -> config1.accessControlMaxAge = accessControlMaxAge);
+      return new Config(this, config -> config.accessControlMaxAge = accessControlMaxAge);
     }
 
     public ServerStream getServerStream() {
@@ -212,7 +204,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setServerStream(ServerStream serverStream) {
-      return copyAndSet(config1 -> config1.serverStream = serverStream);
+      return new Config(this, config -> config.serverStream = serverStream);
     }
 
     public ServerBootstrap getServerBootstrap() {
@@ -220,7 +212,7 @@ public final class GatewayHttpServer {
     }
 
     public Config setServerBootstrap(ServerBootstrap serverBootstrap) {
-      return copyAndSet(config1 -> config1.serverBootstrap = serverBootstrap);
+      return new Config(this, config -> config.serverBootstrap = serverBootstrap);
     }
   }
 }
