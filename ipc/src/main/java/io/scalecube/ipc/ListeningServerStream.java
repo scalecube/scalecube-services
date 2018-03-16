@@ -2,7 +2,6 @@ package io.scalecube.ipc;
 
 import io.scalecube.ipc.netty.NettyServerTransport;
 import io.scalecube.transport.Address;
-import io.scalecube.utils.CopyingModifier;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
@@ -12,6 +11,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import rx.Observable;
 import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
+
+import java.util.function.Consumer;
 
 public final class ListeningServerStream implements EventStream {
 
@@ -152,7 +153,7 @@ public final class ListeningServerStream implements EventStream {
 
   //// Config
 
-  public static class Config implements CopyingModifier<Config> {
+  public static class Config {
 
     private static final String DEFAULT_LISTEN_ADDRESS = null;
     private static final String DEFAULT_LISTEN_INTERFACE = null; // Default listen settings fallback to getLocalHost
@@ -182,7 +183,7 @@ public final class ListeningServerStream implements EventStream {
 
     private Config() {}
 
-    private Config(Config other) {
+    private Config(Config other, Consumer<Config> modifier) {
       this.listenAddress = other.listenAddress;
       this.listenInterface = other.listenInterface;
       this.preferIPv6 = other.preferIPv6;
@@ -190,6 +191,7 @@ public final class ListeningServerStream implements EventStream {
       this.portCount = other.portCount;
       this.portAutoIncrement = other.portAutoIncrement;
       this.serverBootstrap = other.serverBootstrap;
+      modifier.accept(this);
     }
 
     public String getListenAddress() {
@@ -197,7 +199,7 @@ public final class ListeningServerStream implements EventStream {
     }
 
     public Config setListenAddress(String listenAddress) {
-      return copyAndSet(config1 -> config1.listenAddress = listenAddress);
+      return new Config(this, config -> config.listenAddress = listenAddress);
     }
 
     public String getListenInterface() {
@@ -205,7 +207,7 @@ public final class ListeningServerStream implements EventStream {
     }
 
     public Config setListenInterface(String listenInterface) {
-      return copyAndSet(config1 -> config1.listenInterface = listenInterface);
+      return new Config(this, config -> config.listenInterface = listenInterface);
     }
 
     public boolean isPreferIPv6() {
@@ -213,7 +215,7 @@ public final class ListeningServerStream implements EventStream {
     }
 
     public Config setPreferIPv6(boolean preferIPv6) {
-      return copyAndSet(config1 -> config1.preferIPv6 = preferIPv6);
+      return new Config(this, config -> config.preferIPv6 = preferIPv6);
     }
 
     public int getPort() {
@@ -221,7 +223,7 @@ public final class ListeningServerStream implements EventStream {
     }
 
     public Config setPort(int port) {
-      return copyAndSet(config1 -> config1.port = port);
+      return new Config(this, config -> config.port = port);
     }
 
     public int getPortCount() {
@@ -229,7 +231,7 @@ public final class ListeningServerStream implements EventStream {
     }
 
     public Config setPortCount(int portCount) {
-      return copyAndSet(config1 -> config1.portCount = portCount);
+      return new Config(this, config -> config.portCount = portCount);
     }
 
     public boolean isPortAutoIncrement() {
@@ -237,7 +239,7 @@ public final class ListeningServerStream implements EventStream {
     }
 
     public Config setPortAutoIncrement(boolean portAutoIncrement) {
-      return copyAndSet(config1 -> config1.portAutoIncrement = portAutoIncrement);
+      return new Config(this, config -> config.portAutoIncrement = portAutoIncrement);
     }
 
     public ServerBootstrap getServerBootstrap() {
@@ -245,7 +247,7 @@ public final class ListeningServerStream implements EventStream {
     }
 
     public Config setServerBootstrap(ServerBootstrap serverBootstrap) {
-      return copyAndSet(config1 -> config1.serverBootstrap = serverBootstrap);
+      return new Config(this, config -> config.serverBootstrap = serverBootstrap);
     }
   }
 }

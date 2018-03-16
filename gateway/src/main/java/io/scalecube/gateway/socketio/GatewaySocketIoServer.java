@@ -3,9 +3,10 @@ package io.scalecube.gateway.socketio;
 import io.scalecube.ipc.ServerStream;
 import io.scalecube.socketio.ServerConfiguration;
 import io.scalecube.socketio.SocketIOServer;
-import io.scalecube.utils.CopyingModifier;
 
 import io.netty.bootstrap.ServerBootstrap;
+
+import java.util.function.Consumer;
 
 import javax.net.ssl.SSLContext;
 
@@ -114,7 +115,7 @@ public final class GatewaySocketIoServer {
 
   //// Config
 
-  public static class Config implements CopyingModifier<Config> {
+  public static class Config {
 
     private static final int DEFAULT_MAX_FRAME_LENGTH = 65536;
     private static final int SOCKETIO_DEFAULT_HEARTBEAT_TIMEOUT = 60;
@@ -139,7 +140,7 @@ public final class GatewaySocketIoServer {
 
     private Config() {}
 
-    private Config(Config other) {
+    private Config(Config other, Consumer<Config> modifier) {
       this.sslContext = other.sslContext;
       this.port = other.port;
       this.transports = other.transports;
@@ -151,6 +152,7 @@ public final class GatewaySocketIoServer {
       this.remoteAddressHeader = other.remoteAddressHeader;
       this.serverStream = other.serverStream;
       this.serverBootstrap = other.serverBootstrap;
+      modifier.accept(this);
     }
 
     public SSLContext getSslContext() {
@@ -158,7 +160,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setSslContext(SSLContext sslContext) {
-      return copyAndSet(config1 -> config1.sslContext = sslContext);
+      return new Config(this, config -> config.sslContext = sslContext);
     }
 
     public int getPort() {
@@ -166,7 +168,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setPort(int port) {
-      return copyAndSet(config1 -> config1.port = port);
+      return new Config(this, config -> config.port = port);
     }
 
     public String getTransports() {
@@ -174,7 +176,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setTransports(String transports) {
-      return copyAndSet(config1 -> config1.transports = transports);
+      return new Config(this, config -> config.transports = transports);
     }
 
     public int getHeartbeatTimeout() {
@@ -182,7 +184,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setHeartbeatTimeout(int heartbeatTimeout) {
-      return copyAndSet(config1 -> config1.heartbeatTimeout = heartbeatTimeout);
+      return new Config(this, config -> config.heartbeatTimeout = heartbeatTimeout);
     }
 
     public int getHeartbeatInterval() {
@@ -190,7 +192,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setHeartbeatInterval(int heartbeatInterval) {
-      return copyAndSet(config1 -> config1.heartbeatInterval = heartbeatInterval);
+      return new Config(this, config -> config.heartbeatInterval = heartbeatInterval);
     }
 
     public int getCloseTimeout() {
@@ -198,7 +200,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setCloseTimeout(int closeTimeout) {
-      return copyAndSet(config1 -> config1.closeTimeout = closeTimeout);
+      return new Config(this, config -> config.closeTimeout = closeTimeout);
     }
 
     public int getMaxWebSocketFrameSize() {
@@ -206,7 +208,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setMaxWebSocketFrameSize(int maxWebSocketFrameSize) {
-      return copyAndSet(config1 -> config1.maxWebSocketFrameSize = maxWebSocketFrameSize);
+      return new Config(this, config -> config.maxWebSocketFrameSize = maxWebSocketFrameSize);
     }
 
     public boolean isAlwaysSecureWebSocketLocation() {
@@ -214,7 +216,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setAlwaysSecureWebSocketLocation(boolean alwaysSecureWebSocketLocation) {
-      return copyAndSet(config1 -> config1.alwaysSecureWebSocketLocation = alwaysSecureWebSocketLocation);
+      return new Config(this, config -> config.alwaysSecureWebSocketLocation = alwaysSecureWebSocketLocation);
     }
 
     public String getRemoteAddressHeader() {
@@ -222,7 +224,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setRemoteAddressHeader(String remoteAddressHeader) {
-      return copyAndSet(config1 -> config1.remoteAddressHeader = remoteAddressHeader);
+      return new Config(this, config -> config.remoteAddressHeader = remoteAddressHeader);
     }
 
     public ServerStream getServerStream() {
@@ -230,7 +232,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setServerStream(ServerStream serverStream) {
-      return copyAndSet(config1 -> config1.serverStream = serverStream);
+      return new Config(this, config -> config.serverStream = serverStream);
     }
 
     public ServerBootstrap getServerBootstrap() {
@@ -238,7 +240,7 @@ public final class GatewaySocketIoServer {
     }
 
     public Config setServerBootstrap(ServerBootstrap serverBootstrap) {
-      return copyAndSet(config1 -> config1.serverBootstrap = serverBootstrap);
+      return new Config(this, config -> config.serverBootstrap = serverBootstrap);
     }
   }
 }
