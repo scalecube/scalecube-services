@@ -35,7 +35,7 @@ public final class DefaultStreamProcessor implements StreamProcessor {
   }
 
   @Override
-  public void onError(Throwable e) {
+  public void onError(Throwable throwable) {
     onNext(onErrorMessage);
   }
 

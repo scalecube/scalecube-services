@@ -14,7 +14,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import rx.Subscriber;
 import rx.observers.AssertableSubscriber;
 
 import java.io.IOException;
@@ -199,48 +198,6 @@ public class ClientStreamProcessorTest {
           .awaitTerminalEventAndUnsubscribeOnTimeout(3, TimeUnit.SECONDS)
           .assertNoValues()
           .assertError(IOException.class);
-    } finally {
-      streamProcessor.close();
-    }
-  }
-
-  @Test
-  public void testSendOrder() throws Exception {
-    // PublishSubject<ServiceMessage> subject = PublishSubject.create();
-    //
-    // AssertableSubscriber<ServiceMessage> subscriber =
-    // subject.takeLast(2 + 1, TIMEOUT.toMillis() * 3, TimeUnit.MILLISECONDS).test();
-
-    // setup listewner which saves received messages so we could examine them later
-    listeningServerStream.listenReadSuccess()
-        .map(Event::getMessageOrThrow)
-        .subscribe(new Subscriber<ServiceMessage>() {
-
-          @Override
-          public void onNext(ServiceMessage message) {
-            System.out.println("recv: " + message);
-          }
-
-          @Override
-          public void onCompleted() {}
-
-          @Override
-          public void onError(Throwable e) {}
-        });
-
-    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
-    try {
-      // send msg several times and termination signal as last
-      IntStream.rangeClosed(1, 1).forEach(i -> streamProcessor.onNext(ServiceMessage.withQualifier("q/" + i).build()));
-      streamProcessor.onCompleted();
-
-      Thread.sleep(1000);
-
-      // subscriber
-      // .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis() * 3, TimeUnit.MILLISECONDS)
-      // .awaitValueCount(2, TIMEOUT.toMillis() * 3, TimeUnit.MILLISECONDS)
-      // .assertNoErrors()
-      // .assertCompleted();
     } finally {
       streamProcessor.close();
     }

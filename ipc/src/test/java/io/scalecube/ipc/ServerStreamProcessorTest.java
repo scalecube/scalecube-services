@@ -11,8 +11,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Subscriber;
 import rx.observers.AssertableSubscriber;
 
 import java.time.Duration;
@@ -44,7 +42,7 @@ public class ServerStreamProcessorTest {
     clientStreamProcessorFactory = ClientStreamProcessorFactory.newClientStreamProcessorFactory(clientStream);
 
     listeningServerStream = ListeningServerStream.newServerStream().withListenAddress("localhost").bind();
-    address = listeningServerStream.listenBind().single().toBlocking().first();
+    address = listeningServerStream.bindAwait();
   }
 
   @After
@@ -52,50 +50,33 @@ public class ServerStreamProcessorTest {
     clientStreamProcessorFactory.close();
     clientStream.close();
     listeningServerStream.close();
-    listeningServerStream.listenUnbind().single().toBlocking().first();
+    listeningServerStream.unbindAwait();
     bootstrap.group().shutdownGracefully();
     serverStreamProcessorFactory.close();
   }
 
   @Test
-  public void test() {
+  public void testEcho() {
     serverStreamProcessorFactory =
-        ServerStreamProcessorFactory.newServerStreamProcessorFactory(
-            listeningServerStream,
-            streamProcessor -> {
-              System.out.println("new observable, hola");
-              Observable<ServiceMessage> observable = streamProcessor.listen();
-              observable.subscribe(
-                  new Subscriber<ServiceMessage>() {
+        ServerStreamProcessorFactory.newServerStreamProcessorFactory(listeningServerStream,
+            streamProcessor -> streamProcessor.listen().subscribe(message -> {
+              streamProcessor.onNext(message);
+              streamProcessor.onCompleted();
+            }));
 
-                    @Override
-                    public void onNext(ServiceMessage message) {
-                      System.out.println(message);
-                    }
-
-                    @Override
-                    public void onCompleted() {
-                      System.out.println("onCompleted");
-                    }
-
-                    @Override
-                    public void onError(Throwable throwable) {
-                      throwable.printStackTrace(System.err);
-                    }
-                  });
-            });
-
-    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
+    StreamProcessor clientStreamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
-      AssertableSubscriber<ServiceMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(ServiceMessage.withQualifier("q/echo").build());
-      streamProcessor.onCompleted();
-      subscriber
+      AssertableSubscriber<ServiceMessage> clientStreamProcessorSubscriber = clientStreamProcessor.listen().test();
+      clientStreamProcessor.onNext(ServiceMessage.withQualifier("q/echo").build());
+      clientStreamProcessor.onCompleted();
+
+      clientStreamProcessorSubscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
+          .assertNoErrors()
           .assertCompleted();
     } finally {
-      streamProcessor.close();
+      clientStreamProcessor.close();
     }
   }
 }
