@@ -14,16 +14,20 @@ import io.scalecube.transport.Address;
 import org.junit.Before;
 import org.junit.Test;
 
+import rx.observers.AssertableSubscriber;
 import rx.subjects.BehaviorSubject;
-import rx.subjects.ReplaySubject;
 import rx.subjects.Subject;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ListeningServerStreamTest {
+
+  private static final Duration TIMEOUT = Duration.ofMillis(3000);
+  private static final long TIMEOUT_MILLIS = TIMEOUT.toMillis();
 
   private Address address;
   private ListeningServerStream serverStreamTemplate;
@@ -48,10 +52,10 @@ public class ListeningServerStreamTest {
         assertEquals(TimeoutException.class, e.getClass());
       }
       // check stream is bound on correct reference
-      assertEquals(address, serverStream.listenBind().toBlocking().toFuture().get());
+      assertEquals(address, serverStream.bindAwait());
     } finally {
       serverStream.close();
-      assertEquals(address, serverStream.listenUnbind().toBlocking().toFuture().get());
+      assertEquals(address, serverStream.unbindAwait());
     }
   }
 
@@ -60,7 +64,7 @@ public class ListeningServerStreamTest {
     // check stream is bound
     ListeningServerStream serverStream = serverStreamTemplate.bind();
     try {
-      assertEquals(address, serverStream.listenBind().toBlocking().toFuture().get());
+      assertEquals(address, serverStream.bindAwait());
       // issue close on reference which is not bound
       serverStreamTemplate.close();
       try {
@@ -71,7 +75,7 @@ public class ListeningServerStreamTest {
       }
     } finally {
       serverStream.close();
-      assertEquals(address, serverStream.listenUnbind().toBlocking().toFuture().get());
+      assertEquals(address, serverStream.unbindAwait());
     }
   }
 
@@ -99,8 +103,8 @@ public class ListeningServerStreamTest {
     ListeningServerStream serverStream1 = serverStreamTemplate.withPort(startPort).bind();
     ListeningServerStream serverStream2 = serverStreamTemplate.withPort(startPort).bind();
     try {
-      assertEquals(Address.create("127.0.0.1", 3801), serverStream1.listenBind().toBlocking().toFuture().get());
-      assertEquals(Address.create("127.0.0.1", 3802), serverStream2.listenBind().toBlocking().toFuture().get());
+      assertEquals(Address.create("127.0.0.1", 3801), serverStream1.bindAwait());
+      assertEquals(Address.create("127.0.0.1", 3802), serverStream2.bindAwait());
     } finally {
       serverStream1.close();
       serverStream2.close();
@@ -111,14 +115,14 @@ public class ListeningServerStreamTest {
   public void testServerStreamBindsThenUnbinds() throws Exception {
     ListeningServerStream stream1 = serverStreamTemplate.bind();
     try {
-      assertEquals(address, stream1.listenBind().toBlocking().toFuture().get());
+      assertEquals(address, stream1.bindAwait());
     } finally {
       stream1.close();
     }
     // After previous successfull (hopefully) close() it's possible to bind again on port
     ListeningServerStream stream2 = serverStreamTemplate.bind();
     try {
-      assertEquals(address, stream2.listenBind().toBlocking().toFuture().get());
+      assertEquals(address, stream2.bindAwait());
     } finally {
       stream2.close();
     }
@@ -127,30 +131,31 @@ public class ListeningServerStreamTest {
   @Test
   public void testServerStreamOnClose() throws Exception {
     ListeningServerStream serverStream = serverStreamTemplate.bind();
-    Address address = serverStream.listenBind().toBlocking().toFuture().get();
+    Address address = serverStream.bindAwait();
     try {
       AtomicBoolean onCloseBoolean = new AtomicBoolean();
       serverStream.listenClose(aVoid -> onCloseBoolean.set(true));
       serverStream.close();
       assertTrue(onCloseBoolean.get());
     } finally {
-      assertEquals(address, serverStream.listenUnbind().toBlocking().toFuture().get());
+      assertEquals(address, serverStream.unbindAwait());
     }
   }
 
   @Test
   public void testServerStreamRemotePartyClosed() throws Exception {
     ListeningServerStream serverStream = serverStreamTemplate.bind();
-    Address address = serverStream.listenBind().toBlocking().toFuture().get();
+    Address address = serverStream.bindAwait();
 
     ClientStream clientStream = ClientStream.newClientStream();
     clientStream.send(address, ServiceMessage.withQualifier("q/test").build());
 
-    Subject<Event, Event> requestSubject = ReplaySubject.create();
-    serverStream.listen().subscribe(requestSubject);
+    Subject<Event, Event> serverStreamSubject = BehaviorSubject.create();
+    serverStream.listen().subscribe(serverStreamSubject);
+    AssertableSubscriber<Event> serverStreamSubscriber = serverStreamSubject.test();
 
-    List<Event> events = requestSubject.buffer(2).timeout(3, TimeUnit.SECONDS).toBlocking().first();
-    assertEquals(2, events.size());
+    List<Event> events =
+        serverStreamSubscriber.awaitValueCount(2, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
     assertEquals(Topic.ChannelContextSubscribed, events.get(0).getTopic());
     assertEquals(Topic.ReadSuccess, events.get(1).getTopic());
 
@@ -167,6 +172,6 @@ public class ListeningServerStreamTest {
     // assert that serverStream received event about closed client connector channel
     Event event = channelInactiveSubject.test().getOnNextEvents().get(0);
     assertEquals(Topic.ChannelContextClosed, event.getTopic());
-    assertFalse(event.hasError());
+    assertFalse("Must not have error at this point", event.hasError());
   }
 }

@@ -3,6 +3,8 @@ package io.scalecube.ipc;
 import io.scalecube.ipc.netty.NettyServerTransport;
 import io.scalecube.transport.Address;
 
+import com.google.common.base.Throwables;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -106,11 +108,38 @@ public final class ListeningServerStream implements EventStream {
   }
 
   /**
+   * Binds synchronously.
+   * 
+   * @return bound address
+   */
+  public Address bindAwait() {
+    try {
+      return listenBind().toBlocking().toFuture().get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
+  }
+
+  /**
    * Subscription point for server transport goes off and not listening anymore. NOTE that after calling
    * {@link #close()} subscribing to unbind would still result in arriving result.
    */
   public Observable<Address> listenUnbind() {
     return unbindSubject.onBackpressureLatest().asObservable();
+  }
+
+  /**
+   * Listens when unbind process finishes and returns an actual unbound-{@link Address}; it's assumed that
+   * {@link #close()} has been called previously.
+   * 
+   * @return unbound address
+   */
+  public Address unbindAwait() {
+    try {
+      return listenUnbind().toBlocking().toFuture().get();
+    } catch (Exception e) {
+      throw Throwables.propagate(Throwables.getRootCause(e));
+    }
   }
 
   /**

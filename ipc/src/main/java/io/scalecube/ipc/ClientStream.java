@@ -8,9 +8,10 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
-import java.util.concurrent.CompletableFuture;
-
 public final class ClientStream extends DefaultEventStream {
+
+  // address instance for clientStreamChannelContext
+  public static final Address HELPER_ADDRESS = Address.from("localhost:0");
 
   private static final Bootstrap DEFAULT_BOOTSTRAP;
   // Pre-configure default bootstrap
@@ -23,19 +24,22 @@ public final class ClientStream extends DefaultEventStream {
         .option(ChannelOption.SO_REUSEADDR, true);
   }
 
-  private final ChannelContext helperContext = ChannelContext.createHelper();
+  // special channelContext totally for tracking connect errors on top of ChannelContext<->EventStream framework
+  private final ChannelContext clientStreamChannelContext = ChannelContext.create(HELPER_ADDRESS);
 
   private NettyClientTransport clientTransport; // calculated
 
   private ClientStream(Bootstrap bootstrap) {
     clientTransport = new NettyClientTransport(bootstrap, this::subscribe);
+
     // register cleanup process upfront
     listenClose(aVoid -> {
-      helperContext.close();
+      clientStreamChannelContext.close();
       clientTransport.close();
     });
+
     // register helper
-    subscribe(helperContext);
+    subscribe(clientStreamChannelContext);
   }
 
   public static ClientStream newClientStream() {
@@ -53,13 +57,12 @@ public final class ClientStream extends DefaultEventStream {
    * @param message to send.
    */
   public void send(Address address, ServiceMessage message) {
-    CompletableFuture<ChannelContext> promise = clientTransport.getOrConnect(address);
-    promise.whenComplete((channelContext, throwable) -> {
+    clientTransport.getOrConnect(address, (channelContext, throwable) -> {
       if (channelContext != null) {
         channelContext.postWrite(message);
       }
       if (throwable != null) {
-        helperContext.postWriteError(address, message, throwable);
+        clientStreamChannelContext.postWriteError(address, message, throwable);
       }
     });
   }

@@ -23,8 +23,6 @@ public final class ChannelContext {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ChannelContext.class);
 
-  private static final Address HELPER_ADDRESS = Address.from("localhost:0");
-
   private static final ConcurrentMap<String, ChannelContext> idToChannelContext = new ConcurrentHashMap<>();
 
   private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
@@ -75,14 +73,6 @@ public final class ChannelContext {
       consumer.accept(channelContext1);
     }
     return channelContext1;
-  }
-
-  /**
-   * Creates special purpose {@link ChannelContext} instance with generated id and fixed dummy address (which can be
-   * ignored). See for details internals of {@link ClientStream#send(Address, ServiceMessage)} function.
-   */
-  public static ChannelContext createHelper() {
-    return create(HELPER_ADDRESS);
   }
 
   public static ChannelContext getIfExist(String id) {

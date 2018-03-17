@@ -8,16 +8,19 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 
-import java.util.concurrent.CompletableFuture;
+import rx.Observable;
+import rx.subjects.ReplaySubject;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public final class NettyClientTransport {
 
   private final Bootstrap bootstrap;
 
-  private final ConcurrentMap<Address, CompletableFuture<ChannelContext>> outboundChannels = new ConcurrentHashMap<>();
+  private final ConcurrentMap<Address, Observable<ChannelContext>> outboundChannels = new ConcurrentHashMap<>();
 
   public NettyClientTransport(Bootstrap bootstrap, Consumer<ChannelContext> channelContextConsumer) {
     Bootstrap bootstrap1 = bootstrap.clone();
@@ -28,41 +31,45 @@ public final class NettyClientTransport {
    * Async connect to remote address or retrieve existing connection.
    * 
    * @param address address to connect to.
-   * @return channel context.
+   * @param consumer biConsumer with optional channelContext and optional Throwable.
    */
-  public CompletableFuture<ChannelContext> getOrConnect(Address address) {
-    CompletableFuture<ChannelContext> promise = outboundChannels.computeIfAbsent(address, this::connect);
-    return promise.whenComplete((channelContext, throwable) -> {
-      if (throwable != null) {
-        // cleanup map entry right away
-        outboundChannels.remove(address, promise);
-      }
-      if (channelContext != null) {
-        // register cleanup process upfront
-        channelContext.listenClose(input -> outboundChannels.remove(address, promise));
-      }
-    });
+  public void getOrConnect(Address address, BiConsumer<ChannelContext, Throwable> consumer) {
+    Observable<ChannelContext> observable = outboundChannels.computeIfAbsent(address, this::connect);
+    observable.subscribe(
+        channelContext -> { // register cleanup process upfront
+          channelContext.listenClose(input -> outboundChannels.remove(address, observable));
+          consumer.accept(channelContext, null);
+        },
+        throwable -> { // clean map right away
+          outboundChannels.remove(address, observable);
+          consumer.accept(null, throwable);
+        },
+        () -> { // no-op
+        });
   }
 
-  private CompletableFuture<ChannelContext> connect(Address address) {
-    CompletableFuture<ChannelContext> promise = new CompletableFuture<>();
+  private Observable<ChannelContext> connect(Address address) {
+    ReplaySubject<ChannelContext> promise = ReplaySubject.create();
+
     ChannelFuture connectFuture = bootstrap.connect(address.host(), address.port());
     connectFuture.addListener((ChannelFutureListener) channelFuture -> {
       Channel channel = channelFuture.channel();
       if (!channelFuture.isSuccess()) {
-        promise.completeExceptionally(channelFuture.cause());
+        promise.onError(channelFuture.cause());
         return;
       }
-      // this line would activate setting of channel ctx attribute
+      // this line pins channelContext to netty channel
       channel.pipeline().fireChannelActive();
       try {
-        // try get channel ctx and complete
-        promise.complete(ChannelSupport.getChannelContextOrThrow(channel));
+        // try get channelContext and complete
+        promise.onNext(ChannelSupport.getChannelContextOrThrow(channel));
+        promise.onCompleted();
       } catch (Exception throwable) {
-        promise.completeExceptionally(throwable);
+        promise.onError(throwable);
       }
     });
-    return promise;
+
+    return promise.asObservable().onBackpressureBuffer();
   }
 
   /**
@@ -71,13 +78,9 @@ public final class NettyClientTransport {
   public void close() {
     // close all channels
     for (Address address : outboundChannels.keySet()) {
-      CompletableFuture<ChannelContext> promise = outboundChannels.remove(address);
-      if (promise != null) {
-        promise.whenComplete((channelContext, throwable) -> {
-          if (channelContext != null) {
-            channelContext.close();
-          }
-        });
+      Observable<ChannelContext> observable = outboundChannels.remove(address);
+      if (observable != null) {
+        observable.subscribe(ChannelContext::close);
       }
     }
   }
