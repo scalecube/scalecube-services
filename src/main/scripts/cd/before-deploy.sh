@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
-
+echo       Running $0
+echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  || [ "$TRAVIS_BRANCH" = 'develop' ]; then
+	echo     deployment
+	echo *-*-*-*-*-*-*-*-*-*-*-*
     git remote set-url origin git@github.com:$TRAVIS_REPO_SLUG.git
 	git config --global user.email "io.scalecube.ci@gmail.com"
     git config --global user.name "io-scalecube-ci"
