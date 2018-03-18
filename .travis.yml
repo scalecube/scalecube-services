@@ -12,14 +12,6 @@ before_install:
 
 after_success:
 - java -jar ~/codacy-coverage-reporter-assembly.jar -l Java -r ./services/target/site/jacoco/jacoco.xml
-
-# remove this 
- 
-script:
-- echo PLEASE DO NOT FORGET TO REMOVE THIS LINE
-
-# up to here
-
 deploy:
 - provider: script
   script: mvn -P release deploy -DskipTests=true -B -V -s travis-settings.xml
