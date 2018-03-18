@@ -10,7 +10,7 @@ if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  ||
 	mkdir ~/tmp
 	openssl aes-256-cbc -K $encrypted_d19fb18b4b9d_key -iv $encrypted_d19fb18b4b9d_iv -in secrets.tar.enc -out ~/tmp/secrets.tar -d
 	md5sum secrets.tar
-	tar -xvf secrets.tar -C  ~/tmp
+	tar -xvf ~/tmp/secrets.tar -C  ~/tmp
 	md5sum ~/tmp/*
     gpg --fast-import ~/tmp/codesigning.asc
     md5sum ~/tmp/id_rsa
