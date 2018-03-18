@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-echo Running $0
+echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  || [ "$TRAVIS_BRANCH" = 'develop' ]; then
 	echo     deployment
