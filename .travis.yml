@@ -18,7 +18,7 @@ script:
 
 # up to here
 
-before-deploy:
+before_deploy:
 - "./src/main/scripts/cd/before-deploy.sh"
 deploy:
 - provider: script
