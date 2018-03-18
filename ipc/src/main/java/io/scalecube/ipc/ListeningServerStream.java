@@ -32,7 +32,7 @@ public final class ListeningServerStream implements EventStream {
 
   //// Factory
 
-  public static ListeningServerStream newServerStream() {
+  public static ListeningServerStream newListeningServerStream() {
     return new ListeningServerStream(new Config());
   }
 

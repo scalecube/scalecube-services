@@ -46,7 +46,7 @@ public class ClientStreamProcessorTest {
     clientStream = ClientStream.newClientStream(bootstrap);
     clientStreamProcessorFactory = ClientStreamProcessorFactory.newClientStreamProcessorFactory(clientStream);
 
-    listeningServerStream = ListeningServerStream.newServerStream().withListenAddress("localhost").bind();
+    listeningServerStream = ListeningServerStream.newListeningServerStream().withListenAddress("localhost").bind();
     address = listeningServerStream.listenBind().single().toBlocking().first();
 
     // setup echo service

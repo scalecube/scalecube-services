@@ -31,7 +31,7 @@ public class ClientStreamTest {
   private static final long TIMEOUT_MILLIS = TIMEOUT.toMillis();
 
   private final ListeningServerStream serverStreamTemplate =
-      ListeningServerStream.newServerStream().withListenAddress("localhost");
+      ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
 
   private ClientStream clientStream;
   private ListeningServerStream serverStream;

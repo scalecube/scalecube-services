@@ -33,7 +33,7 @@ public final class GatewayRunner {
     GatewaySocketIoServer.onPort(4040, serverStream).start();
     GatewayHttpServer.onPort(8080, serverStream).start();
 
-    ListeningServerStream serverStream1 = ListeningServerStream.newServerStream()
+    ListeningServerStream serverStream1 = ListeningServerStream.newListeningServerStream()
         .withListenAddress("127.0.0.1").withPort(5801).bind();
     serverStream1.listenReadSuccess()
         .map(Event::getMessageOrThrow)

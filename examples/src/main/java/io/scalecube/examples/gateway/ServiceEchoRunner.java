@@ -12,7 +12,7 @@ public class ServiceEchoRunner {
    * Main method.
    */
   public static void main(String[] args) throws InterruptedException {
-    ListeningServerStream serverStream = ListeningServerStream.newServerStream().bind();
+    ListeningServerStream serverStream = ListeningServerStream.newListeningServerStream().bind();
     serverStream.listenReadSuccess()
         .map(Event::getMessageOrThrow)
         .subscribe(serverStream::send);

@@ -36,7 +36,8 @@ public class ListeningServerStreamTest {
   public void setUp() {
     int port = 5801;
     address = Address.create("127.0.0.1", port);
-    serverStreamTemplate = ListeningServerStream.newServerStream().withListenAddress("localhost").withPort(port);
+    serverStreamTemplate =
+        ListeningServerStream.newListeningServerStream().withListenAddress("localhost").withPort(port);
   }
 
   @Test
