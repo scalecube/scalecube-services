@@ -12,8 +12,8 @@ import java.util.Map;
 public final class Message {
 
   /**
-   * This header is supposed to be used by application in case if same data type can be reused for several messages
-   * so it will allow to qualify the specific message type.
+   * This header is supposed to be used by application in case if same data type can be reused for several messages so
+   * it will allow to qualify the specific message type.
    */
   public static final String HEADER_QUALIFIER = "q";
 
@@ -38,12 +38,15 @@ public final class Message {
   Message() {}
 
   private Message(Builder builder) {
-    this.data = builder.data;
-    this.headers = builder.headers;
+    this.data = builder.data();
+    this.headers = builder.headers();
   }
 
   /**
    * Instantiates a new message with the given data and without headers.
+   * 
+   * @param data the data to build a message from
+   * @return the built message
    */
   public static Message fromData(Object data) {
     return withData(data).build();
@@ -51,6 +54,9 @@ public final class Message {
 
   /**
    * Instantiates a new message builder with the given data and without headers.
+   * 
+   * @param data the initial data for the builder
+   * @return a builder with initial data
    */
   public static Builder withData(Object data) {
     return builder().data(data);
@@ -59,6 +65,9 @@ public final class Message {
 
   /**
    * Instantiates a new message with the given headers and with empty data.
+   * 
+   * @param headers an initial headers to build a message from
+   * @return the built message
    */
   public static Message fromHeaders(Map<String, String> headers) {
     return withHeaders(headers).build();
@@ -66,6 +75,9 @@ public final class Message {
 
   /**
    * Instantiates a new message builder with the given headers and with empty data.
+   * 
+   * @param headers the initial headers for the builder
+   * @return a builder with initial headers
    */
   public static Builder withHeaders(Map<String, String> headers) {
     return builder().headers(headers);
@@ -73,6 +85,9 @@ public final class Message {
 
   /**
    * Instantiates a new message with the given qualifier header and with empty data.
+   * 
+   * @param qualifier the qualifier to build a message from
+   * @return the built message
    */
   public static Message fromQualifier(String qualifier) {
     return withQualifier(qualifier).build();
@@ -80,6 +95,9 @@ public final class Message {
 
   /**
    * Instantiates a new message builder with the given qualifier header and with empty data.
+   * 
+   * @param qualifier the initial qualifier for the builder
+   * @return a builder with initial qualifier
    */
   public static Builder withQualifier(String qualifier) {
     return builder().qualifier(qualifier);
@@ -87,6 +105,9 @@ public final class Message {
 
   /**
    * Instantiates new message with the same data and headers as at given message.
+   * 
+   * @param message the message to be copied
+   * @return a new message, with the same data and headers
    */
   public static Message from(Message message) {
     return with(message).build();
@@ -94,6 +115,9 @@ public final class Message {
 
   /**
    * Instantiates new message builder with the same data and headers as at given message.
+   * 
+   * @param message the message to instantiate the new builder from
+   * @return a builder with initial data and headers from the message
    */
   public static Builder with(Message message) {
     return withData(message.data).headers(message.headers);
@@ -101,9 +125,11 @@ public final class Message {
 
   /**
    * Instantiates new empty message builder.
+   *
+   * @return new builder
    */
   public static Builder builder() {
-    return new Builder();
+    return Builder.getInstance();
   }
 
   /**
@@ -144,30 +170,49 @@ public final class Message {
   }
 
   /**
-   * Returns the message header by given header name.
+   * Returns header value by given header name.
+   * 
+   * @param name header name
+   * @return the message header by given header name
    */
   public String header(String name) {
     return headers.get(name);
   }
 
+  /**
+   * Returns message qualifier.
+   * 
+   * @return qualifier string
+   */
   public String qualifier() {
     return header(HEADER_QUALIFIER);
   }
 
+  /**
+   * Returns message correlation id.
+   * 
+   * @return correlation id
+   */
   public String correlationId() {
     return header(HEADER_CORRELATION_ID);
   }
 
   /**
    * Return the message data, which can be byte array, string or any type.
-   * 
+   *
+   * @param <T> data type
    * @return payload of the message or null if message is without any payload
    */
-  @SuppressWarnings("unchecked")
   public <T> T data() {
+    // noinspection unchecked
     return (T) data;
   }
 
+  /**
+   * Returns {@link Address} of the sender of this message.
+   * 
+   * @return address
+   */
   public Address sender() {
     return sender;
   }
@@ -182,12 +227,23 @@ public final class Message {
     private Map<String, String> headers = new HashMap<>();
     private Object data;
 
-    private Builder() {
+    private Builder() {}
+
+    static Builder getInstance() {
+      return new Builder();
+    }
+
+    private Object data() {
+      return this.data;
     }
 
     public Builder data(Object data) {
       this.data = data;
       return this;
+    }
+
+    private Map<String, String> headers() {
+      return this.headers;
     }
 
     public Builder headers(Map<String, String> headers) {

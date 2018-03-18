@@ -31,6 +31,8 @@ public final class MessageCodec {
 
   /**
    * Deserializes message from given byte buffer.
+   *
+   * @param bb byte buffer
    */
   public static Message deserialize(ByteBuf bb) {
     Schema<Message> schema = RuntimeSchema.getSchema(Message.class);
@@ -46,6 +48,9 @@ public final class MessageCodec {
 
   /**
    * Serializes given message into byte buffer.
+   *
+   * @param message message to serialize
+   * @param bb byte buffer of where to write serialzied message
    */
   public static void serialize(Message message, ByteBuf bb) {
     Schema<Message> schema = RuntimeSchema.getSchema(Message.class);

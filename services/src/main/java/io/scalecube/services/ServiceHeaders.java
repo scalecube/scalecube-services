@@ -41,6 +41,9 @@ public final class ServiceHeaders {
 
   /**
    * Extract header value from a given message. the service method to invoke on request.
+   * 
+   * @param request request message
+   * @return header value
    */
   public static String serviceMethod(Message request) {
     return request.header(METHOD);
@@ -48,6 +51,9 @@ public final class ServiceHeaders {
 
   /**
    * Extract header value from a given message. is used to mark a request as a service request.
+   * 
+   * @param request request message
+   * @return header value
    */
   public static String serviceRequest(Message request) {
     return request.header(SERVICE_REQUEST);
@@ -55,6 +61,9 @@ public final class ServiceHeaders {
 
   /**
    * Extract header value from a given message. header is used to mark a request as a service response.
+   *
+   * @param request request message
+   * @return header value
    */
   public static String serviceResponse(Message request) {
     return request.header(SERVICE_RESPONSE);
