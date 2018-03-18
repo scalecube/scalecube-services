@@ -22,6 +22,7 @@ if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  ||
 	eval "$(ssh-agent -s)"
 	ssh-add ~/tmp/id_rsa
 	ssh -T git@github.com | true
-	git fetch
+	git checkout $TRAVIS_BRANCH
+	git reset --hard $TRAVIS_BRANCH
     popd    
 fi

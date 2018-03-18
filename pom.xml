@@ -315,6 +315,10 @@
                                 </goals>
                             </execution>
                         </executions>
+                        <configuration>
+							<keyname>${env.GPG_KEY}</keyname>
+							<passphraseServerId>${env.GPG_KEY}</passphraseServerId>
+						</configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
