@@ -279,8 +279,12 @@ public class ByteBufCodecTest {
       switch (headerName) {
         case "q":
           messageBuilder.qualifier((String) obj);
+          break;
         case "data":
           messageBuilder.data(obj);
+          break;
+        default:
+          // no-op
       }
     });
 
