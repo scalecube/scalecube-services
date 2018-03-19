@@ -5,23 +5,59 @@ echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  || [ "$TRAVIS_BRANCH" = 'develop' ]; then
 	echo     deployment
 	echo *-*-*-*-*-*-*-*-*-*-*-*
-    git remote set-url origin git@github.com:$TRAVIS_REPO_SLUG.git
-	git config --global user.email "io.scalecube.ci@gmail.com"
-    git config --global user.name "io-scalecube-ci"
-    git config --global commit.gpgSign false
+    decryptsecrets
+    importpgp
+    setupssh
+    setupgit
+fi
+
+function decryptsecrets {
+	echo   decrypting secrets
+	echo *-*-*-*-*-*-*-*-*-*-*-*
 	pushd src/main/scripts/cd
 	mkdir ~/tmp
 	openssl aes-256-cbc -K $encrypted_d19fb18b4b9d_key -iv $encrypted_d19fb18b4b9d_iv -in secrets.tar.enc -out ~/tmp/secrets.tar -d
 	md5sum secrets.tar
-	tar -xvf ~/tmp/secrets.tar -C  ~/tmp
-	md5sum ~/tmp/*
-    gpg --fast-import ~/tmp/codesigning.asc
-    md5sum ~/tmp/id_rsa
-    chmod 600 ~/tmp/id_rsa
-    shred -z -u ~/tmp/codesigning.asc
-	eval "$(ssh-agent -s)"
-	ssh-add ~/tmp/id_rsa
-	ssh -T git@github.com | true
-	git fetch
+	tar -xvf ~/tmp/secrets.tar -C  ~/.ssh
+	shred -z -u ~/tmp/secrets.tar
     popd    
-fi
+}
+
+function importpgp {
+	echo   importing pgp secret
+	echo *-*-*-*-*-*-*-*-*-*-*-*
+    gpg --fast-import ~/.ssh/codesigning.asc
+    shred -z -u ~/.ssh/codesigning.asc
+}
+
+function setupssh {
+	echo   importing ssh secret
+	echo *-*-*-*-*-*-*-*-*-*-*-*
+    chmod 400 ~/.ssh/id_rsa
+    touch ~/.ssh/config
+
+    echo 'Host github.com' >> $HOME/.ssh/config
+    echo '    IdentityFile $HOME/.ssh/github.key ' >> $HOME/.ssh/config
+    echo '    StrictHostKeyChecking no' >> $HOME/.ssh/config
+	
+	eval "$(ssh-agent -s)"
+	ssh-add ~/.ssh/id_rsa
+	ssh -T git@github.com | true
+}
+	
+function setupgit {
+    git remote set-url origin git@github.com:$TRAVIS_REPO_SLUG.git
+	git config --global user.email "io.scalecube.ci@gmail.com"
+    git config --global user.name "io-scalecube-ci"
+    git config --global commit.gpgSign false
+	git fetch
+	git branch tmp-branch
+	git push origin tmp-branch
+	git push origin --delete tmp-branch
+	git branch -d tmp-branch
+	
+	git checkout $TRAVIS_BRANCH
+	git reset --hard $TRAVIS_BRANCH
+}
+		
+	
