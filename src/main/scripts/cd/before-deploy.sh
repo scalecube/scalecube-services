@@ -3,17 +3,6 @@
 echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 
-function deployment {
-  if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  || [ "$TRAVIS_BRANCH" = 'develop' ]; then
-	echo     deployment
-	echo *-*-*-*-*-*-*-*-*-*-*-*
-    decryptsecrets
-    importpgp
-    setupssh
-    setupgit
-  fi
-}
-
 function decryptsecrets {
 	echo   decrypting secrets
 	echo *-*-*-*-*-*-*-*-*-*-*-*
@@ -49,6 +38,8 @@ function setupssh {
 }
 	
 function setupgit {
+	echo   setting git up
+	echo *-*-*-*-*-*-*-*-*-*-*-*
     git remote set-url origin git@github.com:$TRAVIS_REPO_SLUG.git
 	git config --global user.email "io.scalecube.ci@gmail.com"
     git config --global user.name "io-scalecube-ci"
@@ -61,6 +52,17 @@ function setupgit {
 	
 	git checkout $TRAVIS_BRANCH
 	git reset --hard $TRAVIS_BRANCH
+}
+
+function deployment {
+  if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  || [ "$TRAVIS_BRANCH" = 'develop' ]; then
+	echo     deployment
+	echo *-*-*-*-*-*-*-*-*-*-*-*
+    decryptsecrets
+    importpgp
+    setupssh
+    setupgit
+  fi
 }
 
 deployment
