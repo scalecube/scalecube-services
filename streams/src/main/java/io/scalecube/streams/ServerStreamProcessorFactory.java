@@ -32,13 +32,13 @@ public final class ServerStreamProcessorFactory {
             .subscribe(event -> {
               Address address = event.getAddress();
               StreamMessage message = event.getMessageOrThrow();
-              String id = message.getSenderId();
+              String identity = message.getSubject();
 
               // Hint: at this point some sort of sanity check is needed to see is there somebody who's listening on new
               // stream because next code is about to create entry in map so it's kind of waste of resource
               // if nobody don't listen for new stream processor
               ChannelContext channelContext =
-                  ChannelContext.createIfAbsent(id, address, this::initChannelContext);
+                  ChannelContext.createIfAbsent(identity, address, this::initChannelContext);
 
               // forward read
               channelContext.postReadSuccess(message);
@@ -54,10 +54,10 @@ public final class ServerStreamProcessorFactory {
     // response logic: local write => remote stream
     channelContext.listenWrite()
         .map(event -> {
-          String id = channelContext.getId();
-          StreamMessage message = event.getMessageOrThrow();
           // reset outgoing message identity with channelContext's identity
-          return StreamMessage.copyFrom(message).senderId(id).build();
+          String identity = channelContext.getId();
+          StreamMessage message = event.getMessageOrThrow();
+          return StreamMessage.copyFrom(message).subject(identity).build();
         })
         .subscribe(remoteEventStream::send);
 

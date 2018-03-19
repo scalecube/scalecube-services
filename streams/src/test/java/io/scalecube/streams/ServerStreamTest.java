@@ -32,35 +32,35 @@ public class ServerStreamTest {
   public void testServerStreamListenMessageWithNoIdentity() throws Exception {
     String id = channelContext.getId();
 
-    String[] identities = new String[1];
+    String[] subjects = new String[1];
     StreamMessage[] messages = new StreamMessage[1];
     serverStream.listen().subscribe(event -> {
-      identities[0] = event.getMessage().get().getSenderId();
+      subjects[0] = event.getMessage().get().getSubject();
       messages[0] = event.getMessage().get();
     });
 
     channelContext.postReadSuccess(StreamMessage.withQualifier("q").build());
-    assertEquals(id, identities[0]);
+    assertEquals(id, subjects[0]);
     assertEquals("q", messages[0].getQualifier());
-    assertEquals(id, messages[0].getSenderId());
+    assertEquals(id, messages[0].getSubject());
   }
 
   @Test
   public void testServerStreamListenMessageHasAlreadyIdentity() throws Exception {
     String id = channelContext.getId();
 
-    String[] identities = new String[1];
+    String[] subjects = new String[1];
     StreamMessage[] messages = new StreamMessage[1];
     serverStream.listen().subscribe(event -> {
-      identities[0] = event.getMessage().get().getSenderId();
+      subjects[0] = event.getMessage().get().getSubject();
       messages[0] = event.getMessage().get();
     });
 
-    String expectedSenderId = "aaa/bbb" + "/" + id;
-    channelContext.postReadSuccess(StreamMessage.withQualifier("q").senderId("aaa/bbb").build());
-    assertEquals(expectedSenderId, identities[0]);
+    String expectedSubject = "aaa/bbb" + "/" + id;
+    channelContext.postReadSuccess(StreamMessage.withQualifier("q").subject("aaa/bbb").build());
+    assertEquals(expectedSubject, subjects[0]);
     assertEquals("q", messages[0].getQualifier());
-    assertEquals(expectedSenderId, messages[0].getSenderId());
+    assertEquals(expectedSubject, messages[0].getSubject());
   }
 
   @Test
@@ -80,10 +80,10 @@ public class ServerStreamTest {
     String[] msgIdentities = new String[1];
     channelContext.listen().subscribe(event -> {
       topics[0] = event.getTopic();
-      msgIdentities[0] = event.getMessage().get().getSenderId();
+      msgIdentities[0] = event.getMessage().get().getSubject();
     });
 
-    serverStream.send(StreamMessage.withQualifier("q").senderId(id).build());
+    serverStream.send(StreamMessage.withQualifier("q").subject(id).build());
 
     assertEquals(Event.Topic.Write, topics[0]);
     assertEquals(null, msgIdentities[0]);
@@ -97,10 +97,10 @@ public class ServerStreamTest {
     String[] msgIdentities = new String[1];
     channelContext.listen().subscribe(event -> {
       topics[0] = event.getTopic();
-      msgIdentities[0] = event.getMessage().get().getSenderId();
+      msgIdentities[0] = event.getMessage().get().getSubject();
     });
 
-    serverStream.send(StreamMessage.withQualifier("q").senderId("aaa/bbb" + "/" + id).build());
+    serverStream.send(StreamMessage.withQualifier("q").subject("aaa/bbb" + "/" + id).build());
 
     assertEquals(Event.Topic.Write, topics[0]);
     assertEquals("aaa/bbb", msgIdentities[0]);

@@ -5,13 +5,11 @@ import java.util.Objects;
 public final class StreamMessage {
 
   public static final String QUALIFIER_NAME = "q";
-  public static final String SENDER_ID_NAME = "senderId";
-  public static final String STREAM_ID_NAME = "streamId";
+  public static final String SUBJECT_NAME = "subject";
   public static final String DATA_NAME = "data";
 
   private final String qualifier;
-  private final String senderId;
-  private final String streamId;
+  private final String subject;
   private final Object data;
 
   //// builders
@@ -29,7 +27,7 @@ public final class StreamMessage {
   }
 
   public static Builder withHeaders(StreamMessage message) {
-    return builder().streamId(message.streamId).senderId(message.senderId);
+    return builder().subject(message.subject);
   }
 
   public static Builder builder() {
@@ -39,8 +37,7 @@ public final class StreamMessage {
   private StreamMessage(Builder builder) {
     this.qualifier = builder.qualifier;
     this.data = builder.data;
-    this.senderId = builder.senderId;
-    this.streamId = builder.streamId;
+    this.subject = builder.subject;
   }
 
   //// accessors
@@ -49,24 +46,20 @@ public final class StreamMessage {
     return qualifier;
   }
 
-  public String getSenderId() {
-    return senderId;
-  }
-
-  public String getStreamId() {
-    return streamId;
+  public String getSubject() {
+    return subject;
   }
 
   public Object getData() {
     return data;
   }
 
-  public boolean hasData() {
+  public boolean isDataPresent() {
     return data != null;
   }
 
-  public boolean hasSenderId() {
-    return senderId != null && !senderId.isEmpty();
+  public boolean isSubjectPresent() {
+    return subject != null && !subject.isEmpty();
   }
 
   public boolean dataOfType(Class<?> clazz) {
@@ -86,20 +79,18 @@ public final class StreamMessage {
     StreamMessage message = (StreamMessage) obj;
     return Objects.equals(qualifier, message.qualifier)
         && Objects.equals(data, message.data)
-        && Objects.equals(senderId, message.senderId)
-        && Objects.equals(streamId, message.streamId);
+        && Objects.equals(subject, message.subject);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(qualifier, senderId, streamId, data);
+    return Objects.hash(qualifier, subject, data);
   }
 
   @Override
   public String toString() {
     return "Message [q=" + qualifier
-        + ", senderId=" + senderId
-        + ", streamId=" + streamId
+        + ", subject=" + subject
         + ", data=" + prepareDataString()
         + "]";
   }
@@ -121,8 +112,7 @@ public final class StreamMessage {
   public static final class Builder {
 
     private String qualifier;
-    private String senderId;
-    private String streamId;
+    private String subject;
     private Object data;
 
     private Builder() {}
@@ -137,13 +127,8 @@ public final class StreamMessage {
       return this;
     }
 
-    public Builder senderId(String senderId) {
-      this.senderId = senderId;
-      return this;
-    }
-
-    public Builder streamId(String streamId) {
-      this.streamId = streamId;
+    public Builder subject(String subject) {
+      this.subject = subject;
       return this;
     }
 

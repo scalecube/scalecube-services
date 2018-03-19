@@ -1,6 +1,9 @@
 package io.scalecube.streams.codec;
 
 import static io.netty.buffer.Unpooled.copiedBuffer;
+import static io.scalecube.streams.StreamMessage.DATA_NAME;
+import static io.scalecube.streams.StreamMessage.QUALIFIER_NAME;
+import static io.scalecube.streams.StreamMessage.SUBJECT_NAME;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -25,7 +28,7 @@ public class ByteBufCodecTest {
 
   private static final String QUALIFIER = "io'scalecube'services'transport'\\/Request\\/日本語";
 
-  private static final String STREAM_ID = "君が代";
+  private static final String SUBJECT = "君が代";
 
   private final String source = "{" +
       "\"data\":{" +
@@ -39,7 +42,7 @@ public class ByteBufCodecTest {
       "   \"_type\":\"io.scalecube.services.transport.Request\"" +
       "}," +
       "\"q\":\"" + QUALIFIER + "\"," +
-      "\"streamId\":\"" + STREAM_ID + "\"}";
+      "\"subject\":\"" + SUBJECT + "\"}";
 
   private StreamMessage.Builder messageBuilder;
 
@@ -50,11 +53,11 @@ public class ByteBufCodecTest {
     messageBuilder = StreamMessage.builder();
     consumer = (headerName, value) -> {
       switch (headerName) {
-        case StreamMessage.QUALIFIER_NAME:
+        case QUALIFIER_NAME:
           messageBuilder = messageBuilder.qualifier((String) value);
           break;
-        case StreamMessage.STREAM_ID_NAME:
-          messageBuilder = messageBuilder.streamId((String) value);
+        case StreamMessage.SUBJECT_NAME:
+          messageBuilder = messageBuilder.subject((String) value);
           break;
         case StreamMessage.DATA_NAME:
           messageBuilder = messageBuilder.data(value);
@@ -79,12 +82,12 @@ public class ByteBufCodecTest {
 
   @Test
   public void testParse() {
-    List<String> get = ImmutableList.of("streamId", "q");
+    List<String> get = ImmutableList.of("subject", "q");
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("io'scalecube'services'transport'/Request/日本語", message.getQualifier());
-    assertEquals(STREAM_ID, message.getStreamId());
+    assertEquals(SUBJECT, message.getSubject());
   }
 
   @Test
@@ -139,55 +142,55 @@ public class ByteBufCodecTest {
 
   @Test
   public void testParseCrappyHeaders() {
-    List<String> get = ImmutableList.of("\"contextId\"", "\"q\"", "\"streamId\"");
+    List<String> get = ImmutableList.of("\"contextId\"", "\"q\"", "\"subject\"");
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertNull(message.getQualifier());
-    assertNull(message.getStreamId());
+    assertNull(message.getSubject());
   }
 
   @Test(expected = IllegalStateException.class)
   public void testParseWithoutDataAndWithUnescapedDoubleQuotesInsideFail() {
-    List<String> get = ImmutableList.of("streamId");
+    List<String> get = ImmutableList.of("subject");
     List<String> match = ImmutableList.of("data");
-    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"" + STREAM_ID + "\"\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"subject\":\"" + SUBJECT + "\"\"}", UTF_8), get, match, consumer);
   }
 
   @Test
   public void testParseWithoutDataAndWithEscapedDoubleQuotes() {
-    List<String> get = ImmutableList.of("streamId");
+    List<String> get = ImmutableList.of("subject");
     List<String> match = ImmutableList.of("data");
-    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"" + STREAM_ID + "\\\"\\\"" + "\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"subject\":\"" + SUBJECT + "\\\"\\\"" + "\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals(STREAM_ID + "\"\"", message.getStreamId());
+    assertEquals(SUBJECT + "\"\"", message.getSubject());
   }
 
   @Test(expected = IllegalStateException.class)
   public void testParseInvalidColonPlacement() {
-    List<String> get = ImmutableList.of("streamId", "streamId");
+    List<String> get = ImmutableList.of("subject", "subject");
     List<String> match = Collections.emptyList();
-    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"cool\" :}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"subject\":\"cool\" :}", UTF_8), get, match, consumer);
     fail("IllegalStateException should be thrown in case of invalid colon placement");
   }
 
   @Test
   public void testParseInsignificantSymbols() {
-    List<String> get = ImmutableList.of("streamId");
+    List<String> get = ImmutableList.of("subject");
     List<String> match = Collections.emptyList();
-    ByteBufCodec.decode(copiedBuffer("{\n\r\t \"streamId\"\n\r\t :\n\r\t \"cool\"\n\r\t }", UTF_8), get, match,
+    ByteBufCodec.decode(copiedBuffer("{\n\r\t \"subject\"\n\r\t :\n\r\t \"cool\"\n\r\t }", UTF_8), get, match,
         consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("Whitespaces before and after colon should be ignored", "cool", message.getStreamId());
+    assertEquals("Whitespaces before and after colon should be ignored", "cool", message.getSubject());
   }
 
   @Test
   public void testParseEscapedCharacters() {
-    List<String> get = ImmutableList.of("streamId");
+    List<String> get = ImmutableList.of("subject");
     List<String> match = Collections.emptyList();
-    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"\\\"quoted\\\"\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"subject\":\"\\\"quoted\\\"\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("Parsed string doesn't match source one", "\"quoted\"", message.getStreamId());
+    assertEquals("Parsed string doesn't match source one", "\"quoted\"", message.getSubject());
   }
 
   @Test
@@ -211,41 +214,41 @@ public class ByteBufCodecTest {
 
   @Test
   public void testParseEscapedHexSymbol() {
-    List<String> get = ImmutableList.of("q", "streamId");
+    List<String> get = ImmutableList.of("q", "subject");
     List<String> match = Collections.emptyList();
     ByteBufCodec.decode(copiedBuffer("{\"q\":\"\\uCEB1\\u0061\\u0063\\u006B\\uaef1\"," +
-        "\"streamId\":\"\\u0068\\u0061\\u0063\\u006b\"}", UTF_8), get, match, consumer);
+        "\"subject\":\"\\u0068\\u0061\\u0063\\u006b\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("Parsed string doesn't match source one", "캱ack껱", message.getQualifier());
-    assertEquals("Parsed string doesn't match source one", "hack", message.getStreamId());
+    assertEquals("Parsed string doesn't match source one", "hack", message.getSubject());
   }
 
   @Test
   public void testEncodeTwoFlatFieldsMessage() {
-    StreamMessage message = StreamMessage.withQualifier("/cool/qalifier").streamId("stream_id").build();
-    ImmutableList<String> get = ImmutableList.of("q", "streamId", "senderId");
+    StreamMessage message = StreamMessage.withQualifier("/cool/qalifier").subject("subject").build();
+    ImmutableList<String> get = ImmutableList.of("q", "subject");
     List<String> match = Collections.emptyList();
 
     ByteBuf targetBuf = Unpooled.buffer();
     ByteBufCodec.encode(targetBuf, get, match, headerName -> {
       switch (headerName) {
-        case "q":
+        case QUALIFIER_NAME:
           return message.getQualifier();
-        case "streamId":
-          return message.getStreamId();
+        case SUBJECT_NAME:
+          return message.getSubject();
         default:
-          return null; // skip senderId
+          return null; // skip
       }
     });
 
     StreamMessage.Builder builder = StreamMessage.builder();
     ByteBufCodec.decode(copiedBuffer(targetBuf), get, match, (headerName, obj) -> {
       switch (headerName) {
-        case "q":
+        case QUALIFIER_NAME:
           builder.qualifier((String) obj);
           break;
-        case "streamId":
-          builder.streamId((String) obj);
+        case SUBJECT_NAME:
+          builder.subject((String) obj);
           break;
         default:
           // no-op
@@ -265,9 +268,9 @@ public class ByteBufCodecTest {
     ImmutableList<String> match = ImmutableList.of("data");
     ByteBufCodec.encode(targetBuf, get, match, headerName -> {
       switch (headerName) {
-        case "q":
+        case QUALIFIER_NAME:
           return message.getQualifier();
-        case "data":
+        case DATA_NAME:
           return message.getData();
         default:
           return null;
@@ -277,10 +280,10 @@ public class ByteBufCodecTest {
     StreamMessage.Builder messageBuilder = StreamMessage.builder();
     ByteBufCodec.decode(copiedBuffer(targetBuf), get, match, (headerName, obj) -> {
       switch (headerName) {
-        case "q":
+        case QUALIFIER_NAME:
           messageBuilder.qualifier((String) obj);
           break;
-        case "data":
+        case DATA_NAME:
           messageBuilder.data(obj);
           break;
         default:

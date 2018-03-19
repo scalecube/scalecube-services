@@ -93,10 +93,10 @@ public final class ListeningServerStream implements EventStream {
   }
 
   /**
-   * Sends a message to client identified by message's senderId, and applying server stream semantic for outbound
+   * Sends a message to client identified by message's subject, and applying server stream semantic for outbound
    * messages.
    *
-   * @param message message to send; must contain valid senderId.
+   * @param message message to send; must contain valid subject.
    */
   public void send(StreamMessage message) {
     serverStream.send(message);

@@ -2,8 +2,7 @@ package io.scalecube.streams.codec;
 
 import static io.scalecube.streams.StreamMessage.DATA_NAME;
 import static io.scalecube.streams.StreamMessage.QUALIFIER_NAME;
-import static io.scalecube.streams.StreamMessage.SENDER_ID_NAME;
-import static io.scalecube.streams.StreamMessage.STREAM_ID_NAME;
+import static io.scalecube.streams.StreamMessage.SUBJECT_NAME;
 
 import io.scalecube.streams.StreamMessage;
 
@@ -20,7 +19,7 @@ import java.util.function.Function;
 
 public final class StreamMessageCodec {
 
-  private static final List<String> FLAT_FIELDS = ImmutableList.of(QUALIFIER_NAME, SENDER_ID_NAME, STREAM_ID_NAME);
+  private static final List<String> FLAT_FIELDS = ImmutableList.of(QUALIFIER_NAME, SUBJECT_NAME);
   private static final List<String> MATCH_FIELDS = ImmutableList.of(DATA_NAME);
 
   private StreamMessageCodec() {
@@ -42,11 +41,8 @@ public final class StreamMessageCodec {
           case QUALIFIER_NAME:
             messageBuilder.qualifier((String) value);
             break;
-          case SENDER_ID_NAME:
-            messageBuilder.senderId((String) value);
-            break;
-          case STREAM_ID_NAME:
-            messageBuilder.streamId((String) value);
+          case SUBJECT_NAME:
+            messageBuilder.subject((String) value);
             break;
           case DATA_NAME:
             messageBuilder.data(value); // ByteBuf
@@ -75,10 +71,8 @@ public final class StreamMessageCodec {
         switch (fieldName) {
           case QUALIFIER_NAME:
             return message.getQualifier();
-          case SENDER_ID_NAME:
-            return message.getSenderId();
-          case STREAM_ID_NAME:
-            return message.getStreamId();
+          case SUBJECT_NAME:
+            return message.getSubject();
           case DATA_NAME:
             return message.getData(); // ByteBuf
           default:

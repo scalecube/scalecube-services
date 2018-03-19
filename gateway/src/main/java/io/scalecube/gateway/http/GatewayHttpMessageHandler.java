@@ -40,7 +40,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
           FullHttpResponse response;
 
           if (!Q_ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
-            response = message.hasData()
+            response = message.isDataPresent()
                 ? HttpCodecUtil.okResponse((ByteBuf) message.getData())
                 : HttpCodecUtil.emptyResponse();
           } else {

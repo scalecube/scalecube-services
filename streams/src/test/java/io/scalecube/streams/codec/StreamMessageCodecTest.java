@@ -53,25 +53,23 @@ public class StreamMessageCodecTest {
   @Test
   public void testCodecWithAllFieldsAndNullData() {
     StreamMessage src = StreamMessage.withQualifier("q")
-        .streamId("stream_id")
-        .senderId("sender_id0/sender_id1/sender_id2")
+        .subject("id0/id1/id2")
         .data(null).build();
-    assertEquals("{\"q\":\"q\"," +
-        "\"senderId\":\"sender_id0/sender_id1/sender_id2\"," +
-        "\"streamId\":\"stream_id\"}", StreamMessageCodec.encode(src).toString(UTF_8));
+    assertEquals("{\"q\":\"q\",\"subject\":\"id0/id1/id2\"}",
+        StreamMessageCodec.encode(src).toString(UTF_8));
   }
 
   @Test
   public void testCodecWithEmptyData() {
-    StreamMessage src = StreamMessage.withQualifier("q").streamId("stream_id").data(Unpooled.EMPTY_BUFFER).build();
-    assertEquals("{\"q\":\"q\",\"streamId\":\"stream_id\"}", StreamMessageCodec.encode(src).toString(UTF_8));
+    StreamMessage src = StreamMessage.withQualifier("q").subject("subject").data(Unpooled.EMPTY_BUFFER).build();
+    assertEquals("{\"q\":\"q\",\"subject\":\"subject\"}", StreamMessageCodec.encode(src).toString(UTF_8));
   }
 
   @Test
   public void testCodecWithoutData() {
-    StreamMessage src = StreamMessage.withQualifier("q").streamId("streamId").senderId("senderId").build();
+    StreamMessage src = StreamMessage.withQualifier("q").subject("subject").build();
     ByteBuf buf = StreamMessageCodec.encode(src);
-    assertEquals("{\"q\":\"q\",\"senderId\":\"senderId\",\"streamId\":\"streamId\"}", buf.toString(UTF_8));
+    assertEquals("{\"q\":\"q\",\"subject\":\"subject\"}", buf.toString(UTF_8));
 
     ByteBuf buf1 = buf.copy();
     int ri = buf1.readerIndex();
@@ -83,31 +81,19 @@ public class StreamMessageCodecTest {
   @Test
   public void testCodecWithByteBufData() {
     ByteBuf dataBuf = copiedBuffer("{\"sessiontimerallowed\":1,\"losslimitallowed\":1}", UTF_8);
-    StreamMessage src = StreamMessage.withQualifier("q").streamId("streamId").data(dataBuf).build();
+    StreamMessage src = StreamMessage.withQualifier("q").subject("subject").data(dataBuf).build();
 
     int ri = dataBuf.readerIndex();
     ByteBuf buf = StreamMessageCodec.encode(src);
-    assertEquals("{\"q\":\"q\",\"streamId\":\"streamId\",\"data\":{\"sessiontimerallowed\":1,\"losslimitallowed\":1}}",
+    assertEquals("{\"q\":\"q\",\"subject\":\"subject\",\"data\":{\"sessiontimerallowed\":1,\"losslimitallowed\":1}}",
         buf.toString(UTF_8));
     assertEquals(ri, dataBuf.readerIndex());
 
     StreamMessage message = StreamMessageCodec.decode(buf.copy());
     assertNotNull(message.getData());
     assertEquals("q", message.getQualifier());
-    assertEquals("streamId", message.getStreamId());
+    assertEquals("subject", message.getSubject());
     assertEquals(dataBuf.toString(UTF_8), ((ByteBuf) message.getData()).toString(UTF_8));
-  }
-
-  @Test
-  public void testCodecWithByteBufDataSurrogated() {
-    ByteBuf byteSrc =
-        copiedBuffer("{\"sessiontimerallowed\":1,\"losslimitallowed\":1,\"something\":\"\ud83d\ude0c\"}", UTF_8);
-    StreamMessage src = StreamMessage.withQualifier("q").streamId("stream_id").data(byteSrc).build();
-
-    ByteBuf bb = StreamMessageCodec.encode(src);
-    String s = bb.toString(UTF_8);
-    assertEquals(s.charAt(98), (char) 0xD83D);
-    assertEquals(s.charAt(99), (char) 0xDE0C);
   }
 
   @Test
@@ -115,14 +101,12 @@ public class StreamMessageCodecTest {
     ByteBuf buf = copiedBuffer("{\"hello\"w{o{r{l{d", UTF_8);
     int ri = buf.readerIndex();
     StreamMessage msg = StreamMessage.withQualifier("q")
-        .streamId("stream_id")
-        .senderId("sender_id0/sender_id1/sender_id/2")
+        .subject("id0/id1/id/2")
         .data(buf)
         .build();
 
     assertEquals("{\"q\":\"q\"," +
-        "\"senderId\":\"sender_id0/sender_id1/sender_id/2\"," +
-        "\"streamId\":\"stream_id\"," +
+        "\"subject\":\"id0/id1/id/2\"," +
         "\"data\":{\"hello\"w{o{r{l{d}", StreamMessageCodec.encode(msg).toString(UTF_8));
     assertEquals(ri, buf.readerIndex());
   }

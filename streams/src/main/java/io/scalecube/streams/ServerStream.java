@@ -3,14 +3,13 @@ package io.scalecube.streams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
 import java.util.function.BiConsumer;
 
 public final class ServerStream extends DefaultEventStream {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServerStream.class);
 
-  public static final String SENDER_ID_DELIMITER = "/";
+  public static final String SUBJECT_DELIMITER = "/";
 
   public static final Throwable INVALID_IDENTITY_EXCEPTION =
       new IllegalArgumentException("StreamMessage: identity is invalid or missing");
@@ -27,10 +26,10 @@ public final class ServerStream extends DefaultEventStream {
   }
 
   /**
-   * Sends a message to client identified by message's senderId, and applying server stream semantic for outbound
+   * Sends a message to client identified by message's subject, and applying server stream semantic for outbound
    * messages.
    * 
-   * @param message message to send; must contain valid senderId.
+   * @param message message to send; must contain valid subject.
    */
   public void send(StreamMessage message) {
     send(message, ChannelContext::postWrite, this::handleFailedMessageSend);
@@ -48,7 +47,7 @@ public final class ServerStream extends DefaultEventStream {
    * This method applies server stream semantic for outbound messages and giving mechanism to react on successful and
    * unsuccessfull outcomes.
    * 
-   * @param message message to send; must contain valid senderId.
+   * @param message message to send; must contain valid subject.
    * @param consumer action to proceed with message after figuring out its identity; in the biConsumer first param is a
    *        {@link ChannelContext}, the second - a message to work with further.
    * @param throwableConsumer throwable consumer; in the biConsumer first param is an error occured during message send,
@@ -56,33 +55,33 @@ public final class ServerStream extends DefaultEventStream {
    */
   public void send(StreamMessage message,
       BiConsumer<ChannelContext, StreamMessage> consumer, BiConsumer<Throwable, StreamMessage> throwableConsumer) {
-    if (!message.hasSenderId()
-        || message.getSenderId().startsWith(SENDER_ID_DELIMITER)
-        || message.getSenderId().endsWith(SENDER_ID_DELIMITER)) {
+    if (!message.isSubjectPresent()
+        || message.getSubject().startsWith(SUBJECT_DELIMITER)
+        || message.getSubject().endsWith(SUBJECT_DELIMITER)) {
       throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
       return;
     }
 
-    String senderId = message.getSenderId();
-    String serverId = senderId;
-    String newSenderId = null;
-    int delimiter = senderId.lastIndexOf(SENDER_ID_DELIMITER);
-    if (delimiter > 0) {
+    String subject = message.getSubject();
+    String lastIdentity = subject;
+    String newSubject = null;
+    int lastDelimiter = subject.lastIndexOf(SUBJECT_DELIMITER);
+    if (lastDelimiter > 0) {
       // extract last identity
-      serverId = senderId.substring(delimiter + 1);
-      if (serverId.isEmpty()) {
+      lastIdentity = subject.substring(lastDelimiter + 1);
+      if (lastIdentity.isEmpty()) {
         throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
         return;
       }
-      // construct new sender qualfier
-      newSenderId = senderId.substring(0, delimiter);
-      if (newSenderId.isEmpty()) {
+      // construct new subject qualfier
+      newSubject = subject.substring(0, lastDelimiter);
+      if (newSubject.isEmpty()) {
         throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
         return;
       }
     }
 
-    ChannelContext channelContext = ChannelContext.getIfExist(serverId);
+    ChannelContext channelContext = ChannelContext.getIfExist(lastIdentity);
     if (channelContext == null) {
       throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
       return;
@@ -90,7 +89,7 @@ public final class ServerStream extends DefaultEventStream {
 
     try {
       // copy and modify
-      StreamMessage message1 = StreamMessage.copyFrom(message).senderId(newSenderId).build();
+      StreamMessage message1 = StreamMessage.copyFrom(message).subject(newSubject).build();
       consumer.accept(channelContext, message1);
     } catch (Exception throwable) {
       throwableConsumer.accept(throwable, message);
@@ -98,15 +97,15 @@ public final class ServerStream extends DefaultEventStream {
   }
 
   private static Event mapEventOnReceive(Event event) {
-    Optional<StreamMessage> message = event.getMessage();
-    if (!message.isPresent()) {
+    if (!event.getMessage().isPresent()) {
       return event; // pass it through
     }
-    String senderId = event.getIdentity();
-    if (message.get().hasSenderId()) {
-      senderId = message.get().getSenderId() + SENDER_ID_DELIMITER + event.getIdentity();
+    StreamMessage message = event.getMessageOrThrow();
+    String subject = event.getIdentity();
+    if (message.isSubjectPresent()) {
+      subject = message.getSubject() + SUBJECT_DELIMITER + subject;
     }
-    StreamMessage message1 = StreamMessage.copyFrom(message.get()).senderId(senderId).build();
+    StreamMessage message1 = StreamMessage.copyFrom(message).subject(subject).build();
     return Event.copyFrom(event).message(message1).build(); // copy and modify
   }
 
