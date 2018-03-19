@@ -28,9 +28,9 @@ function setupssh {
     chmod 400 ~/.ssh/id_rsa
     touch ~/.ssh/config
 
-    echo 'Host github.com' >> $HOME/.ssh/config
-    echo '    IdentityFile $HOME/.ssh/github.key ' >> $HOME/.ssh/config
-    echo '    StrictHostKeyChecking no' >> $HOME/.ssh/config
+    echo "Host github.com" >> $HOME/.ssh/config
+    echo "    IdentityFile $HOME/.ssh/id_rsa" >> $HOME/.ssh/config
+    echo "    StrictHostKeyChecking no" >> $HOME/.ssh/config
 	
 	eval "$(ssh-agent -s)"
 	ssh-add ~/.ssh/id_rsa
@@ -44,12 +44,6 @@ function setupgit {
 	git config --global user.email "io.scalecube.ci@gmail.com"
     git config --global user.name "io-scalecube-ci"
     git config --global commit.gpgSign false
-	git fetch
-	git branch tmp-branch
-	git push origin tmp-branch
-	git push origin --delete tmp-branch
-	git branch -d tmp-branch
-	
 	git checkout $TRAVIS_BRANCH
 	git reset --hard $TRAVIS_BRANCH
 }
