@@ -9,7 +9,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 
 import rx.Observable;
-import rx.subjects.ReplaySubject;
+import rx.subjects.BehaviorSubject;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -49,27 +49,27 @@ public final class NettyClientTransport {
   }
 
   private Observable<ChannelContext> connect(Address address) {
-    ReplaySubject<ChannelContext> promise = ReplaySubject.create();
+    BehaviorSubject<ChannelContext> subject = BehaviorSubject.create();
 
     ChannelFuture connectFuture = bootstrap.connect(address.host(), address.port());
     connectFuture.addListener((ChannelFutureListener) channelFuture -> {
       Channel channel = channelFuture.channel();
       if (!channelFuture.isSuccess()) {
-        promise.onError(channelFuture.cause());
+        subject.onError(channelFuture.cause());
         return;
       }
       // this line pins channelContext to netty channel
       channel.pipeline().fireChannelActive();
       try {
         // try get channelContext and complete
-        promise.onNext(ChannelSupport.getChannelContextOrThrow(channel));
-        promise.onCompleted();
+        subject.onNext(ChannelSupport.getChannelContextOrThrow(channel));
+        subject.onCompleted();
       } catch (Exception throwable) {
-        promise.onError(throwable);
+        subject.onError(throwable);
       }
     });
 
-    return promise.asObservable().onBackpressureBuffer();
+    return subject;
   }
 
   /**

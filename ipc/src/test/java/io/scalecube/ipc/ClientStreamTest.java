@@ -68,17 +68,23 @@ public class ClientStreamTest {
     clientStream.listen().subscribe(clientStreamSubject);
     AssertableSubscriber<Event> clientStreamSubscriber = clientStreamSubject.test();
 
-    IntStream.rangeClosed(1, 2)
+    IntStream.rangeClosed(1, 5)
         .forEach(i -> clientStream.send(address, ServiceMessage.withQualifier("q/" + i).build()));
 
     List<Event> events =
-        clientStreamSubscriber.awaitValueCount(5, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
+        clientStreamSubscriber.awaitValueCount(11, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
 
     assertEquals(Topic.ChannelContextSubscribed, events.get(0).getTopic());
     assertWrite("q/1", events.get(1));
     assertWriteSuccess("q/1", events.get(2));
     assertWrite("q/2", events.get(3));
     assertWriteSuccess("q/2", events.get(4));
+    assertWrite("q/3", events.get(5));
+    assertWriteSuccess("q/3", events.get(6));
+    assertWrite("q/4", events.get(7));
+    assertWriteSuccess("q/4", events.get(8));
+    assertWrite("q/5", events.get(9));
+    assertWriteSuccess("q/5", events.get(10));
   }
 
   @Test
@@ -87,15 +93,18 @@ public class ClientStreamTest {
     serverStream.listen().subscribe(serverStreamSubject);
     AssertableSubscriber<Event> clientStreamSubscriber = serverStreamSubject.test();
 
-    IntStream.rangeClosed(1, 2)
+    IntStream.rangeClosed(1, 5)
         .forEach(i -> clientStream.send(address, ServiceMessage.withQualifier("hola/" + i).build()));
 
     List<Event> events =
-        clientStreamSubscriber.awaitValueCount(3, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
+        clientStreamSubscriber.awaitValueCount(6, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
 
     assertEquals(Topic.ChannelContextSubscribed, events.get(0).getTopic());
     assertReadSuccess("hola/1", events.get(1));
     assertReadSuccess("hola/2", events.get(2));
+    assertReadSuccess("hola/3", events.get(3));
+    assertReadSuccess("hola/4", events.get(4));
+    assertReadSuccess("hola/5", events.get(5));
   }
 
   @Test
@@ -108,14 +117,17 @@ public class ClientStreamTest {
     clientStream.listen().filter(Event::isReadSuccess).subscribe(clientStreamSubject);
     AssertableSubscriber<Event> clientStreamSubscriber = clientStreamSubject.test();
 
-    IntStream.rangeClosed(1, 2)
+    IntStream.rangeClosed(1, 5)
         .forEach(i -> clientStream.send(address, ServiceMessage.withQualifier("hola/" + i).build()));
 
     List<Event> events =
-        clientStreamSubscriber.awaitValueCount(2, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
+        clientStreamSubscriber.awaitValueCount(5, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
 
     assertReadSuccess("hola/1", events.get(0));
     assertReadSuccess("hola/2", events.get(1));
+    assertReadSuccess("hola/3", events.get(2));
+    assertReadSuccess("hola/4", events.get(3));
+    assertReadSuccess("hola/5", events.get(4));
   }
 
   @Test
