@@ -2,14 +2,17 @@
 
 echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
-if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  || [ "$TRAVIS_BRANCH" = 'develop' ]; then
+
+function deployment {
+  if [ "$TRAVIS_PULL_REQUEST" == 'false' ] &&  [ "$TRAVIS_BRANCH" = 'master' ]  || [ "$TRAVIS_BRANCH" = 'develop' ]; then
 	echo     deployment
 	echo *-*-*-*-*-*-*-*-*-*-*-*
     decryptsecrets
     importpgp
     setupssh
     setupgit
-fi
+  fi
+}
 
 function decryptsecrets {
 	echo   decrypting secrets
@@ -59,5 +62,6 @@ function setupgit {
 	git checkout $TRAVIS_BRANCH
 	git reset --hard $TRAVIS_BRANCH
 }
-		
-	
+
+deployment
+
