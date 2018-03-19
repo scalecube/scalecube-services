@@ -1,8 +1,8 @@
 package io.scalecube.gateway.socketio;
 
-import io.scalecube.ipc.ServerStream;
 import io.scalecube.socketio.ServerConfiguration;
 import io.scalecube.socketio.SocketIOServer;
+import io.scalecube.streams.ServerStream;
 
 import io.netty.bootstrap.ServerBootstrap;
 

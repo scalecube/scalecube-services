@@ -1,7 +1,7 @@
 package io.scalecube.gateway.http;
 
-import io.scalecube.ipc.EventStream;
-import io.scalecube.ipc.netty.ChannelContextHandler;
+import io.scalecube.streams.EventStream;
+import io.scalecube.streams.netty.ChannelContextHandler;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler.Sharable;

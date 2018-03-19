@@ -81,7 +81,7 @@
         <module>examples</module>
         <module>services</module>
         <module>utils</module>
-        <module>ipc</module>
+        <module>streams</module>
         <module>gateway</module>
     </modules>
 

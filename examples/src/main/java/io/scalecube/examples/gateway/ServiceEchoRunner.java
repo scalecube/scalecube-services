@@ -1,7 +1,7 @@
 package io.scalecube.examples.gateway;
 
-import io.scalecube.ipc.Event;
-import io.scalecube.ipc.ListeningServerStream;
+import io.scalecube.streams.Event;
+import io.scalecube.streams.ListeningServerStream;
 
 /**
  * Simple echo runner.

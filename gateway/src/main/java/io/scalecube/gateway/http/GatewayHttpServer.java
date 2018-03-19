@@ -1,6 +1,6 @@
 package io.scalecube.gateway.http;
 
-import io.scalecube.ipc.ServerStream;
+import io.scalecube.streams.ServerStream;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;

@@ -2,10 +2,10 @@ package io.scalecube.examples.gateway;
 
 import io.scalecube.gateway.http.GatewayHttpServer;
 import io.scalecube.gateway.socketio.GatewaySocketIoServer;
-import io.scalecube.ipc.ClientStream;
-import io.scalecube.ipc.Event;
-import io.scalecube.ipc.ListeningServerStream;
-import io.scalecube.ipc.ServerStream;
+import io.scalecube.streams.ClientStream;
+import io.scalecube.streams.Event;
+import io.scalecube.streams.ListeningServerStream;
+import io.scalecube.streams.ServerStream;
 import io.scalecube.transport.Address;
 
 /**

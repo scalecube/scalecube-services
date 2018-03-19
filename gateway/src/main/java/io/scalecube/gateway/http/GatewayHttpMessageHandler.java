@@ -1,13 +1,13 @@
 package io.scalecube.gateway.http;
 
-import static io.scalecube.ipc.Qualifier.Q_ERROR_NAMESPACE;
+import static io.scalecube.streams.Qualifier.Q_ERROR_NAMESPACE;
 
-import io.scalecube.ipc.ChannelContext;
-import io.scalecube.ipc.ErrorData;
-import io.scalecube.ipc.Event;
-import io.scalecube.ipc.Qualifier;
-import io.scalecube.ipc.ServiceMessage;
-import io.scalecube.ipc.netty.ChannelSupport;
+import io.scalecube.streams.ChannelContext;
+import io.scalecube.streams.ErrorData;
+import io.scalecube.streams.Event;
+import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.StreamMessage;
+import io.scalecube.streams.netty.ChannelSupport;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
@@ -92,7 +92,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
       // Hint: qualifier format could be changed to start from '/' there be saving from substringing
       String qualifier = request.uri().substring(1);
 
-      ServiceMessage.Builder builder = ServiceMessage.withQualifier(qualifier);
+      StreamMessage.Builder builder = StreamMessage.withQualifier(qualifier);
       if (request.content().isReadable()) {
         builder.data(request.content());
       }

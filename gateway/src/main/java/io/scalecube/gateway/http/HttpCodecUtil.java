@@ -1,12 +1,12 @@
 package io.scalecube.gateway.http;
 
-import static io.scalecube.ipc.ErrorData.ERROR_CODE_NAME;
-import static io.scalecube.ipc.ErrorData.MESSAGE_NAME;
-import static io.scalecube.ipc.Qualifier.Q_ERROR_NAMESPACE;
+import static io.scalecube.streams.ErrorData.ERROR_CODE_NAME;
+import static io.scalecube.streams.ErrorData.MESSAGE_NAME;
+import static io.scalecube.streams.Qualifier.Q_ERROR_NAMESPACE;
 
-import io.scalecube.ipc.ErrorData;
-import io.scalecube.ipc.Qualifier;
-import io.scalecube.ipc.codec.JsonCodec;
+import io.scalecube.streams.ErrorData;
+import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.codec.JsonCodec;
 
 import com.google.common.collect.ImmutableList;
 

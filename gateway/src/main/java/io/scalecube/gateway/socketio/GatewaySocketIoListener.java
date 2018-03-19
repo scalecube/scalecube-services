@@ -1,12 +1,12 @@
 package io.scalecube.gateway.socketio;
 
-import io.scalecube.ipc.ChannelContext;
-import io.scalecube.ipc.Event;
-import io.scalecube.ipc.EventStream;
-import io.scalecube.ipc.codec.ServiceMessageCodec;
-import io.scalecube.ipc.netty.ChannelSupport;
 import io.scalecube.socketio.Session;
 import io.scalecube.socketio.SocketIOListener;
+import io.scalecube.streams.ChannelContext;
+import io.scalecube.streams.Event;
+import io.scalecube.streams.EventStream;
+import io.scalecube.streams.codec.StreamMessageCodec;
+import io.scalecube.streams.netty.ChannelSupport;
 import io.scalecube.transport.Address;
 
 import io.netty.buffer.ByteBuf;
@@ -60,7 +60,7 @@ public final class GatewaySocketIoListener implements SocketIOListener {
 
     channelContext.listenWrite().map(Event::getMessageOrThrow).subscribe(
         message -> {
-          ByteBuf buf = ServiceMessageCodec.encode(message);
+          ByteBuf buf = StreamMessageCodec.encode(message);
           ChannelSupport.releaseRefCount(message.getData()); // release ByteBuf
           try {
             session.send(buf);
@@ -94,7 +94,7 @@ public final class GatewaySocketIoListener implements SocketIOListener {
     }
 
     try {
-      channelContext.postReadSuccess(ServiceMessageCodec.decode(buf));
+      channelContext.postReadSuccess(StreamMessageCodec.decode(buf));
     } catch (Exception throwable) {
       ChannelSupport.releaseRefCount(buf);
       channelContext.postReadError(throwable);
