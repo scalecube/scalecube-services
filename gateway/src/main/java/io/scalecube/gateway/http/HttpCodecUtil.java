@@ -6,7 +6,7 @@ import static io.scalecube.streams.Qualifier.Q_ERROR_NAMESPACE;
 
 import io.scalecube.streams.ErrorData;
 import io.scalecube.streams.Qualifier;
-import io.scalecube.streams.codec.JsonCodec;
+import io.scalecube.streams.codec.ByteBufCodec;
 
 import com.google.common.collect.ImmutableList;
 
@@ -100,7 +100,7 @@ public final class HttpCodecUtil {
   private static ByteBuf encodeErrorData(ErrorData errorData) {
     ByteBuf buf = ByteBufAllocator.DEFAULT.buffer();
     try {
-      JsonCodec.encode(buf, ERROR_DATA_FIELDS, Collections.emptyList(), fieldName -> {
+      ByteBufCodec.encode(buf, ERROR_DATA_FIELDS, Collections.emptyList(), fieldName -> {
         switch (fieldName) {
           case ERROR_CODE_NAME:
             return errorData.getErrorCode();

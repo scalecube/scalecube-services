@@ -1,13 +1,13 @@
 package io.scalecube.streams.codec;
 
-import static io.scalecube.streams.codec.JsonCodec.ASCII_CLOSING_BRACE;
-import static io.scalecube.streams.codec.JsonCodec.ASCII_DOUBLE_QUOTES;
-import static io.scalecube.streams.codec.JsonCodec.ASCII_ESCAPE;
-import static io.scalecube.streams.codec.JsonCodec.ASCII_OPENING_BRACE;
-import static io.scalecube.streams.codec.JsonCodec.MatchHeaderByteBufProcessor.STATE_ESCAPED;
-import static io.scalecube.streams.codec.JsonCodec.MatchHeaderByteBufProcessor.STATE_OBJECT;
-import static io.scalecube.streams.codec.JsonCodec.MatchHeaderByteBufProcessor.STATE_START;
-import static io.scalecube.streams.codec.JsonCodec.MatchHeaderByteBufProcessor.STATE_STRING;
+import static io.scalecube.streams.codec.ByteBufCodec.ASCII_CLOSING_BRACE;
+import static io.scalecube.streams.codec.ByteBufCodec.ASCII_DOUBLE_QUOTES;
+import static io.scalecube.streams.codec.ByteBufCodec.ASCII_ESCAPE;
+import static io.scalecube.streams.codec.ByteBufCodec.ASCII_OPENING_BRACE;
+import static io.scalecube.streams.codec.ByteBufCodec.MatchHeaderByteBufProcessor.STATE_ESCAPED;
+import static io.scalecube.streams.codec.ByteBufCodec.MatchHeaderByteBufProcessor.STATE_OBJECT;
+import static io.scalecube.streams.codec.ByteBufCodec.MatchHeaderByteBufProcessor.STATE_START;
+import static io.scalecube.streams.codec.ByteBufCodec.MatchHeaderByteBufProcessor.STATE_STRING;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -17,13 +17,13 @@ import org.junit.Test;
 
 public class MatchHeaderByteBufProcessorTest {
 
-  private JsonCodec.MatchHeaderByteBufProcessor processor;
+  private ByteBufCodec.MatchHeaderByteBufProcessor processor;
 
   private int startIndex = 10;
 
   @Before
   public void init() {
-    processor = JsonCodec.MatchHeaderByteBufProcessor.newInstance(startIndex);
+    processor = ByteBufCodec.MatchHeaderByteBufProcessor.newInstance(startIndex);
   }
 
   @Test

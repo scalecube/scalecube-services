@@ -15,6 +15,8 @@ import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
 
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public final class StreamMessageCodec {
 
@@ -26,15 +28,16 @@ public final class StreamMessageCodec {
   }
 
   /**
-   * Takes a buffer and.
+   * Decodes message from ByteBuf.
    * 
-   * @param buf source buffer; reader index of this buffer will stay unchanged.
+   * @param sourceBuf source buffer; reader index of this buffer will stay unchanged.
    * @return message with sliced data buffer extracted from source buffer.
+   * @see ByteBufCodec#decode(ByteBuf, List, List, BiConsumer)
    */
-  public static StreamMessage decode(ByteBuf buf) {
+  public static StreamMessage decode(ByteBuf sourceBuf) {
     StreamMessage.Builder messageBuilder = StreamMessage.builder();
     try {
-      JsonCodec.decode(buf.slice(), FLAT_FIELDS, MATCH_FIELDS, (fieldName, value) -> {
+      ByteBufCodec.decode(sourceBuf.slice(), FLAT_FIELDS, MATCH_FIELDS, (fieldName, value) -> {
         switch (fieldName) {
           case QUALIFIER_NAME:
             messageBuilder.qualifier((String) value);
@@ -59,15 +62,16 @@ public final class StreamMessageCodec {
   }
 
   /**
-   * Encode message to byte buffer.
+   * Encodes message to ByteBuf.
    * 
-   * @param message to encode to byte buffer.
-   * @return message as byte buffer.
+   * @param message to encode
+   * @return encoded message
+   * @see ByteBufCodec#encode(ByteBuf, List, List, Function)
    */
   public static ByteBuf encode(StreamMessage message) {
-    ByteBuf buf = ByteBufAllocator.DEFAULT.buffer();
+    ByteBuf targetBuf = ByteBufAllocator.DEFAULT.buffer();
     try {
-      JsonCodec.encode(buf, FLAT_FIELDS, MATCH_FIELDS, fieldName -> {
+      ByteBufCodec.encode(targetBuf, FLAT_FIELDS, MATCH_FIELDS, fieldName -> {
         switch (fieldName) {
           case QUALIFIER_NAME:
             return message.getQualifier();
@@ -82,9 +86,9 @@ public final class StreamMessageCodec {
         }
       });
     } catch (Exception e) {
-      buf.release(); // buf belongs to this function => he released in this function
+      targetBuf.release(); // buf belongs to this function => he released in this function
       throw new EncoderException(e);
     }
-    return buf;
+    return targetBuf;
   }
 }

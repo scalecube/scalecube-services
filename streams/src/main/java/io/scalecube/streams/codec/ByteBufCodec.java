@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public final class JsonCodec {
+public final class ByteBufCodec {
 
   public static final byte ASCII_COLON = 58; // :
   public static final byte ASCII_DOUBLE_QUOTES = 34; // "
@@ -34,11 +34,13 @@ public final class JsonCodec {
   public static final byte ASCII_CR = 13; // Carriage return
   public static final byte ASCII_U_HEX = 117; // Escape any hex symbol
 
-  private JsonCodec() {
+  private ByteBufCodec() {
     // Do not instantiate
   }
 
   /**
+   * Decodes json payload and notifies consumer callback with parsed field name field value pairs.
+   * 
    * @param sourceBuf source buffer.
    * @param getList fields for getting values for (String objects will be allocated).
    * @param matchList fields to match, i.e. not to allocate String (sliced buffers will be created).
@@ -101,9 +103,11 @@ public final class JsonCodec {
   }
 
   /**
+   * Encodes object which comes with function mapper into json byte buf.
+   * 
    * @param targetBuf source outgoing buffer.
-   * @param flatList 'flat' fields (e.g. "streamId") to go into resulting json.
-   * @param complexList 'complex' fields (e.g. field "data") to go into resulting json.
+   * @param flatList flat fields that go into resulting json.
+   * @param complexList complex fields that go into resulting json.
    * @param mapper function which by header name return corresponding object (either String or ByteBuf).
    */
   public static void encode(ByteBuf targetBuf, List<String> flatList, List<String> complexList,

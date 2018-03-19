@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.BiConsumer;
 
-public class JsonCodecTest {
+public class ByteBufCodecTest {
 
   private static final String QUALIFIER = "io'scalecube'services'transport'\\/Request\\/日本語";
 
@@ -69,7 +69,7 @@ public class JsonCodecTest {
   public void testParseSimple() {
     List<String> get = ImmutableList.of("key");
     List<String> match = Collections.emptyList();
-    JsonCodec.decode(copiedBuffer("{\"key\":\"1234\"}", UTF_8), get, match, (headerName, value) -> {
+    ByteBufCodec.decode(copiedBuffer("{\"key\":\"1234\"}", UTF_8), get, match, (headerName, value) -> {
       if ("key".equals(headerName)) {
         messageBuilder = messageBuilder.qualifier((String) value);
       }
@@ -81,7 +81,7 @@ public class JsonCodecTest {
   public void testParse() {
     List<String> get = ImmutableList.of("streamId", "q");
     List<String> match = ImmutableList.of("data");
-    JsonCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("io'scalecube'services'transport'/Request/日本語", message.getQualifier());
     assertEquals(STREAM_ID, message.getStreamId());
@@ -98,7 +98,7 @@ public class JsonCodecTest {
 
     List<String> get = ImmutableList.of("nothing");
     List<String> match = ImmutableList.of("data");
-    JsonCodec.decode(copiedBuffer(sourceJson, UTF_8), get, match, (headerName, value) -> {
+    ByteBufCodec.decode(copiedBuffer(sourceJson, UTF_8), get, match, (headerName, value) -> {
       switch (headerName) {
         case StreamMessage.DATA_NAME:
           messageBuilder = messageBuilder.data(((ByteBuf) value).toString(CharsetUtil.UTF_8));
@@ -123,7 +123,7 @@ public class JsonCodecTest {
 
     List<String> get = ImmutableList.of("nothing");
     List<String> match = ImmutableList.of("data");
-    JsonCodec.decode(copiedBuffer(sourceJson, UTF_8), get, match, (headerName, value) -> {
+    ByteBufCodec.decode(copiedBuffer(sourceJson, UTF_8), get, match, (headerName, value) -> {
       switch (headerName) {
         case StreamMessage.DATA_NAME:
           messageBuilder = messageBuilder.data(((ByteBuf) value).toString(CharsetUtil.UTF_8));
@@ -141,7 +141,7 @@ public class JsonCodecTest {
   public void testParseCrappyHeaders() {
     List<String> get = ImmutableList.of("\"contextId\"", "\"q\"", "\"streamId\"");
     List<String> match = ImmutableList.of("data");
-    JsonCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertNull(message.getQualifier());
     assertNull(message.getStreamId());
@@ -151,14 +151,14 @@ public class JsonCodecTest {
   public void testParseWithoutDataAndWithUnescapedDoubleQuotesInsideFail() {
     List<String> get = ImmutableList.of("streamId");
     List<String> match = ImmutableList.of("data");
-    JsonCodec.decode(copiedBuffer("{\"streamId\":\"" + STREAM_ID + "\"\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"" + STREAM_ID + "\"\"}", UTF_8), get, match, consumer);
   }
 
   @Test
   public void testParseWithoutDataAndWithEscapedDoubleQuotes() {
     List<String> get = ImmutableList.of("streamId");
     List<String> match = ImmutableList.of("data");
-    JsonCodec.decode(copiedBuffer("{\"streamId\":\"" + STREAM_ID + "\\\"\\\"" + "\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"" + STREAM_ID + "\\\"\\\"" + "\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals(STREAM_ID + "\"\"", message.getStreamId());
   }
@@ -167,7 +167,7 @@ public class JsonCodecTest {
   public void testParseInvalidColonPlacement() {
     List<String> get = ImmutableList.of("streamId", "streamId");
     List<String> match = Collections.emptyList();
-    JsonCodec.decode(copiedBuffer("{\"streamId\":\"cool\" :}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"cool\" :}", UTF_8), get, match, consumer);
     fail("IllegalStateException should be thrown in case of invalid colon placement");
   }
 
@@ -175,7 +175,8 @@ public class JsonCodecTest {
   public void testParseInsignificantSymbols() {
     List<String> get = ImmutableList.of("streamId");
     List<String> match = Collections.emptyList();
-    JsonCodec.decode(copiedBuffer("{\n\r\t \"streamId\"\n\r\t :\n\r\t \"cool\"\n\r\t }", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\n\r\t \"streamId\"\n\r\t :\n\r\t \"cool\"\n\r\t }", UTF_8), get, match,
+        consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("Whitespaces before and after colon should be ignored", "cool", message.getStreamId());
   }
@@ -184,7 +185,7 @@ public class JsonCodecTest {
   public void testParseEscapedCharacters() {
     List<String> get = ImmutableList.of("streamId");
     List<String> match = Collections.emptyList();
-    JsonCodec.decode(copiedBuffer("{\"streamId\":\"\\\"quoted\\\"\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"streamId\":\"\\\"quoted\\\"\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("Parsed string doesn't match source one", "\"quoted\"", message.getStreamId());
   }
@@ -193,7 +194,7 @@ public class JsonCodecTest {
   public void testSkipExtraFields() {
     List<String> get = ImmutableList.of("q");
     List<String> match = Collections.emptyList();
-    JsonCodec.decode(copiedBuffer("{\"extra\":\"1234\"," + "\"q\":\"" + 123 + "\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"extra\":\"1234\"," + "\"q\":\"" + 123 + "\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("Parsed string doesn't match source one", "123", message.getQualifier());
   }
@@ -202,7 +203,7 @@ public class JsonCodecTest {
   public void testParseEscapeSymbolsInData() {
     List<String> get = ImmutableList.of("q");
     List<String> match = ImmutableList.of("data");
-    JsonCodec.decode(copiedBuffer("{\"data\":\"\\u1234\"," + "\"q\":\"" + 123 + "\"}", UTF_8), get, match, consumer);
+    ByteBufCodec.decode(copiedBuffer("{\"data\":\"\\u1234\"," + "\"q\":\"" + 123 + "\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("Parsed string doesn't match source one", "123", message.getQualifier());
     assertEquals("Data is not equal", "\"\\u1234\"", ((ByteBuf) message.getData()).toString(CharsetUtil.UTF_8));
@@ -212,7 +213,7 @@ public class JsonCodecTest {
   public void testParseEscapedHexSymbol() {
     List<String> get = ImmutableList.of("q", "streamId");
     List<String> match = Collections.emptyList();
-    JsonCodec.decode(copiedBuffer("{\"q\":\"\\uCEB1\\u0061\\u0063\\u006B\\uaef1\"," +
+    ByteBufCodec.decode(copiedBuffer("{\"q\":\"\\uCEB1\\u0061\\u0063\\u006B\\uaef1\"," +
         "\"streamId\":\"\\u0068\\u0061\\u0063\\u006b\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
     assertEquals("Parsed string doesn't match source one", "캱ack껱", message.getQualifier());
@@ -226,7 +227,7 @@ public class JsonCodecTest {
     List<String> match = Collections.emptyList();
 
     ByteBuf targetBuf = Unpooled.buffer();
-    JsonCodec.encode(targetBuf, get, match, headerName -> {
+    ByteBufCodec.encode(targetBuf, get, match, headerName -> {
       switch (headerName) {
         case "q":
           return message.getQualifier();
@@ -238,7 +239,7 @@ public class JsonCodecTest {
     });
 
     StreamMessage.Builder builder = StreamMessage.builder();
-    JsonCodec.decode(copiedBuffer(targetBuf), get, match, (headerName, obj) -> {
+    ByteBufCodec.decode(copiedBuffer(targetBuf), get, match, (headerName, obj) -> {
       switch (headerName) {
         case "q":
           builder.qualifier((String) obj);
@@ -262,7 +263,7 @@ public class JsonCodecTest {
     ByteBuf targetBuf = Unpooled.buffer();
     ImmutableList<String> get = ImmutableList.of("q");
     ImmutableList<String> match = ImmutableList.of("data");
-    JsonCodec.encode(targetBuf, get, match, headerName -> {
+    ByteBufCodec.encode(targetBuf, get, match, headerName -> {
       switch (headerName) {
         case "q":
           return message.getQualifier();
@@ -274,7 +275,7 @@ public class JsonCodecTest {
     });
 
     StreamMessage.Builder messageBuilder = StreamMessage.builder();
-    JsonCodec.decode(copiedBuffer(targetBuf), get, match, (headerName, obj) -> {
+    ByteBufCodec.decode(copiedBuffer(targetBuf), get, match, (headerName, obj) -> {
       switch (headerName) {
         case "q":
           messageBuilder.qualifier((String) obj);
