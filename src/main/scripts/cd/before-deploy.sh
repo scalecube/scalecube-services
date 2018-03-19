@@ -43,7 +43,6 @@ function setupgit {
     git remote set-url origin git@github.com:$TRAVIS_REPO_SLUG.git
 	git config --global user.email "io.scalecube.ci@gmail.com"
     git config --global user.name "io-scalecube-ci"
-    git config --global commit.gpgSign false
 	git checkout $TRAVIS_BRANCH
 	git reset --hard $TRAVIS_BRANCH
 }
