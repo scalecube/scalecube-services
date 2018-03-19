@@ -9,7 +9,8 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 
 import rx.Observable;
-import rx.subjects.BehaviorSubject;
+import rx.subjects.ReplaySubject;
+import rx.subjects.Subject;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -49,7 +50,7 @@ public final class NettyClientTransport {
   }
 
   private Observable<ChannelContext> connect(Address address) {
-    BehaviorSubject<ChannelContext> subject = BehaviorSubject.create();
+    Subject<ChannelContext, ChannelContext> subject = ReplaySubject.create(1);
 
     ChannelFuture connectFuture = bootstrap.connect(address.host(), address.port());
     connectFuture.addListener((ChannelFutureListener) channelFuture -> {
