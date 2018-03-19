@@ -7,11 +7,12 @@ public final class Qualifier {
   public static final String Q_DELIMITER = "/";
   public static final String Q_NAMESPACE = "io.scalecube.streams";
   public static final String Q_ERROR_NAMESPACE = Q_NAMESPACE + ".onError";
+  public static final String Q_COMPLETED_NAMESPACE = Q_NAMESPACE + ".onCompleted";
 
   // qualifier for generic error
   public static final Qualifier Q_GENERAL_FAILURE = Qualifier.fromString(Q_ERROR_NAMESPACE + Q_DELIMITER + 500);
   // qualifier for onCompleted event
-  public static final Qualifier Q_ON_COMPLETED = Qualifier.fromString(Q_NAMESPACE + Q_DELIMITER + "onCompleted");
+  public static final Qualifier Q_ON_COMPLETED = Qualifier.fromString(Q_COMPLETED_NAMESPACE + Q_DELIMITER + 1);
 
   private final String namespace;
   private final String action;

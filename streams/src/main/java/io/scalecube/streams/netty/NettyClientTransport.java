@@ -50,7 +50,7 @@ public final class NettyClientTransport {
   }
 
   private Observable<ChannelContext> connect(Address address) {
-    Subject<ChannelContext, ChannelContext> subject = ReplaySubject.create(1);
+    Subject<ChannelContext, ChannelContext> subject = ReplaySubject.<ChannelContext>create().toSerialized();
 
     ChannelFuture connectFuture = bootstrap.connect(address.host(), address.port());
     connectFuture.addListener((ChannelFutureListener) channelFuture -> {

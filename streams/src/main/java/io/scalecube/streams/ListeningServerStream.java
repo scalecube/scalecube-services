@@ -20,11 +20,22 @@ public final class ListeningServerStream implements EventStream {
   private final Config config;
   private final ServerStream serverStream;
 
+  /**
+   * Bootstrap constructor.
+   * 
+   * @param config config to set with
+   */
   private ListeningServerStream(Config config) {
     this.config = config;
     this.serverStream = ServerStream.newServerStream();
   }
 
+  /**
+   * Prototype constructor.
+   * 
+   * @param other instance to copy property references from
+   * @param config config to set with
+   */
   private ListeningServerStream(ListeningServerStream other, Config config) {
     this.config = config;
     this.serverStream = other.serverStream;
