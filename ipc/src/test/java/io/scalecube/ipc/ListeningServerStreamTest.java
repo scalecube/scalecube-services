@@ -7,7 +7,6 @@ import static org.junit.Assert.fail;
 
 import io.scalecube.ipc.Event.Topic;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Addressing;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -92,10 +91,6 @@ public class ListeningServerStreamTest {
     } catch (Exception e) {
       assertTrue(e.getMessage(), e.getMessage().contains("Address already in use"));
     }
-
-    // take local ip and bind on it
-    String localIpAddress = Addressing.getLocalIpAddress().getHostAddress();
-    assertEquals(localIpAddress + ":5801", serverStream.withListenAddress(localIpAddress).bindAwait().toString());
   }
 
   @Test
