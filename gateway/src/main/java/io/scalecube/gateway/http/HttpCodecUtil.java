@@ -1,12 +1,12 @@
 package io.scalecube.gateway.http;
 
-import static io.scalecube.ipc.ErrorData.ERROR_CODE_NAME;
-import static io.scalecube.ipc.ErrorData.MESSAGE_NAME;
-import static io.scalecube.ipc.Qualifier.ERROR_NAMESPACE;
+import static io.scalecube.streams.ErrorData.ERROR_CODE_NAME;
+import static io.scalecube.streams.ErrorData.MESSAGE_NAME;
+import static io.scalecube.streams.Qualifier.Q_ERROR_NAMESPACE;
 
-import io.scalecube.ipc.ErrorData;
-import io.scalecube.ipc.Qualifier;
-import io.scalecube.ipc.codec.JsonCodec;
+import io.scalecube.streams.ErrorData;
+import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.codec.ByteBufCodec;
 
 import com.google.common.collect.ImmutableList;
 
@@ -85,7 +85,7 @@ public final class HttpCodecUtil {
    * Constructs http error response out of message qualifier.
    */
   public static HttpResponseStatus toErrorStatus(Qualifier qualifier) {
-    if (!ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
+    if (!Q_ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
       throw new IllegalArgumentException("Not an error qualifier: " + qualifier);
     }
     int code;
@@ -100,7 +100,7 @@ public final class HttpCodecUtil {
   private static ByteBuf encodeErrorData(ErrorData errorData) {
     ByteBuf buf = ByteBufAllocator.DEFAULT.buffer();
     try {
-      JsonCodec.encode(buf, ERROR_DATA_FIELDS, Collections.emptyList(), fieldName -> {
+      ByteBufCodec.encode(buf, ERROR_DATA_FIELDS, Collections.emptyList(), fieldName -> {
         switch (fieldName) {
           case ERROR_CODE_NAME:
             return errorData.getErrorCode();

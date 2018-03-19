@@ -1,8 +1,8 @@
 package io.scalecube.gateway.socketio;
 
-import io.scalecube.ipc.ServerStream;
 import io.scalecube.socketio.ServerConfiguration;
 import io.scalecube.socketio.SocketIOServer;
+import io.scalecube.streams.ServerStream;
 
 import io.netty.bootstrap.ServerBootstrap;
 
@@ -94,7 +94,7 @@ public final class GatewaySocketIoServer {
     SocketIOServer server = SocketIOServer.newInstance(configuration);
     server.setListener(new GatewaySocketIoListener(config.serverStream));
     if (config.serverBootstrap != null) {
-      server.setServerBootstrapFactory(() -> config.serverBootstrap);
+      server.setServerBootstrapFactory(() -> config.serverBootstrap.clone());
     }
     server.start();
 

@@ -1,6 +1,6 @@
 package io.scalecube.gateway.http;
 
-import io.scalecube.ipc.ServerStream;
+import io.scalecube.streams.ServerStream;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -75,7 +75,7 @@ public final class GatewayHttpServer {
       throw new IllegalStateException("Failed to start server: already started");
     }
 
-    ServerBootstrap serverBootstrap = config.serverBootstrap;
+    ServerBootstrap serverBootstrap = config.serverBootstrap.clone();
 
     serverChannel = serverBootstrap
         .childHandler(new GatewayHttpChannelInitializer(config))
