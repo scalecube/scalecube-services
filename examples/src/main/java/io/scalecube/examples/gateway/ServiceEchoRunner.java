@@ -12,10 +12,11 @@ public class ServiceEchoRunner {
    * Main method.
    */
   public static void main(String[] args) throws InterruptedException {
-    ListeningServerStream serverStream = ListeningServerStream.newListeningServerStream().bind();
-    serverStream.listenReadSuccess()
+    ListeningServerStream listeningServerStream = ListeningServerStream.newListeningServerStream();
+    listeningServerStream.bindAwait();
+    listeningServerStream.listenReadSuccess()
         .map(Event::getMessageOrThrow)
-        .subscribe(serverStream::send);
+        .subscribe(listeningServerStream::send);
 
     Thread.currentThread().join();
   }

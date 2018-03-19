@@ -1,7 +1,6 @@
 package io.scalecube.ipc;
 
 import static io.scalecube.ipc.ServiceMessage.copyFrom;
-import static org.junit.Assert.assertEquals;
 
 import io.scalecube.transport.Address;
 
@@ -46,8 +45,8 @@ public class ClientStreamProcessorTest {
     clientStream = ClientStream.newClientStream(bootstrap);
     clientStreamProcessorFactory = ClientStreamProcessorFactory.newClientStreamProcessorFactory(clientStream);
 
-    listeningServerStream = ListeningServerStream.newListeningServerStream().withListenAddress("localhost").bind();
-    address = listeningServerStream.listenBind().single().toBlocking().first();
+    listeningServerStream = ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
+    address = listeningServerStream.bindAwait();
 
     // setup echo service
     listeningServerStream.listenReadSuccess()
@@ -94,7 +93,6 @@ public class ClientStreamProcessorTest {
     clientStreamProcessorFactory.close();
     clientStream.close();
     listeningServerStream.close();
-    listeningServerStream.listenUnbind().single().toBlocking().first();
     bootstrap.group().shutdownGracefully();
   }
 
@@ -189,8 +187,6 @@ public class ClientStreamProcessorTest {
       // close remote server stream
       AssertableSubscriber<ServiceMessage> subscriber1 = streamProcessor.listen().test();
       listeningServerStream.close();
-      Address unbindAddress = listeningServerStream.listenUnbind().single().toBlocking().first();
-      assertEquals(address, unbindAddress);
 
       // wait few seconds (it's not determined how long
       // connecting party, i.e. ClientStream, should wait for signal that remote has closed socket)

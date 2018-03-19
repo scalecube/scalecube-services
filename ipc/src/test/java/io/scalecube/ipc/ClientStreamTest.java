@@ -30,17 +30,14 @@ public class ClientStreamTest {
   private static final Duration TIMEOUT = Duration.ofMillis(3000);
   private static final long TIMEOUT_MILLIS = TIMEOUT.toMillis();
 
-  private final ListeningServerStream serverStreamTemplate =
-      ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
-
-  private ClientStream clientStream;
-  private ListeningServerStream serverStream;
   private Address address;
+  private ClientStream clientStream;
+  private ListeningServerStream serverStream =
+      ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
 
   @Before
   public void setUp() throws Exception {
     clientStream = ClientStream.newClientStream();
-    serverStream = serverStreamTemplate.bind();
     address = serverStream.bindAwait();
   }
 
@@ -48,7 +45,6 @@ public class ClientStreamTest {
   public void cleanUp() throws Exception {
     clientStream.close();
     serverStream.close();
-    address = serverStream.unbindAwait();
   }
 
   private void assertWrite(String q, Event event) {
@@ -167,7 +163,6 @@ public class ClientStreamTest {
 
     // unbind server channel at serverStream
     serverStream.close();
-    serverStream.unbindAwait();
 
     // await a bit
     TimeUnit.MILLISECONDS.sleep(TIMEOUT_MILLIS);
@@ -180,7 +175,8 @@ public class ClientStreamTest {
 
   @Test
   public void testClientStreamManagesConnections() throws Exception {
-    ListeningServerStream anotherServerStream = serverStreamTemplate.bind();
+    ListeningServerStream anotherServerStream =
+        ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
     Address anotherAddress = anotherServerStream.bindAwait();
 
     try {
@@ -225,7 +221,6 @@ public class ClientStreamTest {
       assertThat(secondCloseEvent.getAddress(), anyOf(is(address), is(anotherAddress)));
     } finally {
       anotherServerStream.close();
-      anotherServerStream.unbindAwait();
     }
   }
 }

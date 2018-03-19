@@ -11,58 +11,60 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 import rx.Observable;
-import rx.subjects.ReplaySubject;
-import rx.subjects.Subject;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public final class ListeningServerStream implements EventStream {
 
-  // listens to bind on server transport
-  private final Subject<Address, Address> bindSubject = ReplaySubject.<Address>create(1).toSerialized();
-  // listens to server transport channel goes off
-  private final Subject<Address, Address> unbindSubject = ReplaySubject.<Address>create(1).toSerialized();
-
   private final Config config;
-  private final ServerStream serverStream = ServerStream.newServerStream();
+  private final ServerStream serverStream;
 
   private ListeningServerStream(Config config) {
     this.config = config;
+    this.serverStream = ServerStream.newServerStream();
   }
 
-  //// Factory
+  private ListeningServerStream(ListeningServerStream other, Config config) {
+    this.config = config;
+    this.serverStream = other.serverStream;
+  }
+
+  //// Factory and config
 
   public static ListeningServerStream newListeningServerStream() {
     return new ListeningServerStream(new Config());
   }
 
   public ListeningServerStream withListenAddress(String listenAddress) {
-    return new ListeningServerStream(config.setListenAddress(listenAddress));
+    return new ListeningServerStream(this, config.setListenAddress(listenAddress));
   }
 
   public ListeningServerStream withListenInterface(String listenInterface) {
-    return new ListeningServerStream(config.setListenInterface(listenInterface));
+    return new ListeningServerStream(this, config.setListenInterface(listenInterface));
   }
 
   public ListeningServerStream withPreferIPv6(boolean preferIPv6) {
-    return new ListeningServerStream(config.setPreferIPv6(preferIPv6));
+    return new ListeningServerStream(this, config.setPreferIPv6(preferIPv6));
   }
 
   public ListeningServerStream withPort(int port) {
-    return new ListeningServerStream(config.setPort(port));
+    return new ListeningServerStream(this, config.setPort(port));
   }
 
   public ListeningServerStream withPortCount(int portCount) {
-    return new ListeningServerStream(config.setPortCount(portCount));
+    return new ListeningServerStream(this, config.setPortCount(portCount));
   }
 
   public ListeningServerStream withPortAutoIncrement(boolean portAutoIncrement) {
-    return new ListeningServerStream(config.setPortAutoIncrement(portAutoIncrement));
+    return new ListeningServerStream(this, config.setPortAutoIncrement(portAutoIncrement));
   }
 
   public ListeningServerStream withServerBootstrap(ServerBootstrap serverBootstrap) {
-    return new ListeningServerStream(config.setServerBootstrap(serverBootstrap));
+    return new ListeningServerStream(this, config.setServerBootstrap(serverBootstrap));
   }
+
+  //// Methods
 
   @Override
   public void subscribe(ChannelContext channelContext) {
@@ -100,11 +102,25 @@ public final class ListeningServerStream implements EventStream {
   }
 
   /**
-   * Subscription point for bind operation on internal server transport. NOTE that after calling {@link #close()}
-   * subscribing to bind would still result in arriving result.
+   * Binds asynchronously according to config object that is present at the moment of bind operation.
+   * 
+   * @return listening server address
    */
-  public Observable<Address> listenBind() {
-    return bindSubject.onBackpressureLatest().asObservable();
+  public CompletableFuture<Address> bind() {
+    CompletableFuture<Address> promise = new CompletableFuture<>();
+    NettyServerTransport serverTransport = new NettyServerTransport(config, serverStream::subscribe);
+    serverTransport.bind().whenComplete((serverTransport1, throwable) -> {
+      if (serverTransport1 != null) {
+        // register cleanup process upfront
+        serverStream.listenClose(aVoid -> serverTransport1.unbind());
+        // complete promise
+        serverTransport1.getServerAddress().ifPresent(promise::complete);
+      }
+      if (throwable != null) {
+        promise.completeExceptionally(throwable);
+      }
+    });
+    return promise;
   }
 
   /**
@@ -114,79 +130,10 @@ public final class ListeningServerStream implements EventStream {
    */
   public Address bindAwait() {
     try {
-      return listenBind().toBlocking().toFuture().get();
+      return bind().get();
     } catch (Exception e) {
       throw Throwables.propagate(Throwables.getRootCause(e));
     }
-  }
-
-  /**
-   * Subscription point for server transport goes off and not listening anymore. NOTE that after calling
-   * {@link #close()} subscribing to unbind would still result in arriving result.
-   */
-  public Observable<Address> listenUnbind() {
-    return unbindSubject.onBackpressureLatest().asObservable();
-  }
-
-  /**
-   * Listens when unbind process finishes and returns an actual unbound-{@link Address}; it's assumed that
-   * {@link #close()} has been called previously.
-   * 
-   * @return unbound address
-   */
-  public Address unbindAwait() {
-    try {
-      return listenUnbind().toBlocking().toFuture().get();
-    } catch (Exception e) {
-      throw Throwables.propagate(Throwables.getRootCause(e));
-    }
-  }
-
-  /**
-   * Binds internal server transport and start listening on port. Use {@link #listenBind()} to obtain result of this
-   * operation. In order to unbind and close server transport call {@link #close()}.
-   * 
-   * @return new server stream object with with issued bind operation.
-   */
-  public ListeningServerStream bind() {
-    ListeningServerStream serverStream = new ListeningServerStream(config);
-
-    NettyServerTransport serverTransport =
-        new NettyServerTransport(config, serverStream::subscribe);
-
-    serverTransport.bind()
-        .whenComplete((serverTransport1, cause) -> onBind(serverStream, serverTransport1, cause));
-
-    return serverStream;
-  }
-
-  private void onBind(ListeningServerStream serverStream, NettyServerTransport serverTransport, Throwable cause) {
-    if (serverTransport != null) {
-      // register cleanup process upfront
-      serverStream.listenClose(aVoid -> unbind(serverStream, serverTransport));
-      // emit bind process
-      serverTransport.getServerAddress().ifPresent(address -> {
-        serverStream.bindSubject.onNext(address);
-        serverStream.bindSubject.onCompleted();
-      });
-    }
-    if (cause != null) {
-      serverStream.bindSubject.onError(cause);
-    }
-  }
-
-  private void unbind(ListeningServerStream serverStream, NettyServerTransport serverTransport) {
-    serverTransport.unbind().whenComplete((serverTransport1, throwable) -> {
-      if (serverTransport1 != null) {
-        serverTransport1.getServerAddress().ifPresent(address -> {
-          serverStream.unbindSubject.onNext(address);
-          serverStream.unbindSubject.onCompleted();
-        });
-      }
-      if (throwable != null) {
-        serverStream.unbindSubject.onError(throwable);
-      }
-    });
   }
 
   //// Config
