@@ -1,4 +1,8 @@
 language: java
+addons:
+  apt:
+    packages:
+    - libxml-xpath-perl
 sudo: required
 jdk:
 - oraclejdk8
