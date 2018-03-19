@@ -20,8 +20,12 @@ public class StreamEchoClientRunner {
 
     StreamProcessor streamProcessor = streamProcessors.client(Address.from("192.168.1.3:5801"));
 
-    streamProcessor.listen().subscribe(System.out::println, Throwable::printStackTrace);
-    IntStream.rangeClosed(1, 1).forEach(i -> {
+    streamProcessor.listen().subscribe(
+        System.out::println,
+        Throwable::printStackTrace,
+        () -> System.out.println("Ok, done with this client stream processor"));
+
+    IntStream.rangeClosed(1, 5).forEach(i -> {
       streamProcessor.onNext(StreamMessage.withQualifier("q/hello").build());
     });
     streamProcessor.onCompleted();

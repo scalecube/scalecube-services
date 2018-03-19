@@ -17,11 +17,16 @@ public class StreamsEchoServerRunner {
       System.out.println("Listen on: " + address);
       streamProcessors.server(streamProcessor -> streamProcessor.listen()
           .filter(message -> message.getQualifier().equalsIgnoreCase("q/hello"))
-          .subscribe(message -> {
-            System.out.println(message);
-            streamProcessor.onNext(message);
-            streamProcessor.onCompleted();
-          }));
+          .subscribe(
+              message -> {
+                System.out.println(message);
+                streamProcessor.onNext(message);
+              },
+              Throwable::printStackTrace,
+              () -> {
+                System.out.println("Ok, this client is completed, .. good bye then");
+                streamProcessor.onCompleted();
+              }));
     });
 
     Thread.currentThread().join();
