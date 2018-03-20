@@ -13,7 +13,7 @@ import java.util.stream.IntStream;
 public class StreamEchoClientRunner {
 
   /**
-   * Main method
+   * Main method.
    */
   public static void main(String[] args) throws Exception {
     StreamProcessors.ClientStreamProcessors client = StreamProcessors.client().build();

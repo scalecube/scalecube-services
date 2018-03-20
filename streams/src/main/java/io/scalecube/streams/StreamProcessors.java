@@ -24,7 +24,7 @@ public final class StreamProcessors {
     return new ServerStreamProcessors();
   }
 
-  public final static class ClientStreamProcessors {
+  public static class ClientStreamProcessors {
 
     private final Config config;
 
@@ -47,6 +47,11 @@ public final class StreamProcessors {
 
     //// Methods
 
+    /**
+     * Builds internal {@link ClientStream} and {@link ClientStreamProcessorFactory}; aligns them to work together.
+     *
+     * @return stream processor factory object which works with regards to client side logic
+     */
     public ClientStreamProcessors build() {
       // calculating
       clientStream = ClientStream.newClientStream(config.bootstrap);
@@ -83,7 +88,7 @@ public final class StreamProcessors {
     }
   }
 
-  public final static class ServerStreamProcessors {
+  public static class ServerStreamProcessors {
 
     private final Config config;
 
@@ -130,6 +135,12 @@ public final class StreamProcessors {
 
     //// Methods
 
+    /**
+     * Builds internal {@link ListeningServerStream} and {@link ServerStreamProcessorFactory}; aligns them to work
+     * together.
+     * 
+     * @return stream processor factory object which works with regards to server side logic
+     */
     public ServerStreamProcessors build() {
       // calculate
       listeningServerStream = ListeningServerStream.newListeningServerStream(config.embeddedConfig);

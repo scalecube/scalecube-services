@@ -8,7 +8,7 @@ import io.scalecube.streams.StreamProcessors;
 public class StreamsEchoServerRunner {
 
   /**
-   * Main method
+   * Main method.
    */
   public static void main(String[] args) throws Exception {
     StreamProcessors.ServerStreamProcessors server = StreamProcessors.server().build();
