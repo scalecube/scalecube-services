@@ -56,10 +56,10 @@ public class ByteBufCodecTest {
         case QUALIFIER_NAME:
           messageBuilder = messageBuilder.qualifier((String) value);
           break;
-        case StreamMessage.SUBJECT_NAME:
+        case SUBJECT_NAME:
           messageBuilder = messageBuilder.subject((String) value);
           break;
-        case StreamMessage.DATA_NAME:
+        case DATA_NAME:
           messageBuilder = messageBuilder.data(value);
           break;
         default:
