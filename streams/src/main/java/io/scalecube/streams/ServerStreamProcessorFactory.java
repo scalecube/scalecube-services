@@ -40,7 +40,7 @@ public final class ServerStreamProcessorFactory {
               ChannelContext channelContext =
                   ChannelContext.createIfAbsent(message.subject(), address, this::initChannelContext);
 
-              channelContext.postReadSuccess(StreamMessage.copyFrom(message).subject(null).build());
+              channelContext.postReadSuccess(StreamMessage.from(message).subject(null).build());
             }));
 
     // connection logic: connection lost => local stream
@@ -53,7 +53,7 @@ public final class ServerStreamProcessorFactory {
     // response logic: local write => remote stream
     channelContext.listenWrite()
         .map(Event::getMessageOrThrow)
-        .map(message -> StreamMessage.copyFrom(message).subject(channelContext.getId()).build())
+        .map(message -> StreamMessage.from(message).subject(channelContext.getId()).build())
         .subscribe(remoteEventStream::send);
 
     // bind channel context

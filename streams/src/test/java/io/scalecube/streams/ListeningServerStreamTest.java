@@ -96,7 +96,7 @@ public class ListeningServerStreamTest {
     Address address = serverStream.bindAwait();
 
     ClientStream clientStream = ClientStream.newClientStream();
-    clientStream.send(address, StreamMessage.withQualifier("q/test").build());
+    clientStream.send(address, StreamMessage.builder().qualifier("q/test").build());
 
     List<Event> events =
         serverStreamSubscriber.awaitValueCount(2, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();

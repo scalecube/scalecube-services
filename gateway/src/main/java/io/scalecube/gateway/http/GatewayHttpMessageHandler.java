@@ -92,7 +92,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
       // Hint: qualifier format could be changed to start from '/' there be saving from substringing
       String qualifier = request.uri().substring(1);
 
-      StreamMessage.Builder builder = StreamMessage.withQualifier(qualifier);
+      StreamMessage.Builder builder = StreamMessage.builder().qualifier(qualifier);
       if (request.content().isReadable()) {
         builder.data(request.content());
       }

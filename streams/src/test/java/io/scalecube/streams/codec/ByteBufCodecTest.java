@@ -225,7 +225,7 @@ public class ByteBufCodecTest {
 
   @Test
   public void testEncodeTwoFlatFieldsMessage() {
-    StreamMessage message = StreamMessage.withQualifier("/cool/qalifier").subject("subject").build();
+    StreamMessage message = StreamMessage.builder().qualifier("/cool/qalifier").subject("subject").build();
     ImmutableList<String> get = ImmutableList.of("q", "subject");
     List<String> match = Collections.emptyList();
 
@@ -261,7 +261,7 @@ public class ByteBufCodecTest {
   @Test
   public void testEncodeWithDataFieldMessage() {
     ByteBuf dataBuf = copiedBuffer("{\"greeting\":\"yadayada\"}", UTF_8);
-    StreamMessage message = StreamMessage.withQualifier("q").data(copiedBuffer(dataBuf)).build();
+    StreamMessage message = StreamMessage.builder().qualifier("q").data(copiedBuffer(dataBuf)).build();
 
     ByteBuf targetBuf = Unpooled.buffer();
     ImmutableList<String> get = ImmutableList.of("q");

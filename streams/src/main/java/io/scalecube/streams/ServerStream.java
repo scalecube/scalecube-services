@@ -89,7 +89,7 @@ public final class ServerStream extends DefaultEventStream {
 
     try {
       // copy and modify
-      StreamMessage message1 = StreamMessage.copyFrom(message).subject(newSubject).build();
+      StreamMessage message1 = StreamMessage.from(message).subject(newSubject).build();
       consumer.accept(channelContext, message1);
     } catch (Exception throwable) {
       throwableConsumer.accept(throwable, message);
@@ -105,7 +105,7 @@ public final class ServerStream extends DefaultEventStream {
     if (message.containsSubject()) {
       subject = message.subject() + SUBJECT_DELIMITER + subject;
     }
-    StreamMessage message1 = StreamMessage.copyFrom(message).subject(subject).build();
+    StreamMessage message1 = StreamMessage.from(message).subject(subject).build();
     return Event.copyFrom(event).message(message1).build(); // copy and modify
   }
 

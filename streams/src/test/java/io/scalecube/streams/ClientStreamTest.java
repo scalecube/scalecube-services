@@ -69,7 +69,7 @@ public class ClientStreamTest {
     AssertableSubscriber<Event> clientStreamSubscriber = clientStreamSubject.test();
 
     IntStream.rangeClosed(1, 5)
-        .forEach(i -> clientStream.send(address, StreamMessage.withQualifier("q/" + i).build()));
+        .forEach(i -> clientStream.send(address, StreamMessage.builder().qualifier("q/" + i).build()));
 
     List<Event> events =
         clientStreamSubscriber.awaitValueCount(11, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
@@ -94,7 +94,7 @@ public class ClientStreamTest {
     AssertableSubscriber<Event> clientStreamSubscriber = serverStreamSubject.test();
 
     IntStream.rangeClosed(1, 5)
-        .forEach(i -> clientStream.send(address, StreamMessage.withQualifier("hola/" + i).build()));
+        .forEach(i -> clientStream.send(address, StreamMessage.builder().qualifier("hola/" + i).build()));
 
     List<Event> events =
         clientStreamSubscriber.awaitValueCount(6, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
@@ -118,7 +118,7 @@ public class ClientStreamTest {
     AssertableSubscriber<Event> clientStreamSubscriber = clientStreamSubject.test();
 
     IntStream.rangeClosed(1, 5)
-        .forEach(i -> clientStream.send(address, StreamMessage.withQualifier("hola/" + i).build()));
+        .forEach(i -> clientStream.send(address, StreamMessage.builder().qualifier("hola/" + i).build()));
 
     List<Event> events =
         clientStreamSubscriber.awaitValueCount(5, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
@@ -145,7 +145,7 @@ public class ClientStreamTest {
     AssertableSubscriber<Event> clientStreamSubscriber = clientStreamSubject.test();
 
     Address failedAddress = Address.from("host:1234");
-    StreamMessage message = StreamMessage.withQualifier("q/helloFail").build();
+    StreamMessage message = StreamMessage.builder().qualifier("q/helloFail").build();
     clientStream.send(failedAddress, message);
 
     Event event =
@@ -162,7 +162,7 @@ public class ClientStreamTest {
     serverStream.listen().subscribe(serverStreamSubject);
     AssertableSubscriber<Event> serverStreamSubscriber = serverStreamSubject.test();
 
-    clientStream.send(address, StreamMessage.withQualifier("q/hello").build());
+    clientStream.send(address, StreamMessage.builder().qualifier("q/hello").build());
 
     List<Event> events =
         serverStreamSubscriber.awaitValueCount(2, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();
@@ -197,8 +197,8 @@ public class ClientStreamTest {
       clientStream.listenChannelContextSubscribed().subscribe(clientStreamSubject);
       AssertableSubscriber<Event> clientStreamSubscriber = clientStreamSubject.test();
       // send msgs
-      clientStream.send(address, StreamMessage.withQualifier("q/msg").build());
-      clientStream.send(anotherAddress, StreamMessage.withQualifier("q/anotherMsg").build());
+      clientStream.send(address, StreamMessage.builder().qualifier("q/msg").build());
+      clientStream.send(anotherAddress, StreamMessage.builder().qualifier("q/anotherMsg").build());
 
       List<Event> events =
           clientStreamSubscriber.awaitValueCount(2, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).getOnNextEvents();

@@ -14,20 +14,11 @@ public final class StreamMessage {
 
   //// builders
 
-  public static Builder withQualifier(String qualifier) {
-    return builder().qualifier(qualifier);
-  }
-
-  public static Builder withQualifier(Qualifier qualifier) {
-    return builder().qualifier(qualifier);
-  }
-
-  public static Builder copyFrom(StreamMessage message) {
-    return withHeaders(message).qualifier(message.qualifier).data(message.data);
-  }
-
-  public static Builder withHeaders(StreamMessage message) {
-    return builder().subject(message.subject);
+  public static Builder from(StreamMessage message) {
+    return builder()
+        .qualifier(message.qualifier)
+        .subject(message.subject)
+        .data(message.data);
   }
 
   public static Builder builder() {
@@ -36,8 +27,8 @@ public final class StreamMessage {
 
   private StreamMessage(Builder builder) {
     this.qualifier = builder.qualifier;
-    this.data = builder.data;
     this.subject = builder.subject;
+    this.data = builder.data;
   }
 
   //// accessors
