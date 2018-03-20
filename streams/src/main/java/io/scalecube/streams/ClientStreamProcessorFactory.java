@@ -34,7 +34,12 @@ public final class ClientStreamProcessorFactory {
             .subscribe(event -> localEventStream.send(event.getMessageOrThrow(), (channelContext, message1) -> {
               Address address = event.getAddress();
               Throwable throwable = event.getErrorOrThrow();
-              channelContext.postWriteError(address, message1, throwable);
+              String id = channelContext.getId();
+
+              Event.Builder builder = new Event.Builder(Event.Topic.WriteError, address, id);
+              Event event1 = builder.error(throwable).message(message1).build();
+
+              channelContext.onNext(event1);
             })));
 
     // connection logic: connection lost => local stream

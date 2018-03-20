@@ -19,10 +19,10 @@ import rx.subjects.BehaviorSubject;
 import rx.subjects.Subject;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ClientStreamTest {
@@ -217,12 +217,9 @@ public class ClientStreamTest {
       AssertableSubscriber<Event> closeSubscriber = closeSubject.test();
       clientStream.close();
 
-      List<Event> closeEvents = closeSubscriber
+      List<Event> closeEvents = new ArrayList<>(closeSubscriber
           .awaitValueCount(2, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
-          .getOnNextEvents()
-          .stream()
-          .filter(event -> event.getAddress() != ClientStream.HELPER_ADDRESS)
-          .collect(Collectors.toList());
+          .getOnNextEvents());
 
       Event firstCloseEvent = closeEvents.get(0);
       Event secondCloseEvent = closeEvents.get(1);
