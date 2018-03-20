@@ -16,7 +16,7 @@ public final class ClientStreamProcessorFactory {
    *
    * @param remoteEventStream given {@link ClientStream} object created and operated somewhere.
    */
-  private ClientStreamProcessorFactory(ClientStream remoteEventStream) {
+  public ClientStreamProcessorFactory(ClientStream remoteEventStream) {
     // request logic: local stream => remote stream
     subscriptions.add(
         localEventStream.listenWrite()
@@ -46,17 +46,6 @@ public final class ClientStreamProcessorFactory {
     subscriptions.add(
         remoteEventStream.listenChannelContextClosed()
             .subscribe(event -> localEventStream.onNext(event.getAddress(), event)));
-  }
-
-  /**
-   * Creates stream processor factory.
-   * 
-   * @param remoteEventStream client stream defined and created somewhere
-   * @return stream processor factory
-   * @see #ClientStreamProcessorFactory(ClientStream)
-   */
-  public static ClientStreamProcessorFactory newClientStreamProcessorFactory(ClientStream remoteEventStream) {
-    return new ClientStreamProcessorFactory(remoteEventStream);
   }
 
   /**

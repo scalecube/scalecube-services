@@ -38,6 +38,10 @@ public final class ClientStream extends DefaultEventStream {
     return new ClientStream(bootstrap);
   }
 
+  public static Bootstrap getDefaultBootstrap() {
+    return DEFAULT_BOOTSTRAP;
+  }
+
   /**
    * Sends a message to a given address.
    * 

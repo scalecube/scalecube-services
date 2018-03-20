@@ -44,7 +44,11 @@ public final class ListeningServerStream implements EventStream {
   //// Factory and config
 
   public static ListeningServerStream newListeningServerStream() {
-    return new ListeningServerStream(new Config());
+    return newListeningServerStream(new Config());
+  }
+
+  public static ListeningServerStream newListeningServerStream(Config config) {
+    return new ListeningServerStream(config);
   }
 
   public ListeningServerStream withListenAddress(String listenAddress) {
@@ -188,6 +192,10 @@ public final class ListeningServerStream implements EventStream {
       this.portAutoIncrement = other.portAutoIncrement;
       this.serverBootstrap = other.serverBootstrap;
       modifier.accept(this);
+    }
+
+    public static Config newConfig() {
+      return new Config();
     }
 
     public String getListenAddress() {

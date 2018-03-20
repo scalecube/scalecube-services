@@ -43,7 +43,7 @@ public class ClientStreamProcessorTest {
         .option(ChannelOption.SO_REUSEADDR, true);
 
     clientStream = ClientStream.newClientStream(bootstrap);
-    clientStreamProcessorFactory = ClientStreamProcessorFactory.newClientStreamProcessorFactory(clientStream);
+    clientStreamProcessorFactory = new ClientStreamProcessorFactory(clientStream);
 
     listeningServerStream = ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
     address = listeningServerStream.bindAwait();
