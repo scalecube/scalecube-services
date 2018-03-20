@@ -3,7 +3,6 @@ package io.scalecube.streams;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import io.scalecube.streams.Event.Topic;
 import io.scalecube.transport.Address;
@@ -41,9 +40,11 @@ public class ListeningServerStreamTest {
 
   @Test
   public void testServerStreamBindsOnAvailablePort() throws Exception {
-    Address address1 = serverStream.withPort(5555).bindAwait();
-    Address address2 = serverStream.withPort(5555).bindAwait();
-    Address address3 = serverStream.withPort(5555).bindAwait();
+    int port = 5555;
+    ListeningServerStream listeningServerStream = serverStream.withPort(port);
+    Address address1 = listeningServerStream.bindAwait();
+    Address address2 = listeningServerStream.bindAwait();
+    Address address3 = listeningServerStream.bindAwait();
     assertEquals("127.0.0.1:5555", address1.toString());
     assertEquals("127.0.0.1:5556", address2.toString());
     assertEquals("127.0.0.1:5557", address3.toString());
@@ -80,17 +81,10 @@ public class ListeningServerStreamTest {
 
   @Test
   public void testBranchingAtBind() {
-    // check default bind
-    String localhost = serverStream.withListenAddress("localhost").withPort(4444).bindAwait().toString();
-    assertEquals("127.0.0.1:4444", localhost);
-
-    try {
-      // say you don't want autoincrement and try bind
-      serverStream.withListenAddress("localhost").withPort(4444).withPortAutoIncrement(false).bindAwait();
-      fail("Expected BindException here");
-    } catch (Exception e) {
-      assertTrue(e.getMessage(), e.getMessage().contains("Address already in use"));
-    }
+    int port = 4444;
+    ListeningServerStream listeningServerStream = serverStream.withListenAddress("localhost");
+    assertEquals("127.0.0.1:4444", listeningServerStream.withPort(port).bindAwait().toString());
+    assertEquals("127.0.0.1:4445", listeningServerStream.withPort(port).bindAwait().toString());
   }
 
   @Test

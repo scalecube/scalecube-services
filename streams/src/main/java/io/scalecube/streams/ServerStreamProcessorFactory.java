@@ -40,8 +40,7 @@ public final class ServerStreamProcessorFactory {
               ChannelContext channelContext =
                   ChannelContext.createIfAbsent(identity, address, this::initChannelContext);
 
-              // forward read
-              channelContext.postReadSuccess(message);
+              channelContext.postReadSuccess(StreamMessage.copyFrom(message).subject(null).build());
             }));
 
     // connection logic: connection lost => local stream
@@ -53,12 +52,8 @@ public final class ServerStreamProcessorFactory {
   private void initChannelContext(ChannelContext channelContext) {
     // response logic: local write => remote stream
     channelContext.listenWrite()
-        .map(event -> {
-          // reset outgoing message identity with channelContext's identity
-          String identity = channelContext.getId();
-          StreamMessage message = event.getMessageOrThrow();
-          return StreamMessage.copyFrom(message).subject(identity).build();
-        })
+        .map(Event::getMessageOrThrow)
+        .map(message -> StreamMessage.copyFrom(message).subject(channelContext.getId()).build())
         .subscribe(remoteEventStream::send);
 
     // bind channel context
