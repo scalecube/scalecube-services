@@ -14,19 +14,19 @@ public final class StreamMessage {
 
   //// builders
 
-  public static Builder withQualifier(String qualifier) {
+  public static Builder qualifier(String qualifier) {
     return builder().qualifier(qualifier);
   }
 
-  public static Builder withQualifier(Qualifier qualifier) {
+  public static Builder qualifier(Qualifier qualifier) {
     return builder().qualifier(qualifier);
   }
 
   public static Builder copyFrom(StreamMessage message) {
-    return withHeaders(message).qualifier(message.qualifier).data(message.data);
+    return headers(message).qualifier(message.qualifier).data(message.data);
   }
 
-  public static Builder withHeaders(StreamMessage message) {
+  public static Builder headers(StreamMessage message) {
     return builder().subject(message.subject);
   }
 
@@ -42,23 +42,23 @@ public final class StreamMessage {
 
   //// accessors
 
-  public String getQualifier() {
+  public String qualifier() {
     return qualifier;
   }
 
-  public String getSubject() {
+  public String subject() {
     return subject;
   }
 
-  public Object getData() {
+  public Object data() {
     return data;
   }
 
-  public boolean isDataPresent() {
+  public boolean containsData() {
     return data != null;
   }
 
-  public boolean isSubjectPresent() {
+  public boolean containsSubject() {
     return subject != null && !subject.isEmpty();
   }
 

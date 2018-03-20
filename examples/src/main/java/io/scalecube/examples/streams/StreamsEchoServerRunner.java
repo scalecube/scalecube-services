@@ -13,10 +13,10 @@ public class StreamsEchoServerRunner {
   public static void main(String[] args) throws Exception {
     StreamProcessors streamProcessors = StreamProcessors.newStreamProcessors();
 
-    streamProcessors.withListenAddress("192.168.1.3").bind().thenAccept(address -> {
+    streamProcessors.bind().thenAccept(address -> {
       System.out.println("Listen on: " + address);
       streamProcessors.server(streamProcessor -> streamProcessor.listen()
-          .filter(message -> message.getQualifier().equalsIgnoreCase("q/hello"))
+          .filter(message -> message.qualifier().equalsIgnoreCase("q/hello"))
           .subscribe(
               message -> {
                 System.out.println(message);

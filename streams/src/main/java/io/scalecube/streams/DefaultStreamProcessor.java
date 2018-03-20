@@ -10,10 +10,10 @@ import java.io.IOException;
 public final class DefaultStreamProcessor implements StreamProcessor {
 
   StreamMessage onErrorMessage =
-      StreamMessage.withQualifier(Qualifier.Q_GENERAL_FAILURE).build();
+      StreamMessage.qualifier(Qualifier.Q_GENERAL_FAILURE).build();
 
   StreamMessage onCompletedMessage =
-      StreamMessage.withQualifier(Qualifier.Q_ON_COMPLETED).build();
+      StreamMessage.qualifier(Qualifier.Q_ON_COMPLETED).build();
 
   private final ChannelContext localChannelContext;
   private final EventStream localEventStream;
@@ -79,7 +79,7 @@ public final class DefaultStreamProcessor implements StreamProcessor {
   }
 
   private void onMessage(StreamMessage message, Observer<StreamMessage> emitter) {
-    String qualifier = message.getQualifier();
+    String qualifier = message.qualifier();
     if (Qualifier.Q_ON_COMPLETED.asString().equalsIgnoreCase(qualifier)) { // remote => onCompleted
       emitter.onCompleted();
       return;

@@ -32,7 +32,7 @@ public final class ServerStreamProcessorFactory {
             .subscribe(event -> {
               Address address = event.getAddress();
               StreamMessage message = event.getMessageOrThrow();
-              String identity = message.getSubject();
+              String identity = message.subject();
 
               // Hint: at this point some sort of sanity check is needed to see is there somebody who's listening on new
               // stream because next code is about to create entry in map so it's kind of waste of resource

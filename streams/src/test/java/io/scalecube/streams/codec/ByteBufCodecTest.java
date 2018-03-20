@@ -77,7 +77,7 @@ public class ByteBufCodecTest {
         messageBuilder = messageBuilder.qualifier((String) value);
       }
     });
-    assertEquals("1234", messageBuilder.build().getQualifier());
+    assertEquals("1234", messageBuilder.build().qualifier());
   }
 
   @Test
@@ -86,8 +86,8 @@ public class ByteBufCodecTest {
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("io'scalecube'services'transport'/Request/日本語", message.getQualifier());
-    assertEquals(SUBJECT, message.getSubject());
+    assertEquals("io'scalecube'services'transport'/Request/日本語", message.qualifier());
+    assertEquals(SUBJECT, message.subject());
   }
 
   @Test
@@ -112,7 +112,7 @@ public class ByteBufCodecTest {
     });
     StreamMessage message = messageBuilder.build();
     assertEquals("{\"contextId\":\"hack\",\"data\":{[\"yadayada\", 1, 1e-005]},\"q\":\"hack\"}",
-        message.getData());
+        message.data());
   }
 
   @Test
@@ -137,7 +137,7 @@ public class ByteBufCodecTest {
     });
     StreamMessage message = messageBuilder.build();
     assertEquals("{\"contextId\":\"hack\",\"data\":{[\"ya{da}}\",\"ya{da}}\"]},\"q\":\"hack\"}",
-        message.getData());
+        message.data());
   }
 
   @Test
@@ -146,8 +146,8 @@ public class ByteBufCodecTest {
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer(source, UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertNull(message.getQualifier());
-    assertNull(message.getSubject());
+    assertNull(message.qualifier());
+    assertNull(message.subject());
   }
 
   @Test(expected = IllegalStateException.class)
@@ -163,7 +163,7 @@ public class ByteBufCodecTest {
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer("{\"subject\":\"" + SUBJECT + "\\\"\\\"" + "\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals(SUBJECT + "\"\"", message.getSubject());
+    assertEquals(SUBJECT + "\"\"", message.subject());
   }
 
   @Test(expected = IllegalStateException.class)
@@ -181,7 +181,7 @@ public class ByteBufCodecTest {
     ByteBufCodec.decode(copiedBuffer("{\n\r\t \"subject\"\n\r\t :\n\r\t \"cool\"\n\r\t }", UTF_8), get, match,
         consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("Whitespaces before and after colon should be ignored", "cool", message.getSubject());
+    assertEquals("Whitespaces before and after colon should be ignored", "cool", message.subject());
   }
 
   @Test
@@ -190,7 +190,7 @@ public class ByteBufCodecTest {
     List<String> match = Collections.emptyList();
     ByteBufCodec.decode(copiedBuffer("{\"subject\":\"\\\"quoted\\\"\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("Parsed string doesn't match source one", "\"quoted\"", message.getSubject());
+    assertEquals("Parsed string doesn't match source one", "\"quoted\"", message.subject());
   }
 
   @Test
@@ -199,7 +199,7 @@ public class ByteBufCodecTest {
     List<String> match = Collections.emptyList();
     ByteBufCodec.decode(copiedBuffer("{\"extra\":\"1234\"," + "\"q\":\"" + 123 + "\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("Parsed string doesn't match source one", "123", message.getQualifier());
+    assertEquals("Parsed string doesn't match source one", "123", message.qualifier());
   }
 
   @Test
@@ -208,8 +208,8 @@ public class ByteBufCodecTest {
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer("{\"data\":\"\\u1234\"," + "\"q\":\"" + 123 + "\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("Parsed string doesn't match source one", "123", message.getQualifier());
-    assertEquals("Data is not equal", "\"\\u1234\"", ((ByteBuf) message.getData()).toString(CharsetUtil.UTF_8));
+    assertEquals("Parsed string doesn't match source one", "123", message.qualifier());
+    assertEquals("Data is not equal", "\"\\u1234\"", ((ByteBuf) message.data()).toString(CharsetUtil.UTF_8));
   }
 
   @Test
@@ -219,13 +219,13 @@ public class ByteBufCodecTest {
     ByteBufCodec.decode(copiedBuffer("{\"q\":\"\\uCEB1\\u0061\\u0063\\u006B\\uaef1\"," +
         "\"subject\":\"\\u0068\\u0061\\u0063\\u006b\"}", UTF_8), get, match, consumer);
     StreamMessage message = messageBuilder.build();
-    assertEquals("Parsed string doesn't match source one", "캱ack껱", message.getQualifier());
-    assertEquals("Parsed string doesn't match source one", "hack", message.getSubject());
+    assertEquals("Parsed string doesn't match source one", "캱ack껱", message.qualifier());
+    assertEquals("Parsed string doesn't match source one", "hack", message.subject());
   }
 
   @Test
   public void testEncodeTwoFlatFieldsMessage() {
-    StreamMessage message = StreamMessage.withQualifier("/cool/qalifier").subject("subject").build();
+    StreamMessage message = StreamMessage.qualifier("/cool/qalifier").subject("subject").build();
     ImmutableList<String> get = ImmutableList.of("q", "subject");
     List<String> match = Collections.emptyList();
 
@@ -233,9 +233,9 @@ public class ByteBufCodecTest {
     ByteBufCodec.encode(targetBuf, get, match, headerName -> {
       switch (headerName) {
         case QUALIFIER_NAME:
-          return message.getQualifier();
+          return message.qualifier();
         case SUBJECT_NAME:
-          return message.getSubject();
+          return message.subject();
         default:
           return null; // skip
       }
@@ -261,7 +261,7 @@ public class ByteBufCodecTest {
   @Test
   public void testEncodeWithDataFieldMessage() {
     ByteBuf dataBuf = copiedBuffer("{\"greeting\":\"yadayada\"}", UTF_8);
-    StreamMessage message = StreamMessage.withQualifier("q").data(copiedBuffer(dataBuf)).build();
+    StreamMessage message = StreamMessage.qualifier("q").data(copiedBuffer(dataBuf)).build();
 
     ByteBuf targetBuf = Unpooled.buffer();
     ImmutableList<String> get = ImmutableList.of("q");
@@ -269,9 +269,9 @@ public class ByteBufCodecTest {
     ByteBufCodec.encode(targetBuf, get, match, headerName -> {
       switch (headerName) {
         case QUALIFIER_NAME:
-          return message.getQualifier();
+          return message.qualifier();
         case DATA_NAME:
-          return message.getData();
+          return message.data();
         default:
           return null;
       }
@@ -291,6 +291,6 @@ public class ByteBufCodecTest {
       }
     });
 
-    assertEquals(dataBuf.toString(UTF_8), ((ByteBuf) messageBuilder.build().getData()).toString(UTF_8));
+    assertEquals(dataBuf.toString(UTF_8), ((ByteBuf) messageBuilder.build().data()).toString(UTF_8));
   }
 }

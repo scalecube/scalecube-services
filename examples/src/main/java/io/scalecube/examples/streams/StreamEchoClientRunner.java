@@ -18,7 +18,7 @@ public class StreamEchoClientRunner {
   public static void main(String[] args) throws Exception {
     StreamProcessors streamProcessors = StreamProcessors.newStreamProcessors();
 
-    StreamProcessor streamProcessor = streamProcessors.client(Address.from("192.168.1.3:5801"));
+    StreamProcessor streamProcessor = streamProcessors.client(Address.from("localhost:5801"));
 
     streamProcessor.listen().subscribe(
         System.out::println,
@@ -26,7 +26,7 @@ public class StreamEchoClientRunner {
         () -> System.out.println("Ok, done with this client stream processor"));
 
     IntStream.rangeClosed(1, 5).forEach(i -> {
-      streamProcessor.onNext(StreamMessage.withQualifier("q/hello").build());
+      streamProcessor.onNext(StreamMessage.qualifier("q/hello").build());
     });
     streamProcessor.onCompleted();
 

@@ -36,18 +36,18 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
 
     channelContext.listenWrite().map(Event::getMessageOrThrow).subscribe(
         message -> {
-          Qualifier qualifier = Qualifier.fromString(message.getQualifier());
+          Qualifier qualifier = Qualifier.fromString(message.qualifier());
           FullHttpResponse response;
 
           if (!Q_ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
-            response = message.isDataPresent()
-                ? HttpCodecUtil.okResponse((ByteBuf) message.getData())
+            response = message.containsData()
+                ? HttpCodecUtil.okResponse((ByteBuf) message.data())
                 : HttpCodecUtil.emptyResponse();
           } else {
             if (message.dataOfType(ErrorData.class)) { // => ErrorData
-              response = HttpCodecUtil.errorResponse(qualifier, (ErrorData) message.getData());
+              response = HttpCodecUtil.errorResponse(qualifier, (ErrorData) message.data());
             } else if (message.dataOfType(ByteBuf.class)) { // => ByteBuf assumed
-              response = HttpCodecUtil.errorResponse(qualifier, (ByteBuf) message.getData());
+              response = HttpCodecUtil.errorResponse(qualifier, (ByteBuf) message.data());
             } else {
               response = HttpCodecUtil.emptyErrorResponse(qualifier);
             }
@@ -92,7 +92,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
       // Hint: qualifier format could be changed to start from '/' there be saving from substringing
       String qualifier = request.uri().substring(1);
 
-      StreamMessage.Builder builder = StreamMessage.withQualifier(qualifier);
+      StreamMessage.Builder builder = StreamMessage.qualifier(qualifier);
       if (request.content().isReadable()) {
         builder.data(request.content());
       }

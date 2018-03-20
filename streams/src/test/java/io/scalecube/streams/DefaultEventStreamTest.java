@@ -17,8 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DefaultEventStreamTest {
 
-  private StreamMessage messageOne = StreamMessage.withQualifier("ok").build();
-  private StreamMessage messageTwo = StreamMessage.withQualifier("hola").build();
+  private StreamMessage messageOne = StreamMessage.qualifier("ok").build();
+  private StreamMessage messageTwo = StreamMessage.qualifier("hola").build();
 
   private ChannelContext ctx = ChannelContext.create(Address.from("localhost:0"));
   private ChannelContext anotherCtx = ChannelContext.create(Address.from("localhost:1"));
