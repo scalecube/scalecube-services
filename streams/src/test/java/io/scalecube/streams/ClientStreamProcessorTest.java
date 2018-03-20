@@ -101,7 +101,7 @@ public class ClientStreamProcessorTest {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.qualifier("q/echo").build());
+      streamProcessor.onNext(StreamMessage.withQualifier("q/echo").build());
       subscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
@@ -116,7 +116,7 @@ public class ClientStreamProcessorTest {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.qualifier("q/echoVoid").build());
+      streamProcessor.onNext(StreamMessage.withQualifier("q/echoVoid").build());
       subscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertCompleted()
@@ -131,7 +131,7 @@ public class ClientStreamProcessorTest {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.qualifier("q/echoError").build());
+      streamProcessor.onNext(StreamMessage.withQualifier("q/echoError").build());
       subscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertNoValues()
@@ -146,7 +146,7 @@ public class ClientStreamProcessorTest {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
     try {
       AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.qualifier("q/echoStream").build());
+      streamProcessor.onNext(StreamMessage.withQualifier("q/echoStream").build());
       subscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .awaitValueCount(42, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
@@ -162,7 +162,7 @@ public class ClientStreamProcessorTest {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(failingAddress);
     try {
       AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.qualifier("q/echo").build());
+      streamProcessor.onNext(StreamMessage.withQualifier("q/echo").build());
       subscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(CONNECT_TIMEOUT_MILLIS * 2, TimeUnit.MILLISECONDS)
           .assertNoValues()
@@ -178,7 +178,7 @@ public class ClientStreamProcessorTest {
     try {
       // send and receive echo message
       AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.qualifier("q/echo").build());
+      streamProcessor.onNext(StreamMessage.withQualifier("q/echo").build());
       subscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)

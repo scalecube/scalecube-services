@@ -26,7 +26,7 @@ public class StreamEchoClientRunner {
         () -> System.out.println("Ok, done with this client stream processor"));
 
     IntStream.rangeClosed(1, 5).forEach(i -> {
-      streamProcessor.onNext(StreamMessage.qualifier("q/hello").build());
+      streamProcessor.onNext(StreamMessage.withQualifier("q/hello").build());
     });
     streamProcessor.onCompleted();
 

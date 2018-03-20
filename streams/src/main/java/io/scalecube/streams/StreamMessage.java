@@ -14,19 +14,19 @@ public final class StreamMessage {
 
   //// builders
 
-  public static Builder qualifier(String qualifier) {
+  public static Builder withQualifier(String qualifier) {
     return builder().qualifier(qualifier);
   }
 
-  public static Builder qualifier(Qualifier qualifier) {
+  public static Builder withQualifier(Qualifier qualifier) {
     return builder().qualifier(qualifier);
   }
 
   public static Builder copyFrom(StreamMessage message) {
-    return headers(message).qualifier(message.qualifier).data(message.data);
+    return withHeaders(message).qualifier(message.qualifier).data(message.data);
   }
 
-  public static Builder headers(StreamMessage message) {
+  public static Builder withHeaders(StreamMessage message) {
     return builder().subject(message.subject);
   }
 
