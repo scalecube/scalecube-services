@@ -16,7 +16,6 @@ import java.util.List;
 
 public class DefaultStreamProcessorTest {
 
-  private ChannelContext channelContext;
   private DefaultEventStream eventStream;
   private StreamMessage messageOne;
   private StreamMessage messageTwo;
@@ -24,7 +23,7 @@ public class DefaultStreamProcessorTest {
 
   @Before
   public void setUp() {
-    channelContext = ChannelContext.create(Address.from("localhost:0"));
+    ChannelContext channelContext = ChannelContext.create(Address.from("localhost:0"));
     eventStream = new DefaultEventStream();
     messageOne = StreamMessage.builder().qualifier("q/1").build();
     messageTwo = StreamMessage.builder().qualifier("q/2").build();
