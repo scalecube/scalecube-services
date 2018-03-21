@@ -103,7 +103,7 @@ public class ByteBufCodecTest {
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer(sourceJson, UTF_8), get, match, (headerName, value) -> {
       switch (headerName) {
-        case StreamMessage.DATA_NAME:
+        case DATA_NAME:
           messageBuilder = messageBuilder.data(((ByteBuf) value).toString(CharsetUtil.UTF_8));
           break;
         default:
@@ -128,7 +128,7 @@ public class ByteBufCodecTest {
     List<String> match = ImmutableList.of("data");
     ByteBufCodec.decode(copiedBuffer(sourceJson, UTF_8), get, match, (headerName, value) -> {
       switch (headerName) {
-        case StreamMessage.DATA_NAME:
+        case DATA_NAME:
           messageBuilder = messageBuilder.data(((ByteBuf) value).toString(CharsetUtil.UTF_8));
           break;
         default:
