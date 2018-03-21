@@ -13,22 +13,20 @@ import java.util.stream.IntStream;
 public class StreamEchoClientRunner {
 
   /**
-   * Main method
+   * Main method.
    */
   public static void main(String[] args) throws Exception {
-    StreamProcessors streamProcessors = StreamProcessors.newStreamProcessors();
+    StreamProcessors.ClientStreamProcessors client = StreamProcessors.client().build();
 
-    StreamProcessor streamProcessor = streamProcessors.client(Address.from("192.168.1.3:5801"));
+    StreamProcessor sp = client.create(Address.from("localhost:5801"));
 
-    streamProcessor.listen().subscribe(
+    sp.listen().subscribe(
         System.out::println,
         Throwable::printStackTrace,
-        () -> System.out.println("Ok, done with this client stream processor"));
+        () -> System.out.println("Done with client"));
 
-    IntStream.rangeClosed(1, 5).forEach(i -> {
-      streamProcessor.onNext(StreamMessage.withQualifier("q/hello").build());
-    });
-    streamProcessor.onCompleted();
+    IntStream.rangeClosed(1, 5).forEach(i -> sp.onNext(StreamMessage.builder().qualifier("q/hello").build()));
+    sp.onCompleted();
 
     Thread.currentThread().join();
   }

@@ -35,7 +35,7 @@ public final class NettyStreamMessageHandler extends ChannelInboundHandlerAdapte
     channelContext.listenWrite().map(Event::getMessageOrThrow).subscribe(
         message -> {
           ByteBuf buf = StreamMessageCodec.encode(message);
-          ChannelSupport.releaseRefCount(message.getData()); // release ByteBuf
+          ChannelSupport.releaseRefCount(message.data()); // release ByteBuf
 
           ctx.writeAndFlush(buf).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {

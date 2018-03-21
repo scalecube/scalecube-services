@@ -20,10 +20,11 @@ public final class ServerStreamProcessorFactory {
   /**
    * Constructor for this factory. Right away defines logic for bidirectional communication with respect to server side
    * semantics.
-   * 
-   * @param remoteEventStream given {@link ServerStream} object created and operated somewhere.
+   *
+   * @param remoteEventStream server stream created and operated somewhere; this stream is a source for incoming events
+   *        upon which factory will apply its processing logic and server side semantics.
    */
-  private ServerStreamProcessorFactory(ListeningServerStream remoteEventStream) {
+  public ServerStreamProcessorFactory(ListeningServerStream remoteEventStream) {
     this.remoteEventStream = remoteEventStream;
 
     // request logic: remote stream => local stream
@@ -32,16 +33,14 @@ public final class ServerStreamProcessorFactory {
             .subscribe(event -> {
               Address address = event.getAddress();
               StreamMessage message = event.getMessageOrThrow();
-              String identity = message.getSubject();
 
               // Hint: at this point some sort of sanity check is needed to see is there somebody who's listening on new
               // stream because next code is about to create entry in map so it's kind of waste of resource
               // if nobody don't listen for new stream processor
               ChannelContext channelContext =
-                  ChannelContext.createIfAbsent(identity, address, this::initChannelContext);
+                  ChannelContext.createIfAbsent(message.subject(), address, this::initChannelContext);
 
-              // forward read
-              channelContext.postReadSuccess(message);
+              channelContext.postReadSuccess(StreamMessage.from(message).subject(null).build());
             }));
 
     // connection logic: connection lost => local stream
@@ -53,31 +52,12 @@ public final class ServerStreamProcessorFactory {
   private void initChannelContext(ChannelContext channelContext) {
     // response logic: local write => remote stream
     channelContext.listenWrite()
-        .map(event -> {
-          // reset outgoing message identity with channelContext's identity
-          String identity = channelContext.getId();
-          StreamMessage message = event.getMessageOrThrow();
-          return StreamMessage.copyFrom(message).subject(identity).build();
-        })
+        .map(Event::getMessageOrThrow)
+        .map(message -> StreamMessage.from(message).subject(channelContext.getId()).build())
         .subscribe(remoteEventStream::send);
-
-    // bind channel context
-    localEventStream.subscribe(channelContext);
 
     // emit stream processor arrived
     streamProcessorSubject.onNext(new DefaultStreamProcessor(channelContext, localEventStream));
-  }
-
-  /**
-   * Creates stream processor factory.
-   * 
-   * @param remoteEventStream server stream created somewhere; this stream is a source for incoming events upon which
-   *        factory will apply its processing logic and server side semantics.
-   * @return stream processor factory
-   * @see #ServerStreamProcessorFactory(ListeningServerStream)
-   */
-  public static ServerStreamProcessorFactory newServerStreamProcessorFactory(ListeningServerStream remoteEventStream) {
-    return new ServerStreamProcessorFactory(remoteEventStream);
   }
 
   /**

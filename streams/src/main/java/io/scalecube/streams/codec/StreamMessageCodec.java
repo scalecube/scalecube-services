@@ -70,11 +70,11 @@ public final class StreamMessageCodec {
       ByteBufCodec.encode(targetBuf, FLAT_FIELDS, MATCH_FIELDS, fieldName -> {
         switch (fieldName) {
           case QUALIFIER_NAME:
-            return message.getQualifier();
+            return message.qualifier();
           case SUBJECT_NAME:
-            return message.getSubject();
+            return message.subject();
           case DATA_NAME:
-            return message.getData(); // ByteBuf
+            return message.data(); // ByteBuf
           default:
             return null;
         }

@@ -8,24 +8,24 @@ import io.scalecube.streams.StreamProcessors;
 public class StreamsEchoServerRunner {
 
   /**
-   * Main method
+   * Main method.
    */
   public static void main(String[] args) throws Exception {
-    StreamProcessors streamProcessors = StreamProcessors.newStreamProcessors();
+    StreamProcessors.ServerStreamProcessors server = StreamProcessors.server().build();
 
-    streamProcessors.withListenAddress("192.168.1.3").bind().thenAccept(address -> {
+    server.bind().thenAccept(address -> {
       System.out.println("Listen on: " + address);
-      streamProcessors.server(streamProcessor -> streamProcessor.listen()
-          .filter(message -> message.getQualifier().equalsIgnoreCase("q/hello"))
+      server.listen().subscribe(sp -> sp.listen()
+          .filter(message -> message.qualifier().equalsIgnoreCase("q/hello"))
           .subscribe(
               message -> {
                 System.out.println(message);
-                streamProcessor.onNext(message);
+                sp.onNext(message);
               },
               Throwable::printStackTrace,
               () -> {
-                System.out.println("Ok, this client is completed, .. good bye then");
-                streamProcessor.onCompleted();
+                System.out.println("Client is done, ok, finish with server .. good bye then");
+                sp.onCompleted();
               }));
     });
 

@@ -16,7 +16,7 @@ public final class ClientStreamProcessorFactory {
    *
    * @param remoteEventStream given {@link ClientStream} object created and operated somewhere.
    */
-  private ClientStreamProcessorFactory(ClientStream remoteEventStream) {
+  public ClientStreamProcessorFactory(ClientStream remoteEventStream) {
     // request logic: local stream => remote stream
     subscriptions.add(
         localEventStream.listenWrite()
@@ -34,7 +34,12 @@ public final class ClientStreamProcessorFactory {
             .subscribe(event -> localEventStream.send(event.getMessageOrThrow(), (channelContext, message1) -> {
               Address address = event.getAddress();
               Throwable throwable = event.getErrorOrThrow();
-              channelContext.postWriteError(address, message1, throwable);
+              String id = channelContext.getId();
+
+              Event.Builder builder = new Event.Builder(Event.Topic.WriteError, address, id);
+              Event event1 = builder.error(throwable).message(message1).build();
+
+              channelContext.onNext(event1);
             })));
 
     // connection logic: connection lost => local stream
@@ -44,26 +49,13 @@ public final class ClientStreamProcessorFactory {
   }
 
   /**
-   * Creates stream processor factory.
-   * 
-   * @param remoteEventStream client stream defined and created somewhere
-   * @return stream processor factory
-   * @see #ClientStreamProcessorFactory(ClientStream)
-   */
-  public static ClientStreamProcessorFactory newClientStreamProcessorFactory(ClientStream remoteEventStream) {
-    return new ClientStreamProcessorFactory(remoteEventStream);
-  }
-
-  /**
    * Creates new {@link StreamProcessor} which operates on top client side semantics.
    * 
    * @param address target endpoint address
    * @return stream processor
    */
   public StreamProcessor newClientStreamProcessor(Address address) {
-    ChannelContext channelContext = ChannelContext.create(address);
-    localEventStream.subscribe(channelContext);
-    return new DefaultStreamProcessor(channelContext, localEventStream);
+    return new DefaultStreamProcessor(ChannelContext.create(address), localEventStream);
   }
 
   /**

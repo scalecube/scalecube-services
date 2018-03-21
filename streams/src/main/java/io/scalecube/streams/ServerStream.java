@@ -55,14 +55,14 @@ public final class ServerStream extends DefaultEventStream {
    */
   public void send(StreamMessage message,
       BiConsumer<ChannelContext, StreamMessage> consumer, BiConsumer<Throwable, StreamMessage> throwableConsumer) {
-    if (!message.isSubjectPresent()
-        || message.getSubject().startsWith(SUBJECT_DELIMITER)
-        || message.getSubject().endsWith(SUBJECT_DELIMITER)) {
+    if (!message.containsSubject()
+        || message.subject().startsWith(SUBJECT_DELIMITER)
+        || message.subject().endsWith(SUBJECT_DELIMITER)) {
       throwableConsumer.accept(INVALID_IDENTITY_EXCEPTION, message);
       return;
     }
 
-    String subject = message.getSubject();
+    String subject = message.subject();
     String lastIdentity = subject;
     String newSubject = null;
     int lastDelimiter = subject.lastIndexOf(SUBJECT_DELIMITER);
@@ -89,7 +89,7 @@ public final class ServerStream extends DefaultEventStream {
 
     try {
       // copy and modify
-      StreamMessage message1 = StreamMessage.copyFrom(message).subject(newSubject).build();
+      StreamMessage message1 = StreamMessage.from(message).subject(newSubject).build();
       consumer.accept(channelContext, message1);
     } catch (Exception throwable) {
       throwableConsumer.accept(throwable, message);
@@ -102,10 +102,10 @@ public final class ServerStream extends DefaultEventStream {
     }
     StreamMessage message = event.getMessageOrThrow();
     String subject = event.getIdentity();
-    if (message.isSubjectPresent()) {
-      subject = message.getSubject() + SUBJECT_DELIMITER + subject;
+    if (message.containsSubject()) {
+      subject = message.subject() + SUBJECT_DELIMITER + subject;
     }
-    StreamMessage message1 = StreamMessage.copyFrom(message).subject(subject).build();
+    StreamMessage message1 = StreamMessage.from(message).subject(subject).build();
     return Event.copyFrom(event).message(message1).build(); // copy and modify
   }
 

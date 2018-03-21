@@ -132,10 +132,6 @@ public final class ChannelContext {
   }
 
   public void postWriteError(StreamMessage message, Throwable throwable) {
-    postWriteError(address, message, throwable);
-  }
-
-  public void postWriteError(Address address, StreamMessage message, Throwable throwable) {
     onNext(new Event.Builder(Topic.WriteError, address, id).error(throwable).message(message).build());
   }
 
