@@ -1,12 +1,13 @@
 package io.scalecube.gateway.http;
 
-import static io.scalecube.ipc.Qualifier.ERROR_NAMESPACE;
+import static io.scalecube.streams.Qualifier.Q_ERROR_NAMESPACE;
 
-import io.scalecube.ipc.ChannelContext;
-import io.scalecube.ipc.ErrorData;
-import io.scalecube.ipc.Qualifier;
-import io.scalecube.ipc.ServiceMessage;
-import io.scalecube.ipc.netty.ChannelSupport;
+import io.scalecube.streams.ChannelContext;
+import io.scalecube.streams.ErrorData;
+import io.scalecube.streams.Event;
+import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.StreamMessage;
+import io.scalecube.streams.netty.ChannelSupport;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelDuplexHandler;
@@ -33,21 +34,20 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
       return;
     }
 
-    channelContext.listenMessageWrite().subscribe(
-        event -> {
-          ServiceMessage message = event.getMessage().get();
-          Qualifier qualifier = Qualifier.fromString(message.getQualifier());
+    channelContext.listenWrite().map(Event::getMessageOrThrow).subscribe(
+        message -> {
+          Qualifier qualifier = Qualifier.fromString(message.qualifier());
           FullHttpResponse response;
 
-          if (!ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
-            response = message.hasData()
-                ? HttpCodecUtil.okResponse((ByteBuf) message.getData())
+          if (!Q_ERROR_NAMESPACE.equalsIgnoreCase(qualifier.getNamespace())) {
+            response = message.containsData()
+                ? HttpCodecUtil.okResponse((ByteBuf) message.data())
                 : HttpCodecUtil.emptyResponse();
           } else {
             if (message.dataOfType(ErrorData.class)) { // => ErrorData
-              response = HttpCodecUtil.errorResponse(qualifier, (ErrorData) message.getData());
+              response = HttpCodecUtil.errorResponse(qualifier, (ErrorData) message.data());
             } else if (message.dataOfType(ByteBuf.class)) { // => ByteBuf assumed
-              response = HttpCodecUtil.errorResponse(qualifier, (ByteBuf) message.getData());
+              response = HttpCodecUtil.errorResponse(qualifier, (ByteBuf) message.data());
             } else {
               response = HttpCodecUtil.emptyErrorResponse(qualifier);
             }
@@ -57,7 +57,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
           ctx.writeAndFlush(response).addListener(
               (ChannelFutureListener) future -> {
                 if (!future.isSuccess()) {
-                  channelContext.postWriteError(future.cause(), message);
+                  channelContext.postWriteError(message, future.cause());
                 } else {
                   channelContext.postWriteSuccess(message);
                 }
@@ -92,7 +92,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
       // Hint: qualifier format could be changed to start from '/' there be saving from substringing
       String qualifier = request.uri().substring(1);
 
-      ServiceMessage.Builder builder = ServiceMessage.withQualifier(qualifier);
+      StreamMessage.Builder builder = StreamMessage.builder().qualifier(qualifier);
       if (request.content().isReadable()) {
         builder.data(request.content());
       }
