@@ -106,23 +106,15 @@ public class Microservices {
 
   private final ServiceDispatcherFactory dispatcherFactory;
 
-  private final ServiceCommunicator sender;
-
   private Metrics metrics;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, Metrics metrics) {
+  private Microservices(Cluster cluster, ServicesConfig services, Metrics metrics) {
     this.cluster = cluster;
-    this.sender = sender;
     this.metrics = metrics;
-    this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
+    this.serviceRegistry = new ServiceRegistryImpl(this, services);
 
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
     this.proxyFactory = new ServiceProxyFactory(this);
-    new ServiceDispatcher(this);
-
-    this.sender.listen()
-        .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-        .subscribe(message -> ServiceResponse.handleReply(message));
   }
 
   public Metrics metrics() {
@@ -151,7 +143,6 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
-    private TransportConfig transportConfig = TransportConfig.defaultConfig();
 
     private Metrics metrics;
 
@@ -172,7 +163,7 @@ public class Microservices {
       cluster = Cluster.joinAwait(cfg);
       transportSender.cluster(cluster);
 
-      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig, this.metrics)).inject();
+      return Reflect.builder(new Microservices(cluster, servicesConfig, this.metrics)).inject();
     }
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {

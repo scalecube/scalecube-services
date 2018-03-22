@@ -1,36 +1,10 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;
 
 public class Messages {
-
-  private static final MessageValidator validator = new MessageValidator();
-
-  /**
-   * message validation utility class for validation and checking arguments of message.
-   */
-  public static final class MessageValidator {
-
-    /**
-     * validates that a request has ServiceHeaders.SERVICE_REQUEST header and ServiceHeaders.METHOD.
-     * 
-     * @param request message that is subject to validation.
-     */
-    public void serviceRequest(Message request) {
-      checkArgument(request != null, "Service request can't be null");
-      final String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-      checkArgument(serviceName != null, "Service request can't be null");
-      final String methodName = request.header(ServiceHeaders.METHOD);
-      checkArgument(methodName != null, "Method name can't be null");
-      final String cid = request.correlationId();
-      checkArgument(cid != null, "correlationId can't be null");
-    }
-
-  }
 
   public static final class MessagesBuilder {
 
@@ -119,24 +93,8 @@ public class Messages {
     return asResponse(error, correlationId, memberId);
   }
 
-  /**
-   * build unsubscribed service request for the original correlation id which as subscription was created with.
-   * 
-   * @param correlationId which the original request that created the subscription.
-   * @return unsubscribed request message.
-   */
-  public static Message asUnsubscribeRequest(final String correlationId) {
-    return Message.builder().header(ServiceHeaders.OBSERVER, ServiceHeaders.UNSUBSCIBE)
-        .correlationId(correlationId)
-        .build();
-  }
-
   public static MessagesBuilder builder() {
     return new MessagesBuilder();
-  }
-
-  public static MessageValidator validate() {
-    return validator;
   }
 
 

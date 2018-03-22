@@ -13,7 +13,6 @@ import java.util.concurrent.ScheduledExecutorService;
 public class ThreadFactory {
 
   private static final ConcurrentMap<String, ScheduledExecutorService> schedulers = new ConcurrentHashMap<>();
-  public static String SC_SERVICES_TIMEOUT = "sc-services-timeout";
 
   /**
    * Used to create and cache shared thread pools with given name.

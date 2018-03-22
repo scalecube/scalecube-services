@@ -82,8 +82,6 @@ public class ServiceCall {
    * @return CompletableFuture with service call dispatching result.
    */
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
-    Messages.validate().serviceRequest(request);
-
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
     if (optionalServiceInstance.isPresent()) {
@@ -105,7 +103,6 @@ public class ServiceCall {
    * @throws Exception in case of an error or TimeoutException if no response if a given duration.
    */
   public CompletableFuture<Message> invoke(Message request, ServiceInstance serviceInstance) throws Exception {
-    Messages.validate().serviceRequest(request);
     return invoke(request, serviceInstance, timeout);
   }
 
@@ -123,7 +120,6 @@ public class ServiceCall {
       final Duration duration) {
 
     Objects.requireNonNull(serviceInstance);
-    Messages.validate().serviceRequest(request);
     serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
 
     if (!serviceInstance.isLocal()) {
@@ -203,9 +199,6 @@ public class ServiceCall {
    * @return rx.Observable for the specific stream.
    */
   public Observable<Message> listen(Message request) {
-
-    Messages.validate().serviceRequest(request);
-
     Optional<ServiceInstance> optionalServiceInstance = router.route(request);
 
     if (optionalServiceInstance.isPresent()) {
