@@ -1,5 +1,7 @@
 package io.scalecube.streams;
 
+import static io.scalecube.streams.DefaultStreamProcessor.onCompletedMessage;
+import static io.scalecube.streams.DefaultStreamProcessor.onErrorMessage;
 import static org.junit.Assert.assertEquals;
 
 import io.scalecube.streams.Event.Topic;
@@ -36,48 +38,110 @@ public class DefaultStreamProcessorTest {
     return subject.test();
   }
 
-  private void assertWriteEvent(StreamMessage message, List<Event> events) {
-    assertEquals(Topic.Write, events.get(0).getTopic());
-    assertEquals(message, events.get(0).getMessageOrThrow());
+  private void assertObserverEvent(StreamMessage message, Event event) {
+    assertEquals(Topic.Write, event.getTopic());
+    assertEquals(message, event.getMessageOrThrow());
   }
 
   @Test
   public void testObserverOnNext() {
     AssertableSubscriber<Event> subscriber1 = listenEventStream();
     streamProcessor.onNext(messageOne);
-    subscriber1.assertValueCount(1).assertNoErrors().assertNotCompleted();
-    assertWriteEvent(messageOne, subscriber1.getOnNextEvents());
 
-    // call onNext one more time and check for emitted event
-    AssertableSubscriber<Event> subscriber2 = listenEventStream();
+    List<Event> events = subscriber1.assertValueCount(1)
+        .assertNoErrors()
+        .assertNotCompleted()
+        .getOnNextEvents();
+    assertObserverEvent(messageOne, events.get(0));
+  }
+
+  @Test
+  public void testObserverOnNextSeveralTimes() {
+    AssertableSubscriber<Event> subscriber1 = listenEventStream();
+    streamProcessor.onNext(messageOne);
     streamProcessor.onNext(messageTwo);
-    subscriber2.assertValueCount(1).assertNoErrors().assertNotCompleted();
-    assertWriteEvent(messageTwo, subscriber2.getOnNextEvents());
+
+    List<Event> events = subscriber1.assertValueCount(2)
+        .assertNoErrors()
+        .assertNotCompleted()
+        .getOnNextEvents();
+    assertObserverEvent(messageOne, events.get(0));
+    assertObserverEvent(messageTwo, events.get(1));
   }
 
   @Test
   public void testObserverOnCompleted() {
     AssertableSubscriber<Event> subscriber1 = listenEventStream();
     streamProcessor.onCompleted();
-    subscriber1.assertValueCount(1).assertNoErrors().assertNotCompleted();
-    assertWriteEvent(DefaultStreamProcessor.onCompletedMessage, subscriber1.getOnNextEvents());
+
+    List<Event> events = subscriber1.assertValueCount(1)
+        .assertNoErrors()
+        .assertNotCompleted()
+        .getOnNextEvents();
+    assertObserverEvent(onCompletedMessage, events.get(0));
+  }
+
+  @Test
+  public void testObserverOnCompletedSeveralTimes() {
+    AssertableSubscriber<Event> subscriber1 = listenEventStream();
+    streamProcessor.onCompleted();
+    streamProcessor.onCompleted();
+    streamProcessor.onCompleted();
+
+    List<Event> events = subscriber1.assertValueCount(1)
+        .assertNoErrors()
+        .assertNotCompleted()
+        .getOnNextEvents();
+    assertObserverEvent(onCompletedMessage, events.get(0));
+  }
+
+  @Test
+  public void testObserverAfterOnCompletedNoEventsEmitted() {
+    streamProcessor.onCompleted();
 
     // ensure after onCompleted events are not emitted
-    AssertableSubscriber<Event> subscriber2 = listenEventStream();
+    AssertableSubscriber<Event> subscriber1 = listenEventStream();
     streamProcessor.onNext(messageOne);
-    subscriber2.assertValueCount(0).assertNoErrors().assertNotCompleted();
+    streamProcessor.onNext(messageTwo);
+    subscriber1.assertValueCount(0).assertNoErrors().assertNotCompleted();
   }
 
   @Test
   public void testObserverOnError() {
     AssertableSubscriber<Event> subscriber1 = listenEventStream();
-    streamProcessor.onError(new RuntimeException("exception!"));
-    subscriber1.assertValueCount(1).assertNoErrors().assertNotCompleted();
-    assertWriteEvent(DefaultStreamProcessor.onErrorMessage, subscriber1.getOnNextEvents());
+    streamProcessor.onError(new RuntimeException("this is error"));
 
-    // ensure after onError events are not emitted
-    AssertableSubscriber<Event> subscriber2 = listenEventStream();
-    streamProcessor.onNext(messageOne);
-    subscriber2.assertValueCount(0).assertNoErrors().assertNotCompleted();
+    List<Event> events = subscriber1.assertValueCount(1)
+        .assertNoErrors()
+        .assertNotCompleted()
+        .getOnNextEvents();
+    assertObserverEvent(onErrorMessage, events.get(0));
   }
+
+  @Test
+  public void testObserverOnErrorSeveralTimes() {
+    AssertableSubscriber<Event> subscriber1 = listenEventStream();
+    streamProcessor.onError(new RuntimeException("this is error"));
+    streamProcessor.onError(new RuntimeException("this is error"));
+    streamProcessor.onError(new RuntimeException("this is error"));
+
+    List<Event> events = subscriber1.assertValueCount(1)
+        .assertNoErrors()
+        .assertNotCompleted()
+        .getOnNextEvents();
+    assertObserverEvent(onErrorMessage, events.get(0));
+  }
+
+  @Test
+  public void testObserverAfterOnErrorNoEventsEmitted() {
+    streamProcessor.onError(new RuntimeException("this is error"));
+
+    // ensure after onCompleted events are not emitted
+    AssertableSubscriber<Event> subscriber1 = listenEventStream();
+    streamProcessor.onNext(messageOne);
+    streamProcessor.onNext(messageTwo);
+    subscriber1.assertValueCount(0).assertNoErrors().assertNotCompleted();
+  }
+
+
 }
