@@ -7,17 +7,32 @@ import rx.Observable;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 
-public class ServiceStream {
-
-  /**
-   * Invokes and returns promise for invocation.
-   * 
-   * @param message message to sedn
-   * @return promise
-   */
-  public CompletableFuture<Message> invoke(Message message) {
-    return null;
+public class ServiceConsumer {
+  
+  private final Builder builder;
+  
+  public ServiceConsumer(Builder builder) {
+    this.builder = builder;
   }
+  
+  public static class Builder {
+    private Duration duration = Duration.ofSeconds(3);
+
+    public Builder timeout(Duration duration) {
+      this.duration = duration;
+      return this;
+    }
+    
+    public ServiceConsumer build(){
+      return new ServiceConsumer(this); 
+    }
+  }
+
+  public Builder builder() {
+    return new Builder();
+  }
+  
+  
 
   /**
    * Invoke a request message and invoke a service by a given service name and method name. expected headers in request:
@@ -26,13 +41,13 @@ public class ServiceStream {
    * an error or TimeoutException if no response if a given duration.
    * 
    * @param request request with given headers.
-   * @param timeout timeout
    * @return CompletableFuture with service call dispatching result.
    */
-  public CompletableFuture<Message> invoke(Message request, Duration timeout) {
+  public CompletableFuture<Message> invoke(Message request) {
+    
     return null;
   }
-  
+
   /**
    * sending subscription request message to a service that returns Observable.
    * 
@@ -40,6 +55,9 @@ public class ServiceStream {
    * @return rx.Observable for the specific stream.
    */
   public Observable<Message> listen(Message request) {
+    
     return null;
   }
+
+
 }
