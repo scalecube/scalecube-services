@@ -98,7 +98,7 @@ public final class DefaultStreamProcessor implements StreamProcessor {
     String qualifierNamespace = Qualifier.getQualifierNamespace(qualifier);
     if (Qualifier.Q_ERROR_NAMESPACE.equalsIgnoreCase(qualifierNamespace)) { // remote => onError
       // Hint: at this point more sophisticated exception mapping logic is needed
-      emitter.onError(new RuntimeException(qualifier));
+      emitter.onError(new IOException(qualifier));
       return;
     }
     emitter.onNext(message); // remote => normal response
