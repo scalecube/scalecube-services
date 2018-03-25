@@ -43,7 +43,7 @@ public final class ServiceStreams {
           boolean parameterContainStreamProcessor =
               parameters.length > 0 && parameters[0].getType() == StreamProcessor.class;
 
-          ServiceMethodInvoker pattern = new ServiceMethodInvoker(server, qualifier, method, serviceObject);
+          ServiceStreamMethodInvoker pattern = new ServiceStreamMethodInvoker(server, qualifier, method, serviceObject);
 
           Subscription subscription;
           

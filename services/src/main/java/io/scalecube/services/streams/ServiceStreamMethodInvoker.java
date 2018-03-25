@@ -18,14 +18,14 @@ import java.lang.reflect.Type;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public final class ServiceMethodInvoker {
+public final class ServiceStreamMethodInvoker {
 
   private final StreamProcessors.ServerStreamProcessors server;
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
 
-  public ServiceMethodInvoker(
+  public ServiceStreamMethodInvoker(
       StreamProcessors.ServerStreamProcessors server,
       Qualifier qualifier,
       Method method,
