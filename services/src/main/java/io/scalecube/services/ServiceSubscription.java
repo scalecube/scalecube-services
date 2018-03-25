@@ -28,6 +28,6 @@ public class ServiceSubscription {
 
   @Override
   public String toString() {
-    return "ServiceStreamMethodInvoker [id=" + id + ", subscription=" + subscription + ", memberId=" + memberId + "]";
+    return "ServiceMethodSubscription [id=" + id + ", subscription=" + subscription + ", memberId=" + memberId + "]";
   }
 }
