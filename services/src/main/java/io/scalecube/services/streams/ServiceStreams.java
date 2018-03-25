@@ -37,24 +37,25 @@ public final class ServiceStreams {
         .map(entry -> {
           Qualifier qualifier = entry.getKey();
           Method method = entry.getValue();
-          Class<?> returnType = method.getReturnType();
-          Type parameterizedReturnType = Reflect.parameterizedReturnType(method);
+          
+          
           Parameter[] parameters = method.getParameters();
           boolean parameterContainStreamProcessor =
               parameters.length > 0 && parameters[0].getType() == StreamProcessor.class;
 
-          ServiceSubscriptionBuilder stubBuilder = new ServiceSubscriptionBuilder(server, qualifier, method,
-              parameterizedReturnType, parameters, serviceObject);
+          ServiceMethodInvoker pattern = new ServiceMethodInvoker(server, qualifier, method, serviceObject);
 
           Subscription subscription;
+          
+          Class<?> returnType = method.getReturnType();
           if (returnType == CompletableFuture.class) {
-            subscription = stubBuilder.singleRequestToCompletableFuture();
+            subscription = pattern.requestToCompletableFuture();
           } else if (returnType == Observable.class) {
-            subscription = stubBuilder.singleRequestToObservable();
+            subscription = pattern.requestToObservable();
           } else if (returnType == Void.class) {
-            subscription = stubBuilder.singleRequestToVoid();
+            subscription = pattern.requestToVoid();
           } else if (returnType == Subscriber.class && parameterContainStreamProcessor) {
-            subscription = stubBuilder.requestStreamToResponseStream();
+            subscription = pattern.requestStreamToResponseStream();
           } else {
             throw new IllegalArgumentException();
           }
