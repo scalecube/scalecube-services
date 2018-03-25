@@ -44,19 +44,17 @@ public final class ServiceStreamMethodInvoker {
           // noinspection unchecked
           CompletableFuture<StreamMessage> result = invoke(message);
           result.whenComplete((reponse, error) -> {
-                if (error == null) {
-                  observer.onNext(reponse);
-                  observer.onCompleted();
-                } else {
-                  observer.onError(error);
-                }
-              });
+            if (error == null) {
+              observer.onNext(reponse);
+              observer.onCompleted();
+            } else {
+              observer.onError(error);
+            }
+          });
         } catch (Throwable error) {
           observer.onError(error);
         }
       }
-
-      
     });
   }
 
@@ -104,12 +102,12 @@ public final class ServiceStreamMethodInvoker {
   private <T> T invoke(StreamMessage message) throws Exception {
     return Reflect.invoke(serviceObject, method, message);
   }
-  
+
   private Subscriber<StreamMessage> invoke(final StreamProcessor streamProcessor)
       throws Exception {
     return (Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor);
   }
- 
+
   private Subscription listenStreamProcessor(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
     return server.listen().subscribe(streamProcessor -> { // => got new stream processor
       // listen for stream messages with qualifier filter
