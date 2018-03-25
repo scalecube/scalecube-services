@@ -1,5 +1,6 @@
 package io.scalecube.services.streams;
 
+import io.scalecube.services.Reflect;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
@@ -41,8 +42,8 @@ public final class ServiceMethodInvoker {
       public void onNext(StreamMessage message) {
         try {
           // noinspection unchecked
-          ((CompletableFuture<StreamMessage>) invoke(message))
-              .whenComplete((reponse, error) -> {
+          CompletableFuture<StreamMessage> result = invoke(message);
+          result.whenComplete((reponse, error) -> {
                 if (error == null) {
                   observer.onNext(reponse);
                   observer.onCompleted();
@@ -54,17 +55,19 @@ public final class ServiceMethodInvoker {
           observer.onError(error);
         }
       }
+
+      
     });
   }
 
   public Subscription requestToObservable() {
     return listenStreamProcessor(observer -> new SubscriberAdapter() {
       @Override
-      public void onNext(StreamMessage message) {
+      public void onNext(StreamMessage request) {
         try {
           // noinspection unchecked
-          ((Observable<StreamMessage>) invoke(message))
-              .subscribe(observer::onNext, observer::onError, observer::onCompleted);
+          Observable<StreamMessage> result = invoke(request);
+          result.subscribe(observer::onNext, observer::onError, observer::onCompleted);
         } catch (Throwable error) {
           observer.onError(error);
         }
@@ -90,26 +93,23 @@ public final class ServiceMethodInvoker {
     return listenStreamProcessor(streamProcessor -> {
       try {
         // noinspection unchecked
-        return ((Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor));
+        Subscriber<StreamMessage> result = invoke(streamProcessor);
+        return result;
       } catch (Throwable error) {
         return new SubscriberAdapter();
       }
     });
   }
 
-  private Object invoke(final StreamMessage request) throws Exception {
-    Object result;
-    // handle invoke
-    if (method.getParameters().length == 0) {
-      result = method.invoke(serviceObject);
-    } else if (method.getParameters()[0].getType().isAssignableFrom(StreamMessage.class)) {
-      result = method.invoke(serviceObject, request);
-    } else {
-      result = method.invoke(serviceObject, new Object[] {request.data()});
-    }
-    return result;
+  private <T> T invoke(StreamMessage message) throws Exception {
+    return Reflect.invoke(serviceObject, method, message);
   }
-
+  
+  private Subscriber<StreamMessage> invoke(final StreamProcessor streamProcessor)
+      throws Exception {
+    return (Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor);
+  }
+ 
   private Subscription listenStreamProcessor(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
     return server.listen().subscribe(streamProcessor -> { // => got new stream processor
       // listen for stream messages with qualifier filter
