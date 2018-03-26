@@ -5,16 +5,13 @@ import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.StreamProcessors;
-import io.scalecube.transport.Message;
 
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.Type;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -24,6 +21,7 @@ public final class ServiceMethodSubscription {
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
+  private Subscription subsciption;
 
   public ServiceMethodSubscription(
       StreamProcessors.ServerStreamProcessors server,
@@ -36,8 +34,8 @@ public final class ServiceMethodSubscription {
     this.serviceObject = serviceObject;
   }
 
-  public Subscription toCompletableFuture() {
-    return listenStreamProcessor(observer -> new SubscriberAdapter() {
+  public ServiceMethodSubscription toCompletableFuture() {
+    this.subsciption = listenStreamProcessor(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
         try {
@@ -56,10 +54,36 @@ public final class ServiceMethodSubscription {
         }
       }
     });
+    return this;
   }
 
-  public Subscription toObservable() {
-    return listenStreamProcessor(observer -> new SubscriberAdapter() {
+  /**
+   * Stops the receipt of notifications on the {@link Subscriber} that was registered when this Subscription was
+   * received.
+   * <p>
+   * This allows deregistering an {@link Subscriber} before it has finished receiving all events (i.e. before
+   * onCompleted is called).
+   */
+  void unsubscribe() {
+    Objects.requireNonNull(subsciption);
+    subsciption.unsubscribe();
+  }
+
+  /**
+   * Indicates whether this {@code Subscription} is currently unsubscribed.
+   *
+   * @return {@code true} if this {@code Subscription} is currently unsubscribed, {@code false} otherwise
+   */
+  boolean isUnsubscribed() {
+    if (!Objects.isNull(subsciption)) {
+      return subsciption.isUnsubscribed();
+    } else {
+      return true;
+    }
+  }
+
+  public ServiceMethodSubscription toObservable() {
+    this.subsciption = listenStreamProcessor(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage request) {
         try {
@@ -71,10 +95,11 @@ public final class ServiceMethodSubscription {
         }
       }
     });
+    return this;
   }
 
-  public Subscription toVoid() {
-    return listenStreamProcessor(observer -> new SubscriberAdapter() {
+  public ServiceMethodSubscription toVoid() {
+    this.subsciption = listenStreamProcessor(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
         try {
@@ -85,10 +110,11 @@ public final class ServiceMethodSubscription {
         }
       }
     });
+    return this;
   }
 
-  public Subscription requestStreamToResponseStream() {
-    return listenStreamProcessor(streamProcessor -> {
+  public ServiceMethodSubscription requestStreamToResponseStream() {
+    this.subsciption = listenStreamProcessor(streamProcessor -> {
       try {
         // noinspection unchecked
         Subscriber<StreamMessage> result = invoke(streamProcessor);
@@ -97,6 +123,7 @@ public final class ServiceMethodSubscription {
         return new SubscriberAdapter();
       }
     });
+    return this;
   }
 
   private <T> T invoke(StreamMessage message) throws Exception {
