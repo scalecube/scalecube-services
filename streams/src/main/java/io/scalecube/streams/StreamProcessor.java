@@ -7,5 +7,5 @@ public interface StreamProcessor extends Observer<StreamMessage> {
 
   Observable<StreamMessage> listen();
 
-  void close();
+  void unsubscribe();
 }
