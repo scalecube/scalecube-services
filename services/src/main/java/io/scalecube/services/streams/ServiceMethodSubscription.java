@@ -18,14 +18,14 @@ import java.lang.reflect.Type;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public final class ServiceStreamMethodInvoker {
+public final class ServiceMethodSubscription {
 
   private final StreamProcessors.ServerStreamProcessors server;
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
 
-  public ServiceStreamMethodInvoker(
+  public ServiceMethodSubscription(
       StreamProcessors.ServerStreamProcessors server,
       Qualifier qualifier,
       Method method,
@@ -36,7 +36,7 @@ public final class ServiceStreamMethodInvoker {
     this.serviceObject = serviceObject;
   }
 
-  public Subscription requestToCompletableFuture() {
+  public Subscription toCompletableFuture() {
     return listenStreamProcessor(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
@@ -58,7 +58,7 @@ public final class ServiceStreamMethodInvoker {
     });
   }
 
-  public Subscription requestToObservable() {
+  public Subscription toObservable() {
     return listenStreamProcessor(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage request) {
@@ -73,7 +73,7 @@ public final class ServiceStreamMethodInvoker {
     });
   }
 
-  public Subscription requestToVoid() {
+  public Subscription toVoid() {
     return listenStreamProcessor(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
