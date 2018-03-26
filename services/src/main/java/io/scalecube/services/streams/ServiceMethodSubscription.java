@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public final class ServiceMethodSubscription {
+public final class ServiceMethodSubscription implements Subscription{
 
   private final StreamProcessors.ServerStreamProcessors server;
   private final Qualifier qualifier;
@@ -57,24 +57,14 @@ public final class ServiceMethodSubscription {
     return this;
   }
 
-  /**
-   * Stops the receipt of notifications on the {@link Subscriber} that was registered when this Subscription was
-   * received.
-   * <p>
-   * This allows deregistering an {@link Subscriber} before it has finished receiving all events (i.e. before
-   * onCompleted is called).
-   */
-  void unsubscribe() {
+  @Override
+  public void unsubscribe() {
     Objects.requireNonNull(subsciption);
     subsciption.unsubscribe();
   }
 
-  /**
-   * Indicates whether this {@code Subscription} is currently unsubscribed.
-   *
-   * @return {@code true} if this {@code Subscription} is currently unsubscribed, {@code false} otherwise
-   */
-  boolean isUnsubscribed() {
+  @Override
+  public boolean isUnsubscribed() {
     if (!Objects.isNull(subsciption)) {
       return subsciption.isUnsubscribed();
     } else {
