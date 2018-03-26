@@ -26,7 +26,7 @@ public class StreamEchoClientRunner {
         Throwable::printStackTrace,
         () -> System.out.println("Done with client"));
 
-    IntStream.rangeClosed(1, 5).forEach(i -> sp.onNext(StreamMessage.builder().qualifier("q/hello").build()));
+    IntStream.rangeClosed(1, 5).forEach(i -> sp.onNext(StreamMessage.builder().qualifier("scalecube-greeting-service/greeting").build()));
     sp.onCompleted();
 
     Thread.currentThread().join();
