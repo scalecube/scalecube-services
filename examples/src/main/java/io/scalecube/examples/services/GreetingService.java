@@ -5,7 +5,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 
 import java.util.concurrent.CompletableFuture;
 
-@Service
+@Service("scalecube-greeting-service")
 public interface GreetingService {
 
   @ServiceMethod
