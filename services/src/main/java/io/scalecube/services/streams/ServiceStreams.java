@@ -7,7 +7,6 @@ import io.scalecube.streams.StreamProcessors;
 
 import rx.Observable;
 import rx.Subscriber;
-import rx.Subscription;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -19,31 +18,31 @@ import java.util.stream.Collectors;
 public final class ServiceStreams {
 
   final StreamProcessors.ServerStreamProcessors server;
-  
+
   private ServiceStreams(Builder builder) {
     this.server = builder.server;
   }
-  
+
   public static class Builder {
     StreamProcessors.ServerStreamProcessors server = StreamProcessors.server();
-    
-    public Builder server(StreamProcessors.ServerStreamProcessors server){
+
+    public Builder server(StreamProcessors.ServerStreamProcessors server) {
       this.server = server;
       return this;
     }
-       
-    public ServiceStreams build(){
+
+    public ServiceStreams build() {
       server.build();
       return new ServiceStreams(this);
     }
   }
-  
-  public static Builder builder(){
+
+  public static Builder builder() {
     return new Builder();
-  } 
-  
-  public List<Subscription> from(Object serviceObject){
-    
+  }
+
+  public List<ServiceMethodSubscription> from(Object serviceObject) {
+
     List<AbstractMap.SimpleEntry<Qualifier, Method>> methods = Reflect.serviceInterfaces(serviceObject).stream()
         .flatMap(serviceInterface -> Reflect.serviceMethods(serviceInterface).entrySet().stream().map(entry -> {
           String namespace = Reflect.serviceName(serviceInterface);
@@ -53,37 +52,38 @@ public final class ServiceStreams {
         }))
         .collect(Collectors.toList());
 
-    List<Subscription> subscriptions = methods.stream()
+    return methods.stream()
         .map(entry -> {
           Qualifier qualifier = entry.getKey();
           Method method = entry.getValue();
-          
-          Parameter[] parameters = method.getParameters();
-         
-          ServiceMethodSubscription pattern = new ServiceMethodSubscription(this.server, qualifier, method, serviceObject);
-
-          Subscription subscription;
-          
-          Class<?> returnType = method.getReturnType();
-          if (returnType == CompletableFuture.class) {
-            subscription = pattern.toCompletableFuture();
-          } else if (returnType == Observable.class) {
-            subscription = pattern.toObservable();
-          } else if (returnType == Void.class) {
-            subscription = pattern.toVoid();
-          } else if (returnType == Subscriber.class && containStreamProcessor(parameters)) {
-            subscription = pattern.requestStreamToResponseStream();
-          } else {
-            throw new IllegalArgumentException();
-          }
-          return subscription;
+          return createServiceMethodSubscription(serviceObject, qualifier, method);
         }).collect(Collectors.toList());
-    
-    return subscriptions;
+
+  }
+
+  private ServiceMethodSubscription createServiceMethodSubscription(Object serviceObject,
+      Qualifier qualifier, Method method) {
+
+    ServiceMethodSubscription sub = new ServiceMethodSubscription(this.server,
+        qualifier,
+        method, serviceObject);
+
+    Class<?> returnType = method.getReturnType();
+    if (returnType == CompletableFuture.class) {
+      return sub.toCompletableFuture();
+    } else if (returnType == Observable.class) {
+      return sub.toObservable();
+    } else if (returnType == Void.class) {
+      return sub.toVoid();
+    } else if (returnType == Subscriber.class && containStreamProcessor(method.getParameters())) {
+      return sub.requestStreamToResponseStream();
+    } else {
+      throw new IllegalArgumentException();
+    }
   }
 
   static private boolean containStreamProcessor(Parameter[] parameters) {
     return parameters.length > 0 && parameters[0].getType() == StreamProcessor.class;
   }
-  
+
 }
