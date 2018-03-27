@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import java.util.Map;
 import java.util.Set;
+
 /**
  * Helper class used to register service with tags as metadata in the scalecube cluster. parsing from service info to
  * json and back.
@@ -37,8 +38,6 @@ public class ServiceInfo {
     json.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
     return json;
   }
-
-
 
   public ServiceInfo(String serviceName, Set<String> methods, Map<String, String> tags) {
     this.serviceName = serviceName;
