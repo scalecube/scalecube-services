@@ -17,31 +17,13 @@ import java.util.stream.Collectors;
 
 public final class ServiceStreams {
 
-  final StreamProcessors.ServerStreamProcessors server;
+  private final StreamProcessors.ServerStreamProcessors server;
 
-  private ServiceStreams(Builder builder) {
-    this.server = builder.server;
+  public ServiceStreams(StreamProcessors.ServerStreamProcessors server) {
+    this.server = server;
   }
 
-  public static class Builder {
-    StreamProcessors.ServerStreamProcessors server = StreamProcessors.server();
-
-    public Builder server(StreamProcessors.ServerStreamProcessors server) {
-      this.server = server;
-      return this;
-    }
-
-    public ServiceStreams build() {
-      server.build();
-      return new ServiceStreams(this);
-    }
-  }
-
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public List<ServiceMethodSubscription> from(Object serviceObject) {
+  public List<ServiceMethodSubscription> createSubscriptions(Object serviceObject) {
 
     List<AbstractMap.SimpleEntry<Qualifier, Method>> methods = Reflect.serviceInterfaces(serviceObject).stream()
         .flatMap(serviceInterface -> Reflect.serviceMethods(serviceInterface).entrySet().stream().map(entry -> {
@@ -53,37 +35,30 @@ public final class ServiceStreams {
         .collect(Collectors.toList());
 
     return methods.stream()
-        .map(entry -> {
-          Qualifier qualifier = entry.getKey();
-          Method method = entry.getValue();
-          return createServiceMethodSubscription(serviceObject, qualifier, method);
-        }).collect(Collectors.toList());
-
+        .map(entry -> createServiceMethodSubscription(serviceObject, entry.getKey(), entry.getValue()))
+        .collect(Collectors.toList());
   }
 
   private ServiceMethodSubscription createServiceMethodSubscription(Object serviceObject,
       Qualifier qualifier, Method method) {
 
-    ServiceMethodSubscription sub = new ServiceMethodSubscription(this.server,
-        qualifier,
-        method, serviceObject);
+    ServiceMethodSubscription subscription = new ServiceMethodSubscription(server, qualifier, method, serviceObject);
 
     Class<?> returnType = method.getReturnType();
     if (returnType == CompletableFuture.class) {
-      return sub.toCompletableFuture();
+      return subscription.toCompletableFuture();
     } else if (returnType == Observable.class) {
-      return sub.toObservable();
+      return subscription.toObservable();
     } else if (returnType == Void.class) {
-      return sub.toVoid();
+      return subscription.toVoid();
     } else if (returnType == Subscriber.class && containStreamProcessor(method.getParameters())) {
-      return sub.requestStreamToResponseStream();
+      return subscription.requestStreamToResponseStream();
     } else {
       throw new IllegalArgumentException();
     }
   }
 
-  static private boolean containStreamProcessor(Parameter[] parameters) {
+  private boolean containStreamProcessor(Parameter[] parameters) {
     return parameters.length > 0 && parameters[0].getType() == StreamProcessor.class;
   }
-
 }
