@@ -82,9 +82,28 @@ public class ListeningServerStreamTest {
   @Test
   public void testBranchingAtBind() {
     int port = 4444;
-    ListeningServerStream listeningServerStream = serverStream.withListenAddress("localhost");
-    assertEquals("127.0.0.1:4444", listeningServerStream.withPort(port).bindAwait().toString());
-    assertEquals("127.0.0.1:4445", listeningServerStream.withPort(port).bindAwait().toString());
+    ListeningServerStream root = serverStream.withListenAddress("localhost");
+    assertEquals("127.0.0.1:4444", root.withPort(port).bindAwait().toString());
+    assertEquals("127.0.0.1:4445", root.withPort(port).bindAwait().toString());
+  }
+
+  @Test
+  public void testBranchingThenUnbind() throws Exception {
+    int port = 4801;
+    ListeningServerStream root = serverStream.withPort(port).withListenAddress("localhost");
+    assertEquals("127.0.0.1:4801", root.bindAwait().toString());
+    assertEquals("127.0.0.1:4802", root.bindAwait().toString());
+    assertEquals("127.0.0.1:4803", root.bindAwait().toString());
+    assertEquals("127.0.0.1:4804", root.bindAwait().toString());
+
+    // now unbind
+    root.close();
+
+    // await a bit
+    TimeUnit.SECONDS.sleep(3);
+
+    // ensure we can bind again because close() cleared server channels
+    assertEquals("127.0.0.1:4801", root.bindAwait().toString());
   }
 
   @Test
