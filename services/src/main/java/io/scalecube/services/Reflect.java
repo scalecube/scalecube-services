@@ -196,20 +196,18 @@ public class Reflect {
 
   @SuppressWarnings("unchecked")
   public static <T> T invoke(Object serviceObject, Method method, final StreamMessage request) throws Exception {
-    T result = null;
     // handle invoke
     if (method.getParameters().length == 0) { // method expect no params.
-      result = (T) method.invoke(serviceObject);
+      return (T) method.invoke(serviceObject);
     } else if (method.getParameters().length == 1) { // method expect 1 param.
       if (method.getParameters()[0].getType().isAssignableFrom(StreamMessage.class)) {
-        result = (T) method.invoke(serviceObject, request);
+        return (T) method.invoke(serviceObject, request);
       } else {
-        result = (T) method.invoke(serviceObject, new Object[] {request.data()});
+        return (T) method.invoke(serviceObject, new Object[] {request.data()});
       }
     } else {
       // should we later support 2 parameters? message and the Stream processor?
       throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
     }
-    return result;
   }
 }
