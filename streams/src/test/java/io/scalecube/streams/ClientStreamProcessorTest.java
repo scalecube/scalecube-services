@@ -1,7 +1,6 @@
 package io.scalecube.streams;
 
 import static io.scalecube.streams.StreamMessage.from;
-import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Address;
 
@@ -56,7 +55,7 @@ public class ClientStreamProcessorTest {
         .subscribe(message -> {
           // send original message back to client then send onCompleted
           listeningServerStream.send(from(message).build());
-          listeningServerStream.send(from(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
+          listeningServerStream.send(from(message).qualifier(Qualifier.Q_COMPLETED).build());
         });
 
     // setup echo service replying with void
@@ -65,7 +64,7 @@ public class ClientStreamProcessorTest {
         .filter(message -> "q/echoVoid".equalsIgnoreCase(message.qualifier()))
         .subscribe(message -> {
           // just send onCompleted
-          listeningServerStream.send(from(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
+          listeningServerStream.send(from(message).qualifier(Qualifier.Q_COMPLETED).build());
         });
 
     // setup error service
@@ -74,7 +73,7 @@ public class ClientStreamProcessorTest {
         .filter(message -> "q/echoError".equalsIgnoreCase(message.qualifier()))
         .subscribe(message -> {
           // respond with error
-          listeningServerStream.send(from(message).qualifier(Qualifier.Q_GENERAL_FAILURE).build());
+          listeningServerStream.send(from(message).qualifier(Qualifier.Q_ERROR).build());
         });
 
     // setup service with several responses with onCompleted message following everyting sent
@@ -85,7 +84,7 @@ public class ClientStreamProcessorTest {
           // respond with several response messages then send onCompleted
           IntStream.rangeClosed(1, 42)
               .forEach(i -> listeningServerStream.send(from(message).qualifier("q/" + i).build()));
-          listeningServerStream.send(from(message).qualifier(Qualifier.Q_ON_COMPLETED).build());
+          listeningServerStream.send(from(message).qualifier(Qualifier.Q_COMPLETED).build());
         });
   }
 
@@ -108,9 +107,8 @@ public class ClientStreamProcessorTest {
           .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertCompleted();
     } finally {
-      streamProcessor.close();
+      streamProcessor.unsubscribe();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -124,9 +122,8 @@ public class ClientStreamProcessorTest {
           .assertCompleted()
           .assertNoValues();
     } finally {
-      streamProcessor.close();
+      streamProcessor.unsubscribe();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -138,11 +135,10 @@ public class ClientStreamProcessorTest {
       subscriber
           .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertNoValues()
-          .assertError(RuntimeException.class);
+          .assertError(IOException.class);
     } finally {
-      streamProcessor.close();
+      streamProcessor.unsubscribe();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -156,9 +152,8 @@ public class ClientStreamProcessorTest {
           .awaitValueCount(42, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
           .assertCompleted();
     } finally {
-      streamProcessor.close();
+      streamProcessor.unsubscribe();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -173,9 +168,8 @@ public class ClientStreamProcessorTest {
           .assertNoValues()
           .assertError(ConnectException.class);
     } finally {
-      streamProcessor.close();
+      streamProcessor.unsubscribe();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -201,8 +195,7 @@ public class ClientStreamProcessorTest {
           .assertNoValues()
           .assertError(IOException.class);
     } finally {
-      streamProcessor.close();
+      streamProcessor.unsubscribe();
     }
-    assertTrue("codacy", true);
   }
 }
