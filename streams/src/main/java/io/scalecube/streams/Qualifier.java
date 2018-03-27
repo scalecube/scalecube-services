@@ -6,13 +6,16 @@ public final class Qualifier {
 
   public static final String Q_DELIMITER = "/";
   public static final String Q_NAMESPACE = "io.scalecube.streams";
-  public static final String Q_ERROR_NAMESPACE = Q_NAMESPACE + ".onError";
-  public static final String Q_COMPLETED_NAMESPACE = Q_NAMESPACE + ".onCompleted";
+  public static final String Q_ERROR_NAMESPACE = Q_NAMESPACE + ".error";
+  public static final String Q_COMPLETED_NAMESPACE = Q_NAMESPACE + ".completed";
+  public static final String Q_UNSUBSCRIBE_NAMESPACE = Q_NAMESPACE + ".unsubscribe";
 
   // qualifier for generic error
-  public static final Qualifier Q_GENERAL_FAILURE = Qualifier.fromString(Q_ERROR_NAMESPACE + Q_DELIMITER + 500);
+  public static final Qualifier Q_ERROR = Qualifier.fromString(Q_ERROR_NAMESPACE + Q_DELIMITER + 500);
   // qualifier for onCompleted event
-  public static final Qualifier Q_ON_COMPLETED = Qualifier.fromString(Q_COMPLETED_NAMESPACE + Q_DELIMITER + 1);
+  public static final Qualifier Q_COMPLETED = Qualifier.fromString(Q_COMPLETED_NAMESPACE + Q_DELIMITER + 1);
+  // qualifier for unsubscribe event
+  public static final Qualifier Q_UNSUBSCRIBE = Qualifier.fromString(Q_UNSUBSCRIBE_NAMESPACE + Q_DELIMITER + 1);
 
   private final String namespace;
   private final String action;
