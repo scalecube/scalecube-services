@@ -138,12 +138,12 @@ public final class StreamProcessors {
     /**
      * Builds internal {@link ListeningServerStream} and {@link ServerStreamProcessorFactory}; aligns them to work
      * together.
-     * 
+     *
      * @return stream processor factory object which works with regards to server side logic
      */
     public ServerStreamProcessors build() {
       // calculate
-      listeningServerStream = ListeningServerStream.newListeningServerStream(config.embeddedConfig);
+      listeningServerStream = ListeningServerStream.newListeningServerStream(config.lssConfig);
       serverStreamProcessorFactory = new ServerStreamProcessorFactory(listeningServerStream);
       // return
       return this;
@@ -174,41 +174,48 @@ public final class StreamProcessors {
 
     private static class Config {
 
-      private ListeningServerStream.Config embeddedConfig = ListeningServerStream.Config.newConfig();
+      private ListeningServerStream.Config lssConfig = ListeningServerStream.Config.newConfig();
 
       private Config() {}
 
       private Config(Config other, Consumer<Config> modifier) {
-        this.embeddedConfig = other.embeddedConfig;
+        this.lssConfig = other.lssConfig;
         modifier.accept(this);
       }
 
       private Config setBootstrap(ServerBootstrap bootstrap) {
-        return new Config(this, config -> config.embeddedConfig.setServerBootstrap(bootstrap));
+        return new Config(this, //
+            config -> config.lssConfig = config.lssConfig.setServerBootstrap(bootstrap));
       }
 
-      public Config setListenAddress(String listenAddress) {
-        return new Config(this, config -> config.embeddedConfig.setListenAddress(listenAddress));
+      private Config setListenAddress(String listenAddress) {
+        return new Config(this, //
+            config -> config.lssConfig = config.lssConfig.setListenAddress(listenAddress));
       }
 
-      public Config setListenInterface(String listenInterface) {
-        return new Config(this, config -> config.embeddedConfig.setListenInterface(listenInterface));
+      private Config setListenInterface(String listenInterface) {
+        return new Config(this, //
+            config -> config.lssConfig = config.lssConfig.setListenInterface(listenInterface));
       }
 
-      public Config setPreferIPv6(boolean preferIPv6) {
-        return new Config(this, config -> config.embeddedConfig.setPreferIPv6(preferIPv6));
+      private Config setPreferIPv6(boolean preferIPv6) {
+        return new Config(this, //
+            config -> config.lssConfig = config.lssConfig.setPreferIPv6(preferIPv6));
       }
 
-      public Config setPort(int port) {
-        return new Config(this, config -> config.embeddedConfig.setPort(port));
+      private Config setPort(int port) {
+        return new Config(this, //
+            config -> config.lssConfig = config.lssConfig.setPort(port));
       }
 
-      public Config setPortCount(int portCount) {
-        return new Config(this, config -> config.embeddedConfig.setPortCount(portCount));
+      private Config setPortCount(int portCount) {
+        return new Config(this, //
+            config -> config.lssConfig = config.lssConfig.setPortCount(portCount));
       }
 
-      public Config setPortAutoIncrement(boolean portAutoIncrement) {
-        return new Config(this, config -> config.embeddedConfig.setPortAutoIncrement(portAutoIncrement));
+      private Config setPortAutoIncrement(boolean portAutoIncrement) {
+        return new Config(this, //
+            config -> config.lssConfig = config.lssConfig.setPortAutoIncrement(portAutoIncrement));
       }
     }
   }
