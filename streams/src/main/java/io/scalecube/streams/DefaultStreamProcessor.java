@@ -79,7 +79,6 @@ public final class DefaultStreamProcessor implements StreamProcessor {
           eventStream.listenChannelContextClosed()
               .filter(event -> event.getAddress().equals(channelContext.getAddress()))
               .map(event -> new IOException("ChannelContext closed on address: " + event.getAddress()))
-
               .subscribe(emitter::onError));
 
     }, Emitter.BackpressureMode.BUFFER);

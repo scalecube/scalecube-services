@@ -1,5 +1,6 @@
 package io.scalecube.streams;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -7,14 +8,19 @@ import static org.junit.Assert.*;
 import io.scalecube.streams.Event.Topic;
 import io.scalecube.transport.Address;
 
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioSocketChannel;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import rx.observers.AssertableSubscriber;
-import rx.subjects.BehaviorSubject;
-import rx.subjects.Subject;
 
+import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,24 +30,36 @@ import java.util.stream.IntStream;
 
 public class ClientStreamTest {
 
-  private static final Duration TIMEOUT = Duration.ofMillis(3000);
-  private static final long TIMEOUT_MILLIS = TIMEOUT.toMillis();
+  private static final int CONNECT_TIMEOUT_MILLIS = (int) Duration.ofMillis(1000).toMillis();
+  private static final long TIMEOUT_MILLIS = Duration.ofMillis(3000).toMillis();
 
   private Address address;
+  private Bootstrap bootstrap;
   private ClientStream clientStream;
+  private ClientStream clientStreamCustom;
   private ListeningServerStream serverStream =
       ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
 
   @Before
   public void setUp() {
+    bootstrap = new Bootstrap()
+        .group(new NioEventLoopGroup(0))
+        .channel(NioSocketChannel.class)
+        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, CONNECT_TIMEOUT_MILLIS)
+        .option(ChannelOption.TCP_NODELAY, true)
+        .option(ChannelOption.SO_KEEPALIVE, true)
+        .option(ChannelOption.SO_REUSEADDR, true);
     clientStream = ClientStream.newClientStream();
+    clientStreamCustom = ClientStream.newClientStream(bootstrap);
     address = serverStream.bindAwait();
   }
 
   @After
   public void cleanUp() throws Exception {
     clientStream.close();
+    clientStreamCustom.close();
     serverStream.close();
+    bootstrap.group().shutdownGracefully();
   }
 
   private void assertWrite(String q, Event event) {
@@ -61,9 +79,7 @@ public class ClientStreamTest {
 
   @Test
   public void testClientStreamProducesWriteEvents() throws Exception {
-    Subject<Event, Event> clientSubject = BehaviorSubject.create();
-    clientStream.listen().subscribe(clientSubject);
-    AssertableSubscriber<Event> clientSubscriber = clientSubject.test();
+    AssertableSubscriber<Event> clientSubscriber = clientStream.listen().test();
 
     int n = (int) 1e4;
     IntStream.rangeClosed(1, n)
@@ -84,9 +100,7 @@ public class ClientStreamTest {
 
   @Test
   public void testClientStreamSendsToServerStream() throws Exception {
-    Subject<Event, Event> serverSubject = BehaviorSubject.create();
-    serverStream.listen().subscribe(serverSubject);
-    AssertableSubscriber<Event> serverSubscriber = serverSubject.test();
+    AssertableSubscriber<Event> serverSubscriber = serverStream.listen().test();
 
     int n = (int) 1e4;
     IntStream.rangeClosed(1, n)
@@ -110,9 +124,8 @@ public class ClientStreamTest {
         .map(Event::getMessageOrThrow)
         .subscribe(serverStream::send);
 
-    Subject<Event, Event> clientSubject = BehaviorSubject.create();
-    clientStream.listen().filter(Event::isReadSuccess).subscribe(clientSubject);
-    AssertableSubscriber<Event> clientSubscriber = clientSubject.test();
+    AssertableSubscriber<Event> clientSubscriber =
+        clientStream.listen().filter(Event::isReadSuccess).test();
 
     int n = (int) 1e4;
     IntStream.rangeClosed(1, n)
@@ -137,14 +150,14 @@ public class ClientStreamTest {
   }
 
   @Test
-  public void testClientStreamSendFailed() throws Exception {
-    BehaviorSubject<Event> clientSubject = BehaviorSubject.create();
-    clientStream.listen().filter(Event::isWriteError).subscribe(clientSubject);
-    AssertableSubscriber<Event> clientSubscriber = clientSubject.test();
-
-    Address failedAddress = Address.from("host:1234");
+  public void testClientStreamSendFailedDueUnknownHostException() throws Exception {
+    Address failedAddress = Address.from("host:0"); // invalid both host and port
     StreamMessage message = StreamMessage.builder().qualifier("q/helloFail").build();
-    clientStream.send(failedAddress, message);
+
+    AssertableSubscriber<Event> clientSubscriber =
+        clientStreamCustom.listen().filter(Event::isWriteError).test();
+
+    clientStreamCustom.send(failedAddress, message);
 
     Event event = clientSubscriber
         .awaitValueCount(1, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
@@ -152,16 +165,39 @@ public class ClientStreamTest {
         .getOnNextEvents()
         .get(0);
 
+    assertEquals(Topic.WriteError, event.getTopic());
     assertEquals(failedAddress, event.getAddress());
     assertEquals(message, event.getMessageOrThrow());
     assertTrue("An error must be here", event.getError().isPresent());
+    assertThat(event.getErrorOrThrow(), is(instanceOf(UnknownHostException.class)));
+  }
+
+  @Test
+  public void testClientStreamSendFailedDueConnectException() throws Exception {
+    Address failedAddress = Address.from("localhost:0"); // host is valid port is not
+    StreamMessage message = StreamMessage.builder().qualifier("q/helloFail").build();
+
+    AssertableSubscriber<Event> clientSubscriber =
+        clientStreamCustom.listen().filter(Event::isWriteError).test();
+
+    clientStreamCustom.send(failedAddress, message);
+
+    Event event = clientSubscriber
+        .awaitValueCount(1, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertNoTerminalEvent()
+        .getOnNextEvents()
+        .get(0);
+
+    assertEquals(Topic.WriteError, event.getTopic());
+    assertEquals(failedAddress, event.getAddress());
+    assertEquals(message, event.getMessageOrThrow());
+    assertTrue("An error must be here", event.getError().isPresent());
+    assertThat(event.getErrorOrThrow(), is(instanceOf(ConnectException.class)));
   }
 
   @Test
   public void testClientStreamRemotePartyClosed() throws Exception {
-    Subject<Event, Event> serverSubject = BehaviorSubject.create();
-    serverStream.listen().subscribe(serverSubject);
-    AssertableSubscriber<Event> serverSubscriber = serverSubject.test();
+    AssertableSubscriber<Event> serverSubscriber = serverStream.listen().test();
 
     clientStream.send(address, StreamMessage.builder().qualifier("q/hello").build());
 
@@ -174,8 +210,8 @@ public class ClientStreamTest {
     assertEquals(Topic.ReadSuccess, events.get(1).getTopic());
 
     // close remote party and receive corresp events
-    BehaviorSubject<Event> clientChannelContextInactiveSubject = BehaviorSubject.create();
-    clientStream.listenChannelContextClosed().subscribe(clientChannelContextInactiveSubject);
+    AssertableSubscriber<Event> clientChannelContextInactiveSubscriber =
+        clientStream.listenChannelContextClosed().test();
 
     // unbind server channel at serverStream
     serverStream.close();
@@ -184,7 +220,7 @@ public class ClientStreamTest {
     TimeUnit.MILLISECONDS.sleep(TIMEOUT_MILLIS);
 
     // assert that clientStream received event about closed channel corresp to serverStream channel
-    Event event = clientChannelContextInactiveSubject.test().getOnNextEvents().get(0);
+    Event event = clientChannelContextInactiveSubscriber.getOnNextEvents().get(0);
     assertEquals(Topic.ChannelContextClosed, event.getTopic());
     assertFalse("Must not have error at this point", event.hasError());
   }
@@ -197,9 +233,9 @@ public class ClientStreamTest {
 
     try {
       // send two msgs on two addresses => activate two connections => emit events
-      Subject<Event, Event> clientSubject = BehaviorSubject.create();
-      clientStream.listenChannelContextSubscribed().subscribe(clientSubject);
-      AssertableSubscriber<Event> clientSubscriber = clientSubject.test();
+      AssertableSubscriber<Event> clientSubscriber =
+          clientStream.listenChannelContextSubscribed().test();
+
       // send msgs
       clientStream.send(address, StreamMessage.builder().qualifier("q/msg").build());
       clientStream.send(anotherAddress, StreamMessage.builder().qualifier("q/anotherMsg").build());
@@ -215,11 +251,11 @@ public class ClientStreamTest {
       assertThat(firstEvent.getAddress(), anyOf(is(address), is(anotherAddress)));
       assertThat(secondEvent.getAddress(), anyOf(is(address), is(anotherAddress)));
 
+      // listen close
+      AssertableSubscriber<Event> closeSubscriber =
+          clientStream.listenChannelContextUnsubscribed().test();
+
       // close and ensure all connections closed
-      Subject<Event, Event> closeSubject = BehaviorSubject.create();
-      clientStream.listenChannelContextUnsubscribed().subscribe(closeSubject);
-      // close
-      AssertableSubscriber<Event> closeSubscriber = closeSubject.test();
       clientStream.close();
 
       List<Event> closeEvents = new ArrayList<>(closeSubscriber
