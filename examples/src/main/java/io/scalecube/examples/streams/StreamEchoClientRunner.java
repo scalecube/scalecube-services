@@ -18,7 +18,7 @@ public class StreamEchoClientRunner {
   public static void main(String[] args) throws Exception {
     StreamProcessors.ClientStreamProcessors client = StreamProcessors.client().build();
 
-    StreamProcessor sp = client.create(Address.from("localhost:5801"));
+    StreamProcessor sp = client.create(Address.from("localhost:8000"));
 
     sp.listen().subscribe(
         System.out::println,
