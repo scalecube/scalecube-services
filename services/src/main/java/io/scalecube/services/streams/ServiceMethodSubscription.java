@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public final class ServiceMethodSubscription implements Subscription{
+public final class ServiceMethodSubscription implements Subscription {
 
   private final StreamProcessors.ServerStreamProcessors server;
   private final Qualifier qualifier;
@@ -35,7 +35,7 @@ public final class ServiceMethodSubscription implements Subscription{
   }
 
   public ServiceMethodSubscription toCompletableFuture() {
-    this.subsciption = listenStreamProcessor(observer -> new SubscriberAdapter() {
+    this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
         try {
@@ -59,27 +59,23 @@ public final class ServiceMethodSubscription implements Subscription{
 
   @Override
   public void unsubscribe() {
-    Objects.requireNonNull(subsciption);
-    subsciption.unsubscribe();
+    if (subsciption != null) {
+      subsciption.unsubscribe();
+    }
   }
 
   @Override
   public boolean isUnsubscribed() {
-    if (!Objects.isNull(subsciption)) {
-      return subsciption.isUnsubscribed();
-    } else {
-      return true;
-    }
+    return Objects.isNull(subsciption) || subsciption.isUnsubscribed();
   }
 
   public ServiceMethodSubscription toObservable() {
-    this.subsciption = listenStreamProcessor(observer -> new SubscriberAdapter() {
+    this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage request) {
         try {
-          // noinspection unchecked
           Observable<StreamMessage> result = invoke(request);
-          result.subscribe(observer::onNext, observer::onError, observer::onCompleted);
+          result.subscribe(observer);
         } catch (Throwable error) {
           observer.onError(error);
         }
@@ -89,14 +85,14 @@ public final class ServiceMethodSubscription implements Subscription{
   }
 
   public ServiceMethodSubscription toVoid() {
-    this.subsciption = listenStreamProcessor(observer -> new SubscriberAdapter() {
+    this.subsciption = accept(streamProcessor -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
         try {
           invoke(message);
-          observer.onCompleted();
+          streamProcessor.onCompleted();
         } catch (Throwable error) {
-          observer.onError(error);
+          streamProcessor.onError(error);
         }
       }
     });
@@ -104,12 +100,12 @@ public final class ServiceMethodSubscription implements Subscription{
   }
 
   public ServiceMethodSubscription requestStreamToResponseStream() {
-    this.subsciption = listenStreamProcessor(streamProcessor -> {
+    this.subsciption = accept(streamProcessor -> {
       try {
         // noinspection unchecked
-        Subscriber<StreamMessage> result = invoke(streamProcessor);
-        return result;
+        return invoke(streamProcessor);
       } catch (Throwable error) {
+        streamProcessor.onError(error);
         return new SubscriberAdapter();
       }
     });
@@ -120,12 +116,12 @@ public final class ServiceMethodSubscription implements Subscription{
     return Reflect.invoke(serviceObject, method, message);
   }
 
-  private Subscriber<StreamMessage> invoke(final StreamProcessor streamProcessor)
-      throws Exception {
+  private Subscriber<StreamMessage> invoke(final StreamProcessor streamProcessor) throws Exception {
+    // noinspection unchecked
     return (Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor);
   }
 
-  private Subscription listenStreamProcessor(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
+  private Subscription accept(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
     return server.listen().subscribe(streamProcessor -> { // => got new stream processor
       // listen for stream messages with qualifier filter
       streamProcessor.listen()
