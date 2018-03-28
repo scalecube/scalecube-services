@@ -11,6 +11,7 @@ import rx.Subscriber;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -34,9 +35,9 @@ public final class ServiceStreams {
         }))
         .collect(Collectors.toList());
 
-    return methods.stream()
+    return Collections.unmodifiableList(methods.stream()
         .map(entry -> createServiceMethodSubscription(serviceObject, entry.getKey(), entry.getValue()))
-        .collect(Collectors.toList());
+        .collect(Collectors.toList()));
   }
 
   private ServiceMethodSubscription createServiceMethodSubscription(Object serviceObject,
