@@ -11,6 +11,7 @@ import rx.Observable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<Message> invoke(final Message request) {
+  public CompletableFuture<Message> invoke(final Message request, Duration timeout) {
     checkArgument(request != null, "message can't be null");
     final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
     return invokeMethod(request, method);
@@ -87,7 +88,7 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Observable<Message> listen(Message request) {
+  public Observable<Message> listen(Message request, Duration timeout) {
     checkArgument(request != null, "message can't be null.");
     checkArgument(request.correlationId() != null, "subscribe request must contain correlationId.");
 

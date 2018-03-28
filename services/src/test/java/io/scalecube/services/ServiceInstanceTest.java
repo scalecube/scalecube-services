@@ -14,6 +14,7 @@ import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 
@@ -62,7 +63,7 @@ public class ServiceInstanceTest extends BaseTest {
 
     try {
       new LocalServiceInstance(conf, address,
-          "a", "b", new HashMap<>()).invoke(null);
+          "a", "b", new HashMap<>()).invoke(null,null);
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: message can't be null");
     }
@@ -96,7 +97,7 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, null)
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .correlationId("1")
-          .build());
+          .build(), Duration.ofSeconds(2));
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
@@ -106,7 +107,7 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, "unkonwn")
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .correlationId("1")
-          .build());
+          .build(), Duration.ofSeconds(2));
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.util.NoSuchElementException: No value present");
     }
@@ -116,7 +117,7 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, "m")
           .header(ServiceHeaders.SERVICE_REQUEST, null)
           .correlationId("1")
-          .build());
+          .build(), Duration.ofSeconds(2));
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
     }
@@ -126,13 +127,13 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, null)
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .correlationId("1")
-          .build());
+          .build(), Duration.ofSeconds(2));
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
 
     try {
-      instance.invoke(null);
+      instance.invoke(null, Duration.ofSeconds(2));
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
     }
