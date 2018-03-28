@@ -5,12 +5,14 @@ import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.StreamProcessors;
+import io.scalecube.streams.StreamProcessors.ServerStreamProcessors;
 
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Parameter;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -23,7 +25,7 @@ public final class ServiceMethodSubscription implements Subscription {
   private final Object serviceObject;
   private Subscription subsciption;
 
-  public ServiceMethodSubscription(
+  private ServiceMethodSubscription(
       StreamProcessors.ServerStreamProcessors server,
       Qualifier qualifier,
       Method method,
@@ -32,6 +34,26 @@ public final class ServiceMethodSubscription implements Subscription {
     this.qualifier = qualifier;
     this.method = method;
     this.serviceObject = serviceObject;
+  }
+
+  public static ServiceMethodSubscription create(ServerStreamProcessors server, Qualifier qualifier, Method method,
+      Object serviceObject) {
+
+    ServiceMethodSubscription subscription = new ServiceMethodSubscription(server, qualifier, method, serviceObject);
+
+    Class<?> returnType = method.getReturnType();
+    if (returnType == CompletableFuture.class) {
+      return subscription.toCompletableFuture();
+    } else if (returnType == Observable.class) {
+      return subscription.toObservable();
+    } else if (returnType == Void.class) {
+      return subscription.toVoid();
+    } else if (returnType == Subscriber.class && containStreamProcessor(method.getParameters())) {
+      return subscription.requestStreamToResponseStream();
+    } else {
+      throw new IllegalArgumentException();
+    }
+
   }
 
   public ServiceMethodSubscription toCompletableFuture() {
@@ -149,4 +171,10 @@ public final class ServiceMethodSubscription implements Subscription {
       // no-op
     }
   }
+
+  private static boolean containStreamProcessor(Parameter[] parameters) {
+    return parameters.length > 0 && parameters[0].getType() == StreamProcessor.class;
+  }
+
+
 }
