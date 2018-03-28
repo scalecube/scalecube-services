@@ -8,13 +8,10 @@ import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.streams.ServiceStreams;
-import io.scalecube.streams.ClientStreamProcessorFactory;
 import io.scalecube.streams.StreamProcessors;
 import io.scalecube.streams.StreamProcessors.ClientStreamProcessors;
 import io.scalecube.streams.StreamProcessors.ServerStreamProcessors;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportConfig;
 
 import com.codahale.metrics.MetricRegistry;
 
@@ -26,7 +23,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
