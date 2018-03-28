@@ -9,14 +9,11 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.Router;
 import io.scalecube.streams.StreamMessage;
-import io.scalecube.streams.StreamProcessor;
 
 import com.google.common.base.Strings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Subscriber;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;

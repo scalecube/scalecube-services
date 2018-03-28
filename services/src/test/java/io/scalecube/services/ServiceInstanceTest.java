@@ -11,7 +11,6 @@ import io.scalecube.streams.StreamProcessors.ClientStreamProcessors;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
-import io.scalecube.transport.Transport;
 
 import org.junit.Test;
 
