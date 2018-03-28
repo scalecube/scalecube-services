@@ -14,11 +14,13 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class RemoteServiceInstance implements ServiceInstance {
 
@@ -50,10 +52,13 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Observable<Message> listen(final Message request) {
+  public Observable<Message> listen(final Message request, Duration duration) {
 
     StreamProcessor sp = client.create(address);
-    Observable<Message> observer = sp.listen().map(func -> toMessage(func)).asObservable();
+    Observable<Message> observer = sp.listen()
+        .map(func -> toMessage(func))
+        .timeout(duration.toMillis(), TimeUnit.MILLISECONDS);
+
     sp.onNext(fromMessage(request));
     sp.onCompleted();
     return observer;
@@ -62,12 +67,13 @@ public class RemoteServiceInstance implements ServiceInstance {
 
 
   @Override
-  public CompletableFuture<Message> invoke(Message request) {
+  public CompletableFuture<Message> invoke(Message request, Duration duration) {
     Messages.validate().serviceRequest(request);
     CompletableFuture<Message> result = new CompletableFuture<Message>();
 
     StreamProcessor sp = client.create(address);
-    Observable<Message> observer = sp.listen().map(func -> toMessage(func)).asObservable();
+    Observable<Message> observer = sp.listen().map(func -> toMessage(func))
+        .timeout(duration.toMillis(), TimeUnit.MILLISECONDS);
     sp.onNext(fromMessage(request));
     sp.onCompleted();
 

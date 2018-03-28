@@ -125,6 +125,8 @@ public class ServiceCallTest extends BaseTest {
         System.out.println("void return: " + success);
         assertTrue(success.data() == null);
         timeLatch.countDown();
+      } else {
+        fail();
       }
     });
     // send and forget so we have no way to know what happen
