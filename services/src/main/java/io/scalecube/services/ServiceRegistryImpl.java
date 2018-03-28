@@ -97,7 +97,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
             if (!serviceInstances.containsKey(serviceRef)) {
               serviceInstances.putIfAbsent(serviceRef,
-                  new RemoteServiceInstance(microservices.sender(), serviceRef, info.getTags()));
+                  new RemoteServiceInstance(microservices.client(), serviceRef, info.getTags()));
               LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}", member,
                   serviceRef);
             }
@@ -127,10 +127,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
       ServiceReference serviceRef =
           new ServiceReference(memberId, serviceDefinition.serviceName(), serviceDefinition.methods().keySet(),
-              microservices.sender().address());
+              microservices.serviceAddress());
 
       ServiceInstance serviceInstance =
-          new LocalServiceInstance(serviceObject, microservices.sender().address(), memberId,
+          new LocalServiceInstance(serviceObject, microservices.serviceAddress(), memberId,
               serviceDefinition.serviceName(),
               serviceDefinition.methods(),
               this.metrics);
@@ -198,7 +198,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
     return new ServiceReference(microservices.cluster().member().id(), serviceDefinition.serviceName(),
-        serviceDefinition.methods().keySet(), microservices.sender().address());
+        serviceDefinition.methods().keySet(), microservices.serviceAddress());
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {

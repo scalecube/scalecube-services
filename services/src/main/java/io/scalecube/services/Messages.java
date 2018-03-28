@@ -3,6 +3,8 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;
 
@@ -139,5 +141,15 @@ public class Messages {
     return validator;
   }
 
+  public static Qualifier qualifierOf(Message request) {
+    final String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    final String methodName = request.header(ServiceHeaders.METHOD);
+
+    return Qualifier.fromString(serviceName + "/" + methodName);
+  }
+
+  public static Qualifier qualifierOf(StreamMessage request) {
+    return Qualifier.fromString(request.qualifier());
+  }
 
 }
