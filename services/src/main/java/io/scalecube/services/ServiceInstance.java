@@ -5,15 +5,16 @@ import io.scalecube.transport.Message;
 
 import rx.Observable;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 public interface ServiceInstance {
 
-  CompletableFuture<Message> invoke(Message request) ;
+  CompletableFuture<Message> invoke(Message request, Duration duration) ;
 
-  Observable<Message> listen(Message request);
+  Observable<Message> listen(Message request, Duration duration);
   
   String serviceName();
 
@@ -30,4 +31,5 @@ public interface ServiceInstance {
   void checkMethodExists(String header);
 
   Collection<String> methods();
+
 }
