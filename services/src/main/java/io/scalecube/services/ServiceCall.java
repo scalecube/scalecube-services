@@ -140,14 +140,13 @@ public class ServiceCall {
       Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
       Metrics.inc(counter);
       
-      CompletableFuture<Message> response = new CompletableFuture<Message>();
-      serviceInstance.invoke(request)
+      CompletableFuture<Message> response = withTimeout(new CompletableFuture<Message>(), duration);
+      serviceInstance.invoke(request, duration)
           .whenComplete((success, error) -> {
             Metrics.dec(counter);
             Metrics.stop(ctx);
             if (error == null) {
               Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
-              withTimeout(response, duration);
             } else {
               Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
               response.completeExceptionally(error);
@@ -155,11 +154,11 @@ public class ServiceCall {
           });
       return response;
     } else {
-      return serviceInstance.invoke(request);
+      return serviceInstance.invoke(request, duration);
     }
   }
 
-  private static CompletableFuture<?> withTimeout(final CompletableFuture<?> resultFuture, Duration timeout) {
+  private static CompletableFuture<Message> withTimeout(final CompletableFuture<Message> resultFuture, Duration timeout) {
 
     if (!resultFuture.isDone()) {
       // schedule to terminate the target goal in future in case it was not done yet
@@ -231,7 +230,7 @@ public class ServiceCall {
       checkArgument(instance.methodExists(request.header(ServiceHeaders.METHOD)),
           "instance has no such requested method");
 
-      return instance.listen(request);
+      return instance.listen(request, timeout);
     } else {
       throw noReachableMemberException(request);
     }
