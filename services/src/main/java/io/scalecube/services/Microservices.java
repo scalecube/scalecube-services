@@ -127,22 +127,22 @@ public class Microservices {
   }
 
   // FIXME: need to implement cleanup process
-  private void cleanupStuff(){
-//    this.cluster().listenMembership()
-//    .filter(predicate -> predicate.isRemoved())
-//    .subscribe(onNext -> {
-//      subscriptionsMap.values().stream()
-//          .filter(action -> action.memberId().equals(onNext.member().id()))
-//          .collect(Collectors.toList())
-//
-//          .forEach(subscription -> {
-//            subscription.unsubscribe();
-//            subscriptionsMap.remove(subscription.id());
-//            LOGGER.info("Member removed removing subscription {}", subscription);
-//          });
-//    });
+  private void cleanupStuff() {
+    // this.cluster().listenMembership()
+    // .filter(predicate -> predicate.isRemoved())
+    // .subscribe(onNext -> {
+    // subscriptionsMap.values().stream()
+    // .filter(action -> action.memberId().equals(onNext.member().id()))
+    // .collect(Collectors.toList())
+    //
+    // .forEach(subscription -> {
+    // subscription.unsubscribe();
+    // subscriptionsMap.remove(subscription.id());
+    // LOGGER.info("Member removed removing subscription {}", subscription);
+    // });
+    // });
   }
-  
+
   public Metrics metrics() {
     return this.metrics;
   }
@@ -171,6 +171,9 @@ public class Microservices {
 
     private Metrics metrics;
 
+    private ServerStreamProcessors server = StreamProcessors.server();
+    private ClientStreamProcessors client = StreamProcessors.client();
+
     /**
      * Microservices instance builder.
      * 
@@ -178,26 +181,30 @@ public class Microservices {
      */
     public Microservices build() {
 
-      ServerStreamProcessors server = StreamProcessors.server().build();
-      ServiceStreams serviceStreams = new ServiceStreams(server);
-      Address serviceAddress = server.bindAwait();
-      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
-      Cluster cluster = Cluster.joinAwait(cfg);
-
-
-      ClientStreamProcessors client = StreamProcessors.client().build();
+      ServiceStreams serviceStreams = new ServiceStreams(this.server.build());
+      Address serviceAddress = this.server.bindAwait();
+      
       servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
+      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
       
-      Microservices newInstance =
-          Reflect.builder(
-              new Microservices(cluster, serviceAddress, client, servicesConfig, this.metrics)
-              ).inject();
-      
+      return Reflect.builder(
+          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client.build(), servicesConfig, this.metrics))
+          .inject();
 
-      return newInstance;
     }
 
-    
+
+    public Builder server(ServerStreamProcessors server) {
+      this.server = server;
+      return this;
+    }
+
+    public Builder client(ClientStreamProcessors client) {
+      this.client = client;
+      return this;
+    }
+
+
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
         clusterConfig.addMetadata(Microservices.metadata(servicesConfig));

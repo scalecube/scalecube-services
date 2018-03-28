@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.metrics.Metrics;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -88,24 +89,34 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request, Duration duration) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Observable<StreamMessage> listen(StreamMessage request, Duration duration) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+  
+  @Override
   public Observable<Message> listen(Message request, Duration timeout) {
     checkArgument(request != null, "message can't be null.");
-    checkArgument(request.correlationId() != null, "subscribe request must contain correlationId.");
 
     final Method method = getMethod(request);
     checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
 
-    final String cid = request.correlationId();
     try {
       final Observable<?> observable = (Observable<?>) invoke(request, method);
       return observable.map(message -> {
         Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "onNext");
-        return Messages.asResponse(message, cid, memberId);
+        return Messages.asResponse(message, memberId);
       });
 
     } catch (IllegalAccessException | InvocationTargetException ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-      return Observable.from(new Message[] {Messages.asResponse(ex, cid, memberId)});
+      return Observable.from(new Message[] {Messages.asResponse(ex, memberId)});
     }
   }
 
@@ -123,7 +134,7 @@ public class LocalServiceInstance implements ServiceInstance {
             if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
               resultMessage.complete((Message) success);
             } else {
-              resultMessage.complete(Messages.asResponse(success, request.correlationId(), memberId));
+              resultMessage.complete(Messages.asResponse(success, memberId));
             }
           } else {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
@@ -194,4 +205,6 @@ public class LocalServiceInstance implements ServiceInstance {
   public Collection<String> methods() {
     return methods.keySet();
   }
+
+  
 }

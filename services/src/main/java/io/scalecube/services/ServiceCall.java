@@ -206,7 +206,7 @@ public class ServiceCall {
         if (resp != null) {
           responsesSubject.onNext(resp);
         } else {
-          responsesSubject.onNext(Messages.asError(error, request.correlationId(), instance.memberId()));
+          responsesSubject.onNext(Messages.asError(error, instance.memberId()));
         }
       });
     });
