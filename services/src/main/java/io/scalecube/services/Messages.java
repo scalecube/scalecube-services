@@ -90,10 +90,9 @@ public class Messages {
    * @param memberId that created the response.
    * @return response message or response error message in case data is exception.
    */
-  public static Message asResponse(Object data, String correlationId, String memberId) {
+  public static Message asResponse(Object data, String memberId) {
 
     Builder builder = Message.builder()
-        .correlationId(correlationId)
         .header("memberId", memberId);
 
     if (data instanceof Message) {
@@ -117,8 +116,8 @@ public class Messages {
    * @param memberId that created the response.
    * @return response message or response error message in case data is exception.
    */
-  public static Message asError(Throwable error, String correlationId, String memberId) {
-    return asResponse(error, correlationId, memberId);
+  public static Message asError(Throwable error, String memberId) {
+    return asResponse(error, memberId);
   }
 
   /**

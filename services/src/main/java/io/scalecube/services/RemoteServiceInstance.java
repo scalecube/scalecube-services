@@ -53,28 +53,50 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public Observable<Message> listen(final Message request, Duration duration) {
+    return this.listen(fromMessage(request), duration)
+        .map(func -> toMessage(func));
+  }
+
+  @Override
+  public Observable<StreamMessage> listen(final StreamMessage request, Duration duration) {
 
     StreamProcessor sp = client.create(address);
-    Observable<Message> observer = sp.listen()
-        .map(func -> toMessage(func))
+    Observable<StreamMessage> observer = sp.listen()
         .timeout(duration.toMillis(), TimeUnit.MILLISECONDS);
 
-    sp.onNext(fromMessage(request));
+    sp.onNext(request);
     sp.onCompleted();
     return observer;
 
   }
-
 
   @Override
   public CompletableFuture<Message> invoke(Message request, Duration duration) {
     Messages.validate().serviceRequest(request);
     CompletableFuture<Message> result = new CompletableFuture<Message>();
 
+    this.invoke(fromMessage(request), duration)
+        .whenComplete((value, error) -> {
+          if (error == null) {
+            result.complete(toMessage(value));
+          } else {
+            result.completeExceptionally(error);
+          }
+        });
+
+    return result;
+  }
+
+  @Override
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request, Duration duration) {
+
+    CompletableFuture<StreamMessage> result = new CompletableFuture<StreamMessage>();
+
     StreamProcessor sp = client.create(address);
-    Observable<Message> observer = sp.listen().map(func -> toMessage(func))
+    Observable<StreamMessage> observer = sp.listen()
         .timeout(duration.toMillis(), TimeUnit.MILLISECONDS);
-    sp.onNext(fromMessage(request));
+
+    sp.onNext(request);
     sp.onCompleted();
 
     observer.subscribe(onNext -> {

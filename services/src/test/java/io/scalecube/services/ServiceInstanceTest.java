@@ -61,12 +61,6 @@ public class ServiceInstanceTest extends BaseTest {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: methods can't be null");
     }
 
-    try {
-      new LocalServiceInstance(conf, address,
-          "a", "b", new HashMap<>()).invoke(null,null);
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: message can't be null");
-    }
   }
 
   @Test
@@ -130,12 +124,6 @@ public class ServiceInstanceTest extends BaseTest {
           .build(), Duration.ofSeconds(2));
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
-    }
-
-    try {
-      instance.invoke(null, Duration.ofSeconds(2));
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
     }
 
     member.shutdown();
