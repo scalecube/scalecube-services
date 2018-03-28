@@ -7,9 +7,11 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.streams.ServiceStreams;
+import io.scalecube.streams.ClientStreamProcessors;
+import io.scalecube.streams.ServerStreamProcessors;
+import io.scalecube.streams.StreamProcessors;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportConfig;
 
 import com.codahale.metrics.MetricRegistry;
 
@@ -106,24 +108,40 @@ public class Microservices {
 
   private final ServiceDispatcherFactory dispatcherFactory;
 
-  private final ServiceCommunicator sender;
+  private final ClientStreamProcessors client;
 
   private Metrics metrics;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, Metrics metrics) {
+  private Address serviceAddress;
+
+  private Microservices(Cluster cluster, Address serviceAddress, ClientStreamProcessors client, ServicesConfig services,
+      Metrics metrics) {
     this.cluster = cluster;
-    this.sender = sender;
+    this.client = client;
+    this.serviceAddress = serviceAddress;
     this.metrics = metrics;
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
 
     this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
     this.proxyFactory = new ServiceProxyFactory(this);
-    new ServiceDispatcher(this);
-
-    this.sender.listen()
-            .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-            .subscribe(message -> ServiceResponse.handleReply(message));
   }
+
+  // FIXME: need to implement cleanup process
+  private void cleanupStuff(){
+//    this.cluster().listenMembership()
+//    .filter(predicate -> predicate.isRemoved())
+//    .subscribe(onNext -> {
+//      subscriptionsMap.values().stream()
+//          .filter(action -> action.memberId().equals(onNext.member().id()))
+//          .collect(Collectors.toList())
+//
+//          .forEach(subscription -> {
+//            subscription.unsubscribe();
+//            subscriptionsMap.remove(subscription.id());
+//            LOGGER.info("Member removed removing subscription {}", subscription);
+//          });
+//    });
+}
 
   public Metrics metrics() {
     return this.metrics;
@@ -151,8 +169,6 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
-    private TransportConfig transportConfig = TransportConfig.defaultConfig();
-
     private Metrics metrics;
 
     /**
@@ -162,18 +178,25 @@ public class Microservices {
      */
     public Microservices build() {
 
-      Cluster cluster = null;
+      ServerStreamProcessors server = StreamProcessors.server().build();
+      ServiceStreams serviceStreams = new ServiceStreams(server);
+      Address serviceAddress = server.bindAwait();
+      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
+      Cluster cluster = Cluster.joinAwait(cfg);
 
-      // create cluster and transport with given config.
-      ServiceTransport transportSender =
-              new ServiceTransport(Transport.bindAwait(transportConfig));
 
-      ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
-      cluster = Cluster.joinAwait(cfg);
-      transportSender.cluster(cluster);
+      ClientStreamProcessors client = StreamProcessors.client().build();
+      servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
 
-      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig, this.metrics)).inject();
+      Microservices newInstance =
+          Reflect.builder(
+              new Microservices(cluster, serviceAddress, client, servicesConfig, this.metrics)
+              ).inject();
+
+
+      return newInstance;
     }
+
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
@@ -229,12 +252,6 @@ public class Microservices {
     public Builder services(ServicesConfig servicesConfig) {
       checkNotNull(servicesConfig);
       this.servicesConfig = servicesConfig;
-      return this;
-    }
-
-    public Builder serviceTransport(TransportConfig transportConfig) {
-      checkNotNull(transportConfig);
-      this.transportConfig = transportConfig;
       return this;
     }
 
@@ -340,8 +357,8 @@ public class Microservices {
    *
    * @return service communication.
    */
-  public ServiceCommunicator sender() {
-    return sender;
+  public ClientStreamProcessors client() {
+    return client;
   }
 
   /**
@@ -352,9 +369,7 @@ public class Microservices {
   public CompletableFuture<Void> shutdown() {
     CompletableFuture<Void> result = new CompletableFuture<Void>();
 
-    if (!this.sender.isStopped()) {
-      this.sender.shutdown();
-    }
+    this.client.close();
 
     if (!this.cluster.isShutdown()) {
       return this.cluster.shutdown();
@@ -366,5 +381,9 @@ public class Microservices {
 
   public ServiceRegistry serviceRegistry() {
     return serviceRegistry;
+  }
+
+  public Address serviceAddress() {
+    return this.serviceAddress;
   }
 }

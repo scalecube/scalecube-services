@@ -6,6 +6,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
+import io.scalecube.streams.StreamProcessors;
+import io.scalecube.streams.StreamProcessors.ClientStreamProcessors;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
@@ -74,7 +76,7 @@ public class ServiceInstanceTest extends BaseTest {
     ServiceReference reference =
         new ServiceReference("a", "b", Collections.singleton("sayHello"), Address.create("localhost", 4000));
 
-    ServiceCommunicator sender = new ServiceTransport(Transport.bindAwait());
+    ClientStreamProcessors sender = StreamProcessors.client().build();
 
     RemoteServiceInstance instance =
         new RemoteServiceInstance(sender, reference, new HashMap<>());
@@ -91,7 +93,7 @@ public class ServiceInstanceTest extends BaseTest {
     assertThat(instance.methods(), hasItem("sayHello"));
 
     try {
-      instance.dispatch(Message.builder()
+      instance.invoke(Message.builder()
           .header(ServiceHeaders.METHOD, null)
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .correlationId("1")
@@ -111,7 +113,7 @@ public class ServiceInstanceTest extends BaseTest {
     }
 
     try {
-      instance.dispatch(Message.builder()
+      instance.invoke(Message.builder()
           .header(ServiceHeaders.METHOD, "m")
           .header(ServiceHeaders.SERVICE_REQUEST, null)
           .correlationId("1")
