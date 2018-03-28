@@ -1,7 +1,5 @@
 package io.scalecube.streams;
 
-import static io.scalecube.streams.Event.Topic;
-
 import io.scalecube.transport.Address;
 
 import rx.Observable;
@@ -53,6 +51,11 @@ public class DefaultEventStream implements EventStream {
   }
 
   @Override
+  public void onNext(Event event) {
+    subject.onNext(event);
+  }
+
+  @Override
   public void onNext(Address address, Event event) {
     Stream<ChannelContext> channelContextStream = subscriptions.keySet().stream();
     channelContextStream.filter(ctx -> ctx.getAddress().equals(address)).forEach(ctx -> ctx.onNext(event));
@@ -86,14 +89,14 @@ public class DefaultEventStream implements EventStream {
   }
 
   private void onChannelContextClosed(ChannelContext ctx) {
-    subject.onNext(new Event.Builder(Topic.ChannelContextClosed, ctx.getAddress(), ctx.getId()).build());
+    subject.onNext(Event.channelContextClosed(ctx.getAddress()).identity(ctx.getId()).build());
   }
 
   private void onChannelContextSubscribed(ChannelContext ctx) {
-    subject.onNext(new Event.Builder(Topic.ChannelContextSubscribed, ctx.getAddress(), ctx.getId()).build());
+    subject.onNext(Event.channelContextSubscribed(ctx.getAddress()).identity(ctx.getId()).build());
   }
 
   private void onChannelContextUnsubscribed(ChannelContext ctx) {
-    subject.onNext(new Event.Builder(Topic.ChannelContextUnsubscribed, ctx.getAddress(), ctx.getId()).build());
+    subject.onNext(Event.channelContextUnsubscribed(ctx.getAddress()).identity(ctx.getId()).build());
   }
 }
