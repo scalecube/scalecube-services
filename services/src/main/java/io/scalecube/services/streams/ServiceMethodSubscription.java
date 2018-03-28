@@ -138,6 +138,7 @@ public final class ServiceMethodSubscription implements Subscription {
     return Reflect.invoke(serviceObject, method, message);
   }
 
+  @SuppressWarnings("unchecked")
   private Subscriber<StreamMessage> invoke(final StreamProcessor streamProcessor) throws Exception {
     // noinspection unchecked
     return (Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor);
