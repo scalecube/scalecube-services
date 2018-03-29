@@ -44,7 +44,7 @@ public final class Event {
     return new Builder(other);
   }
 
-  public static Builder ReadSuccess(Address address) {
+  public static Builder readSuccess(Address address) {
     return new Event.Builder(Topic.ReadSuccess).address(address);
   }
 
@@ -144,13 +144,12 @@ public final class Event {
 
   @Override
   public String toString() {
-    return "Event{" +
-        "topic=" + topic +
-        ", address=" + address +
-        ", identity='" + identity + '\'' +
-        ", message=" + message +
-        ", error=" + error +
-        '}';
+    return "Event [topic=" + topic
+        + ", address=" + address
+        + ", identity=" + identity
+        + ", message=" + message.orElse(null)
+        + ", error=" + error.orElse(null) +
+        "]";
   }
 
   //// Builder

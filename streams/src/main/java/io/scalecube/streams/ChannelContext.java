@@ -118,7 +118,7 @@ public final class ChannelContext {
   }
 
   public void postReadSuccess(StreamMessage message) {
-    onNext(Event.ReadSuccess(address).identity(id).message(message).build());
+    onNext(Event.readSuccess(address).identity(id).message(message).build());
   }
 
   public void postReadError(Throwable throwable) {
@@ -161,6 +161,8 @@ public final class ChannelContext {
 
   @Override
   public String toString() {
-    return "ChannelContext{id=" + id + ", address=" + address + "}";
+    return "ChannelContext [id=" + id
+        + ", address=" + address
+        + "]";
   }
 }
