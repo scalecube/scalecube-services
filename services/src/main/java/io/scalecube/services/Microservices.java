@@ -7,6 +7,7 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.streams.ServiceStreams;
 import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.ServerStreamProcessors;
@@ -106,13 +107,13 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
-  private final ServiceDispatcherFactory dispatcherFactory;
-
   private final ClientStreamProcessors client;
 
   private Metrics metrics;
 
   private Address serviceAddress;
+
+  public RouterFactory routerFactory;
 
   private Microservices(Cluster cluster, Address serviceAddress, ClientStreamProcessors client, ServicesConfig services,
       Metrics metrics) {
@@ -121,8 +122,7 @@ public class Microservices {
     this.serviceAddress = serviceAddress;
     this.metrics = metrics;
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
-
-    this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
+    this.routerFactory = new RouterFactory(serviceRegistry);
     this.proxyFactory = new ServiceProxyFactory(this);
   }
 
@@ -281,7 +281,7 @@ public class Microservices {
 
     public ServiceCall create() {
       LOGGER.debug("create service api {} router {}", router);
-      return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
+      return ServiceCall.create(routerFactory.getRouter(router), this.timeout, metrics);
     }
 
     public CallContext timeout(Duration timeout) {
