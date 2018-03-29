@@ -33,6 +33,10 @@ public class ServiceCall {
   private Timer latency;
   private Metrics metrics;
 
+  public static class Builder {
+
+  }
+
   public static ServiceCall create(Router router, Duration timeout, Metrics metrics) {
     return new ServiceCall(router, timeout, metrics);
   }
@@ -88,14 +92,8 @@ public class ServiceCall {
   public CompletableFuture<Message> invoke(Message request, Duration timeout) {
     Messages.validate().serviceRequest(request);
 
-    Optional<ServiceInstance> optionalServiceInstance = router.route(request);
-
-    if (optionalServiceInstance.isPresent()) {
-      ServiceInstance instance = optionalServiceInstance.get();
-      return this.invoke(request, instance, timeout);
-    } else {
-      throw noReachableMemberException(request);
-    }
+    return this.invoke(request, router.route(request)
+        .orElseThrow(() -> noReachableMemberException(request)), timeout);
   }
 
   /**
