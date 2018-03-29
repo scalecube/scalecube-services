@@ -275,7 +275,7 @@ public class Microservices {
   }
 
 
-  public class DispatcherContext {
+  public class CallContext {
     private Duration timeout = Duration.ofSeconds(30);
 
     private Class<? extends Router> router = RoundRobinServiceRouter.class;
@@ -285,12 +285,12 @@ public class Microservices {
       return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
     }
 
-    public DispatcherContext timeout(Duration timeout) {
+    public CallContext timeout(Duration timeout) {
       this.timeout = timeout;
       return this;
     }
 
-    public DispatcherContext router(Class<? extends Router> routerType) {
+    public CallContext router(Class<? extends Router> routerType) {
       this.router = routerType;
       return this;
     }
@@ -300,8 +300,8 @@ public class Microservices {
     }
   }
 
-  public DispatcherContext dispatcher() {
-    return new DispatcherContext();
+  public CallContext call() {
+    return new CallContext();
   }
 
   public ProxyContext proxy() {

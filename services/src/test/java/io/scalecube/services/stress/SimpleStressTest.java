@@ -52,7 +52,7 @@ public class SimpleStressTest extends BaseTest {
 
     reporter.start(10, TimeUnit.SECONDS);
 
-    ServiceCall greetings = consumer.dispatcher()
+    ServiceCall greetings = consumer.call()
         .timeout(Duration.ofSeconds(30))
         .create();
 

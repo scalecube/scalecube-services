@@ -34,7 +34,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall service = microservices.dispatcher().create();
+    ServiceCall service = microservices.call().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -73,7 +73,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    ServiceCall service = consumer.dispatcher().create();
+    ServiceCall service = consumer.call().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -111,7 +111,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    ServiceCall service = gateway.call().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -144,7 +144,7 @@ public class ServiceCallTest extends BaseTest {
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
-    ServiceCall service = node.dispatcher().create();
+    ServiceCall service = node.call().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -181,7 +181,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    ServiceCall service = consumer.dispatcher().create();
+    ServiceCall service = consumer.call().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -214,7 +214,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall service = microservices.dispatcher().create();
+    ServiceCall service = microservices.call().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -253,7 +253,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    ServiceCall service = consumer.dispatcher().create();
+    ServiceCall service = consumer.call().create();
 
     // call the service.
     CompletableFuture<Message> future = service.invoke(Messages.builder()
@@ -286,7 +286,7 @@ public class ServiceCallTest extends BaseTest {
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
-    ServiceCall service = node.dispatcher()
+    ServiceCall service = node.call()
         .timeout(Duration.ofSeconds(1))
         .create();
 
@@ -327,7 +327,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    ServiceCall service = consumer.dispatcher()
+    ServiceCall service = consumer.call()
         .timeout(Duration.ofSeconds(1))
         .create();
 
@@ -366,7 +366,7 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
 
-    ServiceCall service = microservices.dispatcher()
+    ServiceCall service = microservices.call()
         .timeout(Duration.ofSeconds(1))
         .create();
 
@@ -407,7 +407,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    ServiceCall service = consumer.dispatcher()
+    ServiceCall service = consumer.call()
         .create();
 
     // call the service.
@@ -454,7 +454,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall service = gateway.dispatcher()
+    ServiceCall service = gateway.call()
         .create();
 
     // call the service.
@@ -499,7 +499,7 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider1 = createProvider(gateway);
 
-    ServiceCall service = provider1.dispatcher().create();
+    ServiceCall service = provider1.call().create();
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
@@ -544,7 +544,7 @@ public class ServiceCallTest extends BaseTest {
 
     sleep(1000);
 
-    ServiceCall service = gateway.dispatcher()
+    ServiceCall service = gateway.call()
         .router(CanaryTestingRouter.class)
         .create();
 
@@ -597,7 +597,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall service = gateway.dispatcher().timeout(Duration.ofSeconds(3)).create();
+    ServiceCall service = gateway.call().timeout(Duration.ofSeconds(3)).create();
 
     CompletableFuture<Message> result = service.invoke(Messages.builder().request(
         "io.scalecube.services.GreetingService", "greetingRequest")
@@ -633,7 +633,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall service = gateway.dispatcher().timeout(Duration.ofSeconds(3)).create();
+    ServiceCall service = gateway.call().timeout(Duration.ofSeconds(3)).create();
 
     CompletableFuture<Message> result = service.invoke(
         Messages.builder().request(
@@ -679,7 +679,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall call = gateway.dispatcher().create();
+    ServiceCall call = gateway.call().create();
     CountDownLatch latch = new CountDownLatch(2);
     call.invokeAll(Messages.builder().request(GreetingService.class, "greeting")
         .data("joe")
@@ -714,7 +714,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    ServiceCall call = gateway.dispatcher().create();
+    ServiceCall call = gateway.call().create();
     CountDownLatch latch = new CountDownLatch(2);
 
     call.invokeAll(Messages.builder().request(GreetingService.class, "greetingRequestTimeout")

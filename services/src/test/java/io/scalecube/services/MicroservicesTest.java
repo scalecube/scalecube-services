@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.Microservices.Builder;
-import io.scalecube.services.Microservices.DispatcherContext;
+import io.scalecube.services.Microservices.CallContext;
 import io.scalecube.services.Microservices.ProxyContext;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.testlib.BaseTest;
@@ -28,7 +28,7 @@ public class MicroservicesTest extends BaseTest {
     Builder builder = new Builder();
     ServicesConfig servicesConfig = ServicesConfig.builder(builder).create();
     Microservices micro = Microservices.builder().services(servicesConfig).build();
-    DispatcherContext dispatcher = micro.dispatcher();
+    CallContext dispatcher = micro.call();
     dispatcher.router(RoundRobinServiceRouter.class);
     assertTrue(dispatcher.router().equals(RoundRobinServiceRouter.class));
     assertTrue(servicesConfig.services().isEmpty());
