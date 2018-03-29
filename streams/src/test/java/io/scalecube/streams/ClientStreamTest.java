@@ -68,7 +68,7 @@ public class ClientStreamTest {
     clientStream.listen().subscribe(clientSubject);
     AssertableSubscriber<Event> clientSubscriber = clientSubject.test();
 
-    int n = (int) 1e5;
+    int n = (int) 1e4;
     IntStream.rangeClosed(1, n)
         .forEach(i -> clientStream.send(address, StreamMessage.builder().qualifier("q/" + i).build()));
 
@@ -91,7 +91,7 @@ public class ClientStreamTest {
     serverStream.listen().subscribe(serverSubject);
     AssertableSubscriber<Event> serverSubscriber = serverSubject.test();
 
-    int n = (int) 1e5;
+    int n = (int) 1e4;
     IntStream.rangeClosed(1, n)
         .forEach(i -> clientStream.send(address, StreamMessage.builder().qualifier("q/" + i).build()));
 
@@ -117,7 +117,7 @@ public class ClientStreamTest {
     clientStream.listen().filter(Event::isReadSuccess).subscribe(clientSubject);
     AssertableSubscriber<Event> clientSubscriber = clientSubject.test();
 
-    int n = (int) 1e5;
+    int n = (int) 1e4;
     IntStream.rangeClosed(1, n)
         .forEach(i -> clientStream.send(address, StreamMessage.builder().qualifier("q/" + i).build()));
 
