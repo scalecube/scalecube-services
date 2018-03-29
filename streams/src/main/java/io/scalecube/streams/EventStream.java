@@ -12,6 +12,8 @@ public interface EventStream {
 
   Observable<Event> listen();
 
+  void onNext(Event event);
+
   void onNext(Address address, Event event);
 
   void close();

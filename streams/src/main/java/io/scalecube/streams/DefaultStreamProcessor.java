@@ -77,7 +77,8 @@ public final class DefaultStreamProcessor implements StreamProcessor {
       // connection logic: connection lost => observer error
       subscriptions.add(
           eventStream.listenChannelContextClosed()
-              .subscribe(event -> onChannelContextClosed(event, emitter)));
+              .map(event -> new IOException("ChannelContext closed on address: " + event.getAddress()))
+              .subscribe(emitter::onError));
 
     }, Emitter.BackpressureMode.BUFFER);
   }
@@ -102,10 +103,5 @@ public final class DefaultStreamProcessor implements StreamProcessor {
       return;
     }
     emitter.onNext(message); // remote => normal response
-  }
-
-  private void onChannelContextClosed(Event event, Observer<StreamMessage> emitter) {
-    // Hint: at this point 'event' contains ClientStream's ChannelContext (i.e. remote one) where close() was emitted
-    emitter.onError(new IOException("ChannelContext closed on address: " + event.getAddress()));
   }
 }

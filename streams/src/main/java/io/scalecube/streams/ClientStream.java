@@ -8,6 +8,8 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
+import java.util.concurrent.CompletableFuture;
+
 public final class ClientStream extends DefaultEventStream {
 
   private static final Bootstrap DEFAULT_BOOTSTRAP;
@@ -49,15 +51,16 @@ public final class ClientStream extends DefaultEventStream {
    * @param message to send.
    */
   public void send(Address address, StreamMessage message) {
-    clientTransport.getOrConnect(address, (channelContext, throwable) -> {
+    CompletableFuture<ChannelContext> connectFuture = clientTransport.getOrConnect(address);
+    connectFuture.whenComplete((channelContext, throwable) -> {
       if (channelContext != null) {
         channelContext.postWrite(message);
       }
       if (throwable != null) {
-        ChannelContext tmpCtx = ChannelContext.create(address);
-        subscribe(tmpCtx);
-        tmpCtx.postWriteError(message, throwable);
-        tmpCtx.close();
+        onNext(Event.writeError(address)
+            .message(message)
+            .identity("error")
+            .error(throwable).build());
       }
     });
   }

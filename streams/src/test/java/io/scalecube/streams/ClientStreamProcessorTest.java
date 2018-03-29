@@ -1,7 +1,6 @@
 package io.scalecube.streams;
 
 import static io.scalecube.streams.StreamMessage.from;
-import static org.junit.Assert.assertTrue;
 
 import io.scalecube.transport.Address;
 
@@ -110,7 +109,6 @@ public class ClientStreamProcessorTest {
     } finally {
       streamProcessor.close();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -126,7 +124,6 @@ public class ClientStreamProcessorTest {
     } finally {
       streamProcessor.close();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -142,7 +139,6 @@ public class ClientStreamProcessorTest {
     } finally {
       streamProcessor.close();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -158,7 +154,6 @@ public class ClientStreamProcessorTest {
     } finally {
       streamProcessor.close();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -175,7 +170,6 @@ public class ClientStreamProcessorTest {
     } finally {
       streamProcessor.close();
     }
-    assertTrue("codacy", true);
   }
 
   @Test
@@ -203,6 +197,5 @@ public class ClientStreamProcessorTest {
     } finally {
       streamProcessor.close();
     }
-    assertTrue("codacy", true);
   }
 }
