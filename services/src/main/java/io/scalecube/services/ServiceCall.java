@@ -2,6 +2,8 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.concurrency.Futures;
+import io.scalecube.concurrency.ThreadFactory;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
@@ -28,12 +30,7 @@ import java.util.concurrent.TimeoutException;
 
 public class ServiceCall {
 
-  /**
-   * used to complete the request future with timeout exception in case no response comes from service.
-   */
-  private static final ScheduledExecutorService delayer =
-      ThreadFactory.singleScheduledExecutorService(ThreadFactory.SC_SERVICES_TIMEOUT);
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
 
   private Duration timeout;
@@ -134,44 +131,35 @@ public class ServiceCall {
     Messages.validate().serviceRequest(request);
     serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
 
+    final Context ctx = Metrics.time(latency);
+    Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
+    Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
+    Metrics.inc(counter);
+
+    CompletableFuture<Message> future;
     if (!serviceInstance.isLocal()) {
-      final Context ctx = Metrics.time(latency);
-      Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
-      Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
-      Metrics.inc(counter);
-      
-      CompletableFuture<Message> response = withTimeout(new CompletableFuture<Message>(), duration);
-      serviceInstance.invoke(request, duration)
-          .whenComplete((success, error) -> {
-            Metrics.dec(counter);
-            Metrics.stop(ctx);
-            if (error == null) {
-              Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
-            } else {
-              Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
-              response.completeExceptionally(error);
-            }
-          });
-      return response;
+      future = serviceInstance.invoke(request, duration);
     } else {
-      return serviceInstance.invoke(request, duration);
+      future = serviceInstance.invoke(request, duration);
     }
+
+    CompletableFuture<Message> response = Futures.withTimeout(new CompletableFuture<Message>(), duration);
+    future.whenComplete((value, error) -> {
+      Metrics.dec(counter);
+      Metrics.stop(ctx);
+      if (error == null) {
+        Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
+        response.complete(value);
+      } else {
+        Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
+        response.completeExceptionally(error);
+      }
+    });
+    return response;
+
   }
 
-  private static CompletableFuture<Message> withTimeout(final CompletableFuture<Message> resultFuture, Duration timeout) {
-
-    if (!resultFuture.isDone()) {
-      // schedule to terminate the target goal in future in case it was not done yet
-      delayer.schedule(() -> {
-        // by this time the target goal should have finished.
-        if (!resultFuture.isDone()) {
-          // target goal not finished in time so cancel it with timeout.
-          resultFuture.completeExceptionally(new TimeoutException("expecting response reached timeout!"));
-        }
-      }, timeout.toMillis(), TimeUnit.MILLISECONDS);
-    }
-    return resultFuture;
-  }
+  
 
   /**
    * Invoke all service instances with a given request message with a given service name and method name. expected
