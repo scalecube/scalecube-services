@@ -3,9 +3,9 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.concurrency.Futures;
-import io.scalecube.concurrency.ThreadFactory;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
 
 import com.codahale.metrics.Counter;
@@ -24,12 +24,8 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class ServiceCall {
-
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
 
@@ -37,6 +33,10 @@ public class ServiceCall {
   private Router router;
   private Timer latency;
   private Metrics metrics;
+
+  public static ServiceCall create(Router router, Duration timeout, Metrics metrics) {
+    return new ServiceCall(router, timeout, metrics);
+  }
 
   /**
    * ServiceCall is a service communication pattern for async request reply and reactive streams. it communicates with
@@ -47,7 +47,7 @@ public class ServiceCall {
    * @param timeout waiting for response.
    * @param metrics provider to collect metrics regards service execution.
    */
-  public ServiceCall(Router router, Duration timeout, Metrics metrics) {
+  private ServiceCall(Router router, Duration timeout, Metrics metrics) {
     this.router = router;
     this.timeout = timeout;
     this.metrics = metrics;
@@ -62,7 +62,7 @@ public class ServiceCall {
    * @param router strategy to select service instance.
    * @param timeout waiting for response.
    */
-  public ServiceCall(Router router, Duration timeout) {
+  private ServiceCall(Router router, Duration timeout) {
     this(router, timeout, null);
   }
 
@@ -138,17 +138,17 @@ public class ServiceCall {
 
     CompletableFuture<Message> response = serviceInstance.invoke(request, duration);
     Futures.withTimeout(response, duration)
-     .whenComplete((value, error) -> {
-      Metrics.dec(counter);
-      Metrics.stop(ctx);
-      if (error == null) {
-        Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
-        response.complete(value);
-      } else {
-        Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
-        response.completeExceptionally(error);
-      }
-    });
+        .whenComplete((value, error) -> {
+          Metrics.dec(counter);
+          Metrics.stop(ctx);
+          if (error == null) {
+            Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
+            response.complete(value);
+          } else {
+            Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
+            response.completeExceptionally(error);
+          }
+        });
     return response;
 
   }
@@ -227,4 +227,6 @@ public class ServiceCall {
         serviceName, request);
     return new IllegalStateException("No reachable member with such service: " + methodName);
   }
+
+
 }
