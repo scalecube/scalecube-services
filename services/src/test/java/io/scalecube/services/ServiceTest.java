@@ -13,7 +13,6 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -22,8 +21,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
