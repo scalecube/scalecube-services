@@ -112,9 +112,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   /**
    * register a service instance at the cluster.
    */
-  public void registerService(ServiceConfig serviceObject) {
-    checkArgument(serviceObject != null, "Service object can't be null.");
-    Collection<Class<?>> serviceInterfaces = Reflect.serviceInterfaces(serviceObject.getService());
+  public void registerService(ServiceConfig serviceCfg) {
+    checkArgument(serviceCfg != null, "Service object can't be null.");
+    Collection<Class<?>> serviceInterfaces = Reflect.serviceInterfaces(serviceCfg.getService());
 
     String memberId = microservices.cluster().member().id();
 
@@ -130,7 +130,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
               microservices.serviceAddress());
 
       ServiceInstance serviceInstance =
-          new LocalServiceInstance(serviceObject, microservices.serviceAddress(), memberId,
+          new LocalServiceInstance(serviceCfg.getService(),
+              serviceCfg.getTags(),
+              microservices.serviceAddress(), 
+              memberId,
               serviceDefinition.serviceName(),
               serviceDefinition.methods(),
               this.metrics);
