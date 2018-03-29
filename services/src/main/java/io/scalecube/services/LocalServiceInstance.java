@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.metrics.Metrics;
-import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;

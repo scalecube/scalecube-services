@@ -5,7 +5,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.concurrency.Futures;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.transport.Message;
 
 import com.codahale.metrics.Counter;
