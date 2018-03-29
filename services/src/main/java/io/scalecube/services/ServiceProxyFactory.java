@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
@@ -21,7 +22,7 @@ public class ServiceProxyFactory {
 
   private ServiceRegistry serviceRegistry;
 
-  private ServiceCall dispatcher;
+  private Call dispatcher;
 
   private Microservices microservices;
 
@@ -48,7 +49,7 @@ public class ServiceProxyFactory {
       Duration timeout, Metrics metrics) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
-    dispatcher = microservices.call().router(routerType).timeout(timeout).create();
+    dispatcher = microservices.call().router(microservices.router(routerType)).timeout(timeout);
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
