@@ -148,8 +148,8 @@ public final class Event {
         + ", address=" + address
         + ", identity=" + identity
         + ", message=" + message.orElse(null)
-        + ", error=" + error.orElse(null) +
-        "]";
+        + ", error=" + error.orElse(null)
+        + "]";
   }
 
   //// Builder
