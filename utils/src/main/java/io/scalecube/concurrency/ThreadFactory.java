@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package io.scalecube.concurrency;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
