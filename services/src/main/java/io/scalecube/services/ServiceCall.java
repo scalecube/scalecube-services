@@ -136,15 +136,9 @@ public class ServiceCall {
     Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
     Metrics.inc(counter);
 
-    CompletableFuture<Message> future;
-    if (!serviceInstance.isLocal()) {
-      future = serviceInstance.invoke(request, duration);
-    } else {
-      future = serviceInstance.invoke(request, duration);
-    }
-
-    CompletableFuture<Message> response = Futures.withTimeout(new CompletableFuture<Message>(), duration);
-    future.whenComplete((value, error) -> {
+    CompletableFuture<Message> response = serviceInstance.invoke(request, duration);
+    Futures.withTimeout(response, duration)
+     .whenComplete((value, error) -> {
       Metrics.dec(counter);
       Metrics.stop(ctx);
       if (error == null) {
@@ -159,7 +153,7 @@ public class ServiceCall {
 
   }
 
-  
+
 
   /**
    * Invoke all service instances with a given request message with a given service name and method name. expected
