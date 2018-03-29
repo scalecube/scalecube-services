@@ -5,7 +5,7 @@ import static org.junit.Assert.fail;
 
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -52,9 +52,8 @@ public class SimpleStressTest extends BaseTest {
 
     reporter.start(10, TimeUnit.SECONDS);
 
-    ServiceCall greetings = consumer.call()
-        .timeout(Duration.ofSeconds(30))
-        .create();
+    Call greetings = consumer.call()
+        .timeout(Duration.ofSeconds(30));
 
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);

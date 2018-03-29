@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
@@ -273,36 +274,6 @@ public class Microservices {
     return new Builder();
   }
 
-
-  public class CallContext {
-    private Duration timeout = Duration.ofSeconds(30);
-
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
-
-    public ServiceCall create() {
-      LOGGER.debug("create service api {} router {}", router);
-      return ServiceCall.create(routerFactory.getRouter(router), this.timeout, metrics);
-    }
-
-    public CallContext timeout(Duration timeout) {
-      this.timeout = timeout;
-      return this;
-    }
-
-    public CallContext router(Class<? extends Router> routerType) {
-      this.router = routerType;
-      return this;
-    }
-
-    public Class<? extends Router> router() {
-      return this.router;
-    }
-  }
-
-  public CallContext call() {
-    return new CallContext();
-  }
-
   public ProxyContext proxy() {
     return new ProxyContext();
   }
@@ -310,14 +281,14 @@ public class Microservices {
   public class ProxyContext {
     private Class<?> api;
 
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
+    private Class<? extends Router> routerType = RoundRobinServiceRouter.class;
 
     private Duration timeout = Duration.ofSeconds(3);
 
     @SuppressWarnings("unchecked")
     public <T> T create() {
-      LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, this.router, this.timeout);
+      LOGGER.debug("create service api {} routerType {}", this.api, routerType);
+      return (T) createProxy(this.api, this.routerType, this.timeout);
     }
 
     public ProxyContext timeout(Duration duration) {
@@ -331,11 +302,11 @@ public class Microservices {
     }
 
     public Class<? extends Router> router() {
-      return router;
+      return routerType;
     }
 
     public ProxyContext router(Class<? extends Router> router) {
-      this.router = router;
+      this.routerType = router;
       return this;
     }
 
@@ -391,5 +362,15 @@ public class Microservices {
 
   public Address serviceAddress() {
     return this.serviceAddress;
+  }
+
+  public Router router(Class<? extends Router> routerType) {
+    return routerFactory.getRouter(routerType);
+  }
+
+  public Call call() {
+   
+    Router router = this.router(RoundRobinServiceRouter.class);
+    return ServiceCall.call().router(router);
   }
 }
