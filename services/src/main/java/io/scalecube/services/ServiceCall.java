@@ -162,7 +162,7 @@ public class ServiceCall {
           }
         });
       });
-      return responsesSubject.onBackpressureBuffer().asObservable();
+      return responsesSubject.onBackpressureBuffer();
     }
 
     /**
