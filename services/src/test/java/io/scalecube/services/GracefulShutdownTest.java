@@ -31,7 +31,7 @@ public class GracefulShutdownTest extends BaseTest {
     // node 1 and 2 provision GreetingService instance (each).
     Members members = Members.create();
     // get a proxy to the service api.
-    ServiceCall service = members.gateway().dispatcher().create();
+    ServiceCall service = members.gateway().call().create();
 
     // call the service.
     AtomicInteger count = new AtomicInteger(3);

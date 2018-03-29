@@ -46,7 +46,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   public CompletableFuture<String> callGreetingWithDispatcher(String request) {
     final CompletableFuture<String> future = new CompletableFuture<String>();
 
-    ServiceCall service = ms.dispatcher().create();
+    ServiceCall service = ms.call().create();
     service.invoke(Messages.builder().request(SERVICE_NAME, "greeting")
         .data("joe").build()).whenComplete((message, error) -> {
           future.complete(message.data().toString());
