@@ -2,6 +2,7 @@ package io.scalecube.streams;
 
 import io.scalecube.transport.Address;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public final class Event {
@@ -41,6 +42,38 @@ public final class Event {
 
   public static Builder copyFrom(Event other) {
     return new Builder(other);
+  }
+
+  public static Builder readSuccess(Address address) {
+    return new Event.Builder(Topic.ReadSuccess).address(address);
+  }
+
+  public static Builder readError(Address address) {
+    return new Event.Builder(Topic.ReadError).address(address);
+  }
+
+  public static Builder write(Address address) {
+    return new Event.Builder(Topic.Write).address(address);
+  }
+
+  public static Builder writeSuccess(Address address) {
+    return new Event.Builder(Topic.WriteSuccess).address(address);
+  }
+
+  public static Builder writeError(Address address) {
+    return new Event.Builder(Topic.WriteError).address(address);
+  }
+
+  public static Builder channelContextClosed(Address address) {
+    return new Event.Builder(Topic.ChannelContextClosed).address(address);
+  }
+
+  public static Builder channelContextSubscribed(Address address) {
+    return new Event.Builder(Topic.ChannelContextSubscribed).address(address);
+  }
+
+  public static Builder channelContextUnsubscribed(Address address) {
+    return new Event.Builder(Topic.ChannelContextUnsubscribed).address(address);
   }
 
   //// Getters
@@ -109,26 +142,46 @@ public final class Event {
     return topic == Topic.ChannelContextUnsubscribed;
   }
 
+  @Override
+  public String toString() {
+    return "Event [topic=" + topic
+        + ", address=" + address
+        + ", identity=" + identity
+        + ", message=" + message.orElse(null)
+        + ", error=" + error.orElse(null)
+        + "]";
+  }
+
   //// Builder
 
   public static class Builder {
 
-    private final Topic topic; // not null
-    private final Address address; // not null
-    private final String identity; // not null
+    private Topic topic; // not null
+    private Address address; // not null
+    private String identity; // not null
     private StreamMessage message; // nullable
     private Throwable error; // nullable
 
-    public Builder(Topic topic, Address address, String identity) {
+    private Builder(Topic topic) {
       this.topic = topic;
-      this.address = address;
-      this.identity = identity;
     }
 
-    public Builder(Event other) {
-      this(other.topic, other.address, other.identity);
+    private Builder(Event other) {
+      this(other.topic);
+      this.address = other.address;
+      this.identity = other.identity;
       this.message = other.message.orElse(null);
       this.error = other.error.orElse(null);
+    }
+
+    public Builder address(Address address) {
+      this.address = address;
+      return this;
+    }
+
+    public Builder identity(String identity) {
+      this.identity = identity;
+      return this;
     }
 
     public Builder message(StreamMessage message) {
@@ -142,6 +195,9 @@ public final class Event {
     }
 
     public Event build() {
+      Objects.requireNonNull(topic);
+      Objects.requireNonNull(address);
+      Objects.requireNonNull(identity);
       return new Event(this);
     }
   }

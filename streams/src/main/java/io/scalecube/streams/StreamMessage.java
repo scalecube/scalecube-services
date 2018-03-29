@@ -80,7 +80,7 @@ public final class StreamMessage {
 
   @Override
   public String toString() {
-    return "Message [q=" + qualifier
+    return "StreamMessage [q=" + qualifier
         + ", subject=" + subject
         + ", data=" + prepareDataString()
         + "]";
