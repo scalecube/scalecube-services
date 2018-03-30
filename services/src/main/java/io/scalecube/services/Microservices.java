@@ -172,8 +172,8 @@ public class Microservices {
 
     private Metrics metrics;
 
-    private ServerStreamProcessors server = StreamProcessors.server();
-    private ClientStreamProcessors client = StreamProcessors.client();
+    private ServerStreamProcessors server = StreamProcessors.newServer();
+    private ClientStreamProcessors client = StreamProcessors.newClient();
 
     /**
      * Microservices instance builder.
@@ -182,16 +182,16 @@ public class Microservices {
      */
     public Microservices build() {
 
-      ServiceStreams serviceStreams = new ServiceStreams(this.server.build());
+      ServiceStreams serviceStreams = new ServiceStreams(this.server);
       Address serviceAddress = this.server.bindAwait();
 
       servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
       
-      Microservices newInstance =
-          Reflect.builder(
-              new Microservices(cluster, serviceAddress, client, servicesConfig, this.metrics)
-              ).inject();
-      
+      return Reflect.builder(
+          new Microservices(Cluster.joinAwait(clusterConfig), serviceAddress, this.client, servicesConfig, this.metrics))
+          .inject();
+
+    }
 
 
     public Builder server(ServerStreamProcessors server) {

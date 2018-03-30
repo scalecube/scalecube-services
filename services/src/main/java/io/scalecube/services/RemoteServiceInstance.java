@@ -2,10 +2,10 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
-import io.scalecube.streams.StreamProcessors.ClientStreamProcessors;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -14,13 +14,11 @@ import org.slf4j.LoggerFactory;
 
 import rx.Observable;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class RemoteServiceInstance implements ServiceInstance {
 
