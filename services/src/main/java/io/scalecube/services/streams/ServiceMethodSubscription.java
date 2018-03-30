@@ -2,10 +2,9 @@ package io.scalecube.services.streams;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
-import io.scalecube.streams.StreamProcessors;
-import io.scalecube.streams.StreamProcessors.ServerStreamProcessors;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -19,14 +18,14 @@ import java.util.function.Function;
 
 public final class ServiceMethodSubscription implements Subscription {
 
-  private final StreamProcessors.ServerStreamProcessors server;
+  private final ServerStreamProcessors server;
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
   private Subscription subsciption;
 
   private ServiceMethodSubscription(
-      StreamProcessors.ServerStreamProcessors server,
+      ServerStreamProcessors server,
       Qualifier qualifier,
       Method method,
       Object serviceObject) {

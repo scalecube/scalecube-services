@@ -10,9 +10,9 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.streams.ServiceStreams;
+import io.scalecube.streams.ClientStreamProcessors;
+import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
-import io.scalecube.streams.StreamProcessors.ClientStreamProcessors;
-import io.scalecube.streams.StreamProcessors.ServerStreamProcessors;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
@@ -172,8 +172,8 @@ public class Microservices {
 
     private Metrics metrics;
 
-    private ServerStreamProcessors server = StreamProcessors.server();
-    private ClientStreamProcessors client = StreamProcessors.client();
+    private ServerStreamProcessors server = StreamProcessors.newServer();
+    private ClientStreamProcessors client = StreamProcessors.newClient();
 
     /**
      * Microservices instance builder.
@@ -182,14 +182,14 @@ public class Microservices {
      */
     public Microservices build() {
 
-      ServiceStreams serviceStreams = new ServiceStreams(this.server.build());
+      ServiceStreams serviceStreams = new ServiceStreams(this.server);
       Address serviceAddress = this.server.bindAwait();
 
       servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
       ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
 
       return Reflect.builder(
-          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client.build(), servicesConfig, this.metrics))
+          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client, servicesConfig, this.metrics))
           .inject();
 
     }

@@ -2,6 +2,7 @@ package io.scalecube.services.streams;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
 
 import java.lang.reflect.Method;
@@ -11,9 +12,9 @@ import java.util.stream.Collectors;
 
 public final class ServiceStreams {
 
-  private final StreamProcessors.ServerStreamProcessors server;
+  private final ServerStreamProcessors server;
 
-  public ServiceStreams(StreamProcessors.ServerStreamProcessors server) {
+  public ServiceStreams(ServerStreamProcessors server) {
     this.server = server;
   }
 
