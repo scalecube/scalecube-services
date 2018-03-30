@@ -14,18 +14,18 @@ import org.junit.Before;
 import org.junit.Test;
 
 import rx.observers.AssertableSubscriber;
-import rx.subjects.BehaviorSubject;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 public class ClientStreamProcessorTest {
 
-  private static final Duration TIMEOUT = Duration.ofMillis(1000);
-  private static final int CONNECT_TIMEOUT_MILLIS = (int) TIMEOUT.toMillis();
+  private static final int CONNECT_TIMEOUT_MILLIS = (int) Duration.ofMillis(1000).toMillis();
+  private static final long TIMEOUT_MILLIS = Duration.ofMillis(3000).toMillis();
 
   private ClientStream clientStream;
   private ListeningServerStream listeningServerStream;
@@ -100,130 +100,125 @@ public class ClientStreamProcessorTest {
   @Test
   public void testEcho() throws Exception {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
-    try {
-      AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.builder().qualifier("q/echo").build());
-      subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .assertCompleted();
-    } finally {
-      streamProcessor.close();
-    }
+    AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
+    streamProcessor.onNext(StreamMessage.builder().qualifier("q/echo").build());
+    subscriber
+        .awaitTerminalEvent(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .awaitValueCount(1, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertCompleted()
+        .assertNoErrors();
   }
 
   @Test
   public void testEchoVoid() throws Exception {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
-    try {
-      AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.builder().qualifier("q/echoVoid").build());
-      subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .assertCompleted()
-          .assertNoValues();
-    } finally {
-      streamProcessor.close();
-    }
+    AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
+    streamProcessor.onNext(StreamMessage.builder().qualifier("q/echoVoid").build());
+    subscriber
+        .awaitTerminalEvent(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertCompleted()
+        .assertNoValues()
+        .assertNoErrors();
   }
 
   @Test
   public void testEchoError() throws Exception {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
-    try {
-      AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.builder().qualifier("q/echoError").build());
-      subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .assertNoValues()
-          .assertError(RuntimeException.class);
-    } finally {
-      streamProcessor.close();
-    }
+    AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
+    streamProcessor.onNext(StreamMessage.builder().qualifier("q/echoError").build());
+    subscriber
+        .awaitTerminalEvent(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertNoValues()
+        .assertNotCompleted()
+        .assertError(RuntimeException.class);
   }
 
   @Test
   public void testEchoStream() throws Exception {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
-    try {
-      AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.builder().qualifier("q/echoStream").build());
-      subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .awaitValueCount(42, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .assertCompleted();
-    } finally {
-      streamProcessor.close();
-    }
+    AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
+    streamProcessor.onNext(StreamMessage.builder().qualifier("q/echoStream").build());
+    subscriber
+        .awaitTerminalEvent(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .awaitValueCount(42, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertCompleted()
+        .assertNoErrors();
   }
 
   @Test
-  public void testListenFailedWhenSendFailed() {
-    Address failingAddress = Address.from("localhost:0");
+  public void testListenFailedWhenSendFailedDueConnectException() {
+    Address failingAddress = Address.from("localhost:0"); // host is valid port is not
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(failingAddress);
-    try {
-      AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.builder().qualifier("q/echo").build());
-      subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(CONNECT_TIMEOUT_MILLIS * 2, TimeUnit.MILLISECONDS)
-          .assertNoValues()
-          .assertError(ConnectException.class);
-    } finally {
-      streamProcessor.close();
-    }
+    AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
+    streamProcessor.onNext(StreamMessage.builder().qualifier("q/echo").build());
+    subscriber
+        .awaitTerminalEvent(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertNoValues()
+        .assertNotCompleted()
+        .assertError(ConnectException.class);
+  }
+
+  @Test
+  public void testListenFailedWhenSendFailedDueUnknownHostException() throws Exception {
+    Address failingAddress = Address.from("host:0"); // invalid both host and port
+    StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(failingAddress);
+    AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
+    streamProcessor.onNext(StreamMessage.builder().qualifier("q/echo").build());
+    subscriber
+        .awaitTerminalEvent(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertNoValues()
+        .assertNotCompleted()
+        .assertError(UnknownHostException.class);
   }
 
   @Test
   public void testListenFailedWhenRemotePartyClosed() throws Exception {
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(address);
-    try {
-      // send and receive echo message
-      AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
-      streamProcessor.onNext(StreamMessage.builder().qualifier("q/echo").build());
-      subscriber
-          .awaitTerminalEventAndUnsubscribeOnTimeout(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .awaitValueCount(1, TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)
-          .assertCompleted();
+    // send and receive echo message
+    AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
+    streamProcessor.onNext(StreamMessage.builder().qualifier("q/echo").build());
+    subscriber
+        .awaitTerminalEvent(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .awaitValueCount(1, TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+        .assertCompleted();
 
-      // close remote server stream
-      AssertableSubscriber<StreamMessage> subscriber1 = streamProcessor.listen().test();
-      listeningServerStream.close();
+    // close remote server stream
+    AssertableSubscriber<StreamMessage> subscriber1 = streamProcessor.listen().test();
+    listeningServerStream.close();
 
-      // wait few seconds (it's not determined how long
-      // connecting party, i.e. ClientStream, should wait for signal that remote has closed socket)
-      subscriber1
-          .awaitTerminalEventAndUnsubscribeOnTimeout(3, TimeUnit.SECONDS)
-          .assertNoValues()
-          .assertError(IOException.class);
-    } finally {
-      streamProcessor.close();
-    }
+    // wait few seconds (it's not determined how long
+    // connecting party, i.e. ClientStream, should wait for signal that remote has closed socket)
+    subscriber1
+        .awaitTerminalEvent(3, TimeUnit.SECONDS)
+        .assertNoValues()
+        .assertNotCompleted()
+        .assertError(IOException.class);
   }
 
   @Test
-  public void testClientStreamChannelCloseEventsIsolated() throws InterruptedException {
-    StreamProcessors.ServerStreamProcessors server = StreamProcessors.server().build();
+  public void testClientStreamChannelCloseEventsIsolated() throws Exception {
+    ServerStreamProcessors server = StreamProcessors.newServer();
+
     // mirror events to client
-    server.accept(sp -> sp.listen().subscribe(sp));
-    Address addr = server.bindAwait();
+    server.listen().subscribe(sp -> sp.listen().subscribe(sp));
 
-    StreamProcessors.ClientStreamProcessors client1 = StreamProcessors.client().build();
-    StreamProcessors.ClientStreamProcessors client2 = StreamProcessors.client().build();
-    StreamProcessor cl1 = client1.create(addr);
-    StreamProcessor cl2 = client2.create(addr);
+    Address addr = server.listenAddress("localhost").bindAwait();
 
-    BehaviorSubject<StreamMessage> assertSubj = BehaviorSubject.create();
-    cl2.listen().subscribe(assertSubj);
-    AssertableSubscriber<StreamMessage> assertion = assertSubj.test();
+    ClientStreamProcessors csp1 = StreamProcessors.newClient();
+    ClientStreamProcessors csp2 = StreamProcessors.newClient();
+
+    StreamProcessor sp1 = csp1.create(addr);
+    StreamProcessor sp2 = csp2.create(addr);
+
+    AssertableSubscriber<StreamMessage> assertion = sp2.listen().test();
 
     StreamMessage req = StreamMessage.builder().qualifier("REQ").build();
-    cl1.onNext(req);
-    cl2.onNext(req);
+    sp1.onNext(req);
+    sp2.onNext(req);
     TimeUnit.SECONDS.sleep(1);
-    client1.close();
+    csp1.close();
     TimeUnit.SECONDS.sleep(2);
 
     assertion.assertNoErrors();
   }
-
 }

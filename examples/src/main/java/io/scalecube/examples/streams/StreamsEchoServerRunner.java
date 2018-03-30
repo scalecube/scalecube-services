@@ -1,5 +1,6 @@
 package io.scalecube.examples.streams;
 
+import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
 
 /**
@@ -11,7 +12,7 @@ public class StreamsEchoServerRunner {
    * Main method.
    */
   public static void main(String[] args) throws Exception {
-    StreamProcessors.ServerStreamProcessors server = StreamProcessors.server().build();
+    ServerStreamProcessors server = StreamProcessors.newServer();
 
     server.bind().thenAccept(address -> {
       System.out.println("Listen on: " + address);

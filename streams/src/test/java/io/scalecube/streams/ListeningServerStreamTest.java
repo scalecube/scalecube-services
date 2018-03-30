@@ -11,8 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import rx.observers.AssertableSubscriber;
-import rx.subjects.BehaviorSubject;
-import rx.subjects.Subject;
 
 import java.time.Duration;
 import java.util.List;
@@ -21,8 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ListeningServerStreamTest {
 
-  private static final Duration TIMEOUT = Duration.ofMillis(3000);
-  private static final long TIMEOUT_MILLIS = TIMEOUT.toMillis();
+  private static final long TIMEOUT_MILLIS = Duration.ofMillis(3000).toMillis();
 
   private ListeningServerStream serverStream;
 
@@ -82,16 +79,33 @@ public class ListeningServerStreamTest {
   @Test
   public void testBranchingAtBind() {
     int port = 4444;
-    ListeningServerStream listeningServerStream = serverStream.withListenAddress("localhost");
-    assertEquals("127.0.0.1:4444", listeningServerStream.withPort(port).bindAwait().toString());
-    assertEquals("127.0.0.1:4445", listeningServerStream.withPort(port).bindAwait().toString());
+    ListeningServerStream root = serverStream.withListenAddress("localhost");
+    assertEquals("127.0.0.1:4444", root.withPort(port).bindAwait().toString());
+    assertEquals("127.0.0.1:4445", root.withPort(port).bindAwait().toString());
+  }
+
+  @Test
+  public void testBranchingThenUnbind() throws Exception {
+    int port = 4801;
+    ListeningServerStream root = serverStream.withPort(port).withListenAddress("localhost");
+    assertEquals("127.0.0.1:4801", root.bindAwait().toString());
+    assertEquals("127.0.0.1:4802", root.bindAwait().toString());
+    assertEquals("127.0.0.1:4803", root.bindAwait().toString());
+    assertEquals("127.0.0.1:4804", root.bindAwait().toString());
+
+    // now unbind
+    root.close();
+
+    // await a bit
+    TimeUnit.SECONDS.sleep(3);
+
+    // ensure we can bind again because close() cleared server channels
+    assertEquals("127.0.0.1:4801", root.bindAwait().toString());
   }
 
   @Test
   public void testServerStreamRemotePartyClosed() throws Exception {
-    Subject<Event, Event> serverStreamSubject = BehaviorSubject.create();
-    serverStream.listen().subscribe(serverStreamSubject);
-    AssertableSubscriber<Event> serverStreamSubscriber = serverStreamSubject.test();
+    AssertableSubscriber<Event> serverStreamSubscriber = serverStream.listen().test();
 
     Address address = serverStream.bindAwait();
 
@@ -104,8 +118,8 @@ public class ListeningServerStreamTest {
     assertEquals(Topic.ReadSuccess, events.get(1).getTopic());
 
     // close remote party and receive corresp events
-    BehaviorSubject<Event> channelInactiveSubject = BehaviorSubject.create();
-    serverStream.listenChannelContextClosed().subscribe(channelInactiveSubject);
+    AssertableSubscriber<Event> channelInactiveSubscriber =
+        serverStream.listenChannelContextClosed().test();
 
     // close connector channel at client stream
     clientStream.close();
@@ -114,7 +128,7 @@ public class ListeningServerStreamTest {
     TimeUnit.SECONDS.sleep(3);
 
     // assert that serverStream received event about closed client connector channel
-    Event event = channelInactiveSubject.test().getOnNextEvents().get(0);
+    Event event = channelInactiveSubscriber.getOnNextEvents().get(0);
     assertEquals(Topic.ChannelContextClosed, event.getTopic());
     assertFalse("Must not have error at this point", event.hasError());
   }
