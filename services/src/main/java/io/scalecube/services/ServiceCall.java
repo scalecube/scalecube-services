@@ -108,7 +108,7 @@ public class ServiceCall {
       Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
       Metrics.inc(counter);
 
-      CompletableFuture<Message> response = serviceInstance.invoke(request, duration);
+      CompletableFuture<Message> response = serviceInstance.invoke(request);
       Futures.withTimeout(response, duration)
           .whenComplete((value, error) -> {
             Metrics.dec(counter);
@@ -180,7 +180,7 @@ public class ServiceCall {
       checkArgument(instance.methodExists(request.header(ServiceHeaders.METHOD)),
           "instance has no such requested method");
 
-      return instance.listen(request, timeout);
+      return instance.listen(request);
 
     }
 

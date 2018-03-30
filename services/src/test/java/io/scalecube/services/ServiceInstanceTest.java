@@ -91,7 +91,7 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, null)
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .correlationId("1")
-          .build(), Duration.ofSeconds(2));
+          .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
@@ -101,7 +101,7 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, "unkonwn")
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .correlationId("1")
-          .build(), Duration.ofSeconds(2));
+          .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.util.NoSuchElementException: No value present");
     }
@@ -111,7 +111,7 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, "m")
           .header(ServiceHeaders.SERVICE_REQUEST, null)
           .correlationId("1")
-          .build(), Duration.ofSeconds(2));
+          .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
     }
@@ -121,7 +121,7 @@ public class ServiceInstanceTest extends BaseTest {
           .header(ServiceHeaders.METHOD, null)
           .header(ServiceHeaders.SERVICE_REQUEST, "s")
           .correlationId("1")
-          .build(), Duration.ofSeconds(2));
+          .build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }

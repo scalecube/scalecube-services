@@ -68,7 +68,7 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<Message> invoke(final Message request, Duration timeout) {
+  public CompletableFuture<Message> invoke(final Message request) {
     checkArgument(request != null, "message can't be null");
    
     final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
@@ -91,19 +91,19 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<StreamMessage> invoke(StreamMessage request, Duration duration) {
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public Observable<StreamMessage> listen(StreamMessage request, Duration duration) {
+  public Observable<StreamMessage> listen(StreamMessage request) {
     // TODO Auto-generated method stub
     return null;
   }
   
   @Override
-  public Observable<Message> listen(Message request, Duration timeout) {
+  public Observable<Message> listen(Message request) {
     checkArgument(request != null, "message can't be null.");
 
     final Method method = getMethod(request);
