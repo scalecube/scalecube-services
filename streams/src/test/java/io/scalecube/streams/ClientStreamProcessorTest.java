@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import rx.observers.AssertableSubscriber;
+import rx.subjects.BehaviorSubject;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -157,7 +158,7 @@ public class ClientStreamProcessorTest {
   }
 
   @Test
-  public void testListenFailedWhenSendFailed() throws Exception {
+  public void testListenFailedWhenSendFailed() {
     Address failingAddress = Address.from("localhost:0");
     StreamProcessor streamProcessor = clientStreamProcessorFactory.newClientStreamProcessor(failingAddress);
     try {
@@ -198,4 +199,31 @@ public class ClientStreamProcessorTest {
       streamProcessor.close();
     }
   }
+
+  @Test
+  public void testClientStreamChannelCloseEventsIsolated() throws InterruptedException {
+    StreamProcessors.ServerStreamProcessors server = StreamProcessors.server().build();
+    // mirror events to client
+    server.accept(sp -> sp.listen().subscribe(sp));
+    Address addr = server.bindAwait();
+
+    StreamProcessors.ClientStreamProcessors client1 = StreamProcessors.client().build();
+    StreamProcessors.ClientStreamProcessors client2 = StreamProcessors.client().build();
+    StreamProcessor cl1 = client1.create(addr);
+    StreamProcessor cl2 = client2.create(addr);
+
+    BehaviorSubject<StreamMessage> assertSubj = BehaviorSubject.create();
+    cl2.listen().subscribe(assertSubj);
+    AssertableSubscriber<StreamMessage> assertion = assertSubj.test();
+
+    StreamMessage req = StreamMessage.builder().qualifier("REQ").build();
+    cl1.onNext(req);
+    cl2.onNext(req);
+    TimeUnit.SECONDS.sleep(1);
+    client1.close();
+    TimeUnit.SECONDS.sleep(2);
+
+    assertion.assertNoErrors();
+  }
+
 }
