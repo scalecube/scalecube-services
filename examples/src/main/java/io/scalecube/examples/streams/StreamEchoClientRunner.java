@@ -1,5 +1,6 @@
 package io.scalecube.examples.streams;
 
+import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.StreamProcessors;
@@ -16,7 +17,7 @@ public class StreamEchoClientRunner {
    * Main method.
    */
   public static void main(String[] args) throws Exception {
-    StreamProcessors.ClientStreamProcessors client = StreamProcessors.client().build();
+    ClientStreamProcessors client = StreamProcessors.newClient();
 
     StreamProcessor sp = client.create(Address.from("localhost:8000"));
 
