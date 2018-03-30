@@ -1,7 +1,5 @@
 package io.scalecube.streams;
 
-import static io.scalecube.streams.Event.Topic;
-
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.transport.Address;
 
@@ -120,23 +118,23 @@ public final class ChannelContext {
   }
 
   public void postReadSuccess(StreamMessage message) {
-    onNext(new Event.Builder(Topic.ReadSuccess, address, id).message(message).build());
+    onNext(Event.readSuccess(address).identity(id).message(message).build());
   }
 
   public void postReadError(Throwable throwable) {
-    onNext(new Event.Builder(Topic.ReadError, address, id).error(throwable).build());
+    onNext(Event.readError(address).identity(id).error(throwable).build());
   }
 
   public void postWrite(StreamMessage message) {
-    onNext(new Event.Builder(Topic.Write, address, id).message(message).build());
+    onNext(Event.write(address).identity(id).message(message).build());
   }
 
   public void postWriteError(StreamMessage message, Throwable throwable) {
-    onNext(new Event.Builder(Topic.WriteError, address, id).error(throwable).message(message).build());
+    onNext(Event.writeError(address).identity(id).error(throwable).message(message).build());
   }
 
   public void postWriteSuccess(StreamMessage message) {
-    onNext(new Event.Builder(Topic.WriteSuccess, address, id).message(message).build());
+    onNext(Event.writeSuccess(address).identity(id).message(message).build());
   }
 
   /**
@@ -163,6 +161,8 @@ public final class ChannelContext {
 
   @Override
   public String toString() {
-    return "ChannelContext{id=" + id + ", address=" + address + "}";
+    return "ChannelContext [id=" + id
+        + ", address=" + address
+        + "]";
   }
 }

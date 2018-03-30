@@ -92,6 +92,11 @@ public final class ListeningServerStream implements EventStream {
   }
 
   @Override
+  public void onNext(Event event) {
+    serverStream.onNext(event);
+  }
+
+  @Override
   public void onNext(Address address, Event event) {
     serverStream.onNext(address, event);
   }

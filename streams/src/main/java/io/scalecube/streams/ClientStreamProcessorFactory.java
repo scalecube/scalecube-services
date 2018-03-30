@@ -20,7 +20,11 @@ public final class ClientStreamProcessorFactory {
     // request logic: local stream => remote stream
     subscriptions.add(
         localEventStream.listenWrite()
-            .subscribe(event -> remoteEventStream.send(event.getAddress(), event.getMessageOrThrow())));
+            .subscribe(event -> {
+              Address address = event.getAddress(); // remote address
+              StreamMessage message = event.getMessageOrThrow(); // message to send
+              remoteEventStream.send(address, message);
+            }));
 
     // response logic: remote stream => local stream
     subscriptions.add(
@@ -31,21 +35,21 @@ public final class ClientStreamProcessorFactory {
     // error logic: failed remote write => local stream
     subscriptions.add(
         remoteEventStream.listenWriteError()
-            .subscribe(event -> localEventStream.send(event.getMessageOrThrow(), (channelContext, message1) -> {
-              Address address = event.getAddress();
-              Throwable throwable = event.getErrorOrThrow();
-              String id = channelContext.getId();
-
-              Event.Builder builder = new Event.Builder(Event.Topic.WriteError, address, id);
-              Event event1 = builder.error(throwable).message(message1).build();
-
-              channelContext.onNext(event1);
-            })));
+            .subscribe(event -> {
+              StreamMessage originalMessage = event.getMessageOrThrow();
+              localEventStream.send(originalMessage, (channelContext, message) -> {
+                Throwable throwable = event.getErrorOrThrow(); // got write error
+                channelContext.postWriteError(message, throwable); // rethrow it
+              });
+            }));
 
     // connection logic: connection lost => local stream
     subscriptions.add(
         remoteEventStream.listenChannelContextClosed()
-            .subscribe(event -> localEventStream.onNext(event.getAddress(), event)));
+            .subscribe(event -> {
+              Address address = event.getAddress(); // address where connection lost
+              localEventStream.onNext(address, event); // forward connection lost
+            }));
   }
 
   /**

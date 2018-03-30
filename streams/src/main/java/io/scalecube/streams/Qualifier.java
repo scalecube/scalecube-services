@@ -101,9 +101,4 @@ public final class Qualifier {
   public int hashCode() {
     return Objects.hash(stringValue);
   }
-
-  @Override
-  public String toString() {
-    return stringValue;
-  }
 }
