@@ -165,6 +165,10 @@ public final class StreamProcessors {
       return serverStreamProcessorFactory.listenServerStreamProcessor();
     }
 
+    public void accept(Consumer<StreamProcessor> onStreamProcessor) {
+      serverStreamProcessorFactory.listenServerStreamProcessor().subscribe(onStreamProcessor::accept);
+    }
+
     public void close() {
       listeningServerStream.close();
       serverStreamProcessorFactory.close();
