@@ -369,8 +369,7 @@ public class Microservices {
   }
 
   public Call call() {
-   
     Router router = this.router(RoundRobinServiceRouter.class);
-    return ServiceCall.call().router(router);
+    return ServiceCall.call().metrics(metrics).router(router);
   }
 }
