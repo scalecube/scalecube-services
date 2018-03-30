@@ -200,13 +200,15 @@ public class ServiceCallTest extends BaseTest {
         // print the greeting.
         System.out.println("4. remote_async_greeting_return_string :" + result);
         assertTrue(result.data().equals(" hello to: joe"));
+        timeLatch.countDown();
       } else {
         // print the greeting.
         System.out.println(ex);
+        fail();
       }
-      timeLatch.countDown();
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue(timeLatch.getCount()==0);
     provider.shutdown().get();
     consumer.shutdown().get();
   }
