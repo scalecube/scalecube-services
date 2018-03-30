@@ -52,17 +52,16 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Observable<Message> listen(final Message request, Duration duration) {
-    return this.listen(fromMessage(request), duration)
+  public Observable<Message> listen(final Message request) {
+    return this.listen(fromMessage(request))
         .map(func -> toMessage(func));
   }
 
   @Override
-  public Observable<StreamMessage> listen(final StreamMessage request, Duration duration) {
+  public Observable<StreamMessage> listen(final StreamMessage request) {
 
     StreamProcessor sp = client.create(address);
-    Observable<StreamMessage> observer = sp.listen()
-        .timeout(duration.toMillis(), TimeUnit.MILLISECONDS);
+    Observable<StreamMessage> observer = sp.listen();
 
     sp.onNext(request);
     sp.onCompleted();
@@ -71,11 +70,11 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<Message> invoke(Message request, Duration duration) {
+  public CompletableFuture<Message> invoke(Message request) {
     Messages.validate().serviceRequest(request);
     CompletableFuture<Message> result = new CompletableFuture<Message>();
 
-    this.invoke(fromMessage(request), duration)
+    this.invoke(fromMessage(request))
         .whenComplete((value, error) -> {
           if (error == null) {
             result.complete(toMessage(value));
@@ -88,14 +87,12 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<StreamMessage> invoke(StreamMessage request, Duration duration) {
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
 
     CompletableFuture<StreamMessage> result = new CompletableFuture<StreamMessage>();
 
     StreamProcessor sp = client.create(address);
-    Observable<StreamMessage> observer = sp.listen()
-        .timeout(duration.toMillis(), TimeUnit.MILLISECONDS);
-
+    Observable<StreamMessage> observer = sp.listen();
     sp.onNext(request);
     sp.onCompleted();
 
