@@ -23,6 +23,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ServiceCallTest extends BaseTest {
 
@@ -195,20 +196,22 @@ public class ServiceCallTest extends BaseTest {
         .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
+    AtomicReference<String> resultAsString = new AtomicReference();
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
         System.out.println("4. remote_async_greeting_return_string :" + result);
-        assertTrue(result.data().equals(" hello to: joe"));
+        resultAsString.set(result.data());
         timeLatch.countDown();
       } else {
         // print the greeting.
         System.out.println(ex);
-        fail();
       }
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
     assertTrue(timeLatch.getCount()==0);
+    assertTrue(resultAsString.equals(" hello to: joe"));
+    
     provider.shutdown().get();
     consumer.shutdown().get();
   }

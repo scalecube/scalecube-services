@@ -3,13 +3,13 @@ package io.scalecube.examples.streams;
 import io.scalecube.examples.services.GreetingServiceImpl;
 import io.scalecube.examples.services.stocks.SimpleQuoteService;
 import io.scalecube.services.streams.ServiceStreams;
+import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
-import io.scalecube.streams.StreamProcessors.ServerStreamProcessors;
 
 public class ServiceStreamsRunner {
 
   public static void main(String[] args) {
-    ServerStreamProcessors server = StreamProcessors.server().port(8000).build();
+    ServerStreamProcessors server = StreamProcessors.newServer().port(8000);
 
     ServiceStreams serviceStreams = new ServiceStreams(server);
 
