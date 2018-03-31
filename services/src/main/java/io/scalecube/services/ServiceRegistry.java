@@ -21,9 +21,5 @@ public interface ServiceRegistry {
   Optional<ServiceInstance> getLocalInstance(String serviceName, String method);
 
   Collection<ServiceInstance> services();
-
-  Optional<ServiceDefinition> getServiceDefinition(String serviceName);
-
-  ServiceDefinition registerInterface(Class<?> serviceInterface);
   
 }
