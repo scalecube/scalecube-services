@@ -178,19 +178,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return Collections.unmodifiableCollection(serviceInstances.values());
   }
 
-
-  @Override
-  public Optional<ServiceDefinition> getServiceDefinition(String serviceName) {
-    return Optional.ofNullable(definitionsCache.get(serviceName));
-  }
-
-  @Override
-  public ServiceDefinition registerInterface(Class<?> serviceInterface) {
-    ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
-    definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
-    return serviceDefinition;
-  }
-
   private Address getServiceAddress(Member member) {
     String serviceAddressAsString = member.metadata().get("service-address");
     if (serviceAddressAsString != null) {
