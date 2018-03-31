@@ -203,7 +203,8 @@ public class ServiceCall {
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
-          final Message reqMsg = Messages.creatServiceRequest(Reflect.serviceName(serviceInterface), method.getName(), data);
+          final Message reqMsg =
+              Messages.creatServiceRequest(Reflect.serviceName(serviceInterface), method.getName(), data);
           if (method.getReturnType().equals(Observable.class)) {
             if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
               return service.listen(reqMsg);
@@ -216,6 +217,7 @@ public class ServiceCall {
           }
         }
 
+        @SuppressWarnings("unchecked")
         private CompletableFuture<T> toReturnValue(final Method method, final CompletableFuture<Message> reuslt) {
           final CompletableFuture<T> future = new CompletableFuture<>();
 
@@ -246,7 +248,7 @@ public class ServiceCall {
         }
       });
     }
-    
+
     private IllegalStateException noReachableMemberException(Message request) {
       String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
       String methodName = request.header(ServiceHeaders.METHOD);
