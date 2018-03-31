@@ -49,9 +49,9 @@ public class ServiceTest extends BaseTest {
         .build()
         .build();
 
-    CanaryService service = gateway.proxy()
-        .router(CanaryTestingRouter.class)
-        .api(CanaryService.class).create();
+    CanaryService service = gateway.call()
+        .router(gateway.router(CanaryTestingRouter.class))
+        .api(CanaryService.class);
 
     Util.sleep(1000);
 
@@ -89,11 +89,10 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = gateway.proxy()
-        .api(GreetingService.class)
+    GreetingService service = gateway.call()
         .timeout(Duration.ofSeconds(3))
-        .create();
-
+        .api(GreetingService.class);
+        
     // call the service.
     CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", duration));
 
@@ -128,8 +127,7 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = node1.proxy().api(GreetingService.class)
-        .create();
+    GreetingService service = node1.call().api(GreetingService.class);
 
     // call the service.
     CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", duration));
@@ -224,10 +222,9 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = gateway.proxy()
-        .api(GreetingService.class)
+    GreetingService service = gateway.call()
         .timeout(Duration.ofSeconds(3))
-        .create();
+        .api(GreetingService.class);
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe"));
@@ -251,9 +248,7 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = node1.proxy()
-        .api(GreetingService.class)
-        .create();
+    GreetingService service = node1.call().api(GreetingService.class);
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe"));
@@ -416,9 +411,9 @@ public class ServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = node1.proxy().api(GreetingService.class)
+    GreetingService service = node1.call()
         .timeout(Duration.ofSeconds(1))
-        .create();
+        .api(GreetingService.class);
 
     // call the service.
     CompletableFuture<GreetingResponse> result =
@@ -640,7 +635,7 @@ public class ServiceTest extends BaseTest {
         .build();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     CountDownLatch countLatch = new CountDownLatch(1);
     CompletableFuture<String> future = service.callGreeting("joe");
     future.whenComplete((success, error) -> {
@@ -675,7 +670,7 @@ public class ServiceTest extends BaseTest {
         .build();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.proxy().api(CoarseGrainedService.class).create();
+    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     CountDownLatch countLatch = new CountDownLatch(1);
     CompletableFuture<String> future = service.callGreeting("joe");
     future.whenComplete((success, error) -> {
@@ -711,7 +706,7 @@ public class ServiceTest extends BaseTest {
 
     // Get a proxy to the service api.
     CoarseGrainedService service =
-        gateway.proxy().timeout(Duration.ofSeconds(1)).api(CoarseGrainedService.class).create();
+        gateway.call().timeout(Duration.ofSeconds(1)).api(CoarseGrainedService.class);
     service.callGreetingTimeout("joe")
         .whenComplete((success, error) -> {
           if (error != null) {
@@ -747,7 +742,7 @@ public class ServiceTest extends BaseTest {
 
     // Get a proxy to the service api.
     CoarseGrainedService service =
-        gateway.proxy().timeout(Duration.ofSeconds(30)).api(CoarseGrainedService.class).create();
+        gateway.call().timeout(Duration.ofSeconds(30)).api(CoarseGrainedService.class);
     service.callGreetingWithDispatcher("joe")
         .whenComplete((success, error) -> {
           if (error == null) {
@@ -783,17 +778,17 @@ public class ServiceTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
+    return gateway.call()
         .timeout(Duration.ofSeconds(30))
-        .create();
+        .api(GreetingService.class); // create proxy for GreetingService API
+
   }
 
   private GreetingService createProxy(Microservices micro, Duration duration) {
-    return micro.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
+    return micro.call()
         .timeout(duration)
-        .create();
+        .api(GreetingService.class); // create proxy for GreetingService API
+        
   }
 
   private Microservices createProvider(Microservices gateway) {

@@ -3,7 +3,6 @@ package io.scalecube.services.streams;
 import io.scalecube.services.Reflect;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.ServerStreamProcessors;
-import io.scalecube.streams.StreamProcessors;
 
 import java.lang.reflect.Method;
 import java.util.AbstractMap;

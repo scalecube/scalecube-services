@@ -44,7 +44,7 @@ public class TestStreamingService extends BaseTest {
   public void test_local_quotes_service() throws InterruptedException {
     Microservices node = Microservices.builder().services(new SimpleQuoteService()).build();
 
-    QuoteService service = node.proxy().api(QuoteService.class).create();
+    QuoteService service = node.call().api(QuoteService.class);
 
     CountDownLatch latch = new CountDownLatch(3);
     Observable<String> obs = service.quotes(2);
@@ -68,7 +68,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    QuoteService service = gateway.proxy().api(QuoteService.class).create();
+    QuoteService service = gateway.call().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
 
@@ -105,7 +105,7 @@ public class TestStreamingService extends BaseTest {
         .metrics(registry)
         .build();
 
-    QuoteService service = gateway.proxy().api(QuoteService.class).create();
+    QuoteService service = gateway.call().api(QuoteService.class);
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
 
@@ -175,7 +175,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    QuoteService service = gateway.proxy().api(QuoteService.class).create();
+    QuoteService service = gateway.call().api(QuoteService.class);
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
