@@ -20,9 +20,9 @@ public class ServiceTagsExample {
         .build()
         .build();
 
-    CanaryService service = gateway.proxy()
-        .router(CanaryTestingRouter.class)
-        .api(CanaryService.class).create();
+    CanaryService service = gateway.call()
+        .router(gateway.router(CanaryTestingRouter.class))
+        .api(CanaryService.class);
 
     for (int i = 0; i < 10; i++) {
       service.greeting("joe").whenComplete((success, error) -> {

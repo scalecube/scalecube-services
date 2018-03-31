@@ -151,4 +151,17 @@ public class Messages {
     return Qualifier.fromString(request.qualifier());
   }
 
+  public static Message creatServiceRequest(String serviceName, String methodName, Object data) {
+    if (data instanceof Message) {
+      return Messages.builder().request(serviceName,
+          methodName)
+          .data(((Message) data).data())
+          .build();
+    } else {
+      return Messages.builder().request(serviceName,
+          methodName)
+          .data(data)
+          .build();
+    }
+  }
 }

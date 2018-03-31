@@ -30,7 +30,7 @@ public class MicroservicesExample {
     Microservices consumer = Microservices.builder().seeds(providerAddress).build();
 
     // Get a proxy to the service API
-    GreetingService greetingService = consumer.proxy().api(GreetingService.class).create();
+    GreetingService greetingService = consumer.call().api(GreetingService.class);
 
     // Call service (successful case)
     CompletableFuture<String> future = greetingService.greeting("Joe");

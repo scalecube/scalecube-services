@@ -6,7 +6,6 @@ import io.scalecube.transport.Message;
 
 import rx.Observable;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;

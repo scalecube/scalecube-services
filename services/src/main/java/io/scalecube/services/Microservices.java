@@ -106,8 +106,6 @@ public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
 
-  private final ServiceProxyFactory proxyFactory;
-
   private final ClientStreamProcessors client;
 
   private Metrics metrics;
@@ -124,7 +122,6 @@ public class Microservices {
     this.metrics = metrics;
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
     this.routerFactory = new RouterFactory(serviceRegistry);
-    this.proxyFactory = new ServiceProxyFactory(this);
   }
 
   // FIXME: need to implement cleanup process
@@ -154,10 +151,6 @@ public class Microservices {
 
   public void unregisterService(Object serviceObject) {
     serviceRegistry.unregisterService(serviceObject);
-  }
-
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
-    return proxyFactory.createProxy(serviceInterface, router, timeout, metrics);
   }
 
   public Collection<ServiceInstance> services() {
@@ -273,45 +266,7 @@ public class Microservices {
   public static Builder builder() {
     return new Builder();
   }
-
-  public ProxyContext proxy() {
-    return new ProxyContext();
-  }
-
-  public class ProxyContext {
-    private Class<?> api;
-
-    private Class<? extends Router> routerType = RoundRobinServiceRouter.class;
-
-    private Duration timeout = Duration.ofSeconds(3);
-
-    @SuppressWarnings("unchecked")
-    public <T> T create() {
-      LOGGER.debug("create service api {} routerType {}", this.api, routerType);
-      return (T) createProxy(this.api, this.routerType, this.timeout);
-    }
-
-    public ProxyContext timeout(Duration duration) {
-      this.timeout = duration;
-      return this;
-    }
-
-    public <T> ProxyContext api(Class<T> api) {
-      this.api = api;
-      return this;
-    }
-
-    public Class<? extends Router> router() {
-      return routerType;
-    }
-
-    public ProxyContext router(Class<? extends Router> router) {
-      this.routerType = router;
-      return this;
-    }
-
-  }
-
+  
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
 
