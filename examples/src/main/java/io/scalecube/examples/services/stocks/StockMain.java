@@ -38,9 +38,9 @@ public class StockMain {
         .build();
 
     // create stock Quote service from gateway.
-    QuoteService qouteService = gateway.proxy()
-        .api(QuoteService.class) // Quote service interface.
-        .create();
+    QuoteService qouteService = gateway.call()
+        .api(QuoteService.class); // Quote service interface.
+
 
     // subscribe on quotes changes
     qouteService.quotes("ORCL").subscribe(onNext -> {

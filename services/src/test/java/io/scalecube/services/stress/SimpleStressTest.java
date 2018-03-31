@@ -99,10 +99,9 @@ public class SimpleStressTest extends BaseTest {
     reporter.start(10, TimeUnit.SECONDS);
 
     // Get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
+    GreetingService service = consumer.call()
         .timeout(Duration.ofSeconds(30))
-        .create();
+        .api(GreetingService.class); // create proxy for GreetingService API;
 
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);

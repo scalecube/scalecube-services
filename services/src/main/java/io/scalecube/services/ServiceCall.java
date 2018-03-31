@@ -10,6 +10,7 @@ import io.scalecube.transport.Message;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
+import com.google.common.reflect.Reflection;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +19,8 @@ import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
@@ -184,6 +187,66 @@ public class ServiceCall {
 
     }
 
+    /**
+     * createProxy creates a java generic proxy instance by a given service interface.
+     * 
+     * @param <T> service interface type
+     * @param serviceInterface the service interface, api, of the service.
+     * @param routerType the type of routing method class to be used.
+     * @param metrics optional performance metrics.
+     * @return newly created service proxy object.
+     */
+    public <T> T api(Class<T> serviceInterface) {
+      final Call service = this;
+      return Reflection.newProxy(serviceInterface, new InvocationHandler() {
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+          Metrics.mark(serviceInterface, metrics, method, "request");
+          Object data = method.getParameterCount() != 0 ? args[0] : null;
+          final Message reqMsg = Messages.creatServiceRequest(Reflect.serviceName(serviceInterface), method.getName(), data);
+          if (method.getReturnType().equals(Observable.class)) {
+            if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
+              return service.listen(reqMsg);
+            } else {
+              return service.listen(reqMsg).map(message -> message.data());
+            }
+          } else {
+            return toReturnValue(method,
+                service.invoke(reqMsg));
+          }
+        }
+
+        private CompletableFuture<T> toReturnValue(final Method method, final CompletableFuture<Message> reuslt) {
+          final CompletableFuture<T> future = new CompletableFuture<>();
+
+          if (method.getReturnType().equals(Void.TYPE)) {
+            return (CompletableFuture<T>) CompletableFuture.completedFuture(Void.TYPE);
+
+          } else if (method.getReturnType().equals(CompletableFuture.class)) {
+            reuslt.whenComplete((value, ex) -> {
+              if (ex == null) {
+                Metrics.mark(serviceInterface, metrics, method, "response");
+                if (!Reflect.parameterizedReturnType(method).equals(Message.class)) {
+                  future.complete(value.data());
+                } else {
+                  future.complete((T) value);
+                }
+              } else {
+                Metrics.mark(serviceInterface, metrics, method, "error");
+                LOGGER.error("return value is exception: {}", ex);
+                future.completeExceptionally(ex);
+              }
+            });
+            return future;
+          } else {
+            LOGGER.error("return value is not supported type.");
+            future.completeExceptionally(new UnsupportedOperationException());
+          }
+          return future;
+        }
+      });
+    }
+    
     private IllegalStateException noReachableMemberException(Message request) {
       String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
       String methodName = request.header(ServiceHeaders.METHOD);
@@ -193,6 +256,5 @@ public class ServiceCall {
           serviceName, request);
       return new IllegalStateException("No reachable member with such service: " + methodName);
     }
-
   }
 }
