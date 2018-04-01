@@ -8,7 +8,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Message;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
@@ -109,7 +108,7 @@ public class SimpleStressTest extends BaseTest {
     long startTime = System.currentTimeMillis();
 
     for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
+      CompletableFuture<StreamMessage> future = service.greetingMessage(StreamMessage.builder().data("naive_stress_test").build());
       future.whenComplete((success, error) -> {
         if (error == null) {
           countLatch.countDown();
