@@ -6,7 +6,6 @@ import io.scalecube.concurrency.Futures;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.streams.StreamMessage;
-import io.scalecube.transport.Message;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
@@ -85,7 +84,8 @@ public class ServiceCall {
      * @return CompletableFuture with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance) throws Exception {
+    public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance)
+        throws Exception {
       Messages.validate().serviceRequest(request);
       return invoke(request, serviceInstance, timeout);
     }
@@ -154,7 +154,8 @@ public class ServiceCall {
      * @return Observable with stream of results for each service call dispatching result.
      */
     public Observable<StreamMessage> invokeAll(final StreamMessage request, final Duration duration) {
-      final Subject<StreamMessage, StreamMessage> responsesSubject = PublishSubject.<StreamMessage>create().toSerialized();
+      final Subject<StreamMessage, StreamMessage> responsesSubject =
+          PublishSubject.<StreamMessage>create().toSerialized();
       Collection<ServiceInstance> instances = router.routes(request);
 
       instances.forEach(instance -> {
@@ -162,7 +163,7 @@ public class ServiceCall {
           if (resp != null) {
             responsesSubject.onNext(resp);
           } else {
-            responsesSubject.onNext(Messages.asError(new Error(instance.memberId(),error)));
+            responsesSubject.onNext(Messages.asError(new Error(instance.memberId(), error)));
           }
         });
       });
@@ -205,10 +206,10 @@ public class ServiceCall {
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
           final StreamMessage reqMsg = StreamMessage.builder()
-              .qualifier(Reflect.serviceName(serviceInterface),method.getName())
+              .qualifier(Reflect.serviceName(serviceInterface), method.getName())
               .data(data)
               .build();
-          
+
           if (method.getReturnType().equals(Observable.class)) {
             if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
               return service.listen(reqMsg);

@@ -9,7 +9,6 @@ import io.scalecube.transport.Address;
 
 import rx.Observable;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
