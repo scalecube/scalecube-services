@@ -6,7 +6,6 @@ import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
 
 import rx.Observable;
 
@@ -41,7 +40,7 @@ public class LocalServiceInstance implements ServiceInstance {
    * @param methods the java methods of the service.
    * @param metrics factory measuring service kpis
    */
-  public LocalServiceInstance(Object serviceObject, 
+  public LocalServiceInstance(Object serviceObject,
       Map<String, String> tags,
       Address address, String memberId, String serviceName,
       Map<String, Method> methods, Metrics metrics) {
@@ -63,79 +62,51 @@ public class LocalServiceInstance implements ServiceInstance {
 
   public LocalServiceInstance(ServiceConfig serviceConfig, Address address, String memberId, String serviceName,
       Map<String, Method> method) {
-    this(serviceConfig.getService(),serviceConfig.getTags(), address, memberId, serviceName, method, null);
+    this(serviceConfig.getService(), serviceConfig.getTags(), address, memberId, serviceName, method, null);
   }
 
   @Override
-  public CompletableFuture<Message> invoke(final Message request) {
+  public CompletableFuture<StreamMessage> invoke(final StreamMessage request) {
     checkArgument(request != null, "message can't be null");
-   
-    final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
+
+    final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
     return invokeMethod(request, method);
   }
 
-  private Object invoke(final Message request, final Method method)
-      throws IllegalAccessException, InvocationTargetException {
-    Object result;
-
-    // handle invoke
-    if (method.getParameters().length == 0) {
-      result = method.invoke(serviceObject);
-    } else if (method.getParameters()[0].getType().isAssignableFrom(Message.class)) {
-      result = method.invoke(serviceObject, request);
-    } else {
-      result = method.invoke(serviceObject, new Object[] {request.data()});
-    }
-    return result;
-  }
-
-  @Override
-  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
   public Observable<StreamMessage> listen(StreamMessage request) {
-    // TODO Auto-generated method stub
-    return null;
-  }
-  
-  @Override
-  public Observable<Message> listen(Message request) {
     checkArgument(request != null, "message can't be null.");
 
     final Method method = getMethod(request);
     checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
 
     try {
-      final Observable<?> observable = (Observable<?>) invoke(request, method);
+      final Observable<?> observable = Reflect.invoke(serviceObject, method, request);
       return observable.map(message -> {
         Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "onNext");
-        return Messages.asResponse(message, memberId);
+        return StreamMessage.from(request).data(message).build();
       });
 
-    } catch (IllegalAccessException | InvocationTargetException ex) {
+    } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-      return Observable.from(new Message[] {Messages.asResponse(ex, memberId)});
+      return Observable.from(new StreamMessage[] {Messages.asError(ex)});
     }
   }
 
-  private CompletableFuture<Message> invokeMethod(final Message request, final Method method) {
+  private CompletableFuture<StreamMessage> invokeMethod(final StreamMessage request, final Method method) {
 
-    final CompletableFuture<Message> resultMessage = new CompletableFuture<>();
+    final CompletableFuture<StreamMessage> resultMessage = new CompletableFuture<>();
     try {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "request");
-      final Object result = invoke(request, method);
+      final Object result = Reflect.invoke(this.serviceObject, method, request);
       if (result instanceof CompletableFuture) {
         final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
         resultFuture.whenComplete((success, error) -> {
           if (error == null) {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
-            if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
-              resultMessage.complete((Message) success);
+            if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
+              resultMessage.complete((StreamMessage) success);
             } else {
-              resultMessage.complete(Messages.asResponse(success,  memberId));
+              resultMessage.complete(StreamMessage.builder().data(success).build());
             }
           } else {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
@@ -187,8 +158,8 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
 
-  public Method getMethod(Message request) {
-    return this.methods.get(request.header(ServiceHeaders.METHOD));
+  public Method getMethod(StreamMessage request) {
+    return this.methods.get(Messages.qualifierOf(request).getAction());
   }
 
   @Override
@@ -207,5 +178,5 @@ public class LocalServiceInstance implements ServiceInstance {
     return methods.keySet();
   }
 
-  
+
 }

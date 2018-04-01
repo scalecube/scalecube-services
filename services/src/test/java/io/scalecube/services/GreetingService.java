@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.transport.Message;
+import io.scalecube.streams.StreamMessage;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -22,7 +22,7 @@ interface GreetingService {
   CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest string);
 
   @ServiceMethod
-  CompletableFuture<Message> greetingMessage(Message request);
+  CompletableFuture<StreamMessage> greetingMessage(StreamMessage request);
 
   @ServiceMethod
   void greetingVoid(GreetingRequest request);

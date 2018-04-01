@@ -49,10 +49,9 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.client = client;
   }
 
-  @Override
   public Observable<Message> listen(final Message request) {
-    return this.listen(fromMessage(request))
-        .map(func -> toMessage(func));
+    return this.listen(Messages.fromMessage(request))
+        .map(func -> Messages.toMessage(func));
   }
 
   @Override
@@ -67,15 +66,14 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   }
 
-  @Override
   public CompletableFuture<Message> invoke(Message request) {
-    Messages.validate().serviceRequest(request);
-    CompletableFuture<Message> result = new CompletableFuture<Message>();
 
-    this.invoke(fromMessage(request))
+    CompletableFuture<Message> result = new CompletableFuture<>();
+
+    this.invoke(Messages.fromMessage(request))
         .whenComplete((value, error) -> {
           if (error == null) {
-            result.complete(toMessage(value));
+            result.complete(Messages.toMessage(value));
           } else {
             result.completeExceptionally(error);
           }
@@ -144,25 +142,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   public Collection<String> methods() {
     return methods;
   }
-
-  private static Message toMessage(StreamMessage request) {
-    Qualifier qualifier = Messages.qualifierOf(request);
-
-    return Message.builder()
-        .header(ServiceHeaders.SERVICE_REQUEST, qualifier.getAction())
-        .header(ServiceHeaders.METHOD, qualifier.getNamespace())
-        .data(request.data()).build();
-
-  }
-
-  private static StreamMessage fromMessage(Message request) {
-    Qualifier qualifier = Messages.qualifierOf(request);
-    return StreamMessage.builder()
-        .qualifier(qualifier)
-        .data(request.data())
-        .build();
-  }
-
 
   @Override
   public String toString() {

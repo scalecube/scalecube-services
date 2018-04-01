@@ -6,6 +6,7 @@ import static org.junit.Assert.fail;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -59,7 +60,7 @@ public class SimpleStressTest extends BaseTest {
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
     for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = greetings.invoke(Messages.builder()
+      CompletableFuture<StreamMessage> future = greetings.invoke(Messages.builder()
           .request(GreetingService.class, "greetingMessage")
           .data("1")
           .build());

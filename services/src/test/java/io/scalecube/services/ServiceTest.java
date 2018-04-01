@@ -10,6 +10,7 @@ import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -92,7 +93,7 @@ public class ServiceTest extends BaseTest {
     GreetingService service = gateway.call()
         .timeout(Duration.ofSeconds(3))
         .api(GreetingService.class);
-        
+
     // call the service.
     CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", duration));
 
@@ -488,7 +489,7 @@ public class ServiceTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<Message> future = service.greetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<StreamMessage> future = service.greetingMessage(StreamMessage.builder().data("joe").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -496,13 +497,15 @@ public class ServiceTest extends BaseTest {
         assertTrue(result.data().equals(" hello to: joe"));
         // print the greeting.
         System.out.println("9. local_async_greeting_return_Message :" + result.data());
+        timeLatch.countDown();
       } else {
         // print the greeting.
         System.out.println(ex);
-      }
-      timeLatch.countDown();
+      } ;
     });
+    
     await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue(timeLatch.getCount() == 0);
     microservices.shutdown().get();
   }
 
@@ -524,7 +527,7 @@ public class ServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<Message> future = service.greetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<StreamMessage> future = service.greetingMessage(StreamMessage.builder().data("joe").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -567,8 +570,8 @@ public class ServiceTest extends BaseTest {
 
     GreetingService service = createProxy(gateway);
 
-    CompletableFuture<Message> result1 = service.greetingMessage(Message.builder().data("joe").build());
-    CompletableFuture<Message> result2 = service.greetingMessage(Message.builder().data("joe").build());
+    CompletableFuture<StreamMessage> result1 = service.greetingMessage(StreamMessage.builder().data("joe").build());
+    CompletableFuture<StreamMessage> result2 = service.greetingMessage(StreamMessage.builder().data("joe").build());
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -577,8 +580,9 @@ public class ServiceTest extends BaseTest {
         // print the greeting.
         System.out.println("11. round_robin_selection_logic :" + result1.get());
         System.out.println("11. round_robin_selection_logic :" + result2.get());
-
-        boolean success = !result1.get().sender().equals(result2.get().sender());
+        GreetingResponse response1 = result1.get().data();
+        GreetingResponse response2 = result2.get().data();
+        boolean success = !response1.sender().equals(response2.sender());
 
         assertTrue(success);
       } catch (Throwable e) {
@@ -614,9 +618,7 @@ public class ServiceTest extends BaseTest {
     provider1.shutdown();
   }
 
-  
 
-  
 
   @Test
   public void test_serviceA_calls_serviceB_using_setter() throws InterruptedException, ExecutionException {
@@ -788,7 +790,7 @@ public class ServiceTest extends BaseTest {
     return micro.call()
         .timeout(duration)
         .api(GreetingService.class); // create proxy for GreetingService API
-        
+
   }
 
   private Microservices createProvider(Microservices gateway) {

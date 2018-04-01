@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -207,7 +208,7 @@ public class TestStreamingService extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    Message justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    StreamMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
     sub1.set(service.listen(justOne)
         .serialize().subscribe(onNext -> {
@@ -236,7 +237,7 @@ public class TestStreamingService extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    Message scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
+    StreamMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
     sub1.set(service.listen(scheduled)
@@ -265,7 +266,7 @@ public class TestStreamingService extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(1);
 
-    Message scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
+    StreamMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
     try {
       service.listen(scheduled);
     } catch (Exception ex) {
@@ -294,7 +295,7 @@ public class TestStreamingService extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    Message justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    StreamMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
     sub1.set(service.listen(justOne)
         .subscribe(onNext -> {
