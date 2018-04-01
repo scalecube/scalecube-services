@@ -35,7 +35,6 @@ public class Reflect {
   private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
 
   /**
-   * 
    * Injector builder.
    * 
    * @param microservices instance to be injected.
