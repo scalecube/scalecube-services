@@ -15,6 +15,13 @@ public class Futures {
   private static final ScheduledExecutorService delayer =
       ThreadFactory.singleScheduledExecutorService(ThreadFactory.SC_SERVICES_TIMEOUT);
   
+  /**
+   * Create a future and apply give timeout.
+   * 
+   * @param resultFuture give future to apply timeout.
+   * @param timeout for completion  success / error 
+   * @return future with timeout.
+   */
   public static <T> CompletableFuture<T> withTimeout(final CompletableFuture<T> resultFuture,
       Duration timeout) {
 
