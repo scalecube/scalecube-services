@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -76,12 +77,11 @@ import java.util.concurrent.CompletableFuture;
  *         .build();
  *
  *     // Create microservice proxy to GreetingService.class interface:
- *     GreetingService service = microservices.proxy()
- *         .api(GreetingService.class)
- *         .create();
+ *     GreetingService service = microservices.call()
+ *         .api(GreetingService.class);
  *
  *     // Invoke the greeting service async:
- *     CompletableFuture<String> future = service.asyncGreeting("joe");
+ *     CompletableFuture<String> future = service.sayHello("joe");
  *
  *     // handle completable success or error:
  *     future.whenComplete((result, ex) -> {
@@ -175,10 +175,14 @@ public class Microservices {
     public Microservices build() {
 
       ServiceStreams serviceStreams = new ServiceStreams(this.server);
-      Address serviceAddress = this.server.bindAwait();
 
-      servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
-      
+      servicesConfig.services().stream()
+          .map(mapper -> serviceStreams.createSubscriptions(mapper.getService()))
+          .collect(Collectors.toList());
+
+      Address serviceAddress = this.server.bindAwait();
+      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
+
       return Reflect.builder(
           new Microservices(Cluster.joinAwait(clusterConfig), serviceAddress, this.client, servicesConfig, this.metrics))
           .inject();
@@ -194,17 +198,6 @@ public class Microservices {
     public Builder client(ClientStreamProcessors client) {
       this.client = client;
       return this;
-    }
-
-
-    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
-      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
-        if (address != null) {
-          clusterConfig.addMetadata("service-address", address.toString());
-        }
-      }
-      return clusterConfig.build();
     }
 
     public Builder port(int port) {
@@ -260,12 +253,21 @@ public class Microservices {
       return this;
     }
 
+    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
+      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
+        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
+        if (address != null) {
+          clusterConfig.addMetadata("service-address", address.toString());
+        }
+      }
+      return clusterConfig.build();
+    }
   }
 
   public static Builder builder() {
     return new Builder();
   }
-  
+
   private static Map<String, String> metadata(ServicesConfig config) {
     Map<String, String> servicesTags = new HashMap<>();
 
