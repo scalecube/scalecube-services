@@ -25,7 +25,7 @@ public class GracefulShutdownTest extends BaseTest {
 
 
 
-  @Test
+  @Test()
   public void test_gracefull_shutdown() throws InterruptedException {
 
     // create cluster members with 3 nodes: gateway, node1, node2

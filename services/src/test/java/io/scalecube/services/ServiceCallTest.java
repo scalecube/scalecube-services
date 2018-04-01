@@ -12,7 +12,6 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Message;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -383,8 +382,7 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
-        .data(Message.builder().data("joe").build())
-        .build());
+        .data("joe").build());
 
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -422,8 +420,7 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
-        .data(Message.builder().data("joe").build())
-        .build());
+        .data("joe").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -513,8 +510,7 @@ public class ServiceCallTest extends BaseTest {
       // call the service.
       CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
           .request(SERVICE_NAME, "unknown")
-          .data(Message.builder().data("joe").build())
-          .build());
+          .data("joe").build());
 
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: unknown"));

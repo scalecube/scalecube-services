@@ -10,7 +10,6 @@ import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
@@ -86,41 +85,25 @@ public class ServiceInstanceTest extends BaseTest {
     assertThat(instance.methods(), hasItem("sayHello"));
 
     try {
-      instance.invoke(Message.builder()
-          .header(ServiceHeaders.METHOD, null)
-          .header(ServiceHeaders.SERVICE_REQUEST, "s")
-          .correlationId("1")
-          .build());
+      instance.invoke(Messages.builder().request("", "s").build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
 
     try {
-      instance.invoke(Message.builder()
-          .header(ServiceHeaders.METHOD, "unkonwn")
-          .header(ServiceHeaders.SERVICE_REQUEST, "s")
-          .correlationId("1")
-          .build());
+      instance.invoke(Messages.builder().request("unknown", "s").build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.util.NoSuchElementException: No value present");
     }
 
     try {
-      instance.invoke(Message.builder()
-          .header(ServiceHeaders.METHOD, "m")
-          .header(ServiceHeaders.SERVICE_REQUEST, null)
-          .correlationId("1")
-          .build());
+      instance.invoke(Messages.builder().request("unknown", null).build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
     }
 
     try {
-      instance.invoke(Message.builder()
-          .header(ServiceHeaders.METHOD, null)
-          .header(ServiceHeaders.SERVICE_REQUEST, "s")
-          .correlationId("1")
-          .build());
+      instance.invoke(Messages.builder().request("s", null).build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
