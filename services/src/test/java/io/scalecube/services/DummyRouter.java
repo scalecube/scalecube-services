@@ -4,7 +4,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.routing.Router;
 import io.scalecube.streams.StreamMessage;
-import io.scalecube.transport.Message;
 
 import java.util.Collection;
 import java.util.Optional;

@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamMessage.Builder;
@@ -41,7 +40,7 @@ public class Messages {
      */
     public StreamMessage.Builder request(String serviceName, String methodName) {
       return StreamMessage.builder().qualifier(serviceName, methodName);
-          
+
     }
 
     /**
