@@ -71,7 +71,8 @@ public class LocalServiceInstance implements ServiceInstance {
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
     return invokeMethod(request, method);
   }
-
+  
+  @Override
   public Observable<StreamMessage> listen(StreamMessage request) {
     checkArgument(request != null, "message can't be null.");
 
@@ -176,6 +177,4 @@ public class LocalServiceInstance implements ServiceInstance {
   public Collection<String> methods() {
     return methods.keySet();
   }
-
-
 }

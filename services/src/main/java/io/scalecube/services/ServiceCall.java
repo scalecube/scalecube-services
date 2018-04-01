@@ -190,12 +190,9 @@ public class ServiceCall {
     }
 
     /**
-     * createProxy creates a java generic proxy instance by a given service interface.
+     * Create proxy creates a java generic proxy instance by a given service interface.
      * 
-     * @param <T> service interface type
-     * @param serviceInterface the service interface, api, of the service.
-     * @param routerType the type of routing method class to be used.
-     * @param metrics optional performance metrics.
+     * @param serviceInterface <T> Service Interface type.
      * @return newly created service proxy object.
      */
     public <T> T api(Class<T> serviceInterface) {
