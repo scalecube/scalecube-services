@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.annotation.PostConstruct;
+
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
  *
@@ -59,6 +61,7 @@ public class Reflect {
      */
     public Microservices inject() {
       this.inject(this.microservices);
+
       return this.microservices;
     }
 
@@ -70,6 +73,21 @@ public class Reflect {
           .filter(instance -> instance.isLocal())
           .collect(Collectors.toList()).forEach(instance -> {
             scanServiceFields(((LocalServiceInstance) instance).serviceObject());
+            this.processPostConstruct(((LocalServiceInstance) instance).serviceObject());
+          });
+    }
+
+    private void processPostConstruct(Object targetInstance) {
+      Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
+      Arrays.stream(declaredMethods)
+          .filter(method -> method.isAnnotationPresent(PostConstruct.class))
+          .forEach(postConstructMethod -> {
+            try {
+              postConstructMethod.setAccessible(true);
+              postConstructMethod.invoke(targetInstance, new Object[] {});
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
+            }
           });
     }
 
