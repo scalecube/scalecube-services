@@ -17,6 +17,12 @@ public final class ServiceStreams {
     this.server = server;
   }
 
+  /**
+   * create service subscriptions to a given service object.
+   * 
+   * @param serviceObject to introspect and create stream subscriptions.
+   * @return list of stream subscription found for object.
+   */
   public List<ServiceMethodSubscription> createSubscriptions(Object serviceObject) {
 
     List<AbstractMap.SimpleEntry<Qualifier, Method>> methods = Reflect.serviceInterfaces(serviceObject).stream()

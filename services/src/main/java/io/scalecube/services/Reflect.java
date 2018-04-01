@@ -35,6 +35,7 @@ public class Reflect {
   private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
 
   /**
+   * 
    * Injector builder.
    * 
    * @param microservices instance to be injected.
@@ -190,7 +191,15 @@ public class Reflect {
         .collect(Collectors.toList());
   }
 
-
+  /**
+   * invoke a java method by a given StreamMessage.
+   * 
+   * @param serviceObject instance to invoke its method.
+   * @param method method to invoke.
+   * @param request stream message request containing data or message to invoke.
+   * @return invoke result.
+   * @throws Exception in case method expects more then one parameter
+   */
   @SuppressWarnings("unchecked")
   public static <T> T invoke(Object serviceObject, Method method, final StreamMessage request) throws Exception {
     // handle invoke

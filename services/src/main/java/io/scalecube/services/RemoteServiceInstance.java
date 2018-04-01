@@ -69,14 +69,17 @@ public class RemoteServiceInstance implements ServiceInstance {
     sp.onNext(request);
     sp.onCompleted();
 
-    observer.subscribe(onNext -> {
-      result.complete(onNext);
-    }, onError -> {
-      LOGGER.error("Failed to send request {} to target address {}", request, address);
-      result.completeExceptionally(onError);
-    }, () -> {
-      result.complete(null);
-    });
+    observer.subscribe(
+        onNext -> {
+          result.complete(onNext);
+        },
+        onError -> {
+          LOGGER.error("Failed to send request {} to target address {}", request, address);
+          result.completeExceptionally(onError);
+        },
+        () -> {
+          result.complete(null);
+        });
 
     return result;
   }
