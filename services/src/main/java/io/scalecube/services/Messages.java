@@ -5,7 +5,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamMessage.Builder;
-import io.scalecube.transport.Message;
 
 public class Messages {
 
@@ -77,32 +76,7 @@ public class Messages {
     return validator;
   }
 
-  public static Qualifier qualifierOf(Message request) {
-    final String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-    final String methodName = request.header(ServiceHeaders.METHOD);
-
-    return Qualifier.fromString(serviceName + "/" + methodName);
-  }
-
   public static Qualifier qualifierOf(StreamMessage request) {
     return Qualifier.fromString(request.qualifier());
-  }
-
-  public static Message toMessage(StreamMessage request) {
-    Qualifier qualifier = Messages.qualifierOf(request);
-
-    return Message.builder()
-        .header(ServiceHeaders.SERVICE_REQUEST, qualifier.getAction())
-        .header(ServiceHeaders.METHOD, qualifier.getNamespace())
-        .data(request.data()).build();
-
-  }
-
-  public static StreamMessage fromMessage(Message request) {
-    Qualifier qualifier = Messages.qualifierOf(request);
-    return StreamMessage.builder()
-        .qualifier(qualifier)
-        .data(request.data())
-        .build();
   }
 }

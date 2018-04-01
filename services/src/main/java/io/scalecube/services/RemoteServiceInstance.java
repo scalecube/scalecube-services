@@ -6,7 +6,6 @@ import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,11 +47,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.client = client;
   }
 
-  public Observable<Message> listen(final Message request) {
-    return this.listen(Messages.fromMessage(request))
-        .map(func -> Messages.toMessage(func));
-  }
-
   @Override
   public Observable<StreamMessage> listen(final StreamMessage request) {
 
@@ -63,22 +57,6 @@ public class RemoteServiceInstance implements ServiceInstance {
     sp.onCompleted();
     return observer;
 
-  }
-
-  public CompletableFuture<Message> invoke(Message request) {
-
-    CompletableFuture<Message> result = new CompletableFuture<>();
-
-    this.invoke(Messages.fromMessage(request))
-        .whenComplete((value, error) -> {
-          if (error == null) {
-            result.complete(Messages.toMessage(value));
-          } else {
-            result.completeExceptionally(error);
-          }
-        });
-
-    return result;
   }
 
   @Override
