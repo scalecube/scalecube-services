@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
 
 import rx.Observable;
 
@@ -15,7 +14,7 @@ public interface ServiceInstance {
   CompletableFuture<StreamMessage> invoke(StreamMessage request);
 
   Observable<StreamMessage> listen(StreamMessage request);
-  
+
   String serviceName();
 
   String memberId();

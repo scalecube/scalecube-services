@@ -7,7 +7,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Message;
 
 import com.codahale.metrics.MetricRegistry;
 

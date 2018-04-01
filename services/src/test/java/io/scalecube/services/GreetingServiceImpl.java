@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.streams.StreamMessage;
-import io.scalecube.transport.Message;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
