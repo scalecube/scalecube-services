@@ -2,8 +2,15 @@ package io.scalecube.examples.services;
 
 import java.util.concurrent.CompletableFuture;
 
-public class GreetingServiceImpl implements GreetingService {
+import javax.annotation.PostConstruct;
 
+public class GreetingServiceImpl implements GreetingService {
+  
+  @PostConstruct
+  void init(){
+    System.out.println("invoke post constact");
+  }
+  
   @Override
   public CompletableFuture<String> greeting(String name) {
     System.out.println("Provider: 'greeting' -> " + name);
