@@ -8,6 +8,11 @@ import io.scalecube.streams.StreamProcessors;
 
 public class ServiceStreamsRunner {
 
+  /**
+   * main running server listener for stream.
+   * 
+   * @param args noop.
+   */
   public static void main(String[] args) {
     ServerStreamProcessors server = StreamProcessors.newServer().port(8000);
 
@@ -16,6 +21,6 @@ public class ServiceStreamsRunner {
     serviceStreams.createSubscriptions(new GreetingServiceImpl());
     serviceStreams.createSubscriptions(new SimpleQuoteService());
 
-    server.bind().whenComplete((s, r) -> System.out.println(s));
+    server.bind().whenComplete((value, ex) -> System.out.println(value));
   }
 }
