@@ -35,6 +35,15 @@ public final class ServiceMethodSubscription implements Subscription {
     this.serviceObject = serviceObject;
   }
 
+  /**
+   * Create a new method subscription server that accept stream messages and invokes a service method.
+   * 
+   * @param server stream listening and accepting network traffic.
+   * @param qualifier on which stream is accepted.
+   * @param method to invoke in case of stream message.
+   * @param serviceObject instance to invoke.
+   * @return new service method subscription.
+   */
   public static ServiceMethodSubscription create(ServerStreamProcessors server, Qualifier qualifier, Method method,
       Object serviceObject) {
 
@@ -55,7 +64,21 @@ public final class ServiceMethodSubscription implements Subscription {
 
   }
 
-  public ServiceMethodSubscription toCompletableFuture() {
+
+  @Override
+  public void unsubscribe() {
+    if (subsciption != null) {
+      subsciption.unsubscribe();
+    }
+  }
+
+  @Override
+  public boolean isUnsubscribed() {
+    return Objects.isNull(subsciption) || subsciption.isUnsubscribed();
+  }
+
+
+  private ServiceMethodSubscription toCompletableFuture() {
     this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
@@ -78,19 +101,7 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  @Override
-  public void unsubscribe() {
-    if (subsciption != null) {
-      subsciption.unsubscribe();
-    }
-  }
-
-  @Override
-  public boolean isUnsubscribed() {
-    return Objects.isNull(subsciption) || subsciption.isUnsubscribed();
-  }
-
-  public ServiceMethodSubscription toObservable() {
+  private ServiceMethodSubscription toObservable() {
     this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage request) {
@@ -105,7 +116,7 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  public ServiceMethodSubscription toVoid() {
+  private ServiceMethodSubscription toVoid() {
     this.subsciption = accept(streamProcessor -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
@@ -120,7 +131,7 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  public ServiceMethodSubscription requestStreamToResponseStream() {
+  private ServiceMethodSubscription requestStreamToResponseStream() {
     this.subsciption = accept(streamProcessor -> {
       try {
         // noinspection unchecked
