@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.concurrency.Futures;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Message;
 
 import com.codahale.metrics.Counter;
@@ -67,7 +68,7 @@ public class ServiceCall {
      * @param timeout timeout
      * @return CompletableFuture with service call dispatching result.
      */
-    public CompletableFuture<Message> invoke(Message request) {
+    public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
       Messages.validate().serviceRequest(request);
 
       return this.invoke(request, router.route(request)
@@ -84,7 +85,7 @@ public class ServiceCall {
      * @return CompletableFuture with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public CompletableFuture<Message> invoke(Message request, ServiceInstance serviceInstance) throws Exception {
+    public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance) throws Exception {
       Messages.validate().serviceRequest(request);
       return invoke(request, serviceInstance, timeout);
     }
@@ -99,19 +100,19 @@ public class ServiceCall {
      * @param duration of the response before TimeException is returned.
      * @return CompletableFuture with service call dispatching result.
      */
-    public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
+    public CompletableFuture<StreamMessage> invoke(final StreamMessage request, final ServiceInstance serviceInstance,
         final Duration duration) {
 
       Objects.requireNonNull(serviceInstance);
       Messages.validate().serviceRequest(request);
-      serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
+      serviceInstance.checkMethodExists(Messages.qualifierOf(request).getAction());
 
       final Context ctx = Metrics.time(latency);
       Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
       Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
       Metrics.inc(counter);
 
-      CompletableFuture<Message> response = serviceInstance.invoke(request);
+      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request);
       Futures.withTimeout(response, duration)
           .whenComplete((value, error) -> {
             Metrics.dec(counter);
@@ -138,7 +139,7 @@ public class ServiceCall {
      * @param request request with given headers.
      * @return Observable with stream of results for each service call dispatching result.
      */
-    public Observable<Message> invokeAll(final Message request) {
+    public Observable<StreamMessage> invokeAll(final StreamMessage request) {
       return this.invokeAll(request, this.timeout);
     }
 
@@ -152,8 +153,8 @@ public class ServiceCall {
      * @param duration of the response before TimeException is returned.
      * @return Observable with stream of results for each service call dispatching result.
      */
-    public Observable<Message> invokeAll(final Message request, final Duration duration) {
-      final Subject<Message, Message> responsesSubject = PublishSubject.<Message>create().toSerialized();
+    public Observable<StreamMessage> invokeAll(final StreamMessage request, final Duration duration) {
+      final Subject<StreamMessage, StreamMessage> responsesSubject = PublishSubject.<StreamMessage>create().toSerialized();
       Collection<ServiceInstance> instances = router.routes(request);
 
       instances.forEach(instance -> {
@@ -161,7 +162,7 @@ public class ServiceCall {
           if (resp != null) {
             responsesSubject.onNext(resp);
           } else {
-            responsesSubject.onNext(Messages.asError(error, instance.memberId()));
+            responsesSubject.onNext(Messages.asError(new Error(instance.memberId(),error)));
           }
         });
       });
@@ -174,13 +175,13 @@ public class ServiceCall {
      * @param request containing subscription data.
      * @return rx.Observable for the specific stream.
      */
-    public Observable<Message> listen(Message request) {
+    public Observable<StreamMessage> listen(StreamMessage request) {
 
       Messages.validate().serviceRequest(request);
 
       ServiceInstance instance = router.route(request)
           .orElseThrow(() -> noReachableMemberException(request));
-      checkArgument(instance.methodExists(request.header(ServiceHeaders.METHOD)),
+      checkArgument(instance.methodExists(Messages.qualifierOf(request).getAction()),
           "instance has no such requested method");
 
       return instance.listen(request);
@@ -203,22 +204,24 @@ public class ServiceCall {
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
-          final Message reqMsg =
-              Messages.creatServiceRequest(Reflect.serviceName(serviceInterface), method.getName(), data);
+          final StreamMessage reqMsg = StreamMessage.builder()
+              .qualifier(Reflect.serviceName(serviceInterface),method.getName())
+              .data(data)
+              .build();
+          
           if (method.getReturnType().equals(Observable.class)) {
-            if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
+            if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
               return service.listen(reqMsg);
             } else {
               return service.listen(reqMsg).map(message -> message.data());
             }
           } else {
-            return toReturnValue(method,
-                service.invoke(reqMsg));
+            return toReturnValue(method, service.invoke(reqMsg));
           }
         }
 
         @SuppressWarnings("unchecked")
-        private CompletableFuture<T> toReturnValue(final Method method, final CompletableFuture<Message> reuslt) {
+        private CompletableFuture<T> toReturnValue(final Method method, final CompletableFuture<StreamMessage> reuslt) {
           final CompletableFuture<T> future = new CompletableFuture<>();
 
           if (method.getReturnType().equals(Void.TYPE)) {
@@ -228,8 +231,8 @@ public class ServiceCall {
             reuslt.whenComplete((value, ex) -> {
               if (ex == null) {
                 Metrics.mark(serviceInterface, metrics, method, "response");
-                if (!Reflect.parameterizedReturnType(method).equals(Message.class)) {
-                  future.complete(value.data());
+                if (!Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
+                  future.complete((T) value.data());
                 } else {
                   future.complete((T) value);
                 }
@@ -249,14 +252,12 @@ public class ServiceCall {
       });
     }
 
-    private IllegalStateException noReachableMemberException(Message request) {
-      String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
-      String methodName = request.header(ServiceHeaders.METHOD);
+    private IllegalStateException noReachableMemberException(StreamMessage request) {
 
       LOGGER.error(
           "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
-          serviceName, request);
-      return new IllegalStateException("No reachable member with such service: " + methodName);
+          request.qualifier(), request);
+      return new IllegalStateException("No reachable member with such service: " + request.qualifier());
     }
   }
 }
