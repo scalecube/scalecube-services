@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import io.scalecube.services.annotations.Inject;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Message;
 
 import java.util.concurrent.CompletableFuture;
@@ -8,6 +10,9 @@ import java.util.concurrent.TimeUnit;
 
 final class GreetingServiceImpl implements GreetingService {
 
+  @Inject
+  Microservices ms;
+  
   @Override
   public String toString() {
     return "GreetingServiceImpl []";
@@ -24,7 +29,7 @@ final class GreetingServiceImpl implements GreetingService {
 
     Executors.newScheduledThreadPool(1).schedule(() -> {
       try {
-        response.complete(new GreetingResponse(" hello to: " + request.getName()));
+        response.complete(new GreetingResponse(" hello to: " + request.getName(),String.valueOf( this.hashCode())));
       } catch (Exception ex) {
       }
     }, request.getDuration().toMillis(), TimeUnit.MILLISECONDS);
@@ -39,12 +44,13 @@ final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request) {
-    return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName()));
+    return CompletableFuture.completedFuture(new GreetingResponse(" hello to: " + request.getName(),ms.cluster().member().id()));
   }
 
   @Override
-  public CompletableFuture<Message> greetingMessage(Message request) {
-    return CompletableFuture.completedFuture(Message.fromData(" hello to: " + request.data()));
+  public CompletableFuture<StreamMessage> greetingMessage(StreamMessage request) {
+    GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(),ms.cluster().member().id());
+    return CompletableFuture.completedFuture(StreamMessage.builder().data(resp).build());
   }
 
   @Override

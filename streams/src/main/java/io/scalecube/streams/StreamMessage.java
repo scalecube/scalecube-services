@@ -41,8 +41,9 @@ public final class StreamMessage {
     return subject;
   }
 
-  public Object data() {
-    return data;
+  @SuppressWarnings("unchecked")
+  public <T> T data() {
+    return (T) data;
   }
 
   public boolean containsData() {
@@ -130,6 +131,10 @@ public final class StreamMessage {
 
     public StreamMessage build() {
       return new StreamMessage(this);
+    }
+
+    public Builder qualifier(String serviceName, String methodMame) {
+      return qualifier(Qualifier.fromString(serviceName+"/"+methodMame));
     }
   }
 }

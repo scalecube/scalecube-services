@@ -4,6 +4,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -36,7 +37,7 @@ public class GracefulShutdownTest extends BaseTest {
 
     // call the service.
     AtomicInteger count = new AtomicInteger(3);
-    Message request = Messages.builder()
+    StreamMessage request = Messages.builder()
         .request(GreetingService.class, "greeting")
         .data("joe")
         .build();
@@ -46,12 +47,12 @@ public class GracefulShutdownTest extends BaseTest {
     while (members.gateway().cluster().member(members.node1().cluster().address()).isPresent()
         || postShutdown.get() >= 0) {
       
-      CompletableFuture<Message> future = service.invoke(request);
+      CompletableFuture<StreamMessage> future = service.invoke(request);
       future.whenComplete((result, ex) -> {
         if (ex == null) {
           // print the greeting.
           assertTrue(result.data().equals(" hello to: joe"));
-          System.out.println(count.get() + " - Response from node: " + result.sender());
+          System.out.println(count.get() + " - Response from node: ");
           count.decrementAndGet();
         } else {
           fail(); // if one request fails fail the test
