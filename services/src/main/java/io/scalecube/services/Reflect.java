@@ -90,6 +90,8 @@ public class Reflect {
                   return this.microservices;
                 } else if (mapper.isAnnotationPresent(ServiceProxy.class)) {
                   return newServiceCall(mapper.getAnnotation(ServiceProxy.class));
+                } else if(isService(mapper.getType())){
+                  return this.microservices.call().api(mapper.getType());
                 } else {
                   return null;
                 }
@@ -110,15 +112,15 @@ public class Reflect {
     private void injectField(Field field, Object service) {
       if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
         setField(field, service, this.microservices);
-      } else if (field.isAnnotationPresent(Inject.class) && isService(field)) {
+      } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
         setField(field, service, this.microservices.call().api(field.getType()));
-      } else if (field.isAnnotationPresent(ServiceProxy.class) && isService(field)) {
+      } else if (field.isAnnotationPresent(ServiceProxy.class) && isService(field.getType())) {
         injectServiceProxy(field, service);
       }
     }
 
-    private boolean isService(Field field) {
-      return field.getType().isAnnotationPresent(Service.class);
+    private boolean isService(Class type) {
+      return type.isAnnotationPresent(Service.class);
     }
 
     private void injectServiceProxy(Field field, Object service) {

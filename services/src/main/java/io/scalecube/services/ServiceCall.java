@@ -195,11 +195,16 @@ public class ServiceCall {
      * @param serviceInterface Service Interface type.
      * @return newly created service proxy object.
      */
-    public <T> T api(Class<T> serviceInterface) {
+    public <T> T api(final Class<T> serviceInterface) {
       final Call service = this;
+
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+          Object check = objectToStringEqualsHashCode(method, serviceInterface, args);
+          if (check != null)
+            return check;
+          
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
           final StreamMessage reqMsg = StreamMessage.builder()
@@ -256,6 +261,18 @@ public class ServiceCall {
           "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
           request.qualifier(), request);
       return new IllegalStateException("No reachable member with such service: " + request.qualifier());
+    }
+    
+    private Object objectToStringEqualsHashCode(Method method, Class<?> serviceInterface, Object... args) {
+      if (method.getName().equals("hashCode")) {
+        return serviceInterface.hashCode();
+      } else if (method.getName().equals("equals")) {
+        return serviceInterface.equals(args[0]);
+      } else if (method.getName().equals("toString")) {
+        return serviceInterface.toString();
+      } else {
+        return null;
+      }
     }
   }
 }
