@@ -83,22 +83,22 @@ public class ServicesConfig {
 
       public Set<String> serviceNames() {
         return serviceDefinitions.stream()
-            .map(definition -> definition.serviceName())
-            .collect(Collectors.toSet());
+                .map(definition -> definition.serviceName())
+                .collect(Collectors.toSet());
       }
 
       /**
        * return method names for a given service name.
-       * 
+       *
        * @param serviceName to retrieve.
        * @return list of declared method names for a given service.
        */
       public Set<String> methods(String serviceName) {
         return serviceDefinitions.stream()
-            .filter(def -> def.serviceName().equals(serviceName))
-            .findFirst().get()
-            .methods()
-            .keySet();
+                .filter(def -> def.serviceName().equals(serviceName))
+                .findFirst().get()
+                .methods()
+                .keySet();
       }
     }
 
@@ -117,7 +117,7 @@ public class ServicesConfig {
 
     public Microservices.Builder build() {
       return microservicesBuilder.services(
-          new ServicesConfig(Collections.unmodifiableList(servicesBuilder)));
+              new ServicesConfig(Collections.unmodifiableList(servicesBuilder)));
     }
 
     public ServicesConfig create() {
