@@ -4,6 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.metrics.Metrics;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Message;
 
@@ -11,6 +12,7 @@ import rx.Observable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -29,31 +31,32 @@ public class LocalServiceInstance implements ServiceInstance {
   private final String memberId;
   private final Map<String, String> tags;
   private final Address address;
-  private Metrics metrics;
+  private final Metrics metrics;
 
   /**
    * LocalServiceInstance instance constructor.
    * 
-   * @param serviceConfig the instance of the service configurations.
+   * @param serviceObject the instance of the service configurations.
    * @param memberId the Cluster memberId of this instance.
    * @param serviceName the qualifier name of the service.
    * @param methods the java methods of the service.
    * @param metrics factory measuring service kpis
    */
-  public LocalServiceInstance(ServiceConfig serviceConfig, Address address, String memberId, String serviceName,
+  public LocalServiceInstance(Object serviceObject, 
+      Map<String, String> tags,
+      Address address, String memberId, String serviceName,
       Map<String, Method> methods, Metrics metrics) {
-    checkArgument(serviceConfig != null, "serviceConfig can't be null");
-    checkArgument(serviceConfig.getService() != null, "serviceConfig.service can't be null");
+    checkArgument(serviceObject != null, "serviceObject can't be null");
     checkArgument(address != null, "address can't be null");
     checkArgument(memberId != null, "memberId can't be null");
     checkArgument(serviceName != null, "serviceName can't be null");
     checkArgument(methods != null, "methods can't be null");
 
-    this.serviceObject = serviceConfig.getService();
+    this.serviceObject = serviceObject;
     this.serviceName = serviceName;
     this.methods = Collections.unmodifiableMap(methods);
+    this.tags = Collections.unmodifiableMap(tags);
     this.memberId = memberId;
-    this.tags = serviceConfig.getTags();
     this.address = address;
     this.metrics = metrics;
 
@@ -61,12 +64,13 @@ public class LocalServiceInstance implements ServiceInstance {
 
   public LocalServiceInstance(ServiceConfig serviceConfig, Address address, String memberId, String serviceName,
       Map<String, Method> method) {
-    this(serviceConfig, address, memberId, serviceName, method, null);
+    this(serviceConfig.getService(),serviceConfig.getTags(), address, memberId, serviceName, method, null);
   }
 
   @Override
   public CompletableFuture<Message> invoke(final Message request) {
     checkArgument(request != null, "message can't be null");
+   
     final Method method = this.methods.get(request.header(ServiceHeaders.METHOD));
     return invokeMethod(request, method);
   }
@@ -87,24 +91,34 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public Observable<StreamMessage> listen(StreamMessage request) {
+    // TODO Auto-generated method stub
+    return null;
+  }
+  
+  @Override
   public Observable<Message> listen(Message request) {
     checkArgument(request != null, "message can't be null.");
-    checkArgument(request.correlationId() != null, "subscribe request must contain correlationId.");
 
     final Method method = getMethod(request);
     checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
 
-    final String cid = request.correlationId();
     try {
       final Observable<?> observable = (Observable<?>) invoke(request, method);
       return observable.map(message -> {
         Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "onNext");
-        return Messages.asResponse(message, cid, memberId);
+        return Messages.asResponse(message, memberId);
       });
 
     } catch (IllegalAccessException | InvocationTargetException ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-      return Observable.from(new Message[] {Messages.asResponse(ex, cid, memberId)});
+      return Observable.from(new Message[] {Messages.asResponse(ex, memberId)});
     }
   }
 
@@ -122,7 +136,7 @@ public class LocalServiceInstance implements ServiceInstance {
             if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
               resultMessage.complete((Message) success);
             } else {
-              resultMessage.complete(Messages.asResponse(success, request.correlationId(), memberId));
+              resultMessage.complete(Messages.asResponse(success,  memberId));
             }
           } else {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
@@ -193,4 +207,6 @@ public class LocalServiceInstance implements ServiceInstance {
   public Collection<String> methods() {
     return methods.keySet();
   }
+
+  
 }

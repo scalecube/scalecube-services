@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
+import io.scalecube.streams.codec.TypeResolver;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,6 +16,7 @@ public class ServicesConfig {
   private static final ServicesConfig EMPTY_SERVICES_CONFIG = new ServicesConfig();
 
   private List<ServiceConfig> servicesConfig = new ArrayList<>();
+  private TypeResolver typeResolver = new TypeResolver();
 
   public void setServiceTags(List<ServiceConfig> serviceTags) {
     this.servicesConfig = serviceTags;
@@ -35,17 +37,14 @@ public class ServicesConfig {
   }
 
   public static class Builder {
-    private List<ServiceConfig> servicesBuilder = new ArrayList<>();
+    private List<ServiceConfig> serviceConfigs = new ArrayList<>();
     private Microservices.Builder microservicesBuilder;
 
     public static class ServiceConfig {
 
       private final Builder builder;
-
       private final Object service;
-
-      private final Map<String, String> kv = new HashMap<String, String>();
-
+      private final Map<String, String> tags = new HashMap<String, String>();
       private final Set<ServiceDefinition> serviceDefinitions;
 
       public ServiceConfig(Builder builder, Object service) {
@@ -61,7 +60,7 @@ public class ServicesConfig {
       }
 
       public ServiceConfig tag(String key, String value) {
-        kv.put(key, value);
+        tags.put(key, value);
         return this;
       }
 
@@ -74,7 +73,7 @@ public class ServicesConfig {
       }
 
       public Map<String, String> getTags() {
-        return Collections.unmodifiableMap(kv);
+        return Collections.unmodifiableMap(tags);
       }
 
       public Object getService() {
@@ -111,17 +110,17 @@ public class ServicesConfig {
     }
 
     public Builder add(ServiceConfig serviceBuilder) {
-      servicesBuilder.add(serviceBuilder);
+      serviceConfigs.add(serviceBuilder);
       return this;
     }
 
     public Microservices.Builder build() {
       return microservicesBuilder.services(
-          new ServicesConfig(Collections.unmodifiableList(servicesBuilder)));
+          new ServicesConfig(Collections.unmodifiableList(serviceConfigs)));
     }
 
     public ServicesConfig create() {
-      return new ServicesConfig(Collections.unmodifiableList(servicesBuilder));
+      return new ServicesConfig(Collections.unmodifiableList(serviceConfigs));
     }
 
     public Builder services(Object[] objects) {

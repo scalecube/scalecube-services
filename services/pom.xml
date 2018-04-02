@@ -23,15 +23,11 @@
             <artifactId>scalecube-cluster</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <!-- Other dependencies -->
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>scalecube-streams</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
 
 </project>

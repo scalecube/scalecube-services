@@ -3,6 +3,8 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.streams.Qualifier;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Message;
 import io.scalecube.transport.Message.Builder;
 
@@ -88,10 +90,9 @@ public class Messages {
    * @param memberId that created the response.
    * @return response message or response error message in case data is exception.
    */
-  public static Message asResponse(Object data, String correlationId, String memberId) {
+  public static Message asResponse(Object data, String memberId) {
 
     Builder builder = Message.builder()
-        .correlationId(correlationId)
         .header("memberId", memberId);
 
     if (data instanceof Message) {
@@ -115,8 +116,8 @@ public class Messages {
    * @param memberId that created the response.
    * @return response message or response error message in case data is exception.
    */
-  public static Message asError(Throwable error, String correlationId, String memberId) {
-    return asResponse(error, correlationId, memberId);
+  public static Message asError(Throwable error, String memberId) {
+    return asResponse(error, memberId);
   }
 
   /**
@@ -139,5 +140,15 @@ public class Messages {
     return validator;
   }
 
+  public static Qualifier qualifierOf(Message request) {
+    final String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+    final String methodName = request.header(ServiceHeaders.METHOD);
+
+    return Qualifier.fromString(serviceName + "/" + methodName);
+  }
+
+  public static Qualifier qualifierOf(StreamMessage request) {
+    return Qualifier.fromString(request.qualifier());
+  }
 
 }

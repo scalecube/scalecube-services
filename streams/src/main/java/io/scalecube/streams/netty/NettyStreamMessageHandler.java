@@ -2,6 +2,7 @@ package io.scalecube.streams.netty;
 
 import io.scalecube.streams.ChannelContext;
 import io.scalecube.streams.Event;
+import io.scalecube.streams.codec.JsonMessageCodec;
 import io.scalecube.streams.codec.StreamMessageCodec;
 
 import io.netty.buffer.ByteBuf;
@@ -10,6 +11,7 @@ import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import io.scalecube.streams.codec.TypeResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +19,11 @@ import org.slf4j.LoggerFactory;
 public final class NettyStreamMessageHandler extends ChannelInboundHandlerAdapter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NettyStreamMessageHandler.class);
+  private final JsonMessageCodec codec;
+
+  public NettyStreamMessageHandler(TypeResolver codec) {
+    this.codec = codec;
+  }
 
   @Override
   public void userEventTriggered(ChannelHandlerContext ctx, Object customEvent) throws Exception {

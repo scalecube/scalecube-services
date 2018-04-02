@@ -50,7 +50,7 @@ public final class NettyServerTransport {
     });
 
     ServerBootstrap bootstrap = config.getServerBootstrap().clone();
-    this.serverBootstrap = bootstrap.childHandler(new NettyStreamChannelInitializer(consumer));
+    this.serverBootstrap = bootstrap.childHandler(new NettyStreamChannelInitializer(consumer, typeResolver));
   }
 
   /**

@@ -4,12 +4,16 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.streams.ServiceStreams;
+import io.scalecube.streams.StreamProcessors;
+import io.scalecube.streams.StreamProcessors.ClientStreamProcessors;
+import io.scalecube.streams.StreamProcessors.ServerStreamProcessors;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportConfig;
 
 import com.codahale.metrics.MetricRegistry;
 
@@ -104,25 +108,40 @@ public class Microservices {
 
   private final ServiceProxyFactory proxyFactory;
 
-  private final ServiceDispatcherFactory dispatcherFactory;
-
-  private final ServiceCommunicator sender;
+  private final ClientStreamProcessors client;
 
   private Metrics metrics;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, Metrics metrics) {
+  private Address serviceAddress;
+
+  public RouterFactory routerFactory;
+
+  private Microservices(Cluster cluster, Address serviceAddress, ClientStreamProcessors client, ServicesConfig services,
+      Metrics metrics) {
     this.cluster = cluster;
-    this.sender = sender;
+    this.client = client;
+    this.serviceAddress = serviceAddress;
     this.metrics = metrics;
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
-
-    this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
+    this.routerFactory = new RouterFactory(serviceRegistry);
     this.proxyFactory = new ServiceProxyFactory(this);
-    new ServiceDispatcher(this);
+  }
 
-    this.sender.listen()
-        .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-        .subscribe(message -> ServiceResponse.handleReply(message));
+  // FIXME: need to implement cleanup process
+  private void cleanupStuff() {
+    // this.cluster().listenMembership()
+    // .filter(predicate -> predicate.isRemoved())
+    // .subscribe(onNext -> {
+    // subscriptionsMap.values().stream()
+    // .filter(action -> action.memberId().equals(onNext.member().id()))
+    // .collect(Collectors.toList())
+    //
+    // .forEach(subscription -> {
+    // subscription.unsubscribe();
+    // subscriptionsMap.remove(subscription.id());
+    // LOGGER.info("Member removed removing subscription {}", subscription);
+    // });
+    // });
   }
 
   public Metrics metrics() {
@@ -151,9 +170,10 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
-    private TransportConfig transportConfig = TransportConfig.defaultConfig();
-
     private Metrics metrics;
+
+    private ServerStreamProcessors server = StreamProcessors.server();
+    private ClientStreamProcessors client = StreamProcessors.client();
 
     /**
      * Microservices instance builder.
@@ -162,18 +182,29 @@ public class Microservices {
      */
     public Microservices build() {
 
-      Cluster cluster = null;
+      ServiceStreams serviceStreams = new ServiceStreams(this.server.build());
+      Address serviceAddress = this.server.bindAwait();
+      
+      servicesConfig.services().stream().map(service -> serviceStreams.createSubscriptions(service.getService()));
+      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
+      
+      return Reflect.builder(
+          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client.build(), servicesConfig, this.metrics))
+          .inject();
 
-      // create cluster and transport with given config.
-      ServiceTransport transportSender =
-          new ServiceTransport(Transport.bindAwait(transportConfig));
-
-      ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
-      cluster = Cluster.joinAwait(cfg);
-      transportSender.cluster(cluster);
-
-      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig, this.metrics)).inject();
     }
+
+
+    public Builder server(ServerStreamProcessors server) {
+      this.server = server;
+      return this;
+    }
+
+    public Builder client(ClientStreamProcessors client) {
+      this.client = client;
+      return this;
+    }
+
 
     private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
       if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
@@ -232,12 +263,6 @@ public class Microservices {
       return this;
     }
 
-    public Builder serviceTransport(TransportConfig transportConfig) {
-      checkNotNull(transportConfig);
-      this.transportConfig = transportConfig;
-      return this;
-    }
-
     public Builder metrics(MetricRegistry metrics) {
       checkNotNull(metrics);
       this.metrics = new Metrics(metrics);
@@ -250,36 +275,6 @@ public class Microservices {
     return new Builder();
   }
 
-
-  public class DispatcherContext {
-    private Duration timeout = Duration.ofSeconds(30);
-
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
-
-    public ServiceCall create() {
-      LOGGER.debug("create service api {} router {}", router);
-      return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
-    }
-
-    public DispatcherContext timeout(Duration timeout) {
-      this.timeout = timeout;
-      return this;
-    }
-
-    public DispatcherContext router(Class<? extends Router> routerType) {
-      this.router = routerType;
-      return this;
-    }
-
-    public Class<? extends Router> router() {
-      return this.router;
-    }
-  }
-
-  public DispatcherContext dispatcher() {
-    return new DispatcherContext();
-  }
-
   public ProxyContext proxy() {
     return new ProxyContext();
   }
@@ -287,14 +282,14 @@ public class Microservices {
   public class ProxyContext {
     private Class<?> api;
 
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
+    private Class<? extends Router> routerType = RoundRobinServiceRouter.class;
 
     private Duration timeout = Duration.ofSeconds(3);
 
     @SuppressWarnings("unchecked")
     public <T> T create() {
-      LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, this.router, this.timeout);
+      LOGGER.debug("create service api {} routerType {}", this.api, routerType);
+      return (T) createProxy(this.api, this.routerType, this.timeout);
     }
 
     public ProxyContext timeout(Duration duration) {
@@ -308,11 +303,11 @@ public class Microservices {
     }
 
     public Class<? extends Router> router() {
-      return router;
+      return routerType;
     }
 
     public ProxyContext router(Class<? extends Router> router) {
-      this.router = router;
+      this.routerType = router;
       return this;
     }
 
@@ -340,8 +335,8 @@ public class Microservices {
    * 
    * @return service communication.
    */
-  public ServiceCommunicator sender() {
-    return sender;
+  public ClientStreamProcessors client() {
+    return client;
   }
 
   /**
@@ -352,9 +347,7 @@ public class Microservices {
   public CompletableFuture<Void> shutdown() {
     CompletableFuture<Void> result = new CompletableFuture<Void>();
 
-    if (!this.sender.isStopped()) {
-      this.sender.shutdown();
-    }
+    this.client.close();
 
     if (!this.cluster.isShutdown()) {
       return this.cluster.shutdown();
@@ -366,5 +359,18 @@ public class Microservices {
 
   public ServiceRegistry serviceRegistry() {
     return serviceRegistry;
+  }
+
+  public Address serviceAddress() {
+    return this.serviceAddress;
+  }
+
+  public Router router(Class<? extends Router> routerType) {
+    return routerFactory.getRouter(routerType);
+  }
+
+  public Call call() {
+    Router router = this.router(RoundRobinServiceRouter.class);
+    return ServiceCall.call().metrics(metrics).router(router);
   }
 }

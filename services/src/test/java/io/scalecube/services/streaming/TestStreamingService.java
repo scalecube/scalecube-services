@@ -4,7 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -139,7 +139,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
     Subscription sub1 = service.listen(Messages.builder()
@@ -203,7 +203,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
@@ -232,7 +232,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
@@ -261,7 +261,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(1);
 
@@ -290,7 +290,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);

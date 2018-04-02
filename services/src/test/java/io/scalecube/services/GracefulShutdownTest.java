@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
@@ -31,7 +32,7 @@ public class GracefulShutdownTest extends BaseTest {
     // node 1 and 2 provision GreetingService instance (each).
     Members members = Members.create();
     // get a proxy to the service api.
-    ServiceCall service = members.gateway().dispatcher().create();
+    Call service = members.gateway().call();
 
     // call the service.
     AtomicInteger count = new AtomicInteger(3);

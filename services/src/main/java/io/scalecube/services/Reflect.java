@@ -8,6 +8,7 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.Router;
+import io.scalecube.streams.StreamMessage;
 
 import com.google.common.base.Strings;
 
@@ -189,4 +190,21 @@ public class Reflect {
         .collect(Collectors.toList());
   }
 
+
+  @SuppressWarnings("unchecked")
+  public static <T> T invoke(Object serviceObject, Method method, final StreamMessage request) throws Exception {
+    // handle invoke
+    if (method.getParameters().length == 0) { // method expect no params.
+      return (T) method.invoke(serviceObject);
+    } else if (method.getParameters().length == 1) { // method expect 1 param.
+      if (method.getParameters()[0].getType().isAssignableFrom(StreamMessage.class)) {
+        return (T) method.invoke(serviceObject, request);
+      } else {
+        return (T) method.invoke(serviceObject, new Object[] {request.data()});
+      }
+    } else {
+      // should we later support 2 parameters? message and the Stream processor?
+      throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
+    }
+  }
 }
