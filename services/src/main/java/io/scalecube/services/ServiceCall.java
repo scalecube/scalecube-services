@@ -201,7 +201,7 @@ public class ServiceCall {
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-          Object check = objectToStringEqualsHashCode(method, serviceInterface, args);
+          Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null)
             return check;
           
@@ -263,12 +263,12 @@ public class ServiceCall {
       return new IllegalStateException("No reachable member with such service: " + request.qualifier());
     }
     
-    private Object objectToStringEqualsHashCode(Method method, Class<?> serviceInterface, Object... args) {
-      if (method.getName().equals("hashCode")) {
+    private Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {
+      if (method.equals("hashCode")) {
         return serviceInterface.hashCode();
-      } else if (method.getName().equals("equals")) {
+      } else if (method.equals("equals")) {
         return serviceInterface.equals(args[0]);
-      } else if (method.getName().equals("toString")) {
+      } else if (method.equals("toString")) {
         return serviceInterface.toString();
       } else {
         return null;
