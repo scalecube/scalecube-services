@@ -185,7 +185,7 @@ public class Microservices {
       ServiceStreams serviceStreams = new ServiceStreams(this.server.build());
       Address serviceAddress = this.server.bindAwait();
       
-      servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
+      servicesConfig.services().stream().map(service -> serviceStreams.createSubscriptions(service.getService()));
       ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
       
       return Reflect.builder(

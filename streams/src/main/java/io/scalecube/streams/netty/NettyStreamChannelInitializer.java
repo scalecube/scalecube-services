@@ -11,6 +11,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 
+import io.scalecube.streams.codec.TypeResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +28,9 @@ public final class NettyStreamChannelInitializer extends ChannelInitializer {
   private final ChannelContextHandler channelContextHandler;
   private final NettyStreamMessageHandler messageHandler;
 
-  public NettyStreamChannelInitializer(Consumer<ChannelContext> channelContextConsumer) {
+  public NettyStreamChannelInitializer(Consumer<ChannelContext> channelContextConsumer, TypeResolver typeResolver) {
     this.channelContextHandler = new ChannelContextHandler(channelContextConsumer);
-    this.messageHandler = new NettyStreamMessageHandler();
+    this.messageHandler = new NettyStreamMessageHandler(typeResolver);
   }
 
   @Override

@@ -13,6 +13,7 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -274,7 +275,7 @@ public class ServiceCallTest extends BaseTest {
         GreetingResponse data = result.data();
         assertTrue(data.getResult().equals(" hello to: joe"));
       } else {
-        // print the greeting.
+        Assert.fail("Failed to get response");
         System.out.println(ex);
       }
       timeLatch.countDown();

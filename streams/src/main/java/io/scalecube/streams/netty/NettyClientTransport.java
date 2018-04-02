@@ -25,7 +25,7 @@ public final class NettyClientTransport {
 
   public NettyClientTransport(Bootstrap bootstrap, Consumer<ChannelContext> channelContextConsumer) {
     Bootstrap bootstrap1 = bootstrap.clone();
-    this.bootstrap = bootstrap1.handler(new NettyStreamChannelInitializer(channelContextConsumer));
+    this.bootstrap = bootstrap1.handler(new NettyStreamChannelInitializer(channelContextConsumer, typeResolver));
   }
 
   /**
