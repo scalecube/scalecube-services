@@ -1,17 +1,9 @@
-package io.scalecube.services.stress;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import io.scalecube.services.Messages;
-import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceCall;
-import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Message;
+package io.scalecube.services;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
-
+import io.scalecube.testlib.BaseTest;
+import io.scalecube.transport.Message;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -20,6 +12,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class SimpleStressTest extends BaseTest {
 
