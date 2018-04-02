@@ -1,5 +1,7 @@
 package io.scalecube.streams.codec;
 
+import io.scalecube.streams.StreamMessage;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -7,6 +9,11 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufInputStream;
+import io.netty.buffer.ByteBufOutputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,10 +36,20 @@ public final class JsonMessageCodec {
         : mapper.readValue(stream, clazz);
   }
 
+  public StreamMessage decode(StreamMessage message, Class type) throws IOException {
+    ByteBufInputStream inputStream = new ByteBufInputStream((ByteBuf) message.data());
+    return StreamMessage.from(message).data(readFrom(inputStream, type)).build();
+  }
+
   public void writeTo(OutputStream stream, Object value) throws IOException {
     mapper.writeValue(stream, value);
   }
 
+  public StreamMessage encode(StreamMessage message) throws IOException {
+    ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
+    writeTo(new ByteBufOutputStream(buffer), message.data());
+    return StreamMessage.from(message).data(buffer).build();
+  }
 
   private ObjectMapper initMapper() {
     ObjectMapper objectMapper = new ObjectMapper();

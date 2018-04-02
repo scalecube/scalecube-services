@@ -6,17 +6,10 @@ import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.StreamProcessors;
 import io.scalecube.transport.Address;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.ByteBufOutputStream;
-
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
 public class ServiceCaller {
-
-  JsonMessageCodec jsonMessageCodec;
 
   static class StringHolder {
     String payload;
@@ -43,39 +36,41 @@ public class ServiceCaller {
     }
   }
 
-  public static void main(String[] args) throws InterruptedException {
-    JsonMessageCodec codec = new JsonMessageCodec( /* remove */);
+  public static void main(String[] args) throws InterruptedException, IOException {
+    JsonMessageCodec codec = new JsonMessageCodec();
+
+
     ServerStreamProcessors serverStreamProcessors = StreamProcessors.newServer();
     serverStreamProcessors.listen().subscribe(sp -> sp.listen().subscribe(streamMessage -> {
-
-      Object reqPayload = null;
       try {
-        reqPayload = codec.readFrom(new ByteBufInputStream((ByteBuf) streamMessage.data()), StringHolder.class);
+        StreamMessage req = codec.decode(streamMessage, StringHolder.class);
+        System.out.println("Rcvd : " + req.data());
+        sp.onNext(codec.encode(StreamMessage.from(req).build()));
       } catch (IOException e) {
         e.printStackTrace();
         sp.onError(e);
         return;
       }
-      StreamMessage req = StreamMessage.from(streamMessage).data(reqPayload).build();
-      System.out.println("Rcvd : " + req.data());
-      sp.onNext(req);
-      // sp.onCompleted();
+      sp.onCompleted();
     }, t -> t.printStackTrace()));
 
     Address address = serverStreamProcessors.bindAwait();
     System.out.println("Started server on " + address);
 
-    StreamProcessor client = StreamProcessors.newClient().create(address);
-    client.listen().subscribe(sr -> System.out.println(sr), t -> t.printStackTrace());
 
-    ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
-    try {
-      codec.writeTo(new ByteBufOutputStream(buffer), new StringHolder("hello"));
-    } catch (IOException e) {
-      System.out.println("Client encountered error  while serializing");
-      return;
-    }
-    client.onNext(StreamMessage.builder().qualifier("qual").data(buffer).build());
+    // Client
+    StreamProcessor client = StreamProcessors.newClient().create(address);
+    client.listen().subscribe(sr -> {
+      StreamMessage sr1 = sr;
+      try {
+        StreamMessage message = codec.decode(sr1, String.class);
+        System.out.println("Recev on client: " + message);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }, t -> t.printStackTrace());
+
+    client.onNext(codec.encode(StreamMessage.builder().qualifier("qual").data(new StringHolder("hello")).build()));
     System.out.println("Sent");
     Thread.currentThread().join();
   }
