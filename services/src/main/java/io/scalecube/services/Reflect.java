@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -84,7 +85,16 @@ public class Reflect {
           .forEach(postConstructMethod -> {
             try {
               postConstructMethod.setAccessible(true);
-              postConstructMethod.invoke(targetInstance, new Object[] {});
+              Object[] paramters = Arrays.asList(postConstructMethod.getParameters()).stream().map(mapper -> {
+                if (mapper.getType().equals(Microservices.class)) {
+                  return this.microservices;
+                } else if (mapper.isAnnotationPresent(ServiceProxy.class)) {
+                  return newServiceCall(mapper.getAnnotation(ServiceProxy.class));
+                } else {
+                  return null;
+                }
+              }).collect(Collectors.toList()).toArray();
+              postConstructMethod.invoke(targetInstance, paramters);
             } catch (Exception ex) {
               throw new RuntimeException(ex);
             }
@@ -113,6 +123,11 @@ public class Reflect {
 
     private void injectServiceProxy(Field field, Object service) {
       ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
+      Call builder = newServiceCall(annotation);
+      setField(field, service, builder);
+    }
+
+    private Call newServiceCall(ServiceProxy annotation) {
       Call builder = this.microservices.call();
       if (!annotation.router().equals(Router.class)) {
         builder.router(this.microservices.router(annotation.router()));
@@ -121,7 +136,7 @@ public class Reflect {
         long nanos = annotation.timeUnit().toNanos(annotation.timeout());
         builder.timeout(Duration.ofNanos(nanos));
       }
-      setField(field, service, builder);
+      return builder;
     }
 
     private void setField(Field field, Object object, Object value) {
