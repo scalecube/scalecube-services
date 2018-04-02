@@ -2,12 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ServicesConfig {
@@ -89,7 +84,7 @@ public class ServicesConfig {
 
       /**
        * return method names for a given service name.
-       * 
+       *
        * @param serviceName to retrieve.
        * @return list of declared method names for a given service.
        */

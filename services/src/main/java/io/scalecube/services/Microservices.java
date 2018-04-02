@@ -47,9 +47,9 @@ import java.util.concurrent.CompletableFuture;
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service end-points</li>
  * </ul>
- * 
+ *
  * <b>basic usage example:</b>
- * 
+ *
  * <pre>
  * {@code
  *    // Define a service interface and implement it:
@@ -157,7 +157,7 @@ public class Microservices {
 
     /**
      * Microservices instance builder.
-     * 
+     *
      * @return Microservices instance.
      */
     public Microservices build() {
@@ -202,7 +202,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param services list of instances decorated with @Service
      * @return builder.
      */
@@ -222,7 +222,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param servicesConfig list of instances decorated with.
      * @return builder.
      */
@@ -337,7 +337,7 @@ public class Microservices {
 
   /**
    * returns service communication.
-   * 
+   *
    * @return service communication.
    */
   public ServiceCommunicator sender() {
@@ -346,7 +346,7 @@ public class Microservices {
 
   /**
    * Shutdown services transport and cluster transport.
-   * 
+   *
    * @return future with cluster shutdown result.
    */
   public CompletableFuture<Void> shutdown() {
