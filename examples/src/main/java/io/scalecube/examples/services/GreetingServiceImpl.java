@@ -13,8 +13,9 @@ public class GreetingServiceImpl implements GreetingService {
   Microservices ms;
 
   @PostConstruct
-  private void construct() {
+  private void construct(GreetingService service) {
     System.out.println("Construct service: GreetingService@" + ms.cluster().member().id());
+    System.out.println("service: " + service);
   }
  
   @Override
