@@ -54,7 +54,7 @@ public final class ServiceMethodSubscription implements Subscription {
       return subscription.toCompletableFuture();
     } else if (returnType == Observable.class) {
       return subscription.toObservable();
-    } else if (returnType == Void.class) {
+    } else if (Void.TYPE.equals(returnType)) {
       return subscription.toVoid();
     } else if (returnType == Subscriber.class && containStreamProcessor(method.getParameters())) {
       return subscription.requestStreamToResponseStream();
