@@ -1,4 +1,4 @@
-package io.scalecube.streams.codec;
+package io.scalecube.services;
 
 import io.scalecube.streams.StreamMessage;
 

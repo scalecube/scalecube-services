@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -23,17 +24,21 @@
             <artifactId>scalecube-cluster</artifactId>
             <version>${project.version}</version>
         </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>scalecube-streams</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-        <!-- Other dependencies -->
-        
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>scalecube-streams</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Jackson deps -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
+
     </dependencies>
 
     <build>
