@@ -47,9 +47,9 @@ import java.util.concurrent.CompletableFuture;
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service end-points</li>
  * </ul>
- * 
+ *
  * <b>basic usage example:</b>
- * 
+ *
  * <pre>
  * {@code
  *    // Define a service interface and implement it:
@@ -121,8 +121,8 @@ public class Microservices {
     new ServiceDispatcher(this);
 
     this.sender.listen()
-        .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-        .subscribe(message -> ServiceResponse.handleReply(message));
+            .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
+            .subscribe(message -> ServiceResponse.handleReply(message));
   }
 
   public Metrics metrics() {
@@ -157,7 +157,7 @@ public class Microservices {
 
     /**
      * Microservices instance builder.
-     * 
+     *
      * @return Microservices instance.
      */
     public Microservices build() {
@@ -166,7 +166,7 @@ public class Microservices {
 
       // create cluster and transport with given config.
       ServiceTransport transportSender =
-          new ServiceTransport(Transport.bindAwait(transportConfig));
+              new ServiceTransport(Transport.bindAwait(transportConfig));
 
       ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
       cluster = Cluster.joinAwait(cfg);
@@ -202,7 +202,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param services list of instances decorated with @Service
      * @return builder.
      */
@@ -210,8 +210,8 @@ public class Microservices {
       checkNotNull(services);
 
       this.servicesConfig = ServicesConfig.builder(this)
-          .services(services)
-          .create();
+              .services(services)
+              .create();
 
       return this;
     }
@@ -222,7 +222,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param servicesConfig list of instances decorated with.
      * @return builder.
      */
@@ -326,9 +326,9 @@ public class Microservices {
       serviceConfig.serviceNames().stream().forEach(name -> {
 
         servicesTags.put(new ServiceInfo(name,
-            serviceConfig.methods(name),
-            serviceConfig.getTags()).toMetadata(),
-            "service");
+                        serviceConfig.methods(name),
+                        serviceConfig.getTags()).toMetadata(),
+                "service");
       });
     });
 
@@ -337,7 +337,7 @@ public class Microservices {
 
   /**
    * returns service communication.
-   * 
+   *
    * @return service communication.
    */
   public ServiceCommunicator sender() {
@@ -346,7 +346,7 @@ public class Microservices {
 
   /**
    * Shutdown services transport and cluster transport.
-   * 
+   *
    * @return future with cluster shutdown result.
    */
   public CompletableFuture<Void> shutdown() {
