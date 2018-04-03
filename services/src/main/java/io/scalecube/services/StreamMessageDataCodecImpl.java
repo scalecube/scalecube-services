@@ -1,4 +1,4 @@
-package io.scalecube.streams.codec;
+package io.scalecube.services;
 
 import io.scalecube.streams.StreamMessage;
 
@@ -15,6 +15,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 
 import java.io.IOException;
 import java.io.InputStream;
