@@ -1,9 +1,11 @@
-package io.scalecube.streams.codec;
+package io.scalecube.examples.services;
 
+import io.scalecube.services.StreamMessageDataCodecImpl;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.StreamProcessors;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
 
 import java.io.IOException;
