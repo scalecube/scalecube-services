@@ -1,5 +1,15 @@
 # Changes
 
+## 1.1.0 / TBD
+
+* Introduce scalecube-streams module
+* Introduce scalecube-gateway module
+* Integrate scalecube-streams with scalecube-service  
+* Use ServiceMessage in scalecube-service module
+* Enable Service call create proxy by given .api(MyService.class)
+* Support @PostConstract annotating when initializing service instances.
+
+
 ## 1.0.8 / 2018-02-07
 
 * Update ServiceRegistry api, expose 'methods' on ServiceInstance
