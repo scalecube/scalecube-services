@@ -1,5 +1,7 @@
-package io.scalecube.cluster;
+package io.scalecube.stresstests.cluster;
 
+import io.scalecube.cluster.Cluster;
+import io.scalecube.cluster.ClusterConfig;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
