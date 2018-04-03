@@ -1,5 +1,7 @@
-package io.scalecube.transport;
+package io.scalecube.stresstests.transport;
 
+import io.scalecube.transport.Message;
+import io.scalecube.transport.Transport;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;

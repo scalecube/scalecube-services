@@ -1,4 +1,4 @@
-package io.scalecube.services.stress;
+package io.scalecube.stresstests.services;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;

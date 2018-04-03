@@ -1,4 +1,4 @@
-package io.scalecube.services.stress;
+package io.scalecube.stresstests.services;
 
 import io.scalecube.transport.Message;
 
