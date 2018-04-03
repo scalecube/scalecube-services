@@ -354,6 +354,12 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>stress-tests</id>
+            <modules>
+                <module>stress-tests</module>
+            </modules>
+        </profile>
     </profiles>
 
 </project>
