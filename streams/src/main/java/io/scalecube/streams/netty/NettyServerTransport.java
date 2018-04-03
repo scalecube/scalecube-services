@@ -35,7 +35,7 @@ public final class NettyServerTransport {
   /**
    * Public constructor for this transport. {@link ListeningServerStream} call this constructor passing his config
    * object and channelContext logic handler as second argument.
-   * 
+   *
    * @param config from {@link ListeningServerStream} object.
    * @param channelContextConsumer logic provider around connected {@link ChannelContext}.
    */
@@ -63,7 +63,7 @@ public final class NettyServerTransport {
 
   /**
    * Async bind server transport listener to address.
-   * 
+   *
    * @return future when completed bind.
    */
   public CompletableFuture<NettyServerTransport> bind() {
@@ -78,7 +78,7 @@ public final class NettyServerTransport {
 
   /**
    * Async unbind server transport listener from address.
-   * 
+   *
    * @return future when completed unbind.
    */
   public CompletableFuture<NettyServerTransport> unbind() {
@@ -109,7 +109,8 @@ public final class NettyServerTransport {
     }
     if (bindPort > finalBindPort) {
       result.completeExceptionally(
-          new NoSuchElementException("Could not find an available port from: " + bindPort + " to: " + finalBindPort));
+          new NoSuchElementException("Could not find an available port from: "
+              + bindPort + " to: " + finalBindPort));
       return result;
     }
 

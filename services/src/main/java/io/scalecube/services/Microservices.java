@@ -51,9 +51,9 @@ import java.util.stream.Collectors;
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service end-points</li>
  * </ul>
- * 
+ *
  * <b>basic usage example:</b>
- * 
+ *
  * <pre>
  * {@code
  *    // Define a service interface and implement it:
@@ -122,7 +122,6 @@ public class Microservices {
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
     this.routerFactory = new RouterFactory(serviceRegistry);
   }
-
   // FIXME: need to implement cleanup process
   private void cleanupStuff() {
     // this.cluster().listenMembership()
@@ -169,7 +168,7 @@ public class Microservices {
 
     /**
      * Microservices instance builder.
-     * 
+     *
      * @return Microservices instance.
      */
     public Microservices build() {
@@ -217,7 +216,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param services list of instances decorated with @Service
      * @return builder.
      */
@@ -225,8 +224,8 @@ public class Microservices {
       checkNotNull(services);
 
       this.servicesConfig = ServicesConfig.builder(this)
-          .services(services)
-          .create();
+              .services(services)
+              .create();
 
       return this;
     }
@@ -237,7 +236,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param servicesConfig list of instances decorated with.
      * @return builder.
      */
@@ -276,9 +275,9 @@ public class Microservices {
       serviceConfig.serviceNames().stream().forEach(name -> {
 
         servicesTags.put(new ServiceInfo(name,
-            serviceConfig.methods(name),
-            serviceConfig.getTags()).toMetadata(),
-            "service");
+                        serviceConfig.methods(name),
+                        serviceConfig.getTags()).toMetadata(),
+                "service");
       });
     });
 
@@ -287,7 +286,7 @@ public class Microservices {
 
   /**
    * returns service communication.
-   * 
+   *
    * @return service communication.
    */
   public ClientStreamProcessors client() {
@@ -296,7 +295,7 @@ public class Microservices {
 
   /**
    * Shutdown services transport and cluster transport.
-   * 
+   *
    * @return future with cluster shutdown result.
    */
   public CompletableFuture<Void> shutdown() {
