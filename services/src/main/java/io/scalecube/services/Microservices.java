@@ -13,6 +13,7 @@ import io.scalecube.services.streams.ServiceStreams;
 import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;

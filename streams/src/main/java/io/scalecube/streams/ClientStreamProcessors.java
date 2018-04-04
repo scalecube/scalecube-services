@@ -5,6 +5,7 @@ import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.Bootstrap;
 
+import org.slf4j.MDC;
 import rx.Observable;
 
 import java.util.function.Consumer;
@@ -36,6 +37,10 @@ public final class ClientStreamProcessors {
 
   public ClientStreamProcessors bootstrap(Bootstrap bootstrap) {
     return new ClientStreamProcessors(config.setBootstrap(bootstrap));
+  }
+
+  public ClientStreamProcessors codec(StreamMessageDataCodec codec) {
+    return new ClientStreamProcessors(config.setCodec(codec));
   }
 
   //// Methods
@@ -123,16 +128,22 @@ public final class ClientStreamProcessors {
   private static class Config {
 
     private Bootstrap bootstrap = ClientStream.getDefaultBootstrap();
+    private StreamMessageDataCodec codec;
 
     private Config() {}
 
     private Config(Config other, Consumer<Config> modifier) {
       this.bootstrap = other.bootstrap;
+      this.codec = other.codec;
       modifier.accept(this);
     }
 
     private Config setBootstrap(Bootstrap bootstrap) {
       return new Config(this, config -> config.bootstrap = bootstrap);
+    }
+
+    public Config setCodec(StreamMessageDataCodec codec) {
+      return new Config(this, config -> config.codec = codec);
     }
   }
 }
