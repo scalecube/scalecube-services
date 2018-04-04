@@ -65,7 +65,7 @@ public final class ServerStreamProcessorFactory {
    * 
    * @return observalbe to listen for incoming server stream processors
    */
-  public <REQ, RESP>Observable<StreamProcessor<REQ, RESP>> listen() {
+  public Observable<StreamProcessor> listen() {
     return streamProcessorSubject.asObservable().onBackpressureBuffer();
   }
 

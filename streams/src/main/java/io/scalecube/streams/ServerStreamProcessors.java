@@ -98,7 +98,7 @@ public final class ServerStreamProcessors {
     listeningServerStream.close();
   }
 
-  public <REQ, RESP>Observable<StreamProcessor<REQ, RESP>> listen() {
+  public Observable<StreamProcessor> listen() {
     return serverStreamProcessorFactory.listen();
   }
 
