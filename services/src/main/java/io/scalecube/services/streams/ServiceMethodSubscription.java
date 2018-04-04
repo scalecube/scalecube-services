@@ -12,6 +12,7 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
@@ -20,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public final class ServiceMethodSubscription implements Subscription {
-  private final StreamMessageDataCodec codec = new StreamMessageDataCodecImpl(); 
+  private final static StreamMessageDataCodec codec = new StreamMessageDataCodecImpl();
   private final ServerStreamProcessors server;
   private final Qualifier qualifier;
   private final Method method;
@@ -92,7 +93,7 @@ public final class ServiceMethodSubscription implements Subscription {
           CompletableFuture<StreamMessage> result = invoke(message);
           result.whenComplete((reponse, error) -> {
             if (error == null) {
-              observer.onNext(reponse);
+              observer.onNext(tryEncode(message));
               observer.onCompleted();
             } else {
               observer.onError(error);
@@ -112,13 +113,21 @@ public final class ServiceMethodSubscription implements Subscription {
       public void onNext(StreamMessage request) {
         try {
           Observable<StreamMessage> result = invoke(request);
-          result.subscribe(observer);
+          result.map(message -> tryEncode(message)).subscribe(observer);
         } catch (Throwable error) {
           observer.onError(error);
         }
       }
     });
     return this;
+  }
+
+  private static StreamMessage tryEncode(StreamMessage message) {
+    try {
+      return codec.encodeData(message);
+    } catch (IOException e) {
+      return message;
+    }
   }
 
   private ServiceMethodSubscription toVoid() {
@@ -156,7 +165,7 @@ public final class ServiceMethodSubscription implements Subscription {
       if (StreamMessage.class.equals(requestType)) {
         return Reflect.invoke(serviceObject, method, message);
       } else {
-        return Reflect.invoke(serviceObject, method, codec.decodeData(message,requestType));
+        return Reflect.invoke(serviceObject, method, codec.decodeData(message, requestType));
       }
     }
   }
