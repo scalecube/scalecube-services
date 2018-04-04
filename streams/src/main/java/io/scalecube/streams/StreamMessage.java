@@ -54,7 +54,7 @@ public final class StreamMessage {
   }
 
   public boolean dataOfType(Class<?> clazz) {
-    return data != null && data.getClass().isInstance(clazz);
+    return clazz.isInstance(data);
   }
 
   @Override
