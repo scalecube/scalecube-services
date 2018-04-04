@@ -54,12 +54,8 @@ public class DataCodecExample {
     StreamProcessor client = StreamProcessors.newClient().create(address);
     client.listen().subscribe(sr -> {
       StreamMessage sr1 = sr;
-      try {
-        StreamMessage response = codec.decodeData(sr1, StringHolder.class);
-        System.out.println("Client Rcvd: " + response.data());
-      } catch (IOException e) {
-        System.err.println("Client Err:" + e.getLocalizedMessage());
-      }
+      StreamMessage response = codec.decodeData(sr1, StringHolder.class);
+      System.out.println("Client Rcvd: " + response.data());
     }, t -> t.printStackTrace());
 
     StreamMessage toSend =
