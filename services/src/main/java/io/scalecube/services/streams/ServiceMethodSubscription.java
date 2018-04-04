@@ -168,10 +168,14 @@ public final class ServiceMethodSubscription implements Subscription {
     return (Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor);
   }
 
-  private Subscription accept(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
-    return server.listen().subscribe(streamProcessor -> { // => got new stream processor
-      // listen for stream messages with qualifier filter
-      streamProcessor.listen()
+  private Subscription accept(
+      Function<StreamProcessor<StreamMessage, StreamMessage>, Subscriber<StreamMessage>> factory) {
+    return server.listen().subscribe(streamProcessor -> {
+      // noinspection unchecked
+      Observable<StreamMessage> observable =
+          ((StreamProcessor<StreamMessage, StreamMessage>) streamProcessor).listen();
+
+      observable
           .filter(message -> qualifier.asString().equalsIgnoreCase(message.qualifier()))
           .subscribe(factory.apply(streamProcessor));
     });

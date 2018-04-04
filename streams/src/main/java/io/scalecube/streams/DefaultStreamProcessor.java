@@ -8,7 +8,7 @@ import rx.subscriptions.CompositeSubscription;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public final class DefaultStreamProcessor implements StreamProcessor {
+public final class DefaultStreamProcessor implements StreamProcessor<StreamMessage, StreamMessage> {
 
   public static final StreamMessage onErrorMessage =
       StreamMessage.builder().qualifier(Qualifier.Q_GENERAL_FAILURE).build();
