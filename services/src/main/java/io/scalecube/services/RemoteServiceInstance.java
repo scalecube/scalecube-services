@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Map<String, String> tags;
   private final ClientStreamProcessors client;
   private final Set<String> methods;
+  private StreamMessageDataCodec dataCodec = new StreamMessageDataCodecImpl();
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -62,24 +64,27 @@ public class RemoteServiceInstance implements ServiceInstance {
   @Override
   public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
 
-    CompletableFuture<StreamMessage> result = new CompletableFuture<StreamMessage>();
+    CompletableFuture<StreamMessage> result = new CompletableFuture<>();
 
     StreamProcessor sp = client.create(address);
-    Observable<StreamMessage> observer = sp.listen();
-    sp.onNext(request);
-    sp.onCompleted();
+    Observable<StreamMessage> observer;
+    try {
+      observer = sp.listen().map(response -> dataCodec.decodeData(response, String.class));
+      sp.onNext(dataCodec.encodeData(request));
+      sp.onCompleted();
 
-    observer.subscribe(
-        onNext -> {
-          result.complete(onNext);
-        },
-        onError -> {
-          LOGGER.error("Failed to send request {} to target address {}", request, address);
-          result.completeExceptionally(onError);
-        },
-        () -> {
-          result.complete(null);
-        });
+      observer.subscribe(
+              onNext -> result.complete(onNext),
+              onError -> {
+                LOGGER.error("Failed to send request {} to target address {}", request, address);
+                result.completeExceptionally(onError);
+              },
+              () -> result.complete(null));
+    } catch (Throwable ex) {
+      LOGGER.error("Failed to handle request {}", request, ex);
+    }
+
+
 
     return result;
   }

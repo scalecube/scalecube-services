@@ -7,7 +7,7 @@ import java.lang.reflect.Type;
 
 public interface StreamMessageDataCodec {
 
-  StreamMessage decodeData(StreamMessage message, Type type) throws IOException;
+  StreamMessage decodeData(StreamMessage message, Type type);
 
-  StreamMessage encodeData(StreamMessage message) throws IOException;
+  StreamMessage encodeData(StreamMessage message);
 }

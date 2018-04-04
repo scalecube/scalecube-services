@@ -21,13 +21,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public final class ServiceMethodSubscription implements Subscription {
-  private final static StreamMessageDataCodec codec = new StreamMessageDataCodecImpl();
   private final ServerStreamProcessors server;
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
   private final Type requestType;
   private Subscription subsciption;
+  private StreamMessageDataCodec codec = new StreamMessageDataCodecImpl();
 
   private ServiceMethodSubscription(
       ServerStreamProcessors server,
@@ -62,7 +62,7 @@ public final class ServiceMethodSubscription implements Subscription {
       return subscription.toObservable();
     } else if (Void.TYPE.equals(returnType)) {
       return subscription.toVoid();
-    } else if (returnType == Subscriber.class && containStreamProcessor(method.getParameters())) {
+    } else if (returnType == Subscriber.class && containsStreamProcessor(method.getParameters())) {
       return subscription.requestStreamToResponseStream();
     } else {
       throw new IllegalArgumentException();
@@ -90,10 +90,10 @@ public final class ServiceMethodSubscription implements Subscription {
       public void onNext(StreamMessage message) {
         try {
           // noinspection unchecked
-          CompletableFuture<StreamMessage> result = invoke(message);
+          CompletableFuture<Object> result = invoke(message);
           result.whenComplete((reponse, error) -> {
             if (error == null) {
-              observer.onNext(tryEncode(message));
+              observer.onNext(codec.encodeData(StreamMessage.from(message).data(reponse).build()));
               observer.onCompleted();
             } else {
               observer.onError(error);
@@ -113,7 +113,7 @@ public final class ServiceMethodSubscription implements Subscription {
       public void onNext(StreamMessage request) {
         try {
           Observable<StreamMessage> result = invoke(request);
-          result.map(message -> tryEncode(message)).subscribe(observer);
+          result.map(message -> codec.encodeData(message)).subscribe(observer);
         } catch (Throwable error) {
           observer.onError(error);
         }
@@ -197,16 +197,7 @@ public final class ServiceMethodSubscription implements Subscription {
     }
   }
 
-  private static boolean containStreamProcessor(Parameter[] parameters) {
+  private static boolean containsStreamProcessor(Parameter[] parameters) {
     return parameters.length > 0 && parameters[0].getType() == StreamProcessor.class;
   }
-  
-  private static StreamMessage tryEncode(StreamMessage message) {
-    try {
-      return codec.encodeData(message);
-    } catch (IOException e) {
-      return message;
-    }
-  }
-
 }

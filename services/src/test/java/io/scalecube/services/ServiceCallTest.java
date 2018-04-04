@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -29,10 +30,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ServiceCallTest extends BaseTest {
 
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
+  public static final int TIMEOUT = 3;
   private static AtomicInteger port = new AtomicInteger(4000);
 
   @Test
-  public void test_local_async_no_params() throws InterruptedException, ExecutionException {
+  public void test_local_async_no_params() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -40,33 +42,24 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     Router router = microservices.router(RoundRobinServiceRouter.class);
-    Call service = ServiceCall.call().router(router);
+    Call serviceCall = ServiceCall.call().router(router);
     
     // call the service.
-    CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
+    CompletableFuture<StreamMessage> future = serviceCall.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingNoParams").build());
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((message, ex) -> {
       if (ex == null) {
-        System.out.println(message);
-        String result = message.data();
-        assertTrue(result.equals("hello unknown"));
-        // print the greeting.
-        System.out.println("test_local_async_no_params :" + result);
+        assertEquals("Didn't get desired response", "hello unknown", message.data());
       } else {
-        // print the greeting.
-        System.out.println(ex);
+        fail("Failed to invoke service: " + ex.getMessage());
       }
-      timeLatch.countDown();
-    });
-
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    }).get(TIMEOUT, TimeUnit.SECONDS);
     microservices.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_no_params() throws InterruptedException, ExecutionException {
+  public void test_remote_async_greeting_no_params() throws Exception{
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -79,28 +72,19 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    Call service = consumer.call();
+    Call serviceCall = consumer.call();
 
     // call the service.
-    CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
-        .request(SERVICE_NAME, "greetingNoParams").build());
+    CompletableFuture<StreamMessage> future = serviceCall.invoke(Messages.builder()
+            .request(SERVICE_NAME, "greetingNoParams").build());
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((message, ex) -> {
       if (ex == null) {
-        System.out.println(message);
-        String result = message.data();
-        assertTrue(result.equals("hello unknown"));
-        // print the greeting.
-        System.out.println("test_local_async_no_params :" + result);
+        assertEquals("Didn't get desired response", "hello unknown", message.data());
       } else {
-        // print the greeting.
-        System.out.println(ex);
+        fail("Failed to invoke service: " + ex.getMessage());
       }
-      timeLatch.countDown();
-    });
-
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    }).get(TIMEOUT, TimeUnit.SECONDS);
     provider.shutdown().get();
     consumer.shutdown().get();
   }
