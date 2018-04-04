@@ -1,10 +1,12 @@
 package io.scalecube.services.streams;
 
 import io.scalecube.services.Reflect;
+import io.scalecube.services.StreamMessageDataCodecImpl;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -12,16 +14,18 @@ import rx.Subscription;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public final class ServiceMethodSubscription implements Subscription {
-
+  private final StreamMessageDataCodec codec = new StreamMessageDataCodecImpl(); 
   private final ServerStreamProcessors server;
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
+  private final Type requestType;
   private Subscription subsciption;
 
   private ServiceMethodSubscription(
@@ -33,6 +37,7 @@ public final class ServiceMethodSubscription implements Subscription {
     this.qualifier = qualifier;
     this.method = method;
     this.serviceObject = serviceObject;
+    this.requestType = Reflect.requestType(method);
   }
 
   /**
@@ -145,7 +150,15 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   private <T> T invoke(StreamMessage message) throws Exception {
-    return Reflect.invoke(serviceObject, method, message);
+    if (requestType.equals(Void.TYPE)) {
+      return Reflect.invoke(serviceObject, method, message);
+    } else {
+      if (StreamMessage.class.equals(requestType)) {
+        return Reflect.invoke(serviceObject, method, message);
+      } else {
+        return Reflect.invoke(serviceObject, method, codec.decodeData(message,requestType));
+      }
+    }
   }
 
   @SuppressWarnings("unchecked")
