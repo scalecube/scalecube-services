@@ -122,14 +122,6 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  private static StreamMessage tryEncode(StreamMessage message) {
-    try {
-      return codec.encodeData(message);
-    } catch (IOException e) {
-      return message;
-    }
-  }
-
   private ServiceMethodSubscription toVoid() {
     this.subsciption = accept(streamProcessor -> new SubscriberAdapter() {
       @Override
@@ -208,6 +200,13 @@ public final class ServiceMethodSubscription implements Subscription {
   private static boolean containStreamProcessor(Parameter[] parameters) {
     return parameters.length > 0 && parameters[0].getType() == StreamProcessor.class;
   }
-
+  
+  private static StreamMessage tryEncode(StreamMessage message) {
+    try {
+      return codec.encodeData(message);
+    } catch (IOException e) {
+      return message;
+    }
+  }
 
 }
