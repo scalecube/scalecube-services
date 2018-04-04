@@ -41,7 +41,6 @@ public final class ClientStreamProcessors {
   //// Methods
 
   public <RESP_TYPE> StreamProcessor<StreamMessage, RESP_TYPE> create(Address address, Class<RESP_TYPE> respType) {
-
     // noinspection unchecked
     StreamProcessor<StreamMessage, StreamMessage> processor =
         clientStreamProcessorFactory.newClientStreamProcessor(address);
@@ -75,8 +74,8 @@ public final class ClientStreamProcessors {
     };
   }
 
-  public <B> StreamProcessor<StreamMessage, StreamMessage> createRaw(Address address, Class<B> respType) {
-
+  public <RESP_TYPE> StreamProcessor<StreamMessage, StreamMessage> createRaw(Address address,
+      Class<RESP_TYPE> respType) {
     // noinspection unchecked
     StreamProcessor<StreamMessage, StreamMessage> processor =
         clientStreamProcessorFactory.newClientStreamProcessor(address);

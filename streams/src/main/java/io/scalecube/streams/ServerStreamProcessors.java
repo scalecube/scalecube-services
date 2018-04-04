@@ -1,5 +1,6 @@
 package io.scalecube.streams;
 
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.ServerBootstrap;
@@ -15,6 +16,7 @@ public final class ServerStreamProcessors {
 
   private final ListeningServerStream listeningServerStream;
   private final ServerStreamProcessorFactory serverStreamProcessorFactory;
+  private StreamMessageDataCodec codec;
 
   /**
    * Bootstrap constructor.
@@ -98,8 +100,34 @@ public final class ServerStreamProcessors {
     listeningServerStream.close();
   }
 
-  public Observable<StreamProcessor> listen() {
-    return serverStreamProcessorFactory.listen();
+  public <REQ_TYPE> Observable<StreamProcessor<StreamMessage, StreamMessage>> listen(Class<REQ_TYPE> reqType) {
+    Observable<StreamProcessor> observable = serverStreamProcessorFactory.listen();
+    return observable.map(sp -> new StreamProcessor<StreamMessage, StreamMessage>() {
+      @Override
+      public void onCompleted() {
+        sp.onCompleted();
+      }
+
+      @Override
+      public void onError(Throwable e) {
+        sp.onError(e);
+      }
+
+      @Override
+      public void onNext(StreamMessage message) {
+        sp.onNext(codec.encodeData(message));
+      }
+
+      @Override
+      public Observable<StreamMessage> listen() {
+        return sp.listen().map(message -> codec.decodeData((StreamMessage) message, reqType));
+      }
+
+      @Override
+      public void close() {
+        sp.close();
+      }
+    });
   }
 
   public void close() {

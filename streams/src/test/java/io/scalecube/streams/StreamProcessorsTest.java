@@ -77,12 +77,24 @@ public class StreamProcessorsTest {
   }
 
   @Test
-  public void testDemo() {
+  public void testDemoClient() {
     ClientStreamProcessors client = StreamProcessors.newClient();
     Address address = Address.from("localhost:0");
     StreamProcessor<StreamMessage, String> sp1 = client.create(address, String.class);
     StreamProcessor<StreamMessage, StreamMessage> sp2 = client.createRaw(address, String.class);
-    sp2.listen().map(r -> (String) r.data() + r.qualifier());
+    sp2.listen().map(r -> r.data() + r.qualifier());
 
+  }
+
+  @Test
+  public void testDemoServer() {
+    ServerStreamProcessors server = StreamProcessors.newServer();
+    server.listen(String.class).subscribe((StreamProcessor sp) -> {
+      StreamProcessor<String, String> sp1 = sp;
+      sp1.listen().subscribe(str -> {
+
+      });
+      sp1.onNext("a");
+    });
   }
 }
