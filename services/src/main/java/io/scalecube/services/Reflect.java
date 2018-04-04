@@ -90,7 +90,7 @@ public class Reflect {
                   return this.microservices;
                 } else if (mapper.isAnnotationPresent(ServiceProxy.class)) {
                   return newServiceCall(mapper.getAnnotation(ServiceProxy.class));
-                } else if(isService(mapper.getType())){
+                } else if (isService(mapper.getType())) {
                   return this.microservices.call().api(mapper.getType());
                 } else {
                   return null;
@@ -164,6 +164,19 @@ public class Reflect {
     } else {
       return Object.class;
     }
+  }
+
+  /**
+   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
+   * 
+   * @param method in inspection.
+   * @return type of parameter [0] or void
+   */
+  public static Type requestType(Method method) {
+    if (method.getParameterTypes().length > 0) {
+      return method.getParameterTypes()[0];
+    }
+    return Void.TYPE;
   }
 
   /**
@@ -250,4 +263,6 @@ public class Reflect {
       throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
     }
   }
+
+
 }
