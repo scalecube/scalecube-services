@@ -36,8 +36,14 @@ public final class ClientStreamProcessors {
 
   //// Methods
 
-  public StreamProcessor create(Address address) {
+  public <A, B> StreamProcessor<A, B> create(Address address, Class<A> reqType, Class<B> reqspType) {
     return clientStreamProcessorFactory.newClientStreamProcessor(address);
+  }
+
+  public <A, B> StreamProcessor<StreamMessage, StreamMessage> createWithStreamMessages(Address address,
+      Class<A> reqType, Class<B> reqspType) {
+    return clientStreamProcessorFactory.newClientStreamProcessor(address, StreamMessage.class, StreamMessage.class,
+        reqType, reqspType);
   }
 
   public void close() {

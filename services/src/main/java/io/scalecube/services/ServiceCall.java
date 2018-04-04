@@ -21,6 +21,7 @@ import rx.subjects.Subject;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
@@ -63,15 +64,16 @@ public class ServiceCall {
      * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
      * case of an error or TimeoutException if no response if a given duration.
      * 
-     * @param request request with given headers.
      * @param timeout timeout
+     * @param request request with given headers.
+     * @param respType
      * @return CompletableFuture with service call dispatching result.
      */
-    public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
+    public CompletableFuture<StreamMessage> invoke(StreamMessage request, Type respType) {
       Messages.validate().serviceRequest(request);
 
-      return this.invoke(request, router.route(request)
-          .orElseThrow(() -> noReachableMemberException(request)), timeout);
+      return invoke(request, router.route(request).orElseThrow(() -> noReachableMemberException(request)), respType,
+          timeout);
     }
 
     /**
@@ -87,7 +89,7 @@ public class ServiceCall {
     public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance)
         throws Exception {
       Messages.validate().serviceRequest(request);
-      return invoke(request, serviceInstance, timeout);
+      return invoke(request, serviceInstance, , timeout);
     }
 
     /**
@@ -97,11 +99,12 @@ public class ServiceCall {
      * 
      * @param request request with given headers.
      * @param serviceInstance target instance to invoke.
+     * @param respType
      * @param duration of the response before TimeException is returned.
      * @return CompletableFuture with service call dispatching result.
      */
     public CompletableFuture<StreamMessage> invoke(final StreamMessage request, final ServiceInstance serviceInstance,
-        final Duration duration) {
+        Type respType, final Duration duration) {
 
       Objects.requireNonNull(serviceInstance);
       Messages.validate().serviceRequest(request);
@@ -112,7 +115,7 @@ public class ServiceCall {
       Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
       Metrics.inc(counter);
 
-      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request);
+      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request, respType);
       Futures.withTimeout(response, duration)
           .whenComplete((value, error) -> {
             Metrics.dec(counter);
@@ -159,7 +162,7 @@ public class ServiceCall {
       Collection<ServiceInstance> instances = router.routes(request);
 
       instances.forEach(instance -> {
-        invoke(request).whenComplete((resp, error) -> {
+        invoke(request, ).whenComplete((resp, error) -> {
           if (resp != null) {
             responsesSubject.onNext(resp);
           } else {
@@ -219,7 +222,7 @@ public class ServiceCall {
               return service.listen(reqMsg).map(message -> message.data());
             }
           } else {
-            return toReturnValue(method, service.invoke(reqMsg));
+            return toReturnValue(method, service.invoke(reqMsg, ));
           }
         }
 

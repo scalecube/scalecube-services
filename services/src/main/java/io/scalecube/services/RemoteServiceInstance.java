@@ -62,14 +62,14 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
-
+  public <TYPE> CompletableFuture<TYPE> invoke(StreamMessage request, Class<TYPE> responseType) {
     CompletableFuture<StreamMessage> result = new CompletableFuture<>();
+    Class<?> requestType = request.data().getClass();
 
-    StreamProcessor sp = client.create(address);
-    Observable<StreamMessage> observer;
+    StreamProcessor<TYPE> sp = client.create(address, requestType, responseType);
+    Observable<TYPE> observer;
     try {
-      observer = sp.listen().map(response -> dataCodec.decodeData(response, String.class));
+      observer = sp.listen();
       sp.onNext(dataCodec.encodeData(request));
       sp.onCompleted();
 

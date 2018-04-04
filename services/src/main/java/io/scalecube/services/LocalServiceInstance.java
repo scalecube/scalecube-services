@@ -10,6 +10,7 @@ import io.scalecube.transport.Address;
 import rx.Observable;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -65,7 +66,7 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<StreamMessage> invoke(final StreamMessage request) {
+  public CompletableFuture<StreamMessage> invoke(final StreamMessage request, Type responseType) {
     checkArgument(request != null, "message can't be null");
 
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());

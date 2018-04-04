@@ -46,7 +46,7 @@ public class GracefulShutdownTest extends BaseTest {
     while (members.gateway().cluster().member(members.node1().cluster().address()).isPresent()
         || postShutdown.get() >= 0) {
       
-      CompletableFuture<StreamMessage> future = service.invoke(request);
+      CompletableFuture<StreamMessage> future = service.invoke(request, );
       future.whenComplete((result, ex) -> {
         if (ex == null) {
           // print the greeting.

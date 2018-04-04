@@ -75,4 +75,12 @@ public class StreamProcessorsTest {
         .assertNoValues()
         .assertError(ConnectException.class);
   }
+
+  @Test
+  public void testDemo() {
+    ClientStreamProcessors client = StreamProcessors.newClient();
+
+    Address address = Address.from("localhost:0");
+    StreamProcessor<String, String> sp = client.create(address, String.class, String.class);
+  }
 }

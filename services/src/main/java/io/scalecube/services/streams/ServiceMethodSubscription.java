@@ -12,7 +12,6 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
@@ -85,6 +84,9 @@ public final class ServiceMethodSubscription implements Subscription {
 
 
   private ServiceMethodSubscription toCompletableFuture() {
+
+    new StreamProcessor<>()
+
     this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
