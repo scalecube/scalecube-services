@@ -207,8 +207,8 @@ public class ClientStreamProcessorTest {
     ClientStreamProcessors csp1 = StreamProcessors.newClient();
     ClientStreamProcessors csp2 = StreamProcessors.newClient();
 
-    StreamProcessor sp1 = csp1.create(addr);
-    StreamProcessor sp2 = csp2.create(addr);
+    StreamProcessor sp1 = csp1.create(addr, Object.class);
+    StreamProcessor sp2 = csp2.create(addr, Object.class);
 
     AssertableSubscriber<StreamMessage> assertion = sp2.listen().test();
 

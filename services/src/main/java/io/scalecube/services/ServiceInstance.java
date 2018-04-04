@@ -11,6 +11,10 @@ import java.util.concurrent.CompletableFuture;
 
 public interface ServiceInstance {
 
+  CompletableFuture<StreamMessage> invoke(StreamMessage request);
+
+  Observable<StreamMessage> listen(StreamMessage request);
+
   <TYPE> CompletableFuture<TYPE> invoke(StreamMessage request, Class<TYPE> responseType);
 
   <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType);

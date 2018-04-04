@@ -12,6 +12,7 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
@@ -83,16 +84,16 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   private ServiceMethodSubscription toCompletableFuture() {
-    Class<?> reqPayloadType = reqType();
-    this.subsciption = accept(reqPayloadType, observer -> new SubscriberAdapter() {
+    // Class<?> reqPayloadType = reqType();
+    this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
         try {
           // noinspection unchecked
           CompletableFuture<Object> result = invoke(message);
-          result.whenComplete((reponse, error) -> {
+          result.whenComplete((response, error) -> {
             if (error == null) {
-              observer.onNext();
+              observer.onNext(codec.encodeData(StreamMessage.from(message).data(response).build()));
               observer.onCompleted();
             } else {
               observer.onError(error);
@@ -106,21 +107,15 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  private Class<?> reqType() {
-    // FIXME:
-    return null;
-
-  }
-
   private ServiceMethodSubscription toObservable() {
-    this.subsciption = accept(, streamProcessor -> new SubscriberAdapter() {
+    this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage request) {
         try {
           Observable<StreamMessage> result = invoke(request);
-          result.map(message -> codec.encodeData(message)).subscribe(streamProcessor);
+          result.map(message -> codec.encodeData(message)).subscribe(observer);
         } catch (Throwable error) {
-          streamProcessor.onError(error);
+          observer.onError(error);
         }
       }
     });
@@ -128,7 +123,7 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   private ServiceMethodSubscription toVoid() {
-    this.subsciption = accept(, streamProcessor -> new SubscriberAdapter() {
+    this.subsciption = accept(streamProcessor -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
         try {
@@ -143,7 +138,7 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   private ServiceMethodSubscription toBidirectional() {
-    this.subsciption = accept(, streamProcessor -> {
+    this.subsciption = accept(streamProcessor -> {
       try {
         // noinspection unchecked
         return invoke(streamProcessor);
@@ -162,7 +157,8 @@ public final class ServiceMethodSubscription implements Subscription {
       if (StreamMessage.class.equals(requestType)) {
         return Reflect.invoke(serviceObject, method, message);
       } else {
-        return Reflect.invoke(serviceObject, method, message.data());
+        return Reflect.invoke(serviceObject, method,
+            codec.decodeData(message, Class.forName(requestType.getTypeName())));
       }
     }
   }
@@ -173,12 +169,13 @@ public final class ServiceMethodSubscription implements Subscription {
     return (Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor);
   }
 
-  private Subscription accept(Class<?> requestPayloadType,
-      Function<StreamProcessor<StreamMessage, StreamMessage>, Subscriber<StreamMessage>> factory) {
-
-    return server.listen(requestPayloadType).subscribe(sp -> sp.listen()
-        .filter(message -> qualifier.asString().equalsIgnoreCase(message.qualifier()))
-        .subscribe(factory.apply(sp)));
+  private Subscription accept(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
+    return server.listen().subscribe(sp -> {
+      // listen for stream messages with qualifier filter
+      sp.<StreamMessage>listen()
+          .filter(message -> qualifier.asString().equalsIgnoreCase(((StreamMessage) message).qualifier()))
+          .subscribe(factory.apply(sp));
+    });
   }
 
   private static class SubscriberAdapter extends Subscriber<StreamMessage> {

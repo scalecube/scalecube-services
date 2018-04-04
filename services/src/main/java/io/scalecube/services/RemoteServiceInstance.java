@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -28,6 +29,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Map<String, String> tags;
   private final ClientStreamProcessors client;
   private final Set<String> methods;
+  private StreamMessageDataCodec dataCodec = new StreamMessageDataCodecImpl();
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -53,6 +55,16 @@ public class RemoteServiceInstance implements ServiceInstance {
     sp.onNext(request);
     sp.onCompleted();
     return sp.listen();
+  }
+
+  @Override
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
+    return invoke(request, StreamMessage.class);
+  }
+
+  @Override
+  public Observable<StreamMessage> listen(StreamMessage request) {
+    return listen(request, StreamMessage.class);
   }
 
   @Override

@@ -40,6 +40,10 @@ public final class ClientStreamProcessors {
 
   //// Methods
 
+  public StreamProcessor<StreamMessage, StreamMessage> create(Address address) {
+    return create(address, StreamMessage.class);
+  }
+
   public <RESP_TYPE> StreamProcessor<StreamMessage, RESP_TYPE> create(Address address, Class<RESP_TYPE> respType) {
     // noinspection unchecked
     StreamProcessor<StreamMessage, StreamMessage> processor =

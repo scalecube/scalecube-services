@@ -33,7 +33,7 @@ public class DataCodecExample {
       // Service Provider logic:
       // Deserialize request data -> pass data to Service -> serialize response data
       try {
-        StreamMessage req = codec.decodeData(fromConsumer, StringHolder.class);
+        StreamMessage req = codec.decodeData((StreamMessage) fromConsumer, StringHolder.class);
         System.out.println("Server Rcvd: " + req.data());
         StreamMessage afterService =
             StreamMessage.from(req).data(service.doubleEcho((StringHolder) req.data()).get()).build();
@@ -45,7 +45,7 @@ public class DataCodecExample {
         return;
       }
       sp.onCompleted();
-    }, t -> t.printStackTrace()));
+    }));
 
     Address address = serverStreamProcessors.bindAwait();
     System.out.println("Started server on " + address);
@@ -53,10 +53,9 @@ public class DataCodecExample {
     // Client
     StreamProcessor client = StreamProcessors.newClient().create(address);
     client.listen().subscribe(sr -> {
-      StreamMessage sr1 = sr;
-      StreamMessage response = codec.decodeData(sr1, StringHolder.class);
+      StreamMessage response = codec.decodeData((StreamMessage) sr, StringHolder.class);
       System.out.println("Client Rcvd: " + response.data());
-    }, t -> t.printStackTrace());
+    });
 
     StreamMessage toSend =
         codec.encodeData(StreamMessage.builder().qualifier("qual").data(new StringHolder("hello")).build());

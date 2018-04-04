@@ -2,7 +2,6 @@ package io.scalecube.examples.services;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Inject;
-import io.scalecube.streams.StreamMessage;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -22,14 +21,6 @@ public class GreetingServiceImpl implements GreetingService {
   public CompletableFuture<String> greeting(String name) {
     System.out.println("Provider: 'greeting' -> " + name);
     return CompletableFuture.completedFuture("Hello " + name);
-  }
-
-  @Override
-  public <REQ, RESP> CompletableFuture<StreamMessage> messagesGreeting(StreamMessage<T> req, Class<REQ> reqType,
-      Class<RESP> respType) {
-    REQ reqData = req.data();
-    RESP response = null;
-    return null;
   }
 
   @Override

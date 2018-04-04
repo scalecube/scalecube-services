@@ -62,7 +62,7 @@ public class SimpleStressTest extends BaseTest {
       CompletableFuture<StreamMessage> future = greetings.invoke(Messages.builder()
           .request(GreetingService.class, "greetingMessage")
           .data("1")
-          .build(), );
+          .build());
 
       future.whenComplete((success, error) -> {
         countLatch.countDown();

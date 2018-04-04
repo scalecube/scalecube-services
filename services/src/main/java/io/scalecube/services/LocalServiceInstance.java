@@ -10,7 +10,6 @@ import io.scalecube.transport.Address;
 import rx.Observable;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -66,36 +65,46 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<StreamMessage> invoke(final StreamMessage request, Type responseType) {
+  public CompletableFuture<StreamMessage> invoke(final StreamMessage request) {
+    return invoke(request, StreamMessage.class);
+  }
+
+  @Override
+  public Observable<StreamMessage> listen(StreamMessage request) {
+    return listen(request, StreamMessage.class);
+  }
+
+  @Override
+  public <TYPE> CompletableFuture<TYPE> invoke(StreamMessage request, Class<TYPE> responseType) {
     checkArgument(request != null, "message can't be null");
 
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
     return invokeMethod(request, method);
   }
-  
-  @Override
-  public Observable<StreamMessage> listen(StreamMessage request) {
-    checkArgument(request != null, "message can't be null.");
 
+  @Override
+  public <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType) {
+    checkArgument(request != null, "message can't be null.");
     final Method method = getMethod(request);
     checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
-
+    Observable<RESP_TYPE> observable = null;
     try {
-      final Observable<?> observable = Reflect.invoke(serviceObject, method, request);
+      observable = Reflect.invoke(serviceObject, method, request);
       return observable.map(message -> {
         Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "onNext");
-        return StreamMessage.from(request).data(message).build();
+        return message;
       });
 
     } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-      return Observable.from(new StreamMessage[] {Messages.asError(ex)});
+
+      return Observable.error(ex);
     }
   }
 
-  private CompletableFuture<StreamMessage> invokeMethod(final StreamMessage request, final Method method) {
+  private <TYPE> CompletableFuture<TYPE> invokeMethod(final StreamMessage request, final Method method) {
 
-    final CompletableFuture<StreamMessage> resultMessage = new CompletableFuture<>();
+    final CompletableFuture<TYPE> resultMessage = new CompletableFuture<>();
     try {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "request");
       final Object result = Reflect.invoke(this.serviceObject, method, request);
@@ -105,9 +114,9 @@ public class LocalServiceInstance implements ServiceInstance {
           if (error == null) {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
             if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
-              resultMessage.complete((StreamMessage) success);
+              resultMessage.complete((TYPE) success);
             } else {
-              resultMessage.complete(StreamMessage.builder().data(success).build());
+              resultMessage.complete((TYPE) success);
             }
           } else {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
@@ -122,7 +131,6 @@ public class LocalServiceInstance implements ServiceInstance {
 
     return resultMessage;
   }
-
 
   public String serviceName() {
     return serviceName;

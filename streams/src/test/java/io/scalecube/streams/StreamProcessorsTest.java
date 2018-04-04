@@ -43,7 +43,7 @@ public class StreamProcessorsTest {
   }
 
   private AssertableSubscriber<StreamMessage> trySend(ClientStreamProcessors clientStreamProcessors) {
-    StreamProcessor streamProcessor = clientStreamProcessors.create(Address.from("localhost:0"));
+    StreamProcessor streamProcessor = clientStreamProcessors.create(Address.from("localhost:0"), Object.class);
     AssertableSubscriber<StreamMessage> subscriber = streamProcessor.listen().test();
     streamProcessor.onNext(StreamMessage.builder().qualifier("q/test").build());
     return subscriber;
@@ -84,17 +84,5 @@ public class StreamProcessorsTest {
     StreamProcessor<StreamMessage, StreamMessage> sp2 = client.createRaw(address, String.class);
     sp2.listen().map(r -> r.data() + r.qualifier());
 
-  }
-
-  @Test
-  public void testDemoServer() {
-    ServerStreamProcessors server = StreamProcessors.newServer();
-    server.listen(String.class).subscribe((StreamProcessor sp) -> {
-      StreamProcessor<String, String> sp1 = sp;
-      sp1.listen().subscribe(str -> {
-
-      });
-      sp1.onNext("a");
-    });
   }
 }

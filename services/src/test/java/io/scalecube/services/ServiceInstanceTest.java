@@ -85,25 +85,25 @@ public class ServiceInstanceTest extends BaseTest {
     assertThat(instance.methods(), hasItem("sayHello"));
 
     try {
-      instance.invoke(Messages.builder().request("", "s").build(), );
+      instance.invoke(Messages.builder().request("", "s").build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }
 
     try {
-      instance.invoke(Messages.builder().request("unknown", "s").build(), );
+      instance.invoke(Messages.builder().request("unknown", "s").build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.util.NoSuchElementException: No value present");
     }
 
     try {
-      instance.invoke(Messages.builder().request("unknown", null).build(), );
+      instance.invoke(Messages.builder().request("unknown", null).build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Service request can't be null");
     }
 
     try {
-      instance.invoke(Messages.builder().request("s", null).build(), );
+      instance.invoke(Messages.builder().request("s", null).build());
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: Method name can't be null");
     }

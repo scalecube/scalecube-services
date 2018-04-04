@@ -46,7 +46,7 @@ public class ServiceCallTest extends BaseTest {
     
     // call the service.
     CompletableFuture<StreamMessage> future = serviceCall.invoke(Messages.builder()
-        .request(SERVICE_NAME, "greetingNoParams").build(), );
+        .request(SERVICE_NAME, "greetingNoParams").build());
 
     future.whenComplete((message, ex) -> {
       if (ex == null) {
@@ -75,8 +75,8 @@ public class ServiceCallTest extends BaseTest {
     Call serviceCall = consumer.call();
 
     // call the service.
-    StreamMessage req = Messages.builder().request(SERVICE_NAME, "greetingNoParams").build();
-    CompletableFuture<StreamMessage> future = serviceCall.invoke(req, String.class);
+    CompletableFuture<StreamMessage> future = serviceCall.invoke(Messages.builder()
+            .request(SERVICE_NAME, "greetingNoParams").build());
 
     future.whenComplete((message, ex) -> {
       if (ex == null) {
@@ -107,7 +107,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingVoid")
         .data(new GreetingRequest("joe"))
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((success, error) -> {
@@ -141,7 +141,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingVoid")
         .data(new GreetingRequest("joe"))
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((success, error) -> {
@@ -178,7 +178,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greeting")
         .data("joe")
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     AtomicReference<String> resultAsString = new AtomicReference<>();
@@ -215,7 +215,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequest")
         .data(new GreetingRequest("joe"))
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -254,7 +254,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequest")
         .data(new GreetingRequest("joe"))
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -289,7 +289,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequestTimeout")
         .data(new GreetingRequest("joe", Duration.ofSeconds(2)))
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
 
@@ -329,7 +329,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingRequestTimeout")
         .data(new GreetingRequest("joe", Duration.ofSeconds(4)))
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
 
@@ -366,7 +366,7 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
-        .data("joe").build(), );
+        .data("joe").build());
 
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -404,7 +404,7 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
-        .data("joe").build(), );
+        .data("joe").build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -449,11 +449,11 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     CompletableFuture<StreamMessage> result1 = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
-        .data("joe").build(), );
+        .data("joe").build());
 
     CompletableFuture<StreamMessage> result2 = service.invoke(Messages.builder()
         .request(SERVICE_NAME, "greetingMessage")
-        .data("joe").build(), );
+        .data("joe").build());
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -494,7 +494,7 @@ public class ServiceCallTest extends BaseTest {
       // call the service.
       CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
           .request(SERVICE_NAME, "unknown")
-          .data("joe").build(), );
+          .data("joe").build());
 
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: unknown"));
@@ -543,7 +543,7 @@ public class ServiceCallTest extends BaseTest {
       CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
           .request(CanaryService.class, "greeting")
           .data("joe")
-          .build(), );
+          .build());
 
       future.whenComplete((success, error) -> {
         responses.incrementAndGet();
@@ -588,7 +588,7 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> result = service.invoke(Messages.builder().request(
         "io.scalecube.services.GreetingService", "greetingRequest")
         .data(new GreetingRequest("joe"))
-        .build(), );
+        .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
@@ -625,7 +625,7 @@ public class ServiceCallTest extends BaseTest {
         Messages.builder().request(
             "io.scalecube.services.GreetingService", "greetingRequest")
             .data(new GreetingRequest("joe"))
-            .build(), );
+            .build());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
