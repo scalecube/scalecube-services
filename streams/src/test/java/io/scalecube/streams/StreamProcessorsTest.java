@@ -79,8 +79,10 @@ public class StreamProcessorsTest {
   @Test
   public void testDemo() {
     ClientStreamProcessors client = StreamProcessors.newClient();
-
     Address address = Address.from("localhost:0");
-    StreamProcessor<String, String> sp = client.create(address, String.class, String.class);
+    StreamProcessor<StreamMessage, String> sp1 = client.create(address, String.class);
+    StreamProcessor<StreamMessage, StreamMessage> sp2 = client.createRaw(address, String.class);
+    sp2.listen().map(r -> (String) r.data() + r.qualifier());
+
   }
 }

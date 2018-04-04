@@ -5,7 +5,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
-import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -29,7 +28,6 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final Map<String, String> tags;
   private final ClientStreamProcessors client;
   private final Set<String> methods;
-  private StreamMessageDataCodec dataCodec = new StreamMessageDataCodecImpl();
 
   /**
    * Remote service instance constructor to initiate instance.
@@ -50,42 +48,27 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Observable<StreamMessage> listen(final StreamMessage request) {
-
-    StreamProcessor sp = client.create(address);
-    Observable<StreamMessage> observer = sp.listen();
-
+  public <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType) {
+    StreamProcessor<StreamMessage, RESP_TYPE> sp = client.create(address, responseType);
     sp.onNext(request);
     sp.onCompleted();
-    return observer;
-
+    return sp.listen();
   }
 
   @Override
-  public <TYPE> CompletableFuture<TYPE> invoke(StreamMessage request, Class<TYPE> responseType) {
-    CompletableFuture<StreamMessage> result = new CompletableFuture<>();
-    Class<?> requestType = request.data().getClass();
+  public <RESP_TYPE> CompletableFuture<RESP_TYPE> invoke(StreamMessage request, Class<RESP_TYPE> responseType) {
+    CompletableFuture<RESP_TYPE> result = new CompletableFuture<>();
+    StreamProcessor<StreamMessage, RESP_TYPE> sp = client.create(address, responseType);
+    sp.listen().subscribe(
+        result::complete,
+        onError -> {
+          LOGGER.error("Failed to send request {} to target address {}", request, address);
+          result.completeExceptionally(onError);
+        },
+        () -> result.complete(null));
 
-    StreamProcessor<TYPE> sp = client.create(address, requestType, responseType);
-    Observable<TYPE> observer;
-    try {
-      observer = sp.listen();
-      sp.onNext(dataCodec.encodeData(request));
-      sp.onCompleted();
-
-      observer.subscribe(
-              onNext -> result.complete(onNext),
-              onError -> {
-                LOGGER.error("Failed to send request {} to target address {}", request, address);
-                result.completeExceptionally(onError);
-              },
-              () -> result.complete(null));
-    } catch (Throwable ex) {
-      LOGGER.error("Failed to handle request {}", request, ex);
-    }
-
-
-
+    sp.onNext(request);
+    sp.onCompleted();
     return result;
   }
 

@@ -84,9 +84,6 @@ public final class ServiceMethodSubscription implements Subscription {
 
 
   private ServiceMethodSubscription toCompletableFuture() {
-
-    new StreamProcessor<>()
-
     this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {

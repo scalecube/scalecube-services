@@ -13,7 +13,7 @@ public interface ServiceInstance {
 
   <TYPE> CompletableFuture<TYPE> invoke(StreamMessage request, Class<TYPE> responseType);
 
-  Observable<StreamMessage> listen(StreamMessage request);
+  <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType);
 
   String serviceName();
 

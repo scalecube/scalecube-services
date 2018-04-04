@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.codec.StreamMessageDataCodec;
 
@@ -17,6 +16,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.util.ReferenceCountUtil;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec 
   }
 
   @Override
-  public StreamMessage decodeData(StreamMessage message, Type type) {
+  public StreamMessage decodeData(StreamMessage message, Class<?> type) {
 
     ByteBufInputStream inputStream = new ByteBufInputStream(message.data());
     try {
