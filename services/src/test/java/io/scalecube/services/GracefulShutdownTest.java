@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -50,7 +52,8 @@ public class GracefulShutdownTest extends BaseTest {
       future.whenComplete((result, ex) -> {
         if (ex == null) {
           // print the greeting.
-          assertTrue(result.data().equals(" hello to: joe"));
+          assertThat(result.data(), instanceOf(GreetingResponse.class));
+          assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
           System.out.println(count.get() + " - Response from node: ");
           count.decrementAndGet();
         } else {
