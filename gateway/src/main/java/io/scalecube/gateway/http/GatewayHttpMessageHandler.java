@@ -64,7 +64,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
               });
         },
         throwable -> {
-          LOGGER.error("Fatal exception occured on channel context: {}, cause: {}", channelContext.getId(), throwable);
+          LOGGER.error("Fatal exception occured on channel context: {}", channelContext.getId(), throwable);
           ctx.channel().close();
         });
 
@@ -86,6 +86,7 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
       return;
     }
 
+    StreamMessage message = null;
     try {
       FullHttpRequest request = (FullHttpRequest) msg;
       // get qualifier
@@ -94,14 +95,19 @@ public final class GatewayHttpMessageHandler extends ChannelDuplexHandler {
 
       StreamMessage.Builder builder = StreamMessage.builder().qualifier(qualifier);
       if (request.content().isReadable()) {
-        builder.data(request.content());
+        builder.data(request.content().retain());
       }
 
-      channelContext.postReadSuccess(builder.build());
+      message = builder.build();
     } catch (Exception throwable) {
       // Hint: at this point we could save at least request headers and put them into error
-      ChannelSupport.releaseRefCount(msg);
       channelContext.postReadError(throwable);
+    } finally {
+      ChannelSupport.releaseRefCount(msg);
+    }
+
+    if (message != null) {
+      channelContext.postReadSuccess(message);
     }
   }
 }

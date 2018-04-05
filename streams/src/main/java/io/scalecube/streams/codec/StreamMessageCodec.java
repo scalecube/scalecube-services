@@ -45,7 +45,7 @@ public final class StreamMessageCodec {
             messageBuilder.subject((String) value);
             break;
           case DATA_NAME:
-            messageBuilder.data(value); // ByteBuf
+            messageBuilder.data(((ByteBuf) value).retain()); // ByteBuf
             break;
           default:
             // no-op

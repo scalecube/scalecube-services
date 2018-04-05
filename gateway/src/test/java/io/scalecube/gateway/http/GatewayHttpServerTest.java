@@ -16,6 +16,7 @@ import io.scalecube.streams.Event;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.ServerStream;
 import io.scalecube.streams.StreamMessage;
+import io.scalecube.streams.netty.ChannelSupport;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -221,30 +222,34 @@ public class GatewayHttpServerTest {
     return "http://0.0.0.0:" + HTTP_SERVER_PORT + "/" + quilifier;
   }
 
-  private StreamMessage emptyResponse(StreamMessage input) {
-    return StreamMessage.from(input)
-        .data(null).build();
+  private StreamMessage emptyResponse(StreamMessage message) {
+    ChannelSupport.releaseRefCount(message.data());
+    return StreamMessage.from(message).data(null).build();
   }
 
-  private StreamMessage response(StreamMessage input, String body) {
-    return StreamMessage.from(input)
+  private StreamMessage response(StreamMessage message, String body) {
+    ChannelSupport.releaseRefCount(message.data());
+    return StreamMessage.from(message)
         .data(Unpooled.buffer().writeBytes(body.getBytes())).build();
   }
 
-  private StreamMessage emptyErrorResponse(StreamMessage input) {
-    return StreamMessage.from(input)
+  private StreamMessage emptyErrorResponse(StreamMessage message) {
+    ChannelSupport.releaseRefCount(message.data());
+    return StreamMessage.from(message)
         .qualifier(Qualifier.Q_GENERAL_FAILURE)
         .data(null).build();
   }
 
-  private StreamMessage errorResponse(StreamMessage input, String body) {
-    return StreamMessage.from(input)
+  private StreamMessage errorResponse(StreamMessage message, String body) {
+    ChannelSupport.releaseRefCount(message.data());
+    return StreamMessage.from(message)
         .qualifier(Qualifier.Q_GENERAL_FAILURE)
         .data(Unpooled.buffer().writeBytes(body.getBytes())).build();
   }
 
-  private StreamMessage errorResponse(StreamMessage input, ErrorData data) {
-    return StreamMessage.from(input)
+  private StreamMessage errorResponse(StreamMessage message, ErrorData data) {
+    ChannelSupport.releaseRefCount(message.data());
+    return StreamMessage.from(message)
         .qualifier(Qualifier.Q_GENERAL_FAILURE)
         .data(data).build();
   }

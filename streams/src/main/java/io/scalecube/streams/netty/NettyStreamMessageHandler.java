@@ -2,6 +2,7 @@ package io.scalecube.streams.netty;
 
 import io.scalecube.streams.ChannelContext;
 import io.scalecube.streams.Event;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.codec.StreamMessageCodec;
 
 import io.netty.buffer.ByteBuf;
@@ -46,7 +47,7 @@ public final class NettyStreamMessageHandler extends ChannelInboundHandlerAdapte
           });
         },
         throwable -> {
-          LOGGER.error("Fatal exception occured on channel context: {}, cause: {}", channelContext.getId(), throwable);
+          LOGGER.error("Fatal exception occured on channel context: {}", channelContext.getId(), throwable);
           ctx.channel().close();
         });
 
@@ -63,11 +64,17 @@ public final class NettyStreamMessageHandler extends ChannelInboundHandlerAdapte
       return;
     }
 
+    StreamMessage message = null;
     try {
-      channelContext.postReadSuccess(StreamMessageCodec.decode((ByteBuf) msg));
+      message = StreamMessageCodec.decode((ByteBuf) msg);
     } catch (Exception throwable) {
-      ChannelSupport.releaseRefCount(msg);
       channelContext.postReadError(throwable);
+    } finally {
+      ChannelSupport.releaseRefCount(msg);
+    }
+
+    if (message != null) {
+      channelContext.postReadSuccess(message);
     }
   }
 }
