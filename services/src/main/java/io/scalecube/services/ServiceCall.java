@@ -18,13 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import rx.Observable;
-import rx.subjects.PublishSubject;
-import rx.subjects.Subject;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -134,32 +131,6 @@ public class ServiceCall {
           });
       return response;
 
-    }
-
-    /**
-     * Invoke all service instances with a given request message with a given service name and method name. expected
-     * headers in request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the
-     * method name to invoke. retrieves routes from router by calling router.routes and send async to each endpoint once
-     * a response is returned emit the response to the observable.
-     *
-     * @param request request with given headers.
-     * @return Observable with stream of results for each service call dispatching result.
-     */
-    public Observable<StreamMessage> invokeAll(final StreamMessage request) {
-      final Subject<StreamMessage, StreamMessage> responsesSubject =
-          PublishSubject.<StreamMessage>create().toSerialized();
-      Collection<ServiceInstance> instances = router.routes(request);
-
-      instances.forEach(instance -> {
-        invoke(request).whenComplete((resp, error) -> {
-          if (resp != null) {
-            responsesSubject.onNext(resp);
-          } else {
-            responsesSubject.onNext(Messages.asError(new Error(instance.memberId(), error)));
-          }
-        });
-      });
-      return responsesSubject.onBackpressureBuffer();
     }
 
     /**
