@@ -68,8 +68,11 @@ public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec 
   private Object readFrom(InputStream stream, Class<?> type) throws IOException {
     // TypeFactory typeFactory = mapper.reader().getTypeFactory();
     // JavaType resolvedType = typeFactory.constructType(type);
-
-    return mapper.readValue(stream, type);
+    try {
+      return mapper.readValue(stream, type);
+    } catch (Throwable ex) {
+      throw new RuntimeException("mapper.readValue with type: " + type, ex);
+    }
   }
 
   private void writeTo(OutputStream stream, Object value) throws IOException {

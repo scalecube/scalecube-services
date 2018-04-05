@@ -12,8 +12,6 @@ import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
 import com.google.common.reflect.Reflection;
 
-import io.netty.buffer.ByteBuf;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +37,7 @@ public class ServiceCall {
     private Router router;
     private Metrics metrics;
     private Timer latency;
-    private Class<?> payloadType = ByteBuf.class;
+    private Class<?> responseType;
 
     public Call timeout(Duration timeout) {
       this.timeout = timeout;
@@ -51,8 +49,8 @@ public class ServiceCall {
       return this;
     }
 
-    public Call payloadOf(Class<?> payloadType) {
-      this.payloadType = payloadType;
+    public Call responseTypeOf(Class<?> payloadType) {
+      this.responseType = payloadType;
       return this;
     }
 
@@ -108,6 +106,7 @@ public class ServiceCall {
         final Duration duration) {
 
       Objects.requireNonNull(serviceInstance);
+      Objects.requireNonNull(responseType);
       Messages.validate().serviceRequest(request);
       serviceInstance.checkMethodExists(Messages.qualifierOf(request).getAction());
 
@@ -116,7 +115,7 @@ public class ServiceCall {
       Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
       Metrics.inc(counter);
 
-      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request, payloadType);
+      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request, responseType);
       Futures.withTimeout(response, duration)
           .whenComplete((value, error) -> {
             Metrics.dec(counter);
