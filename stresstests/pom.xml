@@ -6,7 +6,7 @@
     <parent>
         <artifactId>scalecube-parent</artifactId>
         <groupId>io.scalecube</groupId>
-        <version>1.0.9-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <artifactId>scalecube-stresstests</artifactId>
     <name>ScaleCube/StressTests</name>
