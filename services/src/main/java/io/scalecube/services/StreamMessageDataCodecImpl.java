@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.netty.util.ReferenceCountUtil;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.codec.StreamMessageDataCodec;
 
@@ -17,6 +18,9 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -62,7 +62,7 @@ public class ServiceCall {
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
      * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
      * case of an error or TimeoutException if no response if a given duration.
-     * 
+     *
      * @param request request with given headers.
      * @param timeout timeout
      * @return CompletableFuture with service call dispatching result.
@@ -78,7 +78,7 @@ public class ServiceCall {
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
      * invoke with default timeout.
-     * 
+     *
      * @param request request with given headers.
      * @param serviceInstance target instance to invoke.
      * @return CompletableFuture with service call dispatching result.
@@ -94,7 +94,7 @@ public class ServiceCall {
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
      * invoke. Throws Exception in case of an error or TimeoutException if no response if a given duration.
-     * 
+     *
      * @param request request with given headers.
      * @param serviceInstance target instance to invoke.
      * @param duration of the response before TimeException is returned.
@@ -135,7 +135,7 @@ public class ServiceCall {
      * method name to invoke. retrieves routes from router by calling router.routes and send async to each endpoint once
      * a response is returned emit the response to the observable. uses a default duration timeout configured for this
      * proxy.
-     * 
+     *
      * @param request request with given headers.
      * @return Observable with stream of results for each service call dispatching result.
      */
@@ -148,7 +148,7 @@ public class ServiceCall {
      * headers in request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the
      * method name to invoke. retrieves routes from router by calling router.routes and send async to each endpoint once
      * a response is returned emit the response to the observable.
-     * 
+     *
      * @param request request with given headers.
      * @param duration of the response before TimeException is returned.
      * @return Observable with stream of results for each service call dispatching result.
@@ -172,7 +172,7 @@ public class ServiceCall {
 
     /**
      * sending subscription request message to a service that returns Observable.
-     * 
+     *
      * @param request containing subscription data.
      * @return rx.Observable for the specific stream.
      */
@@ -191,7 +191,7 @@ public class ServiceCall {
 
     /**
      * Create proxy creates a java generic proxy instance by a given service interface.
-     * 
+     *
      * @param serviceInterface Service Interface type.
      * @return newly created service proxy object.
      */
@@ -202,10 +202,9 @@ public class ServiceCall {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
-          if (check != null) {
+          if (check != null)
             return check;
-          }
-          
+
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
           final StreamMessage reqMsg = StreamMessage.builder()
@@ -263,7 +262,7 @@ public class ServiceCall {
           request.qualifier(), request);
       return new IllegalStateException("No reachable member with such service: " + request.qualifier());
     }
-    
+
     private Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {
       if (method.equals("hashCode")) {
         return serviceInterface.hashCode();

@@ -122,7 +122,6 @@ public class Microservices {
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
     this.routerFactory = new RouterFactory(serviceRegistry);
   }
-
   // FIXME: need to implement cleanup process
   private void cleanupStuff() {
     // this.cluster().listenMembership()
