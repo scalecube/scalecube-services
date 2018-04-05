@@ -123,6 +123,8 @@ public class LocalServiceInstance implements ServiceInstance {
             resultMessage.completeExceptionally(error);
           }
         });
+      } else if (result == null) {
+        resultMessage.complete(StreamMessage.from(request).data(null).build());
       }
     } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "exception");

@@ -256,7 +256,8 @@ public class Reflect {
       if (method.getParameters()[0].getType().isAssignableFrom(StreamMessage.class)) {
         return (T) method.invoke(serviceObject, request);
       } else {
-        return (T) method.invoke(serviceObject, new Object[] {request.data()});
+        T invoke = (T) method.invoke(serviceObject, new Object[]{request.data()});
+        return invoke;
       }
     } else {
       // should we later support 2 parameters? message and the Stream processor?

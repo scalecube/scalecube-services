@@ -69,7 +69,6 @@ public final class ServiceMethodSubscription implements Subscription {
 
   }
 
-
   @Override
   public void unsubscribe() {
     if (subsciption != null) {
@@ -92,7 +91,7 @@ public final class ServiceMethodSubscription implements Subscription {
           CompletableFuture<Object> result = invoke(message);
           result.whenComplete((response, error) -> {
             if (error == null) {
-              StreamMessage t = codec.encodeData(message);
+              StreamMessage t = codec.encodeData(StreamMessage.from(message).data(response).build());
               observer.onNext(t);
               observer.onCompleted();
             } else {
@@ -128,6 +127,7 @@ public final class ServiceMethodSubscription implements Subscription {
       public void onNext(StreamMessage message) {
         try {
           invoke(message);
+          streamProcessor.onNext(StreamMessage.from(message).data(null).build());
           streamProcessor.onCompleted();
         } catch (Throwable error) {
           streamProcessor.onError(error);

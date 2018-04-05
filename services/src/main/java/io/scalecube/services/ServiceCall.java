@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.netty.buffer.ByteBuf;
 import io.scalecube.concurrency.Futures;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
@@ -40,6 +41,7 @@ public class ServiceCall {
     private Router router;
     private Metrics metrics;
     private Timer latency;
+    private Class<?> payloadType = ByteBuf.class;
 
     public Call timeout(Duration timeout) {
       this.timeout = timeout;
@@ -48,6 +50,11 @@ public class ServiceCall {
 
     public Call router(Router router) {
       this.router = router;
+      return this;
+    }
+
+    public Call payloadOf(Class<?> payloadType){
+      this.payloadType = payloadType;
       return this;
     }
 
@@ -64,15 +71,15 @@ public class ServiceCall {
      * case of an error or TimeoutException if no response if a given duration.
      * 
      * @param request request with given headers.
-     * @param timeout timeout
      * @return CompletableFuture with service call dispatching result.
      */
     public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
       Messages.validate().serviceRequest(request);
 
-      return this.invoke(request, router.route(request)
-          .orElseThrow(() -> noReachableMemberException(request)), timeout);
+      ServiceInstance serviceInstance = router.route(request).orElseThrow(() -> noReachableMemberException(request));
+      return invoke(request, serviceInstance, timeout);
     }
+
 
     /**
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in
@@ -84,8 +91,7 @@ public class ServiceCall {
      * @return CompletableFuture with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance)
-        throws Exception {
+    public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance) {
       Messages.validate().serviceRequest(request);
       return invoke(request, serviceInstance, timeout);
     }
@@ -112,7 +118,7 @@ public class ServiceCall {
       Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
       Metrics.inc(counter);
 
-      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request);
+      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request, payloadType);
       Futures.withTimeout(response, duration)
           .whenComplete((value, error) -> {
             Metrics.dec(counter);
@@ -133,27 +139,12 @@ public class ServiceCall {
      * Invoke all service instances with a given request message with a given service name and method name. expected
      * headers in request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the
      * method name to invoke. retrieves routes from router by calling router.routes and send async to each endpoint once
-     * a response is returned emit the response to the observable. uses a default duration timeout configured for this
-     * proxy.
+     * a response is returned emit the response to the observable.
      *
      * @param request request with given headers.
      * @return Observable with stream of results for each service call dispatching result.
      */
     public Observable<StreamMessage> invokeAll(final StreamMessage request) {
-      return this.invokeAll(request, this.timeout);
-    }
-
-    /**
-     * Invoke all service instances with a given request message with a given service name and method name. expected
-     * headers in request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the
-     * method name to invoke. retrieves routes from router by calling router.routes and send async to each endpoint once
-     * a response is returned emit the response to the observable.
-     *
-     * @param request request with given headers.
-     * @param duration of the response before TimeException is returned.
-     * @return Observable with stream of results for each service call dispatching result.
-     */
-    public Observable<StreamMessage> invokeAll(final StreamMessage request, final Duration duration) {
       final Subject<StreamMessage, StreamMessage> responsesSubject =
           PublishSubject.<StreamMessage>create().toSerialized();
       Collection<ServiceInstance> instances = router.routes(request);

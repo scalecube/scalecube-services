@@ -4,8 +4,11 @@ import java.time.Duration;
 
 final class GreetingRequest {
 
-  private final String name;
-  private final Duration duration;
+  private String name;
+  private Duration duration;
+
+  public GreetingRequest() {
+  }
 
   public GreetingRequest(String name) {
     this.name = name;

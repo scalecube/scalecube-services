@@ -2,8 +2,11 @@ package io.scalecube.services;
 
 final class GreetingResponse {
 
-  private final String result;
-  private final String sender;
+  private String result;
+  private String sender;
+
+  public GreetingResponse() {
+  }
 
   public GreetingResponse(String result){
     this.result = result;

@@ -74,7 +74,10 @@ public final class ClientStreamProcessors {
 
       @Override
       public Observable<RESP_TYPE> listen() {
-        return processor.listen().map(message -> codec.decodeData(message, respType).data()); // StreamMessage -> Pojo
+        return processor.listen().map(message -> {
+          RESP_TYPE data = codec.decodeData(message, respType).data();
+          return data;
+        }); // StreamMessage -> Pojo
                                                                                               // Payload
       }
 
@@ -110,7 +113,12 @@ public final class ClientStreamProcessors {
       @Override
       public Observable<StreamMessage> listen() { // Payload decoded
         return processor.listen()
-            .map(message -> StreamMessage.from(message).data(codec.decodeData(message, respType)).build());
+            .map(message -> {
+              if (respType == StreamMessage.class)
+                return message;
+              else
+                return codec.decodeData(message, respType);
+            });
       }
 
       @Override
