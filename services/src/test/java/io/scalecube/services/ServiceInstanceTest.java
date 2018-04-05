@@ -5,7 +5,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
 import io.scalecube.testlib.BaseTest;
@@ -17,49 +16,6 @@ import java.util.Collections;
 import java.util.HashMap;
 
 public class ServiceInstanceTest extends BaseTest {
-
-  @Test
-  public void test_localService_instance() {
-
-    Address address = Address.create("localhost", 4000);
-    ServiceConfig conf = new ServiceConfig(new GreetingServiceImpl());
-    LocalServiceInstance instance = new LocalServiceInstance(conf, address, "a", "b", new HashMap<>());
-    assertEquals(instance.toString(), "LocalServiceInstance [serviceObject=GreetingServiceImpl [], memberId=a]");
-    assertTrue(instance.tags().isEmpty());
-    assertEquals(instance.memberId(), "a");
-    assertEquals(instance.serviceName(), "b");
-
-    try {
-      new LocalServiceInstance(null, address, "a", "b", new HashMap<>());
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: serviceConfig can't be null");
-    }
-
-    try {
-      new LocalServiceInstance(conf, null, "a", "b", new HashMap<>());
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: address can't be null");
-    }
-
-    try {
-      new LocalServiceInstance(conf, address, null, "b", new HashMap<>());
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: memberId can't be null");
-    }
-
-    try {
-      new LocalServiceInstance(conf, address, "a", null, new HashMap<>());
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: serviceName can't be null");
-    }
-
-    try {
-      new LocalServiceInstance(conf, address, "a", "b", null);
-    } catch (Exception ex) {
-      assertEquals(ex.toString(), "java.lang.IllegalArgumentException: methods can't be null");
-    }
-
-  }
 
   @Test
   public void test_remote_service_instance() {
