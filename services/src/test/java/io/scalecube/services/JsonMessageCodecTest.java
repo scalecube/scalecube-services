@@ -6,6 +6,7 @@ import com.google.common.collect.Lists;
 
 import io.netty.buffer.ByteBuf;
 
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

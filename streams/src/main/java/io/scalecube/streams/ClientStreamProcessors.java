@@ -1,6 +1,7 @@
 package io.scalecube.streams;
 
 import io.scalecube.streams.codec.StreamMessageDataCodec;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.Bootstrap;
@@ -16,7 +17,7 @@ public final class ClientStreamProcessors {
 
   private final ClientStream clientStream;
   private final ClientStreamProcessorFactory clientStreamProcessorFactory;
-  private StreamMessageDataCodec codec;
+  private final StreamMessageDataCodec codec;
 
   /**
    * Bootstrap constructor.
@@ -25,6 +26,7 @@ public final class ClientStreamProcessors {
    */
   private ClientStreamProcessors(Config config) {
     this.config = config;
+    this.codec = config.codec;
     this.clientStream = ClientStream.newClientStream(config.bootstrap);
     this.clientStreamProcessorFactory = new ClientStreamProcessorFactory(clientStream);
   }
@@ -67,7 +69,7 @@ public final class ClientStreamProcessors {
 
       @Override
       public void onNext(StreamMessage b) {
-        processor.onNext(StreamMessage.from(b).data(codec.encodeData(b)).build());
+        processor.onNext(codec.encodeData(b));
       }
 
       @Override
@@ -128,7 +130,7 @@ public final class ClientStreamProcessors {
   private static class Config {
 
     private Bootstrap bootstrap = ClientStream.getDefaultBootstrap();
-    private StreamMessageDataCodec codec;
+    private StreamMessageDataCodec codec = new StreamMessageDataCodecImpl();
 
     private Config() {}
 

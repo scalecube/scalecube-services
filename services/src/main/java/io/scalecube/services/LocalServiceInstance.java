@@ -75,7 +75,7 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public <TYPE> CompletableFuture<TYPE> invoke(StreamMessage request, Class<TYPE> responseType) {
+  public <TYPE> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<TYPE> responseType) {
     checkArgument(request != null, "message can't be null");
 
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
@@ -102,9 +102,9 @@ public class LocalServiceInstance implements ServiceInstance {
     }
   }
 
-  private <TYPE> CompletableFuture<TYPE> invokeMethod(final StreamMessage request, final Method method) {
+  private <TYPE> CompletableFuture<StreamMessage> invokeMethod(final StreamMessage request, final Method method) {
 
-    final CompletableFuture<TYPE> resultMessage = new CompletableFuture<>();
+    final CompletableFuture<StreamMessage> resultMessage = new CompletableFuture<>();
     try {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "request");
       final Object result = Reflect.invoke(this.serviceObject, method, request);
@@ -114,9 +114,9 @@ public class LocalServiceInstance implements ServiceInstance {
           if (error == null) {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
             if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
-              resultMessage.complete((TYPE) success);
+              resultMessage.complete((StreamMessage) success);
             } else {
-              resultMessage.complete((TYPE) success);
+              resultMessage.complete(StreamMessage.from(request).data(success).build());
             }
           } else {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");

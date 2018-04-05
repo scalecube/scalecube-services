@@ -6,6 +6,7 @@ import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.codec.StreamMessageDataCodec;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -68,13 +69,16 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public <RESP_TYPE> CompletableFuture<RESP_TYPE> invoke(StreamMessage request, Class<RESP_TYPE> responseType) {
-    CompletableFuture<RESP_TYPE> result = new CompletableFuture<>();
-    StreamProcessor<StreamMessage, RESP_TYPE> sp = client.create(address, responseType);
+  public <RESP_TYPE> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<RESP_TYPE> responseType) {
+    CompletableFuture<StreamMessage> result = new CompletableFuture<>();
+    StreamProcessor<StreamMessage, StreamMessage> sp = client.createRaw(address, responseType);
     sp.listen().subscribe(
-        result::complete,
+        onNext -> {
+          LOGGER.info("Rcvd on client: {}", onNext);
+          result.complete(onNext);
+        },
         onError -> {
-          LOGGER.error("Failed to send request {} to target address {}", request, address);
+          LOGGER.error("Failed to send request {} to target address {}", request, address, onError);
           result.completeExceptionally(onError);
         },
         () -> result.complete(null));

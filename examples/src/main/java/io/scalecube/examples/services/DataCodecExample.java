@@ -1,6 +1,6 @@
 package io.scalecube.examples.services;
 
-import io.scalecube.services.StreamMessageDataCodecImpl;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;

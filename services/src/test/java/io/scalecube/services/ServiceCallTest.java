@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -33,6 +34,9 @@ public class ServiceCallTest extends BaseTest {
   public static final int TIMEOUT = 3;
   private static AtomicInteger port = new AtomicInteger(4000);
 
+  private static final StreamMessage GREETING_NO_PARAMS_REQUEST = Messages.builder()
+          .request(SERVICE_NAME, "greetingNoParams").build();
+
   @Test
   public void test_local_async_no_params() throws Exception {
     // Create microservices cluster.
@@ -43,14 +47,13 @@ public class ServiceCallTest extends BaseTest {
 
     Router router = microservices.router(RoundRobinServiceRouter.class);
     Call serviceCall = ServiceCall.call().router(router);
-    
+
     // call the service.
-    CompletableFuture<StreamMessage> future = serviceCall.invoke(Messages.builder()
-        .request(SERVICE_NAME, "greetingNoParams").build());
+    CompletableFuture<StreamMessage> future = serviceCall.invoke(GREETING_NO_PARAMS_REQUEST);
 
     future.whenComplete((message, ex) -> {
       if (ex == null) {
-        assertEquals("Didn't get desired response", "hello unknown", message.data());
+        assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
       } else {
         fail("Failed to invoke service: " + ex.getMessage());
       }
@@ -59,7 +62,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_no_params() throws Exception{
+  public void test_remote_async_greeting_no_params() throws Exception {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -75,12 +78,11 @@ public class ServiceCallTest extends BaseTest {
     Call serviceCall = consumer.call();
 
     // call the service.
-    CompletableFuture<StreamMessage> future = serviceCall.invoke(Messages.builder()
-            .request(SERVICE_NAME, "greetingNoParams").build());
+    CompletableFuture<StreamMessage> future = serviceCall.invoke(GREETING_NO_PARAMS_REQUEST);
 
     future.whenComplete((message, ex) -> {
       if (ex == null) {
-        assertEquals("Didn't get desired response", "hello unknown", message.data());
+        assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
       } else {
         fail("Failed to invoke service: " + ex.getMessage());
       }
@@ -134,7 +136,7 @@ public class ServiceCallTest extends BaseTest {
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
-    
+
     Call service = node.call();
 
     // call the service.
@@ -194,9 +196,9 @@ public class ServiceCallTest extends BaseTest {
       }
     });
     await(timeLatch, 1, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
+    assertTrue(timeLatch.getCount() == 0);
     assertTrue(resultAsString.equals(" hello to: joe"));
-    
+
     provider.shutdown().get();
     consumer.shutdown().get();
   }
@@ -281,7 +283,7 @@ public class ServiceCallTest extends BaseTest {
         .port(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
-    
+
     Call service = node.call()
         .timeout(Duration.ofSeconds(1));
 
@@ -457,7 +459,7 @@ public class ServiceCallTest extends BaseTest {
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
-    final AtomicBoolean success =new AtomicBoolean(false);
+    final AtomicBoolean success = new AtomicBoolean(false);
     combined.whenComplete((v, x) -> {
       try {
         // print the greeting.
@@ -465,14 +467,14 @@ public class ServiceCallTest extends BaseTest {
         System.out.println("11. round_robin_selection_logic :" + result2.get());
         GreetingResponse response1 = result1.get().data();
         GreetingResponse response2 = result2.get().data();
-        success.set( !response1.sender().equals(response2.sender()));
+        success.set(!response1.sender().equals(response2.sender()));
       } catch (Throwable e) {
         assertTrue(false);
       }
       timeLatch.countDown();
     });
     await(timeLatch, 2, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount()==0);
+    assertTrue(timeLatch.getCount() == 0);
     assertTrue(success.get());
     provider2.shutdown().get();
     provider1.shutdown().get();

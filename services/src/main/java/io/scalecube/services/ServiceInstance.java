@@ -15,7 +15,7 @@ public interface ServiceInstance {
 
   Observable<StreamMessage> listen(StreamMessage request);
 
-  <TYPE> CompletableFuture<TYPE> invoke(StreamMessage request, Class<TYPE> responseType);
+  <TYPE> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<TYPE> responseType);
 
   <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType);
 
