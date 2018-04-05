@@ -184,7 +184,7 @@ public class Microservices {
       ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
 
       return Reflect.builder(
-          new Microservices(Cluster.joinAwait(clusterConfig), serviceAddress, this.client, servicesConfig, this.metrics))
+          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client, servicesConfig, this.metrics))
           .inject();
 
     }

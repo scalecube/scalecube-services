@@ -202,8 +202,9 @@ public class ServiceCall {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
-          if (check != null)
+          if (check != null) {
             return check;
+          }
           
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
