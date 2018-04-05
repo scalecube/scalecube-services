@@ -24,7 +24,10 @@ final class GreetingResponse {
 
   @Override
   public String toString() {
-    return "GreetingResponse{result='" + result + '\'' + '}';
+    return "GreetingResponse{" +
+        "result='" + result + '\'' +
+        ", sender='" + sender + '\'' +
+        '}';
   }
 
   public String sender() {

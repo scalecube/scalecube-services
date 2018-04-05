@@ -10,7 +10,6 @@ import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
-import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
@@ -488,14 +487,14 @@ public class ServiceTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<StreamMessage> future = service.greetingMessage(StreamMessage.builder().data("joe").build());
+    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
+    future.whenComplete((GreetingResponse result, Throwable ex) -> {
       if (ex == null) {
-        assertTrue(result.data().equals(" hello to: joe"));
+        assertTrue(result.getResult().equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("9. local_async_greeting_return_Message :" + result.data());
+        System.out.println("9. local_async_greeting_return_Message :" + result);
         timeLatch.countDown();
       } else {
         // print the greeting.
@@ -526,19 +525,19 @@ public class ServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<StreamMessage> future = service.greetingMessage(StreamMessage.builder().data("joe").build());
+    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
       if (ex == null) {
         // print the greeting.
-        System.out.println("10. remote_async_greeting_return_Message :" + result.data());
+        System.out.println("10. remote_async_greeting_return_Message :" + result);
         // print the greeting.
-        assertTrue(result.data().equals(" hello to: joe"));
+        assertTrue(result.getResult().equals(" hello to: joe"));
       } else {
         // print the greeting.
         System.out.println("10 failed: " + ex);
-        assertTrue(result.data().equals(" hello to: joe"));
+        assertTrue(result.getResult().equals(" hello to: joe"));
       }
       timeLatch.countDown();
     });
@@ -569,8 +568,8 @@ public class ServiceTest extends BaseTest {
 
     GreetingService service = createProxy(gateway);
 
-    CompletableFuture<StreamMessage> result1 = service.greetingMessage(StreamMessage.builder().data("joe").build());
-    CompletableFuture<StreamMessage> result2 = service.greetingMessage(StreamMessage.builder().data("joe").build());
+    CompletableFuture<GreetingResponse> result1 = service.greetingRequest(new GreetingRequest("joe"));
+    CompletableFuture<GreetingResponse> result2 = service.greetingRequest(new GreetingRequest("joe"));
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -579,8 +578,8 @@ public class ServiceTest extends BaseTest {
         // print the greeting.
         System.out.println("11. round_robin_selection_logic :" + result1.get());
         System.out.println("11. round_robin_selection_logic :" + result2.get());
-        GreetingResponse response1 = result1.get().data();
-        GreetingResponse response2 = result2.get().data();
+        GreetingResponse response1 = result1.get();
+        GreetingResponse response2 = result2.get();
         boolean success = !response1.sender().equals(response2.sender());
 
         assertTrue(success);

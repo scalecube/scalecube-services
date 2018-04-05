@@ -3,9 +3,11 @@ package io.scalecube.services;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
 import static io.scalecube.services.TestRequests.SERVICE_NAME;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -35,21 +37,26 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ServiceCallTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
+
   public static final StreamMessage GREETING_REQ = Messages.builder()
       .request(SERVICE_NAME, "greeting")
       .data("joe")
       .build();
+
   public static final StreamMessage GREETING_REQUEST_REQ = Messages.builder()
       .request(SERVICE_NAME, "greetingRequest")
       .data(new GreetingRequest("joe"))
       .build();
+
   public static final StreamMessage GREETING_REQUEST_TIMEOUT_REQ = Messages.builder()
       .request(SERVICE_NAME, "greetingRequestTimeout")
       .data(new GreetingRequest("joe", Duration.ofSeconds(3)))
       .build();
-  public static final StreamMessage GREETING_MESSAGE_REQ = Messages.builder()
-      .request(SERVICE_NAME, "greetingMessage")
-      .data("joe").build();
+
+  // public static final StreamMessage GREETING_MESSAGE_REQ = Messages.builder()
+  // .request(SERVICE_NAME, "greetingMessage")
+  // .data("joe").build();
+
   public static final StreamMessage NOT_FOUND_REQ = Messages.builder()
       .request(SERVICE_NAME, "unknown")
       .data("joe").build();
@@ -103,10 +110,11 @@ public class ServiceCallTest extends BaseTest {
     CompletableFuture<StreamMessage> future =
         serviceCall.responseTypeOf(GreetingResponse.class).invoke(GREETING_NO_PARAMS_REQUEST);
 
-    future.whenComplete((message, ex) -> {
+    future.whenComplete((StreamMessage message, Throwable ex) -> {
       if (ex == null) {
         assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
-        assertEquals("Didn't get desired response", "hello unknown", message.data());
+        assertThat(message.data(), instanceOf(GreetingResponse.class));
+        assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
       } else {
         fail("Failed to invoke service: " + ex.getMessage());
       }
@@ -284,7 +292,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<StreamMessage> future =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -304,7 +312,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_return_Message() throws InterruptedException, ExecutionException {
+  public void test_remote_async_greeting_return_Message() throws Exception {
     // Create microservices cluster.
     Microservices provider = serviceProvider();
 
@@ -318,7 +326,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<StreamMessage> future =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -326,7 +334,8 @@ public class ServiceCallTest extends BaseTest {
         // print the greeting.
         System.out.println("10. remote_async_greeting_return_Message :" + result.data());
         // print the greeting.
-        assertTrue(result.data().equals(" hello to: joe"));
+        assertThat(result.data(), instanceOf(GreetingResponse.class));
+        assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
       } else {
         // print the greeting.
         System.out.println("10 failed: " + ex);
@@ -335,13 +344,13 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
 
-    await(timeLatch, 3, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 3, TimeUnit.SECONDS));
     consumer.shutdown().get();
     provider.shutdown().get();
   }
 
   @Test
-  public void test_round_robin_selection_logic() throws InterruptedException, ExecutionException {
+  public void test_round_robin_selection_logic() throws Exception {
     Microservices gateway = gateway();
 
     // Create microservices instance cluster.
@@ -362,9 +371,9 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<StreamMessage> result1 =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
     CompletableFuture<StreamMessage> result2 =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -384,7 +393,8 @@ public class ServiceCallTest extends BaseTest {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 2, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 2, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     assertTrue(success.get());
     provider2.shutdown().get();
@@ -394,7 +404,7 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_async_greeting_return_string_service_not_found_error_case()
-      throws InterruptedException, ExecutionException {
+      throws Exception {
     Microservices gateway = gateway();
 
     // Create microservices instance cluster.
@@ -412,14 +422,14 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     }
 
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     gateway.shutdown().get();
     provider1.shutdown().get();
   }
 
   @Ignore("https://api.travis-ci.org/v3/job/346827972/log.txt")
   @Test
-  public void test_service_tags() throws InterruptedException, ExecutionException {
+  public void test_service_tags() throws Exception {
     Microservices gateway = gateway();
 
     Microservices services1 = Microservices.builder()
@@ -464,8 +474,7 @@ public class ServiceCallTest extends BaseTest {
       });
     }
 
-
-    await(timeLatch, 5, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
     System.out.println("responses: " + responses.get());
     System.out.println("count: " + count.get());
     System.out.println("Service B was called: " + count.get() + " times.");
@@ -507,7 +516,8 @@ public class ServiceCallTest extends BaseTest {
         timeLatch.countDown();
       }
     });
-    await(timeLatch, 10, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     gateway.shutdown().get();
     node.shutdown().get();
@@ -515,7 +525,7 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_dispatcher_local_greeting_request_completes_before_timeout()
-      throws InterruptedException, ExecutionException {
+      throws Exception {
 
     Microservices gateway = Microservices.builder()
         .services(new GreetingServiceImpl())
@@ -524,7 +534,7 @@ public class ServiceCallTest extends BaseTest {
     Call service = gateway.call().timeout(Duration.ofSeconds(3));
 
     CompletableFuture<StreamMessage> result =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
@@ -541,7 +551,8 @@ public class ServiceCallTest extends BaseTest {
         timeLatch.countDown();
       }
     });
-    await(timeLatch, 5, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     gateway.shutdown().get();
   }
@@ -559,11 +570,7 @@ public class ServiceCallTest extends BaseTest {
         .build();
   }
 
-  private void await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) {
-    try {
-      timeLatch.await(timeout, timeUnit);
-    } catch (InterruptedException e) {
-      throw new AssertionError();
-    }
+  private boolean await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) throws Exception {
+    return timeLatch.await(timeout, timeUnit);
   }
 }
