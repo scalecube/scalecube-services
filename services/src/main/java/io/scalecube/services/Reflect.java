@@ -168,7 +168,7 @@ public class Reflect {
 
   /**
    * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
-   * 
+   *
    * @param method in inspection.
    * @return type of parameter [0] or void
    */
@@ -240,7 +240,7 @@ public class Reflect {
 
   /**
    * invoke a java method by a given StreamMessage.
-   * 
+   *
    * @param serviceObject instance to invoke its method.
    * @param method method to invoke.
    * @param request stream message request containing data or message to invoke.
@@ -256,7 +256,8 @@ public class Reflect {
       if (method.getParameters()[0].getType().isAssignableFrom(StreamMessage.class)) {
         return (T) method.invoke(serviceObject, request);
       } else {
-        return (T) method.invoke(serviceObject, new Object[] {request.data()});
+        T invoke = (T) method.invoke(serviceObject, new Object[]{request.data()});
+        return invoke;
       }
     } else {
       // should we later support 2 parameters? message and the Stream processor?

@@ -1,7 +1,7 @@
 package io.scalecube.services.streams;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.StreamMessageDataCodecImpl;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamMessage;
@@ -12,7 +12,6 @@ import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
@@ -63,13 +62,12 @@ public final class ServiceMethodSubscription implements Subscription {
     } else if (Void.TYPE.equals(returnType)) {
       return subscription.toVoid();
     } else if (returnType == Subscriber.class && containsStreamProcessor(method.getParameters())) {
-      return subscription.requestStreamToResponseStream();
+      return subscription.toBidirectional();
     } else {
       throw new IllegalArgumentException();
     }
 
   }
-
 
   @Override
   public void unsubscribe() {
@@ -83,17 +81,18 @@ public final class ServiceMethodSubscription implements Subscription {
     return Objects.isNull(subsciption) || subsciption.isUnsubscribed();
   }
 
-
   private ServiceMethodSubscription toCompletableFuture() {
+    // Class<?> reqPayloadType = reqType();
     this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
       public void onNext(StreamMessage message) {
         try {
           // noinspection unchecked
           CompletableFuture<Object> result = invoke(message);
-          result.whenComplete((reponse, error) -> {
+          result.whenComplete((response, error) -> {
             if (error == null) {
-              observer.onNext(codec.encodeData(StreamMessage.from(message).data(reponse).build()));
+              StreamMessage t = codec.encodeData(StreamMessage.from(message).data(response).build());
+              observer.onNext(t);
               observer.onCompleted();
             } else {
               observer.onError(error);
@@ -128,6 +127,7 @@ public final class ServiceMethodSubscription implements Subscription {
       public void onNext(StreamMessage message) {
         try {
           invoke(message);
+          streamProcessor.onNext(StreamMessage.from(message).data(null).build());
           streamProcessor.onCompleted();
         } catch (Throwable error) {
           streamProcessor.onError(error);
@@ -137,7 +137,7 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  private ServiceMethodSubscription requestStreamToResponseStream() {
+  private ServiceMethodSubscription toBidirectional() {
     this.subsciption = accept(streamProcessor -> {
       try {
         // noinspection unchecked
@@ -157,7 +157,8 @@ public final class ServiceMethodSubscription implements Subscription {
       if (StreamMessage.class.equals(requestType)) {
         return Reflect.invoke(serviceObject, method, message);
       } else {
-        return Reflect.invoke(serviceObject, method, codec.decodeData(message, requestType));
+        return Reflect.invoke(serviceObject, method,
+            codec.decodeData(message, Class.forName(requestType.getTypeName())));
       }
     }
   }
@@ -169,11 +170,14 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   private Subscription accept(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
-    return server.listen().subscribe(streamProcessor -> { // => got new stream processor
+    return server.listen().subscribe(sp -> {
       // listen for stream messages with qualifier filter
-      streamProcessor.listen()
-          .filter(message -> qualifier.asString().equalsIgnoreCase(message.qualifier()))
-          .subscribe(factory.apply(streamProcessor));
+      sp.<StreamMessage>listen()
+          .filter(message -> {
+            boolean b = qualifier.asString().equalsIgnoreCase(((StreamMessage) message).qualifier());
+            return b;
+          })
+          .subscribe(factory.apply(sp));
     });
   }
 

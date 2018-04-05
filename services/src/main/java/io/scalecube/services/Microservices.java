@@ -13,6 +13,7 @@ import io.scalecube.services.streams.ServiceStreams;
 import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamProcessors;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
@@ -122,6 +123,7 @@ public class Microservices {
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
     this.routerFactory = new RouterFactory(serviceRegistry);
   }
+
   // FIXME: need to implement cleanup process
   private void cleanupStuff() {
     // this.cluster().listenMembership()
@@ -180,6 +182,8 @@ public class Microservices {
           .collect(Collectors.toList());
 
       Address serviceAddress = this.server.bindAwait();
+
+      servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
       ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
 
       return Reflect.builder(

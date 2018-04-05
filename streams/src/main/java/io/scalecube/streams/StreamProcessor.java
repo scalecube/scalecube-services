@@ -3,9 +3,9 @@ package io.scalecube.streams;
 import rx.Observable;
 import rx.Observer;
 
-public interface StreamProcessor extends Observer<StreamMessage> {
+public interface StreamProcessor<REQ, RESP> extends Observer<REQ> {
 
-  Observable<StreamMessage> listen();
+  Observable<RESP> listen();
 
   void close();
 }

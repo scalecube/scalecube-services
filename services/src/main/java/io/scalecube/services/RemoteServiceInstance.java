@@ -6,6 +6,7 @@ import io.scalecube.streams.ClientStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.codec.StreamMessageDataCodec;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -50,42 +51,40 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Observable<StreamMessage> listen(final StreamMessage request) {
-
-    StreamProcessor sp = client.create(address);
-    Observable<StreamMessage> observer = sp.listen();
-
+  public <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType) {
+    StreamProcessor<StreamMessage, RESP_TYPE> sp = client.create(address, responseType);
     sp.onNext(request);
     sp.onCompleted();
-    return observer;
-
+    return sp.listen();
   }
 
   @Override
   public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
+    return invoke(request, StreamMessage.class);
+  }
 
+  @Override
+  public Observable<StreamMessage> listen(StreamMessage request) {
+    return listen(request, StreamMessage.class);
+  }
+
+  @Override
+  public <RESP_TYPE> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<RESP_TYPE> responseType) {
     CompletableFuture<StreamMessage> result = new CompletableFuture<>();
+    StreamProcessor<StreamMessage, StreamMessage> sp = client.createRaw(address, responseType);
+    sp.listen().subscribe(
+        onNext -> {
+          LOGGER.info("Rcvd on client: {}", onNext);
+          result.complete(onNext);
+        },
+        onError -> {
+          LOGGER.error("Failed to send request {} to target address {}", request, address, onError);
+          result.completeExceptionally(onError);
+        },
+        () -> result.complete(null));
 
-    StreamProcessor sp = client.create(address);
-    Observable<StreamMessage> observer;
-    try {
-      observer = sp.listen().map(response -> dataCodec.decodeData(response, String.class));
-      sp.onNext(dataCodec.encodeData(request));
-      sp.onCompleted();
-
-      observer.subscribe(
-          result::complete,
-          onError -> {
-            LOGGER.error("Failed to send request {} to target address {}", request, address);
-            result.completeExceptionally(onError);
-          },
-          () -> result.complete(null));
-    } catch (Throwable ex) {
-      LOGGER.error("Failed to handle request {}", request, ex);
-    }
-
-
-
+    sp.onNext(request);
+    sp.onCompleted();
     return result;
   }
 

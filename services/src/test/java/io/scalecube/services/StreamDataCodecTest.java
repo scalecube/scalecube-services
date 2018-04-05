@@ -5,6 +5,7 @@ import io.scalecube.streams.Event;
 import io.scalecube.streams.ListeningServerStream;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.codec.StreamMessageDataCodec;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.transport.Address;
 
 import org.junit.After;

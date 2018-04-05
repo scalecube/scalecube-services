@@ -1,6 +1,8 @@
 package io.scalecube.examples.streams;
 
 import io.scalecube.streams.ServerStreamProcessors;
+import io.scalecube.streams.StreamMessage;
+import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.StreamProcessors;
 
 /**
@@ -16,7 +18,7 @@ public class StreamsEchoServerRunner {
 
     server.bind().thenAccept(address -> {
       System.out.println("Listen on: " + address);
-      server.listen().subscribe(sp -> sp.listen()
+      server.listen().subscribe(sp -> ((StreamProcessor<StreamMessage, StreamMessage>)sp).listen()
           .filter(message -> message.qualifier().equalsIgnoreCase("q/hello"))
           .subscribe(
               message -> {

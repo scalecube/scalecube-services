@@ -19,7 +19,7 @@ public class StreamEchoClientRunner {
   public static void main(String[] args) throws Exception {
     ClientStreamProcessors client = StreamProcessors.newClient();
 
-    StreamProcessor sp = client.create(Address.from("localhost:8000"));
+    StreamProcessor<StreamMessage, StreamMessage> sp = client.create(Address.from("localhost:8000"));
 
     sp.listen().subscribe(
         System.out::println,
