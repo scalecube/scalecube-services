@@ -5,6 +5,7 @@ import io.scalecube.socketio.SocketIOListener;
 import io.scalecube.streams.ChannelContext;
 import io.scalecube.streams.Event;
 import io.scalecube.streams.EventStream;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.codec.StreamMessageCodec;
 import io.scalecube.streams.netty.ChannelSupport;
 import io.scalecube.transport.Address;
@@ -70,7 +71,7 @@ public final class GatewaySocketIoListener implements SocketIOListener {
           }
         },
         throwable -> {
-          LOGGER.error("Fatal exception occured on channel context: {}, cause: {}", channelContext.getId(), throwable);
+          LOGGER.error("Fatal exception occured on channel context: {}", channelContext.getId(), throwable);
           session.disconnect();
         });
   }
@@ -93,11 +94,17 @@ public final class GatewaySocketIoListener implements SocketIOListener {
       return;
     }
 
+    StreamMessage message = null;
     try {
-      channelContext.postReadSuccess(StreamMessageCodec.decode(buf));
+      message = StreamMessageCodec.decode(buf);
     } catch (Exception throwable) {
-      ChannelSupport.releaseRefCount(buf);
       channelContext.postReadError(throwable);
+    } finally {
+      ChannelSupport.releaseRefCount(buf);
+    }
+
+    if (message != null) {
+      channelContext.postReadSuccess(message);
     }
   }
 
