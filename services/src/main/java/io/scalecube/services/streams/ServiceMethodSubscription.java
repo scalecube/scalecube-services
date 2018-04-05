@@ -1,12 +1,12 @@
 package io.scalecube.services.streams;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.streams.Qualifier;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;
 import io.scalecube.streams.codec.StreamMessageDataCodec;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -91,8 +91,7 @@ public final class ServiceMethodSubscription implements Subscription {
           CompletableFuture<Object> result = invoke(message);
           result.whenComplete((response, error) -> {
             if (error == null) {
-              StreamMessage t = codec.encodeData(StreamMessage.from(message).data(response).build());
-              observer.onNext(t);
+              observer.onNext(codec.encodeData(StreamMessage.from(message).data(response).build()));
               observer.onCompleted();
             } else {
               observer.onError(error);
@@ -170,14 +169,12 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   private Subscription accept(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
-    return server.listen().subscribe(sp -> {
+    return server.listen().subscribe(streamProcessor -> {
       // listen for stream messages with qualifier filter
-      sp.<StreamMessage>listen()
-          .filter(message -> {
-            boolean b = qualifier.asString().equalsIgnoreCase(((StreamMessage) message).qualifier());
-            return b;
-          })
-          .subscribe(factory.apply(sp));
+      // noinspection unchecked
+      ((StreamProcessor<StreamMessage, StreamMessage>) streamProcessor).listen()
+          .filter(message -> qualifier.asString().equalsIgnoreCase(message.qualifier()))
+          .subscribe(factory.apply(streamProcessor));
     });
   }
 

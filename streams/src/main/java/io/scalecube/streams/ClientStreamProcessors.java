@@ -6,7 +6,6 @@ import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.Bootstrap;
 
-import org.slf4j.MDC;
 import rx.Observable;
 
 import java.util.function.Consumer;
@@ -51,34 +50,38 @@ public final class ClientStreamProcessors {
     return create(address, StreamMessage.class);
   }
 
-  public <RESP_TYPE> StreamProcessor<StreamMessage, RESP_TYPE> create(Address address, Class<RESP_TYPE> respType) {
+  /**
+   * Same as {@link #create(Address)} but with response type provided.
+   * 
+   * @param address address
+   * @param respType response typ
+   * @param <T> response type class
+   * @return typed StreamProcessor
+   */
+  public <T> StreamProcessor<StreamMessage, T> create(Address address, Class<T> respType) {
     // noinspection unchecked
     StreamProcessor<StreamMessage, StreamMessage> processor =
         clientStreamProcessorFactory.newClientStreamProcessor(address);
 
-    return new StreamProcessor<StreamMessage, RESP_TYPE>() {
+    return new StreamProcessor<StreamMessage, T>() {
       @Override
       public void onCompleted() {
         processor.onCompleted();
       }
 
       @Override
-      public void onError(Throwable e) {
-        processor.onError(e);
+      public void onError(Throwable throwable) {
+        processor.onError(throwable);
       }
 
       @Override
-      public void onNext(StreamMessage b) {
-        processor.onNext(codec.encodeData(b));
+      public void onNext(StreamMessage message) {
+        processor.onNext(codec.encodeData(message));
       }
 
       @Override
-      public Observable<RESP_TYPE> listen() {
-        return processor.listen().map(message -> {
-          RESP_TYPE data = codec.decodeData(message, respType).data();
-          return data;
-        }); // StreamMessage -> Pojo
-                                                                                              // Payload
+      public Observable<T> listen() {
+        return processor.listen().map(message -> codec.decodeData(message, respType).data());
       }
 
       @Override
@@ -88,8 +91,15 @@ public final class ClientStreamProcessors {
     };
   }
 
-  public <RESP_TYPE> StreamProcessor<StreamMessage, StreamMessage> createRaw(Address address,
-      Class<RESP_TYPE> respType) {
+  /**
+   * Same as {@link #create(Address)} but with response type provided.
+   * 
+   * @param address address
+   * @param respType response type
+   * @param <T> response type class
+   * @return typed StreamProcessor
+   */
+  public <T> StreamProcessor<StreamMessage, StreamMessage> createRaw(Address address, Class<T> respType) {
     // noinspection unchecked
     StreamProcessor<StreamMessage, StreamMessage> processor =
         clientStreamProcessorFactory.newClientStreamProcessor(address);
@@ -101,23 +111,24 @@ public final class ClientStreamProcessors {
       }
 
       @Override
-      public void onError(Throwable e) {
-        processor.onError(e);
+      public void onError(Throwable throwable) {
+        processor.onError(throwable);
       }
 
       @Override
-      public void onNext(StreamMessage msg) {// Payload encoded
-        processor.onNext(codec.encodeData(msg));
+      public void onNext(StreamMessage message) {
+        processor.onNext(codec.encodeData(message));
       }
 
       @Override
-      public Observable<StreamMessage> listen() { // Payload decoded
+      public Observable<StreamMessage> listen() {
         return processor.listen()
             .map(message -> {
-              if (respType == StreamMessage.class)
+              if (respType == StreamMessage.class) {
                 return message;
-              else
+              } else {
                 return codec.decodeData(message, respType);
+              }
             });
       }
 

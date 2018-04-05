@@ -1,9 +1,6 @@
-package io.scalecube.services;
+package io.scalecube.streams.codec;
 
-import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.scalecube.streams.StreamMessage;
-import io.scalecube.streams.codec.StreamMessageDataCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -11,6 +8,7 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -26,7 +24,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec {
-  private static Logger LOGGER = LoggerFactory.getLogger(StreamMessageDataCodecImpl.class);
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(StreamMessageDataCodecImpl.class);
 
   private final ObjectMapper mapper;
 
@@ -40,12 +39,10 @@ public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec 
 
   @Override
   public StreamMessage decodeData(StreamMessage message, Class type) {
-
     if (message.data() != null && message.data() instanceof ByteBuf) {
       ByteBufInputStream inputStream = new ByteBufInputStream(message.data());
       try {
-        StreamMessage response = StreamMessage.from(message).data(readFrom(inputStream, type)).build();
-        return response;
+        return StreamMessage.from(message).data(readFrom(inputStream, type)).build();
       } catch (Throwable ex) {
         LOGGER.error("Failed to deserialize data", ex);
       }
@@ -72,8 +69,7 @@ public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec 
     // TypeFactory typeFactory = mapper.reader().getTypeFactory();
     // JavaType resolvedType = typeFactory.constructType(type);
 
-    Object o = mapper.readValue(stream, type);
-    return o;
+    return mapper.readValue(stream, type);
   }
 
   private void writeTo(OutputStream stream, Object value) throws IOException {

@@ -70,25 +70,24 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Observable<StreamMessage> listen(StreamMessage request) {
-    return listen(request, StreamMessage.class);
-  }
-
-  @Override
-  public <TYPE> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<TYPE> responseType) {
+  public <T> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<T> responseType) {
     checkArgument(request != null, "message can't be null");
 
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
     return invokeMethod(request, method);
   }
 
+  @Override
+  public Observable<StreamMessage> listen(StreamMessage request) {
+    return listen(request, StreamMessage.class);
+  }
 
   @Override
-  public <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType) {
+  public <T> Observable<T> listen(StreamMessage request, Class<T> responseType) {
     checkArgument(request != null, "message can't be null.");
     final Method method = getMethod(request);
     checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
-    Observable<RESP_TYPE> observable = null;
+    Observable<T> observable = null;
     try {
       observable = Reflect.invoke(serviceObject, method, request);
       return observable.map(message -> {
@@ -103,8 +102,7 @@ public class LocalServiceInstance implements ServiceInstance {
     }
   }
 
-  private <TYPE> CompletableFuture<StreamMessage> invokeMethod(final StreamMessage request, final Method method) {
-
+  private CompletableFuture<StreamMessage> invokeMethod(final StreamMessage request, final Method method) {
     final CompletableFuture<StreamMessage> resultMessage = new CompletableFuture<>();
     try {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "request");

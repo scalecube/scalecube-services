@@ -51,16 +51,11 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType) {
-    StreamProcessor<StreamMessage, RESP_TYPE> sp = client.create(address, responseType);
+  public <T> Observable<T> listen(StreamMessage request, Class<T> responseType) {
+    StreamProcessor<StreamMessage, T> sp = client.create(address, responseType);
     sp.onNext(request);
     sp.onCompleted();
     return sp.listen();
-  }
-
-  @Override
-  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
-    return invoke(request, StreamMessage.class);
   }
 
   @Override
@@ -69,7 +64,12 @@ public class RemoteServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public <RESP_TYPE> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<RESP_TYPE> responseType) {
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
+    return invoke(request, StreamMessage.class);
+  }
+
+  @Override
+  public <T> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<T> responseType) {
     CompletableFuture<StreamMessage> result = new CompletableFuture<>();
     StreamProcessor<StreamMessage, StreamMessage> sp = client.createRaw(address, responseType);
     sp.listen().subscribe(

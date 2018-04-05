@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class ServiceCallTest extends BaseTest {
 
@@ -52,9 +51,9 @@ public class ServiceCallTest extends BaseTest {
       .request(SERVICE_NAME, "greetingMessage")
       .data("joe").build();
   public static final StreamMessage NOT_FOUND_REQ = Messages.builder()
-          .request(SERVICE_NAME, "unknown")
-          .data("joe").build();
-  public static final int TIMEOUT = 3;
+      .request(SERVICE_NAME, "unknown")
+      .data("joe").build();
+
   private static AtomicInteger port = new AtomicInteger(4000);
 
 
@@ -274,8 +273,7 @@ public class ServiceCallTest extends BaseTest {
 
 
     Call service = microservices.call()
-        .timeout(Duration.ofSeconds(1))
-        ;
+        .timeout(Duration.ofSeconds(1));
 
     // call the service.
     CompletableFuture<StreamMessage> future = service.invoke(GREETING_MESSAGE_REQ);
@@ -368,7 +366,7 @@ public class ServiceCallTest extends BaseTest {
         System.out.println("11. round_robin_selection_logic :" + result2.get());
 
         GreetingResponse response1 = result1.get().data();
-        GreetingResponse response2 =result2.get().data();
+        GreetingResponse response2 = result2.get().data();
 
         success.set(!response1.sender().equals(response2.sender()));
       } catch (Throwable e) {
@@ -377,7 +375,7 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 2, TimeUnit.SECONDS);
-assertTrue(timeLatch.getCount() == 0);
+    assertTrue(timeLatch.getCount() == 0);
     assertTrue(success.get());
     provider2.shutdown().get();
     provider1.shutdown().get();
@@ -470,7 +468,7 @@ assertTrue(timeLatch.getCount() == 0);
   }
 
   @Test
-  public void test_dispatcher_remote_greeting_request_completes_before_timeout() throws Exception{
+  public void test_dispatcher_remote_greeting_request_completes_before_timeout() throws Exception {
 
     // Create microservices instance.
     Microservices gateway = gateway();
@@ -590,10 +588,10 @@ assertTrue(timeLatch.getCount() == 0);
     CountDownLatch latch = new CountDownLatch(2);
 
     call.invokeAll(GREETING_REQUEST_TIMEOUT_REQ).subscribe(onNext -> {
-          System.out.println(onNext.data().toString());
-          assertTrue(onNext.data() instanceof TimeoutException);
-          latch.countDown();
-        });
+      System.out.println(onNext.data().toString());
+      assertTrue(onNext.data() instanceof TimeoutException);
+      latch.countDown();
+    });
 
     TimeUnit.SECONDS.sleep(2);
     assertTrue(latch.getCount() == 0);
