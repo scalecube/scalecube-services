@@ -106,7 +106,6 @@ public class ServiceCall {
         final Duration duration) {
 
       Objects.requireNonNull(serviceInstance);
-      Objects.requireNonNull(responseType);
       Messages.validate().serviceRequest(request);
       serviceInstance.checkMethodExists(Messages.qualifierOf(request).getAction());
 

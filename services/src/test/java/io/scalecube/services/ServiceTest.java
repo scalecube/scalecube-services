@@ -75,7 +75,7 @@ public class ServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_greeting_request_completes_before_timeout() throws InterruptedException, ExecutionException {
+  public void test_remote_greeting_request_completes_before_timeout() throws Exception {
     Duration duration = Duration.ofSeconds(1);
 
     // Create microservices instance.
@@ -109,15 +109,14 @@ public class ServiceTest extends BaseTest {
       }
     });
 
-    await(timeLatch, 10, TimeUnit.SECONDS);
-
+    assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
     node2.shutdown().get();
     gateway.shutdown().get();
 
   }
 
   @Test
-  public void test_greeting_request_completes_before_timeout() {
+  public void test_greeting_request_completes_before_timeout() throws Exception {
     Duration duration = Duration.ofSeconds(1);
 
     // Create microservices instance.
@@ -141,14 +140,14 @@ public class ServiceTest extends BaseTest {
       }
     });
 
-    await(timeLatch, 60, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 60, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     node1.shutdown();
 
   }
 
   @Test
-  public void test_local_async_greeting() throws InterruptedException, ExecutionException {
+  public void test_local_async_greeting() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -174,12 +173,12 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
 
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     microservices.shutdown().get();
   }
 
   @Test
-  public void test_local_async_no_params() throws InterruptedException, ExecutionException {
+  public void test_local_async_no_params() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -205,7 +204,7 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
 
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     microservices.shutdown().get();
   }
 
@@ -260,7 +259,7 @@ public class ServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_return_string() throws InterruptedException, ExecutionException {
+  public void test_remote_async_greeting_return_string() throws Exception {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -291,13 +290,14 @@ public class ServiceTest extends BaseTest {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 1, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     provider.shutdown().get();
     consumer.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_no_params() throws InterruptedException, ExecutionException {
+  public void test_remote_async_greeting_no_params() throws Exception {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -328,13 +328,14 @@ public class ServiceTest extends BaseTest {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 1, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     provider.shutdown().get();
     consumer.shutdown().get();
   }
 
   @Test
-  public void test_local_async_greeting_return_GreetingResponse() throws InterruptedException, ExecutionException {
+  public void test_local_async_greeting_return_GreetingResponse() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -359,12 +360,13 @@ public class ServiceTest extends BaseTest {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 1, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     microservices.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_return_GreetingResponse() throws InterruptedException, ExecutionException {
+  public void test_remote_async_greeting_return_GreetingResponse() throws Exception {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -397,13 +399,13 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
 
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     provider.shutdown().get();
     consumer.shutdown().get();
   }
 
   @Test
-  public void test_local_greeting_request_timeout_expires() throws InterruptedException, ExecutionException {
+  public void test_local_greeting_request_timeout_expires() throws Exception {
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
@@ -430,7 +432,7 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
 
-    await(timeLatch, 5, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
     node1.shutdown().get();
   }
 
@@ -476,7 +478,7 @@ public class ServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_local_async_greeting_return_Message() throws InterruptedException, ExecutionException {
+  public void test_local_async_greeting_return_Message() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
         .port(port.incrementAndGet())
@@ -501,14 +503,14 @@ public class ServiceTest extends BaseTest {
         System.out.println(ex);
       } ;
     });
-    
-    await(timeLatch, 1, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     microservices.shutdown().get();
   }
 
   @Test
-  public void test_remote_async_greeting_return_Message() throws InterruptedException, ExecutionException {
+  public void test_remote_async_greeting_return_Message() throws Exception {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .port(port.incrementAndGet())
@@ -542,14 +544,14 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     });
 
-    await(timeLatch, 20, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 20, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     consumer.shutdown().get();
     provider.shutdown().get();
   }
 
   @Test
-  public void test_round_robin_selection_logic() throws InterruptedException, ExecutionException {
+  public void test_round_robin_selection_logic() throws Exception {
     Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
@@ -588,7 +590,8 @@ public class ServiceTest extends BaseTest {
       }
       timeLatch.countDown();
     });
-    await(timeLatch, 2, TimeUnit.SECONDS);
+
+    assertTrue(await(timeLatch, 2, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     provider2.shutdown().get();
     provider1.shutdown().get();
@@ -596,7 +599,7 @@ public class ServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_async_greeting_return_string_service_not_found_error_case() {
+  public void test_async_greeting_return_string_service_not_found_error_case() throws Exception {
     Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
@@ -611,7 +614,7 @@ public class ServiceTest extends BaseTest {
       timeLatch.countDown();
     }
 
-    await(timeLatch, 1, TimeUnit.SECONDS);
+    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     gateway.shutdown();
     provider1.shutdown();
   }
@@ -804,11 +807,7 @@ public class ServiceTest extends BaseTest {
         .build();
   }
 
-  private void await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) {
-    try {
-      timeLatch.await(timeout, timeUnit);
-    } catch (InterruptedException e) {
-      throw new AssertionError();
-    }
+  private boolean await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) throws Exception {
+    return timeLatch.await(timeout, timeUnit);
   }
 }
