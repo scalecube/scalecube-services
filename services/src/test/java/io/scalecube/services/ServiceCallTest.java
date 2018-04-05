@@ -19,8 +19,6 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
 
-import io.netty.buffer.ByteBuf;
-
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -69,7 +67,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<StreamMessage> future =
-        serviceCall.responseTypeOf(ByteBuf.class).invoke(GREETING_NO_PARAMS_REQUEST);
+        serviceCall.responseTypeOf(GreetingResponse.class).invoke(GREETING_NO_PARAMS_REQUEST);
 
     future.whenComplete((message, ex) -> {
       if (ex == null) {
@@ -103,7 +101,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<StreamMessage> future =
-        serviceCall.responseTypeOf(ByteBuf.class).invoke(GREETING_NO_PARAMS_REQUEST);
+        serviceCall.responseTypeOf(GreetingResponse.class).invoke(GREETING_NO_PARAMS_REQUEST);
 
     future.whenComplete((message, ex) -> {
       if (ex == null) {
@@ -129,7 +127,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     CompletableFuture<StreamMessage> resultFuture =
-        gateway.call().responseTypeOf(ByteBuf.class).invoke(GREETING_VOID_REQ);
+        gateway.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_VOID_REQ);
     StreamMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
 
     // Then:
@@ -146,7 +144,8 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance.
     Microservices node = serviceProvider();
     // call the service.
-    CompletableFuture<StreamMessage> future = node.call().responseTypeOf(ByteBuf.class).invoke(GREETING_VOID_REQ);
+    CompletableFuture<StreamMessage> future =
+        node.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_VOID_REQ);
     StreamMessage result = future.get(TIMEOUT, TimeUnit.SECONDS);
     assertNotNull(result);
     assertEquals(GREETING_VOID_REQ.qualifier(), result.qualifier());
@@ -188,7 +187,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     CompletableFuture<StreamMessage> resultFuture =
-        microservices.call().responseTypeOf(ByteBuf.class).invoke(GREETING_REQUEST_REQ);
+        microservices.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     // Then
     StreamMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
@@ -233,7 +232,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<StreamMessage> future =
-        service.responseTypeOf(ByteBuf.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
 
     try {
       future.get(TIMEOUT, TimeUnit.SECONDS);
@@ -261,7 +260,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<StreamMessage> future =
-        service.responseTypeOf(ByteBuf.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
     try {
       future.get(TIMEOUT, TimeUnit.SECONDS);
     } catch (ExecutionException ex) {
@@ -284,7 +283,8 @@ public class ServiceCallTest extends BaseTest {
         .timeout(Duration.ofSeconds(1));
 
     // call the service.
-    CompletableFuture<StreamMessage> future = service.responseTypeOf(ByteBuf.class).invoke(GREETING_MESSAGE_REQ);
+    CompletableFuture<StreamMessage> future =
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
 
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -317,7 +317,8 @@ public class ServiceCallTest extends BaseTest {
     Call service = consumer.call();
 
     // call the service.
-    CompletableFuture<StreamMessage> future = service.responseTypeOf(ByteBuf.class).invoke(GREETING_MESSAGE_REQ);
+    CompletableFuture<StreamMessage> future =
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -522,7 +523,8 @@ public class ServiceCallTest extends BaseTest {
 
     Call service = gateway.call().timeout(Duration.ofSeconds(3));
 
-    CompletableFuture<StreamMessage> result = service.responseTypeOf(ByteBuf.class).invoke(GREETING_MESSAGE_REQ);
+    CompletableFuture<StreamMessage> result =
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
