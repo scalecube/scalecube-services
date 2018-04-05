@@ -82,6 +82,7 @@ public class LocalServiceInstance implements ServiceInstance {
     return invokeMethod(request, method);
   }
 
+
   @Override
   public <RESP_TYPE> Observable<RESP_TYPE> listen(StreamMessage request, Class<RESP_TYPE> responseType) {
     checkArgument(request != null, "message can't be null.");

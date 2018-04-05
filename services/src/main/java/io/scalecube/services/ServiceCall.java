@@ -64,43 +64,42 @@ public class ServiceCall {
       return this;
     }
 
-    /**
-     * Invoke a request message and invoke a service by a given service name and method name. expected headers in
-     * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
-     * case of an error or TimeoutException if no response if a given duration.
-     * 
-     * @param request request with given headers.
-     * @return CompletableFuture with service call dispatching result.
-     */
-    public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
-      Messages.validate().serviceRequest(request);
+  /**
+
+   * Invoke a request message and invoke a service by a given service name and method name. expected headers in * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
+   * invokemessage uses the router to select the target endpoint service instance in the cluster. Throws Exception in* case of
+    an error or TimeoutException if no response if a given duration.
+   *
+   * @param request request with given headers.
+   * @return CompletableFuture with service call dispatching result.
+   */
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
+    Messages.validate().serviceRequest(request);
 
       ServiceInstance serviceInstance = router.route(request).orElseThrow(() -> noReachableMemberException(request));
       return invoke(request, serviceInstance, timeout);
     }
 
 
-    /**
-     * Invoke a request message and invoke a service by a given service name and method name. expected headers in
-     * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invoke with default timeout.
-     * 
-     * @param request request with given headers.
-     * @param serviceInstance target instance to invoke.
-     * @return CompletableFuture with service call dispatching result.
-     * @throws Exception in case of an error or TimeoutException if no response if a given duration.
-     */
-    public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance) {
-      Messages.validate().serviceRequest(request);
-      return invoke(request, serviceInstance, timeout);
-    }
+  /**
+   * Invoke a request message and invoke a service by a given service name and method name. expected headers in
+   * request:ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to * invoke with default timeout.
+   *
+   * @param request request with given headers.
+   * @param serviceInstance target instance to invoke.
+   * @return CompletableFuture with service call dispatching result.
+   * @throws Exception in case of an error or TimeoutException if no response if a given duration.
+   */
+  public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance)  {
+    Messages.validate().serviceRequest(request);
+    return invoke(request, serviceInstance, timeout);
+  }
 
     /**
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
      * invoke. Throws Exception in case of an error or TimeoutException if no response if a given duration.
-     * 
+     *
      * @param request request with given headers.
      * @param serviceInstance target instance to invoke.
      * @param duration of the response before TimeException is returned.
@@ -163,7 +162,7 @@ public class ServiceCall {
 
     /**
      * sending subscription request message to a service that returns Observable.
-     * 
+     *
      * @param request containing subscription data.
      * @return rx.Observable for the specific stream.
      */
@@ -182,7 +181,7 @@ public class ServiceCall {
 
     /**
      * Create proxy creates a java generic proxy instance by a given service interface.
-     * 
+     *
      * @param serviceInterface Service Interface type.
      * @return newly created service proxy object.
      */
@@ -195,7 +194,7 @@ public class ServiceCall {
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null)
             return check;
-          
+
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
           final StreamMessage reqMsg = StreamMessage.builder()
@@ -248,12 +247,12 @@ public class ServiceCall {
 
     private IllegalStateException noReachableMemberException(StreamMessage request) {
 
-      LOGGER.error(
-          "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
-          request.qualifier(), request);
-      return new IllegalStateException("No reachable member with such service: " + request.qualifier());
+    LOGGER.error(
+        "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
+        request.qualifier(), request);
+    return new IllegalStateException("No reachable member with such service: " + request.qualifier());
     }
-    
+
     private Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {
       if (method.equals("hashCode")) {
         return serviceInterface.hashCode();

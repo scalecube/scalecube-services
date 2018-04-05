@@ -35,6 +35,4 @@ public interface ServiceInstance {
 
   Collection<String> methods();
 
-
-
 }

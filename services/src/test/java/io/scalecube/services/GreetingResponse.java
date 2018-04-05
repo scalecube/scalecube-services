@@ -12,7 +12,7 @@ final class GreetingResponse {
     this.result = result;
     this.sender = null;
   }
-  
+
   public GreetingResponse(String result, String sender) {
     this.result = result;
     this.sender = sender;

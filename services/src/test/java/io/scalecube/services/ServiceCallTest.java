@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ServiceCallTest extends BaseTest {
 
@@ -53,6 +54,7 @@ public class ServiceCallTest extends BaseTest {
   public static final StreamMessage NOT_FOUND_REQ = Messages.builder()
           .request(SERVICE_NAME, "unknown")
           .data("joe").build();
+  public static final int TIMEOUT = 3;
   private static AtomicInteger port = new AtomicInteger(4000);
 
 
@@ -103,6 +105,7 @@ public class ServiceCallTest extends BaseTest {
     future.whenComplete((message, ex) -> {
       if (ex == null) {
         assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
+        assertEquals("Didn't get desired response", "hello unknown", message.data());
       } else {
         fail("Failed to invoke service: " + ex.getMessage());
       }
@@ -269,8 +272,10 @@ public class ServiceCallTest extends BaseTest {
     // Given:
     Microservices microservices = serviceProvider();
 
+
     Call service = microservices.call()
-        .timeout(Duration.ofSeconds(1));
+        .timeout(Duration.ofSeconds(1))
+        ;
 
     // call the service.
     CompletableFuture<StreamMessage> future = service.invoke(GREETING_MESSAGE_REQ);
@@ -361,8 +366,10 @@ public class ServiceCallTest extends BaseTest {
         // print the greeting.
         System.out.println("11. round_robin_selection_logic :" + result1.get());
         System.out.println("11. round_robin_selection_logic :" + result2.get());
+
         GreetingResponse response1 = result1.get().data();
-        GreetingResponse response2 = result2.get().data();
+        GreetingResponse response2 =result2.get().data();
+
         success.set(!response1.sender().equals(response2.sender()));
       } catch (Throwable e) {
         assertTrue(false);
@@ -370,7 +377,7 @@ public class ServiceCallTest extends BaseTest {
       timeLatch.countDown();
     });
     await(timeLatch, 2, TimeUnit.SECONDS);
-    assertTrue(timeLatch.getCount() == 0);
+assertTrue(timeLatch.getCount() == 0);
     assertTrue(success.get());
     provider2.shutdown().get();
     provider1.shutdown().get();

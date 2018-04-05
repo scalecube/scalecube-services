@@ -1,8 +1,9 @@
-package io.scalecube.streams.codec;
+package io.scalecube.services;
 
 import com.fasterxml.jackson.datatype.jsr310.JSR310Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.scalecube.streams.StreamMessage;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
