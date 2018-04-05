@@ -360,9 +360,10 @@ public class ServiceCallTest extends BaseTest {
     Call service = gateway.call();
 
     // call the service.
-    CompletableFuture<StreamMessage> result1 = service.responseTypeOf(ByteBuf.class).invoke(GREETING_MESSAGE_REQ);
-
-    CompletableFuture<StreamMessage> result2 = service.responseTypeOf(ByteBuf.class).invoke(GREETING_MESSAGE_REQ);
+    CompletableFuture<StreamMessage> result1 =
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
+    CompletableFuture<StreamMessage> result2 =
+        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_MESSAGE_REQ);
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
