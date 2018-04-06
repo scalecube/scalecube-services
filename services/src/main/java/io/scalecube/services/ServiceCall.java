@@ -159,9 +159,9 @@ public class ServiceCall {
      * @return newly created service proxy object.
      */
     public <T> T api(final Class<T> serviceInterface) {
-     
+
       final ConcurrentMap<Method, Call> serviceCalls = initServiceCalls(serviceInterface, this);
-      
+
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
@@ -221,7 +221,8 @@ public class ServiceCall {
       });
     }
 
-    private static <T> ConcurrentMap<Method, Call> initServiceCalls(final Class<T> serviceInterface, final Call service) {
+    private static <T> ConcurrentMap<Method, Call> initServiceCalls(final Class<T> serviceInterface,
+        final Call service) {
       final ConcurrentMap<Method, Call> serviceCalls = new ConcurrentHashMap<>();
       Reflect.serviceMethods(serviceInterface).entrySet().forEach(entry -> {
         serviceCalls.putIfAbsent(entry.getValue(),
