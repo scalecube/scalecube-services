@@ -74,7 +74,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     StreamProcessor<StreamMessage, StreamMessage> sp = client.createRaw(address, responseType);
     sp.listen().subscribe(
         onNext -> {
-          LOGGER.info("Rcvd on client: {}", onNext);
+          //LOGGER.info("Rcvd on client: {}", onNext);
           result.complete(onNext);
         },
         onError -> {

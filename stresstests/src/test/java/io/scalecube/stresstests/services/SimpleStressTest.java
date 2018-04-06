@@ -108,7 +108,7 @@ public class SimpleStressTest extends BaseTest {
     long startTime = System.currentTimeMillis();
 
     for (int i = 0; i < count; i++) {
-      CompletableFuture<StreamMessage> future = service.greetingMessage(StreamMessage.builder().data("naive_stress_test").build());
+      CompletableFuture<String> future = service.greeting("naive_stress_test");
       future.whenComplete((success, error) -> {
         if (error == null) {
           countLatch.countDown();
