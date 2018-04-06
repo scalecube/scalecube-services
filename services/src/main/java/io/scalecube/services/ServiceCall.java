@@ -164,7 +164,7 @@ public class ServiceCall {
 
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        public Object invoke(Object proxy, Method method, Object[] args) {
           Call methodCall = serviceCalls.get(method);
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null) {
