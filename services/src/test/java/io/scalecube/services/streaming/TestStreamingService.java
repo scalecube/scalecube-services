@@ -146,8 +146,6 @@ public class TestStreamingService extends BaseTest {
         .request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
         .build())
-
-        .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
         .serialize()
         .subscribe(onNext -> latch1.countDown());
 

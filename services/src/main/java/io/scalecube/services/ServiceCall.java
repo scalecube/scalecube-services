@@ -140,7 +140,7 @@ public class ServiceCall {
      * @return rx.Observable for the specific stream.
      */
     public Observable<StreamMessage> listen(StreamMessage request) {
-
+      Objects.requireNonNull(responseType, "response type is not set");
       Messages.validate().serviceRequest(request);
 
       ServiceInstance instance = router.route(request)

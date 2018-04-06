@@ -23,7 +23,7 @@ public final class ChannelContext {
 
   private static final ConcurrentMap<String, ChannelContext> idToChannelContext = new ConcurrentHashMap<>();
 
-  private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
+  private final Subject<Event, Event> subject = PublishSubject.<Event>create();
   private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
 
   private final String id;

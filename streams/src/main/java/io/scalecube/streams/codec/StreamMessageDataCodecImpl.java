@@ -67,7 +67,7 @@ public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec 
   }
 
   private Object readFrom(InputStream stream, Class<?> type) throws IOException {
-    Objects.nonNull(type);
+    Objects.requireNonNull(type, "StreamMessageDataCodecImpl.readFrom requires type is not null");
     try {
       return mapper.readValue(stream, type);
     } catch (Throwable ex) {
