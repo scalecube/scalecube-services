@@ -25,6 +25,12 @@ public class SimpleStressTest extends BaseTest {
 
   int count = 600_000;
 
+  public static final String NS = "io.scalecube.stresstests.services.GreetingService";
+  public static final StreamMessage GREETING_REQUEST_REQ = Messages.builder()
+      .request(NS, "greetingRequest")
+      .data(new GreetingRequest("joe"))
+      .build();
+
   private static AtomicInteger port = new AtomicInteger(4000);
 
   MetricRegistry registry = new MetricRegistry();
@@ -136,4 +142,58 @@ public class SimpleStressTest extends BaseTest {
 
   }
 
+
+  @Test
+  public void test_req_resp_stress() throws Exception {
+    // Create microservices cluster member.
+    Microservices provider = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .metrics(registry)
+        .build();
+
+    // Create microservices cluster member.
+    Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .metrics(registry)
+        .build();
+
+    reporter.start(10, TimeUnit.SECONDS);
+
+    // Get a proxy to the service api.
+
+    // When
+    Call serviceCall = consumer.call().responseTypeOf(GreetingResponse.class).timeout(Duration.ofSeconds(10));
+
+    // Measure
+    CountDownLatch countLatch = new CountDownLatch(count);
+    long startTime = System.currentTimeMillis();
+
+    for (int i = 0; i < count; i++) {
+      serviceCall.invoke(GREETING_REQUEST_REQ).whenComplete((resp, t) -> {
+        if (t == null) {
+          countLatch.countDown();
+        } else {
+          System.out.println("failed: " + t);
+          fail("test_naive_stress_not_breaking_the_system failed: " + t);
+        }
+      });
+    }
+
+    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    countLatch.await(60, TimeUnit.SECONDS);
+
+    System.out.println("Finished receiving " + (count - countLatch.getCount()) + " messages in "
+        + (System.currentTimeMillis() - startTime));
+
+    System.out.println("Rate: " + ((count - countLatch.getCount()) / ((System.currentTimeMillis() - startTime) / 1000))
+        + " round-trips/sec");
+
+    reporter.stop();
+    assertTrue(countLatch.getCount() == 0);
+
+    provider.shutdown().get();
+    consumer.shutdown().get();
+  }
 }

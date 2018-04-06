@@ -16,4 +16,10 @@ public class GreetingServiceImpl implements GreetingService {
     return CompletableFuture.completedFuture(StreamMessage.builder().data("hello to: " + request.data()).build());
   }
 
+  @Override
+  public CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request) {
+    return CompletableFuture
+        .completedFuture(new GreetingResponse(" hello to: " + request.getName()));
+  }
+
 }

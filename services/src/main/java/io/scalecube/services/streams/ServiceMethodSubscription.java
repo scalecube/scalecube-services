@@ -24,7 +24,7 @@ public final class ServiceMethodSubscription implements Subscription {
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
-  private final Type requestType;
+  private final Class<?> requestType;
   private Subscription subsciption;
   private StreamMessageDataCodec codec = new StreamMessageDataCodecImpl();
 
@@ -156,8 +156,7 @@ public final class ServiceMethodSubscription implements Subscription {
       if (StreamMessage.class.equals(requestType)) {
         return Reflect.invoke(serviceObject, method, message);
       } else {
-        return Reflect.invoke(serviceObject, method,
-            codec.decodeData(message, Class.forName(requestType.getTypeName())));
+        return Reflect.invoke(serviceObject, method, codec.decodeData(message, requestType));
       }
     }
   }

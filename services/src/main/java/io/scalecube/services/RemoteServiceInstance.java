@@ -73,10 +73,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     CompletableFuture<StreamMessage> result = new CompletableFuture<>();
     StreamProcessor<StreamMessage, StreamMessage> sp = client.createRaw(address, responseType);
     sp.listen().subscribe(
-        onNext -> {
-          //LOGGER.info("Rcvd on client: {}", onNext);
-          result.complete(onNext);
-        },
+        result::complete,
         onError -> {
           LOGGER.error("Failed to send request {} to target address {}", request, address, onError);
           result.completeExceptionally(onError);

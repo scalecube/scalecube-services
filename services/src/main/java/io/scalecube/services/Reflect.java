@@ -176,7 +176,7 @@ public class Reflect {
    * @param method in inspection.
    * @return type of parameter [0] or void
    */
-  public static Type requestType(Method method) {
+  public static Class<?> requestType(Method method) {
     if (method.getParameterTypes().length > 0) {
       return method.getParameterTypes()[0];
     }

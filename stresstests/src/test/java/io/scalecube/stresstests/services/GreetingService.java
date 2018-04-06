@@ -14,5 +14,7 @@ public interface GreetingService {
 
   @ServiceMethod
   public CompletableFuture<StreamMessage> greetingMessage(StreamMessage request);
-  
+
+  @ServiceMethod
+  CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request);
 }
