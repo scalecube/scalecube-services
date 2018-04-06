@@ -3,6 +3,9 @@ package io.scalecube.streams;
 import rx.Emitter;
 import rx.Observable;
 import rx.Observer;
+import rx.Subscriber;
+import rx.functions.Action1;
+import rx.internal.util.SubscriptionList;
 import rx.subscriptions.CompositeSubscription;
 
 import java.io.IOException;
@@ -59,7 +62,7 @@ public final class DefaultStreamProcessor implements StreamProcessor<StreamMessa
   public Observable<StreamMessage> listen() {
     return Observable.create(emitter -> {
 
-      CompositeSubscription subscriptions = new CompositeSubscription();
+      SubscriptionList subscriptions = new SubscriptionList();
       emitter.setCancellation(subscriptions::clear);
 
       // message logic: remote read => onMessage

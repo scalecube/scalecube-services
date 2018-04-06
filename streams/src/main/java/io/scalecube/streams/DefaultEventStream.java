@@ -16,8 +16,8 @@ import java.util.stream.Stream;
 
 public class DefaultEventStream implements EventStream {
 
-  private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
-  private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
+  private final Subject<Event, Event> subject = PublishSubject.<Event>create();
+  private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create();
 
   private final ConcurrentMap<ChannelContext, Subscription> subscriptions = new ConcurrentHashMap<>();
 
@@ -47,7 +47,7 @@ public class DefaultEventStream implements EventStream {
 
   @Override
   public final Observable<Event> listen() {
-    return subject.onBackpressureBuffer().asObservable().map(eventMapper::apply);
+    return subject.map(eventMapper::apply);
   }
 
   @Override

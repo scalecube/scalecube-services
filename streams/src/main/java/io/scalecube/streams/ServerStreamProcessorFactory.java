@@ -13,7 +13,7 @@ public final class ServerStreamProcessorFactory {
   private final DefaultEventStream localEventStream = new DefaultEventStream();
 
   private final Subject<StreamProcessor, StreamProcessor> streamProcessorSubject =
-      PublishSubject.<StreamProcessor>create().toSerialized();
+      PublishSubject.<StreamProcessor>create();
 
   private final CompositeSubscription subscriptions = new CompositeSubscription();
 
@@ -66,7 +66,7 @@ public final class ServerStreamProcessorFactory {
    * @return observalbe to listen for incoming server stream processors
    */
   public Observable<StreamProcessor> listen() {
-    return streamProcessorSubject.asObservable().onBackpressureBuffer();
+    return streamProcessorSubject;
   }
 
   /**

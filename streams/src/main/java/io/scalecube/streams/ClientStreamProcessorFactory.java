@@ -2,13 +2,14 @@ package io.scalecube.streams;
 
 import io.scalecube.transport.Address;
 
+import rx.internal.util.SubscriptionList;
 import rx.subscriptions.CompositeSubscription;
 
 public final class ClientStreamProcessorFactory {
 
   private final ServerStream localEventStream = ServerStream.newServerStream();
 
-  private final CompositeSubscription subscriptions = new CompositeSubscription();
+  private final SubscriptionList subscriptions = new SubscriptionList();
 
   /**
    * Constructor for this factory. Right away defines logic for bidirectional communication with respect to client side

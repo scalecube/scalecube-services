@@ -12,6 +12,7 @@ import io.scalecube.testlib.BaseTest;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 
+import io.scalecube.transport.Address;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleStressTest extends BaseTest {
 
-  int count = 600_000;
+  int count = 6_000_000;
 
   public static final String NS = "io.scalecube.stresstests.services.GreetingService";
   public static final StreamMessage GREETING_REQUEST_REQ = Messages.builder()
@@ -145,26 +146,21 @@ public class SimpleStressTest extends BaseTest {
 
   @Test
   public void test_req_resp_stress() throws Exception {
-    // Create microservices cluster member.
-    Microservices provider = Microservices.builder()
-        .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .metrics(registry)
-        .build();
 
+    Address server = Address.from("127.0.0.1:5858");
     // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
-        .seeds(provider.cluster().address())
+        .seeds(server)
         .metrics(registry)
         .build();
 
-    reporter.start(10, TimeUnit.SECONDS);
+    reporter.start(5, TimeUnit.SECONDS);
 
     // Get a proxy to the service api.
 
     // When
-    Call serviceCall = consumer.call().responseTypeOf(GreetingResponse.class).timeout(Duration.ofSeconds(10));
+    Call serviceCall = consumer.call().responseTypeOf(GreetingResponse.class).timeout(Duration.ofSeconds(30));
 
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
@@ -193,7 +189,6 @@ public class SimpleStressTest extends BaseTest {
     reporter.stop();
     assertTrue(countLatch.getCount() == 0);
 
-    provider.shutdown().get();
     consumer.shutdown().get();
   }
 }
