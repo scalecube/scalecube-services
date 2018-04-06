@@ -1,5 +1,7 @@
 package io.scalecube.streams;
 
+import io.scalecube.streams.exceptions.DefaultStreamExceptionMapper;
+import io.scalecube.streams.exceptions.StreamExceptionMapper;
 import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.Bootstrap;
@@ -21,7 +23,7 @@ public final class ClientStreamProcessors {
   private ClientStreamProcessors(Config config) {
     this.config = config;
     this.clientStream = ClientStream.newClientStream(config.bootstrap);
-    this.clientStreamProcessorFactory = new ClientStreamProcessorFactory(clientStream);
+    this.clientStreamProcessorFactory = new ClientStreamProcessorFactory(clientStream, config.exceptionMapper);
   }
 
   //// Factory and config
@@ -32,6 +34,10 @@ public final class ClientStreamProcessors {
 
   public ClientStreamProcessors bootstrap(Bootstrap bootstrap) {
     return new ClientStreamProcessors(config.setBootstrap(bootstrap));
+  }
+
+  public ClientStreamProcessors exceptionMapper(StreamExceptionMapper exceptionMapper) {
+    return new ClientStreamProcessors(config.setExceptionMapper(exceptionMapper));
   }
 
   //// Methods
@@ -50,6 +56,7 @@ public final class ClientStreamProcessors {
   private static class Config {
 
     private Bootstrap bootstrap = ClientStream.getDefaultBootstrap();
+    private StreamExceptionMapper exceptionMapper = new DefaultStreamExceptionMapper();
 
     private Config() {}
 
@@ -60,6 +67,10 @@ public final class ClientStreamProcessors {
 
     private Config setBootstrap(Bootstrap bootstrap) {
       return new Config(this, config -> config.bootstrap = bootstrap);
+    }
+
+    private Config setExceptionMapper(StreamExceptionMapper exceptionMapper) {
+      return new Config(this, config -> config.exceptionMapper = exceptionMapper);
     }
   }
 }

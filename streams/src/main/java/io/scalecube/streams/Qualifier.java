@@ -18,6 +18,14 @@ public final class Qualifier {
   private final String action;
   private final String stringValue; // calculated
 
+  public static Qualifier error(int action) {
+    return error(Integer.toString(action));
+  }
+
+  public static Qualifier error(String action) {
+    return new Qualifier(Q_ERROR_NAMESPACE, action);
+  }
+
   /**
    * Basic constructor with namespace and action.
    */

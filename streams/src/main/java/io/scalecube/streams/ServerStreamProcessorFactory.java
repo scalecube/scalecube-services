@@ -1,5 +1,6 @@
 package io.scalecube.streams;
 
+import io.scalecube.streams.exceptions.StreamExceptionMapper;
 import io.scalecube.transport.Address;
 
 import rx.Observable;
@@ -17,6 +18,8 @@ public final class ServerStreamProcessorFactory {
 
   private final CompositeSubscription subscriptions = new CompositeSubscription();
 
+  private final StreamExceptionMapper exceptionMapper;
+
   /**
    * Constructor for this factory. Right away defines logic for bidirectional communication with respect to server side
    * semantics.
@@ -24,8 +27,9 @@ public final class ServerStreamProcessorFactory {
    * @param remoteEventStream server stream created and operated somewhere; this stream is a source for incoming events
    *        upon which factory will apply its processing logic and server side semantics.
    */
-  public ServerStreamProcessorFactory(ListeningServerStream remoteEventStream) {
+  public ServerStreamProcessorFactory(ListeningServerStream remoteEventStream, StreamExceptionMapper exceptionMapper) {
     this.remoteEventStream = remoteEventStream;
+    this.exceptionMapper = exceptionMapper;
 
     // request logic: remote stream => local stream
     subscriptions.add(
@@ -57,7 +61,7 @@ public final class ServerStreamProcessorFactory {
         .subscribe(remoteEventStream::send);
 
     // emit stream processor arrived
-    streamProcessorSubject.onNext(new DefaultStreamProcessor(channelContext, localEventStream));
+    streamProcessorSubject.onNext(new DefaultStreamProcessor(channelContext, localEventStream, exceptionMapper));
   }
 
   /**

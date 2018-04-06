@@ -2,6 +2,7 @@ package io.scalecube.streams;
 
 import static io.scalecube.streams.StreamMessage.from;
 
+import io.scalecube.streams.exceptions.DefaultStreamExceptionMapper;
 import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.Bootstrap;
@@ -44,7 +45,7 @@ public class ClientStreamProcessorTest {
         .option(ChannelOption.SO_REUSEADDR, true);
 
     clientStream = ClientStream.newClientStream(bootstrap);
-    clientStreamProcessorFactory = new ClientStreamProcessorFactory(clientStream);
+    clientStreamProcessorFactory = new ClientStreamProcessorFactory(clientStream, new DefaultStreamExceptionMapper());
 
     listeningServerStream = ListeningServerStream.newListeningServerStream().withListenAddress("localhost");
     address = listeningServerStream.bindAwait();

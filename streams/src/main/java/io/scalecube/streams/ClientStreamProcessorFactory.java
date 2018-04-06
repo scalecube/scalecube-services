@@ -1,5 +1,6 @@
 package io.scalecube.streams;
 
+import io.scalecube.streams.exceptions.StreamExceptionMapper;
 import io.scalecube.transport.Address;
 
 import rx.subscriptions.CompositeSubscription;
@@ -10,13 +11,18 @@ public final class ClientStreamProcessorFactory {
 
   private final CompositeSubscription subscriptions = new CompositeSubscription();
 
+  private final StreamExceptionMapper exceptionMapper;
+
   /**
    * Constructor for this factory. Right away defines logic for bidirectional communication with respect to client side
    * semantics.
    *
    * @param remoteEventStream given {@link ClientStream} object created and operated somewhere.
+   * @param exceptionMapper exception mapper
    */
-  public ClientStreamProcessorFactory(ClientStream remoteEventStream) {
+  public ClientStreamProcessorFactory(ClientStream remoteEventStream, StreamExceptionMapper exceptionMapper) {
+    this.exceptionMapper = exceptionMapper;
+
     // request logic: local stream => remote stream
     subscriptions.add(
         localEventStream.listenWrite()
@@ -59,7 +65,7 @@ public final class ClientStreamProcessorFactory {
    * @return stream processor
    */
   public StreamProcessor newClientStreamProcessor(Address address) {
-    return new DefaultStreamProcessor(ChannelContext.create(address), localEventStream);
+    return new DefaultStreamProcessor(ChannelContext.create(address), localEventStream, exceptionMapper);
   }
 
   /**

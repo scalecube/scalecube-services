@@ -1,5 +1,7 @@
 package io.scalecube.streams;
 
+import io.scalecube.streams.exceptions.DefaultStreamExceptionMapper;
+import io.scalecube.streams.exceptions.StreamExceptionMapper;
 import io.scalecube.transport.Address;
 
 import io.netty.bootstrap.ServerBootstrap;
@@ -24,7 +26,7 @@ public final class ServerStreamProcessors {
   private ServerStreamProcessors(Config config) {
     this.config = config;
     this.listeningServerStream = ListeningServerStream.newListeningServerStream(config.innerConfig);
-    this.serverStreamProcessorFactory = new ServerStreamProcessorFactory(listeningServerStream);
+    this.serverStreamProcessorFactory = new ServerStreamProcessorFactory(listeningServerStream, config.exceptionMapper);
   }
 
   /**
@@ -73,6 +75,10 @@ public final class ServerStreamProcessors {
     return new ServerStreamProcessors(this, config.setPortAutoIncrement(portAutoIncrement));
   }
 
+  public ServerStreamProcessors exceptionMapper(StreamExceptionMapper exceptionMapper) {
+    return new ServerStreamProcessors(this, config.setExceptionMapper(exceptionMapper));
+  }
+
   //// Methods
 
   public Address bindAwait() {
@@ -112,6 +118,7 @@ public final class ServerStreamProcessors {
   private static class Config {
 
     private ListeningServerStream.Config innerConfig = ListeningServerStream.Config.newConfig();
+    private StreamExceptionMapper exceptionMapper = new DefaultStreamExceptionMapper();
 
     private Config() {}
 
@@ -153,6 +160,11 @@ public final class ServerStreamProcessors {
     private Config setPortAutoIncrement(boolean portAutoIncrement) {
       return new Config(this, //
           config -> config.innerConfig = config.innerConfig.setPortAutoIncrement(portAutoIncrement));
+    }
+
+    private Config setExceptionMapper(StreamExceptionMapper exceptionMapper) {
+      return new Config(this, //
+          config -> config.exceptionMapper = exceptionMapper);
     }
   }
 }
