@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Objects;
 
 public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec {
 
@@ -66,8 +67,7 @@ public final class StreamMessageDataCodecImpl implements StreamMessageDataCodec 
   }
 
   private Object readFrom(InputStream stream, Class<?> type) throws IOException {
-    // TypeFactory typeFactory = mapper.reader().getTypeFactory();
-    // JavaType resolvedType = typeFactory.constructType(type);
+    Objects.nonNull(type);
     try {
       return mapper.readValue(stream, type);
     } catch (Throwable ex) {

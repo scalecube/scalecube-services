@@ -162,11 +162,12 @@ public class ServiceCall {
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+          Call methodCall = service.responseTypeOf(Reflect.parameterizedReturnType(method));
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null) {
             return check;
           }
-
+         
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
           final StreamMessage reqMsg = StreamMessage.builder()
@@ -176,12 +177,12 @@ public class ServiceCall {
 
           if (method.getReturnType().equals(Observable.class)) {
             if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
-              return service.listen(reqMsg);
+              return methodCall.listen(reqMsg);
             } else {
-              return service.listen(reqMsg).map(StreamMessage::data);
+              return methodCall.listen(reqMsg).map(StreamMessage::data);
             }
           } else {
-            return toReturnValue(method, service.invoke(reqMsg));
+            return toReturnValue(method, methodCall.invoke(reqMsg));
           }
         }
 
