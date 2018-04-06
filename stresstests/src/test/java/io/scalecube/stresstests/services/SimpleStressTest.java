@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleStressTest extends BaseTest {
 
-  int count = 6_000_000;
+  int count = 600_000;
 
   public static final String NS = "io.scalecube.stresstests.services.GreetingService";
   public static final StreamMessage GREETING_REQUEST_REQ = Messages.builder()
@@ -146,12 +146,18 @@ public class SimpleStressTest extends BaseTest {
 
   @Test
   public void test_req_resp_stress() throws Exception {
+    // Create microservices cluster member.
+    Microservices provider = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .metrics(registry)
+        .build();
 
     Address server = Address.from("127.0.0.1:5858");
     // Create microservices cluster member.
     Microservices consumer = Microservices.builder()
         .port(port.incrementAndGet())
-        .seeds(server)
+        .seeds(provider.cluster().address())
         .metrics(registry)
         .build();
 
@@ -189,6 +195,7 @@ public class SimpleStressTest extends BaseTest {
     reporter.stop();
     assertTrue(countLatch.getCount() == 0);
 
+    provider.shutdown().get();
     consumer.shutdown().get();
   }
 }
