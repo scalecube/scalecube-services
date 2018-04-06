@@ -22,6 +22,8 @@ import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ServiceCall {
 
@@ -158,16 +160,16 @@ public class ServiceCall {
      */
     public <T> T api(final Class<T> serviceInterface) {
       final Call service = this;
-
+      final ConcurrentMap<Method, Call> serviceCalls = initServiceCalls(serviceInterface, service);
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-          Call methodCall = service.responseTypeOf(Reflect.parameterizedReturnType(method));
+          Call methodCall = serviceCalls.get(method);
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null) {
             return check;
           }
-         
+
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
           final StreamMessage reqMsg = StreamMessage.builder()
@@ -216,6 +218,15 @@ public class ServiceCall {
           return future;
         }
       });
+    }
+
+    private <T> ConcurrentMap<Method, Call> initServiceCalls(final Class<T> serviceInterface, final Call service) {
+      final ConcurrentMap<Method, Call> serviceCalls = new ConcurrentHashMap<>();
+      Reflect.serviceMethods(serviceInterface).entrySet().forEach(entry -> {
+        serviceCalls.putIfAbsent(entry.getValue(),
+            service.responseTypeOf(Reflect.parameterizedReturnType(entry.getValue())));
+      });
+      return serviceCalls;
     }
 
     private IllegalStateException noReachableMemberException(StreamMessage request) {
