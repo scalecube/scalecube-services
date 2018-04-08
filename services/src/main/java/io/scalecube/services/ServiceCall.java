@@ -168,7 +168,7 @@ public class ServiceCall {
           Call methodCall = serviceCalls.get(method);
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null) {
-            return check;
+            return check; // toString, hashCode was invoked.
           }
 
           Metrics.mark(serviceInterface, metrics, method, "request");
@@ -184,38 +184,37 @@ public class ServiceCall {
             } else {
               return methodCall.listen(reqMsg).map(StreamMessage::data);
             }
+
+          } else if (method.getReturnType().equals(CompletableFuture.class)) {
+            return toCompletableFuture(method, methodCall.invoke(reqMsg));
+
+          } else if (method.getReturnType().equals(Void.TYPE)) {
+            return CompletableFuture.completedFuture(Void.TYPE);
+
           } else {
-            return toReturnValue(method, methodCall.invoke(reqMsg));
+            LOGGER.error("return value is not supported type.");
+            return new CompletableFuture<T>().completeExceptionally(new UnsupportedOperationException());
           }
         }
 
         @SuppressWarnings("unchecked")
-        private CompletableFuture<T> toReturnValue(final Method method, final CompletableFuture<StreamMessage> reuslt) {
+        private CompletableFuture<T> toCompletableFuture(final Method method,
+            final CompletableFuture<StreamMessage> reuslt) {
           final CompletableFuture<T> future = new CompletableFuture<>();
-
-          if (method.getReturnType().equals(Void.TYPE)) {
-            return (CompletableFuture<T>) CompletableFuture.completedFuture(Void.TYPE);
-
-          } else if (method.getReturnType().equals(CompletableFuture.class)) {
-            reuslt.whenComplete((value, ex) -> {
-              if (ex == null) {
-                Metrics.mark(serviceInterface, metrics, method, "response");
-                if (!Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
-                  future.complete((T) value.data());
-                } else {
-                  future.complete((T) value);
-                }
+          reuslt.whenComplete((value, ex) -> {
+            if (ex == null) {
+              Metrics.mark(serviceInterface, metrics, method, "response");
+              if (!Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
+                future.complete((T) value.data());
               } else {
-                Metrics.mark(serviceInterface, metrics, method, "error");
-                LOGGER.error("return value is exception: {}", ex);
-                future.completeExceptionally(ex);
+                future.complete((T) value);
               }
-            });
-            return future;
-          } else {
-            LOGGER.error("return value is not supported type.");
-            future.completeExceptionally(new UnsupportedOperationException());
-          }
+            } else {
+              Metrics.mark(serviceInterface, metrics, method, "error");
+              LOGGER.error("return value is exception: {}", ex);
+              future.completeExceptionally(ex);
+            }
+          });
           return future;
         }
       });
