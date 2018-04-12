@@ -30,3 +30,42 @@ User Guide:
 * [Provisioning Clustered Services](http://scalecube.io/user-reference/services/ProvisionClusterServices.html)
 * [Consuming services](http://scalecube.io/user-reference/services/ConsumingServices.html)
 
+## Support
+
+For improvement requests, bugs and discussions please use the [GitHub Issues](https://github.com/scalecube/scalecube/issues) 
+or chat with us to get support on [Gitter](https://gitter.im/scalecube/Lobby).
+
+You are more then welcome to join us or just show your support by granting us a small star :)
+
+## Maven
+
+Binaries and dependency information for Maven can be found at 
+[http://search.maven.org](http://search.maven.org/#search%7Cga%7C1%7Cio.scalecube.scalecube).
+
+To add a dependency on ScaleCube Services using Maven, use the following:
+
+``` xml
+<dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-services</artifactId>
+  <version>x.y.z</version> 
+</dependency>
+```
+
+## Contributing
+* Follow/Star us on github.
+* Fork (and then git clone https://github.com/--your-username-here--/scalecube.git).
+* Create a branch (git checkout -b branch_name).
+* Commit your changes (git commit -am "Description of contribution").
+* Push the branch (git push origin branch_name).
+* Open a Pull Request.
+* Thank you for your contribution! Wait for a response...
+
+## References  
+* Ronen Nachmias 
+
+  [posts](https://www.linkedin.com/today/author/ronenhm?trk=pprof-feed)
+
+## License
+
+[Apache License, Version 2.0](https://github.com/scalecube/scalecube/blob/master/LICENSE.txt)
