@@ -1,4 +1,4 @@
-### MICROSERVICES
+### MICROSERVICES v2.0
 
 ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery 
 based on gossip protocol ad without single point-of-failure or bottlenecks.
