@@ -9,6 +9,7 @@ import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServiceTransport;
 import io.scalecube.transport.Address;
@@ -142,8 +143,8 @@ public class Microservices {
 
     private Metrics metrics;
 
-    private ServiceTransport server;
-    private ClientTransport client = ClientTransport.newClient();
+    private ServiceTransport server = TransportFactory.getServiceTransport();
+    private ClientTransport client = TransportFactory.getClientTransport();
 
     /**
      * Microservices instance builder.

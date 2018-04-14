@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
@@ -16,14 +17,14 @@ import java.util.HashMap;
 
 public class ServiceInstanceTest extends BaseTest {
 
+  ClientTransport sender = TransportFactory.getClientTransport();
+  
   @Test
   public void test_remote_service_instance() {
 
     Microservices member = Microservices.builder().build();
     ServiceReference reference =
         new ServiceReference("a", "b", Collections.singleton("sayHello"), Address.create("localhost", 4000));
-
-    ClientTransport sender = ClientTransport.newClient();
 
     RemoteServiceInstance instance =
         new RemoteServiceInstance(sender, reference, new HashMap<>());
