@@ -2,9 +2,8 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.streams.Qualifier;
-import io.scalecube.streams.StreamMessage;
-import io.scalecube.streams.StreamMessage.Builder;
+import io.scalecube.services.transport.api.Qualifier;
+import io.scalecube.services.transport.api.ServiceMessage;
 
 public class Messages {
 
@@ -20,7 +19,7 @@ public class Messages {
      * 
      * @param request message that is subject to validation.
      */
-    public void serviceRequest(StreamMessage request) {
+    public <T> void serviceRequest(ServiceMessage request) {
       checkArgument(request != null, "Service request can't be null");
       final String serviceName = request.qualifier();
       checkArgument(serviceName != null, "Service request can't be null");
@@ -37,8 +36,8 @@ public class Messages {
      * @param methodName the requested service method name.
      * @return Builder for requested message.
      */
-    public StreamMessage.Builder request(String serviceName, String methodName) {
-      return StreamMessage.builder().qualifier(serviceName, methodName);
+    public ServiceMessage.Builder request(String serviceName, String methodName) {
+      return ServiceMessage.builder().qualifier(serviceName, methodName);
 
     }
 
@@ -49,7 +48,7 @@ public class Messages {
      * @param methodName the requested service method name.
      * @return Builder for requested message.
      */
-    public Builder request(Class<?> api, String methodName) {
+    public ServiceMessage.Builder request(Class<?> api, String methodName) {
       String serviceName = Reflect.serviceName(api);
       return request(serviceName, methodName);
     }
@@ -64,8 +63,8 @@ public class Messages {
    * @param memberId that created the response.
    * @return response message or response error message in case data is exception.
    */
-  public static StreamMessage asError(Throwable error) {
-    return StreamMessage.builder().data(error).build();
+  public static ServiceMessage asError(Throwable error) {
+    return ServiceMessage.builder().data(error).build();
   }
 
   public static MessagesBuilder builder() {
@@ -76,7 +75,7 @@ public class Messages {
     return validator;
   }
 
-  public static Qualifier qualifierOf(StreamMessage request) {
+  public static Qualifier qualifierOf(ServiceMessage request) {
     return Qualifier.fromString(request.qualifier());
   }
 }

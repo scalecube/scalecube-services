@@ -4,16 +4,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.metrics.Metrics;
-import io.scalecube.streams.StreamMessage;
+import io.scalecube.services.transport.api.ServiceMessage;
 import io.scalecube.transport.Address;
-
-import rx.Observable;
 
 import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Local service instance invokes the service instance hosted on this local process.
@@ -65,12 +66,7 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public CompletableFuture<StreamMessage> invoke(final StreamMessage request) {
-    return invoke(request, StreamMessage.class);
-  }
-
-  @Override
-  public <T> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<T> responseType) {
+  public CompletableFuture<ServiceMessage> invoke(ServiceMessage request) {
     checkArgument(request != null, "message can't be null");
 
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
@@ -78,16 +74,11 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
   @Override
-  public Observable<StreamMessage> listen(StreamMessage request) {
-    return listen(request, StreamMessage.class);
-  }
-
-  @Override
-  public <T> Observable<T> listen(StreamMessage request, Class<T> responseType) {
+  public Flux<ServiceMessage> listen(ServiceMessage request) {
     checkArgument(request != null, "message can't be null.");
     final Method method = getMethod(request);
-    checkArgument(method.getReturnType().equals(Observable.class), "subscribe method must return Observable.");
-    Observable<T> observable = null;
+    checkArgument(method.getReturnType().equals(Flux.class), "subscribe method must return Observable.");
+    Flux<ServiceMessage> observable = null;
     try {
       observable = Reflect.invoke(serviceObject, method, request);
       return observable.map(message -> {
@@ -97,25 +88,25 @@ public class LocalServiceInstance implements ServiceInstance {
 
     } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-
-      return Observable.error(ex);
+      return observable.error(ex);
     }
   }
 
-  private CompletableFuture<StreamMessage> invokeMethod(final StreamMessage request, final Method method) {
-    final CompletableFuture<StreamMessage> resultMessage = new CompletableFuture<>();
+  private CompletableFuture<ServiceMessage> invokeMethod(final ServiceMessage request, final Method method) {
+    final CompletableFuture<ServiceMessage> resultMessage = new CompletableFuture<>();
     try {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "request");
       final Object result = Reflect.invoke(this.serviceObject, method, request);
+      
       if (result instanceof CompletableFuture) {
         final CompletableFuture<?> resultFuture = (CompletableFuture<?>) result;
         resultFuture.whenComplete((success, error) -> {
           if (error == null) {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "response");
-            if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
-              resultMessage.complete((StreamMessage) success);
+            if (Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
+              resultMessage.complete((ServiceMessage) success);
             } else {
-              resultMessage.complete(StreamMessage.from(request).data(success).build());
+              resultMessage.complete(ServiceMessage.from(request).data(success).build());
             }
           } else {
             Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
@@ -123,7 +114,7 @@ public class LocalServiceInstance implements ServiceInstance {
           }
         });
       } else if (result == null) {
-        resultMessage.complete(StreamMessage.from(request).data(null).build());
+        resultMessage.complete(ServiceMessage.from(request).data(null).build());
       }
     } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "exception");
@@ -168,7 +159,7 @@ public class LocalServiceInstance implements ServiceInstance {
   }
 
 
-  public Method getMethod(StreamMessage request) {
+  public Method getMethod(ServiceMessage request) {
     return this.methods.get(Messages.qualifierOf(request).getAction());
   }
 
