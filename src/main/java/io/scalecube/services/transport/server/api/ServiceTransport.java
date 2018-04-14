@@ -2,9 +2,9 @@ package io.scalecube.services.transport.server.api;
 
 import io.scalecube.transport.Address;
 
-public interface ServerTransport {
+public interface ServiceTransport {
 
-  static ServerTransport newServer() {
+  static ServiceTransport newServer() {
     // TODO Auto-generated method stub
     return null;
   }
