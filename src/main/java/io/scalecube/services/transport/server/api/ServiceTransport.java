@@ -4,10 +4,7 @@ import io.scalecube.transport.Address;
 
 public interface ServiceTransport {
 
-  static ServiceTransport newServer() {
-    // TODO Auto-generated method stub
-    return null;
-  }
+  ServiceTransport services(Object[] services);
 
   Address bindAwait();
   
