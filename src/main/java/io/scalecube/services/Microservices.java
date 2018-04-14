@@ -10,8 +10,8 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.server.api.ServerTransport;
-import io.scalecube.services.transport.server.api.ServiceStreams;
+import io.scalecube.services.transport.server.api.ServiceMethodAdapter;
+import io.scalecube.services.transport.server.api.ServiceTransport;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
@@ -163,7 +163,7 @@ public class Microservices {
 
     private Metrics metrics;
 
-    private ServerTransport server = ServerTransport.newServer();
+    private ServiceTransport server = ServiceTransport.newServer();
     private ClientTransport client = ClientTransport.newClient();
 
     /**
@@ -173,15 +173,12 @@ public class Microservices {
      */
     public Microservices build() {
 
-      ServiceStreams serviceStreams = new ServiceStreams(this.server);
-
       servicesConfig.services().stream()
-          .map(mapper -> serviceStreams.createSubscriptions(mapper.getService()))
+          .map(mapper -> ServiceMethodAdapter.builder().create(this.server,mapper.getService()))
           .collect(Collectors.toList());
 
       Address serviceAddress = this.server.bindAwait();
 
-      servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
       ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
 
       return Reflect.builder(
@@ -191,7 +188,7 @@ public class Microservices {
     }
 
 
-    public Builder server(ServerTransport server) {
+    public Builder server(ServiceTransport server) {
       this.server = server;
       return this;
     }
