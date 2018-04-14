@@ -11,11 +11,24 @@
 	<name>ScaleCube/Services</name>
 
 	<dependencies>
-		<!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->
+	
 		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-core</artifactId>
-			<version>${reactor.version}</version>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-services-api</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+	
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-cluster</artifactId>
+			<version>${scalecube.version}</version>
+		</dependency>
+	
+		
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-utils</artifactId>
+			<version>1.1.0-SNAPSHOT</version>
 		</dependency>
 		
 		<!-- Jackson deps -->
@@ -34,13 +47,7 @@
 			<artifactId>jackson-datatype-jsr310</artifactId>
 			<version>${jackson.version}</version>
 		</dependency>
-		
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scalecube-cluster</artifactId>
-			<version>${scalecube.version}</version>
-		</dependency>
-		
+				
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>scalecube-testlib</artifactId>
@@ -48,17 +55,9 @@
 			<scope>test</scope>
 		</dependency>
 		
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scalecube-cluster</artifactId>
-			<version>${scalecube.version}</version>
-		</dependency>
 		
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scalecube-utils</artifactId>
-			<version>1.1.0-SNAPSHOT</version>
-		</dependency>
+
+		
 	</dependencies>
 
 	<build>
@@ -75,19 +74,7 @@
 					</execution>
 				</executions>
 			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.3</version>
-				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
-					<compilerArgs>
-						<arg>-proc:none</arg>
-						<arg>-Xlint:unchecked</arg>
-					</compilerArgs>
-				</configuration>
-			</plugin>
+			
 		</plugins>
 	</build>
 </project>
