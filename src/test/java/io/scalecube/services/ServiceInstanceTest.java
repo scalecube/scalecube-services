@@ -5,8 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.streams.ClientStreamProcessors;
-import io.scalecube.streams.StreamProcessors;
+import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 
@@ -24,7 +23,7 @@ public class ServiceInstanceTest extends BaseTest {
     ServiceReference reference =
         new ServiceReference("a", "b", Collections.singleton("sayHello"), Address.create("localhost", 4000));
 
-    ClientStreamProcessors sender = StreamProcessors.newClient();
+    ClientTransport sender = ClientTransport.newClient();
 
     RemoteServiceInstance instance =
         new RemoteServiceInstance(sender, reference, new HashMap<>());

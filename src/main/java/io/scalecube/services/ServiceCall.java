@@ -5,17 +5,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 import io.scalecube.concurrency.Futures;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
-import io.scalecube.streams.StreamMessage;
+import io.scalecube.services.transport.api.ServiceMessage;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
 import com.google.common.reflect.Reflection;
 
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import rx.Observable;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -24,6 +23,8 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import reactor.core.publisher.Flux;
 
 public class ServiceCall {
 
@@ -71,7 +72,7 @@ public class ServiceCall {
      * @param request request with given headers.
      * @return CompletableFuture with service call dispatching result.
      */
-    public CompletableFuture<StreamMessage> invoke(StreamMessage request) {
+    public CompletableFuture<ServiceMessage> invoke(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
 
       ServiceInstance serviceInstance = router.route(request).orElseThrow(() -> noReachableMemberException(request));
@@ -89,7 +90,7 @@ public class ServiceCall {
      * @return CompletableFuture with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public CompletableFuture<StreamMessage> invoke(StreamMessage request, ServiceInstance serviceInstance) {
+    public CompletableFuture<ServiceMessage> invoke(ServiceMessage request, ServiceInstance serviceInstance) {
       Messages.validate().serviceRequest(request);
       return invoke(request, serviceInstance, timeout);
     }
@@ -104,7 +105,7 @@ public class ServiceCall {
      * @param duration of the response before TimeException is returned.
      * @return CompletableFuture with service call dispatching result.
      */
-    public CompletableFuture<StreamMessage> invoke(final StreamMessage request, final ServiceInstance serviceInstance,
+    public CompletableFuture<ServiceMessage> invoke(final ServiceMessage request, final ServiceInstance serviceInstance,
         final Duration duration) {
 
       Objects.requireNonNull(serviceInstance);
@@ -116,7 +117,7 @@ public class ServiceCall {
       Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
       Metrics.inc(counter);
 
-      CompletableFuture<StreamMessage> response = serviceInstance.invoke(request, responseType);
+      CompletableFuture<ServiceMessage> response = serviceInstance.invoke(request);
       Futures.withTimeout(response, duration)
           .whenComplete((value, error) -> {
             Metrics.dec(counter);
@@ -139,7 +140,7 @@ public class ServiceCall {
      * @param request containing subscription data.
      * @return rx.Observable for the specific stream.
      */
-    public Observable<StreamMessage> listen(StreamMessage request) {
+    public Flux<ServiceMessage> listen(ServiceMessage request) {
       Objects.requireNonNull(responseType, "response type is not set");
       Messages.validate().serviceRequest(request);
 
@@ -173,16 +174,16 @@ public class ServiceCall {
 
           Metrics.mark(serviceInterface, metrics, method, "request");
           Object data = method.getParameterCount() != 0 ? args[0] : null;
-          final StreamMessage reqMsg = StreamMessage.builder()
+          final ServiceMessage reqMsg = ServiceMessage.builder()
               .qualifier(Reflect.serviceName(serviceInterface), method.getName())
               .data(data)
               .build();
 
-          if (method.getReturnType().equals(Observable.class)) {
-            if (Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
+          if (method.getReturnType().getClass().isAssignableFrom(Publisher.class)) {
+            if (Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
               return methodCall.listen(reqMsg);
             } else {
-              return methodCall.listen(reqMsg).map(StreamMessage::data);
+              return methodCall.listen(reqMsg).map(ServiceMessage::data);
             }
 
           } else if (method.getReturnType().equals(CompletableFuture.class)) {
@@ -199,12 +200,12 @@ public class ServiceCall {
 
         @SuppressWarnings("unchecked")
         private CompletableFuture<T> toCompletableFuture(final Method method,
-            final CompletableFuture<StreamMessage> reuslt) {
+            final CompletableFuture<ServiceMessage> reuslt) {
           final CompletableFuture<T> future = new CompletableFuture<>();
           reuslt.whenComplete((value, ex) -> {
             if (ex == null) {
               Metrics.mark(serviceInterface, metrics, method, "response");
-              if (!Reflect.parameterizedReturnType(method).equals(StreamMessage.class)) {
+              if (!Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
                 future.complete((T) value.data());
               } else {
                 future.complete((T) value);
@@ -230,7 +231,7 @@ public class ServiceCall {
       return serviceCalls;
     }
 
-    private IllegalStateException noReachableMemberException(StreamMessage request) {
+    private IllegalStateException noReachableMemberException(ServiceMessage request) {
 
       LOGGER.error(
           "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",

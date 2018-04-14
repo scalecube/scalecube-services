@@ -18,7 +18,7 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-import io.scalecube.streams.StreamMessage;
+import io.scalecube.services.transport.api.ServiceMessage;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Assert;
@@ -38,26 +38,26 @@ public class ServiceCallTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
 
-  public static final StreamMessage GREETING_REQ = Messages.builder()
+  public static final ServiceMessage GREETING_REQ = Messages.builder()
       .request(SERVICE_NAME, "greeting")
       .data("joe")
       .build();
 
-  public static final StreamMessage GREETING_REQUEST_REQ = Messages.builder()
+  public static final ServiceMessage GREETING_REQUEST_REQ = Messages.builder()
       .request(SERVICE_NAME, "greetingRequest")
       .data(new GreetingRequest("joe"))
       .build();
 
-  public static final StreamMessage GREETING_REQUEST_TIMEOUT_REQ = Messages.builder()
+  public static final ServiceMessage GREETING_REQUEST_TIMEOUT_REQ = Messages.builder()
       .request(SERVICE_NAME, "greetingRequestTimeout")
       .data(new GreetingRequest("joe", Duration.ofSeconds(3)))
       .build();
 
-  // public static final StreamMessage GREETING_MESSAGE_REQ = Messages.builder()
+  // public static final ServiceMessage GREETING_MESSAGE_REQ = Messages.builder()
   // .request(SERVICE_NAME, "greetingMessage")
   // .data("joe").build();
 
-  public static final StreamMessage NOT_FOUND_REQ = Messages.builder()
+  public static final ServiceMessage NOT_FOUND_REQ = Messages.builder()
       .request(SERVICE_NAME, "unknown")
       .data("joe").build();
 
@@ -73,7 +73,7 @@ public class ServiceCallTest extends BaseTest {
     Call serviceCall = ServiceCall.call().router(router);
 
     // call the service.
-    CompletableFuture<StreamMessage> future =
+    CompletableFuture<ServiceMessage> future =
         serviceCall.responseTypeOf(GreetingResponse.class).invoke(GREETING_NO_PARAMS_REQUEST);
 
     future.whenComplete((message, ex) -> {
@@ -107,10 +107,10 @@ public class ServiceCallTest extends BaseTest {
     Call serviceCall = consumer.call();
 
     // call the service.
-    CompletableFuture<StreamMessage> future =
+    CompletableFuture<ServiceMessage> future =
         serviceCall.responseTypeOf(GreetingResponse.class).invoke(GREETING_NO_PARAMS_REQUEST);
 
-    future.whenComplete((StreamMessage message, Throwable ex) -> {
+    future.whenComplete((ServiceMessage message, Throwable ex) -> {
       if (ex == null) {
         assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
         assertThat(message.data(), instanceOf(GreetingResponse.class));
@@ -134,9 +134,9 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    CompletableFuture<StreamMessage> resultFuture =
+    CompletableFuture<ServiceMessage> resultFuture =
         gateway.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_VOID_REQ);
-    StreamMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
 
     // Then:
     assertNotNull(result);
@@ -152,9 +152,9 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance.
     Microservices node = serviceProvider();
     // call the service.
-    CompletableFuture<StreamMessage> future =
+    CompletableFuture<ServiceMessage> future =
         node.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_VOID_REQ);
-    StreamMessage result = future.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = future.get(TIMEOUT, TimeUnit.SECONDS);
     assertNotNull(result);
     assertEquals(GREETING_VOID_REQ.qualifier(), result.qualifier());
     assertNull(result.data());
@@ -175,10 +175,10 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    CompletableFuture<StreamMessage> resultFuture = consumer.call().responseTypeOf(String.class).invoke(GREETING_REQ);
+    CompletableFuture<ServiceMessage> resultFuture = consumer.call().responseTypeOf(String.class).invoke(GREETING_REQ);
 
     // Then
-    StreamMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
     assertNotNull(result);
     assertEquals(GREETING_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", result.data());
@@ -194,11 +194,11 @@ public class ServiceCallTest extends BaseTest {
     Microservices microservices = serviceProvider();
 
     // When
-    CompletableFuture<StreamMessage> resultFuture =
+    CompletableFuture<ServiceMessage> resultFuture =
         microservices.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     // Then
-    StreamMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
     assertNotNull(result);
     assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
@@ -217,11 +217,11 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    CompletableFuture<StreamMessage> resultFuture =
+    CompletableFuture<ServiceMessage> resultFuture =
         consumer.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     // Then
-    StreamMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
     assertNotNull(result);
     assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
@@ -239,7 +239,7 @@ public class ServiceCallTest extends BaseTest {
         .timeout(Duration.ofSeconds(1));
 
     // call the service.
-    CompletableFuture<StreamMessage> future =
+    CompletableFuture<ServiceMessage> future =
         service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
 
     try {
@@ -267,7 +267,7 @@ public class ServiceCallTest extends BaseTest {
         .timeout(Duration.ofSeconds(1));
 
     // call the service.
-    CompletableFuture<StreamMessage> future =
+    CompletableFuture<ServiceMessage> future =
         service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
     try {
       future.get(TIMEOUT, TimeUnit.SECONDS);
@@ -291,7 +291,7 @@ public class ServiceCallTest extends BaseTest {
         .timeout(Duration.ofSeconds(1));
 
     // call the service.
-    CompletableFuture<StreamMessage> future =
+    CompletableFuture<ServiceMessage> future =
         service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
 
@@ -325,7 +325,7 @@ public class ServiceCallTest extends BaseTest {
     Call service = consumer.call();
 
     // call the service.
-    CompletableFuture<StreamMessage> future =
+    CompletableFuture<ServiceMessage> future =
         service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -370,9 +370,9 @@ public class ServiceCallTest extends BaseTest {
     Call service = gateway.call();
 
     // call the service.
-    CompletableFuture<StreamMessage> result1 =
+    CompletableFuture<ServiceMessage> result1 =
         service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
-    CompletableFuture<StreamMessage> result2 =
+    CompletableFuture<ServiceMessage> result2 =
         service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
@@ -415,7 +415,7 @@ public class ServiceCallTest extends BaseTest {
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       // call the service.
-      CompletableFuture<StreamMessage> future = service.invoke(NOT_FOUND_REQ);
+      CompletableFuture<ServiceMessage> future = service.invoke(NOT_FOUND_REQ);
 
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
@@ -458,7 +458,7 @@ public class ServiceCallTest extends BaseTest {
 
     for (int i = 0; i < 100; i++) {
       // call the service.
-      CompletableFuture<StreamMessage> future = service.invoke(Messages.builder()
+      CompletableFuture<ServiceMessage> future = service.invoke(Messages.builder()
           .request(CanaryService.class, "greeting")
           .data("joe")
           .build());
@@ -499,7 +499,7 @@ public class ServiceCallTest extends BaseTest {
 
     Call service = gateway.call().responseTypeOf(GreetingResponse.class).timeout(Duration.ofSeconds(3));
 
-    CompletableFuture<StreamMessage> result = service.invoke(GREETING_REQUEST_REQ);
+    CompletableFuture<ServiceMessage> result = service.invoke(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
@@ -533,7 +533,7 @@ public class ServiceCallTest extends BaseTest {
 
     Call service = gateway.call().timeout(Duration.ofSeconds(3));
 
-    CompletableFuture<StreamMessage> result =
+    CompletableFuture<ServiceMessage> result =
         service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);

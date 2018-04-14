@@ -8,7 +8,7 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.routing.Router;
-import io.scalecube.streams.StreamMessage;
+import io.scalecube.services.transport.api.ServiceMessage;
 
 import com.google.common.base.Strings;
 
@@ -23,7 +23,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -243,7 +242,7 @@ public class Reflect {
   }
 
   /**
-   * invoke a java method by a given StreamMessage.
+   * invoke a java method by a given ServiceMessage.
    *
    * @param serviceObject instance to invoke its method.
    * @param method method to invoke.
@@ -252,12 +251,12 @@ public class Reflect {
    * @throws Exception in case method expects more then one parameter
    */
   @SuppressWarnings("unchecked")
-  public static <T> T invoke(Object serviceObject, Method method, final StreamMessage request) throws Exception {
+  public static <T> T invoke(Object serviceObject, Method method, final ServiceMessage request) throws Exception {
     // handle invoke
     if (method.getParameters().length == 0) { // method expect no params.
       return (T) method.invoke(serviceObject);
     } else if (method.getParameters().length == 1) { // method expect 1 param.
-      if (method.getParameters()[0].getType().isAssignableFrom(StreamMessage.class)) {
+      if (method.getParameters()[0].getType().isAssignableFrom(ServiceMessage.class)) {
         return (T) method.invoke(serviceObject, request);
       } else {
         T invoke = (T) method.invoke(serviceObject, new Object[]{request.data()});

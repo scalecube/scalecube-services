@@ -10,10 +10,7 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.streams.ServiceStreams;
-import io.scalecube.streams.ClientStreamProcessors;
-import io.scalecube.streams.ServerStreamProcessors;
-import io.scalecube.streams.StreamProcessors;
-import io.scalecube.streams.codec.StreamMessageDataCodec;
+import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
@@ -106,7 +103,7 @@ public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
 
-  private final ClientStreamProcessors client;
+  private final ClientTransport client;
 
   private Metrics metrics;
 
@@ -114,7 +111,7 @@ public class Microservices {
 
   public RouterFactory routerFactory;
 
-  private Microservices(Cluster cluster, Address serviceAddress, ClientStreamProcessors client, ServicesConfig services,
+  private Microservices(Cluster cluster, Address serviceAddress, ClientTransport client, ServicesConfig services,
       Metrics metrics) {
     this.cluster = cluster;
     this.client = client;
@@ -166,7 +163,7 @@ public class Microservices {
     private Metrics metrics;
 
     private ServerStreamProcessors server = StreamProcessors.newServer();
-    private ClientStreamProcessors client = StreamProcessors.newClient();
+    private ClientTransport client = ClientTransport.newClient();
 
     /**
      * Microservices instance builder.
@@ -198,7 +195,7 @@ public class Microservices {
       return this;
     }
 
-    public Builder client(ClientStreamProcessors client) {
+    public Builder client(ClientTransport client) {
       this.client = client;
       return this;
     }
@@ -293,7 +290,7 @@ public class Microservices {
    *
    * @return service communication.
    */
-  public ClientStreamProcessors client() {
+  public ClientTransport client() {
     return client;
   }
 
@@ -304,8 +301,6 @@ public class Microservices {
    */
   public CompletableFuture<Void> shutdown() {
     CompletableFuture<Void> result = new CompletableFuture<Void>();
-
-    this.client.close();
 
     if (!this.cluster.isShutdown()) {
       return this.cluster.shutdown();

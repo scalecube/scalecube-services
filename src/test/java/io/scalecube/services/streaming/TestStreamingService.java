@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.streams.StreamMessage;
+import io.scalecube.services.transport.api.ServiceMessage;
 import io.scalecube.testlib.BaseTest;
 
 import com.codahale.metrics.MetricRegistry;
@@ -20,6 +20,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+
+import reactor.core.Disposable;
 
 public class TestStreamingService extends BaseTest {
 
@@ -142,11 +144,11 @@ public class TestStreamingService extends BaseTest {
     Call service = gateway.call();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Subscription sub1 = service.listen(Messages.builder()
+    Disposable sub1 = service.listen(Messages.builder()
         .request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
         .build())
-        .serialize()
+
         .subscribe(onNext -> latch1.countDown());
 
 
@@ -160,7 +162,7 @@ public class TestStreamingService extends BaseTest {
         + (System.currentTimeMillis() - start) + "ms: "
         + "rate of :" + batchSize / (end / 1000) + " events/sec ");
 
-    sub1.unsubscribe();
+    sub1.dispose();
     gateway.shutdown();
     node.shutdown();
   }
@@ -205,18 +207,17 @@ public class TestStreamingService extends BaseTest {
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    StreamMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
+    ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    sub1.set(service.listen(justOne)
-        .serialize().subscribe(onNext -> {
-          sub1.get().unsubscribe();
+    sub1.set(service.listen(justOne).subscribe(onNext -> {
+          sub1.get().dispose();
           latch1.countDown();
         }));
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
-    assertTrue(sub1.get().isUnsubscribed());
+    assertTrue(sub1.get().isDisposed());
     gateway.shutdown();
     node.shutdown();
 
@@ -234,13 +235,12 @@ public class TestStreamingService extends BaseTest {
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    StreamMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
+    AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
+    ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
-    sub1.set(service.listen(scheduled)
-        .serialize().subscribe(onNext -> {
-          sub1.get().isUnsubscribed();
+    sub1.set(service.listen(scheduled).subscribe(onNext -> {
+          sub1.get().isDisposed();
           latch1.countDown();
 
         }));
@@ -264,7 +264,7 @@ public class TestStreamingService extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(1);
 
-    StreamMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
+    ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
     try {
       service.listen(scheduled);
     } catch (Exception ex) {
@@ -292,8 +292,8 @@ public class TestStreamingService extends BaseTest {
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    StreamMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
+    ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
     sub1.set(service.listen(justOne)
         .subscribe(onNext -> {
@@ -311,7 +311,7 @@ public class TestStreamingService extends BaseTest {
     latch1.await(20, TimeUnit.SECONDS);
     Thread.sleep(100);
     assertTrue(latch1.getCount() == 0);
-    assertTrue(sub1.get().isUnsubscribed());
+    assertTrue(sub1.get().isDisposed());
     gateway.shutdown();
 
 
