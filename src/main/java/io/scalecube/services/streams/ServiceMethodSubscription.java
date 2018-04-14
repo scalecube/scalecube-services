@@ -1,7 +1,7 @@
 package io.scalecube.services.streams;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.streams.Qualifier;
+import io.scalecube.services.transport.api.Qualifier;
 import io.scalecube.streams.ServerStreamProcessors;
 import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.StreamProcessor;

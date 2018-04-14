@@ -11,6 +11,7 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.streams.ServiceStreams;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
@@ -162,7 +163,7 @@ public class Microservices {
 
     private Metrics metrics;
 
-    private ServerStreamProcessors server = StreamProcessors.newServer();
+    private ServerTransport server = ServerTransport.newServer();
     private ClientTransport client = ClientTransport.newClient();
 
     /**
@@ -190,7 +191,7 @@ public class Microservices {
     }
 
 
-    public Builder server(ServerStreamProcessors server) {
+    public Builder server(ServerTransport server) {
       this.server = server;
       return this;
     }
