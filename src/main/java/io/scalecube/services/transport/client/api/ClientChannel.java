@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.client.api;
 
-import io.scalecube.services.transport.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

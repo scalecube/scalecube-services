@@ -3,9 +3,9 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.concurrency.Futures;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.transport.ServiceMessage;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;

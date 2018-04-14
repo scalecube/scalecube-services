@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.services.transport.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.client.api.ClientChannel;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;

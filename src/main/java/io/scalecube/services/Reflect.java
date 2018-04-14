@@ -7,8 +7,8 @@ import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.transport.ServiceMessage;
 
 import com.google.common.base.Strings;
 

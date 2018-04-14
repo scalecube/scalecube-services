@@ -1,7 +1,7 @@
 package io.scalecube.services.transport.server.api;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.transport.Qualifier;
+import io.scalecube.services.api.Qualifier;
 
 import org.reactivestreams.Subscriber;
 

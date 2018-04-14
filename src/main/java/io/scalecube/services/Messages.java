@@ -2,8 +2,8 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.services.transport.Qualifier;
-import io.scalecube.services.transport.ServiceMessage;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
 
 public class Messages {
 

@@ -6,7 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.transport.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
