@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import io.scalecube.services.transport.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.transport.Address;
 
 import java.util.Collection;
