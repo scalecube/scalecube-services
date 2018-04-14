@@ -1,8 +1,8 @@
 package io.scalecube.services.streams;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.streams.Qualifier;
-import io.scalecube.streams.ServerStreamProcessors;
+import io.scalecube.services.transport.api.Qualifier;
+import io.scalecube.services.transport.api.ServerTransport;
 
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
@@ -11,9 +11,9 @@ import java.util.stream.Collectors;
 
 public final class ServiceStreams {
 
-  private final ServerStreamProcessors server;
+  private final ServerTransport server;
 
-  public ServiceStreams(ServerStreamProcessors server) {
+  public ServiceStreams(ServerTransport server) {
     this.server = server;
   }
 
