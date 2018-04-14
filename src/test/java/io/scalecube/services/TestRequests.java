@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import io.scalecube.services.transport.api.ServiceMessage;
+import io.scalecube.services.transport.ServiceMessage;
 
 public interface TestRequests {
     String SERVICE_NAME = "io.scalecube.services.GreetingService";

@@ -5,7 +5,7 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.transport.api.ServiceMessage;
+import io.scalecube.services.transport.ServiceMessage;
 import io.scalecube.testlib.BaseTest;
 
 import com.codahale.metrics.MetricRegistry;

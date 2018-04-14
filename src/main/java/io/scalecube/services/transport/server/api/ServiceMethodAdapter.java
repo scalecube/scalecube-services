@@ -1,16 +1,11 @@
-package io.scalecube.services.streams;
+package io.scalecube.services.transport.server.api;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.transport.api.Qualifier;
-import io.scalecube.streams.ServerStreamProcessors;
-import io.scalecube.streams.StreamMessage;
-import io.scalecube.streams.StreamProcessor;
-import io.scalecube.streams.codec.StreamMessageDataCodec;
-import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
+import io.scalecube.services.transport.Qualifier;
+import io.scalecube.services.transport.ServiceMessage;
+import io.scalecube.services.transport.server.api.ServiceChannel;
 
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
+import io.netty.channel.ServerChannel;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -18,17 +13,21 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public final class ServiceMethodSubscription implements Subscription {
-  private final ServerStreamProcessors server;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
+public abstract class ServiceMethodAdapter implements Disposable {
+  private final ServerTransport server;
   private final Qualifier qualifier;
   private final Method method;
   private final Object serviceObject;
   private final Class<?> requestType;
-  private Subscription subsciption;
-  private StreamMessageDataCodec codec = new StreamMessageDataCodecImpl();
+  private Disposable subsciption;
 
-  private ServiceMethodSubscription(
-      ServerStreamProcessors server,
+  private ServiceMethodAdapter(
+      ServerTransport server,
       Qualifier qualifier,
       Method method,
       Object serviceObject) {
@@ -48,15 +47,15 @@ public final class ServiceMethodSubscription implements Subscription {
    * @param serviceObject instance to invoke.
    * @return new service method subscription.
    */
-  public static ServiceMethodSubscription create(ServerStreamProcessors server, Qualifier qualifier, Method method,
+  public static ServiceMethodAdapter create(ServerTransport server, Qualifier qualifier, Method method,
       Object serviceObject) {
 
-    ServiceMethodSubscription subscription = new ServiceMethodSubscription(server, qualifier, method, serviceObject);
+    ServiceMethodAdapter subscription = new ServiceMethodAdapter(server, qualifier, method, serviceObject);
 
     Class<?> returnType = method.getReturnType();
     if (returnType == CompletableFuture.class) {
       return subscription.toCompletableFuture();
-    } else if (returnType == Observable.class) {
+    } else if (returnType == Flux.class) {
       return subscription.toObservable();
     } else if (Void.TYPE.equals(returnType)) {
       return subscription.toVoid();
@@ -69,28 +68,28 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   @Override
-  public void unsubscribe() {
+  public void dispose() {
     if (subsciption != null) {
-      subsciption.unsubscribe();
+      subsciption.dispose();
     }
   }
 
   @Override
-  public boolean isUnsubscribed() {
-    return Objects.isNull(subsciption) || subsciption.isUnsubscribed();
+  public boolean isDisposed() {
+    return Objects.isNull(subsciption) || subsciption.isDisposed();
   }
 
-  private ServiceMethodSubscription toCompletableFuture() {
+  private abstract ServiceMethodAdapter toCompletableFuture() {
     // Class<?> reqPayloadType = reqType();
     this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
-      public void onNext(StreamMessage message) {
+      public void onNext(ServiceMessage message) {
         try {
           // noinspection unchecked
           CompletableFuture<Object> result = invoke(message);
           result.whenComplete((response, error) -> {
             if (error == null) {
-              observer.onNext(codec.encodeData(StreamMessage.from(message).data(response).build()));
+              observer.onNext(codec.encodeData(ServiceMessage.from(message).data(response).build()));
               observer.onCompleted();
             } else {
               observer.onError(error);
@@ -104,12 +103,12 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  private ServiceMethodSubscription toObservable() {
+  private ServiceMethodAdapter toObservable() {
     this.subsciption = accept(observer -> new SubscriberAdapter() {
       @Override
-      public void onNext(StreamMessage request) {
+      public void onNext(ServiceMessage request) {
         try {
-          Observable<StreamMessage> result = invoke(request);
+          Observable<ServiceMessage> result = invoke(request);
           result.map(message -> codec.encodeData(message)).subscribe(observer);
         } catch (Throwable error) {
           observer.onError(error);
@@ -119,13 +118,13 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  private ServiceMethodSubscription toVoid() {
+  private ServiceMethodAdapter toVoid() {
     this.subsciption = accept(streamProcessor -> new SubscriberAdapter() {
       @Override
-      public void onNext(StreamMessage message) {
+      public void onNext(ServiceMessage message) {
         try {
           invoke(message);
-          streamProcessor.onNext(StreamMessage.from(message).data(null).build());
+          streamProcessor.onNext(ServiceMessage.from(message).data(null).build());
           streamProcessor.onCompleted();
         } catch (Throwable error) {
           streamProcessor.onError(error);
@@ -135,7 +134,7 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  private ServiceMethodSubscription toBidirectional() {
+  private ServiceMethodAdapter toBidirectional() {
     this.subsciption = accept(streamProcessor -> {
       try {
         // noinspection unchecked
@@ -148,11 +147,11 @@ public final class ServiceMethodSubscription implements Subscription {
     return this;
   }
 
-  private <T> T invoke(StreamMessage message) throws Exception {
+  private <T> T invoke(ServiceMessage message) throws Exception {
     if (requestType.equals(Void.TYPE)) {
       return Reflect.invoke(serviceObject, method, message);
     } else {
-      if (StreamMessage.class.equals(requestType)) {
+      if (ServiceMessage.class.equals(requestType)) {
         return Reflect.invoke(serviceObject, method, message);
       } else {
         return Reflect.invoke(serviceObject, method, codec.decodeData(message, requestType));
@@ -161,39 +160,19 @@ public final class ServiceMethodSubscription implements Subscription {
   }
 
   @SuppressWarnings("unchecked")
-  private Subscriber<StreamMessage> invoke(final StreamProcessor streamProcessor) throws Exception {
+  private Subscriber<ServiceMessage> invoke(final StreamProcessor streamProcessor) throws Exception {
     // noinspection unchecked
-    return (Subscriber<StreamMessage>) method.invoke(serviceObject, streamProcessor);
+    return (Subscriber<ServiceMessage>) method.invoke(serviceObject, streamProcessor);
   }
 
-  private Subscription accept(Function<StreamProcessor, Subscriber<StreamMessage>> factory) {
+  private Subscription accept(Function<StreamProcessor, Subscriber<ServiceMessage>> factory) {
     return server.listen().subscribe(streamProcessor -> {
       // listen for stream messages with qualifier filter
       // noinspection unchecked
-      ((StreamProcessor<StreamMessage, StreamMessage>) streamProcessor).listen()
+      ((StreamProcessor<ServiceMessage, ServiceMessage>) streamProcessor).listen()
           .filter(message -> qualifier.asString().equalsIgnoreCase(message.qualifier()))
           .subscribe(factory.apply(streamProcessor));
     });
-  }
-
-  private static class SubscriberAdapter extends Subscriber<StreamMessage> {
-
-    private SubscriberAdapter() {}
-
-    @Override
-    public void onNext(StreamMessage message) {
-      // no-op
-    }
-
-    @Override
-    public void onCompleted() {
-      // no-op
-    }
-
-    @Override
-    public void onError(Throwable error) {
-      // no-op
-    }
   }
 
   private static boolean containsStreamProcessor(Parameter[] parameters) {

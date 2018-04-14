@@ -4,7 +4,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.metrics.Metrics;
-import io.scalecube.services.transport.api.ServiceMessage;
+import io.scalecube.services.transport.ServiceMessage;
 import io.scalecube.transport.Address;
 
 import java.lang.reflect.Method;

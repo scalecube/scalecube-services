@@ -2,9 +2,9 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.services.transport.api.ClientChannel;
-import io.scalecube.services.transport.api.ClientTransport;
-import io.scalecube.services.transport.api.ServiceMessage;
+import io.scalecube.services.transport.ServiceMessage;
+import io.scalecube.services.transport.client.api.ClientChannel;
+import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;

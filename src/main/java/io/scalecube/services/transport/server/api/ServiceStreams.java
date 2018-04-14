@@ -1,8 +1,7 @@
-package io.scalecube.services.streams;
+package io.scalecube.services.transport.server.api;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.transport.api.Qualifier;
-import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.Qualifier;
 
 import java.lang.reflect.Method;
 import java.util.AbstractMap;
@@ -23,7 +22,7 @@ public final class ServiceStreams {
    * @param serviceObject to introspect and create stream subscriptions.
    * @return list of stream subscription found for object.
    */
-  public List<ServiceMethodSubscription> createSubscriptions(Object serviceObject) {
+  public List<ServiceMethodAdapter> createSubscriptions(Object serviceObject) {
 
     List<AbstractMap.SimpleEntry<Qualifier, Method>> methods = Reflect.serviceInterfaces(serviceObject).stream()
         .flatMap(serviceInterface -> Reflect.serviceMethods(serviceInterface).entrySet().stream().map(entry -> {
@@ -35,7 +34,7 @@ public final class ServiceStreams {
         .collect(Collectors.toList());
 
     return methods.stream()
-        .map(entry -> ServiceMethodSubscription.create(server, entry.getKey(), entry.getValue(), serviceObject))
+        .map(entry -> ServiceMethodAdapter.create(server, entry.getKey(), entry.getValue(), serviceObject))
         .collect(Collectors.toList());
   }
 }

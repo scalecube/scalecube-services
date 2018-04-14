@@ -3,7 +3,7 @@ package io.scalecube.services;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.transport.api.ServiceMessage;
+import io.scalecube.services.transport.ServiceMessage;
 
 import java.util.Collection;
 import java.util.Optional;
