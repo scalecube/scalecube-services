@@ -3,7 +3,7 @@ package io.scalecube.services.routing;
 import io.scalecube.services.Messages;
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceRegistry;
-import io.scalecube.services.transport.api.ServiceMessage;
+import io.scalecube.services.transport.ServiceMessage;
 
 import java.util.Collection;
 import java.util.Collections;

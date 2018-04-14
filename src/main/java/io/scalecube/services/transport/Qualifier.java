@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.api;
+package io.scalecube.services.transport;
 
 import java.util.Objects;
 

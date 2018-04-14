@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 

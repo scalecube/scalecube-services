@@ -9,9 +9,9 @@ import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.services.streams.ServiceStreams;
-import io.scalecube.services.transport.api.ClientTransport;
-import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.client.api.ClientTransport;
+import io.scalecube.services.transport.server.api.ServerTransport;
+import io.scalecube.services.transport.server.api.ServiceStreams;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
