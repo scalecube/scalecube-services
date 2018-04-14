@@ -10,7 +10,6 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.server.api.ServiceMethodAdapter;
 import io.scalecube.services.transport.server.api.ServiceTransport;
 import io.scalecube.transport.Address;
 
@@ -23,7 +22,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -98,8 +96,6 @@ import java.util.stream.Collectors;
 
 public class Microservices {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
-
   private final Cluster cluster;
 
   private final ServiceRegistry serviceRegistry;
@@ -120,23 +116,6 @@ public class Microservices {
     this.metrics = metrics;
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
     this.routerFactory = new RouterFactory(serviceRegistry);
-  }
-
-  // FIXME: need to implement cleanup process
-  private void cleanupStuff() {
-    // this.cluster().listenMembership()
-    // .filter(predicate -> predicate.isRemoved())
-    // .subscribe(onNext -> {
-    // subscriptionsMap.values().stream()
-    // .filter(action -> action.memberId().equals(onNext.member().id()))
-    // .collect(Collectors.toList())
-    //
-    // .forEach(subscription -> {
-    // subscription.unsubscribe();
-    // subscriptionsMap.remove(subscription.id());
-    // LOGGER.info("Member removed removing subscription {}", subscription);
-    // });
-    // });
   }
 
   public Metrics metrics() {
@@ -163,7 +142,7 @@ public class Microservices {
 
     private Metrics metrics;
 
-    private ServiceTransport server = ServiceTransport.newServer();
+    private ServiceTransport server;
     private ClientTransport client = ClientTransport.newClient();
 
     /**
@@ -173,10 +152,7 @@ public class Microservices {
      */
     public Microservices build() {
 
-      servicesConfig.services().stream()
-          .map(mapper -> ServiceMethodAdapter.builder().create(this.server,mapper.getService()))
-          .collect(Collectors.toList());
-
+      this.server = server.services(servicesConfig.services().stream().toArray());
       Address serviceAddress = this.server.bindAwait();
 
       ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
@@ -223,8 +199,8 @@ public class Microservices {
       checkNotNull(services);
 
       this.servicesConfig = ServicesConfig.builder(this)
-              .services(services)
-              .create();
+          .services(services)
+          .create();
 
       return this;
     }
@@ -274,9 +250,9 @@ public class Microservices {
       serviceConfig.serviceNames().stream().forEach(name -> {
 
         servicesTags.put(new ServiceInfo(name,
-                        serviceConfig.methods(name),
-                        serviceConfig.getTags()).toMetadata(),
-                "service");
+            serviceConfig.methods(name),
+            serviceConfig.getTags()).toMetadata(),
+            "service");
       });
     });
 
