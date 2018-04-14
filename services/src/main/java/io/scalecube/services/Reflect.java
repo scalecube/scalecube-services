@@ -2,11 +2,12 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.services.Microservices.ProxyContext;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.annotations.ServiceProxy;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.Router;
 
 import com.google.common.base.Strings;
@@ -25,6 +26,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
 
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
@@ -58,6 +61,7 @@ public class Reflect {
      */
     public Microservices inject() {
       this.inject(this.microservices);
+
       return this.microservices;
     }
 
@@ -69,6 +73,32 @@ public class Reflect {
           .filter(instance -> instance.isLocal())
           .collect(Collectors.toList()).forEach(instance -> {
             scanServiceFields(((LocalServiceInstance) instance).serviceObject());
+            this.processPostConstruct(((LocalServiceInstance) instance).serviceObject());
+          });
+    }
+
+    private void processPostConstruct(Object targetInstance) {
+      Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
+      Arrays.stream(declaredMethods)
+          .filter(method -> method.isAnnotationPresent(PostConstruct.class))
+          .forEach(postConstructMethod -> {
+            try {
+              postConstructMethod.setAccessible(true);
+              Object[] paramters = Arrays.asList(postConstructMethod.getParameters()).stream().map(mapper -> {
+                if (mapper.getType().equals(Microservices.class)) {
+                  return this.microservices;
+                } else if (mapper.isAnnotationPresent(ServiceProxy.class)) {
+                  return newServiceCall(mapper.getAnnotation(ServiceProxy.class));
+                } else if (isService(mapper.getType())) {
+                  return this.microservices.call().api(mapper.getType());
+                } else {
+                  return null;
+                }
+              }).collect(Collectors.toList()).toArray();
+              postConstructMethod.invoke(targetInstance, paramters);
+            } catch (Exception ex) {
+              throw new RuntimeException(ex);
+            }
           });
     }
 
@@ -81,28 +111,33 @@ public class Reflect {
     private void injectField(Field field, Object service) {
       if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
         setField(field, service, this.microservices);
-      } else if (field.isAnnotationPresent(Inject.class) && isService(field)) {
-        setField(field, service, this.microservices.proxy().api(field.getType()).create());
-      } else if (field.isAnnotationPresent(ServiceProxy.class) && isService(field)) {
+      } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
+        setField(field, service, this.microservices.call().api(field.getType()));
+      } else if (field.isAnnotationPresent(ServiceProxy.class) && isService(field.getType())) {
         injectServiceProxy(field, service);
       }
     }
 
-    private boolean isService(Field field) {
-      return field.getType().isAnnotationPresent(Service.class);
+    private boolean isService(Class type) {
+      return type.isAnnotationPresent(Service.class);
     }
 
     private void injectServiceProxy(Field field, Object service) {
       ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
-      ProxyContext builder = this.microservices.proxy().api(field.getType());
+      Call builder = newServiceCall(annotation);
+      setField(field, service, builder);
+    }
+
+    private Call newServiceCall(ServiceProxy annotation) {
+      Call builder = this.microservices.call();
       if (!annotation.router().equals(Router.class)) {
-        builder.router(annotation.router());
+        builder.router(this.microservices.router(annotation.router()));
       }
       if (annotation.timeout() > 0) {
         long nanos = annotation.timeUnit().toNanos(annotation.timeout());
         builder.timeout(Duration.ofNanos(nanos));
       }
-      setField(field, service, builder.create());
+      return builder;
     }
 
     private void setField(Field field, Object object, Object value) {
@@ -121,13 +156,30 @@ public class Reflect {
    * @param method to extract type from.
    * @return the generic type of the return value or object.
    */
-  public static Type parameterizedReturnType(Method method) {
+  public static Class<?> parameterizedReturnType(Method method) {
     Type type = method.getGenericReturnType();
     if (type instanceof ParameterizedType) {
-      return ((ParameterizedType) type).getActualTypeArguments()[0];
+      try {
+        return Class.forName((((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
+      } catch (ClassNotFoundException e) {
+        return Object.class;
+      }
     } else {
       return Object.class;
     }
+  }
+
+  /**
+   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
+   *
+   * @param method in inspection.
+   * @return type of parameter [0] or void
+   */
+  public static Class<?> requestType(Method method) {
+    if (method.getParameterTypes().length > 0) {
+      return method.getParameterTypes()[0];
+    }
+    return Void.TYPE;
   }
 
   /**
@@ -188,5 +240,33 @@ public class Reflect {
         .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
         .collect(Collectors.toList());
   }
+
+  /**
+   * invoke a java method by a given ServiceMessage.
+   *
+   * @param serviceObject instance to invoke its method.
+   * @param method method to invoke.
+   * @param request stream message request containing data or message to invoke.
+   * @return invoke result.
+   * @throws Exception in case method expects more then one parameter
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> T invoke(Object serviceObject, Method method, final ServiceMessage request) throws Exception {
+    // handle invoke
+    if (method.getParameters().length == 0) { // method expect no params.
+      return (T) method.invoke(serviceObject);
+    } else if (method.getParameters().length == 1) { // method expect 1 param.
+      if (method.getParameters()[0].getType().isAssignableFrom(ServiceMessage.class)) {
+        return (T) method.invoke(serviceObject, request);
+      } else {
+        T invoke = (T) method.invoke(serviceObject, new Object[]{request.data()});
+        return invoke;
+      }
+    } else {
+      // should we later support 2 parameters? message and the Stream processor?
+      throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
+    }
+  }
+
 
 }

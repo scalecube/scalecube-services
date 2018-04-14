@@ -4,22 +4,25 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.transport.TransportFactory;
+import io.scalecube.services.transport.client.api.ClientTransport;
+import io.scalecube.services.transport.server.api.ServiceTransport;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportConfig;
 
 import com.codahale.metrics.MetricRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -36,6 +39,7 @@ import java.util.concurrent.CompletableFuture;
  * and ScaleCube take care for the rest of the magic. it derived and influenced by Actor model and reactive and
  * streaming patters but does not force application developers to it. ScaleCube-Services is not yet-anther RPC system in
  * the sense its is cluster aware to provide:
+ * <ul>
  * <li>location transparency and discovery of service instances.</li>
  * <li>fault tolerance using gossip and failure detection.</li>
  * <li>share nothing - fully distributed and decentralized architecture.</li>
@@ -45,49 +49,47 @@ import java.util.concurrent.CompletableFuture;
  * advantage of composing and chaining service calls and service results.</li>
  * <li>low latency</li>
  * <li>supports routing extensible strategies when selecting service end-points</li>
- * 
- * <b>basic usage example:</b>
- * 
- * <pre>
- * 
- * <b><font color="green">//Define a service interface and implement it.</font></b>
- * {@code
- *    <b>{@literal @}Service</b>
- *    <b><font color="9b0d9b">public interface</font></b> GreetingService {  
+ * </ul>
  *
- *         <b>{@literal @}ServiceMethod</b>
+ * <b>basic usage example:</b>
+ *
+ * <pre>
+ * {@code
+ *    // Define a service interface and implement it:
+ *    &#64; Service
+ *    public interface GreetingService {
+ *         &#64; ServiceMethod
  *         CompletableFuture<String> asyncGreeting(String string);
  *     }
- *    
- *     <b><font color="9b0d9b">public class</font></b> GreetingServiceImpl implements GreetingService {
  *
- *       {@literal @}Override
- *       <b><font color="9b0d9b">public</font></b> CompletableFuture<String> asyncGreeting(String name) {
- *         <b><font color="9b0d9b">return</font></b> CompletableFuture.completedFuture(" hello to: " + name);
+ *     public class GreetingServiceImpl implements GreetingService {
+ *       &#64; Override
+ *       public CompletableFuture<String> asyncGreeting(String name) {
+ *         return CompletableFuture.completedFuture(" hello to: " + name);
  *       }
  *     }
- *     <b><font color="green">//Build a microservices cluster instance.</font></b>
+ *
+ *     // Build a microservices cluster instance:
  *     Microservices microservices = Microservices.builder()
- *       <b><font color="green">//Introduce GreetingServiceImpl pojo as a micro-service.</font></b>
- *         .services(<b><font color="9b0d9b">new</font></b> GreetingServiceImpl())
+ *          // Introduce GreetingServiceImpl pojo as a micro-service:
+ *         .services(new GreetingServiceImpl())
  *         .build();
- * 
- *     <b><font color="green">//Create microservice proxy to GreetingService.class interface.</font></b>
- *     GreetingService service = microservices.proxy()
- *         .api(GreetingService.class)
- *         .create();
- * 
- *     <b><font color="green">//Invoke the greeting service async.</font></b>
- *     CompletableFuture<String> future = service.asyncGreeting("joe");
- * 
- *     <b><font color="green">//handle completable success or error.</font></b>
+ *
+ *     // Create microservice proxy to GreetingService.class interface:
+ *     GreetingService service = microservices.call()
+ *         .api(GreetingService.class);
+ *
+ *     // Invoke the greeting service async:
+ *     CompletableFuture<String> future = service.sayHello("joe");
+ *
+ *     // handle completable success or error:
  *     future.whenComplete((result, ex) -> {
- *      if (ex == <b><font color="9b0d9b">null</font></b>) {
- *        // print the greeting.
- *         System.<b><font color="9b0d9b">out</font></b>.println(result);
+ *      if (ex == null) {
+ *        // print the greeting:
+ *         System.out.println(result);
  *       } else {
- *         // print the greeting.
- *         System.<b><font color="9b0d9b">out</font></b>.println(ex);
+ *         // print the greeting:
+ *         System.out.println(ex);
  *       }
  *     });
  * }
@@ -96,33 +98,26 @@ import java.util.concurrent.CompletableFuture;
 
 public class Microservices {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
-
   private final Cluster cluster;
 
   private final ServiceRegistry serviceRegistry;
 
-  private final ServiceProxyFactory proxyFactory;
-
-  private final ServiceDispatcherFactory dispatcherFactory;
-
-  private final ServiceCommunicator sender;
+  private final ClientTransport client;
 
   private Metrics metrics;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, Metrics metrics) {
+  private Address serviceAddress;
+
+  public RouterFactory routerFactory;
+
+  private Microservices(Cluster cluster, Address serviceAddress, ClientTransport client, ServicesConfig services,
+      Metrics metrics) {
     this.cluster = cluster;
-    this.sender = sender;
+    this.client = client;
+    this.serviceAddress = serviceAddress;
     this.metrics = metrics;
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
-
-    this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
-    this.proxyFactory = new ServiceProxyFactory(this);
-    new ServiceDispatcher(this);
-
-    this.sender.listen()
-        .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-        .subscribe(message -> ServiceResponse.handleReply(message));
+    this.routerFactory = new RouterFactory(serviceRegistry);
   }
 
   public Metrics metrics() {
@@ -137,10 +132,6 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
-    return proxyFactory.createProxy(serviceInterface, router, timeout, metrics);
-  }
-
   public Collection<ServiceInstance> services() {
     return serviceRegistry.services();
   }
@@ -151,38 +142,42 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
-    private TransportConfig transportConfig = TransportConfig.defaultConfig();
-
     private Metrics metrics;
+
+    private ServiceTransport server = TransportFactory.getServiceTransport();
+    private ClientTransport client = TransportFactory.getClientTransport();
 
     /**
      * Microservices instance builder.
-     * 
+     *
      * @return Microservices instance.
      */
     public Microservices build() {
 
-      Cluster cluster = null;
+      Objects.requireNonNull(this.server,
+          "SPI ServiceTransport is missing and not found by ServiceLoader."
+              + " did you forget to set Transport provider?");
 
-      // create cluster and transport with given config.
-      ServiceTransport transportSender =
-          new ServiceTransport(Transport.bindAwait(transportConfig));
+      this.server = server.services(servicesConfig.services().stream().toArray());
+      Address serviceAddress = this.server.bindAwait();
 
-      ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
-      cluster = Cluster.joinAwait(cfg);
-      transportSender.cluster(cluster);
+      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
 
-      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig, this.metrics)).inject();
+      return Reflect.builder(
+          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client, servicesConfig, this.metrics))
+          .inject();
+
     }
 
-    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
-      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
-        if (address != null) {
-          clusterConfig.addMetadata("service-address", address.toString());
-        }
-      }
-      return clusterConfig.build();
+
+    public Builder server(ServiceTransport server) {
+      this.server = server;
+      return this;
+    }
+
+    public Builder client(ClientTransport client) {
+      this.client = client;
+      return this;
     }
 
     public Builder port(int port) {
@@ -202,7 +197,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param services list of instances decorated with @Service
      * @return builder.
      */
@@ -222,7 +217,7 @@ public class Microservices {
 
     /**
      * Services list to be registered.
-     * 
+     *
      * @param servicesConfig list of instances decorated with.
      * @return builder.
      */
@@ -232,90 +227,25 @@ public class Microservices {
       return this;
     }
 
-    public Builder serviceTransport(TransportConfig transportConfig) {
-      checkNotNull(transportConfig);
-      this.transportConfig = transportConfig;
-      return this;
-    }
-
     public Builder metrics(MetricRegistry metrics) {
       checkNotNull(metrics);
       this.metrics = new Metrics(metrics);
       return this;
     }
 
+    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
+      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
+        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
+        if (address != null) {
+          clusterConfig.addMetadata("service-address", address.toString());
+        }
+      }
+      return clusterConfig.build();
+    }
   }
 
   public static Builder builder() {
     return new Builder();
-  }
-
-
-  public class DispatcherContext {
-    private Duration timeout = Duration.ofSeconds(30);
-
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
-
-    public ServiceCall create() {
-      LOGGER.debug("create service api {} router {}", router);
-      return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
-    }
-
-    public DispatcherContext timeout(Duration timeout) {
-      this.timeout = timeout;
-      return this;
-    }
-
-    public DispatcherContext router(Class<? extends Router> routerType) {
-      this.router = routerType;
-      return this;
-    }
-
-    public Class<? extends Router> router() {
-      return this.router;
-    }
-  }
-
-  public DispatcherContext dispatcher() {
-    return new DispatcherContext();
-  }
-
-  public ProxyContext proxy() {
-    return new ProxyContext();
-  }
-
-  public class ProxyContext {
-    private Class<?> api;
-
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
-
-    private Duration timeout = Duration.ofSeconds(3);
-
-    @SuppressWarnings("unchecked")
-    public <T> T create() {
-      LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, this.router, this.timeout);
-    }
-
-    public ProxyContext timeout(Duration duration) {
-      this.timeout = duration;
-      return this;
-    }
-
-    public <T> ProxyContext api(Class<T> api) {
-      this.api = api;
-      return this;
-    }
-
-    public Class<? extends Router> router() {
-      return router;
-    }
-
-    public ProxyContext router(Class<? extends Router> router) {
-      this.router = router;
-      return this;
-    }
-
   }
 
   private static Map<String, String> metadata(ServicesConfig config) {
@@ -337,24 +267,20 @@ public class Microservices {
 
   /**
    * returns service communication.
-   * 
+   *
    * @return service communication.
    */
-  public ServiceCommunicator sender() {
-    return sender;
+  public ClientTransport client() {
+    return client;
   }
 
   /**
    * Shutdown services transport and cluster transport.
-   * 
+   *
    * @return future with cluster shutdown result.
    */
   public CompletableFuture<Void> shutdown() {
     CompletableFuture<Void> result = new CompletableFuture<Void>();
-
-    if (!this.sender.isStopped()) {
-      this.sender.shutdown();
-    }
 
     if (!this.cluster.isShutdown()) {
       return this.cluster.shutdown();
@@ -366,5 +292,18 @@ public class Microservices {
 
   public ServiceRegistry serviceRegistry() {
     return serviceRegistry;
+  }
+
+  public Address serviceAddress() {
+    return this.serviceAddress;
+  }
+
+  public Router router(Class<? extends Router> routerType) {
+    return routerFactory.getRouter(routerType);
+  }
+
+  public Call call() {
+    Router router = this.router(RoundRobinServiceRouter.class);
+    return ServiceCall.call().metrics(metrics).router(router);
   }
 }

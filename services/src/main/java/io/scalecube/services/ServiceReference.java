@@ -24,9 +24,10 @@ public class ServiceReference {
    * 
    * @param memberId the memberId of the requested service.
    * @param serviceName the fully qualified name of the service.
+   * @param methods methods collection
    * @param address the address of the service.
    */
-  public ServiceReference(String memberId,String serviceName, Set<String> methods, Address address) {
+  public ServiceReference(String memberId, String serviceName, Set<String> methods, Address address) {
     Preconditions.checkNotNull(memberId);
     Preconditions.checkNotNull(serviceName);
     this.methods = methods;

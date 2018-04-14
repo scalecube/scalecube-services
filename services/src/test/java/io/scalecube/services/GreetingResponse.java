@@ -2,10 +2,20 @@ package io.scalecube.services;
 
 final class GreetingResponse {
 
-  private final String result;
+  private String result;
+  private String sender;
 
-  public GreetingResponse(String result) {
+  public GreetingResponse() {
+  }
+
+  public GreetingResponse(String result){
     this.result = result;
+    this.sender = null;
+  }
+
+  public GreetingResponse(String result, String sender) {
+    this.result = result;
+    this.sender = sender;
   }
 
   public String getResult() {
@@ -14,6 +24,13 @@ final class GreetingResponse {
 
   @Override
   public String toString() {
-    return "GreetingResponse{result='" + result + '\'' + '}';
+    return "GreetingResponse{" +
+        "result='" + result + '\'' +
+        ", sender='" + sender + '\'' +
+        '}';
+  }
+
+  public String sender() {
+    return sender;
   }
 }

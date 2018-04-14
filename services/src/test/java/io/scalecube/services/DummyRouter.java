@@ -2,8 +2,8 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.Router;
-import io.scalecube.transport.Message;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -16,12 +16,12 @@ public class DummyRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceInstance> route(Message request) {
+  public Optional<ServiceInstance> route(ServiceMessage request) {
     return null;
   }
 
   @Override
-  public Collection<ServiceInstance> routes(Message request) {
+  public Collection<ServiceInstance> routes(ServiceMessage request) {
     // TODO Auto-generated method stub
     return null;
   }

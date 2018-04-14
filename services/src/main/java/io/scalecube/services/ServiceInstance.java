@@ -1,19 +1,19 @@
 package io.scalecube.services;
 
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
-
-import rx.Observable;
 
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import reactor.core.publisher.Flux;
+
 public interface ServiceInstance {
 
-  CompletableFuture<Message> invoke(Message request) ;
+  CompletableFuture<ServiceMessage> invoke(ServiceMessage request);
 
-  Observable<Message> listen(Message request);
+  <T> Flux<T> listen(ServiceMessage request);
   
   String serviceName();
 
@@ -30,4 +30,7 @@ public interface ServiceInstance {
   void checkMethodExists(String header);
 
   Collection<String> methods();
+
+ 
+
 }

@@ -2,9 +2,8 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.membership.IdGenerator;
-import io.scalecube.transport.Message;
-import io.scalecube.transport.Message.Builder;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
 
 public class Messages {
 
@@ -20,14 +19,10 @@ public class Messages {
      * 
      * @param request message that is subject to validation.
      */
-    public void serviceRequest(Message request) {
+    public <T> void serviceRequest(ServiceMessage request) {
       checkArgument(request != null, "Service request can't be null");
-      final String serviceName = request.header(ServiceHeaders.SERVICE_REQUEST);
+      final String serviceName = request.qualifier();
       checkArgument(serviceName != null, "Service request can't be null");
-      final String methodName = request.header(ServiceHeaders.METHOD);
-      checkArgument(methodName != null, "Method name can't be null");
-      final String cid = request.correlationId();
-      checkArgument(cid != null, "correlationId can't be null");
     }
 
   }
@@ -41,11 +36,9 @@ public class Messages {
      * @param methodName the requested service method name.
      * @return Builder for requested message.
      */
-    public Builder request(String serviceName, String methodName) {
-      return Message.builder()
-          .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
-          .header(ServiceHeaders.METHOD, methodName)
-          .correlationId(IdGenerator.generateId());
+    public ServiceMessage.Builder request(String serviceName, String methodName) {
+      return ServiceMessage.builder().qualifier(serviceName, methodName);
+
     }
 
     /**
@@ -55,56 +48,11 @@ public class Messages {
      * @param methodName the requested service method name.
      * @return Builder for requested message.
      */
-    public Builder request(Class<?> api, String methodName) {
+    public ServiceMessage.Builder request(Class<?> api, String methodName) {
       String serviceName = Reflect.serviceName(api);
-      return Message.builder()
-          .header(ServiceHeaders.SERVICE_REQUEST, serviceName)
-          .header(ServiceHeaders.METHOD, methodName)
-          .correlationId(IdGenerator.generateId());
+      return request(serviceName, methodName);
     }
 
-  }
-
-  /**
-   * converts a message to a service request message with correlation id.
-   * 
-   * @param request with SERVICE_REQUEST and METHOD to copy.
-   * @param correlationId for the new request.
-   * @return service request message with correlation id.
-   */
-  public static Message asRequest(Message request, final String correlationId) {
-    return Message.builder()
-        .headers(request.headers())
-        .data(request.data())
-        .correlationId(correlationId)
-        .build();
-  }
-
-  /**
-   * utility method to build service response message.
-   * 
-   * @param data to be use for the response.
-   * @param correlationId of a the given request.
-   * @param memberId that created the response.
-   * @return response message or response error message in case data is exception.
-   */
-  public static Message asResponse(Object data, String correlationId, String memberId) {
-
-    Builder builder = Message.builder()
-        .correlationId(correlationId)
-        .header("memberId", memberId);
-
-    if (data instanceof Message) {
-      Message msg = (Message) data;
-      builder = builder.data(msg.data());
-    } else {
-      builder = builder.data(data);
-      if (data instanceof Throwable) {
-        builder = builder.header(ServiceHeaders.EXCEPTION, "");
-      }
-    }
-
-    return builder.build();
   }
 
   /**
@@ -115,20 +63,8 @@ public class Messages {
    * @param memberId that created the response.
    * @return response message or response error message in case data is exception.
    */
-  public static Message asError(Throwable error, String correlationId, String memberId) {
-    return asResponse(error, correlationId, memberId);
-  }
-
-  /**
-   * build unsubscribed service request for the original correlation id which as subscription was created with.
-   * 
-   * @param correlationId which the original request that created the subscription.
-   * @return unsubscribed request message.
-   */
-  public static Message asUnsubscribeRequest(final String correlationId) {
-    return Message.builder().header(ServiceHeaders.OBSERVER, ServiceHeaders.UNSUBSCIBE)
-        .correlationId(correlationId)
-        .build();
+  public static ServiceMessage asError(Throwable error) {
+    return ServiceMessage.builder().data(error).build();
   }
 
   public static MessagesBuilder builder() {
@@ -139,5 +75,7 @@ public class Messages {
     return validator;
   }
 
-
+  public static Qualifier qualifierOf(ServiceMessage request) {
+    return Qualifier.fromString(request.qualifier());
+  }
 }
