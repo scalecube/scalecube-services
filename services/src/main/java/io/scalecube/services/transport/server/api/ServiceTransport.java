@@ -4,7 +4,7 @@ import io.scalecube.transport.Address;
 
 public interface ServiceTransport {
 
-  ServiceTransport services(Object[] services);
+  ServiceTransport services(Object... services);
 
   Address bindAwait();
   

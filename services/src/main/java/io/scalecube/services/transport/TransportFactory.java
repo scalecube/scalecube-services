@@ -8,12 +8,18 @@ import java.util.ServiceLoader;
 public interface TransportFactory {
 
   public static ClientTransport getClientTransport() {
-    ServiceLoader<ClientTransport> loader = ServiceLoader.load(ClientTransport.class);
-    return loader.iterator().next();
+    return getNext(ServiceLoader.load(ClientTransport.class));
   }
   
   public static ServiceTransport getServiceTransport() {
-    ServiceLoader<ServiceTransport> loader = ServiceLoader.load(ServiceTransport.class);
-    return loader.iterator().next();
+    return getNext(ServiceLoader.load(ServiceTransport.class));
+  }
+
+  static <T> T getNext(ServiceLoader<T> loader) {
+    if(loader.iterator().hasNext()) {
+      return loader.iterator().next();
+    } else {
+      return null;
+    }
   }
 }

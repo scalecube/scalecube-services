@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -152,6 +153,10 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
+
+      Objects.requireNonNull(this.server,
+          "SPI ServiceTransport is missing and not found by ServiceLoader."
+              + " did you forget to set Transport provider?");
 
       this.server = server.services(servicesConfig.services().stream().toArray());
       Address serviceAddress = this.server.bindAwait();
