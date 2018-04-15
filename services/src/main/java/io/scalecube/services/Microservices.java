@@ -4,23 +4,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.streams.ServiceStreams;
+import io.scalecube.streams.ClientStreamProcessors;
+import io.scalecube.streams.ServerStreamProcessors;
+import io.scalecube.streams.StreamProcessors;
+import io.scalecube.streams.codec.StreamMessageDataCodec;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Transport;
-import io.scalecube.transport.TransportConfig;
 
 import com.codahale.metrics.MetricRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -73,12 +78,11 @@ import java.util.concurrent.CompletableFuture;
  *         .build();
  *
  *     // Create microservice proxy to GreetingService.class interface:
- *     GreetingService service = microservices.proxy()
- *         .api(GreetingService.class)
- *         .create();
+ *     GreetingService service = microservices.call()
+ *         .api(GreetingService.class);
  *
  *     // Invoke the greeting service async:
- *     CompletableFuture<String> future = service.asyncGreeting("joe");
+ *     CompletableFuture<String> future = service.sayHello("joe");
  *
  *     // handle completable success or error:
  *     future.whenComplete((result, ex) -> {
@@ -102,27 +106,39 @@ public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
 
-  private final ServiceProxyFactory proxyFactory;
-
-  private final ServiceDispatcherFactory dispatcherFactory;
-
-  private final ServiceCommunicator sender;
+  private final ClientStreamProcessors client;
 
   private Metrics metrics;
 
-  private Microservices(Cluster cluster, ServiceCommunicator sender, ServicesConfig services, Metrics metrics) {
+  private Address serviceAddress;
+
+  public RouterFactory routerFactory;
+
+  private Microservices(Cluster cluster, Address serviceAddress, ClientStreamProcessors client, ServicesConfig services,
+      Metrics metrics) {
     this.cluster = cluster;
-    this.sender = sender;
+    this.client = client;
+    this.serviceAddress = serviceAddress;
     this.metrics = metrics;
     this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
+    this.routerFactory = new RouterFactory(serviceRegistry);
+  }
 
-    this.dispatcherFactory = new ServiceDispatcherFactory(serviceRegistry);
-    this.proxyFactory = new ServiceProxyFactory(this);
-    new ServiceDispatcher(this);
-
-    this.sender.listen()
-            .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
-            .subscribe(message -> ServiceResponse.handleReply(message));
+  // FIXME: need to implement cleanup process
+  private void cleanupStuff() {
+    // this.cluster().listenMembership()
+    // .filter(predicate -> predicate.isRemoved())
+    // .subscribe(onNext -> {
+    // subscriptionsMap.values().stream()
+    // .filter(action -> action.memberId().equals(onNext.member().id()))
+    // .collect(Collectors.toList())
+    //
+    // .forEach(subscription -> {
+    // subscription.unsubscribe();
+    // subscriptionsMap.remove(subscription.id());
+    // LOGGER.info("Member removed removing subscription {}", subscription);
+    // });
+    // });
   }
 
   public Metrics metrics() {
@@ -137,10 +153,6 @@ public class Microservices {
     serviceRegistry.unregisterService(serviceObject);
   }
 
-  private <T> T createProxy(Class<T> serviceInterface, Class<? extends Router> router, Duration timeout) {
-    return proxyFactory.createProxy(serviceInterface, router, timeout, metrics);
-  }
-
   public Collection<ServiceInstance> services() {
     return serviceRegistry.services();
   }
@@ -151,9 +163,10 @@ public class Microservices {
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
-    private TransportConfig transportConfig = TransportConfig.defaultConfig();
-
     private Metrics metrics;
+
+    private ServerStreamProcessors server = StreamProcessors.newServer();
+    private ClientStreamProcessors client = StreamProcessors.newClient();
 
     /**
      * Microservices instance builder.
@@ -162,27 +175,32 @@ public class Microservices {
      */
     public Microservices build() {
 
-      Cluster cluster = null;
+      ServiceStreams serviceStreams = new ServiceStreams(this.server);
 
-      // create cluster and transport with given config.
-      ServiceTransport transportSender =
-              new ServiceTransport(Transport.bindAwait(transportConfig));
+      servicesConfig.services().stream()
+          .map(mapper -> serviceStreams.createSubscriptions(mapper.getService()))
+          .collect(Collectors.toList());
 
-      ClusterConfig cfg = getClusterConfig(servicesConfig, transportSender.address());
-      cluster = Cluster.joinAwait(cfg);
-      transportSender.cluster(cluster);
+      Address serviceAddress = this.server.bindAwait();
 
-      return Reflect.builder(new Microservices(cluster, transportSender, servicesConfig, this.metrics)).inject();
+      servicesConfig.services().stream().map(mapper -> serviceStreams.createSubscriptions(mapper.getService()));
+      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
+
+      return Reflect.builder(
+          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client, servicesConfig, this.metrics))
+          .inject();
+
     }
 
-    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
-      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
-        if (address != null) {
-          clusterConfig.addMetadata("service-address", address.toString());
-        }
-      }
-      return clusterConfig.build();
+
+    public Builder server(ServerStreamProcessors server) {
+      this.server = server;
+      return this;
+    }
+
+    public Builder client(ClientStreamProcessors client) {
+      this.client = client;
+      return this;
     }
 
     public Builder port(int port) {
@@ -232,90 +250,25 @@ public class Microservices {
       return this;
     }
 
-    public Builder serviceTransport(TransportConfig transportConfig) {
-      checkNotNull(transportConfig);
-      this.transportConfig = transportConfig;
-      return this;
-    }
-
     public Builder metrics(MetricRegistry metrics) {
       checkNotNull(metrics);
       this.metrics = new Metrics(metrics);
       return this;
     }
 
+    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
+      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
+        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
+        if (address != null) {
+          clusterConfig.addMetadata("service-address", address.toString());
+        }
+      }
+      return clusterConfig.build();
+    }
   }
 
   public static Builder builder() {
     return new Builder();
-  }
-
-
-  public class DispatcherContext {
-    private Duration timeout = Duration.ofSeconds(30);
-
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
-
-    public ServiceCall create() {
-      LOGGER.debug("create service api {} router {}", router);
-      return dispatcherFactory.createDispatcher(this.router, this.timeout, metrics);
-    }
-
-    public DispatcherContext timeout(Duration timeout) {
-      this.timeout = timeout;
-      return this;
-    }
-
-    public DispatcherContext router(Class<? extends Router> routerType) {
-      this.router = routerType;
-      return this;
-    }
-
-    public Class<? extends Router> router() {
-      return this.router;
-    }
-  }
-
-  public DispatcherContext dispatcher() {
-    return new DispatcherContext();
-  }
-
-  public ProxyContext proxy() {
-    return new ProxyContext();
-  }
-
-  public class ProxyContext {
-    private Class<?> api;
-
-    private Class<? extends Router> router = RoundRobinServiceRouter.class;
-
-    private Duration timeout = Duration.ofSeconds(3);
-
-    @SuppressWarnings("unchecked")
-    public <T> T create() {
-      LOGGER.debug("create service api {} router {}", this.api, router);
-      return (T) createProxy(this.api, this.router, this.timeout);
-    }
-
-    public ProxyContext timeout(Duration duration) {
-      this.timeout = duration;
-      return this;
-    }
-
-    public <T> ProxyContext api(Class<T> api) {
-      this.api = api;
-      return this;
-    }
-
-    public Class<? extends Router> router() {
-      return router;
-    }
-
-    public ProxyContext router(Class<? extends Router> router) {
-      this.router = router;
-      return this;
-    }
-
   }
 
   private static Map<String, String> metadata(ServicesConfig config) {
@@ -340,8 +293,8 @@ public class Microservices {
    *
    * @return service communication.
    */
-  public ServiceCommunicator sender() {
-    return sender;
+  public ClientStreamProcessors client() {
+    return client;
   }
 
   /**
@@ -352,9 +305,7 @@ public class Microservices {
   public CompletableFuture<Void> shutdown() {
     CompletableFuture<Void> result = new CompletableFuture<Void>();
 
-    if (!this.sender.isStopped()) {
-      this.sender.shutdown();
-    }
+    this.client.close();
 
     if (!this.cluster.isShutdown()) {
       return this.cluster.shutdown();
@@ -366,5 +317,18 @@ public class Microservices {
 
   public ServiceRegistry serviceRegistry() {
     return serviceRegistry;
+  }
+
+  public Address serviceAddress() {
+    return this.serviceAddress;
+  }
+
+  public Router router(Class<? extends Router> routerType) {
+    return routerFactory.getRouter(routerType);
+  }
+
+  public Call call() {
+    Router router = this.router(RoundRobinServiceRouter.class);
+    return ServiceCall.call().metrics(metrics).router(router);
   }
 }

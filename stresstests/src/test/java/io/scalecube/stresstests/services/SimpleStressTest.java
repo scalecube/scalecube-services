@@ -5,13 +5,14 @@ import static org.junit.Assert.fail;
 
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Message;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 
+import io.scalecube.transport.Address;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -24,6 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SimpleStressTest extends BaseTest {
 
   int count = 600_000;
+
+  public static final String NS = "io.scalecube.stresstests.services.GreetingService";
+  public static final StreamMessage GREETING_REQUEST_REQ = Messages.builder()
+      .request(NS, "greetingRequest")
+      .data(new GreetingRequest("joe"))
+      .build();
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
@@ -52,15 +59,14 @@ public class SimpleStressTest extends BaseTest {
 
     reporter.start(10, TimeUnit.SECONDS);
 
-    ServiceCall greetings = consumer.dispatcher()
-        .timeout(Duration.ofSeconds(30))
-        .create();
+    Call greetings = consumer.call()
+        .timeout(Duration.ofSeconds(30));
 
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
     for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = greetings.invoke(Messages.builder()
+      CompletableFuture<StreamMessage> future = greetings.invoke(Messages.builder()
           .request(GreetingService.class, "greetingMessage")
           .data("1")
           .build());
@@ -100,17 +106,16 @@ public class SimpleStressTest extends BaseTest {
     reporter.start(10, TimeUnit.SECONDS);
 
     // Get a proxy to the service api.
-    GreetingService service = consumer.proxy()
-        .api(GreetingService.class) // create proxy for GreetingService API
+    GreetingService service = consumer.call()
         .timeout(Duration.ofSeconds(30))
-        .create();
+        .api(GreetingService.class); // create proxy for GreetingService API;
 
     // Measure
     CountDownLatch countLatch = new CountDownLatch(count);
     long startTime = System.currentTimeMillis();
 
     for (int i = 0; i < count; i++) {
-      CompletableFuture<Message> future = service.greetingMessage(Message.fromData("naive_stress_test"));
+      CompletableFuture<String> future = service.greeting("naive_stress_test");
       future.whenComplete((success, error) -> {
         if (error == null) {
           countLatch.countDown();
@@ -138,4 +143,59 @@ public class SimpleStressTest extends BaseTest {
 
   }
 
+
+  @Test
+  public void test_req_resp_stress() throws Exception {
+    // Create microservices cluster member.
+    Microservices provider = Microservices.builder()
+        .port(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .metrics(registry)
+        .build();
+
+    Address server = Address.from("127.0.0.1:5858");
+    // Create microservices cluster member.
+    Microservices consumer = Microservices.builder()
+        .port(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .metrics(registry)
+        .build();
+
+    reporter.start(5, TimeUnit.SECONDS);
+
+    // Get a proxy to the service api.
+
+    // When
+    Call serviceCall = consumer.call().responseTypeOf(GreetingResponse.class).timeout(Duration.ofSeconds(30));
+
+    // Measure
+    CountDownLatch countLatch = new CountDownLatch(count);
+    long startTime = System.currentTimeMillis();
+
+    for (int i = 0; i < count; i++) {
+      serviceCall.invoke(GREETING_REQUEST_REQ).whenComplete((resp, t) -> {
+        if (t == null) {
+          countLatch.countDown();
+        } else {
+          System.out.println("failed: " + t);
+          fail("test_naive_stress_not_breaking_the_system failed: " + t);
+        }
+      });
+    }
+
+    System.out.println("Finished sending " + count + " messages in " + (System.currentTimeMillis() - startTime));
+    countLatch.await(60, TimeUnit.SECONDS);
+
+    System.out.println("Finished receiving " + (count - countLatch.getCount()) + " messages in "
+        + (System.currentTimeMillis() - startTime));
+
+    System.out.println("Rate: " + ((count - countLatch.getCount()) / ((System.currentTimeMillis() - startTime) / 1000))
+        + " round-trips/sec");
+
+    reporter.stop();
+    assertTrue(countLatch.getCount() == 0);
+
+    provider.shutdown().get();
+    consumer.shutdown().get();
+  }
 }

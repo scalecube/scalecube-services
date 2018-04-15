@@ -1,7 +1,7 @@
 package io.scalecube.services;
 
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
 
 import rx.Observable;
 
@@ -11,10 +11,14 @@ import java.util.concurrent.CompletableFuture;
 
 public interface ServiceInstance {
 
-  CompletableFuture<Message> invoke(Message request) ;
+  CompletableFuture<StreamMessage> invoke(StreamMessage request);
 
-  Observable<Message> listen(Message request);
-  
+  <T> CompletableFuture<StreamMessage> invoke(StreamMessage request, Class<T> responseType);
+
+  Observable<StreamMessage> listen(StreamMessage request);
+
+  <T> Observable<T> listen(StreamMessage request, Class<T> responseType);
+
   String serviceName();
 
   String memberId();
@@ -30,4 +34,5 @@ public interface ServiceInstance {
   void checkMethodExists(String header);
 
   Collection<String> methods();
+
 }

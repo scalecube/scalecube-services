@@ -19,14 +19,15 @@ public class StreamEchoClientRunner {
   public static void main(String[] args) throws Exception {
     ClientStreamProcessors client = StreamProcessors.newClient();
 
-    StreamProcessor sp = client.create(Address.from("localhost:5801"));
+    StreamProcessor<StreamMessage, StreamMessage> sp = client.create(Address.from("localhost:8000"));
 
     sp.listen().subscribe(
         System.out::println,
         Throwable::printStackTrace,
         () -> System.out.println("Done with client"));
 
-    IntStream.rangeClosed(1, 5).forEach(i -> sp.onNext(StreamMessage.builder().qualifier("q/hello").build()));
+    IntStream.rangeClosed(1, 5)
+        .forEach(i -> sp.onNext(StreamMessage.builder().qualifier("scalecube-greeting-service/greeting").build()));
     sp.onCompleted();
 
     Thread.currentThread().join();

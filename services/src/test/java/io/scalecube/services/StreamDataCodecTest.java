@@ -1,7 +1,11 @@
-package io.scalecube.streams;
+package io.scalecube.services;
 
-import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
+import io.scalecube.streams.ClientStream;
+import io.scalecube.streams.Event;
+import io.scalecube.streams.ListeningServerStream;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.streams.codec.StreamMessageDataCodec;
+import io.scalecube.streams.codec.StreamMessageDataCodecImpl;
 import io.scalecube.transport.Address;
 
 import org.junit.After;
@@ -11,7 +15,6 @@ import org.junit.Test;
 
 import rx.observers.AssertableSubscriber;
 
-import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class StreamDataCodecTest {
@@ -40,7 +43,7 @@ public class StreamDataCodecTest {
   }
 
   @Test
-  public void testDataSerializationInStreams() throws IOException {
+  public void testDataSerializationInStreams() {
     // Given:
     listeningServerStream.listenReadSuccess().map(Event::getMessageOrThrow).subscribe(req -> {
       try {
@@ -49,19 +52,14 @@ public class StreamDataCodecTest {
         StreamMessage toConsumer = codec.encodeData(StreamMessage.from(req).data(responsePayload).build());
         listeningServerStream.send(toConsumer);
       } catch (Throwable e) {
-        System.out.println("Err occurredЖ " + e.getMessage());
+        System.out.println("Err occurred " + e.getMessage());
         Assert.fail();
       }
     });
     Address address = listeningServerStream.bindAwait();
     AssertableSubscriber<String> verify =
-        client.listenReadSuccess().map(e -> {
-          try {
-            return (String) codec.decodeData(e.getMessageOrThrow(), String.class).data();
-          } catch (IOException e1) {
-            throw new IllegalStateException(e1);
-          }
-        }).test();
+        client.listenReadSuccess().map(e -> (String) codec.decodeData(e.getMessageOrThrow(), String.class).data())
+            .test();
 
 
     // When:

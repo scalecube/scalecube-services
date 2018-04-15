@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package io.scalecube.stresstests.services;
 
 import java.time.Duration;
 

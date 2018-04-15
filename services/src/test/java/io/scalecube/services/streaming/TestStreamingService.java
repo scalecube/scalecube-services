@@ -4,9 +4,9 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Message;
 
 import com.codahale.metrics.MetricRegistry;
 
@@ -44,7 +44,7 @@ public class TestStreamingService extends BaseTest {
   public void test_local_quotes_service() throws InterruptedException {
     Microservices node = Microservices.builder().services(new SimpleQuoteService()).build();
 
-    QuoteService service = node.proxy().api(QuoteService.class).create();
+    QuoteService service = node.call().api(QuoteService.class);
 
     CountDownLatch latch = new CountDownLatch(3);
     Observable<String> obs = service.quotes(2);
@@ -68,7 +68,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    QuoteService service = gateway.proxy().api(QuoteService.class).create();
+    QuoteService service = gateway.call().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
 
@@ -105,7 +105,7 @@ public class TestStreamingService extends BaseTest {
         .metrics(registry)
         .build();
 
-    QuoteService service = gateway.proxy().api(QuoteService.class).create();
+    QuoteService service = gateway.call().api(QuoteService.class);
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
 
@@ -139,21 +139,20 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
     Subscription sub1 = service.listen(Messages.builder()
         .request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
         .build())
-
-        .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
         .serialize()
         .subscribe(onNext -> latch1.countDown());
 
 
     long start = System.currentTimeMillis();
     latch1.await(batchSize / 40_000, TimeUnit.SECONDS);
+    assertTrue(latch1.getCount()==0);
     long end = (System.currentTimeMillis() - start);
 
     System.out.println("TIME IS UP! - recived batch (size: "
@@ -175,7 +174,7 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    QuoteService service = gateway.proxy().api(QuoteService.class).create();
+    QuoteService service = gateway.call().api(QuoteService.class);
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
@@ -203,11 +202,11 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    Message justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    StreamMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
     sub1.set(service.listen(justOne)
         .serialize().subscribe(onNext -> {
@@ -232,11 +231,11 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    Message scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
+    StreamMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
     sub1.set(service.listen(scheduled)
@@ -261,11 +260,11 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(1);
 
-    Message scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
+    StreamMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
     try {
       service.listen(scheduled);
     } catch (Exception ex) {
@@ -290,11 +289,11 @@ public class TestStreamingService extends BaseTest {
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
-    ServiceCall service = gateway.dispatcher().create();
+    Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    Message justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    StreamMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
     sub1.set(service.listen(justOne)
         .subscribe(onNext -> {

@@ -4,7 +4,7 @@
     <parent>
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-parent</artifactId>
-        <version>1.0.9-SNAPSHOT</version>
+        <version>1.1.0-SNAPSHOT</version>
     </parent>
     <artifactId>scalecube-utils</artifactId>
     <name>ScaleCube/Utils</name>
@@ -20,6 +20,10 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

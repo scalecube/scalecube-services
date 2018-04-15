@@ -1,10 +1,13 @@
 package io.scalecube.services;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.streams.StreamMessage;
 import io.scalecube.testlib.BaseTest;
-import io.scalecube.transport.Message;
 
 import org.junit.Test;
 
@@ -24,18 +27,18 @@ public class GracefulShutdownTest extends BaseTest {
 
 
 
-  @Test
+  @Test()
   public void test_gracefull_shutdown() throws InterruptedException {
 
     // create cluster members with 3 nodes: gateway, node1, node2
     // node 1 and 2 provision GreetingService instance (each).
     Members members = Members.create();
     // get a proxy to the service api.
-    ServiceCall service = members.gateway().dispatcher().create();
+    Call service = members.gateway().call().responseTypeOf(GreetingResponse.class);
 
     // call the service.
     AtomicInteger count = new AtomicInteger(3);
-    Message request = Messages.builder()
+    StreamMessage request = Messages.builder()
         .request(GreetingService.class, "greeting")
         .data("joe")
         .build();
@@ -45,12 +48,13 @@ public class GracefulShutdownTest extends BaseTest {
     while (members.gateway().cluster().member(members.node1().cluster().address()).isPresent()
         || postShutdown.get() >= 0) {
       
-      CompletableFuture<Message> future = service.invoke(request);
+      CompletableFuture<StreamMessage> future = service.invoke(request);
       future.whenComplete((result, ex) -> {
         if (ex == null) {
           // print the greeting.
-          assertTrue(result.data().equals(" hello to: joe"));
-          System.out.println(count.get() + " - Response from node: " + result.sender());
+          assertThat(result.data(), instanceOf(GreetingResponse.class));
+          assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
+          System.out.println(count.get() + " - Response from node: ");
           count.decrementAndGet();
         } else {
           fail(); // if one request fails fail the test

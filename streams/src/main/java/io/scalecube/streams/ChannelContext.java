@@ -23,8 +23,8 @@ public final class ChannelContext {
 
   private static final ConcurrentMap<String, ChannelContext> idToChannelContext = new ConcurrentHashMap<>();
 
-  private final Subject<Event, Event> subject = PublishSubject.<Event>create().toSerialized();
-  private final Subject<Event, Event> closeSubject = PublishSubject.<Event>create().toSerialized();
+  private final Subject<Event, Event> subject = PublishSubject.create();
+  private final Subject<Event, Event> closeSubject = PublishSubject.create();
 
   private final String id;
   private final Address address;
@@ -94,7 +94,7 @@ public final class ChannelContext {
   }
 
   public Observable<Event> listen() {
-    return subject.onBackpressureBuffer().asObservable();
+    return subject;
   }
 
   public Observable<Event> listenReadSuccess() {
