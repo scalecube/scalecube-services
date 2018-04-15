@@ -77,18 +77,18 @@ public class LocalServiceInstance implements ServiceInstance {
   public Flux<ServiceMessage> listen(ServiceMessage request) {
     checkArgument(request != null, "message can't be null.");
     final Method method = getMethod(request);
-    checkArgument(method.getReturnType().equals(Flux.class), "subscribe method must return Observable.");
-    Flux<ServiceMessage> observable = null;
+    checkArgument(method.getReturnType().equals(Flux.class), "listen method must return Flux.");
+    Flux<ServiceMessage> flux = null;
     try {
-      observable = Reflect.invoke(serviceObject, method, request);
-      return observable.map(message -> {
+      flux = Reflect.invoke(serviceObject, method, request);
+      return flux.map(message -> {
         Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "onNext");
         return message;
       });
 
     } catch (Exception ex) {
       Metrics.mark(metrics, this.serviceObject.getClass(), method.getName(), "error");
-      return observable.error(ex);
+      return flux.error(ex);
     }
   }
 
