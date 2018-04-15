@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.client.api.ClientChannel;
@@ -17,7 +17,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class RemoteServiceInstance implements ServiceInstance {
 
@@ -95,7 +94,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public void checkMethodExists(String methodName) {
-    checkArgument(this.methodExists(methodName), "instance has no such requested method");
+    requireNonNull(this.methodExists(methodName), "instance has no such requested method");
   }
 
   @Override

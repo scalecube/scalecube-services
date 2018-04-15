@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.concurrency.Futures;
 import io.scalecube.services.api.ServiceMessage;
@@ -21,8 +21,6 @@ import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import reactor.core.publisher.Flux;
 
@@ -141,7 +139,7 @@ public class ServiceCall {
 
       ServiceInstance instance = router.route(request)
           .orElseThrow(() -> noReachableMemberException(request));
-      checkArgument(instance.methodExists(Messages.qualifierOf(request).getAction()),
+      requireNonNull(instance.methodExists(Messages.qualifierOf(request).getAction()),
           "instance has no such requested method");
 
       return instance.listen(request);

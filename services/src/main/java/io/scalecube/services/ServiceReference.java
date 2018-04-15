@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.transport.Address;
 
-import com.google.common.base.Preconditions;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Collections;
 import java.util.Objects;
@@ -28,8 +28,8 @@ public class ServiceReference {
    * @param address the address of the service.
    */
   public ServiceReference(String memberId, String serviceName, Set<String> methods, Address address) {
-    Preconditions.checkNotNull(memberId);
-    Preconditions.checkNotNull(serviceName);
+    requireNonNull(memberId);
+    requireNonNull(serviceName);
     this.methods = methods;
     this.memberId = memberId;
     this.serviceName = serviceName;
