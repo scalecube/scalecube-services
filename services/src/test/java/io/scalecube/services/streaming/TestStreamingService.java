@@ -12,16 +12,12 @@ import com.codahale.metrics.MetricRegistry;
 
 import org.junit.Test;
 
-import rx.Observable;
-import rx.Subscription;
-import rx.schedulers.Schedulers;
-
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 
 public class TestStreamingService extends BaseTest {
 
@@ -33,12 +29,12 @@ public class TestStreamingService extends BaseTest {
 
     QuoteService service = new SimpleQuoteService();
     CountDownLatch latch = new CountDownLatch(3);
-    Subscription sub = service.quotes(2).subscribe(onNext -> {
+    Disposable sub = service.quotes(2).subscribe(onNext -> {
       System.out.println("test_quotes: " + onNext);
       latch.countDown();
     });
     latch.await(1, TimeUnit.SECONDS);
-    sub.unsubscribe();
+    sub.dispose();
     assertTrue(latch.getCount() == 0);
   }
 
@@ -49,15 +45,15 @@ public class TestStreamingService extends BaseTest {
     QuoteService service = node.call().api(QuoteService.class);
 
     CountDownLatch latch = new CountDownLatch(3);
-    Observable<String> obs = service.quotes(2);
+    Flux<String> obs = service.quotes(2);
 
-    Subscription sub = obs.subscribe(onNext -> {
+    Disposable sub = obs.subscribe(onNext -> {
       latch.countDown();
     });
 
     latch.await(1, TimeUnit.SECONDS);
 
-    sub.unsubscribe();
+    sub.dispose();
     assertTrue(latch.getCount() <= 0);
     node.shutdown();
   }
@@ -74,13 +70,13 @@ public class TestStreamingService extends BaseTest {
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
 
-    Subscription sub1 = service.quotes(2)
+    Disposable sub1 = service.quotes(2)
         .subscribe(onNext -> {
           System.out.println("test_remote_quotes_service-2: " + onNext);
           latch1.countDown();
         });
 
-    Subscription sub2 = service.quotes(10)
+    Disposable sub2 = service.quotes(10)
         .subscribe(onNext -> {
           System.out.println("test_remote_quotes_service-10: " + onNext);
           latch2.countDown();
@@ -88,8 +84,8 @@ public class TestStreamingService extends BaseTest {
 
     latch1.await(1, TimeUnit.SECONDS);
     latch2.await(1, TimeUnit.SECONDS);
-    sub1.unsubscribe();
-    sub2.unsubscribe();
+    sub1.dispose();
+    sub2.dispose();
     assertTrue(latch1.getCount() == 0);
     assertTrue(latch2.getCount() == 0);
     gateway.shutdown();
@@ -111,9 +107,7 @@ public class TestStreamingService extends BaseTest {
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
 
-    Subscription sub1 = service.snapshoot(batchSize)
-        .subscribeOn(Schedulers.from(Executors.newCachedThreadPool()))
-        .serialize()
+    Disposable sub1 = service.snapshoot(batchSize)
         .subscribe(onNext -> latch1.countDown());
 
     long start = System.currentTimeMillis();
@@ -126,7 +120,7 @@ public class TestStreamingService extends BaseTest {
         + "rate of :" + batchSize / (end / 1000) + " events/sec ");
     System.out.println(registry.getMeters());
     assertTrue(latch1.getCount() == 0);
-    sub1.unsubscribe();
+    sub1.dispose();
     gateway.shutdown();
     node.shutdown();
 
@@ -179,16 +173,15 @@ public class TestStreamingService extends BaseTest {
     QuoteService service = gateway.call().api(QuoteService.class);
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Subscription> sub1 = new AtomicReference<Subscription>(null);
-    sub1.set(service.justOne()
-        .serialize().subscribe(onNext -> {
-          sub1.get().unsubscribe();
+    AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
+    sub1.set(service.justOne().subscribe(onNext -> {
+          sub1.get().dispose();
           latch1.countDown();
         }));
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
-    assertTrue(sub1.get().isUnsubscribed());
+    assertTrue(sub1.get().isDisposed());
 
     gateway.shutdown();
     node.shutdown();
