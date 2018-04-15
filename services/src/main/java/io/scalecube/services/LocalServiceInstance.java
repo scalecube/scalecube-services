@@ -1,7 +1,7 @@
 package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
- 
+
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.metrics.Metrics;
