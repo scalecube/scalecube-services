@@ -1,8 +1,8 @@
 package io.scalecube.services;
 
-import io.scalecube.transport.Address;
-
 import static java.util.Objects.requireNonNull;
+
+import io.scalecube.transport.Address;
 
 import java.util.Collections;
 import java.util.Objects;
