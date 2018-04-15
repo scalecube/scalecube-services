@@ -35,84 +35,15 @@ public final class ServiceMessage {
   }
 
   /**
-   * Instantiates a new message with the given data and without headers.
-   * 
-   * @param data the data to build a message from
-   * @return the built message
-   */
-  public static ServiceMessage fromData(Object data) {
-    return withData(data).build();
-  }
-
-  /**
-   * Instantiates a new message builder with the given data and without headers.
-   * 
-   * @param data the initial data for the builder
-   * @return a builder with initial data
-   */
-  public static Builder withData(Object data) {
-    return builder().data(data);
-  }
-
-
-  /**
-   * Instantiates a new message with the given headers and with empty data.
-   * 
-   * @param headers an initial headers to build a message from
-   * @return the built message
-   */
-  public static ServiceMessage fromHeaders(Map<String, String> headers) {
-    return withHeaders(headers).build();
-  }
-
-  /**
-   * Instantiates a new message builder with the given headers and with empty data.
-   * 
-   * @param headers the initial headers for the builder
-   * @return a builder with initial headers
-   */
-  public static Builder withHeaders(Map<String, String> headers) {
-    return builder().headers(headers);
-  }
-
-  /**
-   * Instantiates a new message with the given qualifier header and with empty data.
-   * 
-   * @param qualifier the qualifier to build a message from
-   * @return the built message
-   */
-  public static ServiceMessage fromQualifier(String qualifier) {
-    return withQualifier(qualifier).build();
-  }
-
-  /**
-   * Instantiates a new message builder with the given qualifier header and with empty data.
-   * 
-   * @param qualifier the initial qualifier for the builder
-   * @return a builder with initial qualifier
-   */
-  public static Builder withQualifier(String qualifier) {
-    return builder().qualifier(qualifier);
-  }
-
-  /**
    * Instantiates new message with the same data and headers as at given message.
    * 
    * @param message the message to be copied
    * @return a new message, with the same data and headers
    */
   public static Builder from(ServiceMessage message) {
-    return with(message);
-  }
-
-  /**
-   * Instantiates new message builder with the same data and headers as at given message.
-   * 
-   * @param message the message to instantiate the new builder from
-   * @return a builder with initial data and headers from the message
-   */
-  public static Builder with(ServiceMessage message) {
-    return withData(message.data).headers(message.headers);
+    return ServiceMessage.builder()
+        .data(message.data())
+        .headers(message.headers());
   }
 
   /**
