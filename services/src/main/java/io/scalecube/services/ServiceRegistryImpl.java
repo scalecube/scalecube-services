@@ -179,7 +179,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public Collection<ServiceInstance> localServices() {
-    return localService;
+    return Collections.unmodifiableCollection(localService);
   }
 
 }

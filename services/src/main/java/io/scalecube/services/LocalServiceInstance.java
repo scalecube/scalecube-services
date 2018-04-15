@@ -67,6 +67,7 @@ public class LocalServiceInstance implements ServiceInstance {
   @Override
   public CompletableFuture<ServiceMessage> invoke(ServiceMessage request) {
     requireNonNull(request != null, "message can't be null");
+    requireNonNull(request.qualifier() != null, "message.qualifier can't be null");
 
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
     return invokeMethod(request, method);
