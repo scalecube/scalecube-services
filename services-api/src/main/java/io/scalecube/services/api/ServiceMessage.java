@@ -1,131 +1,205 @@
 package io.scalecube.services.api;
 
-import java.util.Objects;
+
+import static java.util.Objects.requireNonNull;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class ServiceMessage {
 
-  public static final String QUALIFIER_NAME = "q";
-  public static final String SUBJECT_NAME = "subject";
-  public static final String DATA_NAME = "data";
+  /**
+   * This header is supposed to be used by application in case if same data type can be reused for several messages so
+   * it will allow to qualify the specific message type.
+   */
+  public static final String HEADER_QUALIFIER = "q";
 
-  private final String qualifier;
-  private final String subject;
-  private final Object data;
+  /**
+   * This is a system header which used by transport for serialization and deserialization purpose. It is not supposed
+   * to be used by application directly and it is subject to changes in future releases.
+   */
+  public static final String HEADER_DATA_TYPE = "_type";
 
-  //// builders
+  private Map<String, String> headers = Collections.emptyMap();
+  private Object data;
 
-  public static Builder from(ServiceMessage message) {
-    return builder()
-        .qualifier(message.qualifier)
-        .subject(message.subject)
-        .data(message.data);
-  }
-
-  public static Builder builder() {
-    return new Builder();
-  }
+  /**
+   * Instantiates empty message for deserialization purpose.
+   */
+  ServiceMessage() {}
 
   private ServiceMessage(Builder builder) {
-    this.qualifier = builder.qualifier;
-    this.subject = builder.subject;
-    this.data = builder.data;
+    this.data = builder.data();
+    this.headers = builder.headers();
   }
 
-  //// accessors
+  /**
+   * Instantiates a new message with the given data and without headers.
+   * 
+   * @param data the data to build a message from
+   * @return the built message
+   */
+  public static ServiceMessage fromData(Object data) {
+    return withData(data).build();
+  }
 
+  /**
+   * Instantiates a new message builder with the given data and without headers.
+   * 
+   * @param data the initial data for the builder
+   * @return a builder with initial data
+   */
+  public static Builder withData(Object data) {
+    return builder().data(data);
+  }
+
+
+  /**
+   * Instantiates a new message with the given headers and with empty data.
+   * 
+   * @param headers an initial headers to build a message from
+   * @return the built message
+   */
+  public static ServiceMessage fromHeaders(Map<String, String> headers) {
+    return withHeaders(headers).build();
+  }
+
+  /**
+   * Instantiates a new message builder with the given headers and with empty data.
+   * 
+   * @param headers the initial headers for the builder
+   * @return a builder with initial headers
+   */
+  public static Builder withHeaders(Map<String, String> headers) {
+    return builder().headers(headers);
+  }
+
+  /**
+   * Instantiates a new message with the given qualifier header and with empty data.
+   * 
+   * @param qualifier the qualifier to build a message from
+   * @return the built message
+   */
+  public static ServiceMessage fromQualifier(String qualifier) {
+    return withQualifier(qualifier).build();
+  }
+
+  /**
+   * Instantiates a new message builder with the given qualifier header and with empty data.
+   * 
+   * @param qualifier the initial qualifier for the builder
+   * @return a builder with initial qualifier
+   */
+  public static Builder withQualifier(String qualifier) {
+    return builder().qualifier(qualifier);
+  }
+
+  /**
+   * Instantiates new message with the same data and headers as at given message.
+   * 
+   * @param message the message to be copied
+   * @return a new message, with the same data and headers
+   */
+  public static Builder from(ServiceMessage message) {
+    return with(message);
+  }
+
+  /**
+   * Instantiates new message builder with the same data and headers as at given message.
+   * 
+   * @param message the message to instantiate the new builder from
+   * @return a builder with initial data and headers from the message
+   */
+  public static Builder with(ServiceMessage message) {
+    return withData(message.data).headers(message.headers);
+  }
+
+  /**
+   * Instantiates new empty message builder.
+   *
+   * @return new builder
+   */
+  public static Builder builder() {
+    return Builder.getInstance();
+  }
+
+  /**
+   * Sets data for deserialization purpose.
+   * 
+   * @param data data to set
+   */
+  void setData(Object data) {
+    this.data = data;
+  }
+
+  /**
+   * Sets headers for deserialization purpose.
+   * 
+   * @param headers headers to set
+   */
+  void setHeaders(Map<String, String> headers) {
+    requireNonNull(headers != null);
+    this.headers = Collections.unmodifiableMap(headers);
+  }
+
+  /**
+   * Returns the message headers.
+   *
+   * @return message headers
+   */
+  public Map<String, String> headers() {
+    return headers;
+  }
+
+  /**
+   * Returns header value by given header name.
+   * 
+   * @param name header name
+   * @return the message header by given header name
+   */
+  public String header(String name) {
+    return headers.get(name);
+  }
+
+  /**
+   * Returns message qualifier.
+   * 
+   * @return qualifier string
+   */
   public String qualifier() {
-    return qualifier;
+    return header(HEADER_QUALIFIER);
   }
 
-  public String subject() {
-    return subject;
-  }
-
-  @SuppressWarnings("unchecked")
+  /**
+   * Return the message data, which can be byte array, string or any type.
+   *
+   * @param <T> data type
+   * @return payload of the message or null if message is without any payload
+   */
   public <T> T data() {
+    // noinspection unchecked
     return (T) data;
-  }
-
-  public boolean containsData() {
-    return data != null;
-  }
-
-  public boolean containsSubject() {
-    return subject != null && !subject.isEmpty();
-  }
-
-  public boolean dataOfType(Class<?> clazz) {
-    return clazz.isInstance(data);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-
-    ServiceMessage message = (ServiceMessage) obj;
-    return Objects.equals(qualifier, message.qualifier)
-        && Objects.equals(data, message.data)
-        && Objects.equals(subject, message.subject);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(qualifier, subject, data);
   }
 
   @Override
   public String toString() {
-    return "ServiceMessage [q=" + qualifier
-        + ", subject=" + subject
-        + ", data=" + prepareDataString()
-        + "]";
+    return "ServiceMessage {headers: " + headers + ", data: " + data + '}';
   }
 
-  private String prepareDataString() {
-    if (data == null) {
-      return "null";
-    } else if (data instanceof byte[]) {
-      return "b-" + ((byte[]) data).length;
-    } else if (data instanceof String) {
-      return "s-" + ((String) data).length();
-    } else if (data instanceof ErrorData) {
-      return data.toString();
-    } else {
-      return data.getClass().getName();
-    }
-  }
+  public static class Builder {
 
-  public static final class Builder {
-
-    private String qualifier;
-    private String subject;
+    private Map<String, String> headers = new HashMap<>();
     private Object data;
 
     private Builder() {}
 
-    public Builder qualifier(String qualifier) {
-      this.qualifier = qualifier;
-      return this;
+    static Builder getInstance() {
+      return new Builder();
     }
 
-    public Builder qualifier(Qualifier qualifier) {
-      this.qualifier = qualifier.asString();
-      return this;
-    }
-
-    public Builder qualifier(String serviceName, String methodMame) {
-      return qualifier(Qualifier.fromString(serviceName + "/" + methodMame));
-    }
-
-    public Builder subject(String subject) {
-      this.subject = subject;
-      return this;
+    private Object data() {
+      return this.data;
     }
 
     public Builder data(Object data) {
@@ -133,10 +207,30 @@ public final class ServiceMessage {
       return this;
     }
 
+    private Map<String, String> headers() {
+      return this.headers;
+    }
+
+    public Builder headers(Map<String, String> headers) {
+      this.headers.putAll(headers);
+      return this;
+    }
+
+    public Builder header(String key, String value) {
+      headers.put(key, value);
+      return this;
+    }
+
+    public Builder qualifier(String qualifier) {
+      return header(HEADER_QUALIFIER, qualifier);
+    }
+
     public ServiceMessage build() {
       return new ServiceMessage(this);
     }
 
-
+    public Builder qualifier(String serviceName, String methodName) {
+      return this.qualifier(Qualifier.fromString(serviceName + "/" + methodName).asString());
+    }
   }
 }

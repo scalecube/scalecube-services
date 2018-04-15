@@ -59,7 +59,7 @@ public class ServiceCall {
     /**
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in *
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invokemessage uses the router to select the target endpoint service instance in the cluster. Throws Exception in*
+     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in*
      * case of an error or TimeoutException if no response if a given duration.
      *
      * @param request request with given headers.
