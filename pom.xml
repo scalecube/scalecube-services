@@ -69,6 +69,7 @@
 	<modules>
 		<module>services-api</module>
 		<module>services</module>
+		<module>scalecube-services-network</module>
 	</modules>
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->

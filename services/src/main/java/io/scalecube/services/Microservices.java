@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
@@ -100,6 +101,7 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
 
   private final ClientTransport client;
+  private final ServiceTransport server;
 
   private Metrics metrics;
 
@@ -107,14 +109,41 @@ public class Microservices {
 
   public RouterFactory routerFactory;
 
-  private Microservices(Cluster cluster, Address serviceAddress, ClientTransport client, ServicesConfig services,
+
+  private Microservices(ServiceTransport server, ClientTransport client, 
+      ClusterConfig.Builder clusterConfig,
+      ServicesConfig servicesConfig,
       Metrics metrics) {
-    this.cluster = cluster;
+
     this.client = client;
-    this.serviceAddress = serviceAddress;
     this.metrics = metrics;
-    this.serviceRegistry = new ServiceRegistryImpl(this, services, metrics);
+    this.serviceRegistry = new ServiceRegistryImpl(this, metrics);    
+    this.serviceRegistry.localServices();
+    this.server = server.services(serviceRegistry.localServices());
+    
+    this.serviceAddress = server.bindAwait();
+    ClusterConfig cfg = getClusterConfig(clusterConfig, servicesConfig, serviceAddress).build();
+    this.cluster = Cluster.joinAwait(cfg);    
+  
+    if (!servicesConfig.services().isEmpty()) {
+      for (ServiceConfig service : servicesConfig.services()) {
+        this.serviceRegistry.registerService(service);
+      }
+    }  
+    this.serviceRegistry.start();
     this.routerFactory = new RouterFactory(serviceRegistry);
+  
+  }
+
+  private ClusterConfig.Builder getClusterConfig(ClusterConfig.Builder clusterConfig, ServicesConfig servicesConfig,
+      Address address) {
+    if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
+      clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
+      if (address != null) {
+        clusterConfig.addMetadata("service-address", address.toString());
+      }
+    }
+    return clusterConfig;
   }
 
   public Metrics metrics() {
@@ -123,10 +152,6 @@ public class Microservices {
 
   public Cluster cluster() {
     return this.cluster;
-  }
-
-  public void unregisterService(Object serviceObject) {
-    serviceRegistry.unregisterService(serviceObject);
   }
 
   public Collection<ServiceInstance> services() {
@@ -155,17 +180,11 @@ public class Microservices {
           "SPI ServiceTransport is missing and not found by ServiceLoader."
               + " did you forget to set Transport provider?");
 
-      this.server = server.services(servicesConfig.services().stream().toArray());
-      Address serviceAddress = this.server.bindAwait();
-
-      ClusterConfig cfg = getClusterConfig(servicesConfig, serviceAddress);
-
       return Reflect.builder(
-          new Microservices(Cluster.joinAwait(cfg), serviceAddress, this.client, servicesConfig, this.metrics))
+          new Microservices(this.server, this.client,clusterConfig, servicesConfig, this.metrics))
           .inject();
 
     }
-
 
     public Builder server(ServiceTransport server) {
       this.server = server;
@@ -230,15 +249,7 @@ public class Microservices {
       return this;
     }
 
-    private ClusterConfig getClusterConfig(ServicesConfig servicesConfig, Address address) {
-      if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-        clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
-        if (address != null) {
-          clusterConfig.addMetadata("service-address", address.toString());
-        }
-      }
-      return clusterConfig.build();
-    }
+
   }
 
   public static Builder builder() {

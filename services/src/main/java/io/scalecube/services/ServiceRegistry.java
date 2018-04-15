@@ -12,14 +12,15 @@ import java.util.Optional;
  */
 public interface ServiceRegistry {
 
+  List<ServiceInstance> serviceLookup(String serviceName);
+
   void registerService(ServiceConfig serviceObject);
 
-  void unregisterService(Object serviceObject);
-
-  List<ServiceInstance> serviceLookup(String serviceName);
+  Collection<ServiceInstance> services();
+  Collection<ServiceInstance> localServices();
 
   Optional<ServiceInstance> getLocalInstance(String serviceName, String method);
 
-  Collection<ServiceInstance> services();
-  
+  void start();
+
 }

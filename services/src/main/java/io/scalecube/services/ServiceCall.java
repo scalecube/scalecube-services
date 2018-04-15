@@ -52,11 +52,6 @@ public class ServiceCall {
       return this;
     }
 
-    public Call responseTypeOf(Class<?> payloadType) {
-      this.responseType = payloadType;
-      return this;
-    }
-
     public Call metrics(Metrics metrics) {
       this.metrics = metrics;
       this.latency = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
@@ -160,13 +155,13 @@ public class ServiceCall {
      * @return newly created service proxy object.
      */
     public <T> T api(final Class<T> serviceInterface) {
-
-      final ConcurrentMap<Method, Call> serviceCalls = initServiceCalls(serviceInterface, this);
-
+      
+      final Call serviceCall = this;
+      
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) {
-          Call methodCall = serviceCalls.get(method);
+         
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null) {
             return check; // toString, hashCode was invoked.
@@ -181,13 +176,13 @@ public class ServiceCall {
 
           if (method.getReturnType().getClass().isAssignableFrom(Publisher.class)) {
             if (Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
-              return methodCall.listen(reqMsg);
+              return serviceCall.listen(reqMsg);
             } else {
-              return methodCall.listen(reqMsg).map(ServiceMessage::data);
+              return serviceCall.listen(reqMsg).map(ServiceMessage::data);
             }
 
           } else if (method.getReturnType().equals(CompletableFuture.class)) {
-            return toCompletableFuture(method, methodCall.invoke(reqMsg));
+            return toCompletableFuture(method, serviceCall.invoke(reqMsg));
 
           } else if (method.getReturnType().equals(Void.TYPE)) {
             return CompletableFuture.completedFuture(Void.TYPE);
@@ -220,17 +215,7 @@ public class ServiceCall {
         }
       });
     }
-
-    private static <T> ConcurrentMap<Method, Call> initServiceCalls(final Class<T> serviceInterface,
-        final Call service) {
-      final ConcurrentMap<Method, Call> serviceCalls = new ConcurrentHashMap<>();
-      Reflect.serviceMethods(serviceInterface).entrySet().forEach(entry -> {
-        serviceCalls.putIfAbsent(entry.getValue(),
-            service.responseTypeOf(Reflect.parameterizedReturnType(entry.getValue())));
-      });
-      return serviceCalls;
-    }
-
+    
     private IllegalStateException noReachableMemberException(ServiceMessage request) {
 
       LOGGER.error(
