@@ -19,7 +19,7 @@ public class Messages {
      * 
      * @param request message that is subject to validation.
      */
-    public <T> void serviceRequest(ServiceMessage request) {
+    public void serviceRequest(ServiceMessage request) {
       checkArgument(request != null, "Service request can't be null");
       final String serviceName = request.qualifier();
       checkArgument(serviceName != null, "Service request can't be null");
