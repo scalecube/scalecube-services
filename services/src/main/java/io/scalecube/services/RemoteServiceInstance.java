@@ -57,11 +57,9 @@ public class RemoteServiceInstance implements ServiceInstance {
   public CompletableFuture<ServiceMessage> invoke(ServiceMessage request) {
     final CompletableFuture<ServiceMessage> future = new CompletableFuture<>();
     ClientChannel channel = client.create(address);
-    channel.requestReply(request).subscribe(value -> {
-      future.complete(value);
-    }, error -> {
-      future.completeExceptionally(error);
-    });
+    channel.requestReply(request).subscribe(
+        future::complete,
+        future::completeExceptionally);
 
     return future;
   }
