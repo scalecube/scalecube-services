@@ -1,7 +1,7 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
+import static java.util.Objects.requireNonNull;
+ 
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.metrics.Metrics;
@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Local service instance invokes the service instance hosted on this local process.
@@ -44,11 +43,11 @@ public class LocalServiceInstance implements ServiceInstance {
       Map<String, String> tags,
       Address address, String memberId, String serviceName,
       Map<String, Method> methods, Metrics metrics) {
-    checkArgument(serviceObject != null, "serviceObject can't be null");
-    checkArgument(address != null, "address can't be null");
-    checkArgument(memberId != null, "memberId can't be null");
-    checkArgument(serviceName != null, "serviceName can't be null");
-    checkArgument(methods != null, "methods can't be null");
+    requireNonNull(serviceObject != null, "serviceObject can't be null");
+    requireNonNull(address != null, "address can't be null");
+    requireNonNull(memberId != null, "memberId can't be null");
+    requireNonNull(serviceName != null, "serviceName can't be null");
+    requireNonNull(methods != null, "methods can't be null");
 
     this.serviceObject = serviceObject;
     this.serviceName = serviceName;
@@ -67,7 +66,7 @@ public class LocalServiceInstance implements ServiceInstance {
 
   @Override
   public CompletableFuture<ServiceMessage> invoke(ServiceMessage request) {
-    checkArgument(request != null, "message can't be null");
+    requireNonNull(request != null, "message can't be null");
 
     final Method method = this.methods.get(Messages.qualifierOf(request).getAction());
     return invokeMethod(request, method);
@@ -75,9 +74,9 @@ public class LocalServiceInstance implements ServiceInstance {
 
   @Override
   public Flux<ServiceMessage> listen(ServiceMessage request) {
-    checkArgument(request != null, "message can't be null.");
+    requireNonNull(request != null, "message can't be null.");
     final Method method = getMethod(request);
-    checkArgument(method.getReturnType().equals(Flux.class), "listen method must return Flux.");
+    requireNonNull(method.getReturnType().equals(Flux.class), "listen method must return Flux.");
     Flux<ServiceMessage> flux = null;
     try {
       flux = Reflect.invoke(serviceObject, method, request);
@@ -171,7 +170,7 @@ public class LocalServiceInstance implements ServiceInstance {
 
   @Override
   public void checkMethodExists(String methodName) {
-    checkArgument(methodExists(methodName), "instance has no such requested method");
+    requireNonNull(methodExists(methodName), "instance has no such requested method");
   }
 
   @Override

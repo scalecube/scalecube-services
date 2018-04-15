@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.annotations.Inject;
@@ -207,7 +207,7 @@ public class Reflect {
   public static String serviceName(Class<?> serviceInterface) {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
-    checkArgument(serviceAnnotation != null, "Not a service interface: %s", serviceInterface);
+    requireNonNull(serviceAnnotation != null, String.format("Not a service interface: %s", serviceInterface));
     return Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
   }
 

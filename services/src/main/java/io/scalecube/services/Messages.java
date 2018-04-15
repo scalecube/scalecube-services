@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
@@ -20,9 +20,9 @@ public class Messages {
      * @param request message that is subject to validation.
      */
     public void serviceRequest(ServiceMessage request) {
-      checkArgument(request != null, "Service request can't be null");
+      requireNonNull(request != null, "Service request can't be null");
       final String serviceName = request.qualifier();
-      checkArgument(serviceName != null, "Service request can't be null");
+      requireNonNull(serviceName != null, "Service request can't be null");
     }
 
   }

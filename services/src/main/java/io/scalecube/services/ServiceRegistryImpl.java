@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.concurrency.ThreadFactory;
@@ -48,7 +48,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param metrics nul1lable metrics factory if relevant to this instance.
    */
   public ServiceRegistryImpl(Microservices microservices, Metrics metrics) {
-    checkArgument(microservices != null, "microservices can't be null");
+    requireNonNull(microservices != null, "microservices can't be null");
     this.microservices = microservices;
     this.metrics = metrics;
   }
@@ -107,7 +107,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * register a service instance at the cluster.
    */
   public void registerService(ServiceConfig serviceCfg) {
-    checkArgument(serviceCfg != null, "Service object can't be null.");
+    requireNonNull(serviceCfg != null, "Service object can't be null.");
     Collection<Class<?>> serviceInterfaces = Reflect.serviceInterfaces(serviceCfg.getService());
 
     String memberId = microservices.cluster().member().id();
@@ -139,7 +139,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceInstance> serviceLookup(final String serviceName) {
-    checkArgument(serviceName != null, "Service name can't be null");
+    requireNonNull(serviceName != null, "Service name can't be null");
     return Collections.unmodifiableList(serviceInstances.entrySet().stream()
         .filter(entry -> isValid(entry.getKey(), serviceName))
         .map(Map.Entry::getValue)
@@ -165,11 +165,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     } else {
       return member.address();
     }
-  }
-
-  private ServiceReference toLocalServiceReference(ServiceDefinition serviceDefinition) {
-    return new ServiceReference(microservices.cluster().member().id(), serviceDefinition.serviceName(),
-        serviceDefinition.methods().keySet(), microservices.serviceAddress());
   }
 
   private boolean isValid(ServiceReference reference, String qualifier) {
