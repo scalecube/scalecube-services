@@ -13,9 +13,9 @@ public class ServiceRegistryImplTest extends BaseTest {
 
   @Test
   public void test_service_registry() throws InterruptedException, ExecutionException {
-    ServicesConfig services = ServicesConfig.empty();
+    
     Microservices ms = Microservices.builder().build();
-    ServiceRegistryImpl registry = new ServiceRegistryImpl(Microservices.builder().build(), services);
+    ServiceRegistryImpl registry = new ServiceRegistryImpl(Microservices.builder().build());
     assertTrue(registry.services().isEmpty());
     ms.shutdown().get();
   }
@@ -26,7 +26,7 @@ public class ServiceRegistryImplTest extends BaseTest {
     ServicesConfig services = ServicesConfig.empty();
 
     try {
-      new ServiceRegistryImpl(null, services);
+      new ServiceRegistryImpl(null, null);
     } catch (Exception ex) {
       assertEquals(ex.toString(), "java.lang.IllegalArgumentException: microservices can't be null");
     }

@@ -11,6 +11,7 @@ import io.scalecube.transport.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +38,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private Metrics metrics;
 
+  Collection<ServiceInstance> localService = new ArrayList<ServiceInstance>();
+
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
    *
@@ -44,24 +47,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * @param services services if relevant to this instance.
    * @param metrics nul1lable metrics factory if relevant to this instance.
    */
-  public ServiceRegistryImpl(Microservices microservices, ServicesConfig services, Metrics metrics) {
-
+  public ServiceRegistryImpl(Microservices microservices, Metrics metrics) {
     checkArgument(microservices != null, "microservices can't be null");
-    checkArgument(services != null, "services can't be null");
-
     this.microservices = microservices;
     this.metrics = metrics;
-    if (!services.services().isEmpty()) {
-      for (ServiceConfig service : services.services()) {
-        registerService(service);
-      }
-    }
-    loadClusterServices();
-    listenCluster();
   }
 
-  public ServiceRegistryImpl(Microservices microservices, ServicesConfig services) {
-    this(microservices, services, null);
+  public ServiceRegistryImpl(Microservices microservices) {
+    this(microservices,  null);
   }
 
   private void listenCluster() {
@@ -140,20 +133,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
               this.metrics);
 
       serviceInstances.putIfAbsent(serviceRef, serviceInstance);
-
-    });
-  }
-
-  @Override
-  public void unregisterService(Object serviceObject) {
-    checkArgument(serviceObject != null, "Service object can't be null.");
-    Collection<Class<?>> serviceInterfaces = Reflect.serviceInterfaces(serviceObject);
-
-    serviceInterfaces.forEach(serviceInterface -> {
-      // Process service interface
-      ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
-      ServiceReference serviceReference = toLocalServiceReference(serviceDefinition);
-      serviceInstances.remove(serviceReference);
+      localService = serviceInstances.values();
     });
   }
 
@@ -194,6 +174,17 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private boolean isValid(ServiceReference reference, String qualifier) {
     return reference.serviceName().equals(qualifier);
+  }
+
+  @Override
+  public void start() {
+    loadClusterServices();
+    listenCluster();
+  }
+
+  @Override
+  public Collection<ServiceInstance> localServices() {
+    return localService;
   }
 
 }

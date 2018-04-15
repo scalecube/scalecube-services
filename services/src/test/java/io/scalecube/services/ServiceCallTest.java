@@ -74,7 +74,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<ServiceMessage> future =
-        serviceCall.responseTypeOf(GreetingResponse.class).invoke(GREETING_NO_PARAMS_REQUEST);
+        serviceCall.invoke(GREETING_NO_PARAMS_REQUEST);
 
     future.whenComplete((message, ex) -> {
       if (ex == null) {
@@ -108,7 +108,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<ServiceMessage> future =
-        serviceCall.responseTypeOf(GreetingResponse.class).invoke(GREETING_NO_PARAMS_REQUEST);
+        serviceCall.invoke(GREETING_NO_PARAMS_REQUEST);
 
     future.whenComplete((ServiceMessage message, Throwable ex) -> {
       if (ex == null) {
@@ -135,7 +135,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     CompletableFuture<ServiceMessage> resultFuture =
-        gateway.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_VOID_REQ);
+        gateway.call().invoke(GREETING_VOID_REQ);
     ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
 
     // Then:
@@ -153,7 +153,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices node = serviceProvider();
     // call the service.
     CompletableFuture<ServiceMessage> future =
-        node.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_VOID_REQ);
+        node.call().invoke(GREETING_VOID_REQ);
     ServiceMessage result = future.get(TIMEOUT, TimeUnit.SECONDS);
     assertNotNull(result);
     assertEquals(GREETING_VOID_REQ.qualifier(), result.qualifier());
@@ -175,7 +175,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    CompletableFuture<ServiceMessage> resultFuture = consumer.call().responseTypeOf(String.class).invoke(GREETING_REQ);
+    CompletableFuture<ServiceMessage> resultFuture = consumer.call().invoke(GREETING_REQ);
 
     // Then
     ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
@@ -195,7 +195,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     CompletableFuture<ServiceMessage> resultFuture =
-        microservices.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
+        microservices.call().invoke(GREETING_REQUEST_REQ);
 
     // Then
     ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
@@ -218,7 +218,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     CompletableFuture<ServiceMessage> resultFuture =
-        consumer.call().responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
+        consumer.call().invoke(GREETING_REQUEST_REQ);
 
     // Then
     ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
@@ -240,7 +240,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<ServiceMessage> future =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
+        service.invoke(GREETING_REQUEST_TIMEOUT_REQ);
 
     try {
       future.get(TIMEOUT, TimeUnit.SECONDS);
@@ -268,7 +268,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<ServiceMessage> future =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_TIMEOUT_REQ);
+        service.invoke(GREETING_REQUEST_TIMEOUT_REQ);
     try {
       future.get(TIMEOUT, TimeUnit.SECONDS);
     } catch (ExecutionException ex) {
@@ -292,7 +292,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<ServiceMessage> future =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
+        service.invoke(GREETING_REQUEST_REQ);
 
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -326,7 +326,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<ServiceMessage> future =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
+        service.invoke(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     future.whenComplete((result, ex) -> {
@@ -371,9 +371,9 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     CompletableFuture<ServiceMessage> result1 =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
+        service.invoke(GREETING_REQUEST_REQ);
     CompletableFuture<ServiceMessage> result2 =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
+        service.invoke(GREETING_REQUEST_REQ);
 
     CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -497,7 +497,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    Call service = gateway.call().responseTypeOf(GreetingResponse.class).timeout(Duration.ofSeconds(3));
+    Call service = gateway.call().timeout(Duration.ofSeconds(3));
 
     CompletableFuture<ServiceMessage> result = service.invoke(GREETING_REQUEST_REQ);
 
@@ -534,7 +534,7 @@ public class ServiceCallTest extends BaseTest {
     Call service = gateway.call().timeout(Duration.ofSeconds(3));
 
     CompletableFuture<ServiceMessage> result =
-        service.responseTypeOf(GreetingResponse.class).invoke(GREETING_REQUEST_REQ);
+        service.invoke(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {
