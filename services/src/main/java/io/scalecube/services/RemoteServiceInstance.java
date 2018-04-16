@@ -49,7 +49,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
   @Override
   public Flux<ServiceMessage> listen(ServiceMessage request) {
-    return client.create(address).listen(request);
+    return client.create(address).requestStream(request);
   }
 
   @Override
