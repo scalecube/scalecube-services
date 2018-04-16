@@ -9,7 +9,9 @@ public interface ServerTransport {
 
   ServerTransport services(Collection<ServiceInstance> services);
 
-  Address bindAwait();
+  Address bindAwait(int port);
+
+  void stop();
   
 }
 

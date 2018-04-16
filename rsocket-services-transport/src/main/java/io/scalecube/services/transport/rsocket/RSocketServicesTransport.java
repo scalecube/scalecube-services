@@ -14,8 +14,7 @@ public class RSocketServicesTransport implements ServiceTransport{
 
   @Override
   public ServerTransport getServerTransport() {
-    // TODO Auto-generated method stub
-    return null;
+    return new RSocketServerTransport();
   }
 
 }
