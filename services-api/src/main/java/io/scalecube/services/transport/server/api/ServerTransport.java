@@ -5,9 +5,9 @@ import io.scalecube.transport.Address;
 
 import java.util.Collection;
 
-public interface ServiceTransport {
+public interface ServerTransport {
 
-  ServiceTransport services(Collection<ServiceInstance> services);
+  ServerTransport services(Collection<ServiceInstance> services);
 
   Address bindAwait();
   

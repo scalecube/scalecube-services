@@ -5,7 +5,7 @@ import io.scalecube.transport.Address;
 
 import java.util.Collection;
 
-public class DefaultServiceTransport implements ServiceTransport{
+public class DefaultServerTransport implements ServerTransport{
 
   private Collection<ServiceInstance> services;
 
@@ -15,7 +15,7 @@ public class DefaultServiceTransport implements ServiceTransport{
   }
 
   @Override
-  public ServiceTransport services(Collection<ServiceInstance> services) {
+  public ServerTransport services(Collection<ServiceInstance> services) {
     this.services = services;
     
     return this;

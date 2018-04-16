@@ -10,9 +10,10 @@ import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.server.api.ServiceTransport;
+import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
@@ -101,7 +102,7 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
 
   private final ClientTransport client;
-  private final ServiceTransport server;
+  private final ServerTransport server;
 
   private Metrics metrics;
 
@@ -110,7 +111,7 @@ public class Microservices {
   public RouterFactory routerFactory;
 
 
-  private Microservices(ServiceTransport server, ClientTransport client, 
+  private Microservices(ServerTransport server, ClientTransport client, 
       ClusterConfig.Builder clusterConfig,
       ServicesConfig servicesConfig,
       Metrics metrics) {
@@ -165,9 +166,8 @@ public class Microservices {
 
     private Metrics metrics;
 
-    private ServiceTransport server = TransportFactory.getServiceTransport();
-    private ClientTransport client = TransportFactory.getClientTransport();
-
+    private ServerTransport server = TransportFactory.getTransport().getServerTransport();
+    private ClientTransport client = TransportFactory.getTransport().getClientTransport();
     /**
      * Microservices instance builder.
      *
@@ -185,7 +185,7 @@ public class Microservices {
 
     }
 
-    public Builder server(ServiceTransport server) {
+    public Builder server(ServerTransport server) {
       this.server = server;
       return this;
     }
