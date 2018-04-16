@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.rsocket;
+package io.scalecube.services.transport.rsocket.server;
 
 import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.transport.server.api.ServerTransport;
