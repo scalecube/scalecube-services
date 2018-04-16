@@ -8,23 +8,28 @@ import reactor.core.publisher.Mono;
 public interface ClientChannel {
 
   /**
-   * Request Response pattern.
-   * send single request and expect single reply.
-   * 
-   * @param request
-   * @return
+   * Request-Response interaction model of {@code RSocket}.
+   *
+   * @param payload Request payload.
+   * @return {@code Publisher} containing at most a single {@code ServiceMessage} representing the response.
    */
-  public Mono<ServiceMessage> requestReply(ServiceMessage request) ;
+  public Mono<ServiceMessage> requestReply(ServiceMessage request);
 
   /**
-   * Request Stream pattern.
-   * send single request and expect stream of replies.
-   * 
-   * @param request
-   * @return
+   * Request-Stream interaction model of.
+   *
+   * @param ServiceMessage Request.
+   * @return {@code Publisher} containing the stream of {@code ServiceMessage}s representing the response.
    */
   public Flux<ServiceMessage> listen(ServiceMessage request);
-  
-  
+
+  /**
+   * Fire and Forget interaction model of {@code ServiceMessage}.
+   *
+   * @param request ServiceMessage.
+   * @return {@code Publisher} that completes when the passed {@code request} is successfully handled, otherwise errors.
+   */
+  Mono<Void> fireAndForget(ServiceMessage request);
+
 
 }
