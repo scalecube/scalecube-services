@@ -17,7 +17,7 @@ import java.util.HashMap;
 
 public class ServiceInstanceTest extends BaseTest {
 
-  ClientTransport sender = TransportFactory.getClientTransport();
+  ClientTransport sender = TransportFactory.getTransport().getClientTransport();
   
   @Test
   public void test_remote_service_instance() {
