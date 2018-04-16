@@ -13,7 +13,7 @@ public interface ClientChannel {
    * @param payload Request payload.
    * @return {@code Publisher} containing at most a single {@code ServiceMessage} representing the response.
    */
-  public Mono<ServiceMessage> requestReply(ServiceMessage request);
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request);
 
   /**
    * Request-Stream interaction model of.

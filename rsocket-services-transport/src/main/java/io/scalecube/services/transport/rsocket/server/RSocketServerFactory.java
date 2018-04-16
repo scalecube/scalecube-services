@@ -1,4 +1,4 @@
-package io.scalecube.services.transport.rsocket;
+package io.scalecube.services.transport.rsocket.server;
 
 import io.rsocket.RSocketFactory;
 import io.rsocket.RSocketFactory.Start;
