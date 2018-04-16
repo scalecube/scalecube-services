@@ -21,7 +21,7 @@ public interface ClientChannel {
    * @param ServiceMessage Request.
    * @return {@code Publisher} containing the stream of {@code ServiceMessage}s representing the response.
    */
-  public Flux<ServiceMessage> listen(ServiceMessage request);
+  public Flux<ServiceMessage> requestStream(ServiceMessage request);
 
   /**
    * Fire and Forget interaction model of {@code ServiceMessage}.
@@ -31,5 +31,12 @@ public interface ClientChannel {
    */
   Mono<Void> fireAndForget(ServiceMessage request);
 
+  /**
+   * Request-Stream interaction model of.
+   *
+   * @param ServiceMessage Request.
+   * @return {@code Publisher} containing the stream of {@code ServiceMessage}s representing the response.
+   */
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request);
 
 }
