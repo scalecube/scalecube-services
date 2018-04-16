@@ -12,11 +12,11 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(Address address) {
-    return new RSocketServiceClientAdapter( RSocketFactory.connect()
+    return new RSocketServiceClientAdapter(RSocketFactory.connect()
         .transport(TcpClientTransport.create(address.host(), address.port()))
         .start()
         .block());
-    
+
   }
 
 }
