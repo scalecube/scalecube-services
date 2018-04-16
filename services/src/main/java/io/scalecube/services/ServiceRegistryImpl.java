@@ -16,10 +16,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
@@ -140,6 +142,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public List<ServiceInstance> serviceLookup(final String serviceName) {
     requireNonNull(serviceName != null, "Service name can't be null");
+    
     return Collections.unmodifiableList(serviceInstances.entrySet().stream()
         .filter(entry -> isValid(entry.getKey(), serviceName))
         .map(Map.Entry::getValue)
@@ -147,9 +150,16 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
+  public List<ServiceInstance> serviceLookup(Predicate<? super ServiceInstance> filter) {
+    requireNonNull(filter != null, "Filter can't be null");
+    return Collections.unmodifiableList(serviceInstances.values().stream()
+        .filter(filter)
+        .collect(Collectors.toList()));
+  }
+  
+  @Override
   public Optional<ServiceInstance> getLocalInstance(String serviceName, String method) {
-    return serviceInstances.values().stream()
-        .filter(ServiceInstance::isLocal)
+    return this.serviceLookup(ServiceInstance::isLocal).stream()
         .filter(serviceInstance -> serviceInstance.serviceName().equals(serviceName))
         .findFirst();
   }
@@ -175,11 +185,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public void start() {
     loadClusterServices();
     listenCluster();
-  }
-
-  @Override
-  public Collection<ServiceInstance> localServices() {
-    return Collections.unmodifiableCollection(localService);
   }
 
 }
