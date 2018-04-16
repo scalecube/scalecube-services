@@ -26,7 +26,7 @@ public class RemoteServiceInstance implements ServiceInstance {
   private final String memberId;
   private final String serviceName;
   private final Map<String, String> tags;
-  private final ClientTransport client;
+  private final ClientChannel client;
   private final Set<String> methods;
 
   /**
@@ -44,19 +44,18 @@ public class RemoteServiceInstance implements ServiceInstance {
     this.address = serviceReference.address();
     this.memberId = serviceReference.memberId();
     this.tags = tags;
-    this.client = client;
+    this.client = client.create(serviceReference.address());
   }
 
   @Override
   public Flux<ServiceMessage> listen(ServiceMessage request) {
-    return client.create(address).requestStream(request);
+    return this.client.requestStream(request);
   }
 
   @Override
   public CompletableFuture<ServiceMessage> invoke(ServiceMessage request) {
     final CompletableFuture<ServiceMessage> future = new CompletableFuture<>();
-    ClientChannel channel = client.create(address);
-    channel.requestResponse(request).subscribe(
+    this.client.requestResponse(request).subscribe(
         future::complete,
         future::completeExceptionally);
 
