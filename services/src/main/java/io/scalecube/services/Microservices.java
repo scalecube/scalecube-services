@@ -121,7 +121,7 @@ public class Microservices {
     this.serviceRegistry = new ServiceRegistryImpl(this, metrics);    
     this.server = server.services(serviceRegistry.serviceLookup(ServiceInstance::isLocal));
     
-    this.serviceAddress = server.bindAwait();
+    this.serviceAddress = server.bindAwait(5801);
     ClusterConfig cfg = getClusterConfig(clusterConfig, servicesConfig, serviceAddress).build();
     this.cluster = Cluster.joinAwait(cfg);    
   
