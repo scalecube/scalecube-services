@@ -7,6 +7,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,7 +23,7 @@ public class ServiceInfo {
 
   private Map<String, String> tags;
 
-  private Set<String> methods;
+  private Collection<String> methods;
 
   private ServiceInfo() {
     // default ctor.
@@ -39,7 +40,7 @@ public class ServiceInfo {
     return json;
   }
 
-  public ServiceInfo(String serviceName, Set<String> methods, Map<String, String> tags) {
+  public ServiceInfo(String serviceName, Collection<String> methods, Map<String, String> tags) {
     this.serviceName = serviceName;
     this.tags = tags;
     this.methods = methods;
@@ -81,7 +82,7 @@ public class ServiceInfo {
     }
   }
 
-  public Set<String> methods() {
+  public Collection<String> methods() {
     return this.methods;
   }
 }

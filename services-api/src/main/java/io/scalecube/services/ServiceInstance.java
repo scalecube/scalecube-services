@@ -31,23 +31,23 @@ public class ServiceInstance {
     this.isLocal = isLocal;
   }
 
-  String serviceName() {
+  public String serviceName() {
     return this.serviceName;
   }
 
-  Boolean isLocal() {
+  public Boolean isLocal() {
     return this.isLocal;
   }
 
-  Map<String, String> tags(){
+  public  Map<String, String> tags(){
     return this.tags;
   }
 
-  Address address() {
+  public  Address address() {
     return this.address;
   }
 
-  Collection<String> methods() {
+  public Collection<String> methods() {
     return this.methods;
   }
 

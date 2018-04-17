@@ -128,7 +128,8 @@ public class Microservices {
     });
     
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
-    this.discovery.start();
+    
+    this.discovery.start(clusterConfig);
   }
 
   public Metrics metrics() {
