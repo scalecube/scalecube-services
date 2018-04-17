@@ -1,6 +1,6 @@
 package io.scalecube.services.routing;
 
-import io.scalecube.services.ServiceRegistry;
+import io.scalecube.services.registry.api.ServiceRegistry;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

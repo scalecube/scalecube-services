@@ -3,8 +3,6 @@ package io.scalecube.services;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 
 public class ServiceDefinition {
@@ -37,11 +35,6 @@ public class ServiceDefinition {
         Reflect.serviceMethods(serviceInterface));
   }
   
-  public static Set<ServiceDefinition> from(Object service) {
-    return Reflect.serviceInterfaces(service).stream()
-        .map(foreach ->  ServiceDefinition.from(foreach))
-        .collect(Collectors.toSet());
-  }
   
   public Class<?> serviceInterface() {
     return serviceInterface;
@@ -55,6 +48,7 @@ public class ServiceDefinition {
     return methods.get(name);
   }
 
+  
   public Map<String, Method> methods() {
     return methods;
   }

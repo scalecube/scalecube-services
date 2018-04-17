@@ -1,5 +1,8 @@
-package io.scalecube.services;
+package io.scalecube.services.registry.api;
 
+import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.ServicesConfig;
+import io.scalecube.services.ServicesConfig.Builder;
 import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 
 import java.util.Collection;

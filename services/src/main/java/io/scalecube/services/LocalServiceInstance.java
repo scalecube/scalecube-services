@@ -2,9 +2,9 @@ package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
 
-import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.metrics.Metrics;
+import io.scalecube.services.registry.api.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.transport.Address;
 
 import java.lang.reflect.Method;
@@ -20,7 +20,7 @@ import reactor.core.publisher.Flux;
  * 
  *
  */
-public class LocalServiceInstance implements ServiceInstance {
+public class LocalServiceInstance extends ServiceInstance {
 
   private final Object serviceObject;
   private final Map<String, Method> methods;

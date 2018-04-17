@@ -1,36 +1,62 @@
 package io.scalecube.services;
 
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.transport.Address;
 
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.Objects;
 
-import reactor.core.publisher.Flux;
+public class ServiceInstance {
 
-public interface ServiceInstance {
+  private final Class<?> serviceInterface;
+  final String serviceName;
+  final Address address;
+  final Boolean isLocal;
+  final Map<String, String> tags;
+  final Collection<String> methods;
 
-  CompletableFuture<ServiceMessage> invoke(ServiceMessage request);
+  public ServiceInstance(Class<?> serviceInterface,
+      String serviceName,
+      Collection<String> methods,
+      Map<String, String> tags,
+      Address address,
+      Boolean isLocal) {
+    
 
-  <T> Flux<T> listen(ServiceMessage request);
-  
-  String serviceName();
+    this.serviceInterface =  serviceInterface;
+    this.serviceName = serviceName;
+    this.methods = methods;
+    this.tags = tags;
+    this.address = address;
+    this.isLocal = isLocal;
+  }
 
-  String memberId();
+  String serviceName() {
+    return this.serviceName;
+  }
 
-  Boolean isLocal();
+  Boolean isLocal() {
+    return this.isLocal;
+  }
 
-  Map<String, String> tags();
+  Map<String, String> tags(){
+    return this.tags;
+  }
 
-  Address address();
+  Address address() {
+    return this.address;
+  }
 
-  boolean methodExists(String methodName);
+  Collection<String> methods() {
+    return this.methods;
+  }
 
-  void checkMethodExists(String header);
+  boolean containsMethod(String methodName) {
+    return methods.contains(methodName);
+  }
 
-  Collection<String> methods();
-
- 
+  void checkContainsMethod(String methodName) {
+    Objects.requireNonNull(methods.contains(methodName));
+  }
 
 }

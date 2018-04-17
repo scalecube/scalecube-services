@@ -12,4 +12,20 @@ public class DefatultClientTransport implements ClientTransport {
     return null;
   }
 
+  Frame
+  1---------0cccccccccccccc
+  
+  ServiceMessage
+  headers
+  data
+  
+  encode(ServiceMessage) {
+   Payload(encode(sm,json|proto)) 0-100
+   Payload(bytes)      100-500;
+  }
+  
+  headers = JsonDecode(headers)
+  
+  onMessage
+  
 }
