@@ -59,6 +59,11 @@ public class ServiceInstance {
     Objects.requireNonNull(methods.contains(methodName));
   }
 
+  public Object serviceObject() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
  
 
 }
