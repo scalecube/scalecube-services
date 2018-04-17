@@ -8,14 +8,20 @@ import io.scalecube.services.transport.server.api.ServerTransport;
 
 public class RSocketServicesTransport implements ServiceTransport{
 
+  private PayloadCodec payloadCodec;
+
+  public RSocketServicesTransport(PayloadCodec payloadCodec) {
+    this.payloadCodec = payloadCodec;
+  }
+
   @Override
   public ClientTransport getClientTransport() {
-    return new RSocketClientTransport();
+    return new RSocketClientTransport(payloadCodec);
   }
 
   @Override
   public ServerTransport getServerTransport() {
-    return new RSocketServerTransport();
+    return new RSocketServerTransport(payloadCodec);
   }
 
 }
