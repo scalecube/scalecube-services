@@ -4,13 +4,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class ServiceBuilder {
+public class Service {
 
   private Map<String, String> tags;
   private Set<String> methods;
   private String serviceName; 
   
-  public Stream<ServiceBuilder> stream() {
+  public Stream<Service> stream() {
     return null;
   }
 

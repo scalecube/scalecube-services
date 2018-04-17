@@ -1,16 +1,15 @@
 package io.scalecube.services.transport.rsocket.server;
 
-import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.Services;
 import io.scalecube.services.transport.rsocket.PayloadCodec;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
-import reactor.core.Disposable;
 
-import java.util.Collection;
+import reactor.core.Disposable;
 
 public class RSocketServerTransport implements ServerTransport {
 
-  private Collection<ServiceInstance> services;
+  private Services services;
   private Disposable disposable;
   private PayloadCodec payloadCodec;
 
@@ -19,7 +18,7 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public ServerTransport services(Collection<ServiceInstance> services) {
+  public ServerTransport services(Services services) {
     this.services = services;
     return this;
   }

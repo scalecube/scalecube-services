@@ -6,13 +6,13 @@ import java.util.stream.Stream;
 
 public class Services {
 
-  private Collection<ServiceBuilder> services = Collections.EMPTY_SET;
+  private Collection<Service> services = Collections.EMPTY_SET;
 
-  public Stream<ServiceBuilder> stream() {
+  public Stream<Service> stream() {
     return services.stream();
   }
 
-  public Collection<ServiceBuilder> list() {
+  public Collection<Service> list() {
     return services;
   }
 
