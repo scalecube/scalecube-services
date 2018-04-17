@@ -17,10 +17,9 @@ public interface ServiceRegistry {
   List<ServiceInstance> serviceLookup(String serviceName);
   List<ServiceInstance> serviceLookup(Predicate<? super ServiceInstance> filter);
 
-  void registerService(Object serviceObject);
+  void registerService(Object serviceObject, Address address);
   void registerService(Object service, Address address, Map<String, String> tags);
 
-  
   Collection<ServiceInstance> services();
 
 

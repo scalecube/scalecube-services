@@ -71,8 +71,8 @@
 		<module>services-api</module>
 		<module>services</module>
 		<module>scalecube-services-network</module>
-		<module>scalecube-services-transport</module>
-		<module>rsocket-services-transport</module>
+		<module>services-transport</module>
+		<module>rsocket-transport</module>
 	</modules>
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->

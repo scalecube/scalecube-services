@@ -1,8 +1,12 @@
-package io.scalecube.services;
+package io.scalecube.services.discovery;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.concurrency.ThreadFactory;
+import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.ServiceReference;
+import io.scalecube.services.Services;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 
 import io.scalecube.transport.Address;
@@ -10,6 +14,8 @@ import io.scalecube.transport.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class ServiceDiscovery {
@@ -82,6 +88,23 @@ public class ServiceDiscovery {
     return clusterConfig;
   }
 
+  private static Map<String, String> metadata(Services services) {
+    Map<String, String> servicesTags = new HashMap<>();
+
+
+    services.stream().forEach(service -> {
+      // constract info metadata object as json key
+      String key = new ServiceInfo(service.serviceName(),
+          service.methods(),
+          service.tags()).toMetadata();
+      
+      // add service metadata to map.
+      servicesTags.put(key, "service");
+    });
+
+    return servicesTags;
+  }
+  
   private Address getServiceAddress(Member member) {
     String serviceAddressAsString = member.metadata().get("service-address");
     if (serviceAddressAsString != null) {
