@@ -2,13 +2,10 @@ package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
 
-import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.annotations.ServiceProxy;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.routing.Router;
 
 import com.google.common.base.Strings;
 
@@ -19,12 +16,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -71,10 +66,10 @@ public class Reflect {
      */
     private void inject(Microservices microservices) {
       microservices.services().stream()
-          .filter(instance -> instance.isLocal())
+          .filter(ServiceInstance::isLocal)
           .collect(Collectors.toList()).forEach(instance -> {
-            scanServiceFields(((LocalServiceInstance) instance).serviceObject());
-            this.processPostConstruct(((LocalServiceInstance) instance).serviceObject());
+            scanServiceFields(instance.serviceObject());
+            this.processPostConstruct(((ServiceInstance) instance).serviceObject());
           });
     }
 
@@ -88,8 +83,6 @@ public class Reflect {
               Object[] paramters = Arrays.asList(postConstructMethod.getParameters()).stream().map(mapper -> {
                 if (mapper.getType().equals(Microservices.class)) {
                   return this.microservices;
-                } else if (mapper.isAnnotationPresent(ServiceProxy.class)) {
-                  return newServiceCall(mapper.getAnnotation(ServiceProxy.class));
                 } else if (isService(mapper.getType())) {
                   return this.microservices.call().api(mapper.getType());
                 } else {
@@ -114,31 +107,11 @@ public class Reflect {
         setField(field, service, this.microservices);
       } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
         setField(field, service, this.microservices.call().api(field.getType()));
-      } else if (field.isAnnotationPresent(ServiceProxy.class) && isService(field.getType())) {
-        injectServiceProxy(field, service);
-      }
+      } 
     }
 
     private boolean isService(Class type) {
       return type.isAnnotationPresent(Service.class);
-    }
-
-    private void injectServiceProxy(Field field, Object service) {
-      ServiceProxy annotation = field.getAnnotation(ServiceProxy.class);
-      Call builder = newServiceCall(annotation);
-      setField(field, service, builder);
-    }
-
-    private Call newServiceCall(ServiceProxy annotation) {
-      Call builder = this.microservices.call();
-      if (!annotation.router().equals(Router.class)) {
-        builder.router(this.microservices.router(annotation.router()));
-      }
-      if (annotation.timeout() > 0) {
-        long nanos = annotation.timeUnit().toNanos(annotation.timeout());
-        builder.timeout(Duration.ofNanos(nanos));
-      }
-      return builder;
     }
 
     private void setField(Field field, Object object, Object value) {
