@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package io.scalecube.services.discovery;
 
 import static java.util.Objects.requireNonNull;
 

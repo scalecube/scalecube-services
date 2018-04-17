@@ -11,7 +11,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
@@ -20,8 +19,6 @@ import io.scalecube.transport.Address;
 import com.codahale.metrics.MetricRegistry;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -112,7 +109,8 @@ public class Microservices {
   public RouterFactory routerFactory;
 
 
-  private Microservices(ServerTransport server, ClientTransport client,
+  private Microservices(ServerTransport server,
+      ClientTransport client,
       ClusterConfig.Builder clusterConfig,
       Services services,
       Metrics metrics) {
@@ -128,7 +126,8 @@ public class Microservices {
 
     this.server = server.services(services);
     this.serviceAddress = server.bindAwait(5801);
-
+    
+    Cluster.joinAwait(config)
   }
 
   public Metrics metrics() {
@@ -219,23 +218,6 @@ public class Microservices {
 
   public static Builder builder() {
     return new Builder();
-  }
-
-  private static Map<String, String> metadata(Services services) {
-    Map<String, String> servicesTags = new HashMap<>();
-
-
-    services.stream().forEach(service -> {
-      // constract info metadata object as json key
-      String key = new ServiceInfo(service.serviceName(),
-          service.methods(),
-          service.tags()).toMetadata();
-      
-      // add service metadata to map.
-      servicesTags.put(key, "service");
-    });
-
-    return servicesTags;
   }
 
   /**

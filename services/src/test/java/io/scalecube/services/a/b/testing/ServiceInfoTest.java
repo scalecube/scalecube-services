@@ -2,7 +2,7 @@ package io.scalecube.services.a.b.testing;
 
 import static org.junit.Assert.assertTrue;
 
-import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.discovery.ServiceInfo;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;

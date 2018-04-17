@@ -10,6 +10,7 @@ import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
+import io.scalecube.services.discovery.ServiceInfo;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
