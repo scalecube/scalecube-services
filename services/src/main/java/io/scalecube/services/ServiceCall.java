@@ -1,15 +1,11 @@
 package io.scalecube.services;
 
-import static java.util.Objects.requireNonNull;
-
-import io.scalecube.concurrency.Futures;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.transport.client.api.ClientTransport;
 
-import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
-import com.codahale.metrics.Timer.Context;
 import com.google.common.reflect.Reflection;
 
 import org.reactivestreams.Publisher;
@@ -18,31 +14,33 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.time.Duration;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+  private final ClientTransport transport;
 
-  public static Call call() {
-    return new Call();
+  public ServiceCall(ClientTransport transport) {
+    this.transport = transport;
+  }
+
+  public Call call() {
+    return new Call(this.transport);
   }
 
   public static class Call {
 
-    private Duration timeout = Duration.ofSeconds(30);
     private Router router;
     private Metrics metrics;
     private Timer latency;
-    private Class<?> responseType;
+    private ClientTransport transport;
 
-    public Call timeout(Duration timeout) {
-      this.timeout = timeout;
-      return this;
+    public Call(ClientTransport transport) {
+      this.transport = transport;
     }
 
     public Call router(Router router) {
@@ -59,73 +57,32 @@ public class ServiceCall {
     /**
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in *
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in*
-     * case of an error or TimeoutException if no response if a given duration.
+     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception
+     * in* case of an error or TimeoutException if no response if a given duration.
      *
      * @param request request with given headers.
      * @return CompletableFuture with service call dispatching result.
      */
-    public CompletableFuture<ServiceMessage> invoke(ServiceMessage request) {
+    public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
-
-      ServiceInstance serviceInstance = router.route(request).orElseThrow(() -> noReachableMemberException(request));
-      return invoke(request, serviceInstance, timeout);
+      return requestResponse(request, router.route(request).orElseThrow(() -> noReachableMemberException(request)));
     }
 
 
     /**
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in
      * request:ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * * invoke with default timeout.
      *
      * @param request request with given headers.
      * @param serviceInstance target instance to invoke.
-     * @return CompletableFuture with service call dispatching result.
+     * @return Mono with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public CompletableFuture<ServiceMessage> invoke(ServiceMessage request, ServiceInstance serviceInstance) {
-      Messages.validate().serviceRequest(request);
-      return invoke(request, serviceInstance, timeout);
+    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceInstance serviceInstance) {
+      return transport.create(serviceInstance.address())
+          .requestResponse(request);
     }
 
-    /**
-     * Invoke a request message and invoke a service by a given service name and method name. expected headers in
-     * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invoke. Throws Exception in case of an error or TimeoutException if no response if a given duration.
-     *
-     * @param request request with given headers.
-     * @param serviceInstance target instance to invoke.
-     * @param duration of the response before TimeException is returned.
-     * @return CompletableFuture with service call dispatching result.
-     */
-    public CompletableFuture<ServiceMessage> invoke(final ServiceMessage request, final ServiceInstance serviceInstance,
-        final Duration duration) {
-
-      Objects.requireNonNull(serviceInstance);
-      Messages.validate().serviceRequest(request);
-      serviceInstance.checkMethodExists(Messages.qualifierOf(request).getAction());
-
-      final Context ctx = Metrics.time(latency);
-      Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
-      Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
-      Metrics.inc(counter);
-
-      CompletableFuture<ServiceMessage> response = serviceInstance.invoke(request);
-      Futures.withTimeout(response, duration)
-          .whenComplete((value, error) -> {
-            Metrics.dec(counter);
-            Metrics.stop(ctx);
-            if (error == null) {
-              Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
-              response.complete(value);
-            } else {
-              Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
-              response.completeExceptionally(error);
-            }
-          });
-      return response;
-
-    }
 
     /**
      * sending subscription request message to a service that returns Observable.
@@ -134,16 +91,15 @@ public class ServiceCall {
      * @return rx.Observable for the specific stream.
      */
     public Flux<ServiceMessage> listen(ServiceMessage request) {
-      Objects.requireNonNull(responseType, "response type is not set");
       Messages.validate().serviceRequest(request);
-
-      ServiceInstance instance = router.route(request)
+      ServiceInstance service = router.route(request)
           .orElseThrow(() -> noReachableMemberException(request));
-      requireNonNull(instance.methodExists(Messages.qualifierOf(request).getAction()),
-          "instance has no such requested method");
+      return this.listen(request, service);
+    }
 
-      return instance.listen(request);
-
+    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceInstance instance) {
+      return transport.create(instance.address)
+          .requestStream(request);
     }
 
     /**
@@ -153,13 +109,13 @@ public class ServiceCall {
      * @return newly created service proxy object.
      */
     public <T> T api(final Class<T> serviceInterface) {
-      
+
       final Call serviceCall = this;
-      
+
       return Reflection.newProxy(serviceInterface, new InvocationHandler() {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) {
-         
+
           Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
           if (check != null) {
             return check; // toString, hashCode was invoked.
@@ -179,8 +135,8 @@ public class ServiceCall {
               return serviceCall.listen(reqMsg).map(ServiceMessage::data);
             }
 
-          } else if (method.getReturnType().equals(CompletableFuture.class)) {
-            return toCompletableFuture(method, serviceCall.invoke(reqMsg));
+          } else if (method.getReturnType().equals(Flux.class)) {
+            return serviceCall.requestResponse(reqMsg);
 
           } else if (method.getReturnType().equals(Void.TYPE)) {
             return CompletableFuture.completedFuture(Void.TYPE);
@@ -213,7 +169,7 @@ public class ServiceCall {
         }
       });
     }
-    
+
     private IllegalStateException noReachableMemberException(ServiceMessage request) {
 
       LOGGER.error(
