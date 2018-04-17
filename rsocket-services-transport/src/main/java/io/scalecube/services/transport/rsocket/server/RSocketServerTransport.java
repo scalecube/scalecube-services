@@ -29,7 +29,7 @@ public class RSocketServerTransport implements ServerTransport {
     this.disposable = RSocketServerFactory.create(port, payloadCodec)
         .start()
         .subscribe();
-    return Address.create("localhost", 7000);
+    return Address.create("localhost", port);
   }
 
   @Override

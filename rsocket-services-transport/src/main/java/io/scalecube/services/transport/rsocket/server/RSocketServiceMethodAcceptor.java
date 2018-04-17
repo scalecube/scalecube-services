@@ -24,11 +24,13 @@ public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket sendingSocket) {
+    
     return Mono.just(new AbstractRSocket() {
       @Override
       public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-
-        return null;
+        
+        return null;  
+         
       }
 
       @Override

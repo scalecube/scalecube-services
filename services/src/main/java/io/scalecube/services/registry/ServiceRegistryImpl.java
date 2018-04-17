@@ -1,17 +1,25 @@
-package io.scalecube.services;
+package io.scalecube.services.registry;
 
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.Member;
 import io.scalecube.concurrency.ThreadFactory;
-import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
+import io.scalecube.services.LocalServiceInstance;
+import io.scalecube.services.Microservices;
+import io.scalecube.services.Reflect;
+import io.scalecube.services.RemoteServiceInstance;
+import io.scalecube.services.ServiceDefinition;
+import io.scalecube.services.ServiceInfo;
+import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.metrics.Metrics;
+import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.registry.api.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -39,8 +47,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private Metrics metrics;
 
-  Collection<ServiceInstance> localService = new ArrayList<ServiceInstance>();
-
   /**
    * the ServiceRegistry constructor to register and lookup cluster instances.
    *
@@ -50,7 +56,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    */
   public ServiceRegistryImpl(Microservices microservices, Metrics metrics) {
     requireNonNull(microservices != null, "microservices can't be null");
-    this.microservices = microservices;
+    //this.microservices = microservices;
     this.metrics = metrics;
   }
 
@@ -115,7 +121,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
-      ServiceDefinition serviceDefinition = ServiceDefinition.from(serviceInterface);
+      ServiceDefinition serviceDefinition = Reflect.from(serviceInterface);
 
       // cache the service definition.
       definitionsCache.putIfAbsent(serviceDefinition.serviceName(), serviceDefinition);
@@ -134,7 +140,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
               this.metrics);
 
       serviceInstances.putIfAbsent(serviceRef, serviceInstance);
-      localService = serviceInstances.values();
+      
     });
   }
 

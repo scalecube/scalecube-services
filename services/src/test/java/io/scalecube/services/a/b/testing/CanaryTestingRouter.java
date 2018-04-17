@@ -2,8 +2,8 @@ package io.scalecube.services.a.b.testing;
 
 import io.scalecube.services.Messages;
 import io.scalecube.services.ServiceInstance;
-import io.scalecube.services.ServiceRegistry;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 
 import java.util.Collection;

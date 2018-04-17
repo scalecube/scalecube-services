@@ -3,6 +3,8 @@ package io.scalecube.services;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.services.registry.ServiceRegistryImpl;
+import io.scalecube.services.registry.api.ServicesConfig;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
