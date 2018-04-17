@@ -8,8 +8,6 @@ import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.registry.api.ServicesConfig;
-import io.scalecube.services.registry.api.ServicesConfig.Builder.ServiceConfig;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
@@ -104,7 +102,7 @@ public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
 
-  private final ClientTransport client;
+  private final ServiceCall client;
   private final ServerTransport server;
 
   private Metrics metrics;
@@ -114,39 +112,23 @@ public class Microservices {
   public RouterFactory routerFactory;
 
 
-  private Microservices(ServerTransport server, ClientTransport client, 
+  private Microservices(ServerTransport server, ClientTransport client,
       ClusterConfig.Builder clusterConfig,
-      ServicesConfig servicesConfig,
+      Services services,
       Metrics metrics) {
 
-    this.client = client;
+    this.client = new ServiceCall(client);
     this.metrics = metrics;
-    this.serviceRegistry = new ServiceRegistryImpl(this, metrics);    
-    this.server = server.services(serviceRegistry.serviceLookup(ServiceInstance::isLocal));
-    
-    this.serviceAddress = server.bindAwait(5801);
-    ClusterConfig cfg = getClusterConfig(clusterConfig, servicesConfig, serviceAddress).build();
-    this.cluster = Cluster.joinAwait(cfg);    
-  
-    if (!servicesConfig.services().isEmpty()) {
-      for (ServiceConfig service : servicesConfig.services()) {
-        this.serviceRegistry.registerService(service);
-      }
-    }  
-    this.serviceRegistry.start();
+    this.serviceRegistry = new ServiceRegistryImpl();
     this.routerFactory = new RouterFactory(serviceRegistry);
-  
-  }
 
-  private ClusterConfig.Builder getClusterConfig(ClusterConfig.Builder clusterConfig, ServicesConfig servicesConfig,
-      Address address) {
-    if (servicesConfig != null && !servicesConfig.services().isEmpty()) {
-      clusterConfig.addMetadata(Microservices.metadata(servicesConfig));
-      if (address != null) {
-        clusterConfig.addMetadata("service-address", address.toString());
-      }
-    }
-    return clusterConfig;
+    services.stream().forEach(service -> {
+      this.serviceRegistry.registerService(service);
+    });
+
+    this.server = server.services(services);
+    this.serviceAddress = server.bindAwait(5801);
+
   }
 
   public Metrics metrics() {
@@ -163,7 +145,7 @@ public class Microservices {
 
   public static final class Builder {
 
-    private ServicesConfig servicesConfig = ServicesConfig.empty();
+    private Services servicesConfig = Services.empty();
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
@@ -171,6 +153,9 @@ public class Microservices {
 
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
+
+    private Services services;
+
     /**
      * Microservices instance builder.
      *
@@ -183,7 +168,7 @@ public class Microservices {
               + " did you forget to set Transport provider?");
 
       return Reflect.builder(
-          new Microservices(this.server, this.client,clusterConfig, servicesConfig, this.metrics))
+          new Microservices(this.server, this.client, clusterConfig, servicesConfig, this.metrics))
           .inject();
 
     }
@@ -219,29 +204,9 @@ public class Microservices {
      * @param services list of instances decorated with @Service
      * @return builder.
      */
-    public Builder services(Object... services) {
+    public Builder services(Services services) {
       checkNotNull(services);
-
-      this.servicesConfig = ServicesConfig.builder(this)
-          .services(services)
-          .create();
-
-      return this;
-    }
-
-    public ServicesConfig.Builder services() {
-      return ServicesConfig.builder(this);
-    }
-
-    /**
-     * Services list to be registered.
-     *
-     * @param servicesConfig list of instances decorated with.
-     * @return builder.
-     */
-    public Builder services(ServicesConfig servicesConfig) {
-      checkNotNull(servicesConfig);
-      this.servicesConfig = servicesConfig;
+      this.services = services;
       return this;
     }
 
@@ -250,38 +215,27 @@ public class Microservices {
       this.metrics = new Metrics(metrics);
       return this;
     }
-
-
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  private static Map<String, String> metadata(ServicesConfig config) {
+  private static Map<String, String> metadata(Services services) {
     Map<String, String> servicesTags = new HashMap<>();
 
-    config.services().stream().forEach(serviceConfig -> {
 
-      serviceConfig.serviceNames().stream().forEach(name -> {
-
-        servicesTags.put(new ServiceInfo(name,
-            serviceConfig.methods(name),
-            serviceConfig.getTags()).toMetadata(),
-            "service");
-      });
+    services.stream().forEach(service -> {
+      // constract info metadata object as json key
+      String key = new ServiceInfo(service.serviceName(),
+          service.methods(),
+          service.tags()).toMetadata();
+      
+      // add service metadata to map.
+      servicesTags.put(key, "service");
     });
 
     return servicesTags;
-  }
-
-  /**
-   * returns service communication.
-   *
-   * @return service communication.
-   */
-  public ClientTransport client() {
-    return client;
   }
 
   /**
@@ -314,6 +268,6 @@ public class Microservices {
 
   public Call call() {
     Router router = this.router(RoundRobinServiceRouter.class);
-    return ServiceCall.call(client).metrics(metrics).router(router);
+    return client.call().metrics(metrics).router(router);
   }
 }

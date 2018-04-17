@@ -1,10 +1,11 @@
 package io.scalecube.services.registry.api;
 
 import io.scalecube.services.ServiceInstance;
+import io.scalecube.transport.Address;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.function.Predicate;
 
 /**
@@ -17,12 +18,11 @@ public interface ServiceRegistry {
   List<ServiceInstance> serviceLookup(Predicate<? super ServiceInstance> filter);
 
   void registerService(Object serviceObject);
+  void registerService(Object service, Address address, Map<String, String> tags);
 
+  
   Collection<ServiceInstance> services();
 
-  Optional<ServiceInstance> getLocalInstance(String serviceName, String method);
-
-  void start();
 
 
 }
