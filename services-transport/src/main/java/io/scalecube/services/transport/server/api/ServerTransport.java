@@ -1,13 +1,11 @@
 package io.scalecube.services.transport.server.api;
 
-import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.Services;
 import io.scalecube.transport.Address;
-
-import java.util.Collection;
 
 public interface ServerTransport {
 
-  ServerTransport services(Collection<ServiceInstance> services);
+  ServerTransport services(Services services);
 
   Address bindAwait(int port);
 

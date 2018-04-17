@@ -5,6 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -95,19 +96,17 @@ import java.util.concurrent.CompletableFuture;
 
 public class Microservices {
 
-  private final Cluster cluster;
-
   private final ServiceRegistry serviceRegistry;
 
   private final ServiceCall client;
-  private final ServerTransport server;
-
+  
   private Metrics metrics;
 
   private Address serviceAddress;
 
   public RouterFactory routerFactory;
 
+  private final ServiceDiscovery discovery;
 
   private Microservices(ServerTransport server,
       ClientTransport client,
@@ -115,27 +114,25 @@ public class Microservices {
       Services services,
       Metrics metrics) {
 
+    // provision services for service access.
     this.client = new ServiceCall(client);
     this.metrics = metrics;
+    server.services(services);
+    this.serviceAddress = server.bindAwait(5801);
+
+    // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl();
     this.routerFactory = new RouterFactory(serviceRegistry);
-
     services.stream().forEach(service -> {
-      this.serviceRegistry.registerService(service);
+      this.serviceRegistry.registerService(service, serviceAddress);
     });
-
-    this.server = server.services(services);
-    this.serviceAddress = server.bindAwait(5801);
     
-    Cluster.joinAwait(config)
+    this.discovery = new ServiceDiscovery(this.serviceRegistry);
+    this.discovery.start();
   }
 
   public Metrics metrics() {
     return this.metrics;
-  }
-
-  public Cluster cluster() {
-    return this.cluster;
   }
 
   public Collection<ServiceInstance> services() {
@@ -144,7 +141,7 @@ public class Microservices {
 
   public static final class Builder {
 
-    private Services servicesConfig = Services.empty();
+    private Services services = Services.empty();
 
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
@@ -153,7 +150,6 @@ public class Microservices {
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
 
-    private Services services;
 
     /**
      * Microservices instance builder.
@@ -167,7 +163,7 @@ public class Microservices {
               + " did you forget to set Transport provider?");
 
       return Reflect.builder(
-          new Microservices(this.server, this.client, clusterConfig, servicesConfig, this.metrics))
+          new Microservices(this.server, this.client, clusterConfig, services, this.metrics))
           .inject();
 
     }
@@ -218,22 +214,6 @@ public class Microservices {
 
   public static Builder builder() {
     return new Builder();
-  }
-
-  /**
-   * Shutdown services transport and cluster transport.
-   *
-   * @return future with cluster shutdown result.
-   */
-  public CompletableFuture<Void> shutdown() {
-    CompletableFuture<Void> result = new CompletableFuture<Void>();
-
-    if (!this.cluster.isShutdown()) {
-      return this.cluster.shutdown();
-    } else {
-      result.completeExceptionally(new IllegalStateException("Cluster transport alredy stopped"));
-      return result;
-    }
   }
 
   public ServiceRegistry serviceRegistry() {

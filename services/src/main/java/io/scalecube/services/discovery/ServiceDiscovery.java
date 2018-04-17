@@ -8,7 +8,7 @@ import io.scalecube.services.ServiceInstance;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.Services;
 import io.scalecube.services.registry.ServiceRegistryImpl;
-
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
 
 import org.slf4j.Logger;
@@ -16,11 +16,14 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 public class ServiceDiscovery {
 
   private Microservices microservices;
+
+  private final ServiceRegistry serviceRegistry;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
@@ -28,6 +31,10 @@ public class ServiceDiscovery {
     ADDED, REMOVED, DISCOVERED
   }
   
+  public ServiceDiscovery(ServiceRegistry serviceRegistry) {
+    this.serviceRegistry = serviceRegistry;
+  }
+
   private void listenCluster() {
     microservices.cluster().listenMembership().subscribe(event -> {
       if (event.isAdded()) {
@@ -120,4 +127,19 @@ public class ServiceDiscovery {
     listenCluster();
   }
 
+  /**
+   * Shutdown services transport and cluster transport.
+   *
+   * @return future with cluster shutdown result.
+   */
+  public CompletableFuture<Void> shutdown() {
+    CompletableFuture<Void> result = new CompletableFuture<Void>();
+
+    if (!this.cluster.isShutdown()) {
+      return this.cluster.shutdown();
+    } else {
+      result.completeExceptionally(new IllegalStateException("Cluster transport alredy stopped"));
+      return result;
+    }
+  }
 }
