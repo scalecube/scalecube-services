@@ -1,0 +1,16 @@
+language: java
+jdk: openjdk8
+before_install:
+- "./src/main/scripts/ci/before-install.sh"
+- "./src/main/scripts/cd/before-deploy.sh"
+after_success: java -jar ~/codacy-coverage-reporter-assembly.jar -l Java -r ./target/site/jacoco/jacoco.xml
+deploy:
+- provider: script
+  script: mvn -P release deploy -DskipTests=true -B -V -s travis-settings.xml
+  on:
+    branch: develop
+- provider: script
+  script:
+  - "./src/main/scripts/cd/deploy.sh"
+  on:
+    branch: master
