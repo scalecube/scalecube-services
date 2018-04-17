@@ -1,13 +1,9 @@
 package io.scalecube.services.registry.api;
 
 import io.scalecube.services.ServiceInstance;
-import io.scalecube.services.ServicesConfig;
-import io.scalecube.services.ServicesConfig.Builder;
-import io.scalecube.services.ServicesConfig.Builder.ServiceConfig;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.Predicate;
 
@@ -20,7 +16,7 @@ public interface ServiceRegistry {
   List<ServiceInstance> serviceLookup(String serviceName);
   List<ServiceInstance> serviceLookup(Predicate<? super ServiceInstance> filter);
 
-  void registerService(ServiceConfig serviceObject);
+  void registerService(Object serviceObject);
 
   Collection<ServiceInstance> services();
 
