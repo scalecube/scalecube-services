@@ -18,17 +18,16 @@ public class LocalServiceMethodInvoke implements ServiceMethodInvoke {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     
-    Object object = toObject(decodeData(request, requestType));
-    return invokeReturnsMono(object)
-        .map(val -> toMessage(val))
+    Object result = toObject(decodeData(request, requestType));
+    return invokeReturnsMono(result)
+        .map(object -> toMessage(object))
         .map(resp -> encodeData(resp));
   }
 
   @Override
   public Mono<Void> fireAndForget(ServiceMessage request) {
     Object object = toObject(decodeData(request, requestType));
-    invokeReturnsMono(object);
-    return Mono.empty();
+    return invokeReturnsMono(object);
   }
 
 
@@ -43,9 +42,9 @@ public class LocalServiceMethodInvoke implements ServiceMethodInvoke {
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    Object object = toObject(decodeData(request, requestType));
-    return invokeReturnsFlux(object)
-        .map(val -> toMessage(val))
+    Object result = toObject(decodeData(request, requestType));
+    return invokeReturnsFlux(result)
+        .map(object -> toMessage(object))
         .map(resp -> encodeData(resp));
   }
 
@@ -53,18 +52,16 @@ public class LocalServiceMethodInvoke implements ServiceMethodInvoke {
     try {
       return (Flux<T>) method.invoke(serviceObject, object);
     } catch (Exception ex) {
-      ex.printStackTrace();
+      return Flux.error(ex);
     }
-    return null;
   }
 
   private <T> Mono<T> invokeReturnsMono(Object object) {
     try {
       return (Mono<T>) method.invoke(serviceObject, object);
     } catch (Exception ex) {
-      ex.printStackTrace();
+      return Mono.error(ex);
     }
-    return null;
   }
 
   private ServiceMessage decodeData(ServiceMessage msg, Type requestType) {
