@@ -6,7 +6,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
 
-public class ServiceInstance {
+public class ServiceReference {
 
   private final Class<?> serviceInterface;
   final String serviceName;
@@ -15,7 +15,7 @@ public class ServiceInstance {
   final Map<String, String> tags;
   final Collection<String> methods;
 
-  public ServiceInstance(Class<?> serviceInterface,
+  public ServiceReference(Class<?> serviceInterface,
       String serviceName,
       Collection<String> methods,
       Map<String, String> tags,

@@ -16,12 +16,12 @@ public class DummyRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceInstance> route(ServiceMessage request) {
+  public Optional<ServiceReference> route(ServiceMessage request) {
     return null;
   }
 
   @Override
-  public Collection<ServiceInstance> routes(ServiceMessage request) {
+  public Collection<ServiceReference> routes(ServiceMessage request) {
     // TODO Auto-generated method stub
     return null;
   }

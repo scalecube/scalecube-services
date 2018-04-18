@@ -5,7 +5,7 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.concurrency.ThreadFactory;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.Services;
 import io.scalecube.services.registry.ServiceRegistryImpl;
@@ -44,7 +44,7 @@ public class ServiceDiscovery {
 
   public void start(ClusterConfig.Builder config) {
     
-    Collection<ServiceInstance> services = serviceRegistry.services();
+    Collection<ServiceReference> services = serviceRegistry.services();
     ClusterConfig cfg = getClusterConfig(config, services).build();
     this.cluster = Cluster.joinAwait(cfg); 
     loadClusterServices();
@@ -69,14 +69,14 @@ public class ServiceDiscovery {
   
   private ClusterConfig.Builder getClusterConfig(
       ClusterConfig.Builder clusterConfig, 
-      Collection<ServiceInstance> services) {
+      Collection<ServiceReference> services) {
     
     if (services != null && !services.isEmpty()) {
       clusterConfig.addMetadata(metadata(services));
     }
     return clusterConfig;
   }
-  private static Map<String, String> metadata(Collection<ServiceInstance> services) {
+  private static Map<String, String> metadata(Collection<ServiceReference> services) {
     Map<String, String> servicesTags = new HashMap<>();
 
     services.stream().forEach(service -> {

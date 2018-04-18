@@ -66,10 +66,10 @@ public class Reflect {
      */
     private void inject(Microservices microservices) {
       microservices.services().stream()
-          .filter(ServiceInstance::isLocal)
+          .filter(ServiceReference::isLocal)
           .collect(Collectors.toList()).forEach(instance -> {
             scanServiceFields(instance.serviceObject());
-            this.processPostConstruct(((ServiceInstance) instance).serviceObject());
+            this.processPostConstruct(((ServiceReference) instance).serviceObject());
           });
     }
 
