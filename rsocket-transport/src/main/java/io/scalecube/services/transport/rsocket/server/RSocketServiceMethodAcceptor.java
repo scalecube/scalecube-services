@@ -35,18 +35,19 @@ public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
       @Override
       public Flux<Payload> requestStream(Payload payload) {
-        return null;
+        return acceptor.requestStream(payloadCodec.decode(payload))
+            .map(response->payloadCodec.encode(response));
       }
 
       @Override
       public Mono<Payload> requestResponse(Payload payload) {
-
-        return null;
+        return acceptor.requestResponse(payloadCodec.decode(payload))
+            .map(response->payloadCodec.encode(response));
       }
 
       @Override
       public Mono<Void> fireAndForget(Payload payload) {
-        return null;
+        return acceptor.fireAndForget(payloadCodec.decode(payload));
       }
     });
   }
