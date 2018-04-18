@@ -1,20 +1,17 @@
 package io.scalecube.services.routing;
 
 import io.scalecube.services.Messages;
-import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 public class RoundRobinServiceRouter implements Router {
 
@@ -28,13 +25,17 @@ public class RoundRobinServiceRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceEndpoint> route(ServiceMessage request) {
+  public Optional<ServiceReference> route(ServiceMessage request) {
 
     String serviceName = Messages.qualifierOf(request).getNamespace();
 
-    List<ServiceEndpoint> serviceInstances = serviceRegistry.serviceLookup(serviceName)
-        .stream().filter(instance -> instance.methodExists(Messages.qualifierOf(request).getAction()))
-        .collect(Collectors.toList());
+    List<ServiceReference> serviceInstances = serviceRegistry.lookupService(serviceName);
+
+    /*
+     * .stream().filter(instance -> instance.methodExists(Messages.qualifierOf(request).getAction()))
+     * .collect(Collectors.toList());
+     * 
+     */
 
     if (serviceInstances.size() > 1) {
       AtomicInteger counter = counterByServiceName
@@ -50,9 +51,8 @@ public class RoundRobinServiceRouter implements Router {
   }
 
   @Override
-  public Collection<ServiceEndpoint> routes(ServiceMessage request) {
-    String serviceName = Messages.qualifierOf(request).getNamespace();
-    return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
+  public List<ServiceReference> routes(ServiceMessage request) {
+    return serviceRegistry.lookupService(Messages.qualifierOf(request).getNamespace());
   }
 
 }

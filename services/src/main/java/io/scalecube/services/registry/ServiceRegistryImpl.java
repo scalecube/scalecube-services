@@ -4,7 +4,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -17,6 +17,35 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final ConcurrentMap<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
 
   @Override
+  public List<ServiceEndpoint> listServiceEndpoints() {
+    return new ArrayList<>(serviceEndpoints.values());
+  }
+
+  @Override
+  public List<ServiceReference> listServiceReferences() {
+    return serviceReferenceStream().collect(Collectors.toList());
+  }
+
+  @Override
+  public List<ServiceReference> lookupService(String serviceName) {
+    return lookupService(r -> serviceName.equalsIgnoreCase(r.serviceName()));
+  }
+
+  @Override
+  public List<ServiceReference> lookupService(Predicate<? super ServiceReference> filter) {
+    // Convert to stream of service references
+    Stream<ServiceReference> stream = serviceReferenceStream();
+
+    // Filter by filter
+    if (filter != null) {
+      stream = stream.filter(filter);
+    }
+
+    // Collect results
+    return stream.collect(Collectors.toList());
+  }
+
+  @Override
   public ServiceEndpoint registerService(ServiceEndpoint serviceEndpoint) {
     String endpointId = serviceEndpoint.endpointId();
     return serviceEndpoints.compute(endpointId, (k, oldServiceEndpoint) -> serviceEndpoint);
@@ -27,30 +56,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return serviceEndpoints.remove(endpointId);
   }
 
-  @Override
-  public Collection<ServiceEndpoint> listServices() {
-    return serviceEndpoints.values();
-  }
-
-  @Override
-  public List<ServiceReference> serviceLookup(String serviceName) {
-    return serviceLookup(r -> serviceName.equalsIgnoreCase(r.serviceName()));
-  }
-
-  @Override
-  public List<ServiceReference> serviceLookup(Predicate<? super ServiceReference> filter) {
+  private Stream<ServiceReference> serviceReferenceStream() {
     Stream<ServiceEndpoint> stream = serviceEndpoints.values().stream();
-
-    // Convert to stream of service references
-    Stream<ServiceReference> serviceReferenceStream = stream
-        .flatMap(e -> e.serviceRegistrations().stream().map(c -> new ServiceReference(c, e)));
-
-    // Filter by filter
-    if (filter != null) {
-      serviceReferenceStream = serviceReferenceStream.filter(filter);
-    }
-
-    // Collect results
-    return serviceReferenceStream.collect(Collectors.toList());
+    return stream.flatMap(e -> e.serviceRegistrations().stream().map(c -> new ServiceReference(c, e)));
   }
 }
