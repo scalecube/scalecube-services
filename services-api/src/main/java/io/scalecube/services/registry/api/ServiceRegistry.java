@@ -3,7 +3,6 @@ package io.scalecube.services.registry.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -13,11 +12,13 @@ import java.util.function.Predicate;
  */
 public interface ServiceRegistry {
 
-  List<ServiceReference> serviceLookup(String serviceName);
+  List<ServiceEndpoint> listServiceEndpoints();
 
-  List<ServiceReference> serviceLookup(Predicate<? super ServiceReference> filter);
+  List<ServiceReference> listServiceReferences();
 
-  Collection<ServiceEndpoint> listServices();
+  List<ServiceReference> lookupService(String serviceName);
+
+  List<ServiceReference> lookupService(Predicate<? super ServiceReference> filter);
 
   ServiceEndpoint registerService(ServiceEndpoint serviceEndpoint);
 

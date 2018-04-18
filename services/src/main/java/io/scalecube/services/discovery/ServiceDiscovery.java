@@ -37,7 +37,7 @@ public class ServiceDiscovery {
   }
 
   public void start(ClusterConfig.Builder config) {
-    cluster = Cluster.joinAwait(addMetadata(config, serviceRegistry.listServices()).build());
+    cluster = Cluster.joinAwait(addMetadata(config, serviceRegistry.listServiceEndpoints()).build());
     loadClusterServices();
     listenCluster();
   }
