@@ -3,6 +3,7 @@ package io.scalecube.services.discovery;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.common.base.Throwables;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
@@ -54,7 +55,7 @@ public class ServiceDiscovery {
   private ClusterConfig.Builder addMetadata(ClusterConfig.Builder cfg, Collection<ServiceEndpoint> serviceEndpoints) {
     if (serviceEndpoints != null && !serviceEndpoints.isEmpty()) {
       cfg.addMetadata(serviceEndpoints.stream()
-          .collect(Collectors.toMap(ServiceDiscovery::toMetadataString, service -> "service")));
+          .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> "service")));
     }
     return cfg;
   }
@@ -81,7 +82,10 @@ public class ServiceDiscovery {
     member.metadata().entrySet().stream()
         .filter(entry -> "service".equals(entry.getValue()))
         .forEach(entry -> {
-          ServiceEndpoint serviceEndpoint = fromMetadataString(entry.getKey());
+          ServiceEndpoint serviceEndpoint = decodeMetadata(entry.getKey());
+          if (serviceEndpoint == null) {
+            return;
+          }
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
@@ -91,7 +95,7 @@ public class ServiceDiscovery {
                 member, serviceEndpoint);
           } else if (type.equals(DiscoveryType.REMOVED)) {
 
-            serviceRegistry.unregisterService(serviceEndpoint);
+            serviceRegistry.unregisterService(serviceEndpoint.endpointId());
             LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
                 member, serviceEndpoint);
           }
@@ -99,31 +103,31 @@ public class ServiceDiscovery {
   }
 
   private static ObjectMapper newObjectMapper() {
-    ObjectMapper json = new ObjectMapper();
-    json.setVisibility(json.getSerializationConfig().getDefaultVisibilityChecker()
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.setVisibility(objectMapper.getSerializationConfig().getDefaultVisibilityChecker()
         .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
         .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
         .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
         .withCreatorVisibility(JsonAutoDetect.Visibility.NONE));
-    json.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-    return json;
+    objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    return objectMapper;
   }
 
-  private static ServiceEndpoint fromMetadataString(String metadata) {
+  private static ServiceEndpoint decodeMetadata(String metadata) {
     try {
       return objectMapper.readValue(metadata, ServiceEndpoint.class);
     } catch (IOException e) {
-      LOGGER.error("Can read metadata: " + e);
+      LOGGER.error("Can read metadata: " + e, e);
       return null;
     }
   }
 
-  private static String toMetadataString(ServiceEndpoint serviceEndpoint) {
+  private static String encodeMetadata(ServiceEndpoint serviceEndpoint) {
     try {
       return objectMapper.writeValueAsString(serviceEndpoint);
     } catch (IOException e) {
-      LOGGER.error("Can write metadata: " + e);
-      return null;
+      LOGGER.error("Can write metadata: " + e, e);
+      throw Throwables.propagate(e);
     }
   }
 }

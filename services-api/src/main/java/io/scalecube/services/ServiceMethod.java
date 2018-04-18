@@ -4,9 +4,14 @@ import java.util.Map;
 
 public class ServiceMethod {
 
-  private final String name;
-  private final String contentType;
-  private final Map<String, String> tags;
+  private String name;
+  private String contentType;
+  private Map<String, String> tags;
+
+  /**
+   * @deprecated exposed only for deserialization purpose.
+   */
+  public ServiceMethod() {}
 
   public ServiceMethod(String name,
       String contentType,

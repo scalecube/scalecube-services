@@ -1,6 +1,7 @@
 package io.scalecube.services.registry.api;
 
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceReference;
 
 import java.util.Collection;
 import java.util.List;
@@ -12,13 +13,13 @@ import java.util.function.Predicate;
  */
 public interface ServiceRegistry {
 
-  List<ServiceEndpoint> serviceLookup(String serviceName);
+  List<ServiceReference> serviceLookup(String serviceName);
 
-  List<ServiceEndpoint> serviceLookup(Predicate<? super ServiceEndpoint> filter);
+  List<ServiceReference> serviceLookup(Predicate<? super ServiceReference> filter);
 
   Collection<ServiceEndpoint> listServices();
 
-  void registerService(ServiceEndpoint serviceEndpoint);
+  ServiceEndpoint registerService(ServiceEndpoint serviceEndpoint);
 
-  void unregisterService(ServiceEndpoint serviceEndpoint);
+  ServiceEndpoint unregisterService(String endpointId);
 }
