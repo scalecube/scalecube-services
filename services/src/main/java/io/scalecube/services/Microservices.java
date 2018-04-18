@@ -117,7 +117,7 @@ public class Microservices {
     // provision services for service access.
     this.client = new ServiceCall(client);
     this.metrics = metrics;
-    server.services(services);
+    server.accept(new DefaultServicesMessageAcceptor(this.client.call()));
     this.serviceAddress = server.bindAwait(5801);
 
     // register and make them discover-able

@@ -189,5 +189,15 @@ public class ServiceCall {
         return null;
       }
     }
+
+    public Flux<ServiceMessage> channel(Publisher<ServiceMessage> request) {
+      // TODO Auto-generated method stub
+      return null;
+    }
+
+    public Mono<Void> fireAndForget(ServiceMessage request) {
+      // TODO Auto-generated method stub
+      return null;
+    }
   }
 }

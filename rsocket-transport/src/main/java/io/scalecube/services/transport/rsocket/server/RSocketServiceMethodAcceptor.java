@@ -1,25 +1,27 @@
 package io.scalecube.services.transport.rsocket.server;
 
+import io.scalecube.services.transport.rsocket.PayloadCodec;
+import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
+
 import io.rsocket.AbstractRSocket;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
-import io.scalecube.services.ServiceInstance;
-import io.scalecube.services.transport.rsocket.PayloadCodec;
+
 import org.reactivestreams.Publisher;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Collection;
-
 public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
-  private Collection<ServiceInstance> services;
   private PayloadCodec payloadCodec;
-
-  public RSocketServiceMethodAcceptor(PayloadCodec payloadCodec) {
-    this.payloadCodec = payloadCodec;
+  private ServerMessageAcceptor acceptor;
+ 
+  public RSocketServiceMethodAcceptor(ServerMessageAcceptor acceptor, PayloadCodec payloadCodec) {
+   this.payloadCodec = payloadCodec;
+   this.acceptor = acceptor;
   }
 
   @Override
@@ -28,9 +30,7 @@ public class RSocketServiceMethodAcceptor implements SocketAcceptor {
     return Mono.just(new AbstractRSocket() {
       @Override
       public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-        
         return null;  
-         
       }
 
       @Override
