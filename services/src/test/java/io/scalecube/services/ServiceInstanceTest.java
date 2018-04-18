@@ -1,19 +1,18 @@
 package io.scalecube.services;
 
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
-
 import org.junit.Test;
 
 import java.util.Collections;
 import java.util.HashMap;
+
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class ServiceInstanceTest extends BaseTest {
 
@@ -23,8 +22,8 @@ public class ServiceInstanceTest extends BaseTest {
   public void test_remote_service_instance() {
 
     Microservices member = Microservices.builder().build();
-    ServiceReference reference =
-        new ServiceReference("a", "b", Collections.singleton("sayHello"), Address.create("localhost", 4000));
+    ServiceEndpoint reference =
+        new ServiceEndpoint("a", "b", Collections.singleton("sayHello"), Address.create("localhost", 4000));
 
     RemoteServiceInstance instance =
         new RemoteServiceInstance(sender, reference, new HashMap<>());

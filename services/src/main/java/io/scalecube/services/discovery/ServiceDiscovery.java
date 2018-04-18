@@ -7,7 +7,7 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.concurrency.ThreadFactory;
-import io.scalecube.services.ServiceReference;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,9 +51,9 @@ public class ServiceDiscovery {
     }
   }
 
-  private ClusterConfig.Builder addMetadata(ClusterConfig.Builder cfg, Collection<ServiceReference> serviceReferences) {
-    if (serviceReferences != null && !serviceReferences.isEmpty()) {
-      cfg.addMetadata(serviceReferences.stream()
+  private ClusterConfig.Builder addMetadata(ClusterConfig.Builder cfg, Collection<ServiceEndpoint> serviceEndpoints) {
+    if (serviceEndpoints != null && !serviceEndpoints.isEmpty()) {
+      cfg.addMetadata(serviceEndpoints.stream()
           .collect(Collectors.toMap(ServiceDiscovery::toMetadataString, service -> "service")));
     }
     return cfg;
@@ -81,19 +81,19 @@ public class ServiceDiscovery {
     member.metadata().entrySet().stream()
         .filter(entry -> "service".equals(entry.getValue()))
         .forEach(entry -> {
-          ServiceReference serviceReference = fromMetadataString(entry.getKey());
+          ServiceEndpoint serviceEndpoint = fromMetadataString(entry.getKey());
 
-          LOGGER.debug("Member: {} is {} : {}", member, type, serviceReference);
+          LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
 
-            serviceRegistry.registerService(serviceReference);
+            serviceRegistry.registerService(serviceEndpoint);
             LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
-                member, serviceReference);
+                member, serviceEndpoint);
           } else if (type.equals(DiscoveryType.REMOVED)) {
 
-            serviceRegistry.unregisterService(serviceReference);
+            serviceRegistry.unregisterService(serviceEndpoint);
             LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
-                member, serviceReference);
+                member, serviceEndpoint);
           }
         });
   }
@@ -109,18 +109,18 @@ public class ServiceDiscovery {
     return json;
   }
 
-  private static ServiceReference fromMetadataString(String metadata) {
+  private static ServiceEndpoint fromMetadataString(String metadata) {
     try {
-      return objectMapper.readValue(metadata, ServiceReference.class);
+      return objectMapper.readValue(metadata, ServiceEndpoint.class);
     } catch (IOException e) {
       LOGGER.error("Can read metadata: " + e);
       return null;
     }
   }
 
-  private static String toMetadataString(ServiceReference serviceReference) {
+  private static String toMetadataString(ServiceEndpoint serviceEndpoint) {
     try {
-      return objectMapper.writeValueAsString(serviceReference);
+      return objectMapper.writeValueAsString(serviceEndpoint);
     } catch (IOException e) {
       LOGGER.error("Can write metadata: " + e);
       return null;

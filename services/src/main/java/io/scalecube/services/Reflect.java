@@ -1,17 +1,14 @@
 package io.scalecube.services;
 
-import static java.util.Objects.requireNonNull;
-
+import com.google.common.base.Strings;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
-
-import com.google.common.base.Strings;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -23,7 +20,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
@@ -66,10 +63,10 @@ public class Reflect {
      */
     private void inject(Microservices microservices) {
       microservices.services().stream()
-          .filter(ServiceReference::isLocal)
+          .filter(ServiceEndpoint::isLocal)
           .collect(Collectors.toList()).forEach(instance -> {
             scanServiceFields(instance.serviceObject());
-            this.processPostConstruct(((ServiceReference) instance).serviceObject());
+            this.processPostConstruct(((ServiceEndpoint) instance).serviceObject());
           });
     }
 

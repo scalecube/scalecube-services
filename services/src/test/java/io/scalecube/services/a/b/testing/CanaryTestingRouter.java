@@ -1,7 +1,7 @@
 package io.scalecube.services.a.b.testing;
 
 import io.scalecube.services.Messages;
-import io.scalecube.services.ServiceReference;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
@@ -20,9 +20,9 @@ public class CanaryTestingRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceReference> route(ServiceMessage request) {
+  public Optional<ServiceEndpoint> route(ServiceMessage request) {
     String serviceName = Messages.qualifierOf(request).getNamespace();
-    RandomCollection<ServiceReference> weightedRandom = new RandomCollection<>();
+    RandomCollection<ServiceEndpoint> weightedRandom = new RandomCollection<>();
     serviceRegistry.serviceLookup(serviceName).stream().forEach(instance -> {
       weightedRandom.add(
           Double.valueOf(instance.tags().get("Weight")),
@@ -32,7 +32,7 @@ public class CanaryTestingRouter implements Router {
   }
 
   @Override
-  public Collection<ServiceReference> routes(ServiceMessage request) {
+  public Collection<ServiceEndpoint> routes(ServiceMessage request) {
     String serviceName = Messages.qualifierOf(request).getNamespace();
     return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
   }

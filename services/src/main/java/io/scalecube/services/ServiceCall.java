@@ -1,23 +1,20 @@
 package io.scalecube.services;
 
+import com.codahale.metrics.Timer;
+import com.google.common.reflect.Reflection;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.client.api.ClientTransport;
-
-import com.codahale.metrics.Timer;
-import com.google.common.reflect.Reflection;
-
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
@@ -78,7 +75,7 @@ public class ServiceCall {
      * @return Mono with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceReference serviceInstance) {
+    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceEndpoint serviceInstance) {
       // FIXME: in request response its not good idea to create transport for address per call.
       // better to reuse same channel.
       return transport.create(serviceInstance.address())
@@ -94,12 +91,12 @@ public class ServiceCall {
      */
     public Flux<ServiceMessage> listen(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
-      ServiceReference service = router.route(request)
+      ServiceEndpoint service = router.route(request)
           .orElseThrow(() -> noReachableMemberException(request));
       return this.listen(request, service);
     }
 
-    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceReference instance) {
+    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceEndpoint instance) {
       return transport.create(instance.address())
           .requestStream(request);
     }
