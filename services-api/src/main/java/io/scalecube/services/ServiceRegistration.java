@@ -5,10 +5,15 @@ import java.util.Map;
 
 public class ServiceRegistration {
 
-  private final String serviceName;
-  private final String contentType;
-  private final Map<String, String> tags;
-  private final Collection<ServiceMethod> methods;
+  private String serviceName;
+  private String contentType;
+  private Map<String, String> tags;
+  private Collection<ServiceMethod> methods;
+
+  /**
+   * @deprecated exposed only for deserialization purpose.
+   */
+  public ServiceRegistration() {}
 
   public ServiceRegistration(String serviceName,
       String contentType,
