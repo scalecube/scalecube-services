@@ -136,7 +136,7 @@ public class Microservices {
     return this.metrics;
   }
 
-  public Collection<ServiceInstance> services() {
+  public Collection<ServiceReference> services() {
     return serviceRegistry.services();
   }
 

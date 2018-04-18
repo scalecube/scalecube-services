@@ -3,7 +3,7 @@ package io.scalecube.services.registry;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
-  private final ConcurrentMap<String, ServiceInstance> serviceInstances = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, ServiceReference> serviceInstances = new ConcurrentHashMap<>();
 
   @Override
   public void registerService(Object serviceObject,Address address) {
@@ -42,8 +42,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     serviceInterfaces.forEach(serviceInterface -> {
       // Process service interface
 
-      ServiceInstance serviceInstance =
-          new ServiceInstance(serviceInterface,
+      ServiceReference serviceInstance =
+          new ServiceReference(serviceInterface,
               Reflect.serviceName(serviceInterface),
               Reflect.serviceMethods(serviceInterface).keySet(),
               tags,
@@ -56,7 +56,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public List<ServiceInstance> serviceLookup(final String serviceName) {
+  public List<ServiceReference> serviceLookup(final String serviceName) {
     requireNonNull(serviceName != null, "Service name can't be null");
 
     return Collections.unmodifiableList(serviceInstances.entrySet().stream()
@@ -66,14 +66,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public List<ServiceInstance> serviceLookup(Predicate<? super ServiceInstance> filter) {
+  public List<ServiceReference> serviceLookup(Predicate<? super ServiceReference> filter) {
     requireNonNull(filter != null, "Filter can't be null");
     return Collections.unmodifiableList(serviceInstances.values().stream()
         .filter(filter)
         .collect(Collectors.toList()));
   }
 
-  public Collection<ServiceInstance> services() {
+  public Collection<ServiceReference> services() {
     return Collections.unmodifiableCollection(serviceInstances.values());
   }
 

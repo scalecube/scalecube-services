@@ -1,7 +1,7 @@
 package io.scalecube.services.routing;
 
 import io.scalecube.services.Messages;
-import io.scalecube.services.ServiceInstance;
+import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
@@ -20,9 +20,9 @@ public class RandomServiceRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceInstance> route(ServiceMessage request) {
+  public Optional<ServiceReference> route(ServiceMessage request) {
     String serviceName = Messages.qualifierOf(request).getNamespace();
-    List<ServiceInstance> serviceInstances = serviceRegistry.serviceLookup(serviceName);
+    List<ServiceReference> serviceInstances = serviceRegistry.serviceLookup(serviceName);
     if (!serviceInstances.isEmpty()) {
       int index = ThreadLocalRandom.current().nextInt((serviceInstances.size()));
       return Optional.of(serviceInstances.get(index));
@@ -32,7 +32,7 @@ public class RandomServiceRouter implements Router {
   }
 
   @Override
-  public Collection<ServiceInstance> routes(ServiceMessage request) {
+  public Collection<ServiceReference> routes(ServiceMessage request) {
     String serviceName = Messages.qualifierOf(request).getNamespace();
     return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
   }

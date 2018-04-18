@@ -78,7 +78,7 @@ public class ServiceCall {
      * @return Mono with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceInstance serviceInstance) {
+    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceReference serviceInstance) {
       return transport.create(serviceInstance.address())
           .requestResponse(request);
     }
@@ -92,12 +92,12 @@ public class ServiceCall {
      */
     public Flux<ServiceMessage> listen(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
-      ServiceInstance service = router.route(request)
+      ServiceReference service = router.route(request)
           .orElseThrow(() -> noReachableMemberException(request));
       return this.listen(request, service);
     }
 
-    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceInstance instance) {
+    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceReference instance) {
       return transport.create(instance.address)
           .requestStream(request);
     }
