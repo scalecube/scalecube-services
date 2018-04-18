@@ -10,7 +10,10 @@ public class ServiceRegistration {
   private final Map<String, String> tags;
   private final Collection<ServiceMethod> methods;
 
-  public ServiceRegistration(String serviceName, String contentType, Map<String, String> tags, Collection<ServiceMethod> methods) {
+  public ServiceRegistration(String serviceName,
+      String contentType,
+      Map<String, String> tags,
+      Collection<ServiceMethod> methods) {
     this.serviceName = serviceName;
     this.contentType = contentType;
     this.tags = tags;

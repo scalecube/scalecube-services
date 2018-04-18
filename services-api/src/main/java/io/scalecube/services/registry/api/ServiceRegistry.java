@@ -19,4 +19,6 @@ public interface ServiceRegistry {
   Collection<ServiceReference> listServices();
 
   void registerService(ServiceReference serviceReference);
+
+  void unregisterService(ServiceReference serviceReference);
 }

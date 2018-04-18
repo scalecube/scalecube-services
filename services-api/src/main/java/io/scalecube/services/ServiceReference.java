@@ -5,23 +5,30 @@ import java.util.Collection;
 public class ServiceReference {
 
   private final String endpointId;
-  private final String serviceUri;
+  private final String host;
+  private final String port;
   private final Collection<ServiceRegistration> serviceRegistrations;
 
   public ServiceReference(String endpointId,
-                          String serviceUri,
-                          Collection<ServiceRegistration> serviceRegistrations) {
+      String host,
+      String port,
+      Collection<ServiceRegistration> serviceRegistrations) {
     this.endpointId = endpointId;
-    this.serviceUri = serviceUri;
+    this.host = host;
+    this.port = port;
     this.serviceRegistrations = serviceRegistrations;
   }
 
-  public String memberId() {
+  public String endpointId() {
     return endpointId;
   }
 
-  public String serviceUri() {
-    return this.serviceUri;
+  public String host() {
+    return host;
+  }
+
+  public String port() {
+    return port;
   }
 
   public Collection<ServiceRegistration> serviceRegistrations() {

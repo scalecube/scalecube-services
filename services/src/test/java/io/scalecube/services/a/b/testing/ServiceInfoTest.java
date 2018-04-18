@@ -1,14 +1,12 @@
 package io.scalecube.services.a.b.testing;
 
-import static org.junit.Assert.assertTrue;
-
-import io.scalecube.services.discovery.ServiceInfo;
 import io.scalecube.testlib.BaseTest;
-
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.junit.Assert.assertTrue;
 
 
 public class ServiceInfoTest extends BaseTest {
