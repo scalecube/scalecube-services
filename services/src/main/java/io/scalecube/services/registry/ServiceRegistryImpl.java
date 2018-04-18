@@ -1,14 +1,9 @@
 package io.scalecube.services.registry;
 
-import static java.util.Objects.requireNonNull;
-
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceReference;
-import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
-
-import com.google.common.collect.Maps;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -18,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+
+import static java.util.Objects.requireNonNull;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
@@ -44,12 +41,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       // Process service interface
 
       ServiceReference serviceInstance =
-          new ServiceReference(serviceInterface,
-              Reflect.serviceName(serviceInterface),
-              Reflect.serviceMethods(serviceInterface).keySet(),
-              tags,
+          new ServiceReference(
+              memberId,
               address,
-              true);
+              serviceRegistrations);
 
       serviceInstances.putIfAbsent(Reflect.serviceName(serviceInterface), serviceInstance);
 
