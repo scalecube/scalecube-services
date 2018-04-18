@@ -20,17 +20,19 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   private final ConcurrentMap<String, ServiceReference> serviceInstances = new ConcurrentHashMap<>();
 
+  // ServiceReference, ServiceReference, ..., ServiceReference -> cluster ?
+
   @Override
-  public void registerService(Object serviceObject,Address address) {
-    this.registerService(serviceObject,address,null);
+  public void registerService(Object serviceObject, Address address) {
+    this.registerService(serviceObject, address, null);
   }
-  
+
   /**
    * register a service instance at the cluster.
-   * 
+   *
    * @param tags
    * @param address
-   * @param contentType 
+   * @param contentType
    */
   @Override
   public void registerService(Object service, Address address, Map<String, String> tags) {
@@ -73,6 +75,5 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return Collections.unmodifiableCollection(serviceInstances.values());
   }
 
-  
 
 }
