@@ -6,19 +6,12 @@ import io.scalecube.cluster.Member;
 import io.scalecube.concurrency.ThreadFactory;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceReference;
-import io.scalecube.services.ServiceReference;
-import io.scalecube.services.Services;
-import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
-
-import com.google.common.collect.Sets;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -28,9 +21,9 @@ public class ServiceDiscovery {
 
   private Microservices microservices;
 
-  private final ServiceRegistry serviceRegistry;
+  private final ServiceRegistry serviceRegistry; // service_registry -> cluster (on start on shuytdown)
 
-  private Cluster cluster;
+  private Cluster cluster; // cluster -> service_registry (on listen cluster events)
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
@@ -43,8 +36,8 @@ public class ServiceDiscovery {
   }
 
   public void start(ClusterConfig.Builder config) {
-    
-    Collection<ServiceReference> services = serviceRegistry.services();
+
+    Collection<ServiceReference> services = serviceRegistry.services(); // -> []
     ClusterConfig cfg = getClusterConfig(config, services).build();
     this.cluster = Cluster.joinAwait(cfg); 
     loadClusterServices();
