@@ -1,10 +1,9 @@
 package io.scalecube.services.routing;
 
 import io.scalecube.services.Messages;
-import io.scalecube.services.ServiceReference;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,11 +28,11 @@ public class RoundRobinServiceRouter implements Router {
   }
 
   @Override
-  public Optional<ServiceReference> route(ServiceMessage request) {
+  public Optional<ServiceEndpoint> route(ServiceMessage request) {
 
     String serviceName = Messages.qualifierOf(request).getNamespace();
 
-    List<ServiceReference> serviceInstances = serviceRegistry.serviceLookup(serviceName)
+    List<ServiceEndpoint> serviceInstances = serviceRegistry.serviceLookup(serviceName)
         .stream().filter(instance -> instance.methodExists(Messages.qualifierOf(request).getAction()))
         .collect(Collectors.toList());
 
@@ -51,7 +50,7 @@ public class RoundRobinServiceRouter implements Router {
   }
 
   @Override
-  public Collection<ServiceReference> routes(ServiceMessage request) {
+  public Collection<ServiceEndpoint> routes(ServiceMessage request) {
     String serviceName = Messages.qualifierOf(request).getNamespace();
     return Collections.unmodifiableCollection(serviceRegistry.serviceLookup(serviceName));
   }

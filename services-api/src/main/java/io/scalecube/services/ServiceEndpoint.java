@@ -2,14 +2,14 @@ package io.scalecube.services;
 
 import java.util.Collection;
 
-public class ServiceReference {
+public class ServiceEndpoint {
 
   private final String endpointId;
   private final String host;
   private final String port;
   private final Collection<ServiceRegistration> serviceRegistrations;
 
-  public ServiceReference(String endpointId,
+  public ServiceEndpoint(String endpointId,
       String host,
       String port,
       Collection<ServiceRegistration> serviceRegistrations) {

@@ -1,6 +1,6 @@
 package io.scalecube.services.routing;
 
-import io.scalecube.services.ServiceReference;
+import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.api.ServiceMessage;
 
 import java.util.Collection;
@@ -11,11 +11,11 @@ public interface Router {
   /**
    * returns service instance if a given request message is applicable.
    */
-  Optional<ServiceReference> route(ServiceMessage request);
+  Optional<ServiceEndpoint> route(ServiceMessage request);
 
   /**
    * returns all applicable routes.
    */
-  Collection<ServiceReference> routes(ServiceMessage request);
+  Collection<ServiceEndpoint> routes(ServiceMessage request);
 
 }

@@ -1,8 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
-import io.scalecube.cluster.Cluster;
+import com.codahale.metrics.MetricRegistry;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceDiscovery;
@@ -17,11 +15,10 @@ import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
-import com.codahale.metrics.MetricRegistry;
-
 import java.util.Collection;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -136,7 +133,7 @@ public class Microservices {
     return this.metrics;
   }
 
-  public Collection<ServiceReference> services() {
+  public Collection<ServiceEndpoint> services() {
     return serviceRegistry.services();
   }
 
