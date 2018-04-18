@@ -33,6 +33,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
    * 
    * @param tags
    * @param address
+   * @param contentType 
    */
   @Override
   public void registerService(Object service, Address address, Map<String, String> tags) {

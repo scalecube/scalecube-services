@@ -9,12 +9,12 @@ import java.util.Objects;
 public class ServiceReference {
 
   private final Class<?> serviceInterface;
-  final String serviceName;
-  final Address address;
-  final Boolean isLocal;
-  final Map<String, String> tags;
-  final Collection<String> methods;
-
+  private final String serviceName;
+  private final Address address;
+  private final Boolean isLocal;
+  private final Map<String, String> tags;
+  private final Collection<String> methods;
+  
   public ServiceReference(Class<?> serviceInterface,
       String serviceName,
       Collection<String> methods,
@@ -22,7 +22,6 @@ public class ServiceReference {
       Address address,
       Boolean isLocal) {
     
-
     this.serviceInterface =  serviceInterface;
     this.serviceName = serviceName;
     this.methods = methods;
@@ -31,6 +30,10 @@ public class ServiceReference {
     this.isLocal = isLocal;
   }
 
+  public Class<?> serviceinterface() {
+    return this.serviceInterface;
+  }
+  
   public String serviceName() {
     return this.serviceName;
   }
