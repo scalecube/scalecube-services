@@ -110,7 +110,7 @@ public class RemoteServiceInstance implements ServiceInstance {
     
     try {
       sendRemote(request);
-      result.complete(Message.builder().data("remote send completed").build());
+//      result.complete(Message.builder().data("remote send completed").build());
     } catch (Exception error) {
       LOGGER.error("Failed to send request {} to target address {}", request, address);
       result.completeExceptionally(error);

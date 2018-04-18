@@ -23,7 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SimpleStressTest extends BaseTest {
 
-  int count = 600_000;
+   int count = 6_000_000;
+//  int count = 1;
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
@@ -50,10 +51,10 @@ public class SimpleStressTest extends BaseTest {
         .metrics(registry)
         .build();
 
-    reporter.start(10, TimeUnit.SECONDS);
+    reporter.start(5, TimeUnit.SECONDS);
 
     ServiceCall greetings = consumer.dispatcher()
-        .timeout(Duration.ofSeconds(30))
+        .timeout(Duration.ofSeconds(10))
         .create();
 
     // Measure
@@ -66,7 +67,8 @@ public class SimpleStressTest extends BaseTest {
           .build());
 
       future.whenComplete((success, error) -> {
-        countLatch.countDown();
+        if (error == null)
+          countLatch.countDown();
 
       });
     }

@@ -121,7 +121,7 @@ public class Microservices {
     new ServiceDispatcher(this);
 
     this.sender.listen()
-            .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null)
+            .filter(message -> message.header(ServiceHeaders.SERVICE_RESPONSE) != null || message.header(ServiceHeaders.EXCEPTION) != null)
             .subscribe(message -> ServiceResponse.handleReply(message));
   }
 
