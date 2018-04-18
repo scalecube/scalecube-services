@@ -79,6 +79,8 @@ public class ServiceCall {
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
     public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceReference serviceInstance) {
+      // FIXME: in request response its not good idea to create transport for address per call.
+      // better to reuse same channel.
       return transport.create(serviceInstance.address())
           .requestResponse(request);
     }
@@ -98,7 +100,7 @@ public class ServiceCall {
     }
 
     public Flux<ServiceMessage> listen(ServiceMessage request, ServiceReference instance) {
-      return transport.create(instance.address)
+      return transport.create(instance.address())
           .requestStream(request);
     }
 
