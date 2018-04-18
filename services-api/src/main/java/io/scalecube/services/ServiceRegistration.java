@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class ServiceRegistration {
 
-  private String serviceName;
+  private String namespace;
   private String contentType;
   private Map<String, String> tags;
   private Collection<ServiceMethod> methods;
@@ -15,18 +15,18 @@ public class ServiceRegistration {
    */
   public ServiceRegistration() {}
 
-  public ServiceRegistration(String serviceName,
+  public ServiceRegistration(String namespace,
       String contentType,
       Map<String, String> tags,
       Collection<ServiceMethod> methods) {
-    this.serviceName = serviceName;
+    this.namespace = namespace;
     this.contentType = contentType;
     this.tags = tags;
     this.methods = methods;
   }
 
-  public String serviceName() {
-    return serviceName;
+  public String namespace() {
+    return namespace;
   }
 
   public String contentType() {

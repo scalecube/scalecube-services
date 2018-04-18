@@ -4,7 +4,7 @@ import java.util.Map;
 
 public class ServiceMethod {
 
-  private String name;
+  private String action;
   private String contentType;
   private Map<String, String> tags;
 
@@ -13,16 +13,16 @@ public class ServiceMethod {
    */
   public ServiceMethod() {}
 
-  public ServiceMethod(String name,
+  public ServiceMethod(String methodName,
       String contentType,
       Map<String, String> tags) {
-    this.name = name;
+    this.action = methodName;
     this.contentType = contentType;
     this.tags = tags;
   }
 
-  public String name() {
-    return name;
+  public String action() {
+    return action;
   }
 
   public String contentType() {

@@ -27,8 +27,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public List<ServiceReference> lookupService(String serviceName) {
-    return lookupService(r -> serviceName.equalsIgnoreCase(r.serviceName()));
+  public List<ServiceReference> lookupService(String namespace) {
+    return lookupService(r -> namespace.equalsIgnoreCase(r.namespace()));
   }
 
   @Override

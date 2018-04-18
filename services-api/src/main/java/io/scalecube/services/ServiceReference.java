@@ -10,7 +10,7 @@ public class ServiceReference {
   private String endpointId;
   private String host;
   private int port;
-  private String serviceName;
+  private String namespace;
   private String contentType;
   private Map<String, String> tags;
   private Collection<ServiceMethod> methods;
@@ -24,7 +24,7 @@ public class ServiceReference {
     this.endpointId = serviceEndpoint.endpointId();
     this.host = serviceEndpoint.host();
     this.port = serviceEndpoint.port();
-    this.serviceName = serviceRegistration.serviceName();
+    this.namespace = serviceRegistration.namespace();
     this.contentType = mergeContentType(serviceRegistration, serviceEndpoint);
     this.tags = mergeTags(serviceRegistration, serviceEndpoint);
     this.methods = serviceRegistration.methods();
@@ -42,8 +42,8 @@ public class ServiceReference {
     return port;
   }
 
-  public String serviceName() {
-    return serviceName;
+  public String namespace() {
+    return namespace;
   }
 
   public String contentType() {
