@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 
 public interface ServerMessageAcceptor {
 
-  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> payloads);
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> payloads);
 
   public Flux<ServiceMessage> requestStream(ServiceMessage payload) ;
 

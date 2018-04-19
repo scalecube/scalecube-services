@@ -3,8 +3,6 @@ package io.scalecube.services;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 
-import org.reactivestreams.Publisher;
-
 import java.util.Map;
 
 import reactor.core.publisher.Flux;
@@ -19,10 +17,11 @@ public class DefaultServicesMessageAcceptor implements ServerMessageAcceptor {
   }
 
   @Override
-  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> request) {
-    Mono<ServiceMessage> flux = Mono.from(request);
-    Mono<LocalServiceMethodInvoke> handler = flux.map(message -> endpoints.get(message.qualifier()));
-    return Flux.from(handler.map(mapper -> mapper.requestChannel(Flux.from(request))));
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
+    
+    Mono<ServiceMessage> mono = Mono.from(request);
+    Mono<LocalServiceMethodInvoke> handler = mono.map(message -> endpoints.get(message.qualifier()));
+    return Flux.from(handler.map(mapper -> mapper.requestChannel(request)));
   }
 
 
