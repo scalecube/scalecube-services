@@ -15,6 +15,7 @@ import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -96,7 +97,7 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
 
   private final ServiceCall client;
-
+  
   private Metrics metrics;
 
   private Address serviceAddress;
@@ -108,7 +109,7 @@ public class Microservices {
   private Microservices(ServerTransport server,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
-      Services services,
+      Object[] services,
       Metrics metrics) {
 
     // provision services for service access.
@@ -120,7 +121,7 @@ public class Microservices {
     // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl();
     this.routerFactory = new RouterFactory(serviceRegistry);
-    services.stream().forEach(service -> {
+    Arrays.asList(services).stream().forEach(service -> {
       this.serviceRegistry.registerService(service, serviceAddress);
     });
     
@@ -137,16 +138,14 @@ public class Microservices {
     return serviceRegistry.listServiceEndpoints();
   }
 
-  public <T> T forService(Class<T> serviceClazz) {
-    return null;
-  }
-
-
   public static final class Builder {
 
     private Object[] services;
+
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
+
     private Metrics metrics;
+
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
 
@@ -228,4 +227,8 @@ public class Microservices {
     return routerFactory.getRouter(routerType);
   }
 
+  public Call call() {
+    Router router = this.router(RoundRobinServiceRouter.class);
+    return client.call().metrics(metrics).router(router);
+  }
 }
