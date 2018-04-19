@@ -134,7 +134,7 @@ public class Microservices {
   }
 
   public Collection<ServiceEndpoint> services() {
-    return serviceRegistry.services();
+    return serviceRegistry.listServiceEndpoints();
   }
 
   public static final class Builder {
