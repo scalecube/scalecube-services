@@ -1,14 +1,11 @@
 package io.scalecube.services;
 
-import io.scalecube.services.annotations.Inject;
-
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 final class GreetingServiceImpl implements GreetingService {
 
-  @Inject
   Microservices ms;
 
   @Override

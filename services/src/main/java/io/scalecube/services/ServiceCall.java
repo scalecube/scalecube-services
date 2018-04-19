@@ -1,20 +1,24 @@
 package io.scalecube.services;
 
-import com.codahale.metrics.Timer;
-import com.google.common.reflect.Reflection;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.client.api.ClientTransport;
+import io.scalecube.transport.Address;
+
+import com.codahale.metrics.Timer;
+import com.google.common.reflect.Reflection;
+
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
@@ -71,15 +75,15 @@ public class ServiceCall {
      * request:ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
      *
      * @param request request with given headers.
-     * @param serviceInstance target instance to invoke.
+     * @param serviceReference target instance to invoke.
      * @return Mono with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceEndpoint serviceInstance) {
+    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceReference serviceReference) {
       // FIXME: in request response its not good idea to create transport for address per call.
       // better to reuse same channel.
-      return transport.create(serviceInstance.address())
-          .requestResponse(request);
+      Address address = Address.create(serviceReference.host(), serviceReference.port());
+      return transport.create(address).requestResponse(request);
     }
 
 
@@ -91,14 +95,13 @@ public class ServiceCall {
      */
     public Flux<ServiceMessage> listen(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
-      ServiceEndpoint service = router.route(request)
-          .orElseThrow(() -> noReachableMemberException(request));
-      return this.listen(request, service);
+      ServiceReference serviceReference = router.route(request).orElseThrow(() -> noReachableMemberException(request));
+      return this.listen(request, serviceReference);
     }
 
-    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceEndpoint instance) {
-      return transport.create(instance.address())
-          .requestStream(request);
+    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceReference serviceReference) {
+      Address address = Address.create(serviceReference.host(), serviceReference.port());
+      return transport.create(address).requestStream(request);
     }
 
     /**
