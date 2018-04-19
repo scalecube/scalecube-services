@@ -211,4 +211,30 @@ public class Reflect {
         .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
         .collect(Collectors.toList());
   }
+  
+  /**
+   * invoke a java method by a given ServiceMessage.
+   *
+   * @param serviceObject instance to invoke its method.
+   * @param method method to invoke.
+   * @param request stream message request containing data or message to invoke.
+   * @return invoke result.
+   * @throws Exception in case method expects more then one parameter
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> T invoke(Object serviceObject, Method method, final ServiceMessage request) throws Exception {
+    // handle invoke
+    if (method.getParameters().length == 0) { // method expect no params.
+      return (T) method.invoke(serviceObject);
+    } else if (method.getParameters().length == 1) { // method expect 1 param.
+      if (method.getParameters()[0].getType().isAssignableFrom(ServiceMessage.class)) {
+        return (T) method.invoke(serviceObject, request);
+      } else {
+        return (T) method.invoke(serviceObject, new Object[] {request.data()});
+      }
+    } else {
+      // should we later support 2 parameters? message and the Stream processor?
+      throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
+    }
+  }
 }
