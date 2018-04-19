@@ -17,48 +17,43 @@ public class LocalServiceMethodInvoke implements ServiceMethodInvoke {
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
-    
-    Object result = toObject(decodeData(request, requestType));
-    return invokeReturnsMono(result)
+    return invokeReturnsMono(decodeData(request, requestType))
         .map(object -> toMessage(object))
         .map(resp -> encodeData(resp));
   }
 
   @Override
   public Mono<Void> fireAndForget(ServiceMessage request) {
-    Object object = toObject(decodeData(request, requestType));
-    return invokeReturnsMono(object);
+    return invokeReturnsMono(decodeData(request, requestType));
   }
 
 
   @Override
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
     return request.map(req -> decodeData(req, requestType))
-        .map(message -> toObject(message))
-        .map(object -> invokeReturnsFlux(object))
+        .map(message -> invokeReturnsFlux(message))
         .map(object -> toMessage(object))
         .map(resp -> encodeData(resp));
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    Object result = toObject(decodeData(request, requestType));
-    return invokeReturnsFlux(result)
+    return invokeReturnsFlux(decodeData(request, requestType))
         .map(object -> toMessage(object))
         .map(resp -> encodeData(resp));
   }
 
-  private <T> Flux<T> invokeReturnsFlux(Object object) {
+  private <T> Flux<T> invokeReturnsFlux(ServiceMessage object) {
     try {
-      return (Flux<T>) method.invoke(serviceObject, object);
+      return (Flux<T>) invoke(serviceObject, method, object);
     } catch (Exception ex) {
       return Flux.error(ex);
     }
   }
 
-  private <T> Mono<T> invokeReturnsMono(Object object) {
+  private <T> Mono<T> invokeReturnsMono(ServiceMessage object) {
     try {
-      return (Mono<T>) method.invoke(serviceObject, object);
+      return (Mono<T>) invoke(serviceObject, method, object);
     } catch (Exception ex) {
       return Mono.error(ex);
     }
@@ -87,6 +82,33 @@ public class LocalServiceMethodInvoke implements ServiceMethodInvoke {
       return message;
     } else {
       return message.data();
+    }
+  }
+
+  /**
+   * invoke a java method by a given ServiceMessage.
+   *
+   * @param serviceObject instance to invoke its method.
+   * @param method method to invoke.
+   * @param request stream message request containing data or message to invoke.
+   * @return invoke result.
+   * @throws Exception in case method expects more then one parameter
+   */
+  @SuppressWarnings("unchecked")
+  public static <T> T invoke(Object serviceObject, Method method, final ServiceMessage request) throws Exception {
+    // handle invoke
+    if (method.getParameters().length == 0) { // method expect no params.
+      return (T) method.invoke(serviceObject);
+    } else if (method.getParameters().length == 1) { // method expect 1 param.
+      if (method.getParameters()[0].getType().isAssignableFrom(ServiceMessage.class)) {
+        return (T) method.invoke(serviceObject, request);
+      } else {
+        T invoke = (T) method.invoke(serviceObject, new Object[] {request.data()});
+        return invoke;
+      }
+    } else {
+      // should we later support 2 parameters? message and the Stream processor?
+      throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
     }
   }
 }
