@@ -103,8 +103,7 @@ public class LocalServiceMethodInvoke implements ServiceMethodInvoke {
       if (method.getParameters()[0].getType().isAssignableFrom(ServiceMessage.class)) {
         return (T) method.invoke(serviceObject, request);
       } else {
-        T invoke = (T) method.invoke(serviceObject, new Object[] {request.data()});
-        return invoke;
+        return (T) method.invoke(serviceObject, new Object[] {request.data()});
       }
     } else {
       // should we later support 2 parameters? message and the Stream processor?
