@@ -57,7 +57,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   private Stream<ServiceReference> serviceReferenceStream() {
-    Stream<ServiceEndpoint> stream = serviceEndpoints.values().stream();
-    return stream.flatMap(e -> e.serviceRegistrations().stream().map(c -> new ServiceReference(c, e)));
+    return serviceEndpoints.values().stream().flatMap(
+        se -> se.serviceRegistrations().stream().flatMap(
+            sr -> sr.methods().stream().map(
+                sm -> new ServiceReference(sm, sr, se))));
   }
 }

@@ -4,6 +4,7 @@ import io.scalecube.services.Messages;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,14 +29,11 @@ public class RoundRobinServiceRouter implements Router {
   public Optional<ServiceReference> route(ServiceMessage request) {
 
     String serviceName = Messages.qualifierOf(request).getNamespace();
+    String methodName = Messages.qualifierOf(request).getAction();
 
-    List<ServiceReference> serviceInstances = serviceRegistry.lookupService(serviceName);
-
-    /*
-     * .stream().filter(instance -> instance.methodExists(Messages.qualifierOf(request).getAction()))
-     * .collect(Collectors.toList());
-     * 
-     */
+    List<ServiceReference> serviceInstances =
+        serviceRegistry.lookupService(
+            sr -> serviceName.equalsIgnoreCase(sr.namespace()) && methodName.equalsIgnoreCase(sr.action()));
 
     if (serviceInstances.size() > 1) {
       AtomicInteger counter = counterByServiceName

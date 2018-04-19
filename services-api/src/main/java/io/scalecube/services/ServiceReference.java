@@ -1,9 +1,7 @@
 package io.scalecube.services;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 public class ServiceReference {
 
@@ -13,21 +11,23 @@ public class ServiceReference {
   private String namespace;
   private String contentType;
   private Map<String, String> tags;
-  private Collection<ServiceMethod> methods;
+  private String action;
 
   /**
    * @deprecated exposed only for deserialization purpose.
    */
   public ServiceReference() {}
 
-  public ServiceReference(ServiceRegistration serviceRegistration, ServiceEndpoint serviceEndpoint) {
+  public ServiceReference(ServiceMethod serviceMethod,
+      ServiceRegistration serviceRegistration,
+      ServiceEndpoint serviceEndpoint) {
     this.endpointId = serviceEndpoint.endpointId();
     this.host = serviceEndpoint.host();
     this.port = serviceEndpoint.port();
     this.namespace = serviceRegistration.namespace();
-    this.contentType = mergeContentType(serviceRegistration, serviceEndpoint);
-    this.tags = mergeTags(serviceRegistration, serviceEndpoint);
-    this.methods = serviceRegistration.methods();
+    this.contentType = mergeContentType(serviceMethod, serviceRegistration, serviceEndpoint);
+    this.tags = mergeTags(serviceMethod, serviceRegistration, serviceEndpoint);
+    this.action = serviceMethod.action();
   }
 
   public String endpointId() {
@@ -54,18 +54,32 @@ public class ServiceReference {
     return tags;
   }
 
-  public Collection<ServiceMethod> methods() {
-    return methods;
+  public String action() {
+    return action;
   }
 
-  private Map<String, String> mergeTags(ServiceRegistration serviceRegistration, ServiceEndpoint serviceEndpoint) {
+  private Map<String, String> mergeTags(ServiceMethod serviceMethod,
+      ServiceRegistration serviceRegistration,
+      ServiceEndpoint serviceEndpoint) {
     Map<String, String> tags = new HashMap<>();
     tags.putAll(serviceEndpoint.tags());
     tags.putAll(serviceRegistration.tags());
+    tags.putAll(serviceMethod.tags());
     return tags;
   }
 
-  private String mergeContentType(ServiceRegistration serviceRegistration, ServiceEndpoint serviceEndpoint) {
-    return Optional.ofNullable(serviceRegistration.contentType()).orElse(serviceEndpoint.contentType());
+  private String mergeContentType(ServiceMethod serviceMethod,
+      ServiceRegistration serviceRegistration,
+      ServiceEndpoint serviceEndpoint) {
+    if (serviceMethod.contentType() != null && !serviceMethod.contentType().isEmpty()) {
+      return serviceMethod.contentType();
+    }
+    if (serviceRegistration.contentType() != null && !serviceRegistration.contentType().isEmpty()) {
+      return serviceRegistration.contentType();
+    }
+    if (serviceEndpoint.contentType() != null && !serviceEndpoint.contentType().isEmpty()) {
+      return serviceEndpoint.contentType();
+    }
+    throw new IllegalArgumentException();
   }
 }
