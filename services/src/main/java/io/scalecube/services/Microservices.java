@@ -96,7 +96,7 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
 
   private final ServiceCall client;
-  
+
   private Metrics metrics;
 
   private Address serviceAddress;
@@ -137,14 +137,16 @@ public class Microservices {
     return serviceRegistry.listServiceEndpoints();
   }
 
+  public <T> T forService(Class<T> serviceClazz) {
+    return null;
+  }
+
+
   public static final class Builder {
 
-    private Services services = Services.empty();
-
+    private Object[] services;
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
-
     private Metrics metrics;
-
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
 
@@ -197,7 +199,7 @@ public class Microservices {
      * @param services list of instances decorated with @Service
      * @return builder.
      */
-    public Builder services(Services services) {
+    public Builder services(Object... services) {
       checkNotNull(services);
       this.services = services;
       return this;
@@ -226,8 +228,4 @@ public class Microservices {
     return routerFactory.getRouter(routerType);
   }
 
-  public Call call() {
-    Router router = this.router(RoundRobinServiceRouter.class);
-    return client.call().metrics(metrics).router(router);
-  }
 }
