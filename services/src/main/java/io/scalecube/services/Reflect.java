@@ -1,15 +1,13 @@
 package io.scalecube.services;
 
-import com.google.common.base.Strings;
-import io.scalecube.services.annotations.Inject;
+import static java.util.Objects.requireNonNull;
+
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import javax.annotation.PostConstruct;
-import java.lang.reflect.Field;
+import com.google.common.base.Strings;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -20,106 +18,11 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
  *
  */
 public class Reflect {
-  private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
-
-  /**
-   * Injector builder.
-   * 
-   * @param microservices instance to be injected.
-   * @return Builder for injection.
-   */
-  public static Builder builder(Microservices microservices) {
-    return new Builder(microservices);
-  }
-
-  static class Builder {
-
-    private Microservices microservices;
-
-    private Builder(Microservices ms) {
-      this.microservices = ms;
-    }
-
-    /**
-     * inject instances to the microservices instance. either Microservices or ServiceProxy.
-     * 
-     * @return injected microservices instance.
-     */
-    public Microservices inject() {
-      this.inject(this.microservices);
-
-      return this.microservices;
-    }
-
-    /**
-     * scan all local service instances and inject a service proxy.
-     */
-    private void inject(Microservices microservices) {
-      microservices.services().stream()
-          .filter(ServiceEndpoint::isLocal)
-          .collect(Collectors.toList()).forEach(instance -> {
-            scanServiceFields(instance.serviceObject());
-            this.processPostConstruct(((ServiceEndpoint) instance).serviceObject());
-          });
-    }
-
-    private void processPostConstruct(Object targetInstance) {
-      Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
-      Arrays.stream(declaredMethods)
-          .filter(method -> method.isAnnotationPresent(PostConstruct.class))
-          .forEach(postConstructMethod -> {
-            try {
-              postConstructMethod.setAccessible(true);
-              Object[] paramters = Arrays.asList(postConstructMethod.getParameters()).stream().map(mapper -> {
-                if (mapper.getType().equals(Microservices.class)) {
-                  return this.microservices;
-                } else if (isService(mapper.getType())) {
-                  return this.microservices.call().api(mapper.getType());
-                } else {
-                  return null;
-                }
-              }).collect(Collectors.toList()).toArray();
-              postConstructMethod.invoke(targetInstance, paramters);
-            } catch (Exception ex) {
-              throw new RuntimeException(ex);
-            }
-          });
-    }
-
-    private void scanServiceFields(Object service) {
-      for (Field field : service.getClass().getDeclaredFields()) {
-        injectField(field, service);
-      }
-    }
-
-    private void injectField(Field field, Object service) {
-      if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
-        setField(field, service, this.microservices);
-      } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
-        setField(field, service, this.microservices.call().api(field.getType()));
-      } 
-    }
-
-    private boolean isService(Class type) {
-      return type.isAnnotationPresent(Service.class);
-    }
-
-    private void setField(Field field, Object object, Object value) {
-      try {
-        field.setAccessible(true);
-        field.set(object, value);
-      } catch (Exception ex) {
-        LOGGER.error("failed to set service proxy of type: {} reason:{}", object.getClass().getName(), ex.getMessage());
-      }
-    }
-  }
 
   /**
    * extract parameterized return value of a method.
@@ -211,7 +114,7 @@ public class Reflect {
         .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
         .collect(Collectors.toList());
   }
-  
+
   /**
    * invoke a java method by a given ServiceMessage.
    *

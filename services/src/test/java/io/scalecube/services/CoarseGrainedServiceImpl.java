@@ -1,26 +1,17 @@
 package io.scalecube.services;
 
-import io.scalecube.services.annotations.Inject;
-import io.scalecube.services.annotations.ServiceProxy;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
-
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
-
 
 
 public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
 
-  @ServiceProxy(router = RoundRobinServiceRouter.class, timeout = 1, timeUnit = TimeUnit.MILLISECONDS)
   private GreetingService greetingServiceTimeout;
 
-  @Inject
   private GreetingService greetingService;
 
-  @Inject
   private Microservices ms;
 
   @Override
