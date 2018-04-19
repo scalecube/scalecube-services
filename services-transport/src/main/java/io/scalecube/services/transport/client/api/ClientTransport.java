@@ -4,6 +4,6 @@ import io.scalecube.transport.Address;
 
 public interface ClientTransport {
 
-  public ClientChannel create(Address address);
+  ClientChannel create(Address address);
 
 }
