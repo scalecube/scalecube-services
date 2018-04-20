@@ -8,8 +8,6 @@ public class ServiceEndpoint {
   private String endpointId;
   private String host;
   private int port;
-  private String contentType;
-  private Map<String, String> tags;
   private Collection<ServiceRegistration> serviceRegistrations;
 
   /**
