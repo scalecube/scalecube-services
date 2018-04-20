@@ -2,12 +2,12 @@ package io.scalecube.services;
 
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.rsockets.ServiceRequestsListener;
+import io.scalecube.rsockets.ServiceScanner;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.transport.TransportFactory;
@@ -15,9 +15,12 @@ import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
+import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Objects;
-import java.util.Observable;
+import java.util.stream.Collectors;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -94,44 +97,33 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Microservices {
 
-  private final ServiceRegistry serviceRegistry;
-
-  private final ServiceCall client;
-
+  public static final int SERVICE_PORT = 5801;
+  private  ServiceRegistry serviceRegistry;
   private Metrics metrics;
-
   private Address serviceAddress;
-
   public RouterFactory routerFactory;
+  private ServiceDiscovery discovery;
 
-  private final ServiceDiscovery discovery;
-
-  private Microservices(ServerTransport serverTransport,
-      ClientTransport client,
-      ClusterConfig.Builder clusterConfig,
-      Object[] services,
-      Metrics metrics) {
+  private Microservices(ClusterConfig.Builder clusterConfig,
+                        Object[] services,
+                        Metrics metrics) {
 
     // provision services for service access.
-    this.client = new ServiceCall(client);
     this.metrics = metrics;
-    serverTransport.accept(new DefaultServicesMessageAcceptor(this.client.call()));
-    this.serviceAddress = serverTransport.bindAwait(5801);
-    this.routerFactory = new RouterFactory(serviceRegistry);
+    InetSocketAddress serviceAddr = new ServiceRequestsListener(SERVICE_PORT).start();
+    this.serviceAddress = Address.create(serviceAddr.getHostName(), serviceAddr.getPort());
 
-    ServiceEndpoint localServiceEndpoint = new ServiceEndpoint(
-            serviceAddress->host,
-            serviceAddress->port,
-            this->"defaut/json",
-            this->new String[]{},
-            service_scanner->serviceRegistrations);
 
+    ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
+            Arrays.stream(services).map(Object::getClass).collect(Collectors.toList()),
+            serviceAddress.host(),
+            serviceAddress.port(),
+            new HashMap<>());
     // register and make them discover-able
-    this.serviceRegistry = new ServiceRegistry(localServiceEndpoint);
+    this.serviceRegistry = new ServiceRegistryImpl(localServiceEndpoint);
+    this.routerFactory = new RouterFactory(serviceRegistry);
     this.discovery = new ServiceDiscovery(serviceRegistry);
     this.discovery.start(clusterConfig);
-
-
   }
 
   public Metrics metrics() {
@@ -146,14 +138,11 @@ public class Microservices {
     return null;
   }
 
-
   public static final class Builder {
 
     private Object[] services;
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
-    private ServerTransport server = TransportFactory.getTransport().getServerTransport();
-    private ClientTransport client = TransportFactory.getTransport().getClientTransport();
 
 
     /**
@@ -163,24 +152,8 @@ public class Microservices {
      */
     public Microservices build() {
 
-      Objects.requireNonNull(this.server,
-          "SPI ServiceTransport is missing and not found by ServiceLoader."
-              + " did you forget to set Transport provider?");
+      return new Microservices(clusterConfig, services, metrics);
 
-      return Reflect.builder(
-          new Microservices(this.server, this.client, clusterConfig, services, this.metrics))
-          .inject();
-
-    }
-
-    public Builder server(ServerTransport server) {
-      this.server = server;
-      return this;
-    }
-
-    public Builder client(ClientTransport client) {
-      this.client = client;
-      return this;
     }
 
     public Builder port(int port) {

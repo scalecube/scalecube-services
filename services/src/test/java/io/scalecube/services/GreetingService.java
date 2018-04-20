@@ -20,7 +20,7 @@ interface GreetingService {
   @ServiceMethod
   CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest string);
 
-  // @ServiceMethod
+  // @ServiceMethodDefinition
   // CompletableFuture<StreamMessage> greetingMessage(StreamMessage request);
 
   @ServiceMethod

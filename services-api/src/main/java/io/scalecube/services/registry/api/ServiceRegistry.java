@@ -13,7 +13,9 @@ import java.util.function.Predicate;
  */
 public interface ServiceRegistry {
 
-  List<ServiceEndpoint> listServiceEndpoints();
+    ServiceEndpoint localEndpoint();
+
+    List<ServiceEndpoint> listServiceEndpoints();
 
   List<ServiceReference> listServiceReferences();
 

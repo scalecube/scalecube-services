@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +25,7 @@ public class ServiceDiscovery {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
   private static final ObjectMapper objectMapper = newObjectMapper();
+  public static final String SERVICE_METADATA = "service";
 
   private final ServiceRegistry serviceRegistry; // service_registry -> cluster (on start on shuytdown)
   private Cluster cluster; // cluster -> service_registry (on listen cluster events)
@@ -37,8 +39,7 @@ public class ServiceDiscovery {
   }
 
   public void start(ClusterConfig.Builder config) {
-
-    cluster = Cluster.joinAwait(addMetadata(config, serviceRegistry.localEndpoint()).build());
+    cluster = Cluster.joinAwait(addMetadata(config, Arrays.asList(serviceRegistry.localEndpoint())).build());
     loadClusterServices();
     listenCluster();
   }
@@ -48,15 +49,15 @@ public class ServiceDiscovery {
     if (!cluster.isShutdown()) {
       return cluster.shutdown();
     } else {
-      result.completeExceptionally(new IllegalStateException("Cluster transport alredy stopped"));
+      result.completeExceptionally(new IllegalStateException("Cluster transport already stopped"));
       return result;
     }
   }
 
   private ClusterConfig.Builder addMetadata(ClusterConfig.Builder cfg, Collection<ServiceEndpoint> serviceEndpoints) {
-    if (serviceEndpoints != null && !serviceEndpoints.isEmpty()) {
+    if (serviceEndpoints != null) {
       cfg.addMetadata(serviceEndpoints.stream()
-          .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> "service")));
+          .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
     }
     return cfg;
   }
@@ -81,7 +82,7 @@ public class ServiceDiscovery {
 
   private void loadMemberServices(DiscoveryType type, Member member) {
     member.metadata().entrySet().stream()
-        .filter(entry -> "service".equals(entry.getValue()))
+        .filter(entry -> SERVICE_METADATA.equals(entry.getValue()))
         .forEach(entry -> {
           ServiceEndpoint serviceEndpoint = decodeMetadata(entry.getKey());
           if (serviceEndpoint == null) {
@@ -96,7 +97,7 @@ public class ServiceDiscovery {
                 member, serviceEndpoint);
           } else if (type.equals(DiscoveryType.REMOVED)) {
 
-            serviceRegistry.unregisterService(serviceEndpoint.endpointId());
+            serviceRegistry.unregisterService(serviceEndpoint.id());
             LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
                 member, serviceEndpoint);
           }

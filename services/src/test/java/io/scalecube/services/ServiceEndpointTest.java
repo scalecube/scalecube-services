@@ -15,7 +15,7 @@ public class ServiceEndpointTest extends BaseTest {
     Address addr = Address.create("localhost", 4000);
     ServiceEndpoint reference = new ServiceEndpoint("a", "b", null, addr);
     assertTrue(reference.address().equals(addr));
-    assertTrue(reference.endpointId().equals("a"));
+    assertTrue(reference.id().equals("a"));
     assertTrue(reference.serviceName().equals("b"));
 
     ServiceEndpoint aref = new ServiceEndpoint("a", "b", null, addr);

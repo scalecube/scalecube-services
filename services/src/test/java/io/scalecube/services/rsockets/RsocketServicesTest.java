@@ -18,9 +18,10 @@ public class RsocketServicesTest {
         Microservices gateway = Microservices.builder().build();
 
         HeyService service = new HeyServiceImpl();
+
         Microservices.builder()
                 .seeds(gateway.serviceAddress())
-                .services(service).build();
+                .services().build();
 
         HeyService proxy = gateway.forService(HeyService.class);
 
