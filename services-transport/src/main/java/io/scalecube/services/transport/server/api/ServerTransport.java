@@ -1,9 +1,11 @@
 package io.scalecube.services.transport.server.api;
 
 import io.scalecube.services.ServiceMessageCodec;
-import io.scalecube.transport.Address;
 
+import java.net.InetSocketAddress;
 import java.util.Collection;
+
+import reactor.core.publisher.Mono;
 
 public interface ServerTransport {
 
@@ -11,9 +13,9 @@ public interface ServerTransport {
   
   ServerTransport accept(ServerMessageAcceptor acceptor);
 
-  Address bindAwait(int port);
+  InetSocketAddress bindAwait(int port);
 
-  void stop();
+  Mono<Void> stop();
   
 }
 
