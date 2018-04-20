@@ -1,8 +1,11 @@
 package io.scalecube.rsockets;
 
 import io.rsocket.Payload;
+import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
+import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.uri.UriTransportRegistry;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import org.reactivestreams.Publisher;
@@ -16,15 +19,23 @@ public class MonoInvoker<REQ, RESP> extends ActionMethodInvoker<REQ, RESP> {
         super(reqType, respType, CommunicationMode.MONO, payloadCodec);
     }
 
+    // HeyService::sayHey -> ServiceReference
     @Override
     Publisher<RESP> invoke(ServiceReference sr, REQ request) {
-        InetSocketAddress serverAddr = new InetSocketAddress(sr.host(), sr.port());
-        client = RSocketFactory.connect()
-                //TODO: handle errors
-                .errorConsumer(Throwable::printStackTrace)
-                .transport(TcpClientTransport.create(serverAddr))
-                .start()
-                .block();
+
+//        ClientTransport clientTransport = UriTransportRegistry.clientForUri(sr.serviceUri); // 172.1.1.54:qualifier/greetingHello
+//        TcpClientTransport clientTransport1 = TcpClientTransport.create(new InetSocketAddress(sr.host(), sr.port()));
+
+        // map<uri, rSocket>
+
+//        client = RSocketFactory.connect()
+                TODO: handle errors
+//                .errorConsumer(Throwable::printStackTrace)
+//                .transport(clientTransport1)
+//                .start()
+//                .block();
+
+
         ServiceMessage serviceReq = request instanceof ServiceMessage
                 ? (ServiceMessage) request
                 : ServiceMessage.builder().qualifier(sr.namespace(), sr.action()).build();

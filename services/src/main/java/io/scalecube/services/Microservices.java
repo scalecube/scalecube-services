@@ -12,13 +12,12 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.rsocket.server.DefaultServicesMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Observable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -98,7 +97,7 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
 
   private final ServiceCall client;
-  
+
   private Metrics metrics;
 
   private Address serviceAddress;
@@ -107,7 +106,7 @@ public class Microservices {
 
   private final ServiceDiscovery discovery;
 
-  private Microservices(ServerTransport server,
+  private Microservices(ServerTransport serverTransport,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
       Object[] services,
@@ -116,19 +115,23 @@ public class Microservices {
     // provision services for service access.
     this.client = new ServiceCall(client);
     this.metrics = metrics;
-    server.accept(new DefaultServicesMessageAcceptor(this.client.call()));
-    this.serviceAddress = server.bindAwait(5801);
+    serverTransport.accept(new DefaultServicesMessageAcceptor(this.client.call()));
+    this.serviceAddress = serverTransport.bindAwait(5801);
+    this.routerFactory = new RouterFactory(serviceRegistry);
+
+    ServiceEndpoint localServiceEndpoint = new ServiceEndpoint(
+            serviceAddress->host,
+            serviceAddress->port,
+            this->"defaut/json",
+            this->new String[]{},
+            service_scanner->serviceRegistrations);
 
     // register and make them discover-able
-    this.serviceRegistry = new ServiceRegistryImpl();
-    this.routerFactory = new RouterFactory(serviceRegistry);
-    Arrays.asList(services).stream().forEach(service -> {
-      this.serviceRegistry.registerService(service, serviceAddress);
-    });
-    
-    this.discovery = new ServiceDiscovery(this.serviceRegistry);
-    
+    this.serviceRegistry = new ServiceRegistry(localServiceEndpoint);
+    this.discovery = new ServiceDiscovery(serviceRegistry);
     this.discovery.start(clusterConfig);
+
+
   }
 
   public Metrics metrics() {
@@ -139,14 +142,16 @@ public class Microservices {
     return serviceRegistry.listServiceEndpoints();
   }
 
+  public <T> T forService(Class<T> serviceClazz) {
+    return null;
+  }
+
+
   public static final class Builder {
 
     private Object[] services;
-
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
-
     private Metrics metrics;
-
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
 
@@ -228,8 +233,4 @@ public class Microservices {
     return routerFactory.getRouter(routerType);
   }
 
-  public Call call() {
-    Router router = this.router(RoundRobinServiceRouter.class);
-    return client.call().metrics(metrics).router(router);
-  }
 }
