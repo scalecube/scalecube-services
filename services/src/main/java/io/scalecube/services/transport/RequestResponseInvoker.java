@@ -15,11 +15,9 @@ public class RequestResponseInvoker extends AbstractServiceMethodInvoker<Service
 
   public RequestResponseInvoker(Object serviceObject,
       Method method,
-      Class<?> reqType, 
-      Class<?> respType,
       ServiceMessageCodec<?> payloadCodec) {
     
-    super(serviceObject, method, reqType, respType, payloadCodec);
+    super(serviceObject, method, payloadCodec);
   }
 
   public Publisher<ServiceMessage> invoke(ServiceMessage request) {
