@@ -14,11 +14,9 @@ import reactor.core.publisher.Mono;
 public class RequestChannelInvoker extends AbstractServiceMethodInvoker<Publisher<ServiceMessage>, Publisher<ServiceMessage>> {
 
   public RequestChannelInvoker(Object serviceObject, Method method,
-      Class<?> reqType, 
-      Class<?> respType,
       ServiceMessageCodec<?> payloadCodec) {
     
-    super(serviceObject, method, reqType, respType, payloadCodec);
+    super(serviceObject, method, payloadCodec);
   }
 
   @Override

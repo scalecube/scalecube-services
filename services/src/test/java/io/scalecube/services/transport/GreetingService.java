@@ -1,19 +1,14 @@
 package io.scalecube.services.transport;
 
+import io.scalecube.services.annotations.Service;
+
 import org.reactivestreams.Publisher;
 
-import reactor.core.publisher.Mono;
+@Service
+public interface GreetingService {
 
-public class GreetingService {
+  public Publisher<String> sayHello(String name);
   
-  public Publisher<String> sayHello(String name){
-    return Mono.just( "Hello to: " + name);
-  }
-  
-  public Publisher<String> greetingChannel(Publisher<String> channel){
-    return channel;
-  }
-  
-  
+  public Publisher<String> greetingChannel(Publisher<String> channel);
   
 }
