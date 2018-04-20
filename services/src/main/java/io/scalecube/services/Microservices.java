@@ -12,9 +12,11 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
+import io.scalecube.services.transport.rsocket.server.DefaultServicesMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
 
@@ -106,10 +108,10 @@ public class Microservices {
   private final ServiceDiscovery discovery;
 
   private Microservices(ServerTransport server,
-      ClientTransport client,
-      ClusterConfig.Builder clusterConfig,
-      Services services,
-      Metrics metrics) {
+                        ClientTransport client,
+                        ClusterConfig.Builder clusterConfig,
+                        Object[] services,
+                        Metrics metrics) {
 
     // provision services for service access.
     this.client = new ServiceCall(client);
@@ -120,12 +122,12 @@ public class Microservices {
     // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl();
     this.routerFactory = new RouterFactory(serviceRegistry);
-    services.stream().forEach(service -> {
+    Arrays.asList(services).stream().forEach(service -> {
       this.serviceRegistry.registerService(service, serviceAddress);
     });
-    
+
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
-    
+
     this.discovery.start(clusterConfig);
   }
 
@@ -137,16 +139,14 @@ public class Microservices {
     return serviceRegistry.listServiceEndpoints();
   }
 
-  public <T> T forService(Class<T> serviceClazz) {
-    return null;
-  }
-
-
   public static final class Builder {
 
     private Object[] services;
+
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
+
     private Metrics metrics;
+
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
 
@@ -159,12 +159,12 @@ public class Microservices {
     public Microservices build() {
 
       Objects.requireNonNull(this.server,
-          "SPI ServiceTransport is missing and not found by ServiceLoader."
-              + " did you forget to set Transport provider?");
+              "SPI ServiceTransport is missing and not found by ServiceLoader."
+                      + " did you forget to set Transport provider?");
 
       return Reflect.builder(
-          new Microservices(this.server, this.client, clusterConfig, services, this.metrics))
-          .inject();
+              new Microservices(this.server, this.client, clusterConfig, services, this.metrics))
+              .inject();
 
     }
 
@@ -228,4 +228,8 @@ public class Microservices {
     return routerFactory.getRouter(routerType);
   }
 
+  public Call call() {
+    Router router = this.router(RoundRobinServiceRouter.class);
+    return client.call().metrics(metrics).router(router);
+  }
 }

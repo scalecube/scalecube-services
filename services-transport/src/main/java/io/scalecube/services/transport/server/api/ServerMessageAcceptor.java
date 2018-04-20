@@ -5,16 +5,15 @@ import io.scalecube.services.api.ServiceMessage;
 import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public interface ServerMessageAcceptor {
 
-  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> payloads);
+  public Publisher<ServiceMessage> requestChannel(Publisher<ServiceMessage> payloads);
 
-  public Flux<ServiceMessage> requestStream(ServiceMessage payload) ;
+  public Publisher<ServiceMessage> requestStream(ServiceMessage payload) ;
 
-  public Mono<ServiceMessage> requestResponse(ServiceMessage payload) ;
+  public Publisher<ServiceMessage> requestResponse(ServiceMessage payload) ;
 
-  public Mono<Void> fireAndForget(ServiceMessage payload);
+  public Publisher<Void> fireAndForget(ServiceMessage payload);
   
 }

@@ -8,6 +8,8 @@ import io.scalecube.services.api.ServiceMessage;
 
 import com.google.common.base.Strings;
 
+import org.reactivestreams.Publisher;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -113,6 +115,19 @@ public class Reflect {
     return Arrays.stream(interfaces)
         .filter(interfaceClass -> interfaceClass.isAnnotationPresent(Service.class))
         .collect(Collectors.toList());
+  }
+
+
+  public static <T> Publisher<T> invokeMessage(Object serviceObject, Method method, final ServiceMessage request)
+      throws Exception {
+    Object result = invoke(serviceObject, method, request);
+    Class<?> returnType = method.getReturnType();
+    if (returnType.isAssignableFrom(Publisher.class)) {
+      return (Publisher<T>) result;
+    } else {
+      // should we later support 2 parameters? message and the Stream processor?
+      throw new UnsupportedOperationException("Service Method can return of type Publisher only");
+    }
   }
 
   /**
