@@ -1,6 +1,7 @@
 package io.scalecube.services.transport.rsocket.server;
 
-import io.scalecube.services.transport.rsocket.PayloadCodec;
+import io.scalecube.services.ServiceMessageCodec;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 
 import io.rsocket.AbstractRSocket;
@@ -16,11 +17,11 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
-  private PayloadCodec payloadCodec;
+  private ServiceMessageCodec<Payload> codec;
   private ServerMessageAcceptor acceptor;
  
-  public RSocketServiceMethodAcceptor(ServerMessageAcceptor acceptor, PayloadCodec payloadCodec) {
-   this.payloadCodec = payloadCodec;
+  public RSocketServiceMethodAcceptor(ServerMessageAcceptor acceptor, ServiceMessageCodec<Payload> codec) {
+   this.codec = codec;
    this.acceptor = acceptor;
   }
 
@@ -35,19 +36,20 @@ public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
       @Override
       public Flux<Payload> requestStream(Payload payload) {
-        return acceptor.requestStream(payloadCodec.decode(payload))
-            .map(response->payloadCodec.encode(response));
+        return Flux.from(
+            acceptor.requestStream(codec.decodeMessage(payload)))
+            .map(response->codec.encodeMessage(response));
       }
 
       @Override
       public Mono<Payload> requestResponse(Payload payload) {
-        return acceptor.requestResponse(payloadCodec.decode(payload))
-            .map(response->payloadCodec.encode(response));
+        return Mono.from(acceptor.requestResponse(codec.decodeMessage(payload)))
+            .map(response->codec.encodeMessage(response));
       }
 
       @Override
       public Mono<Void> fireAndForget(Payload payload) {
-        return acceptor.fireAndForget(payloadCodec.decode(payload));
+        return Mono.from(acceptor.fireAndForget(codec.decodeMessage(payload)));
       }
     });
   }

@@ -12,6 +12,7 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
+import io.scalecube.services.transport.rsocket.server.DefaultServicesMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
