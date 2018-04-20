@@ -6,6 +6,12 @@ import io.scalecube.services.api.ServiceMessage;
 public class DummyStringCodec implements ServiceMessageCodec<String> {
 
   @Override
+  public String contentType() {
+    return "application/text";
+  }
+
+  
+  @Override
   public String encodeMessage(ServiceMessage message) {
     return message.data();
   }
@@ -24,5 +30,6 @@ public class DummyStringCodec implements ServiceMessageCodec<String> {
   public ServiceMessage decodeData(ServiceMessage message, Class<?> requestType) {
     return message;
   }
+
 
 }

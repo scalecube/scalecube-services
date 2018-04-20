@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
-import com.codahale.metrics.MetricRegistry;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceDiscovery;
@@ -14,15 +15,14 @@ import io.scalecube.services.transport.DummyStringCodec;
 import io.scalecube.services.transport.LocalServiceInvoker;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.rsocket.server.DefaultServicesMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
+
+import com.codahale.metrics.MetricRegistry;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -118,15 +118,14 @@ public class Microservices {
     // provision services for service access.
     this.client = new ServiceCall(client);
     this.metrics = metrics;
-    server.accept(LocalServiceInvoker.create(new DummyStringCodec(), services));
-    this.serviceAddress = server.bindAwait(5801);
+    server.accept(LocalServiceInvoker.create(Arrays.asList(new DummyStringCodec()), services));
+    this.serviceAddress = server.bindAwait(0);
 
     // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl();
     this.routerFactory = new RouterFactory(serviceRegistry);
-    
+
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
-    
     this.discovery.start(clusterConfig);
   }
 

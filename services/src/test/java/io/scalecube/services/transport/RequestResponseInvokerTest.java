@@ -47,7 +47,7 @@ public class RequestResponseInvokerTest extends BaseTest {
 
     GreetingServiceImpl service = new GreetingServiceImpl();
 
-    LocalServiceInvoker localService = LocalServiceInvoker.create(new DummyStringCodec(),service);
+    LocalServiceInvoker localService = LocalServiceInvoker.create(Arrays.asList(new DummyStringCodec()),service);
 
     Publisher<ServiceMessage> resp =
         localService.requestResponse(ServiceMessage.builder().qualifier("sayHello").data("ronen").build());

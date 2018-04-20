@@ -223,4 +223,8 @@ public class Reflect {
     }
     return null;
   }
+  public static String qualifier(Class serviceInterface, Method method) {
+    
+    return serviceName(serviceInterface) + "/" + methodName(method);
+  }
 }
