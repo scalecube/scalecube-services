@@ -155,4 +155,8 @@ public class Reflect {
       throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
     }
   }
+
+  public static <T> T invokeMessage(Object serviceObject, Method method, Publisher<ServiceMessage> request) throws Exception {
+    return (T) method.invoke(serviceObject, new Object[] {request});
+  }
 }
