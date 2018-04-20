@@ -10,6 +10,8 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.transport.DummyStringCodec;
+import io.scalecube.services.transport.LocalServiceInvoker;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.rsocket.server.DefaultServicesMessageAcceptor;
@@ -116,15 +118,12 @@ public class Microservices {
     // provision services for service access.
     this.client = new ServiceCall(client);
     this.metrics = metrics;
-    server.accept(new DefaultServicesMessageAcceptor(this.client.call()));
+    server.accept(LocalServiceInvoker.create(new DummyStringCodec(), services));
     this.serviceAddress = server.bindAwait(5801);
 
     // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl();
     this.routerFactory = new RouterFactory(serviceRegistry);
-    Arrays.asList(services).stream().forEach(service -> {
-      this.serviceRegistry.registerService(service, serviceAddress);
-    });
     
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
     
