@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
@@ -32,7 +33,7 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = node1.call().api(GreetingService.class);
 
     // call the service.
-    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", duration));
+    Publisher<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", duration));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.whenComplete((success, error) -> {

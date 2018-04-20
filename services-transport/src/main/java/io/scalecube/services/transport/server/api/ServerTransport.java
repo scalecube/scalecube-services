@@ -13,7 +13,7 @@ public interface ServerTransport {
   
   ServerTransport accept(ServerMessageAcceptor acceptor);
 
-  InetSocketAddress bindAwait(int port);
+  InetSocketAddress bindAwait(InetSocketAddress address);
 
   Mono<Void> stop();
   

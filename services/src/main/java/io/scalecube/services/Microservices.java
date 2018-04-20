@@ -17,8 +17,11 @@ import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.Addressing;
 
 import com.codahale.metrics.MetricRegistry;
+
+import io.netty.resolver.InetSocketAddressResolver;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
@@ -120,7 +123,8 @@ public class Microservices {
     this.client = new ServiceCall(client);
     this.metrics = metrics;
     server.accept(LocalServiceInvoker.create(Arrays.asList(new DummyStringCodec()), services));
-    this.serviceAddress = server.bindAwait(0);
+    
+    this.serviceAddress = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(),0));
 
     // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl();
