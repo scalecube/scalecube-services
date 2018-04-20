@@ -123,7 +123,6 @@ public class Reflect {
     Object result = invoke(serviceObject, method, request);
     Class<?> returnType = method.getReturnType();
     if (returnType.isAssignableFrom(Publisher.class)) {
-      Class<?> parameterizedType = parameterizedReturnType(method);
       return (Publisher<T>) result;
     } else {
       // should we later support 2 parameters? message and the Stream processor?

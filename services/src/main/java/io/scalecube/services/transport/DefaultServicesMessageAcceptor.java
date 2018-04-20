@@ -12,15 +12,15 @@ import reactor.core.publisher.Mono;
 
 public class DefaultServicesMessageAcceptor implements ServerMessageAcceptor {
 
-  private Map<String, ServiceMethodInvoker> handlers;
+  private Map<String, ServiceMethodInvoker<ServiceMessage>> handlers;
 
-  public DefaultServicesMessageAcceptor(Map<String, ServiceMethodInvoker> services) {
+  public DefaultServicesMessageAcceptor(Map<String, ServiceMethodInvoker<ServiceMessage>> services) {
     this.handlers = services;
   }
 
   @Override
   public Publisher<ServiceMessage> requestChannel(final Publisher<ServiceMessage> request) {
-    Flux<ServiceMethodInvoker> stream = Flux.from(request).map(mapper->handlers.get(mapper));
+    Flux<ServiceMethodInvoker<ServiceMessage>> stream = Flux.from(request).map(mapper->handlers.get(mapper));
     
     return null;
   }
