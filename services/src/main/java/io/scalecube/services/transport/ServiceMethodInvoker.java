@@ -13,4 +13,6 @@ public interface ServiceMethodInvoker<REQ> {
    */
   Publisher<ServiceMessage> invoke(REQ request);
 
+  String methodName();
+
 }
