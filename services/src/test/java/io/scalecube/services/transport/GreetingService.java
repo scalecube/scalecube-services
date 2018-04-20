@@ -9,4 +9,11 @@ public class GreetingService {
   public Publisher<String> sayHello(String name){
     return Mono.just( "Hello to: " + name);
   }
+  
+  public Publisher<String> greetingChannel(Publisher<String> channel){
+    return channel;
+  }
+  
+  
+  
 }
