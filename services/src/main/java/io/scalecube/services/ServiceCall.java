@@ -64,7 +64,7 @@ public class ServiceCall {
      * @param request request with given headers.
      * @return CompletableFuture with service call dispatching result.
      */
-    public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
+    public Publisher<ServiceMessage> requestResponse(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
       return requestResponse(request, router.route(request).orElseThrow(() -> noReachableMemberException(request)));
     }
@@ -79,7 +79,7 @@ public class ServiceCall {
      * @return Mono with service call dispatching result.
      * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
-    public Mono<ServiceMessage> requestResponse(ServiceMessage request, ServiceReference serviceReference) {
+    public Publisher<ServiceMessage> requestResponse(ServiceMessage request, ServiceReference serviceReference) {
       // FIXME: in request response its not good idea to create transport for address per call.
       // better to reuse same channel.
       Address address = Address.create(serviceReference.host(), serviceReference.port());
@@ -93,13 +93,13 @@ public class ServiceCall {
      * @param request containing subscription data.
      * @return rx.Observable for the specific stream.
      */
-    public Flux<ServiceMessage> listen(ServiceMessage request) {
+    public Publisher<ServiceMessage> listen(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
       ServiceReference serviceReference = router.route(request).orElseThrow(() -> noReachableMemberException(request));
       return this.listen(request, serviceReference);
     }
 
-    public Flux<ServiceMessage> listen(ServiceMessage request, ServiceReference serviceReference) {
+    public Publisher<ServiceMessage> listen(ServiceMessage request, ServiceReference serviceReference) {
       Address address = Address.create(serviceReference.host(), serviceReference.port());
       return transport.create(address).requestStream(request);
     }
@@ -134,7 +134,7 @@ public class ServiceCall {
             if (Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
               return serviceCall.listen(reqMsg);
             } else {
-              return serviceCall.listen(reqMsg).map(ServiceMessage::data);
+              return Flux.from(serviceCall.listen(reqMsg)).map(ServiceMessage::data);
             }
 
           } else if (method.getReturnType().equals(Flux.class)) {
