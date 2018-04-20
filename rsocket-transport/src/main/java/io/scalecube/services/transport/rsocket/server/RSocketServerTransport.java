@@ -9,6 +9,7 @@ import io.scalecube.transport.Address;
 import io.rsocket.Payload;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,8 +34,9 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public InetSocketAddress bindAwait(int port) {
-    this.server = RSocketServerFactory.create(port, codec, acceptor)
+  public InetSocketAddress bindAwait(InetSocketAddress address) {
+    
+    this.server = RSocketServerFactory.create(address, codec, acceptor)
         .start().block();
     return server.address();
   }
