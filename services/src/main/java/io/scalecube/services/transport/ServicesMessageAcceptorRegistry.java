@@ -13,10 +13,11 @@ import reactor.core.publisher.Mono;
 
 public class ServicesMessageAcceptorRegistry implements ServerMessageAcceptor {
 
-  private ConcurrentMap<String, ServiceMethodInvoker<ServiceMessage>> handlers = new ConcurrentHashMap<>();
+  @SuppressWarnings("rawtypes")
+  private ConcurrentMap<String, ServiceMethodInvoker> handlers = new ConcurrentHashMap<>();
 
   
-  public void register(final String qualifier, ServiceMethodInvoker<ServiceMessage> handler) {
+  public void register(final String qualifier, ServiceMethodInvoker handler) {
     handlers.put(qualifier, handler);
   }
   
