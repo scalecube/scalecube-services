@@ -5,7 +5,6 @@ import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
 
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 
 public abstract class AbstractServiceMethodInvoker<REQ,RESP> implements ServiceMethodInvoker<REQ> {
 
