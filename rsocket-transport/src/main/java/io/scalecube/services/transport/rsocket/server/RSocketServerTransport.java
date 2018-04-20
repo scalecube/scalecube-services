@@ -32,8 +32,9 @@ public class RSocketServerTransport implements ServerTransport {
   @Override
   public Address bindAwait(int port) {
     this.disposable = RSocketServerFactory.create(port, codec,acceptor)
-        .start()
-        
+        .start().subscribe();
+    
+    // FIXME: need to return the real address
     return Address.create("localhost", port);
   }
 
