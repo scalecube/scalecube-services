@@ -1,8 +1,14 @@
 package io.scalecube.services;
 
-import java.util.concurrent.CompletableFuture;
+import io.scalecube.services.api.ServiceMessage;
+
+import org.reactivestreams.Publisher;
+
+import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import reactor.core.publisher.Mono;
 
 final class GreetingServiceImpl implements GreetingService {
 
@@ -14,40 +20,31 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public CompletableFuture<String> greeting(String name) {
-    return CompletableFuture.completedFuture(" hello to: " + name);
+  public Publisher<String> greeting(String name) {
+    return Mono.just(" hello to: " + name);
+  }
+
+
+  @Override
+  public Publisher<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
+    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode())));
   }
 
   @Override
-  public CompletableFuture<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
-    CompletableFuture<GreetingResponse> response = new CompletableFuture<GreetingResponse>();
-
-    Executors.newScheduledThreadPool(1).schedule(() -> {
-      try {
-        response.complete(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode())));
-      } catch (Exception ex) {
-      }
-    }, request.getDuration().toMillis(), TimeUnit.MILLISECONDS);
-
-    return response;
+  public org.reactivestreams.Publisher<String> greetingNoParams() {
+    return Mono.just("hello unknown");
   }
 
   @Override
-  public CompletableFuture<String> greetingNoParams() {
-    return CompletableFuture.completedFuture("hello unknown");
+  public Publisher<GreetingResponse> greetingRequest(GreetingRequest request) {
+    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "1"));
   }
 
   @Override
-  public CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest request) {
-    return CompletableFuture
-        .completedFuture(new GreetingResponse(" hello to: " + request.getName(), ms.cluster().member().id()));
+  public Publisher<ServiceMessage> greetingMessage(ServiceMessage request) {
+    GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(), "1");
+    return Mono.just(ServiceMessage.builder().data(resp).build());
   }
-
-  // @Override
-  // public CompletableFuture<StreamMessage> greetingMessage(StreamMessage request) {
-  // GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(), ms.cluster().member().id());
-  // return CompletableFuture.completedFuture(StreamMessage.builder().data(resp).build());
-  // }
 
   @Override
   public void greetingVoid(GreetingRequest request) {

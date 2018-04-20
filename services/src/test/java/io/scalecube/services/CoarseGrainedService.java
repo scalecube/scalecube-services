@@ -3,18 +3,18 @@ package io.scalecube.services;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 
-import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
 @Service
 public interface CoarseGrainedService {
 
   @ServiceMethod
-  public CompletableFuture<String> callGreeting(String name);
+  public Publisher<String> callGreeting(String name);
 
   @ServiceMethod
-  public CompletableFuture<String> callGreetingTimeout(String request);
+  public Publisher<String> callGreetingTimeout(String request);
 
   @ServiceMethod
-  public CompletableFuture<String> callGreetingWithDispatcher(String request);
+  public Publisher<String> callGreetingWithDispatcher(String request);
 
 }
