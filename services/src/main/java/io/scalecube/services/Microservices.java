@@ -20,6 +20,7 @@ import io.scalecube.transport.Address;
 
 import com.codahale.metrics.MetricRegistry;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -103,7 +104,7 @@ public class Microservices {
   
   private Metrics metrics;
 
-  private Address serviceAddress;
+  private InetSocketAddress serviceAddress;
 
   public RouterFactory routerFactory;
 
@@ -218,7 +219,7 @@ public class Microservices {
     return serviceRegistry;
   }
 
-  public Address serviceAddress() {
+  public InetSocketAddress serviceAddress() {
     return this.serviceAddress;
   }
 

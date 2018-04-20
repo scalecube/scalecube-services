@@ -7,15 +7,18 @@ import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 
 import io.rsocket.Payload;
+import io.rsocket.transport.netty.server.NettyContextCloseable;
 
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 
 import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 
 public class RSocketServerTransport implements ServerTransport {
 
-  private Disposable disposable;
+  private NettyContextCloseable server;
   private ServiceMessageCodec<Payload> codec;
   private ServerMessageAcceptor acceptor;
 
@@ -30,23 +33,21 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Address bindAwait(int port) {
-    this.disposable = RSocketServerFactory.create(port, codec,acceptor)
-        .start().subscribe();
-    
-    // FIXME: need to return the real address
-    return Address.create("localhost", port);
+  public InetSocketAddress bindAwait(int port) {
+    this.server = RSocketServerFactory.create(port, codec, acceptor)
+        .start().block();
+    return server.address();
   }
 
   @Override
-  public void stop() {
-    disposable.dispose();
+  public Mono<Void> stop() {
+    server.dispose();
+    return server.onClose();
   }
 
   @Override
   public Collection<? extends ServiceMessageCodec> availableServiceMessageCodec() {
     return Arrays.asList(
-        new RSocketJsonPayloadCodec()
-        );
+        new RSocketJsonPayloadCodec());
   }
 }
