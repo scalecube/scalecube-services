@@ -1,40 +1,43 @@
 package io.scalecube.services.transport.rsocket.client;
 
-import io.rsocket.RSocket;
+import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.client.api.ClientChannel;
-import io.scalecube.services.transport.rsocket.PayloadCodec;
+
+import io.rsocket.Payload;
+import io.rsocket.RSocket;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class RSocketServiceClientAdapter implements ClientChannel {
 
   private RSocket rSocket;
-  private PayloadCodec payloadCodec;
+  private ServiceMessageCodec<Payload> codec;
 
-  public RSocketServiceClientAdapter(RSocket rSocket, PayloadCodec payloadCodec) {
+  public RSocketServiceClientAdapter(RSocket rSocket, ServiceMessageCodec<Payload> codec) {
     this.rSocket = rSocket;
-    this.payloadCodec = payloadCodec;
+    this.codec = codec;
   }
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
-    return rSocket.requestResponse(payloadCodec.encode(request)).map(payloadCodec::decode);
+    return rSocket.requestResponse(codec.encodeMessage(request)).map(codec::decodeMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    return rSocket.requestStream(payloadCodec.encode(request)).map(payloadCodec::decode);
+    return rSocket.requestStream(codec.encodeMessage(request)).map(codec::decodeMessage);
   }
 
   @Override
   public Mono<Void> fireAndForget(ServiceMessage request) {
-    return rSocket.fireAndForget(payloadCodec.encode(request));
+    return rSocket.fireAndForget(codec.encodeMessage(request));
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
-    return rSocket.requestChannel(request.map(payloadCodec::encode)).map(payloadCodec::decode);
+    return rSocket.requestChannel(request.map(codec::encodeMessage)).map(codec::decodeMessage);
   }
 
 }

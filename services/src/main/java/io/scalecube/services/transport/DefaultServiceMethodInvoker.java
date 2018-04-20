@@ -1,5 +1,7 @@
-package io.scalecube.services;
+package io.scalecube.services.transport;
 
+import io.scalecube.services.Reflect;
+import io.scalecube.services.ServiceMethodInvoke;
 import io.scalecube.services.api.ServiceMessage;
 
 import java.lang.reflect.Method;
@@ -8,7 +10,7 @@ import java.lang.reflect.Type;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class LocalServiceMethodInvoke implements ServiceMethodInvoke {
+public class DefaultServiceMethodInvoker implements ServiceMethodInvoke {
 
   Method method;
   Object serviceObject;
