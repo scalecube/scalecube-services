@@ -13,8 +13,12 @@ import io.rsocket.transport.netty.server.TcpServerTransport;
 public class RSocketServerFactory {
 
   static Start<NettyContextCloseable> create(int port,ServiceMessageCodec<Payload> codec, ServerMessageAcceptor acceptor) {
+    
+    TcpServerTransport transport = TcpServerTransport.create(port);
+
     return RSocketFactory.receive()
         .acceptor(new RSocketServiceMethodAcceptor(acceptor,codec))
-        .transport(TcpServerTransport.create(port));
+        .transport(transport);
+
   }
 }
