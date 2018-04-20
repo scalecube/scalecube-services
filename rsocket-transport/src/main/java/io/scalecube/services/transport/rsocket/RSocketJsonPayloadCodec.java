@@ -5,8 +5,13 @@ import io.scalecube.services.api.ServiceMessage;
 
 import io.rsocket.Payload;
 
-public class RSocketPayloadCodec implements ServiceMessageCodec<Payload> {
+public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
 
+  @Override
+  public String contentType() {
+    return "application/json";
+  }
+  
   @Override
   public Payload encodeMessage(ServiceMessage message) {
     // TODO Auto-generated method stub
@@ -15,7 +20,7 @@ public class RSocketPayloadCodec implements ServiceMessageCodec<Payload> {
 
   @Override
   public ServiceMessage decodeMessage(Payload payload) {
-    // TODO Auto-generated method stub
+    
     return null;
   }
 
@@ -30,6 +35,5 @@ public class RSocketPayloadCodec implements ServiceMessageCodec<Payload> {
     // TODO Auto-generated method stub
     return null;
   }
-
 
 }

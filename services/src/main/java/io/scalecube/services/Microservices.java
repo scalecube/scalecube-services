@@ -160,9 +160,9 @@ public class Microservices {
           "SPI ServiceTransport is missing and not found by ServiceLoader."
               + " did you forget to set Transport provider?");
 
-      return Reflect.builder(
-          new Microservices(this.server, this.client, clusterConfig, services, this.metrics))
-          .inject();
+      //return Reflect.builder(
+        return new Microservices(this.server, this.client, clusterConfig, services, this.metrics);
+       //   .inject();
 
     }
 

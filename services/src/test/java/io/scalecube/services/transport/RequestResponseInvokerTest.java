@@ -1,5 +1,6 @@
 package io.scalecube.services.transport;
 
+import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
@@ -74,5 +75,11 @@ public class RequestResponseInvokerTest extends BaseTest {
     messages.subscribe(actual -> {
       System.out.println(actual);
     });
+  }
+  
+  @Test
+  public void test_microservices() throws InterruptedException {
+    Microservices ms = Microservices.builder().services(new GreetingServiceImpl()).build();
+    System.out.println( ms.serviceAddress());
   }
 }

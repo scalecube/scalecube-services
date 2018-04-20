@@ -28,6 +28,12 @@
 		
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>rsocket-services-transport</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>scalecube-cluster</artifactId>
 			<version>${scalecube.version}</version>
 		</dependency>
