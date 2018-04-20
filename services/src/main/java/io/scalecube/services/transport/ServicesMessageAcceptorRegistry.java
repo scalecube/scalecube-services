@@ -5,24 +5,31 @@ import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 
 import org.reactivestreams.Publisher;
 
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class DefaultServicesMessageAcceptor implements ServerMessageAcceptor {
+public class ServicesMessageAcceptorRegistry implements ServerMessageAcceptor {
 
-  private Map<String, ServiceMethodInvoker<ServiceMessage>> handlers;
+  @SuppressWarnings("rawtypes")
+  private ConcurrentMap<String, ServiceMethodInvoker> handlers = new ConcurrentHashMap<>();
 
-  public DefaultServicesMessageAcceptor(Map<String, ServiceMethodInvoker<ServiceMessage>> services) {
-    this.handlers = services;
+  
+  public void register(final String qualifier, ServiceMethodInvoker handler) {
+    handlers.put(qualifier, handler);
+  }
+  
+  public ServicesMessageAcceptorRegistry() {
+    //
   }
 
   @Override
   public Publisher<ServiceMessage> requestChannel(final Publisher<ServiceMessage> request) {
-    Flux<ServiceMethodInvoker<ServiceMessage>> stream = Flux.from(request).map(mapper->handlers.get(mapper));
-    
-    return null;
+    // FIXME: need to seek handler and invoke it.
+    ServiceMethodInvoker<Publisher<ServiceMessage>> handler = null;
+    return handler.invoke(request);
   }
 
 

@@ -1,5 +1,6 @@
 package io.scalecube.services.transport;
 
+import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
 
@@ -11,22 +12,17 @@ public abstract class AbstractServiceMethodInvoker<REQ,RESP> implements ServiceM
 
   protected final Object serviceObject;
 
-  protected final Class<?> requestType;
-
-  protected final Class<?> respType;
+  protected final Class requestType;
 
   protected final ServiceMessageCodec<?> payloadCodec;
 
   public AbstractServiceMethodInvoker(Object serviceObject,
       Method method,
-      Class<?> reqType,
-      Class<?> respType,
       ServiceMessageCodec<?> payloadCodec) {
 
     this.serviceObject = serviceObject;
     this.method = method;
-    this.requestType = reqType;
-    this.respType = respType;
+    this.requestType = Reflect.requestType(method);
     this.payloadCodec = payloadCodec;
   }
 
