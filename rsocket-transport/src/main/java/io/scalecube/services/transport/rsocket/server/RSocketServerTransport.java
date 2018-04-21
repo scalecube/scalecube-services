@@ -20,7 +20,7 @@ public class RSocketServerTransport implements ServerTransport {
   private ServiceMessageCodec<Payload> codec;
   private ServerMessageAcceptor acceptor;
 
-  public RSocketServerTransport(ServiceMessageCodec<Payload> payloadCodec) {
+  public RSocketServerTransport(ServiceMessageCodec payloadCodec) {
     this.codec = payloadCodec;
   }
 
@@ -42,11 +42,5 @@ public class RSocketServerTransport implements ServerTransport {
   public Mono<Void> stop() {
     server.dispose();
     return server.onClose();
-  }
-
-  @Override
-  public Collection<? extends ServiceMessageCodec> availableServiceMessageCodec() {
-    return Arrays.asList(
-        new RSocketJsonPayloadCodec());
   }
 }
