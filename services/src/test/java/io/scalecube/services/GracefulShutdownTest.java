@@ -10,11 +10,9 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
-import org.reactivestreams.Publisher;
 
 import rx.exceptions.Exceptions;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import reactor.core.publisher.Mono;

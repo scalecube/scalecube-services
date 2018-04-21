@@ -9,7 +9,6 @@ import org.reactivestreams.Publisher;
 import java.lang.reflect.Method;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class RequestChannelInvoker extends AbstractServiceMethodInvoker<Publisher<ServiceMessage>, Publisher<ServiceMessage>> {
 

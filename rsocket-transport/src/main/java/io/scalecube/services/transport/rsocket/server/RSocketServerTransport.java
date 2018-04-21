@@ -4,17 +4,14 @@ import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.transport.rsocket.RSocketJsonPayloadCodec;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
-import io.scalecube.transport.Address;
 
 import io.rsocket.Payload;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 
-import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
 public class RSocketServerTransport implements ServerTransport {
@@ -23,7 +20,7 @@ public class RSocketServerTransport implements ServerTransport {
   private ServiceMessageCodec<Payload> codec;
   private ServerMessageAcceptor acceptor;
 
-  public RSocketServerTransport(ServiceMessageCodec<Payload> payloadCodec) {
+  public RSocketServerTransport(ServiceMessageCodec payloadCodec) {
     this.codec = payloadCodec;
   }
 
@@ -45,11 +42,5 @@ public class RSocketServerTransport implements ServerTransport {
   public Mono<Void> stop() {
     server.dispose();
     return server.onClose();
-  }
-
-  @Override
-  public Collection<? extends ServiceMessageCodec> availableServiceMessageCodec() {
-    return Arrays.asList(
-        new RSocketJsonPayloadCodec());
   }
 }

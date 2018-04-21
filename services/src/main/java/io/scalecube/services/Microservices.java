@@ -12,7 +12,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.services.transport.DummyStringCodec;
 import io.scalecube.services.transport.LocalServiceInvoker;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
@@ -22,11 +21,10 @@ import io.scalecube.transport.Addressing;
 
 import com.codahale.metrics.MetricRegistry;
 
-import io.netty.resolver.InetSocketAddressResolver;
-
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 
 import reactor.core.publisher.Mono;
@@ -118,16 +116,21 @@ public class Microservices {
 
   private Object cluster;
 
+  private Map<String, ? extends ServiceMessageCodec> codecs;
+
   private Microservices(ServerTransport server,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
       Object[] services,
+      Map<String, ? extends ServiceMessageCodec> codecs, 
       Metrics metrics) {
 
     // provision services for service access.
     this.client = new ServiceCall(client);
     this.metrics = metrics;
-    server.accept(LocalServiceInvoker.create(Arrays.asList(new DummyStringCodec()), services));
+    this.codecs = codecs;
+    
+    server.accept(LocalServiceInvoker.create(Arrays.asList(codecs.get("application/json")), services));
     
     this.serviceAddress = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(),0));
 
@@ -158,7 +161,7 @@ public class Microservices {
 
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
-
+    private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodec();
 
     /**
      * Microservices instance builder.
@@ -172,7 +175,7 @@ public class Microservices {
               + " did you forget to set Transport provider?");
 
       //return Reflect.builder(
-        return new Microservices(this.server, this.client, clusterConfig, services, this.metrics);
+        return new Microservices(this.server, this.client, clusterConfig, services, codecs,this.metrics);
        //   .inject();
 
     }
