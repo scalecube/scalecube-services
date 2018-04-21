@@ -130,4 +130,8 @@ public class ServiceDiscovery {
       throw Throwables.propagate(e);
     }
   }
+
+  public Cluster cluster() {
+    return this.cluster;
+  }
 }

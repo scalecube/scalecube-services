@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceDiscovery;
@@ -27,6 +28,8 @@ import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
+
+import reactor.core.publisher.Mono;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -113,6 +116,8 @@ public class Microservices {
 
   private final ServiceDiscovery discovery;
 
+  private Object cluster;
+
   private Microservices(ServerTransport server,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
@@ -132,6 +137,7 @@ public class Microservices {
 
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
     this.discovery.start(clusterConfig);
+    this.cluster= this.discovery.cluster();
   }
 
   public Metrics metrics() {
@@ -234,5 +240,15 @@ public class Microservices {
   public Call call() {
     Router router = this.router(RoundRobinServiceRouter.class);
     return client.call().metrics(metrics).router(router);
+  }
+
+  public Mono<Void> shutdown() {
+    // FIXME: need to implement shutdown process.
+    return Mono.empty();
+  }
+
+  public Cluster cluster() {
+    
+    return null;
   }
 }
