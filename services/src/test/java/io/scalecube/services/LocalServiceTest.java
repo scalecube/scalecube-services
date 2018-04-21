@@ -5,13 +5,10 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
-import org.reactivestreams.Publisher;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import reactor.core.publisher.Mono;
