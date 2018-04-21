@@ -1,14 +1,15 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>io.scalecube</groupId>
+	<artifactId>scalecube-services-parent</artifactId>
 	<version>2.0.0-SNAPSHOT</version>
-	<packaging>jar</packaging>
+	<packaging>pom</packaging>
 
-	<artifactId>scalecube-services</artifactId>
-	<name>ScaleCube/Services</name>
-
+	<name>ScaleCube</name>
 	<description>
         ScaleCube is a lightweight decentralized cluster membership, failure detection, messaging and
         gossip protocol library for the Java VM.
@@ -60,61 +61,41 @@
 		<argLine>-Xms1024m -Xmx2048m</argLine>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<jackson.version>2.9.0</jackson.version>
 		<scalecube.version>1.0.9</scalecube.version>
+		<reactor.version>3.1.6.RELEASE</reactor.version>
+		<metrics.version>3.1.2</metrics.version>
 	</properties>
 
-
+	<modules>
+		<module>services-api</module>
+		<module>services</module>
+		<module>services-transport</module>
+		<module>rsocket-transport</module>
+	</modules>
 	<dependencies>
+		<!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->
 		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scalecube-streams</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scalecube-testlib</artifactId>
-			<version>${scalecube.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>${project.groupId}</groupId>
-			<artifactId>scalecube-cluster</artifactId>
-			<version>${scalecube.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.scalecube</groupId>
-			<artifactId>scalecube-utils</artifactId>
-			<version>1.1.0-SNAPSHOT</version>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-core</artifactId>
+			<version>${reactor.version}</version>
 		</dependency>
 	</dependencies>
-
 	<build>
 		<plugins>
 			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>3.0.2</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>test-jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.3</version>
-				<configuration>
-					<source>1.8</source>
-					<target>1.8</target>
-					<compilerArgs>
-						<arg>-proc:none</arg>
-						<arg>-Xlint:unchecked</arg>
-					</compilerArgs>
-				</configuration>
-			</plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.3</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-proc:none</arg>
+                        <arg>-Xlint:unchecked</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 </project>
