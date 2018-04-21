@@ -218,7 +218,7 @@ public class RemoteServiceTest extends BaseTest {
 
     Mono.from(future).doOnNext(result -> {
       // print the greeting.
-      System.out.println("6. remote_async_greeting_return_GreetingResponse :" + result.getResult());
+      System.out.println("remote_async_greeting_return_GreetingResponse :" + result.getResult());
       // print the greeting.
       assertTrue(result.getResult().equals(" hello to: joe"));
     }).block(Duration.ofSeconds(10000));
