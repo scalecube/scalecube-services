@@ -13,8 +13,9 @@ import org.junit.Test;
 
 import rx.exceptions.Exceptions;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import reactor.core.publisher.Mono;
 
 /**
  * this example shows the graceful shutdown behavior. it demonstrate the behavior of a service being consumed while the
@@ -48,26 +49,20 @@ public class GracefulShutdownTest extends BaseTest {
     while (members.gateway().cluster().member(members.node1().cluster().address()).isPresent()
         || postShutdown.get() >= 0) {
       
-      CompletableFuture<ServiceMessage> future = service.invoke(request);
-      future.whenComplete((result, ex) -> {
-        if (ex == null) {
-          // print the greeting.
-          assertThat(result.data(), instanceOf(GreetingResponse.class));
-          assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
-          System.out.println(count.get() + " - Response from node: ");
-          count.decrementAndGet();
-        } else {
-          fail(); // if one request fails fail the test
-          // print the greeting.
-          System.out.println(ex);
-          Exceptions.propagate(ex);
-        }
+      Mono<ServiceMessage> future = Mono.from(service.requestResponse(request));
+      future.doOnNext(result->{
+     // print the greeting.
+        assertThat(result.data(), instanceOf(GreetingResponse.class));
+        assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
+        System.out.println(count.get() + " - Response from node: ");
+        count.decrementAndGet();
       });
-
-      if (count.get() == 0) {
-        //  node1 leave the cluster after on 0.
-        members.node1().cluster().shutdown();
-      }
+      future.doOnError(onError->{
+        fail(); // if one request fails fail the test
+        // print the greeting.
+        System.out.println(onError);
+        Exceptions.propagate(onError);
+      });
 
       // sending messages after member is gone.
       // node still answer requests as its only half stopped.

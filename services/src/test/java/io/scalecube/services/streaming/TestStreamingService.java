@@ -138,11 +138,10 @@ public class TestStreamingService extends BaseTest {
     Call service = gateway.call();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Disposable sub1 = service.listen(Messages.builder()
+    Disposable sub1 = Flux.from(service.listen(Messages.builder()
         .request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
-        .build())
-
+        .build()))
         .subscribe(onNext -> latch1.countDown());
 
 
@@ -203,10 +202,10 @@ public class TestStreamingService extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    sub1.set(service.listen(justOne).subscribe(onNext -> {
+    Flux.from(service.listen(justOne)).subscribe(onNext -> {
           sub1.get().dispose();
           latch1.countDown();
-        }));
+        });
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
@@ -232,7 +231,7 @@ public class TestStreamingService extends BaseTest {
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
-    sub1.set(service.listen(scheduled).subscribe(onNext -> {
+    sub1.set(Flux.from(service.listen(scheduled)).subscribe(onNext -> {
           sub1.get().isDisposed();
           latch1.countDown();
 
@@ -288,7 +287,7 @@ public class TestStreamingService extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    sub1.set(service.listen(justOne)
+    sub1.set(Flux.from(service.listen(justOne))
         .subscribe(onNext -> {
           System.out.println(onNext);
         }));

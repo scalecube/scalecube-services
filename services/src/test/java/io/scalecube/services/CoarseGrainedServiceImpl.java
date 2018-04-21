@@ -1,8 +1,10 @@
 package io.scalecube.services;
 
-import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
+import java.time.Duration;
+
+import reactor.core.publisher.Mono;
 
 public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
@@ -15,33 +17,20 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   private Microservices ms;
 
   @Override
-  public CompletableFuture<String> callGreeting(String name) {
+  public Publisher<String> callGreeting(String name) {
     return this.greetingService.greeting(name);
   }
 
   @Override
-  public CompletableFuture<String> callGreetingTimeout(String request) {
-    CompletableFuture<String> future = new CompletableFuture<String>();
-    this.greetingServiceTimeout.greetingRequestTimeout(new GreetingRequest(request, Duration.ofSeconds(2)))
-        .whenComplete((success, error) -> {
-          if (error != null) {
-            future.completeExceptionally(error);
-          } else {
-            future.complete(success.getResult());
-          }
-        });
-    return future;
+  public Publisher<String> callGreetingTimeout(String request) {
+    return Mono.from(this.greetingServiceTimeout.greetingRequestTimeout(new GreetingRequest(request, Duration.ofSeconds(2))))
+        .map(response->response.getResult());
   }
 
   @Override
-  public CompletableFuture<String> callGreetingWithDispatcher(String request) {
-    final CompletableFuture<String> future = new CompletableFuture<String>();
-
-    ms.call().invoke(Messages.builder().request(SERVICE_NAME, "greeting")
-        .data("joe").build()).whenComplete((message, error) -> {
-          future.complete(message.data().toString());
-        });
-
-    return future;
+  public Publisher<String> callGreetingWithDispatcher(String request) {
+    return Mono.from(ms.call().requestResponse(Messages.builder().request(SERVICE_NAME, "greeting")
+        .data("joe").build()))
+        .map(response->response.data());
   }
 }

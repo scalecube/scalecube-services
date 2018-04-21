@@ -16,12 +16,19 @@ public abstract class AbstractServiceMethodInvoker<REQ,RESP> implements ServiceM
 
   protected final ServiceMessageCodec<?> payloadCodec;
 
+  private final String methodName;
+
+  public String methodName() {
+    return this.methodName;
+  }
+  
   public AbstractServiceMethodInvoker(Object serviceObject,
       Method method,
       ServiceMessageCodec<?> payloadCodec) {
 
     this.serviceObject = serviceObject;
     this.method = method;
+    this.methodName = Reflect.methodName(method);
     this.requestType = Reflect.requestType(method);
     this.payloadCodec = payloadCodec;
   }

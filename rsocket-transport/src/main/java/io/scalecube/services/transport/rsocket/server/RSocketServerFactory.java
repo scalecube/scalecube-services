@@ -10,11 +10,17 @@ import io.rsocket.RSocketFactory.Start;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 
+import java.net.InetSocketAddress;
+
 public class RSocketServerFactory {
 
-  static Start<NettyContextCloseable> create(int port,ServiceMessageCodec<Payload> codec, ServerMessageAcceptor acceptor) {
+  static Start<NettyContextCloseable> create(InetSocketAddress addrress, ServiceMessageCodec<Payload> codec, ServerMessageAcceptor acceptor) {
+    
+    TcpServerTransport transport = TcpServerTransport.create(addrress);
+
     return RSocketFactory.receive()
         .acceptor(new RSocketServiceMethodAcceptor(acceptor,codec))
-        .transport(TcpServerTransport.create(port));
+        .transport(transport);
+
   }
 }

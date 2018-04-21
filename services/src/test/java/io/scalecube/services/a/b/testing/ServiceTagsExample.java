@@ -2,6 +2,8 @@ package io.scalecube.services.a.b.testing;
 
 import io.scalecube.services.Microservices;
 
+import reactor.core.publisher.Mono;
+
 
 public class ServiceTagsExample {
 
@@ -10,14 +12,14 @@ public class ServiceTagsExample {
 
     Microservices services1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
-        .build()
+        //.services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
+        //.build()
         .build();
 
     Microservices services2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
-        .build()
+        //.services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
+        //.build()
         .build();
 
     CanaryService service = gateway.call()
@@ -25,7 +27,7 @@ public class ServiceTagsExample {
         .api(CanaryService.class);
 
     for (int i = 0; i < 10; i++) {
-      service.greeting("joe").whenComplete((success, error) -> {
+      Mono.from(service.greeting("joe")).doOnNext(success -> {
         success.startsWith("B");
         System.out.println(success);
       });

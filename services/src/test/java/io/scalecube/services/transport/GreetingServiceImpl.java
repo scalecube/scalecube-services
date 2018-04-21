@@ -13,7 +13,4 @@ public class GreetingServiceImpl implements GreetingService  {
   public Publisher<String> greetingChannel(Publisher<String> channel){
     return channel;
   }
-  
-  
-  
 }

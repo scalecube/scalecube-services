@@ -1,7 +1,6 @@
 package io.scalecube.services.transport.rsocket.server;
 
 import io.scalecube.services.ServiceMessageCodec;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 
 import io.rsocket.AbstractRSocket;

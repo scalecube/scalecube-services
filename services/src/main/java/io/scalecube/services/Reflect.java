@@ -212,4 +212,19 @@ public class Reflect {
     }
     return null;
   }
+
+  public static String methodName(Method method) {
+    if(method.isAnnotationPresent(ServiceMethod.class)) {
+      if(method.getAnnotation(ServiceMethod.class).value()!=null) {
+        return method.getAnnotation(ServiceMethod.class).value();
+      } else {
+        return method.getName();
+      }
+    }
+    return null;
+  }
+  public static String qualifier(Class serviceInterface, Method method) {
+    
+    return serviceName(serviceInterface) + "/" + methodName(method);
+  }
 }

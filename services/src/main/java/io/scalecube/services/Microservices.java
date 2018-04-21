@@ -1,28 +1,40 @@
 package io.scalecube.services;
 
-import com.codahale.metrics.MetricRegistry;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.rsockets.ServiceRequestsListener;
 import io.scalecube.rsockets.ServiceScanner;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.transport.LocalServiceInvoker;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
+import io.scalecube.transport.Addressing;
+
+import com.codahale.metrics.MetricRegistry;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
+
 import java.util.HashMap;
+
+import java.util.Map;
+
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import reactor.core.publisher.Mono;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -97,21 +109,46 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Microservices {
 
+
   public static final int SERVICE_PORT = 5801;
-  private  ServiceRegistry serviceRegistry;
+
+  private final ServiceRegistry serviceRegistry;
+
+  private final ClientTransport client;
+
   private Metrics metrics;
+
   private Address serviceAddress;
+
   public RouterFactory routerFactory;
+
   private ServiceDiscovery discovery;
 
-  private Microservices(ClusterConfig.Builder clusterConfig,
-                        Object[] services,
-                        Metrics metrics) {
+  private Cluster cluster;
+
+  private Map<String, ? extends ServiceMessageCodec> codecs;
+
+  private ServerTransport server;
+
+  private Microservices(ServerTransport server,
+      ClientTransport client,
+      ClusterConfig.Builder clusterConfig,
+      Object[] services,
+      Map<String, ? extends ServiceMessageCodec> codecs,
+      Metrics metrics) {
 
     // provision services for service access.
     this.metrics = metrics;
     InetSocketAddress serviceAddr = new ServiceRequestsListener(SERVICE_PORT).start();
     this.serviceAddress = Address.create(serviceAddr.getHostName(), serviceAddr.getPort());
+
+    this.codecs = codecs;
+    this.client = client;
+    this.server = server;
+
+    server.accept(LocalServiceInvoker.create(Arrays.asList(codecs.get("application/json")), services));
+    InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
+    this.serviceAddress = Address.create(inet.getHostString(), inet.getPort()) ;
 
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
@@ -122,8 +159,14 @@ public class Microservices {
     // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl(localServiceEndpoint);
     this.routerFactory = new RouterFactory(serviceRegistry);
+
     this.discovery = new ServiceDiscovery(serviceRegistry);
+
+
+    this.discovery = new ServiceDiscovery(this.serviceRegistry);
+
     this.discovery.start(clusterConfig);
+    this.cluster = this.discovery.cluster();
   }
 
   public Metrics metrics() {
@@ -145,15 +188,30 @@ public class Microservices {
     private Metrics metrics;
 
 
+    private ServerTransport server = TransportFactory.getTransport().getServerTransport();
+    private ClientTransport client = TransportFactory.getTransport().getClientTransport();
+    private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodec();
+
+
     /**
      * Microservices instance builder.
      *
      * @return Microservices instance.
      */
     public Microservices build() {
+      // return Reflect.builder(
+      return new Microservices(this.server, this.client, clusterConfig, services, codecs, this.metrics);
+      // .inject();
+    }
 
-      return new Microservices(clusterConfig, services, metrics);
+    public Builder server(ServerTransport server) {
+      this.server = server;
+      return this;
+    }
 
+    public Builder client(ClientTransport client) {
+      this.client = client;
+      return this;
     }
 
     public Builder port(int port) {
@@ -204,6 +262,19 @@ public class Microservices {
 
   public Router router(Class<? extends Router> routerType) {
     return routerFactory.getRouter(routerType);
+  }
+
+  public Call call() {
+    Router router = this.router(RoundRobinServiceRouter.class);
+    return new ServiceCall(client).call().metrics(metrics).router(router);
+  }
+
+  public Mono<Void> shutdown() {
+    return Mono.when(Mono.fromFuture(cluster.shutdown()), this.server.stop());
+  }
+
+  public Cluster cluster() {
+    return this.cluster;
   }
 
 }

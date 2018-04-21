@@ -2,28 +2,29 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.api.ServiceMessage;
 
-import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
 
 @Service
 interface GreetingService {
 
   @ServiceMethod
-  CompletableFuture<String> greetingNoParams();
+  Publisher<String> greetingNoParams();
 
   @ServiceMethod
-  CompletableFuture<String> greeting(String string);
+  Publisher<String> greeting(String string);
 
   @ServiceMethod
-  CompletableFuture<GreetingResponse> greetingRequestTimeout(GreetingRequest request);
+  Publisher<GreetingResponse> greetingRequestTimeout(GreetingRequest request);
 
   @ServiceMethod
-  CompletableFuture<GreetingResponse> greetingRequest(GreetingRequest string);
-
-  // @ServiceMethodDefinition
-  // CompletableFuture<StreamMessage> greetingMessage(StreamMessage request);
+  Publisher<GreetingResponse> greetingRequest(GreetingRequest string);
 
   @ServiceMethod
-  void greetingVoid(GreetingRequest request);
+  Publisher<ServiceMessage> greetingMessage(ServiceMessage request);
+
+  @ServiceMethod
+  Publisher<Void> greetingVoid(GreetingRequest request);
 
 }

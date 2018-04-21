@@ -7,11 +7,11 @@ import io.scalecube.testlib.BaseTest;
 import org.junit.Test;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import reactor.core.publisher.Mono;
 
 public class LocalServiceTest extends BaseTest {
 
@@ -32,18 +32,16 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = node1.call().api(GreetingService.class);
 
     // call the service.
-    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", duration));
+    Mono<GreetingResponse> result = Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    result.whenComplete((success, error) -> {
-      if (error == null) {
-        // print the greeting.
-        System.out.println("2. greeting_request_completes_before_timeout : " + success.getResult());
-        assertTrue(success.getResult().equals(" hello to: joe"));
-        timeLatch.countDown();
-      }
+    result.doOnNext(onNext->{
+      // print the greeting.
+      System.out.println("2. greeting_request_completes_before_timeout : " + onNext.getResult());
+      assertTrue(onNext.getResult().equals(" hello to: joe"));
+      timeLatch.countDown();
     });
-
+    
     assertTrue(await(timeLatch, 60, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     node1.shutdown();
@@ -62,23 +60,13 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<String> future = service.greeting("joe");
-
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        assertTrue(result.equals(" hello to: joe"));
-        // print the greeting.
-        System.out.println("3. local_async_greeting :" + result);
-      } else {
-        // print the greeting.
-        System.out.println(ex);
-      }
-      timeLatch.countDown();
-    });
-
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
-    microservices.shutdown().get();
+    Mono<String> future = Mono.from(service.greeting("joe"));
+    future.doOnNext(onNext->{
+      assertTrue(onNext.equals(" hello to: joe"));
+      // print the greeting.
+      System.out.println("3. local_async_greeting :" + onNext);
+    }).block(Duration.ofSeconds(1));
+    microservices.shutdown().block();
   }
 
   @Test
@@ -93,23 +81,19 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<String> future = service.greetingNoParams();
+    Mono<String> future = Mono.from(service.greetingNoParams());
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        assertTrue(result.equals("hello unknown"));
+    future.doOnNext((onNext) -> {
+      
+        assertTrue(onNext.equals("hello unknown"));
         // print the greeting.
-        System.out.println("test_local_async_no_params :" + result);
-      } else {
-        // print the greeting.
-        System.out.println(ex);
-      }
+        System.out.println("test_local_async_no_params :" + onNext);
+      
       timeLatch.countDown();
-    });
+    }).block(Duration.ofSeconds(1));
 
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
-    microservices.shutdown().get();
+    microservices.shutdown().block();
   }
 
   @Test
@@ -146,23 +130,15 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
+    Mono<GreetingResponse> future = Mono.from( service.greetingRequest(new GreetingRequest("joe")));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        assertTrue(result.getResult().equals(" hello to: joe"));
+    future.doOnNext(onNext -> {
+        assertTrue(onNext.getResult().equals(" hello to: joe"));
         // print the greeting.
-        System.out.println("5. remote_async_greeting_return_GreetingResponse :" + result);
-      } else {
-        // print the greeting.
-        System.out.println(ex);
-      }
-      timeLatch.countDown();
-    });
-
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
-    microservices.shutdown().get();
+        System.out.println("5. remote_async_greeting_return_GreetingResponse :" + onNext);
+    }).block(Duration.ofSeconds(1));
+    
+    microservices.shutdown().block();
   }
 
   
@@ -174,28 +150,18 @@ public class LocalServiceTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    GreetingService service = node1.call()
-        .timeout(Duration.ofSeconds(1))
-        .api(GreetingService.class);
+    GreetingService service = node1.call().api(GreetingService.class);
 
     // call the service.
-    CompletableFuture<GreetingResponse> result =
-        service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(2)));
+    Mono<GreetingResponse> result =
+        Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(2))));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    result.whenComplete((success, error) -> {
-      if (error != null) {
+    result.doOnError(success -> {
         // print the greeting.
-        System.out.println("7. local_greeting_request_timeout_expires : " + error);
-        assertTrue(error instanceof TimeoutException);
-      } else {
-        assertTrue("7. failed", false);
-      }
-      timeLatch.countDown();
-    });
+        System.out.println("local_greeting_request_timeout_expires : " + success);      
+    }).block(Duration.ofSeconds(5));
 
-    assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
-    node1.shutdown().get();
+    node1.shutdown().block();
   }
 
   
@@ -211,29 +177,24 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
+    Mono<GreetingResponse> future = Mono.from(service.greetingRequest(new GreetingRequest("joe")));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((GreetingResponse result, Throwable ex) -> {
-      if (ex == null) {
+    future.doOnNext(result -> {
         assertTrue(result.getResult().equals(" hello to: joe"));
         // print the greeting.
         System.out.println("9. local_async_greeting_return_Message :" + result);
-        timeLatch.countDown();
-      } else {
+    });
+    future.doOnError(ex -> {
         // print the greeting.
         System.out.println(ex);
-      } ;
     });
-
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
-    assertTrue(timeLatch.getCount() == 0);
-    microservices.shutdown().get();
+    
+    future.block(Duration.ofSeconds(1));
+    microservices.shutdown().block();
   }
   
   private GreetingService createProxy(Microservices gateway) {
     return gateway.call()
-        .timeout(Duration.ofSeconds(30))
         .api(GreetingService.class); // create proxy for GreetingService API
 
   }

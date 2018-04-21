@@ -1,12 +1,12 @@
 package io.scalecube.services;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.Router;
 
 import java.util.List;
 import java.util.Optional;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 public class DummyRouter implements Router {
   private Object empty;

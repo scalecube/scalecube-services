@@ -1,21 +1,26 @@
 package io.scalecube.services.transport.rsocket.server;
 
 import io.scalecube.services.ServiceMessageCodec;
+import io.scalecube.services.transport.rsocket.RSocketJsonPayloadCodec;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
-import io.scalecube.transport.Address;
 
 import io.rsocket.Payload;
+import io.rsocket.transport.netty.server.NettyContextCloseable;
 
-import reactor.core.Disposable;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.Collection;
+
+import reactor.core.publisher.Mono;
 
 public class RSocketServerTransport implements ServerTransport {
 
-  private Disposable disposable;
+  private NettyContextCloseable server;
   private ServiceMessageCodec<Payload> codec;
   private ServerMessageAcceptor acceptor;
 
-  public RSocketServerTransport(ServiceMessageCodec<Payload> payloadCodec) {
+  public RSocketServerTransport(ServiceMessageCodec payloadCodec) {
     this.codec = payloadCodec;
   }
 
@@ -26,15 +31,16 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Address bindAwait(int port) {
-    this.disposable = RSocketServerFactory.create(port, codec,acceptor)
-        .start()
-        .subscribe();
-    return Address.create("localhost", port);
+  public InetSocketAddress bindAwait(InetSocketAddress address) {
+    
+    this.server = RSocketServerFactory.create(address, codec, acceptor)
+        .start().block();
+    return server.address();
   }
 
   @Override
-  public void stop() {
-    disposable.dispose();
+  public Mono<Void> stop() {
+    server.dispose();
+    return server.onClose();
   }
 }

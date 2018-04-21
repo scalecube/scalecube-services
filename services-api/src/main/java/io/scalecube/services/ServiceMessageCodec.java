@@ -5,6 +5,8 @@ import io.scalecube.services.api.ServiceMessage;
 
 public interface ServiceMessageCodec<T> {
 
+  String contentType();
+  
   T encodeMessage(ServiceMessage message);
 
   ServiceMessage decodeMessage(T payload);

@@ -6,23 +6,33 @@ import io.scalecube.services.api.ServiceMessage;
 public class DummyStringCodec implements ServiceMessageCodec<String> {
 
   @Override
-  public String encodeMessage(ServiceMessage message) {
-    return message.data();
+  public String contentType() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   @Override
-  public ServiceMessage encodeData(ServiceMessage message) {
-    return message;
+  public String encodeMessage(ServiceMessage message) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   @Override
   public ServiceMessage decodeMessage(String payload) {
-    return ServiceMessage.builder().data(payload).build();
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public ServiceMessage encodeData(ServiceMessage message) {
+    // TODO Auto-generated method stub
+    return null;
   }
 
   @Override
   public ServiceMessage decodeData(ServiceMessage message, Class<?> requestType) {
-    return message;
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }
