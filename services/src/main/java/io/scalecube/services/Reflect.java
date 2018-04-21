@@ -6,7 +6,6 @@ import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.transport.ExchangeType;
 
 import com.google.common.base.Strings;
 
@@ -198,19 +197,6 @@ public class Reflect {
   public static <T> T invokeMessage(Object serviceObject, Method method, Publisher<ServiceMessage> request)
       throws Exception {
     return (T) method.invoke(serviceObject, new Object[] {request});
-  }
-
-  public static ExchangeType exchangeTypeOf(Method method) {
-    if (method.getParameterTypes().length > 0) {
-      if(method.getParameterTypes()[0].isAssignableFrom(Publisher.class)) {
-        return ExchangeType.REQUEST_CHANNEL;
-      }else if(parameterizedReturnType(method).equals(Void.class))
-        return ExchangeType.FIRE_AND_FORGET;
-      else {
-        return ExchangeType.REQUEST_RESPONSE;
-      }
-    }
-    return null;
   }
 
   public static String methodName(Method method) {
