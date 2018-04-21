@@ -32,12 +32,12 @@ import java.util.Objects;
 
 public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
 
-  
+
   @Override
   public String contentType() {
     return "application/json";
   }
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageDataCodecImpl.class);
 
   private final ObjectMapper mapper;
@@ -54,12 +54,17 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
   public Payload encodeMessage(ServiceMessage message) {
     ByteBuf dataBuffer = ByteBufAllocator.DEFAULT.buffer();
 
-    if (message.data() != null) {
-      try {
-        writeTo(new ByteBufOutputStream(dataBuffer), message.data());
-      } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
+    if (message.data() != null) {               // has data ?
+      if (message.data() instanceof ByteBuf) {  // good so data is already bytebuf?
         ReferenceCountUtil.release(dataBuffer);
+        dataBuffer = message.data();            // ok so use it as is
+      } else {
+        try {
+          writeTo(new ByteBufOutputStream(dataBuffer), message.data());
+        } catch (Throwable ex) {
+          LOGGER.error("Failed to deserialize data", ex);
+          ReferenceCountUtil.release(dataBuffer);
+        }
       }
     }
     ByteBuf headersBuffer = ByteBufAllocator.DEFAULT.buffer();
@@ -73,11 +78,11 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
     }
     return DefaultPayload.create(dataBuffer.nioBuffer(), headersBuffer.nioBuffer());
   }
-  
+
   @Override
   public ServiceMessage decodeMessage(Payload payload) {
     Builder builder = ServiceMessage.builder();
-    
+
     if (payload.getData().hasRemaining()) {
       try {
         builder.data(payload.sliceData());
@@ -85,7 +90,7 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
         LOGGER.error("Failed to deserialize data", ex);
       }
     }
-    
+
     if (payload.hasMetadata()) {
       ByteBuf headers = payload.sliceMetadata();
       ByteBufInputStream inputStream = new ByteBufInputStream(headers);
@@ -95,11 +100,11 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
         LOGGER.error("Failed to deserialize data", ex);
       }
     }
-    
-    
+
+
     return builder.build();
   }
-  
+
   @Override
   public ServiceMessage decodeData(ServiceMessage message, Class type) {
     if (message.data() != null && message.data() instanceof ByteBuf) {
@@ -113,8 +118,8 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
     return message;
   }
 
-  
-  
+
+
   @Override
   public ServiceMessage encodeData(ServiceMessage message) {
     ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();

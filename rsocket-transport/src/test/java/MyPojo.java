@@ -1,8 +1,22 @@
 
 public class MyPojo {
-  public MyPojo(String name) {
+  
+  private int age;
+  String name;
+  
+  @Deprecated // only for deserialization needs.
+  public MyPojo() {}
+  
+  public MyPojo(String name,int age) {
     this.name = name;
+    this.age = age;
+  }
+  
+  public int getAge() {
+    return age;
   }
 
-  String name;
+  public void setAge(int age) {
+    this.age = age;
+  }
 }
