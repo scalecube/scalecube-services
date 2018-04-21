@@ -1,6 +1,5 @@
 package io.scalecube.services.transport;
 
-import io.scalecube.services.DummyStringCodec;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.testlib.BaseTest;
