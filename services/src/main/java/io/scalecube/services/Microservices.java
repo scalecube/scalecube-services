@@ -105,7 +105,7 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
 
   private final ServiceCall client;
-  
+
   private Metrics metrics;
 
   private InetSocketAddress serviceAddress;
@@ -114,25 +114,27 @@ public class Microservices {
 
   private final ServiceDiscovery discovery;
 
-  private Object cluster;
+  private Cluster cluster;
 
   private Map<String, ? extends ServiceMessageCodec> codecs;
+
+  private ServerTransport server;
 
   private Microservices(ServerTransport server,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
       Object[] services,
-      Map<String, ? extends ServiceMessageCodec> codecs, 
+      Map<String, ? extends ServiceMessageCodec> codecs,
       Metrics metrics) {
 
     // provision services for service access.
     this.client = new ServiceCall(client);
     this.metrics = metrics;
     this.codecs = codecs;
-    
+    this.server = server;
+
     server.accept(LocalServiceInvoker.create(Arrays.asList(codecs.get("application/json")), services));
-    
-    this.serviceAddress = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(),0));
+    this.serviceAddress = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
 
     // register and make them discover-able
     this.serviceRegistry = new ServiceRegistryImpl();
@@ -140,7 +142,7 @@ public class Microservices {
 
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
     this.discovery.start(clusterConfig);
-    this.cluster= this.discovery.cluster();
+    this.cluster = this.discovery.cluster();
   }
 
   public Metrics metrics() {
@@ -174,9 +176,9 @@ public class Microservices {
           "SPI ServiceTransport is missing and not found by ServiceLoader."
               + " did you forget to set Transport provider?");
 
-      //return Reflect.builder(
-        return new Microservices(this.server, this.client, clusterConfig, services, codecs,this.metrics);
-       //   .inject();
+      // return Reflect.builder(
+      return new Microservices(this.server, this.client, clusterConfig, services, codecs, this.metrics);
+      // .inject();
 
     }
 
@@ -246,12 +248,10 @@ public class Microservices {
   }
 
   public Mono<Void> shutdown() {
-    // FIXME: need to implement shutdown process.
-    return Mono.empty();
+    return Mono.when(Mono.fromFuture(cluster.shutdown()), this.server.stop());
   }
 
   public Cluster cluster() {
-    
-    return null;
+    return this.cluster;
   }
 }
