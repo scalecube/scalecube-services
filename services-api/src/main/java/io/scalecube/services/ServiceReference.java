@@ -5,6 +5,12 @@ import java.util.Map;
 
 public class ServiceReference {
 
+  @Override
+  public String toString() {
+    return "ServiceReference [endpointId=" + endpointId + ", host=" + host + ", port=" + port + ", namespace="
+        + namespace + ", contentType=" + contentType + ", tags=" + tags + ", action=" + action + "]";
+  }
+
   private String endpointId;
   private String host;
   private int port;
