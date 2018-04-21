@@ -25,4 +25,9 @@ public class RSocketClientTransport implements ClientTransport {
 
   }
 
+  @Override
+  public ServiceMessageCodec getMessageCodec() {
+    return payloadCodec;
+  }
+
 }

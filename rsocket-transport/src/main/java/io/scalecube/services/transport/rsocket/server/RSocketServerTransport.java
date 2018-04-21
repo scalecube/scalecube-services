@@ -1,7 +1,6 @@
 package io.scalecube.services.transport.rsocket.server;
 
 import io.scalecube.services.ServiceMessageCodec;
-import io.scalecube.services.transport.rsocket.RSocketJsonPayloadCodec;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
 
@@ -9,8 +8,6 @@ import io.rsocket.Payload;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 
 import java.net.InetSocketAddress;
-import java.util.Arrays;
-import java.util.Collection;
 
 import reactor.core.publisher.Mono;
 

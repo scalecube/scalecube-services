@@ -39,9 +39,11 @@ public class ServiceCall {
     private Metrics metrics;
     private Timer latency;
     private ClientTransport transport;
+    ServiceMessageCodec codec;
 
     public Call(ClientTransport transport) {
       this.transport = transport;
+      this.codec = transport.getMessageCodec();
     }
 
     public Call router(Router router) {
@@ -134,7 +136,9 @@ public class ServiceCall {
             if (Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
               return serviceCall.listen(reqMsg);
             } else {
-              return Flux.from(serviceCall.listen(reqMsg)).map(ServiceMessage::data);
+              return Flux.from(serviceCall.listen(reqMsg))
+                  .map(message -> codec.decodeData(message, Reflect.parameterizedReturnType(method)))
+                  .map(ServiceMessage::data);
             }
 
           } else if (method.getReturnType().equals(Flux.class)) {
@@ -147,27 +151,6 @@ public class ServiceCall {
             LOGGER.error("return value is not supported type.");
             return new CompletableFuture<T>().completeExceptionally(new UnsupportedOperationException());
           }
-        }
-
-        @SuppressWarnings("unchecked")
-        private CompletableFuture<T> toCompletableFuture(final Method method,
-            final CompletableFuture<ServiceMessage> reuslt) {
-          final CompletableFuture<T> future = new CompletableFuture<>();
-          reuslt.whenComplete((value, ex) -> {
-            if (ex == null) {
-              Metrics.mark(serviceInterface, metrics, method, "response");
-              if (!Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
-                future.complete((T) value.data());
-              } else {
-                future.complete((T) value);
-              }
-            } else {
-              Metrics.mark(serviceInterface, metrics, method, "error");
-              LOGGER.error("return value is exception: {}", ex);
-              future.completeExceptionally(ex);
-            }
-          });
-          return future;
         }
       });
     }
