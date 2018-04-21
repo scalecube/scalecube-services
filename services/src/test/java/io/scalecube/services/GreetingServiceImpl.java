@@ -4,10 +4,6 @@ import io.scalecube.services.api.ServiceMessage;
 
 import org.reactivestreams.Publisher;
 
-import java.time.Duration;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
 import reactor.core.publisher.Mono;
 
 final class GreetingServiceImpl implements GreetingService {
@@ -31,7 +27,7 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public org.reactivestreams.Publisher<String> greetingNoParams() {
+  public Publisher<String> greetingNoParams() {
     return Mono.just("hello unknown");
   }
 
@@ -47,7 +43,8 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public void greetingVoid(GreetingRequest request) {
+  public Publisher<Void> greetingVoid(GreetingRequest request) {
     System.out.println(" hello to: " + request.getName());
+    return Mono.just(null);
   }
 }
