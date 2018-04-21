@@ -4,6 +4,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.rsockets.ServiceRequestsListener;
+import io.scalecube.rsockets.ServiceScanner;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.metrics.Metrics;
@@ -24,8 +26,13 @@ import com.codahale.metrics.MetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
+
+import java.util.HashMap;
+
 import java.util.Map;
+
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 
@@ -102,17 +109,20 @@ import reactor.core.publisher.Mono;
 
 public class Microservices {
 
+
+  public static final int SERVICE_PORT = 5801;
+
   private final ServiceRegistry serviceRegistry;
 
-  private final ServiceCall client;
+  private final ClientTransport client;
 
   private Metrics metrics;
 
-  private InetSocketAddress serviceAddress;
+  private Address serviceAddress;
 
   public RouterFactory routerFactory;
 
-  private final ServiceDiscovery discovery;
+  private ServiceDiscovery discovery;
 
   private Cluster cluster;
 
@@ -128,18 +138,30 @@ public class Microservices {
       Metrics metrics) {
 
     // provision services for service access.
-    this.client = new ServiceCall(client);
     this.metrics = metrics;
     this.codecs = codecs;
+    this.client = client;
     this.server = server;
 
-    server.accept(LocalServiceInvoker.create(Arrays.asList(codecs.get("application/json")), services));
-    this.serviceAddress = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
+    if (services != null && services.length > 0) {
+      server.accept(LocalServiceInvoker.create(Arrays.asList(this.codecs.get("application/json")), services));
+      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
+      this.serviceAddress = Address.create(inet.getHostString(), inet.getPort());
+        
+    } else {
+      this.serviceAddress = Address.from("localhost:0");
+    }
 
+    ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
+        Arrays.stream(services).map(Object::getClass).collect(Collectors.toList()),
+        serviceAddress.host(),
+        serviceAddress.port(),
+        new HashMap<>());
     // register and make them discover-able
-    this.serviceRegistry = new ServiceRegistryImpl();
-    this.routerFactory = new RouterFactory(serviceRegistry);
 
+    this.serviceRegistry = new ServiceRegistryImpl(localServiceEndpoint);
+    this.routerFactory = new RouterFactory(this.serviceRegistry);
+    this.discovery = new ServiceDiscovery(this.serviceRegistry);
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
     this.discovery.start(clusterConfig);
     this.cluster = this.discovery.cluster();
@@ -153,17 +175,21 @@ public class Microservices {
     return serviceRegistry.listServiceEndpoints();
   }
 
+  public <T> T forService(Class<T> serviceClazz) {
+    return null;
+  }
+
   public static final class Builder {
 
-    private Object[] services;
-
+    private Object[] services = new Object[] {};
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
-
     private Metrics metrics;
+
 
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
     private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodec();
+
 
     /**
      * Microservices instance builder.
@@ -171,15 +197,9 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-
-      Objects.requireNonNull(this.server,
-          "SPI ServiceTransport is missing and not found by ServiceLoader."
-              + " did you forget to set Transport provider?");
-
       // return Reflect.builder(
       return new Microservices(this.server, this.client, clusterConfig, services, codecs, this.metrics);
       // .inject();
-
     }
 
     public Builder server(ServerTransport server) {
@@ -234,7 +254,7 @@ public class Microservices {
     return serviceRegistry;
   }
 
-  public InetSocketAddress serviceAddress() {
+  public Address serviceAddress() {
     return this.serviceAddress;
   }
 
@@ -244,7 +264,7 @@ public class Microservices {
 
   public Call call() {
     Router router = this.router(RoundRobinServiceRouter.class);
-    return client.call().metrics(metrics).router(router);
+    return new ServiceCall(client).call().metrics(metrics).router(router);
   }
 
   public Mono<Void> shutdown() {
@@ -254,4 +274,5 @@ public class Microservices {
   public Cluster cluster() {
     return this.cluster;
   }
+
 }

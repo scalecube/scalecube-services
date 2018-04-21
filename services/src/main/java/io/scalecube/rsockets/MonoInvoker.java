@@ -6,6 +6,8 @@ import io.rsocket.RSocketFactory;
 import io.rsocket.transport.ClientTransport;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.uri.UriTransportRegistry;
+
+import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import org.reactivestreams.Publisher;
@@ -15,8 +17,8 @@ import java.net.InetSocketAddress;
 
 public class MonoInvoker<REQ, RESP> extends ActionMethodInvoker<REQ, RESP> {
 
-    public MonoInvoker(Class<REQ> reqType, Class<RESP> respType, PayloadCodec payloadCodec) {
-        super(reqType, respType, CommunicationMode.MONO, payloadCodec);
+    public MonoInvoker(Class<REQ> reqType, Class<RESP> respType, ServiceMessageCodec payloadCodec) {
+        super(reqType, respType, CommunicationMode.REQUEST_ONE, payloadCodec);
     }
 
     // HeyService::sayHey -> ServiceReference
@@ -39,11 +41,11 @@ public class MonoInvoker<REQ, RESP> extends ActionMethodInvoker<REQ, RESP> {
         ServiceMessage serviceReq = request instanceof ServiceMessage
                 ? (ServiceMessage) request
                 : ServiceMessage.builder().qualifier(sr.namespace(), sr.action()).build();
-        Mono<Payload> payloadMono = client.requestResponse(payloadCodec.encode(serviceReq));
+        Mono<Payload> payloadMono = client.requestResponse((Payload) payloadCodec.encodeMessage(serviceReq));
         if (respType == ServiceMessage.class) {
-            return payloadMono.map(payload -> payloadCodec.decode(payload)).cast(respType);
+            return payloadMono.map(payload -> payloadCodec.decodeMessage(payload)).cast(respType);
         } else {
-            return payloadMono.map(payload -> payloadCodec.decode(payload, respType)).cast(respType);
+            return payloadMono.map(payload -> payloadCodec.decodeMessage(payload)).cast(respType);
         }
     }
 }
