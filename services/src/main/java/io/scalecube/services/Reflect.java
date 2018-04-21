@@ -214,15 +214,11 @@ public class Reflect {
   }
 
   public static String methodName(Method method) {
-    if(method.isAnnotationPresent(ServiceMethod.class)) {
-      if(method.getAnnotation(ServiceMethod.class).value()!=null) {
-        return method.getAnnotation(ServiceMethod.class).value();
-      } else {
-        return method.getName();
-      }
-    }
-    return null;
+    ServiceMethod annotation = method.getAnnotation(ServiceMethod.class);
+    String action = Strings.isNullOrEmpty(annotation.value()) ? method.getName() : annotation.value();
+    return action;
   }
+  
   public static String qualifier(Class serviceInterface, Method method) {
     
     return serviceName(serviceInterface) + "/" + methodName(method);

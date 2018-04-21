@@ -221,7 +221,7 @@ public class RemoteServiceTest extends BaseTest {
       System.out.println("6. remote_async_greeting_return_GreetingResponse :" + result.getResult());
       // print the greeting.
       assertTrue(result.getResult().equals(" hello to: joe"));
-    }).block(Duration.ofSeconds(1));
+    }).block(Duration.ofSeconds(10000));
 
     provider.shutdown().block();
     consumer.shutdown().block();

@@ -16,7 +16,7 @@ public enum CommunicationMode {
   REQUEST_MANY, // REQUEST_STREAM
   REQUEST_STREAM; // REQUEST_CHANNEL
 
-  static Optional<CommunicationMode> of(Method m) {
+  public static Optional<CommunicationMode> of(Method m) {
     Class<?> returnType = m.getReturnType();
     Class<?> reqType = null;
     

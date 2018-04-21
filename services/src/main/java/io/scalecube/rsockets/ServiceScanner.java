@@ -2,6 +2,7 @@ package io.scalecube.rsockets;
 
 import com.google.common.base.Strings;
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceReference;
@@ -30,15 +31,15 @@ public class ServiceScanner {
                 .flatMap(c -> Arrays.stream(c.getInterfaces()))
                 .filter(i -> i.isAnnotationPresent(Service.class))
                 .map(serviceInterface -> {
-                    String namespace = serviceInterface.getAnnotation(Service.class).value();
+                    String namespace = Reflect.serviceName(serviceInterface);
                     Map<String, String> serviceTags = serviceTags(serviceInterface);
                     ContentType ctAnnotation = serviceInterface.getAnnotation(ContentType.class);
                     String serviceContentType = ctAnnotation != null ? ctAnnotation.value() : ContentType.DEFAULT;
                     List<ServiceMethodDefinition> actions = Arrays.stream(serviceInterface.getMethods())
                             .filter(m -> m.isAnnotationPresent(ServiceMethod.class))
                             .map(m -> {
-                                ServiceMethod annotation = m.getAnnotation(ServiceMethod.class);
-                                String action = Strings.isNullOrEmpty(annotation.value()) ? m.getName() : annotation.value();
+
+                                String action = Reflect.methodName(m);
                                 String contentType = ContentType.DEFAULT;
                                 Map<String, String> methodTags = methodTags(m);
                                 String communicationMode = CommunicationMode.of(m).map(CommunicationMode::name).orElse("unsupported");

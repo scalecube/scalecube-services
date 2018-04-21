@@ -1,5 +1,6 @@
 package io.scalecube.services.transport;
 
+import io.scalecube.rsockets.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
@@ -11,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -71,24 +73,22 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
     this.services = serviceObjects;
 
     Arrays.asList(serviceObjects).forEach(service -> {
-      Reflect.serviceInterfaces(service).stream().map(ServiceInterface -> {
+      Reflect.serviceInterfaces(service).forEach(serviceInterface -> {
 
-        return Reflect.serviceMethods(ServiceInterface)
-            .entrySet().stream().map(entry -> {
-              codecs.forEach(codec -> {
-                {
-                  if (Reflect.exchangeTypeOf(entry.getValue()).equals(ExchangeType.REQUEST_RESPONSE)) {
-                    this.register(Reflect.qualifier(ServiceInterface, entry.getValue()),
-                        new RequestResponseInvoker(service, entry.getValue(), codec));
+        Reflect.serviceMethods(serviceInterface).entrySet().forEach(entry -> {
+          codecs.forEach(codec -> {
+            Optional<CommunicationMode> communicationMode = CommunicationMode.of(entry.getValue());
+            if (communicationMode.get().equals(CommunicationMode.REQUEST_ONE)) {
+              
+              this.register(Reflect.qualifier(serviceInterface, entry.getValue()),
+                  new RequestResponseInvoker(service, entry.getValue(), codec));
 
-                  } else if (Reflect.exchangeTypeOf(entry.getValue()).equals(ExchangeType.REQUEST_CHANNEL)) {
-                    this.register(Reflect.qualifier(ServiceInterface, entry.getValue()),
-                        new RequestChannelInvoker(service, entry.getValue(), codec));
-                  }
-                }
-              });
-              return null;
-            });
+            } else if (communicationMode.get().equals(CommunicationMode.REQUEST_STREAM)) {
+              this.register(Reflect.qualifier(serviceInterface, entry.getValue()),
+                  new RequestChannelInvoker(service, entry.getValue(), codec));
+            }
+          });
+        });
       });
     });
   }
