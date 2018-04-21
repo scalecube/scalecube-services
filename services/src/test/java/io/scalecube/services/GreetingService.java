@@ -25,6 +25,6 @@ interface GreetingService {
   Publisher<ServiceMessage> greetingMessage(ServiceMessage request);
 
   @ServiceMethod
-  void greetingVoid(GreetingRequest request);
+  Publisher<Void> greetingVoid(GreetingRequest request);
 
 }

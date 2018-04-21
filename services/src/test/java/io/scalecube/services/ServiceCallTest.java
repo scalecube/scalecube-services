@@ -34,6 +34,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import reactor.core.publisher.Mono;
+
 public class ServiceCallTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
@@ -70,20 +72,16 @@ public class ServiceCallTest extends BaseTest {
     Microservices microservices = serviceProvider();
 
     Router router = microservices.router(RoundRobinServiceRouter.class);
-    Call serviceCall = ServiceCall.call().router(router);
+    Call serviceCall = microservices.call().router(router);
 
     // call the service.
-    CompletableFuture<ServiceMessage> future =
-        serviceCall.invoke(GREETING_NO_PARAMS_REQUEST);
+    Mono<ServiceMessage> future =
+        serviceCall.requestResponse(GREETING_NO_PARAMS_REQUEST);
 
-    future.whenComplete((message, ex) -> {
-      if (ex == null) {
+    future.doOnNext(message -> {
         assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
-      } else {
-        fail("Failed to invoke service: " + ex.getMessage());
-      }
-    }).get(TIMEOUT, TimeUnit.SECONDS);
-    microservices.shutdown().get();
+    }).block(Duration.ofSeconds(TIMEOUT));
+    microservices.shutdown().block();
   }
 
   private Microservices serviceProvider() {
