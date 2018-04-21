@@ -142,7 +142,6 @@ public class TestStreamingService extends BaseTest {
         .request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
         .build())
-
         .subscribe(onNext -> latch1.countDown());
 
 
