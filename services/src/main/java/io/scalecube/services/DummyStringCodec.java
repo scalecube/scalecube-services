@@ -1,6 +1,5 @@
-package io.scalecube.services.transport;
+package io.scalecube.services;
 
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
 
 public class DummyStringCodec implements ServiceMessageCodec<String> {

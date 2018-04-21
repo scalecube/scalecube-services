@@ -12,7 +12,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.services.transport.DummyStringCodec;
 import io.scalecube.services.transport.LocalServiceInvoker;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
@@ -21,8 +20,6 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 
 import com.codahale.metrics.MetricRegistry;
-
-import io.netty.resolver.InetSocketAddressResolver;
 
 import java.net.InetSocketAddress;
 import java.util.Arrays;
