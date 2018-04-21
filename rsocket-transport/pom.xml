@@ -51,6 +51,12 @@
 			<artifactId>jackson-datatype-jsr310</artifactId>
 			<version>${jackson.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-testlib</artifactId>
+			<version>${scalecube.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	
 	<repositories>
