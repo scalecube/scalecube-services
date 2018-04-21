@@ -1,12 +1,14 @@
 package io.scalecube.services.a.b.testing;
 
-import java.util.concurrent.CompletableFuture;
+import org.reactivestreams.Publisher;
+
+import reactor.core.publisher.Mono;
 
 
 public final class GreetingServiceImplB implements CanaryService {
 
   @Override
-  public CompletableFuture<String> greeting(String name) {
-    return CompletableFuture.completedFuture("B - hello to: " + name);
+  public Publisher<String> greeting(String name) {
+    return Mono.just("B - hello to: " + name);
   }
 }

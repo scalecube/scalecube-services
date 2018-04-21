@@ -1,5 +1,9 @@
 package io.scalecube.services;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.services.a.b.testing.CanaryService;
@@ -7,12 +11,13 @@ import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.testlib.BaseTest;
+
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -20,9 +25,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import reactor.core.publisher.Mono;
 
 public class RemoteServiceTest extends BaseTest {
 
@@ -37,15 +40,15 @@ public class RemoteServiceTest extends BaseTest {
     Microservices services1 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
-        .build()
+        // .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
+        // .build()
         .build();
 
     Microservices services2 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
-        .build()
+        // .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
+        // .build()
         .build();
 
     CanaryService service = gateway.call()
@@ -58,8 +61,8 @@ public class RemoteServiceTest extends BaseTest {
     AtomicInteger responses = new AtomicInteger(0);
     CountDownLatch timeLatch = new CountDownLatch(1);
     for (int i = 0; i < 100; i++) {
-      service.greeting("joe").whenComplete((success, error) -> {
-        responses.incrementAndGet();
+
+      Mono.from(service.greeting("joe")).doOnNext(success -> {
         if (success.startsWith("B")) {
           count.incrementAndGet();
           if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
@@ -67,11 +70,12 @@ public class RemoteServiceTest extends BaseTest {
           }
         }
       });
+
     }
 
-    services2.shutdown().get();
-    services1.shutdown().get();
-    gateway.shutdown().get();
+    services2.shutdown().block();
+    services1.shutdown().block();
+    gateway.shutdown().block();
   }
 
   @Test
@@ -89,29 +93,18 @@ public class RemoteServiceTest extends BaseTest {
         .build();
 
     GreetingService service = gateway.call()
-        .timeout(Duration.ofSeconds(3))
         .api(GreetingService.class);
 
     // call the service.
-    CompletableFuture<GreetingResponse> result = service.greetingRequestTimeout(new GreetingRequest("joe", duration));
+    Mono<GreetingResponse> result = Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
+    result.doOnNext(success -> {
+      // print the greeting.
+      System.out.println("1. greeting_request_completes_before_timeout : " + success.getResult());
+      assertTrue(success.getResult().equals(" hello to: joe"));
+    }).block(Duration.ofSeconds(10));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    result.whenComplete((success, error) -> {
-      if (error == null) {
-        // print the greeting.
-        System.out.println("1. greeting_request_completes_before_timeout : " + success.getResult());
-        assertTrue(success.getResult().equals(" hello to: joe"));
-        timeLatch.countDown();
-      } else {
-        System.out.println("1. FAILED! - greeting_request_completes_before_timeout reached timeout: " + error);
-        assertTrue(error.toString(), false);
-        timeLatch.countDown();
-      }
-    });
-
-    assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
-    node2.shutdown().get();
-    gateway.shutdown().get();
+    node2.shutdown().block();
+    gateway.shutdown().block();
 
   }
 
@@ -128,11 +121,10 @@ public class RemoteServiceTest extends BaseTest {
         .build();
 
     GreetingService service = gateway.call()
-        .timeout(Duration.ofSeconds(3))
         .api(GreetingService.class);
 
     // call the service.
-    service.greetingVoid(new GreetingRequest("joe"));
+    Mono.from(service.greetingVoid(new GreetingRequest("joe"))).block();
 
     // send and forget so we have no way to know what happen
     // but at least we didn't get exception :)
@@ -141,8 +133,8 @@ public class RemoteServiceTest extends BaseTest {
 
     Thread.sleep(1000);
 
-    gateway.shutdown().get();
-    node1.shutdown().get();
+    gateway.shutdown().block();
+    node1.shutdown().block();
   }
 
   @Test
@@ -163,25 +155,18 @@ public class RemoteServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<String> future = service.greeting("joe");
+    Mono<String> future = Mono.from(service.greeting("joe"));
     AtomicReference<String> string = new AtomicReference<String>("");
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        // print the greeting.
-        string.set(result);
-        System.out.println("4. remote_async_greeting_return_string :" + result);
-      } else {
-        // print the greeting.
-        System.out.println(ex);
-      }
-      timeLatch.countDown();
-    });
-    await(timeLatch, 100, TimeUnit.MILLISECONDS);
+
+    future.doOnNext(result -> {
+      // print the greeting.
+      string.set(result);
+      System.out.println("4. remote_async_greeting_return_string :" + result);
+    }).block(Duration.ofSeconds(1));
+
     assertTrue(string.get().equals(" hello to: joe"));
-    assertTrue(timeLatch.getCount() == 0);
-    provider.shutdown().get();
-    consumer.shutdown().get();
+    provider.shutdown().block();
+    consumer.shutdown().block();
   }
 
   @Test
@@ -202,24 +187,16 @@ public class RemoteServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<String> future = service.greetingNoParams();
+    Mono<String> future = Mono.from(service.greetingNoParams());
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        // print the greeting.
-        System.out.println("test_remote_async_greeting_no_params :" + result);
-        assertTrue(result.equals("hello unknown"));
-      } else {
-        // print the greeting.
-        System.out.println(ex);
-      }
-      timeLatch.countDown();
-    });
+    future.doOnNext(result -> {
+      // print the greeting.
+      System.out.println("test_remote_async_greeting_no_params :" + result);
+      assertTrue(result.equals("hello unknown"));
+    }).block(Duration.ofSeconds(1));
 
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
-    provider.shutdown().get();
-    consumer.shutdown().get();
+    provider.shutdown().block();
+    consumer.shutdown().block();
   }
 
   @Test
@@ -240,25 +217,17 @@ public class RemoteServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
+    Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        // print the greeting.
-        System.out.println("6. remote_async_greeting_return_GreetingResponse :" + result.getResult());
-        // print the greeting.
-        assertTrue(result.getResult().equals(" hello to: joe"));
-      } else {
-        // print the greeting.
-        System.out.println(ex);
-      }
-      timeLatch.countDown();
-    });
+    Mono.from(future).doOnNext(result -> {
+      // print the greeting.
+      System.out.println("6. remote_async_greeting_return_GreetingResponse :" + result.getResult());
+      // print the greeting.
+      assertTrue(result.getResult().equals(" hello to: joe"));
+    }).block(Duration.ofSeconds(1));
 
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
-    provider.shutdown().get();
-    consumer.shutdown().get();
+    provider.shutdown().block();
+    consumer.shutdown().block();
   }
 
 
@@ -280,27 +249,14 @@ public class RemoteServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer, Duration.ofSeconds(1));
 
     // call the service.
-    CompletableFuture<GreetingResponse> result =
+    Publisher<GreetingResponse> result =
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-
-    result.whenComplete((success, error) -> {
-      if (error != null) {
-        // print the greeting.
-        System.out.println("8. remote_greeting_request_timeout_expires : " + error);
-        assertTrue(error instanceof TimeoutException);
-        timeLatch.countDown();
-      }
+    Mono.from(result).doOnError(success -> {
+      // print the greeting.
+      System.out.println("remote_greeting_request_timeout_expires : " + success);
+      assertTrue(success instanceof TimeoutException);
     });
-
-    try {
-      await(timeLatch, 10, TimeUnit.SECONDS);
-    } catch (Exception ex) {
-      fail();
-    }
-    provider.shutdown().get();
-    consumer.shutdown().get();
   }
 
 
@@ -322,27 +278,17 @@ public class RemoteServiceTest extends BaseTest {
     GreetingService service = createProxy(consumer);
 
     // call the service.
-    CompletableFuture<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
+    Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        // print the greeting.
-        System.out.println("10. remote_async_greeting_return_Message :" + result);
-        // print the greeting.
-        assertTrue(result.getResult().equals(" hello to: joe"));
-      } else {
-        // print the greeting.
-        System.out.println("10 failed: " + ex);
-        assertTrue(result.getResult().equals(" hello to: joe"));
-      }
-      timeLatch.countDown();
-    });
+    Mono.from(future).doOnNext(result -> {
+      // print the greeting.
+      System.out.println("10. remote_async_greeting_return_Message :" + result);
+      // print the greeting.
+      assertTrue(result.getResult().equals(" hello to: joe"));
+    }).block(Duration.ofSeconds(1));
 
-    assertTrue(await(timeLatch, 20, TimeUnit.SECONDS));
-    assertTrue(timeLatch.getCount() == 0);
-    consumer.shutdown().get();
-    provider.shutdown().get();
+    consumer.shutdown().block();
+    provider.shutdown().block();
   }
 
   @Test
@@ -365,18 +311,18 @@ public class RemoteServiceTest extends BaseTest {
 
     GreetingService service = createProxy(gateway);
 
-    CompletableFuture<GreetingResponse> result1 = service.greetingRequest(new GreetingRequest("joe"));
-    CompletableFuture<GreetingResponse> result2 = service.greetingRequest(new GreetingRequest("joe"));
+    Publisher<GreetingResponse> result1 = service.greetingRequest(new GreetingRequest("joe"));
+    Publisher<GreetingResponse> result2 = service.greetingRequest(new GreetingRequest("joe"));
 
-    CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
+    Mono<Void> combined = Mono.when(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
-    combined.whenComplete((v, x) -> {
+    combined.doOnNext(onNext -> {
       try {
         // print the greeting.
-        System.out.println("11. round_robin_selection_logic :" + result1.get());
-        System.out.println("11. round_robin_selection_logic :" + result2.get());
-        GreetingResponse response1 = result1.get();
-        GreetingResponse response2 = result2.get();
+        System.out.println("11. round_robin_selection_logic :" + Mono.from(result1).block());
+        System.out.println("11. round_robin_selection_logic :" + Mono.from(result2).block());
+        GreetingResponse response1 = Mono.from(result1).block();
+        GreetingResponse response2 = Mono.from(result2).block();
         boolean success = !response1.sender().equals(response2.sender());
 
         assertTrue(success);
@@ -388,9 +334,9 @@ public class RemoteServiceTest extends BaseTest {
 
     assertTrue(await(timeLatch, 2, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
-    provider2.shutdown().get();
-    provider1.shutdown().get();
-    gateway.shutdown().get();
+    provider2.shutdown().block();
+    provider1.shutdown().block();
+    gateway.shutdown().block();
   }
 
   @Test
@@ -434,19 +380,13 @@ public class RemoteServiceTest extends BaseTest {
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
-    CountDownLatch countLatch = new CountDownLatch(1);
-    CompletableFuture<String> future = service.callGreeting("joe");
-    future.whenComplete((success, error) -> {
-      if (error == null) {
-        assertTrue(success.equals(" hello to: joe"));
-        countLatch.countDown();
-      }
-    });
 
-    countLatch.await(5, TimeUnit.SECONDS);
-    assertTrue(countLatch.getCount() == 0);
-    gateway.shutdown().get();
-    provider.shutdown().get();
+    Publisher<String> future = service.callGreeting("joe");
+    Mono.from(future).doOnNext(success -> {
+      assertTrue(success.equals(" hello to: joe"));
+
+    }).block(Duration.ofSeconds(1));
+
 
   }
 
@@ -469,20 +409,10 @@ public class RemoteServiceTest extends BaseTest {
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
-    CountDownLatch countLatch = new CountDownLatch(1);
-    CompletableFuture<String> future = service.callGreeting("joe");
-    future.whenComplete((success, error) -> {
-      if (error == null) {
-        assertTrue(success.equals(" hello to: joe"));
-        countLatch.countDown();
-      }
-    });
-
-    countLatch.await(5, TimeUnit.SECONDS);
-    assertTrue(countLatch.getCount() == 0);
-    gateway.shutdown().get();
-    provider.shutdown().get();
-
+    Publisher<String> future = service.callGreeting("joe");
+    Mono.from(future).doOnNext(success -> {
+      assertTrue(success.equals(" hello to: joe"));
+    }).block(Duration.ofSeconds(1));
   }
 
   @Test
@@ -503,22 +433,10 @@ public class RemoteServiceTest extends BaseTest {
         .build();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service =
-        gateway.call().timeout(Duration.ofSeconds(1)).api(CoarseGrainedService.class);
-    service.callGreetingTimeout("joe")
-        .whenComplete((success, error) -> {
-          if (error != null) {
-            assertTrue(error instanceof TimeoutException);
-            System.out.println("CoarseGrainedService.callGreetingTimeout: " + (error instanceof TimeoutException));
-            countLatch.countDown();
-          }
-        });
-
-    countLatch.await(5, TimeUnit.SECONDS);
-    assertTrue(countLatch.getCount() == 0);
-    gateway.shutdown().get();
-    provider.shutdown().get();
-
+    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    Mono.from(service.callGreetingTimeout("joe")).doOnNext(onNext->{
+      
+    }).block(Duration.ofSeconds(1));
   }
 
   @Test
@@ -539,22 +457,18 @@ public class RemoteServiceTest extends BaseTest {
         .build();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service =
-        gateway.call().timeout(Duration.ofSeconds(30)).api(CoarseGrainedService.class);
-    service.callGreetingWithDispatcher("joe")
-        .whenComplete((success, error) -> {
-          if (error == null) {
-            assertEquals(success, " hello to: joe");
-            countLatch.countDown();
-          } else {
-            System.out.println("failed with error: " + error);
-          }
+    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+
+    Mono.from(service.callGreetingWithDispatcher("joe"))
+        .doOnNext(success -> {
+          assertEquals(success, " hello to: joe");
+          countLatch.countDown();
         });
 
     countLatch.await(5, TimeUnit.SECONDS);
     assertTrue(countLatch.getCount() == 0);
-    gateway.shutdown().get();
-    provider.shutdown().get();
+    gateway.shutdown().block();
+    provider.shutdown().block();
 
   }
 
@@ -568,24 +482,16 @@ public class RemoteServiceTest extends BaseTest {
         .services(new GreetingServiceImpl()).build();
 
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));
-    assertTrue(ServiceInfo.from(ms.cluster().member().metadata()
-        .entrySet().stream()
-        .filter(item -> item.getValue().equals("service"))
-        .findFirst().get().getKey())
-        .getServiceName().equals("io.scalecube.services.GreetingService"));
   }
 
   private GreetingService createProxy(Microservices gateway) {
     return gateway.call()
-        .timeout(Duration.ofSeconds(30))
         .api(GreetingService.class); // create proxy for GreetingService API
 
   }
 
   private GreetingService createProxy(Microservices micro, Duration duration) {
-    return micro.call()
-        .timeout(duration)
-        .api(GreetingService.class); // create proxy for GreetingService API
+    return micro.call().api(GreetingService.class); // create proxy for GreetingService API
 
   }
 
