@@ -9,24 +9,20 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
-import io.scalecube.services.a.b.testing.GreetingServiceImplA;
-import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
 
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -75,11 +71,11 @@ public class ServiceCallTest extends BaseTest {
     Call serviceCall = microservices.call().router(router);
 
     // call the service.
-    Mono<ServiceMessage> future =
+    Publisher<ServiceMessage> future =
         serviceCall.requestResponse(GREETING_NO_PARAMS_REQUEST);
 
-    future.doOnNext(message -> {
-        assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
+    Mono.from(future).doOnNext(message -> {
+      assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
     }).block(Duration.ofSeconds(TIMEOUT));
     microservices.shutdown().block();
   }
@@ -105,20 +101,16 @@ public class ServiceCallTest extends BaseTest {
     Call serviceCall = consumer.call();
 
     // call the service.
-    CompletableFuture<ServiceMessage> future =
-        serviceCall.invoke(GREETING_NO_PARAMS_REQUEST);
+    Publisher<ServiceMessage> future =
+        serviceCall.requestResponse(GREETING_NO_PARAMS_REQUEST);
 
-    future.whenComplete((ServiceMessage message, Throwable ex) -> {
-      if (ex == null) {
-        assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
-        assertThat(message.data(), instanceOf(GreetingResponse.class));
-        assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
-      } else {
-        fail("Failed to invoke service: " + ex.getMessage());
-      }
-    }).get(TIMEOUT, TimeUnit.SECONDS);
-    provider.shutdown().get();
-    consumer.shutdown().get();
+    Mono.from(future).doOnNext(message -> {
+      assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
+      assertThat(message.data(), instanceOf(GreetingResponse.class));
+      assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
+    }).block(Duration.ofSeconds(TIMEOUT));
+    provider.shutdown().block();
+    consumer.shutdown().block();
   }
 
   @Test
@@ -132,17 +124,17 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    CompletableFuture<ServiceMessage> resultFuture =
-        gateway.call().invoke(GREETING_VOID_REQ);
-    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    Publisher<ServiceMessage> resultFuture = gateway.call().requestResponse(GREETING_VOID_REQ);
+    ServiceMessage result = Mono.from(resultFuture)
+        .block(Duration.ofSeconds(TIMEOUT));
 
     // Then:
     assertNotNull(result);
     assertEquals(GREETING_VOID_REQ.qualifier(), result.qualifier());
     assertNull(result.data());
 
-    gateway.shutdown().get();
-    node1.shutdown().get();
+    gateway.shutdown().block();
+    node1.shutdown().block();
   }
 
   @Test
@@ -150,15 +142,17 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance.
     Microservices node = serviceProvider();
     // call the service.
-    CompletableFuture<ServiceMessage> future =
-        node.call().invoke(GREETING_VOID_REQ);
-    ServiceMessage result = future.get(TIMEOUT, TimeUnit.SECONDS);
+    Publisher<ServiceMessage> future =
+        node.call().requestResponse(GREETING_VOID_REQ);
+    ServiceMessage result = Mono.from(future)
+        .block(Duration.ofSeconds(TIMEOUT));
+
     assertNotNull(result);
     assertEquals(GREETING_VOID_REQ.qualifier(), result.qualifier());
     assertNull(result.data());
 
     TimeUnit.SECONDS.sleep(2);
-    node.shutdown().get();
+    node.shutdown().block();
   }
 
   @Test
@@ -173,16 +167,16 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    CompletableFuture<ServiceMessage> resultFuture = consumer.call().invoke(GREETING_REQ);
+    Publisher<ServiceMessage> resultFuture = consumer.call().requestResponse(GREETING_REQ);
 
     // Then
-    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
     assertNotNull(result);
     assertEquals(GREETING_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", result.data());
 
-    provider.shutdown().get();
-    consumer.shutdown().get();
+    provider.shutdown().block();
+    consumer.shutdown().block();
   }
 
   @Test
@@ -192,16 +186,16 @@ public class ServiceCallTest extends BaseTest {
     Microservices microservices = serviceProvider();
 
     // When
-    CompletableFuture<ServiceMessage> resultFuture =
-        microservices.call().invoke(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> resultFuture =
+        microservices.call().requestResponse(GREETING_REQUEST_REQ);
 
     // Then
-    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));;
     assertNotNull(result);
     assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
 
-    microservices.shutdown().get();
+    microservices.shutdown().block();
   }
 
   @Test
@@ -215,17 +209,17 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    CompletableFuture<ServiceMessage> resultFuture =
-        consumer.call().invoke(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> resultFuture =
+        consumer.call().requestResponse(GREETING_REQUEST_REQ);
 
     // Then
-    ServiceMessage result = resultFuture.get(TIMEOUT, TimeUnit.SECONDS);
+    ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));;
     assertNotNull(result);
     assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
 
-    provider.shutdown().get();
-    consumer.shutdown().get();
+    provider.shutdown().block();
+    consumer.shutdown().block();
   }
 
   @Test(expected = TimeoutException.class)
@@ -233,19 +227,16 @@ public class ServiceCallTest extends BaseTest {
       throws Throwable {
     // Given:
     Microservices node = serviceProvider();
-    Call service = node.call()
-        .timeout(Duration.ofSeconds(1));
+    Call service = node.call();
 
     // call the service.
-    CompletableFuture<ServiceMessage> future =
-        service.invoke(GREETING_REQUEST_TIMEOUT_REQ);
+    Publisher<ServiceMessage> future =
+        service.requestResponse(GREETING_REQUEST_TIMEOUT_REQ);
 
     try {
-      future.get(TIMEOUT, TimeUnit.SECONDS);
-    } catch (ExecutionException ex) {
-      throw ex.getCause();
+      Mono.from(future).block(Duration.ofSeconds(TIMEOUT));
     } finally {
-      node.shutdown().get();
+      node.shutdown().block();
     }
 
   }
@@ -261,19 +252,16 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    Call service = consumer.call()
-        .timeout(Duration.ofSeconds(1));
+    Call service = consumer.call();
 
     // call the service.
-    CompletableFuture<ServiceMessage> future =
-        service.invoke(GREETING_REQUEST_TIMEOUT_REQ);
+    Publisher<ServiceMessage> future =
+        service.requestResponse(GREETING_REQUEST_TIMEOUT_REQ);
     try {
-      future.get(TIMEOUT, TimeUnit.SECONDS);
-    } catch (ExecutionException ex) {
-      Assert.assertEquals("io.scalecube.streams.onError/500", ex.getCause().getMessage());
+      Mono.from(future).block(Duration.ofSeconds(TIMEOUT));;
     } finally {
-      provider.shutdown().get();
-      consumer.shutdown().get();
+      provider.shutdown().block();
+      consumer.shutdown().block();
     }
   }
 
@@ -284,29 +272,24 @@ public class ServiceCallTest extends BaseTest {
     // Given:
     Microservices microservices = serviceProvider();
 
-
-    Call service = microservices.call()
-        .timeout(Duration.ofSeconds(1));
+    Call service = microservices.call();
 
     // call the service.
-    CompletableFuture<ServiceMessage> future =
-        service.invoke(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> future =
+        service.requestResponse(GREETING_REQUEST_REQ);
 
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        assertTrue(result.data().equals(" hello to: joe"));
-        // print the greeting.
-        System.out.println("9. local_async_greeting_return_Message :" + result.data());
-      } else {
-        // print the greeting.
-        System.out.println(ex);
-      }
+    Mono.from(future).doOnNext(result -> {
+
+      assertTrue(result.data().equals(" hello to: joe"));
+      // print the greeting.
+      System.out.println("9. local_async_greeting_return_Message :" + result.data());
+
       timeLatch.countDown();
     });
     TimeUnit.SECONDS.sleep(1);
-    microservices.shutdown().get();
+    microservices.shutdown().block();
   }
 
   @Test
@@ -323,28 +306,19 @@ public class ServiceCallTest extends BaseTest {
     Call service = consumer.call();
 
     // call the service.
-    CompletableFuture<ServiceMessage> future =
-        service.invoke(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> future =
+        service.requestResponse(GREETING_REQUEST_REQ);
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    future.whenComplete((result, ex) -> {
-      if (ex == null) {
-        // print the greeting.
-        System.out.println("10. remote_async_greeting_return_Message :" + result.data());
-        // print the greeting.
-        assertThat(result.data(), instanceOf(GreetingResponse.class));
-        assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
-      } else {
-        // print the greeting.
-        System.out.println("10 failed: " + ex);
-        assertTrue(result.data().equals(" hello to: joe"));
-      }
-      timeLatch.countDown();
+    Mono.from(future).doOnNext(result -> {
+      // print the greeting.
+      System.out.println("10. remote_async_greeting_return_Message :" + result.data());
+      // print the greeting.
+      assertThat(result.data(), instanceOf(GreetingResponse.class));
+      assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
     });
 
-    assertTrue(await(timeLatch, 3, TimeUnit.SECONDS));
-    consumer.shutdown().get();
-    provider.shutdown().get();
+    consumer.shutdown().block();
+    provider.shutdown().block();
   }
 
   @Test
@@ -368,22 +342,22 @@ public class ServiceCallTest extends BaseTest {
     Call service = gateway.call();
 
     // call the service.
-    CompletableFuture<ServiceMessage> result1 =
-        service.invoke(GREETING_REQUEST_REQ);
-    CompletableFuture<ServiceMessage> result2 =
-        service.invoke(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> result1 =
+        service.requestResponse(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> result2 =
+        service.requestResponse(GREETING_REQUEST_REQ);
 
-    CompletableFuture<Void> combined = CompletableFuture.allOf(result1, result2);
+    Mono<Void> combined = Mono.when(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
     final AtomicBoolean success = new AtomicBoolean(false);
-    combined.whenComplete((v, x) -> {
+    combined.doOnNext(onNext -> {
       try {
         // print the greeting.
-        System.out.println("11. round_robin_selection_logic :" + result1.get());
-        System.out.println("11. round_robin_selection_logic :" + result2.get());
+        System.out.println("11. round_robin_selection_logic :" + Mono.from(result1).block());
+        System.out.println("11. round_robin_selection_logic :" + Mono.from(result2).block());
 
-        GreetingResponse response1 = result1.get().data();
-        GreetingResponse response2 = result2.get().data();
+        GreetingResponse response1 = Mono.from(result1).block().data();
+        GreetingResponse response2 = Mono.from(result2).block().data();
 
         success.set(!response1.sender().equals(response2.sender()));
       } catch (Throwable e) {
@@ -395,9 +369,9 @@ public class ServiceCallTest extends BaseTest {
     assertTrue(await(timeLatch, 2, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     assertTrue(success.get());
-    provider2.shutdown().get();
-    provider1.shutdown().get();
-    gateway.shutdown().get();
+    provider2.shutdown().block();
+    provider1.shutdown().block();
+    gateway.shutdown().block();
   }
 
   @Test
@@ -413,7 +387,7 @@ public class ServiceCallTest extends BaseTest {
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       // call the service.
-      CompletableFuture<ServiceMessage> future = service.invoke(NOT_FOUND_REQ);
+      Publisher<ServiceMessage> future = service.requestResponse(NOT_FOUND_REQ);
 
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
@@ -421,8 +395,8 @@ public class ServiceCallTest extends BaseTest {
     }
 
     assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
-    gateway.shutdown().get();
-    provider1.shutdown().get();
+    gateway.shutdown().block();
+    provider1.shutdown().block();
   }
 
   @Ignore("https://api.travis-ci.org/v3/job/346827972/log.txt")
@@ -433,15 +407,15 @@ public class ServiceCallTest extends BaseTest {
     Microservices services1 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
-        .build()
+        // .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
+        // .build()
         .build();
 
     Microservices services2 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
-        .build()
+        // .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
+        // .build()
         .build();
 
     System.out.println(gateway.cluster().members());
@@ -456,12 +430,12 @@ public class ServiceCallTest extends BaseTest {
 
     for (int i = 0; i < 100; i++) {
       // call the service.
-      CompletableFuture<ServiceMessage> future = service.invoke(Messages.builder()
+      Publisher<ServiceMessage> future = service.requestResponse(Messages.builder()
           .request(CanaryService.class, "greeting")
           .data("joe")
           .build());
 
-      future.whenComplete((success, error) -> {
+      Mono.from(future).doOnNext(success -> {
         responses.incrementAndGet();
         if (success.data().toString().startsWith("B")) {
           count.incrementAndGet();
@@ -478,9 +452,9 @@ public class ServiceCallTest extends BaseTest {
     System.out.println("Service B was called: " + count.get() + " times.");
 
     assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
-    services1.shutdown().get();
-    services2.shutdown().get();
-    gateway.shutdown().get();
+    services1.shutdown().block();
+    services2.shutdown().block();
+    gateway.shutdown().block();
 
   }
 
@@ -495,30 +469,24 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    Call service = gateway.call().timeout(Duration.ofSeconds(3));
+    Call service = gateway.call();
 
-    CompletableFuture<ServiceMessage> result = service.invoke(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> result = service.requestResponse(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    result.whenComplete((success, error) -> {
-      if (error == null) {
-        System.out.println(success);
-        GreetingResponse greetings = success.data();
-        // print the greeting.
-        System.out.println("1. greeting_request_completes_before_timeout : " + greetings.getResult());
-        assertTrue(greetings.getResult().equals(" hello to: joe"));
-        timeLatch.countDown();
-      } else {
-        System.out.println("1. FAILED! - greeting_request_completes_before_timeout reached timeout: " + error);
-        assertTrue(error.toString(), false);
-        timeLatch.countDown();
-      }
+    Mono.from(result).doOnNext(success -> {
+      System.out.println(success);
+      GreetingResponse greetings = success.data();
+      // print the greeting.
+      System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
+      assertTrue(greetings.getResult().equals(" hello to: joe"));
+      timeLatch.countDown();
     });
 
     assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
-    gateway.shutdown().get();
-    node.shutdown().get();
+    gateway.shutdown().block();
+    node.shutdown().block();
   }
 
   @Test
@@ -529,30 +497,24 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    Call service = gateway.call().timeout(Duration.ofSeconds(3));
+    Call service = gateway.call();
 
-    CompletableFuture<ServiceMessage> result =
-        service.invoke(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> result =
+        service.requestResponse(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    result.whenComplete((success, error) -> {
-      if (error == null) {
-        System.out.println(success);
-        GreetingResponse greetings = success.data();
-        // print the greeting.
-        System.out.println("1. greeting_request_completes_before_timeout : " + greetings.getResult());
-        assertTrue(greetings.getResult().equals(" hello to: joe"));
-        timeLatch.countDown();
-      } else {
-        System.out.println("1. FAILED! - greeting_request_completes_before_timeout reached timeout: " + error);
-        assertTrue(error.toString(), false);
-        timeLatch.countDown();
-      }
+    Mono.from(result).doOnNext(success -> {
+      System.out.println(success);
+      GreetingResponse greetings = success.data();
+      // print the greeting.
+      System.out.println("1. greeting_request_completes_before_timeout : " + greetings.getResult());
+      assertTrue(greetings.getResult().equals(" hello to: joe"));
+      timeLatch.countDown();
     });
 
     assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
-    gateway.shutdown().get();
+    gateway.shutdown().block();
   }
 
   private Microservices provider(Microservices gateway) {
