@@ -139,32 +139,30 @@ public class Microservices {
 
     // provision services for service access.
     this.metrics = metrics;
-    InetSocketAddress serviceAddr = new ServiceRequestsListener(SERVICE_PORT).start();
-    this.serviceAddress = Address.create(serviceAddr.getHostName(), serviceAddr.getPort());
-
     this.codecs = codecs;
     this.client = client;
     this.server = server;
 
-    server.accept(LocalServiceInvoker.create(Arrays.asList(codecs.get("application/json")), services));
-    InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
-    this.serviceAddress = Address.create(inet.getHostString(), inet.getPort()) ;
-
+    if (services != null && services.length > 0) {
+      server.accept(LocalServiceInvoker.create(Arrays.asList(this.codecs.get("application/json")), services));
+      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
+      this.serviceAddress = Address.create(inet.getHostString(), inet.getPort());
+        
+    } else {
+      this.serviceAddress = Address.from("localhost:0");
+    }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
-            Arrays.stream(services).map(Object::getClass).collect(Collectors.toList()),
-            serviceAddress.host(),
-            serviceAddress.port(),
-            new HashMap<>());
+        Arrays.stream(services).map(Object::getClass).collect(Collectors.toList()),
+        serviceAddress.host(),
+        serviceAddress.port(),
+        new HashMap<>());
     // register and make them discover-able
+
     this.serviceRegistry = new ServiceRegistryImpl(localServiceEndpoint);
-    this.routerFactory = new RouterFactory(serviceRegistry);
-
-    this.discovery = new ServiceDiscovery(serviceRegistry);
-
-
+    this.routerFactory = new RouterFactory(this.serviceRegistry);
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
-
+    this.discovery = new ServiceDiscovery(this.serviceRegistry);
     this.discovery.start(clusterConfig);
     this.cluster = this.discovery.cluster();
   }
@@ -183,7 +181,7 @@ public class Microservices {
 
   public static final class Builder {
 
-    private Object[] services;
+    private Object[] services = new Object[] {};
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
 

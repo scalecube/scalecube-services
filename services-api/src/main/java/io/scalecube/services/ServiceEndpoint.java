@@ -16,7 +16,9 @@ public class ServiceEndpoint {
      */
     public ServiceEndpoint() {
     }
-
+    public static ServiceEndpoint empty() {
+      return new ServiceEndpoint();
+    }
     public ServiceEndpoint(String id,
                            String host,
                            int port,
@@ -59,4 +61,6 @@ public class ServiceEndpoint {
                 ", serviceRegistrations=" + serviceRegistrations +
                 '}';
     }
+
+    
 }

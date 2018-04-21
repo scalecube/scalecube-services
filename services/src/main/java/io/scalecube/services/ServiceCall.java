@@ -130,7 +130,7 @@ public class ServiceCall {
               .data(data)
               .build();
 
-          if (method.getReturnType().getClass().isAssignableFrom(Publisher.class)) {
+          if (method.getReturnType().isAssignableFrom(Publisher.class)) {
             if (Reflect.parameterizedReturnType(method).equals(ServiceMessage.class)) {
               return serviceCall.listen(reqMsg);
             } else {

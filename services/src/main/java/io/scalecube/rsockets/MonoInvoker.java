@@ -18,7 +18,7 @@ import java.net.InetSocketAddress;
 public class MonoInvoker<REQ, RESP> extends ActionMethodInvoker<REQ, RESP> {
 
     public MonoInvoker(Class<REQ> reqType, Class<RESP> respType, ServiceMessageCodec payloadCodec) {
-        super(reqType, respType, CommunicationMode.MONO, payloadCodec);
+        super(reqType, respType, CommunicationMode.REQUEST_ONE, payloadCodec);
     }
 
     // HeyService::sayHey -> ServiceReference
