@@ -1,8 +1,7 @@
 package io.scalecube.services.transport;
 
+import io.scalecube.services.DummyStringCodec;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.Reflect;
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.testlib.BaseTest;
 
@@ -11,10 +10,6 @@ import org.reactivestreams.Publisher;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

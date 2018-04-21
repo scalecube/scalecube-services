@@ -6,7 +6,6 @@ import java.time.Duration;
 
 import reactor.core.publisher.Mono;
 
-
 public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
