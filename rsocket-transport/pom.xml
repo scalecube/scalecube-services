@@ -36,6 +36,7 @@
 			<version>${rsocket.version}</version>
 		</dependency>
 	</dependencies>
+	
 	<repositories>
 		<repository>
 			<snapshots>
@@ -46,6 +47,7 @@
 			<url>http://jcenter.bintray.com</url>
 		</repository>
 	</repositories>
+	
 	<pluginRepositories>
 		<pluginRepository>
 			<snapshots>
@@ -56,4 +58,5 @@
 			<url>http://jcenter.bintray.com</url>
 		</pluginRepository>
 	</pluginRepositories>
+
 </project>
