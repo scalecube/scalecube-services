@@ -2,9 +2,10 @@ package io.scalecube.services;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.MessageCodec;
+import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.transport.LocalServiceInvoker;
+import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
 
@@ -26,9 +27,9 @@ public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
   private final ClientTransport transport;
-  private final LocalServiceInvoker localServices;
+  private final LocalServiceDispatchers localServices;
 
-  public ServiceCall(ClientTransport transport, LocalServiceInvoker localServices) {
+  public ServiceCall(ClientTransport transport, LocalServiceDispatchers localServices) {
     this.transport = transport;
     this.localServices = localServices;
   }
@@ -43,12 +44,12 @@ public class ServiceCall {
     private Metrics metrics;
     private Timer latency;
     private ClientTransport transport;
-    private MessageCodec codec;
-    private Optional<LocalServiceInvoker> localServices;
+    private ServiceMessageDataCodec codec;
+    private Optional<LocalServiceDispatchers> localServices;
 
-    public Call(ClientTransport transport, LocalServiceInvoker localServices) {
+    public Call(ClientTransport transport, LocalServiceDispatchers localServices) {
       this.transport = transport;
-      this.codec = transport.getMessageCodec();
+      this.codec = transport.getServiceMessageDataCodec();
       this.localServices = Optional.ofNullable(localServices);
     }
 
@@ -89,7 +90,7 @@ public class ServiceCall {
     public Publisher<ServiceMessage> requestOne(final ServiceMessage request, final Class<?> returnType) {
       Messages.validate().serviceRequest(request);
       if (localServices.get().contains(request.qualifier())) {
-        return localServices.get().invokeLocal(request.qualifier(), request);
+        return localServices.get().dispatchLocalService(request.qualifier(), request);
       } else {
         return requestOne(request, returnType,
             router.route(request).orElseThrow(() -> noReachableMemberException(request)));
@@ -135,7 +136,7 @@ public class ServiceCall {
     public Publisher<ServiceMessage> requestMany(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
       if (localServices.get().contains(request.qualifier())) {
-        return localServices.get().invokeLocal(request.qualifier(), request);
+        return localServices.get().dispatchLocalService(request.qualifier(), request);
       } else {
         Class responseType = request.responseType() != null ? request.responseType() : Object.class;
         ServiceReference serviceReference =

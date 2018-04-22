@@ -14,7 +14,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.services.transport.LocalServiceInvoker;
+import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
@@ -126,7 +126,7 @@ public class Microservices {
 
   private ServerTransport server;
 
-  private final LocalServiceInvoker localServices;
+  private final LocalServiceDispatchers localServices;
 
   private Microservices(ServerTransport server,
       ClientTransport client,
@@ -141,7 +141,11 @@ public class Microservices {
     this.client = client;
     this.server = server;
 
-    localServices = LocalServiceInvoker.create(Arrays.asList(this.codecs.get("application/json")), services);
+    localServices = LocalServiceDispatchers.builder()
+        .services(services)
+        .codecs(this.codecs.get("application/json"))
+        .build();
+    
     if (services != null && services.length > 0) {
       server.accept(localServices);
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));

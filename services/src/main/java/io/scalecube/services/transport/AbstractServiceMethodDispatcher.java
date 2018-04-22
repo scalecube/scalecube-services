@@ -3,10 +3,11 @@ package io.scalecube.services.transport;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
+import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 
 import java.lang.reflect.Method;
 
-public abstract class AbstractServiceMethodInvoker<REQ, RESP> implements ServiceMethodInvoker<REQ> {
+public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements ServiceMethodDispatcher<REQ> {
 
   protected final Method method;
 
@@ -27,7 +28,7 @@ public abstract class AbstractServiceMethodInvoker<REQ, RESP> implements Service
     return this.methodName;
   }
 
-  public AbstractServiceMethodInvoker(Object serviceObject,
+  public AbstractServiceMethodDispatcher(Object serviceObject,
       Method method,
       ServiceMessageDataCodec payloadCodec) {
 
