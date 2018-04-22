@@ -18,6 +18,11 @@ public abstract class AbstractServiceMethodInvoker<REQ, RESP> implements Service
 
   private final String methodName;
 
+  @Override
+  public ServiceMessageCodec getCodec() {
+    return this.payloadCodec;
+  }
+
   public String methodName() {
     return this.methodName;
   }
@@ -33,10 +38,10 @@ public abstract class AbstractServiceMethodInvoker<REQ, RESP> implements Service
     this.payloadCodec = payloadCodec;
   }
 
-  protected ServiceMessage toMessage(Object obj) {
+  protected ServiceMessage toReturnMessage(Object obj) {
     return obj instanceof ServiceMessage ? (ServiceMessage) obj
-        : ServiceMessage.builder().header("_type", Reflect.parameterizedRequestType(method).getTypeName())
-        .data(obj)
-        .build();
+        : ServiceMessage.builder().header("_type", Reflect.parameterizedReturnType(method).getName())
+            .data(obj)
+            .build();
   }
 }

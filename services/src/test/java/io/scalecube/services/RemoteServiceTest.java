@@ -106,6 +106,7 @@ public class RemoteServiceTest extends BaseTest {
 
   }
 
+  @Ignore
   @Test
   public void test_remote_void_greeting() throws InterruptedException, ExecutionException {
     // Create microservices instance.

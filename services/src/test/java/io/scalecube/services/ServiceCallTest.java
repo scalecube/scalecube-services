@@ -75,7 +75,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> future =
-        serviceCall.requestResponse(GREETING_NO_PARAMS_REQUEST);
+        serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST);
 
     Mono.from(future).doOnNext(message -> {
       assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
@@ -105,7 +105,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> future =
-        serviceCall.requestResponse(GREETING_NO_PARAMS_REQUEST, GreetingResponse.class);
+        serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST, GreetingResponse.class);
 
     Mono.from(future).doOnNext(message -> {
       assertThat(message.data(), instanceOf(GreetingResponse.class));
@@ -127,7 +127,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     AtomicReference<SignalType> success = new AtomicReference<>();
-    gateway.call().fireAndForget(GREETING_VOID_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
+    gateway.call().oneWay(GREETING_VOID_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
         .block();
 
     // Then:
@@ -150,7 +150,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     AtomicReference<SignalType> success = new AtomicReference<>();
-    gateway.call().fireAndForget(GREETING_FAIL_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
+    gateway.call().oneWay(GREETING_FAIL_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
         .block();
 
     // Then:
@@ -169,7 +169,7 @@ public class ServiceCallTest extends BaseTest {
     
     // WHEN
     AtomicReference<SignalType> success = new AtomicReference<>();
-    node.call().fireAndForget(GREETING_VOID_REQ).doFinally(success::set).block(Duration.ofSeconds(TIMEOUT));
+    node.call().oneWay(GREETING_VOID_REQ).doFinally(success::set).block(Duration.ofSeconds(TIMEOUT));
 
     // Then:
     assertNotNull(success.get());
@@ -189,7 +189,7 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     AtomicReference<SignalType> success = new AtomicReference<>();
 
-    node.call().fireAndForget(GREETING_FAIL_REQ).doFinally(success::set).block(Duration.ofMinutes(TIMEOUT));
+    node.call().oneWay(GREETING_FAIL_REQ).doFinally(success::set).block(Duration.ofMinutes(TIMEOUT));
 
     // Then:
     assertNotNull(success.get());
@@ -211,7 +211,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(provider.cluster().address())
         .build();
 
-    Publisher<ServiceMessage> resultFuture = consumer.call().requestResponse(GREETING_REQ);
+    Publisher<ServiceMessage> resultFuture = consumer.call().requestOne(GREETING_REQ);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
@@ -231,7 +231,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     Publisher<ServiceMessage> resultFuture =
-        microservices.call().requestResponse(GREETING_REQUEST_REQ);
+        microservices.call().requestOne(GREETING_REQUEST_REQ);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));;
@@ -254,7 +254,7 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     Publisher<ServiceMessage> resultFuture =
-        consumer.call().requestResponse(GREETING_REQUEST_REQ);
+        consumer.call().requestOne(GREETING_REQUEST_REQ);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));;
@@ -275,7 +275,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> future =
-        service.requestResponse(GREETING_REQUEST_TIMEOUT_REQ);
+        service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
 
     try {
       Mono.from(future).block(Duration.ofSeconds(TIMEOUT));
@@ -300,7 +300,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> future =
-        service.requestResponse(GREETING_REQUEST_TIMEOUT_REQ);
+        service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
     try {
       Mono.from(future).block(Duration.ofSeconds(TIMEOUT));;
     } finally {
@@ -320,7 +320,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> future =
-        service.requestResponse(GREETING_REQUEST_REQ);
+        service.requestOne(GREETING_REQUEST_REQ);
 
 
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -351,7 +351,7 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> future =
-        service.requestResponse(GREETING_REQUEST_REQ);
+        service.requestOne(GREETING_REQUEST_REQ);
 
     Mono.from(future).doOnNext(result -> {
       // print the greeting.
@@ -387,9 +387,9 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> result1 =
-        service.requestResponse(GREETING_REQUEST_REQ);
+        service.requestOne(GREETING_REQUEST_REQ);
     Publisher<ServiceMessage> result2 =
-        service.requestResponse(GREETING_REQUEST_REQ);
+        service.requestOne(GREETING_REQUEST_REQ);
 
     Mono<Void> combined = Mono.when(result1, result2);
     CountDownLatch timeLatch = new CountDownLatch(1);
@@ -431,7 +431,7 @@ public class ServiceCallTest extends BaseTest {
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       // call the service.
-      Publisher<ServiceMessage> future = service.requestResponse(NOT_FOUND_REQ);
+      Publisher<ServiceMessage> future = service.requestOne(NOT_FOUND_REQ);
 
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
@@ -474,7 +474,7 @@ public class ServiceCallTest extends BaseTest {
 
     for (int i = 0; i < 100; i++) {
       // call the service.
-      Publisher<ServiceMessage> future = service.requestResponse(Messages.builder()
+      Publisher<ServiceMessage> future = service.requestOne(Messages.builder()
           .request(CanaryService.class, "greeting")
           .data("joe")
           .build());
@@ -515,7 +515,7 @@ public class ServiceCallTest extends BaseTest {
 
     Call service = gateway.call();
 
-    Publisher<ServiceMessage> result = service.requestResponse(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> result = service.requestOne(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     Mono.from(result).doOnNext(success -> {
@@ -544,7 +544,7 @@ public class ServiceCallTest extends BaseTest {
     Call service = gateway.call();
 
     Publisher<ServiceMessage> result =
-        service.requestResponse(GREETING_REQUEST_REQ);
+        service.requestOne(GREETING_REQUEST_REQ);
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     Mono.from(result).doOnNext(success -> {

@@ -29,7 +29,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
   @Override
   public Publisher<String> callGreetingWithDispatcher(String request) {
-    return Mono.from(ms.call().requestResponse(Messages.builder().request(SERVICE_NAME, "greeting")
+    return Mono.from(ms.call().requestOne(Messages.builder().request(SERVICE_NAME, "greeting")
         .data("joe").build()))
         .map(response->response.data());
   }

@@ -130,6 +130,8 @@ public class Microservices {
 
   private ServerTransport server;
 
+  private final LocalServiceInvoker localServices;
+
   private Microservices(ServerTransport server,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
@@ -143,11 +145,12 @@ public class Microservices {
     this.client = client;
     this.server = server;
 
+    localServices = LocalServiceInvoker.create(Arrays.asList(this.codecs.get("application/json")), services);
     if (services != null && services.length > 0) {
-      server.accept(LocalServiceInvoker.create(Arrays.asList(this.codecs.get("application/json")), services));
+      server.accept(localServices);
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
       this.serviceAddress = Address.create(inet.getHostString(), inet.getPort());
-        
+
     } else {
       this.serviceAddress = Address.from("localhost:0");
     }
@@ -264,7 +267,7 @@ public class Microservices {
 
   public Call call() {
     Router router = this.router(RoundRobinServiceRouter.class);
-    return new ServiceCall(client).call().metrics(metrics).router(router);
+    return new ServiceCall(client, localServices).call().metrics(metrics).router(router);
   }
 
   public Mono<Void> shutdown() {

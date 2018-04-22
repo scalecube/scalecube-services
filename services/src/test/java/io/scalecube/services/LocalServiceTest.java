@@ -65,7 +65,7 @@ public class LocalServiceTest extends BaseTest {
       assertTrue(onNext.equals(" hello to: joe"));
       // print the greeting.
       System.out.println("3. local_async_greeting :" + onNext);
-    }).block(Duration.ofSeconds(1));
+    }).block(Duration.ofSeconds(1000));
     microservices.shutdown().block();
   }
 
