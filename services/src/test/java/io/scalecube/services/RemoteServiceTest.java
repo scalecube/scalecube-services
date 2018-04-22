@@ -298,41 +298,21 @@ public class RemoteServiceTest extends BaseTest {
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
+        .services(new GreetingServiceImpl(1))
         .build();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
+        .services(new GreetingServiceImpl(2))
         .build();
 
     GreetingService service = createProxy(gateway);
 
-    Publisher<GreetingResponse> result1 = service.greetingRequest(new GreetingRequest("joe"));
-    Publisher<GreetingResponse> result2 = service.greetingRequest(new GreetingRequest("joe"));
-
-    Mono<Void> combined = Mono.when(result1, result2);
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    combined.doOnNext(onNext -> {
-      try {
-        // print the greeting.
-        System.out.println("11. round_robin_selection_logic :" + Mono.from(result1).block());
-        System.out.println("11. round_robin_selection_logic :" + Mono.from(result2).block());
-        GreetingResponse response1 = Mono.from(result1).block();
-        GreetingResponse response2 = Mono.from(result2).block();
-        boolean success = !response1.sender().equals(response2.sender());
-
-        assertTrue(success);
-      } catch (Throwable e) {
-        assertTrue(false);
-      }
-      timeLatch.countDown();
-    });
-
-    assertTrue(await(timeLatch, 2, TimeUnit.SECONDS));
-    assertTrue(timeLatch.getCount() == 0);
+    GreetingResponse result1 =  Mono.from(service.greetingRequest(new GreetingRequest("joe"))).block();
+    GreetingResponse result2 = Mono.from(service.greetingRequest(new GreetingRequest("joe"))).block();
+    assertTrue(!result1.sender().equals(result2.sender()));
     provider2.shutdown().block();
     provider1.shutdown().block();
     gateway.shutdown().block();
