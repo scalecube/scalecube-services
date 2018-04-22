@@ -330,7 +330,7 @@ public class RemoteServiceTest extends BaseTest {
     try {
       service.greeting("hello");
     } catch (Exception ex) {
-      assertTrue(ex.getMessage().equals("No reachable member with such service: greeting"));
+      assertTrue(ex.getMessage().contains("No reachable member with such service"));
       timeLatch.countDown();
     }
 
