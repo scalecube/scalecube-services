@@ -1,8 +1,8 @@
 package io.scalecube.services.transport;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 
 import java.lang.reflect.Method;
 
@@ -14,12 +14,12 @@ public abstract class AbstractServiceMethodInvoker<REQ, RESP> implements Service
 
   protected final Class requestType;
 
-  protected final ServiceMessageCodec<?> payloadCodec;
+  protected final ServiceMessageDataCodec payloadCodec;
 
   private final String methodName;
 
   @Override
-  public ServiceMessageCodec getCodec() {
+  public ServiceMessageDataCodec getCodec() {
     return this.payloadCodec;
   }
 
@@ -29,7 +29,7 @@ public abstract class AbstractServiceMethodInvoker<REQ, RESP> implements Service
 
   public AbstractServiceMethodInvoker(Object serviceObject,
       Method method,
-      ServiceMessageCodec<?> payloadCodec) {
+      ServiceMessageDataCodec payloadCodec) {
 
     this.serviceObject = serviceObject;
     this.method = method;

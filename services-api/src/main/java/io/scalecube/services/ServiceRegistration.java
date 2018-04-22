@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.services.registry.api.ServiceRegistry;
-
 import java.util.Collection;
 import java.util.Map;
 

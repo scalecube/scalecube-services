@@ -2,16 +2,17 @@ package io.scalecube.rsockets;
 
 import io.rsocket.AbstractRSocket;
 import io.rsocket.Payload;
-import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.DefaultPayload;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
+
+import reactor.core.publisher.Mono;
 
 public class ServiceRequestsListener {
 

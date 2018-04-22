@@ -2,11 +2,8 @@ package io.scalecube.services;
 
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
-import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
 public class ServiceEndpointTest extends BaseTest {
 

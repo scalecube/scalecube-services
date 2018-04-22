@@ -1,9 +1,10 @@
 package io.scalecube.rsockets;
 
+import io.scalecube.services.ServiceReference;
+import io.scalecube.services.codecs.api.ServiceMessageCodec;
+
 import io.rsocket.RSocket;
 
-import io.scalecube.services.ServiceMessageCodec;
-import io.scalecube.services.ServiceReference;
 import org.reactivestreams.Publisher;
 
 public abstract class ActionMethodInvoker<REQ, RESP> {

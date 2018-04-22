@@ -2,8 +2,9 @@ package io.scalecube.services.transport;
 
 import io.scalecube.rsockets.CommunicationMode;
 import io.scalecube.services.Reflect;
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codecs.api.MessageCodec;
+import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 
 import org.reactivestreams.Publisher;
@@ -22,11 +23,11 @@ import reactor.core.publisher.Mono;
 public class LocalServiceInvoker implements ServerMessageAcceptor {
 
   @SuppressWarnings("rawtypes")
-  private ConcurrentMap<String, ServiceMethodInvoker> handlers = new ConcurrentHashMap<>();
+  private ConcurrentMap<String, ServiceMethodInvoker> localServices = new ConcurrentHashMap<>();
   private Object[] services;
-  private List<? extends ServiceMessageCodec> codecs;
+  private List<? extends ServiceMessageDataCodec> codecs;
 
-  public static LocalServiceInvoker create(List<? extends ServiceMessageCodec> codecs, Object... serviceObjects) {
+  public static LocalServiceInvoker create(List<? extends MessageCodec> codecs, Object... serviceObjects) {
     return new LocalServiceInvoker(codecs, serviceObjects);
   }
 
@@ -34,20 +35,20 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
     return Collections.unmodifiableCollection(Arrays.asList(this.services));
   }
 
-  public List<? extends ServiceMessageCodec> codec() {
+  public List<? extends ServiceMessageDataCodec> codec() {
     return this.codecs;
   }
 
   public boolean contains(String qualifier) {
-    return handlers.get(qualifier)!=null;
+    return localServices.get(qualifier)!=null;
   }
   
   private ServiceMethodInvoker get(String qualifier) {
-    return handlers.get(qualifier);
+    return localServices.get(qualifier);
   }
 
   public Publisher invokeLocal(String qualifier, Object request) {
-    return handlers.get(qualifier).invoke(request);
+    return localServices.get(qualifier).invoke(request);
   }
   @Override
   @SuppressWarnings("unchecked")
@@ -62,7 +63,7 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
   @SuppressWarnings("unchecked")
   public Publisher<ServiceMessage> requestStream(ServiceMessage request) {
     ServiceMethodInvoker handler = get(request.qualifier());
-    ServiceMessageCodec<?> codec = handler.getCodec();
+    ServiceMessageDataCodec codec = handler.getCodec();
 
     return Flux.from(handler.invoke(request)).map(resp -> {
       ServiceMessage msg = (ServiceMessage) resp;
@@ -74,7 +75,7 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
   @SuppressWarnings("unchecked")
   public Publisher<ServiceMessage> requestResponse(ServiceMessage request) {
     ServiceMethodInvoker handler = get(request.qualifier());
-    ServiceMessageCodec<?> codec = handler.getCodec();
+    ServiceMessageDataCodec codec = handler.getCodec();
 
     return Mono.from(handler.invoke(request)).map(resp -> {
       ServiceMessage msg = (ServiceMessage) resp;
@@ -90,7 +91,7 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
   }
 
 
-  private LocalServiceInvoker(List<? extends ServiceMessageCodec> codecs, Object... serviceObjects) {
+  private LocalServiceInvoker(List<? extends ServiceMessageDataCodec> codecs, Object... serviceObjects) {
     this.codecs = codecs;
     this.services = serviceObjects;
 
@@ -125,7 +126,7 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
 
 
   private void register(final String qualifier, ServiceMethodInvoker handler) {
-    handlers.put(qualifier, handler);
+    localServices.put(qualifier, handler);
   }
 
   private LocalServiceInvoker() {

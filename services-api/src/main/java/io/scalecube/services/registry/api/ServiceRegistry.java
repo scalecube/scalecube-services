@@ -3,7 +3,6 @@ package io.scalecube.services.registry.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 

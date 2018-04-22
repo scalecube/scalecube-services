@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.rsocket.client;
 
-import io.scalecube.services.ServiceMessageCodec;
+import io.scalecube.services.codecs.api.MessageCodec;
 import io.scalecube.services.transport.client.api.ClientChannel;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
@@ -10,9 +10,9 @@ import io.rsocket.transport.netty.client.TcpClientTransport;
 
 public class RSocketClientTransport implements ClientTransport {
 
-  private ServiceMessageCodec payloadCodec;
+  private MessageCodec payloadCodec;
 
-  public RSocketClientTransport(ServiceMessageCodec payloadCodec) {
+  public RSocketClientTransport(MessageCodec payloadCodec) {
     this.payloadCodec = payloadCodec;
   }
 
@@ -26,7 +26,7 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public ServiceMessageCodec getMessageCodec() {
+  public MessageCodec getMessageCodec() {
     return payloadCodec;
   }
 

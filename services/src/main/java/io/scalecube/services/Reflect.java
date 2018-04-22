@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import reactor.core.publisher.Mono;
-
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
  *
