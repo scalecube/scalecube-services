@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
 import static io.scalecube.services.TestRequests.SERVICE_NAME;
@@ -29,8 +30,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 public class ServiceCallTest extends BaseTest {
 
@@ -102,13 +105,12 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     Publisher<ServiceMessage> future =
-        serviceCall.requestResponse(GREETING_NO_PARAMS_REQUEST);
+        serviceCall.requestResponse(GREETING_NO_PARAMS_REQUEST, GreetingResponse.class);
 
     Mono.from(future).doOnNext(message -> {
-      assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
       assertThat(message.data(), instanceOf(GreetingResponse.class));
       assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
-    }).block(Duration.ofSeconds(TIMEOUT));
+    }).block(Duration.ofHours(TIMEOUT));
     provider.shutdown().block();
     consumer.shutdown().block();
   }
@@ -124,14 +126,36 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    Publisher<ServiceMessage> resultFuture = gateway.call().requestResponse(GREETING_VOID_REQ);
-    ServiceMessage result = Mono.from(resultFuture)
-        .block(Duration.ofSeconds(TIMEOUT));
+    AtomicReference<SignalType> success = new AtomicReference<>();
+    gateway.call().fireAndForget(GREETING_VOID_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
+        .block();
 
     // Then:
-    assertNotNull(result);
-    assertEquals(GREETING_VOID_REQ.qualifier(), result.qualifier());
-    assertNull(result.data());
+    assertNotNull(success.get());
+    assertEquals(SignalType.ON_COMPLETE, success.get());
+
+    gateway.shutdown().block();
+    node1.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_fail_greeting() throws InterruptedException, ExecutionException, TimeoutException {
+    // Given
+    Microservices gateway = gateway();
+
+    Microservices node1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // When
+    AtomicReference<SignalType> success = new AtomicReference<>();
+    gateway.call().fireAndForget(GREETING_FAIL_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
+        .block();
+
+    // Then:
+    assertNotNull(success.get());
+    assertEquals(SignalType.ON_ERROR, success.get());
 
     gateway.shutdown().block();
     node1.shutdown().block();
@@ -139,17 +163,37 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_local_void_greeting() throws Exception {
+    // GIVEN
+    Microservices node = serviceProvider();
+
+    
+    // WHEN
+    AtomicReference<SignalType> success = new AtomicReference<>();
+    node.call().fireAndForget(GREETING_VOID_REQ).doFinally(success::set).block(Duration.ofSeconds(TIMEOUT));
+
+    // Then:
+    assertNotNull(success.get());
+    assertEquals(SignalType.ON_COMPLETE, success.get());
+
+    TimeUnit.SECONDS.sleep(2);
+    node.shutdown().block();
+  }
+  
+  
+
+  @Test
+  public void test_local_fail_greeting() throws Exception {
     // Create microservices instance.
     Microservices node = serviceProvider();
-    // call the service.
-    Publisher<ServiceMessage> future =
-        node.call().requestResponse(GREETING_VOID_REQ);
-    ServiceMessage result = Mono.from(future)
-        .block(Duration.ofSeconds(TIMEOUT));
 
-    assertNotNull(result);
-    assertEquals(GREETING_VOID_REQ.qualifier(), result.qualifier());
-    assertNull(result.data());
+    // call the service.
+    AtomicReference<SignalType> success = new AtomicReference<>();
+
+    node.call().fireAndForget(GREETING_FAIL_REQ).doFinally(success::set).block(Duration.ofMinutes(TIMEOUT));
+
+    // Then:
+    assertNotNull(success.get());
+    assertEquals(SignalType.ON_ERROR, success.get());
 
     TimeUnit.SECONDS.sleep(2);
     node.shutdown().block();

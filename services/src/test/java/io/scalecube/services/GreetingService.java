@@ -6,10 +6,13 @@ import io.scalecube.services.api.ServiceMessage;
 
 import org.reactivestreams.Publisher;
 
+import reactor.core.publisher.Mono;
+
 @Service
 interface GreetingService {
 
   @ServiceMethod
+  
   Publisher<String> greetingNoParams();
 
   @ServiceMethod
@@ -25,6 +28,8 @@ interface GreetingService {
   Publisher<ServiceMessage> greetingMessage(ServiceMessage request);
 
   @ServiceMethod
-  Publisher<Void> greetingVoid(GreetingRequest request);
+  Mono<Void> greetingVoid(GreetingRequest request);
 
+  @ServiceMethod
+  Mono<Void> failingVoid(GreetingRequest request);
 }

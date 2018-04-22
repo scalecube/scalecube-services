@@ -6,7 +6,7 @@ import io.scalecube.services.api.ServiceMessage;
 
 import java.lang.reflect.Method;
 
-public abstract class AbstractServiceMethodInvoker<REQ,RESP> implements ServiceMethodInvoker<REQ> {
+public abstract class AbstractServiceMethodInvoker<REQ, RESP> implements ServiceMethodInvoker<REQ> {
 
   protected final Method method;
 
@@ -21,7 +21,7 @@ public abstract class AbstractServiceMethodInvoker<REQ,RESP> implements ServiceM
   public String methodName() {
     return this.methodName;
   }
-  
+
   public AbstractServiceMethodInvoker(Object serviceObject,
       Method method,
       ServiceMessageCodec<?> payloadCodec) {
@@ -34,6 +34,9 @@ public abstract class AbstractServiceMethodInvoker<REQ,RESP> implements ServiceM
   }
 
   protected ServiceMessage toMessage(Object obj) {
-    return obj instanceof ServiceMessage ? (ServiceMessage) obj : ServiceMessage.builder().data(obj).build();
+    return obj instanceof ServiceMessage ? (ServiceMessage) obj
+        : ServiceMessage.builder().header("_type", Reflect.parameterizedRequestType(method).getTypeName())
+        .data(obj)
+        .build();
   }
 }

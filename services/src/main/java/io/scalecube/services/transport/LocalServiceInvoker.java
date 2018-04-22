@@ -62,9 +62,8 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
   @Override
   @SuppressWarnings("unchecked")
   public Publisher<Void> fireAndForget(ServiceMessage request) {
-    return Mono.from(handlers.get(request.qualifier())
-        .invoke(request))
-        .map(msg -> null);
+    return handlers.get(request.qualifier())
+        .invoke(request);
   }
 
 
@@ -79,7 +78,7 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
           codecs.forEach(codec -> {
             Optional<CommunicationMode> communicationMode = CommunicationMode.of(entry.getValue());
             if (communicationMode.get().equals(CommunicationMode.REQUEST_ONE)) {
-              
+
               this.register(Reflect.qualifier(serviceInterface, entry.getValue()),
                   new RequestResponseInvoker(service, entry.getValue(), codec));
 
