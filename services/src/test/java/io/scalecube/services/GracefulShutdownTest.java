@@ -49,7 +49,7 @@ public class GracefulShutdownTest extends BaseTest {
     while (members.gateway().cluster().member(members.node1().cluster().address()).isPresent()
         || postShutdown.get() >= 0) {
       
-      Mono<ServiceMessage> future = Mono.from(service.requestResponse(request));
+      Mono<ServiceMessage> future = Mono.from(service.requestOne(request));
       future.doOnNext(result->{
      // print the greeting.
         assertThat(result.data(), instanceOf(GreetingResponse.class));

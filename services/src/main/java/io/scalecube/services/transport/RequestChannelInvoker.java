@@ -22,8 +22,7 @@ public class RequestChannelInvoker extends AbstractServiceMethodInvoker<Publishe
   public Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> request) {
     try {
       return Flux.from(Reflect.invokeMessage(serviceObject, method, request))
-          .map(object -> toMessage(object))
-          .map(resp -> payloadCodec.encodeData(resp));
+          .map(object -> toReturnMessage(object));
     } catch (Exception error) {
      return Flux.error(error);
     }

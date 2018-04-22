@@ -16,6 +16,7 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class LocalServiceInvoker implements ServerMessageAcceptor {
@@ -23,7 +24,7 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
   @SuppressWarnings("rawtypes")
   private ConcurrentMap<String, ServiceMethodInvoker> handlers = new ConcurrentHashMap<>();
   private Object[] services;
-  private List<? extends ServiceMessageCodec> codec;
+  private List<? extends ServiceMessageCodec> codecs;
 
   public static LocalServiceInvoker create(List<? extends ServiceMessageCodec> codecs, Object... serviceObjects) {
     return new LocalServiceInvoker(codecs, serviceObjects);
@@ -34,41 +35,63 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
   }
 
   public List<? extends ServiceMessageCodec> codec() {
-    return this.codec;
+    return this.codecs;
   }
 
+  public boolean contains(String qualifier) {
+    return handlers.get(qualifier)!=null;
+  }
+  
+  private ServiceMethodInvoker get(String qualifier) {
+    return handlers.get(qualifier);
+  }
+
+  public Publisher invokeLocal(String qualifier, Object request) {
+    return handlers.get(qualifier).invoke(request);
+  }
   @Override
   @SuppressWarnings("unchecked")
   public Publisher<ServiceMessage> requestChannel(final Publisher<ServiceMessage> request) {
     // FIXME: need to seek handler and invoke it.
     ServiceMethodInvoker<Publisher<ServiceMessage>> handler = null;
-    return handler.invoke(request);
+    return Flux.from(handler.invoke(request));
   }
 
 
   @Override
   @SuppressWarnings("unchecked")
   public Publisher<ServiceMessage> requestStream(ServiceMessage request) {
-    return handlers.get(request.qualifier()).invoke(request);
+    ServiceMethodInvoker handler = get(request.qualifier());
+    ServiceMessageCodec<?> codec = handler.getCodec();
+
+    return Flux.from(handler.invoke(request)).map(resp -> {
+      ServiceMessage msg = (ServiceMessage) resp;
+      return codec.encodeData(msg);
+    });
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public Publisher<ServiceMessage> requestResponse(ServiceMessage request) {
-    return handlers.get(request.qualifier())
-        .invoke(request);
+    ServiceMethodInvoker handler = get(request.qualifier());
+    ServiceMessageCodec<?> codec = handler.getCodec();
+
+    return Mono.from(handler.invoke(request)).map(resp -> {
+      ServiceMessage msg = (ServiceMessage) resp;
+      return codec.encodeData(msg);
+    });
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public Publisher<Void> fireAndForget(ServiceMessage request) {
-    return handlers.get(request.qualifier())
+    return get(request.qualifier())
         .invoke(request);
   }
 
 
   private LocalServiceInvoker(List<? extends ServiceMessageCodec> codecs, Object... serviceObjects) {
-    this.codec = codecs;
+    this.codecs = codecs;
     this.services = serviceObjects;
 
     Arrays.asList(serviceObjects).forEach(service -> {
@@ -85,6 +108,14 @@ public class LocalServiceInvoker implements ServerMessageAcceptor {
             } else if (communicationMode.get().equals(CommunicationMode.REQUEST_STREAM)) {
               this.register(Reflect.qualifier(serviceInterface, entry.getValue()),
                   new RequestChannelInvoker(service, entry.getValue(), codec));
+
+            } else if (communicationMode.get().equals(CommunicationMode.ONE_WAY)) {
+              this.register(Reflect.qualifier(serviceInterface, entry.getValue()),
+                  new FireAndForgetInvoker(service, entry.getValue(), codec));
+
+            } else if (communicationMode.get().equals(CommunicationMode.REQUEST_MANY)) {
+              this.register(Reflect.qualifier(serviceInterface, entry.getValue()),
+                  new RequestStreamInvoker(service, entry.getValue(), codec));
             }
           });
         });

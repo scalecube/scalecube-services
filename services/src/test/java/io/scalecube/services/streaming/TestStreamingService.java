@@ -138,7 +138,7 @@ public class TestStreamingService extends BaseTest {
     Call service = gateway.call();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Disposable sub1 = Flux.from(service.listen(Messages.builder()
+    Disposable sub1 = Flux.from(service.requestMany(Messages.builder()
         .request(QuoteService.NAME, "snapshoot")
         .data(batchSize)
         .build()))
@@ -202,7 +202,7 @@ public class TestStreamingService extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    Flux.from(service.listen(justOne)).subscribe(onNext -> {
+    Flux.from(service.requestMany(justOne)).subscribe(onNext -> {
           sub1.get().dispose();
           latch1.countDown();
         });
@@ -231,7 +231,7 @@ public class TestStreamingService extends BaseTest {
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
-    sub1.set(Flux.from(service.listen(scheduled)).subscribe(onNext -> {
+    sub1.set(Flux.from(service.requestMany(scheduled)).subscribe(onNext -> {
           sub1.get().isDisposed();
           latch1.countDown();
 
@@ -258,7 +258,7 @@ public class TestStreamingService extends BaseTest {
 
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
     try {
-      service.listen(scheduled);
+      service.requestMany(scheduled);
     } catch (Exception ex) {
       if (ex.getMessage().contains("No reachable member with such service: unknonwn")) {
         latch1.countDown();
@@ -287,7 +287,7 @@ public class TestStreamingService extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    sub1.set(Flux.from(service.listen(justOne))
+    sub1.set(Flux.from(service.requestMany(justOne))
         .subscribe(onNext -> {
           System.out.println(onNext);
         }));
