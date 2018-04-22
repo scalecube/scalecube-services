@@ -10,6 +10,11 @@ public interface TestRequests {
             .data(new GreetingRequest("joe"))
             .build();
 
+    ServiceMessage GREETING_FAIL_REQ = Messages.builder()
+        .request(SERVICE_NAME, "failingVoid")
+        .data(new GreetingRequest("joe"))
+        .build();
+    
     ServiceMessage GREETING_NO_PARAMS_REQUEST = Messages.builder()
             .request(SERVICE_NAME, "greetingNoParams").build();
 

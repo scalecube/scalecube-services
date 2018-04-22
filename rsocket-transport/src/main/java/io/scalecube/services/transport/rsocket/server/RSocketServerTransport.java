@@ -29,7 +29,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public InetSocketAddress bindAwait(InetSocketAddress address) {
-    
+
     this.server = RSocketServerFactory.create(address, codec, acceptor)
         .start().block();
     return server.address();
@@ -37,7 +37,11 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Mono<Void> stop() {
-    server.dispose();
-    return server.onClose();
+    if (server != null) {
+      server.dispose();
+      return server.onClose();
+    } else {
+      return Mono.empty();
+    }
   }
 }

@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import reactor.core.publisher.Mono;
+
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
  *
@@ -158,9 +160,10 @@ public class Reflect {
 
   public static <T> Publisher<T> invokeMessage(Object serviceObject, Method method, final ServiceMessage request)
       throws Exception {
+    
     Object result = invoke(serviceObject, method, request);
     Class<?> returnType = method.getReturnType();
-    if (returnType.isAssignableFrom(Publisher.class)) {
+    if (Publisher.class.isAssignableFrom(returnType)) {
       return (Publisher<T>) result;
     } else {
       // should we later support 2 parameters? message and the Stream processor?
