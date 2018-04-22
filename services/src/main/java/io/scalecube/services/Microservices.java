@@ -4,9 +4,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.rsockets.ServiceRequestsListener;
 import io.scalecube.rsockets.ServiceScanner;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.codecs.api.MessageCodec;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
@@ -26,12 +26,8 @@ import com.codahale.metrics.MetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
-
 import java.util.HashMap;
-
 import java.util.Map;
-
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
@@ -126,7 +122,7 @@ public class Microservices {
 
   private Cluster cluster;
 
-  private Map<String, ? extends ServiceMessageCodec> codecs;
+  private Map<String, ? extends MessageCodec> codecs;
 
   private ServerTransport server;
 
@@ -136,7 +132,7 @@ public class Microservices {
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
       Object[] services,
-      Map<String, ? extends ServiceMessageCodec> codecs,
+      Map<String, ? extends MessageCodec> codecs,
       Metrics metrics) {
 
     // provision services for service access.
@@ -191,7 +187,7 @@ public class Microservices {
 
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
-    private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodec();
+    private Map<String, ? extends MessageCodec> codecs = TransportFactory.getTransport().getMessageCodec();
 
 
     /**

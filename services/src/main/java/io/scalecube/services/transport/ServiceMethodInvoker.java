@@ -1,7 +1,7 @@
 package io.scalecube.services.transport;
 
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 
 import org.reactivestreams.Publisher;
 
@@ -16,5 +16,5 @@ public interface ServiceMethodInvoker<REQ> {
 
   String methodName();
 
-  ServiceMessageCodec getCodec();
+  ServiceMessageDataCodec getCodec();
 }

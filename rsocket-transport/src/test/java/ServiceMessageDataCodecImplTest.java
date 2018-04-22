@@ -1,3 +1,6 @@
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.rsocket.RSocketJsonPayloadCodec;
 import io.scalecube.testlib.BaseTest;
@@ -6,12 +9,6 @@ import io.netty.buffer.ByteBuf;
 import io.rsocket.Payload;
 
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public class ServiceMessageDataCodecImplTest extends BaseTest {
 

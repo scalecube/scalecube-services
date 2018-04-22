@@ -1,8 +1,8 @@
 package io.scalecube.services.transport;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 
 import org.reactivestreams.Publisher;
 
@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 public class RequestStreamInvoker extends AbstractServiceMethodInvoker<ServiceMessage, Publisher<ServiceMessage>> {
 
   public RequestStreamInvoker(Object serviceObject, Method method, 
-      ServiceMessageCodec<?> payloadCodec) {
+      ServiceMessageDataCodec payloadCodec) {
     
     super(serviceObject, method, payloadCodec);
   }

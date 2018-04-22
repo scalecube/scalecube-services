@@ -1,6 +1,5 @@
 package io.scalecube.rsockets;
 
-import com.google.common.base.Strings;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceEndpoint;
@@ -10,6 +9,7 @@ import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.ContentType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

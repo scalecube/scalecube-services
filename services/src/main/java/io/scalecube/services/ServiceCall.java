@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codecs.api.MessageCodec;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.LocalServiceInvoker;
@@ -42,7 +43,7 @@ public class ServiceCall {
     private Metrics metrics;
     private Timer latency;
     private ClientTransport transport;
-    private ServiceMessageCodec codec;
+    private MessageCodec codec;
     private Optional<LocalServiceInvoker> localServices;
 
     public Call(ClientTransport transport, LocalServiceInvoker localServices) {

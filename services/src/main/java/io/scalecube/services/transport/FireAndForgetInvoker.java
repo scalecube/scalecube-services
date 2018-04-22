@@ -1,8 +1,8 @@
 package io.scalecube.services.transport;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 
 import org.reactivestreams.Publisher;
 
@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono;
 
 public class FireAndForgetInvoker extends AbstractServiceMethodInvoker<ServiceMessage, Publisher<Void>> {
   
-  public FireAndForgetInvoker(Object serviceObject, Method method, ServiceMessageCodec payloadCodec) {
+  public FireAndForgetInvoker(Object serviceObject, Method method, ServiceMessageDataCodec payloadCodec) {
     super(serviceObject, method, payloadCodec);
   }
 

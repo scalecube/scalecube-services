@@ -1,7 +1,10 @@
 package io.scalecube.rsockets;
 
-import io.rsocket.RSocket;
 import io.scalecube.services.ServiceReference;
+import io.scalecube.services.codecs.api.ServiceMessageCodec;
+
+import io.rsocket.RSocket;
+
 import org.reactivestreams.Publisher;
 
 public abstract class ActionMethodInvoker<REQ, RESP> {
@@ -10,10 +13,10 @@ public abstract class ActionMethodInvoker<REQ, RESP> {
     protected final Class<RESP> respType;
     protected final CommunicationMode mode;
 
-    protected PayloadCodec payloadCodec;
     protected RSocket client;
+    protected ServiceMessageCodec payloadCodec;
 
-    protected ActionMethodInvoker(Class<REQ> reqType, Class<RESP> respType, CommunicationMode mode, PayloadCodec payloadCodec) {
+    protected ActionMethodInvoker(Class<REQ> reqType, Class<RESP> respType, CommunicationMode mode, ServiceMessageCodec payloadCodec) {
         this.reqType = reqType;
         this.respType = respType;
         this.mode = mode;
