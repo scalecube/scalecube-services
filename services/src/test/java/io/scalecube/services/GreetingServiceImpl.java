@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 
 import org.reactivestreams.Publisher;
@@ -8,11 +9,13 @@ import reactor.core.publisher.Mono;
 
 final class GreetingServiceImpl implements GreetingService {
 
+  @Inject
   Microservices ms;
+
   private int instanceId;
-  public GreetingServiceImpl() {
-  }
-  
+
+  public GreetingServiceImpl() {}
+
   public GreetingServiceImpl(int id) {
     this.instanceId = id;
   }
@@ -33,12 +36,12 @@ final class GreetingServiceImpl implements GreetingService {
     System.out.println("[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
     return Mono.delay(request.getDuration()).from(
         Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode()))));
-        
+
   }
 
   @Override
   public Publisher<String> greetingNoParams() {
-    System.out.println("[greetingNoParams] Hello... i am a service an just recived a call bu i dont know from who." );
+    System.out.println("[greetingNoParams] Hello... i am a service an just recived a call bu i dont know from who.");
     return Mono.just("hello unknown");
   }
 

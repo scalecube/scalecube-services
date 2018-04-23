@@ -21,7 +21,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import reactor.core.publisher.Mono;
 
@@ -60,7 +59,7 @@ public class RemoteServiceTest extends BaseTest {
     CountDownLatch timeLatch = new CountDownLatch(1);
     for (int i = 0; i < 100; i++) {
 
-      Mono.from(service.greeting("joe")).doOnNext(success -> {
+      Mono.from(service.greeting("joe")).subscribe(success -> {
         if (success.startsWith("B")) {
           count.incrementAndGet();
           if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
@@ -95,11 +94,7 @@ public class RemoteServiceTest extends BaseTest {
 
     // call the service.
     Mono<GreetingResponse> result = Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
-    result.doOnNext(success -> {
-      // print the greeting.
-      System.out.println("1. greeting_request_completes_before_timeout : " + success.getResult());
-      assertTrue(success.getResult().equals(" hello to: joe"));
-    }).block(Duration.ofSeconds(10));
+    assertTrue(" hello to: joe".equals(result.block(Duration.ofSeconds(10)).getResult()));
 
     node2.shutdown().block();
     gateway.shutdown().block();
@@ -155,15 +150,7 @@ public class RemoteServiceTest extends BaseTest {
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
-    AtomicReference<String> string = new AtomicReference<String>("");
-
-    future.doOnNext(result -> {
-      // print the greeting.
-      string.set(result);
-      System.out.println("remote_async_greeting_return_string :" + result);
-    }).block(Duration.ofHours(1));
-
-    assertTrue(string.get().equals(" hello to: joe"));
+    assertTrue(" hello to: joe".equals(future.block(Duration.ofHours(1))));
     provider.shutdown().block();
     consumer.shutdown().block();
   }
@@ -188,11 +175,7 @@ public class RemoteServiceTest extends BaseTest {
     // call the service.
     Mono<String> future = Mono.from(service.greetingNoParams());
 
-    future.doOnNext(result -> {
-      // print the greeting.
-      System.out.println("test_remote_async_greeting_no_params :" + result);
-      assertTrue(result.equals("hello unknown"));
-    }).block(Duration.ofSeconds(1));
+    assertTrue("hello unknown".equals(future.block(Duration.ofSeconds(1))));
 
     provider.shutdown().block();
     consumer.shutdown().block();
@@ -218,12 +201,7 @@ public class RemoteServiceTest extends BaseTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    Mono.from(future).doOnNext(result -> {
-      // print the greeting.
-      System.out.println("remote_async_greeting_return_GreetingResponse :" + result.getResult());
-      // print the greeting.
-      assertTrue(result.getResult().equals(" hello to: joe"));
-    }).block(Duration.ofSeconds(10000));
+    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(10000)).getResult()));
 
     provider.shutdown().block();
     consumer.shutdown().block();
@@ -279,12 +257,7 @@ public class RemoteServiceTest extends BaseTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    Mono.from(future).doOnNext(result -> {
-      // print the greeting.
-      System.out.println("10. remote_async_greeting_return_Message :" + result);
-      // print the greeting.
-      assertTrue(result.getResult().equals(" hello to: joe"));
-    }).block(Duration.ofSeconds(1));
+    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1)).getResult()));
 
     consumer.shutdown().block();
     provider.shutdown().block();
@@ -310,7 +283,7 @@ public class RemoteServiceTest extends BaseTest {
 
     GreetingService service = createProxy(gateway);
 
-    GreetingResponse result1 =  Mono.from(service.greetingRequest(new GreetingRequest("joe"))).block();
+    GreetingResponse result1 = Mono.from(service.greetingRequest(new GreetingRequest("joe"))).block();
     GreetingResponse result2 = Mono.from(service.greetingRequest(new GreetingRequest("joe"))).block();
     assertTrue(!result1.sender().equals(result2.sender()));
     provider2.shutdown().block();
@@ -361,12 +334,8 @@ public class RemoteServiceTest extends BaseTest {
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
 
     Publisher<String> future = service.callGreeting("joe");
-    Mono.from(future).doOnNext(success -> {
-      assertTrue(success.equals(" hello to: joe"));
 
-    }).block(Duration.ofSeconds(1));
-
-
+    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
   }
 
   @Test
@@ -389,9 +358,7 @@ public class RemoteServiceTest extends BaseTest {
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
-    Mono.from(future).doOnNext(success -> {
-      assertTrue(success.equals(" hello to: joe"));
-    }).block(Duration.ofSeconds(1));
+    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
   }
 
   @Ignore
@@ -414,9 +381,7 @@ public class RemoteServiceTest extends BaseTest {
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
-    Mono.from(service.callGreetingTimeout("joe")).doOnNext(onNext->{
-      
-    }).block(Duration.ofSeconds(1));
+    Mono.from(service.callGreetingTimeout("joe")).block(Duration.ofSeconds(1));
   }
 
   @Test
@@ -440,7 +405,7 @@ public class RemoteServiceTest extends BaseTest {
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
 
     Mono.from(service.callGreetingWithDispatcher("joe"))
-        .doOnNext(success -> {
+        .subscribe(success -> {
           assertEquals(success, " hello to: joe");
           countLatch.countDown();
         });
