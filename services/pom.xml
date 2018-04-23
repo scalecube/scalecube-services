@@ -13,7 +13,13 @@
 	<name>ScaleCube/Services</name>
 
 	<dependencies>
-
+	
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>rsocket-services-transport</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>scalecube-services-api</artifactId>
@@ -28,7 +34,37 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
-			<artifactId>rsocket-services-transport</artifactId>
+			<artifactId>scalecube-cluster</artifactId>
+			<version>${scalecube.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.dropwizard.metrics</groupId>
+			<artifactId>metrics-core</artifactId>
+			<version>${metrics.version}</version>
+		</dependency>
+
+		<!-- Jackson deps -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+	
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>${jackson.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-services-transport</artifactId>
 			<version>${project.version}</version>
 		</dependency>
 
@@ -60,6 +96,20 @@
 			<version>${jackson.version}</version>
 		</dependency>
 
+		<!-- TODO: decouple it later -->
+		<dependency>
+			<groupId>io.rsocket</groupId>
+			<artifactId>rsocket-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.rsocket</groupId>
+			<artifactId>rsocket-transport-local</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.rsocket</groupId>
+			<artifactId>rsocket-transport-netty</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>scalecube-testlib</artifactId>
@@ -72,6 +122,8 @@
 			<artifactId>rxjava</artifactId>
 			<version>1.3.8</version>
 		</dependency>
+
+
 
 	</dependencies>
 

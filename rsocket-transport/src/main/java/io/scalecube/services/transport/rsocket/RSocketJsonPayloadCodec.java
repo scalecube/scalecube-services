@@ -1,13 +1,15 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.scalecube.services.ServiceMessageCodec;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
-import io.scalecube.services.transport.codec.ServiceMessageDataCodecImpl;
+import io.scalecube.services.codecs.api.MessageCodec;
+import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -27,10 +29,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
+public class RSocketJsonPayloadCodec implements MessageCodec, ServiceMessageCodec<Payload>, ServiceMessageDataCodec {
 
 
   @Override
@@ -38,9 +41,11 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
     return "application/json";
   }
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageDataCodecImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketJsonPayloadCodec.class);
 
   private final ObjectMapper mapper;
+
+  private TypeReference<Map<String, String>> mapType = new TypeReference<Map<String, String>>(){};
 
   public RSocketJsonPayloadCodec() {
     this.mapper = initMapper();
@@ -82,7 +87,7 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
   @Override
   public ServiceMessage decodeMessage(Payload payload) {
     Builder builder = ServiceMessage.builder();
-
+    
     if (payload.getData().hasRemaining()) {
       try {
         builder.data(payload.sliceData());
@@ -95,7 +100,7 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
       ByteBuf headers = payload.sliceMetadata();
       ByteBufInputStream inputStream = new ByteBufInputStream(headers);
       try {
-        builder.headers((Map<String, String>) (readFrom(inputStream, Map.class)));
+        builder.headers((Map<String, String>) (readFrom(inputStream, mapType)));
       } catch (Throwable ex) {
         LOGGER.error("Failed to deserialize data", ex);
       }
@@ -104,6 +109,8 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
 
     return builder.build();
   }
+
+ 
 
   @Override
   public ServiceMessage decodeData(ServiceMessage message, Class type) {
@@ -143,7 +150,18 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
       throw new RuntimeException("mapper.readValue with type: " + type, ex);
     }
   }
-
+  private Map<String, String> readFrom(ByteBufInputStream stream, TypeReference<Map<String, String>> type) {
+    Objects.requireNonNull(type, "ServiceMessageDataCodecImpl.readFrom requires type is not null");
+    try {
+      if(stream.available() ==0) {
+        return new HashMap<>();
+      }
+      return mapper.readValue(stream, type);
+    } catch (Throwable ex) {
+      throw new RuntimeException("mapper.readValue with type: " + type, ex);
+    }
+  }
+  
   private void writeTo(OutputStream stream, Object value) throws IOException {
     mapper.writeValue(stream, value);
   }
@@ -158,7 +176,9 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
     objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
     objectMapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
     objectMapper.registerModule(new JavaTimeModule());
+   
     return objectMapper;
   }
+
 
 }

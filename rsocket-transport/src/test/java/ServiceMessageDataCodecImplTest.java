@@ -1,3 +1,6 @@
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.rsocket.RSocketJsonPayloadCodec;
 import io.scalecube.testlib.BaseTest;
@@ -6,12 +9,6 @@ import io.netty.buffer.ByteBuf;
 import io.rsocket.Payload;
 
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public class ServiceMessageDataCodecImplTest extends BaseTest {
 
@@ -55,4 +52,42 @@ public class ServiceMessageDataCodecImplTest extends BaseTest {
     
   }
   
+  @Test
+  public void test_encode_decode_ServiceMessage_only_data_success() {
+    
+    RSocketJsonPayloadCodec codec = new RSocketJsonPayloadCodec();
+    ServiceMessage given = ServiceMessage.builder()
+        .data(new MyPojo("ronen",42))
+        .build();
+    
+    ServiceMessage parsedData = codec.encodeData(given);
+    
+    Payload payload = codec.encodeMessage(parsedData);
+    
+    ServiceMessage message = codec.decodeMessage(payload);
+    ServiceMessage withData = codec.decodeData(message,MyPojo.class);
+    assertTrue(withData.data() instanceof MyPojo);
+    
+  }
+  
+  @Test
+  public void test_encode_decode_ServiceMessage_only_header_success() {
+    
+    RSocketJsonPayloadCodec codec = new RSocketJsonPayloadCodec();
+    ServiceMessage given = ServiceMessage.builder()
+        .header("key1", "hello")
+        .header("key2", "world")
+        .build();
+    
+    ServiceMessage parsedData = codec.encodeData(given);
+    
+    Payload payload = codec.encodeMessage(parsedData);
+    
+    ServiceMessage message = codec.decodeMessage(payload);
+    ServiceMessage withData = codec.decodeData(message,MyPojo.class);
+    assertEquals("hello", withData.header("key1"));
+    assertEquals("world", withData.header("key2"));
+    
+    
+  }
 }

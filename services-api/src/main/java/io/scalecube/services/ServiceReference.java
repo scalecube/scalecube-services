@@ -5,6 +5,12 @@ import java.util.Map;
 
 public class ServiceReference {
 
+  @Override
+  public String toString() {
+    return "ServiceReference [endpointId=" + endpointId + ", host=" + host + ", port=" + port + ", namespace="
+        + namespace + ", contentType=" + contentType + ", tags=" + tags + ", action=" + action + "]";
+  }
+
   private String endpointId;
   private String host;
   private int port;
@@ -18,16 +24,26 @@ public class ServiceReference {
    */
   public ServiceReference() {}
 
-  public ServiceReference(ServiceMethod serviceMethod,
+  public ServiceReference(ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
-    this.endpointId = serviceEndpoint.endpointId();
+    this.endpointId = serviceEndpoint.id();
     this.host = serviceEndpoint.host();
     this.port = serviceEndpoint.port();
     this.namespace = serviceRegistration.namespace();
-    this.contentType = mergeContentType(serviceMethod, serviceRegistration, serviceEndpoint);
-    this.tags = mergeTags(serviceMethod, serviceRegistration, serviceEndpoint);
-    this.action = serviceMethod.action();
+    this.contentType = mergeContentType(serviceMethodDefinition, serviceRegistration);
+    this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
+    this.action = serviceMethodDefinition.getAction();
+  }
+
+  public ServiceReference(String endpointId, String host, int port, String namespace, String contentType, Map<String, String> tags, String action) {
+    this.endpointId = endpointId;
+    this.host = host;
+    this.port = port;
+    this.namespace = namespace;
+    this.contentType = contentType;
+    this.tags = tags;
+    this.action = action;
   }
 
   public String endpointId() {
@@ -58,27 +74,23 @@ public class ServiceReference {
     return action;
   }
 
-  private Map<String, String> mergeTags(ServiceMethod serviceMethod,
+  private Map<String, String> mergeTags(ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
     Map<String, String> tags = new HashMap<>();
     tags.putAll(serviceEndpoint.tags());
     tags.putAll(serviceRegistration.tags());
-    tags.putAll(serviceMethod.tags());
+    tags.putAll(serviceMethodDefinition.getTags());
     return tags;
   }
 
-  private String mergeContentType(ServiceMethod serviceMethod,
-      ServiceRegistration serviceRegistration,
-      ServiceEndpoint serviceEndpoint) {
-    if (serviceMethod.contentType() != null && !serviceMethod.contentType().isEmpty()) {
-      return serviceMethod.contentType();
+  private String mergeContentType(ServiceMethodDefinition serviceMethodDefinition,
+                                  ServiceRegistration serviceRegistration) {
+    if (serviceMethodDefinition.getContentType() != null && !serviceMethodDefinition.getContentType().isEmpty()) {
+      return serviceMethodDefinition.getContentType();
     }
     if (serviceRegistration.contentType() != null && !serviceRegistration.contentType().isEmpty()) {
       return serviceRegistration.contentType();
-    }
-    if (serviceEndpoint.contentType() != null && !serviceEndpoint.contentType().isEmpty()) {
-      return serviceEndpoint.contentType();
     }
     throw new IllegalArgumentException();
   }

@@ -9,6 +9,13 @@ import reactor.core.publisher.Mono;
 final class GreetingServiceImpl implements GreetingService {
 
   Microservices ms;
+  private int instanceId;
+  public GreetingServiceImpl() {
+  }
+  
+  public GreetingServiceImpl(int id) {
+    this.instanceId = id;
+  }
 
   @Override
   public String toString() {
@@ -16,35 +23,48 @@ final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Publisher<String> greeting(String name) {
+  public Mono<String> greeting(String name) {
     return Mono.just(" hello to: " + name);
   }
 
 
   @Override
   public Publisher<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
-    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode())));
+    System.out.println("[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
+    return Mono.delay(request.getDuration()).from(
+        Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode()))));
+        
   }
 
   @Override
   public Publisher<String> greetingNoParams() {
+    System.out.println("[greetingNoParams] Hello... i am a service an just recived a call bu i dont know from who." );
     return Mono.just("hello unknown");
   }
 
   @Override
   public Publisher<GreetingResponse> greetingRequest(GreetingRequest request) {
-    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "1"));
+    System.out.println(instanceId + ":[greetingRequest] Hello... i am a service an just recived a message:" + request);
+    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "" + instanceId));
   }
 
   @Override
   public Publisher<ServiceMessage> greetingMessage(ServiceMessage request) {
+    System.out.println("[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(), "1");
     return Mono.just(ServiceMessage.builder().data(resp).build());
   }
 
   @Override
-  public Publisher<Void> greetingVoid(GreetingRequest request) {
+  public Mono<Void> greetingVoid(GreetingRequest request) {
+    System.out.println("[greetingVoid] Hello... i am a service an just recived a message:" + request);
     System.out.println(" hello to: " + request.getName());
-    return Mono.just(null);
+    return Mono.empty();
+  }
+
+  @Override
+  public Mono<Void> failingVoid(GreetingRequest request) {
+    System.out.println("[failingVoid] Hello... i am a service an just recived a message:" + request);
+    return Mono.error(new IllegalArgumentException(request.toString()));
   }
 }

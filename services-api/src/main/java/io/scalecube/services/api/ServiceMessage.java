@@ -21,6 +21,8 @@ public final class ServiceMessage {
    */
   public static final String HEADER_DATA_TYPE = "_type";
 
+  public static final String HEADER_RESPONSE_DATA_TYPE = "_response_type";
+
   private Map<String, String> headers = Collections.emptyMap();
   private Object data;
 
@@ -103,6 +105,24 @@ public final class ServiceMessage {
   }
 
   /**
+   * Returns message qualifier.
+   * 
+   * @return qualifier string
+   */
+  public Class<?> responseType() {
+    try {
+      String typeAsString = header(HEADER_RESPONSE_DATA_TYPE);
+      if (typeAsString != null) {
+        return Class.forName(typeAsString);
+      } else {
+        return null;
+      }
+    } catch (ClassNotFoundException e) {
+      return null;
+    }
+  }
+
+  /**
    * Return the message data, which can be byte array, string or any type.
    *
    * @param <T> data type
@@ -135,6 +155,11 @@ public final class ServiceMessage {
 
     public Builder data(Object data) {
       this.data = data;
+      return this;
+    }
+
+    public Builder dataType(Class<?> data) {
+      headers.put(HEADER_DATA_TYPE, data.getName());
       return this;
     }
 

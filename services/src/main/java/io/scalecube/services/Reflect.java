@@ -6,7 +6,6 @@ import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.transport.ExchangeType;
 
 import com.google.common.base.Strings;
 
@@ -159,9 +158,10 @@ public class Reflect {
 
   public static <T> Publisher<T> invokeMessage(Object serviceObject, Method method, final ServiceMessage request)
       throws Exception {
+    
     Object result = invoke(serviceObject, method, request);
     Class<?> returnType = method.getReturnType();
-    if (returnType.isAssignableFrom(Publisher.class)) {
+    if (Publisher.class.isAssignableFrom(returnType)) {
       return (Publisher<T>) result;
     } else {
       // should we later support 2 parameters? message and the Stream processor?
@@ -200,29 +200,12 @@ public class Reflect {
     return (T) method.invoke(serviceObject, new Object[] {request});
   }
 
-  public static ExchangeType exchangeTypeOf(Method method) {
-    if (method.getParameterTypes().length > 0) {
-      if(method.getParameterTypes()[0].isAssignableFrom(Publisher.class)) {
-        return ExchangeType.REQUEST_CHANNEL;
-      }else if(parameterizedReturnType(method).equals(Void.class))
-        return ExchangeType.FIRE_AND_FORGET;
-      else {
-        return ExchangeType.REQUEST_RESPONSE;
-      }
-    }
-    return null;
-  }
-
   public static String methodName(Method method) {
-    if(method.isAnnotationPresent(ServiceMethod.class)) {
-      if(method.getAnnotation(ServiceMethod.class).value()!=null) {
-        return method.getAnnotation(ServiceMethod.class).value();
-      } else {
-        return method.getName();
-      }
-    }
-    return null;
+    ServiceMethod annotation = method.getAnnotation(ServiceMethod.class);
+    String action = Strings.isNullOrEmpty(annotation.value()) ? method.getName() : annotation.value();
+    return action;
   }
+  
   public static String qualifier(Class serviceInterface, Method method) {
     
     return serviceName(serviceInterface) + "/" + methodName(method);
