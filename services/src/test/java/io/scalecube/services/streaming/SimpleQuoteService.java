@@ -2,6 +2,7 @@ package io.scalecube.services.streaming;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -23,12 +24,12 @@ public class SimpleQuoteService implements QuoteService {
   }
 
   @Override
-  public Flux<String> quotes(int maxSize) {
+  public Flux<String> quotes() {
     return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + i.incrementAndGet());
   }
 
   @Override
-  public Flux<String> snapshoot(int size) {
-    return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + i.incrementAndGet());
+  public Flux<String> snapshot(int size) {
+    return Flux.fromStream(IntStream.range(0, size).boxed().map(i -> "tick:" + i));
   }
 }
