@@ -10,13 +10,9 @@ import java.lang.reflect.Method;
 public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements ServiceMethodDispatcher<REQ> {
 
   protected final Method method;
-
   protected final Object serviceObject;
-
   protected final Class requestType;
-
   protected final ServiceMessageDataCodec payloadCodec;
-
   private final String methodName;
 
   @Override

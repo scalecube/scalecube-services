@@ -12,10 +12,10 @@ public interface QuoteService {
   String NAME = "io.sc.quote-service";
 
   @ServiceMethod
-  Flux<String> quotes(int maxSize);
+  Flux<String> quotes();
 
   @ServiceMethod
-  Flux<String> snapshoot(int size);
+  Flux<String> snapshot(int size);
 
   @ServiceMethod
   Mono<String> justOne();

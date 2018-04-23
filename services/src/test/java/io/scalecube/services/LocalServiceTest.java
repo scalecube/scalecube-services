@@ -19,8 +19,6 @@ public class LocalServiceTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
-
-
   @Test
   public void test_local_greeting_request_completes_before_timeout() throws Exception {
     Duration duration = Duration.ofSeconds(1);
@@ -37,14 +35,14 @@ public class LocalServiceTest extends BaseTest {
     Mono<GreetingResponse> result = Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
-    result.doOnNext(onNext -> {
+    result.subscribe(onNext -> {
       // print the greeting.
       System.out.println("2. greeting_request_completes_before_timeout : " + onNext.getResult());
       assertTrue(onNext.getResult().equals(" hello to: joe"));
       timeLatch.countDown();
     });
 
-    assertTrue(await(timeLatch, 60, TimeUnit.SECONDS));
+    assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     node1.shutdown();
 

@@ -26,10 +26,8 @@ import reactor.core.publisher.Mono;
  */
 public class GracefulShutdownTest extends BaseTest {
 
-
-
   @Test()
-  public void test_gracefull_shutdown() throws InterruptedException {
+  public void test_graceful_shutdown() throws InterruptedException {
 
     // create cluster members with 3 nodes: gateway, node1, node2
     // node 1 and 2 provision GreetingService instance (each).
@@ -69,12 +67,9 @@ public class GracefulShutdownTest extends BaseTest {
       if (!members.gateway().cluster().member(members.node1().cluster().address()).isPresent()) {
         postShutdown.decrementAndGet();
       }
-
       sleep(1000);
     }
-
     members.shutdown();
-
   }
 
 

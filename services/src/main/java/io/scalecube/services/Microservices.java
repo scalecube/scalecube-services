@@ -145,7 +145,7 @@ public class Microservices {
         .services(services)
         .codecs(this.codecs.get("application/json"))
         .build();
-    
+
     if (services != null && services.length > 0) {
       server.accept(localServices);
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));

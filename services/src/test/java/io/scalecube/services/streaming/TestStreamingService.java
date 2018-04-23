@@ -21,19 +21,17 @@ import reactor.core.publisher.Flux;
 
 public class TestStreamingService extends BaseTest {
 
-  MetricRegistry registry = new MetricRegistry();
-  
+  private MetricRegistry registry = new MetricRegistry();
 
   @Test
   public void test_quotes() throws InterruptedException {
-
     QuoteService service = new SimpleQuoteService();
     CountDownLatch latch = new CountDownLatch(3);
-    Disposable sub = service.quotes(2).subscribe(onNext -> {
+    Disposable sub = service.quotes().subscribe(onNext -> {
       System.out.println("test_quotes: " + onNext);
       latch.countDown();
     });
-    latch.await(1, TimeUnit.SECONDS);
+    latch.await(4, TimeUnit.SECONDS);
     sub.dispose();
     assertTrue(latch.getCount() == 0);
   }
@@ -45,13 +43,11 @@ public class TestStreamingService extends BaseTest {
     QuoteService service = node.call().api(QuoteService.class);
 
     CountDownLatch latch = new CountDownLatch(3);
-    Flux<String> obs = service.quotes(2);
+    Flux<String> obs = service.quotes();
 
-    Disposable sub = obs.subscribe(onNext -> {
-      latch.countDown();
-    });
+    Disposable sub = obs.subscribe(onNext -> latch.countDown());
 
-    latch.await(1, TimeUnit.SECONDS);
+    latch.await(4, TimeUnit.SECONDS);
 
     sub.dispose();
     assertTrue(latch.getCount() <= 0);
@@ -70,20 +66,20 @@ public class TestStreamingService extends BaseTest {
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
 
-    Disposable sub1 = service.quotes(2)
+    Disposable sub1 = service.quotes()
         .subscribe(onNext -> {
           System.out.println("test_remote_quotes_service-2: " + onNext);
           latch1.countDown();
         });
 
-    Disposable sub2 = service.quotes(10)
+    Disposable sub2 = service.quotes()
         .subscribe(onNext -> {
           System.out.println("test_remote_quotes_service-10: " + onNext);
           latch2.countDown();
         });
 
-    latch1.await(1, TimeUnit.SECONDS);
-    latch2.await(1, TimeUnit.SECONDS);
+    latch1.await(4, TimeUnit.SECONDS);
+    latch2.await(4, TimeUnit.SECONDS);
     sub1.dispose();
     sub2.dispose();
     assertTrue(latch1.getCount() == 0);
@@ -93,10 +89,10 @@ public class TestStreamingService extends BaseTest {
   }
 
   @Test
-  public void test_quotes_snapshot() throws InterruptedException {
-    int batchSize = 500_000;
-    Microservices gateway = Microservices.builder().build();
+  public void test_quotes_batch() throws InterruptedException {
+    int streamBound = 100;
 
+    Microservices gateway = Microservices.builder().build();
     Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
@@ -104,31 +100,21 @@ public class TestStreamingService extends BaseTest {
         .build();
 
     QuoteService service = gateway.call().api(QuoteService.class);
+    CountDownLatch latch1 = new CountDownLatch(streamBound);
 
-    CountDownLatch latch1 = new CountDownLatch(batchSize);
-
-    Disposable sub1 = service.snapshoot(batchSize)
+    Disposable sub1 = service.snapshot(streamBound)
         .subscribe(onNext -> latch1.countDown());
-
-    long start = System.currentTimeMillis();
-    latch1.await(batchSize / 20_000, TimeUnit.SECONDS);
-    long end = (System.currentTimeMillis() - start);
-
-    System.out.println("TIME IS UP! - recived batch (size: "
-        + (batchSize - latch1.getCount()) + "/" + batchSize + ") in "
-        + (System.currentTimeMillis() - start) + "ms: "
-        + "rate of :" + batchSize / (end / 1000) + " events/sec ");
-    System.out.println(registry.getMeters());
+    latch1.await(10, TimeUnit.SECONDS);
+    System.out.println("Curr value received: " + latch1.getCount());
     assertTrue(latch1.getCount() == 0);
     sub1.dispose();
-    gateway.shutdown();
     node.shutdown();
-
+    gateway.shutdown();
   }
 
   @Test
   public void test_call_quotes_snapshot() throws InterruptedException {
-    int batchSize = 1_000_000;
+    int batchSize = 1000;
     Microservices gateway = Microservices.builder().build();
 
     Microservices node = Microservices.builder()
@@ -139,22 +125,14 @@ public class TestStreamingService extends BaseTest {
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
     Disposable sub1 = Flux.from(service.requestMany(Messages.builder()
-        .request(QuoteService.NAME, "snapshoot")
+        .request(QuoteService.NAME, "snapshot")
         .data(batchSize)
         .build()))
         .subscribe(onNext -> latch1.countDown());
 
 
-    long start = System.currentTimeMillis();
-    latch1.await(batchSize / 40_000, TimeUnit.SECONDS);
-    assertTrue(latch1.getCount()==0);
-    long end = (System.currentTimeMillis() - start);
-
-    System.out.println("TIME IS UP! - recived batch (size: "
-        + (batchSize - latch1.getCount()) + "/" + batchSize + ") in "
-        + (System.currentTimeMillis() - start) + "ms: "
-        + "rate of :" + batchSize / (end / 1000) + " events/sec ");
-
+    latch1.await(10, TimeUnit.SECONDS);
+    assertTrue(latch1.getCount() == 0);
     sub1.dispose();
     gateway.shutdown();
     node.shutdown();
@@ -174,9 +152,9 @@ public class TestStreamingService extends BaseTest {
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     sub1.set(service.justOne().subscribe(onNext -> {
-          sub1.get().dispose();
-          latch1.countDown();
-        }));
+      sub1.get().dispose();
+      latch1.countDown();
+    }));
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
@@ -199,20 +177,16 @@ public class TestStreamingService extends BaseTest {
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
     Flux.from(service.requestMany(justOne)).subscribe(onNext -> {
-          sub1.get().dispose();
-          latch1.countDown();
-        });
+      latch1.countDown();
+    });
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
-    assertTrue(sub1.get().isDisposed());
     gateway.shutdown();
     node.shutdown();
-
   }
 
   @Test
@@ -232,10 +206,10 @@ public class TestStreamingService extends BaseTest {
         .data(1000).build();
 
     sub1.set(Flux.from(service.requestMany(scheduled)).subscribe(onNext -> {
-          sub1.get().isDisposed();
-          latch1.countDown();
+      sub1.get().isDisposed();
+      latch1.countDown();
 
-        }));
+    }));
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
@@ -247,7 +221,6 @@ public class TestStreamingService extends BaseTest {
   public void test_unknown_method() throws InterruptedException {
 
     Microservices gateway = Microservices.builder().build();
-
     Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
@@ -260,12 +233,12 @@ public class TestStreamingService extends BaseTest {
     try {
       service.requestMany(scheduled);
     } catch (Exception ex) {
-      if (ex.getMessage().contains("No reachable member with such service: unknonwn")) {
+      if (ex.getMessage().contains("No reachable member with such service")) {
         latch1.countDown();
       }
     }
 
-    latch1.await(2, TimeUnit.SECONDS);
+    latch1.await(3, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
     node.shutdown();
     gateway.shutdown();
@@ -305,7 +278,5 @@ public class TestStreamingService extends BaseTest {
     assertTrue(latch1.getCount() == 0);
     assertTrue(sub1.get().isDisposed());
     gateway.shutdown();
-
-
   }
 }
