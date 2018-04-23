@@ -96,20 +96,6 @@
 			<version>${jackson.version}</version>
 		</dependency>
 
-		<!-- TODO: decouple it later -->
-		<dependency>
-			<groupId>io.rsocket</groupId>
-			<artifactId>rsocket-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.rsocket</groupId>
-			<artifactId>rsocket-transport-local</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.rsocket</groupId>
-			<artifactId>rsocket-transport-netty</artifactId>
-		</dependency>
-
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>scalecube-testlib</artifactId>

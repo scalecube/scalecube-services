@@ -182,10 +182,6 @@ public class Microservices {
     return serviceRegistry.listServiceEndpoints();
   }
 
-  public <T> T forService(Class<T> serviceClazz) {
-    return null;
-  }
-
   public static final class Builder {
 
     private Object[] services = new Object[] {};
