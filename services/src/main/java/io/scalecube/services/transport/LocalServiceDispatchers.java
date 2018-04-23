@@ -1,12 +1,12 @@
 package io.scalecube.services.transport;
 
-import io.scalecube.rsockets.CommunicationMode;
 import io.scalecube.services.Microservices.Builder;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.MessageCodec;
 import io.scalecube.services.codecs.api.ServiceMessageCodec;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
+import io.scalecube.services.transport.api.CommunicationMode;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 import io.scalecube.services.transport.dispatchers.FireAndForgetInvoker;
 import io.scalecube.services.transport.dispatchers.RequestChannelDispatcher;

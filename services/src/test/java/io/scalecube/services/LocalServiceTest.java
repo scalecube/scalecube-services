@@ -25,7 +25,7 @@ public class LocalServiceTest extends BaseTest {
 
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
-        .port(port.incrementAndGet())
+        .port(0)
         .services(new GreetingServiceImpl())
         .build();
 

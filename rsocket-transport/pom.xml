@@ -20,21 +20,19 @@
 			<artifactId>scalecube-services-transport</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		
 		<dependency>
 			<groupId>io.rsocket</groupId>
 			<artifactId>rsocket-core</artifactId>
 			<version>${rsocket.version}</version>
 		</dependency>
-		<dependency>
-			<groupId>io.rsocket</groupId>
-			<artifactId>rsocket-transport-local</artifactId>
-			<version>${rsocket.version}</version>
-		</dependency>
+		
 		<dependency>
 			<groupId>io.rsocket</groupId>
 			<artifactId>rsocket-transport-netty</artifactId>
 			<version>${rsocket.version}</version>
 		</dependency>
+		
 		<!-- Jackson deps -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -58,7 +56,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-	
+
 	<repositories>
 		<repository>
 			<snapshots>
@@ -69,7 +67,7 @@
 			<url>http://jcenter.bintray.com</url>
 		</repository>
 	</repositories>
-	
+
 	<pluginRepositories>
 		<pluginRepository>
 			<snapshots>

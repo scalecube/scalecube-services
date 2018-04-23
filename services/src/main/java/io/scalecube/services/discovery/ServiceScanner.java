@@ -1,4 +1,4 @@
-package io.scalecube.rsockets;
+package io.scalecube.services.discovery;
 
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.Reflect;
@@ -9,6 +9,7 @@ import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.ContentType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.transport.api.CommunicationMode;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
