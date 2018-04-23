@@ -66,75 +66,68 @@
         <reactor.version>3.1.6.RELEASE</reactor.version>
         <metrics.version>3.1.2</metrics.version>
         <rsocket.version>0.10.3</rsocket.version>
+        <protostuff.version>1.6.0</protostuff.version>
         <slf4j.version>1.7.7</slf4j.version>
         <log4j.version>2.6.2</log4j.version>
     </properties>
 
     <modules>
         <module>services-api</module>
-        <module>services</module>
-        <module>services-transport</module>
         <module>rsocket-transport</module>
+        <module>services-transport</module>
+        <module>services</module>
     </modules>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>io.projectreactor</groupId>
-                <artifactId>reactor-core</artifactId>
-                <version>${reactor.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.rsocket</groupId>
-                <artifactId>rsocket-core</artifactId>
-                <version>${rsocket.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.rsocket</groupId>
-                <artifactId>rsocket-transport-local</artifactId>
-                <version>${rsocket.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.rsocket</groupId>
-                <artifactId>rsocket-transport-netty</artifactId>
-                <version>${rsocket.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-slf4j-impl</artifactId>
-                <version>${log4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${log4j.version}</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <!-- https://mvnrepository.com/artifact/io.projectreactor/reactor-core -->
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
+            <version>${reactor.version}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
+            <!-- Protostuff/Protobuf -->
+            <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-api</artifactId>
+                <version>${protostuff.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-runtime</artifactId>
+                <version>${protostuff.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-core</artifactId>
+                <version>${protostuff.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-runtime-registry</artifactId>
+                <version>${protostuff.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.protostuff</groupId>
+                <artifactId>protostuff-collectionschema</artifactId>
+                <version>${protostuff.version}</version>
+            </dependency>
+            
+        
     </dependencies>
     <build>
         <plugins>

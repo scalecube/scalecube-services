@@ -4,10 +4,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
-import io.scalecube.rsockets.ServiceScanner;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.codecs.api.MessageCodec;
 import io.scalecube.services.discovery.ServiceDiscovery;
+import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;

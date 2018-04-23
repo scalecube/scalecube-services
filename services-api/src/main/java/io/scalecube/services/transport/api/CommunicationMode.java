@@ -1,4 +1,4 @@
-package io.scalecube.rsockets;
+package io.scalecube.services.transport.api;
 
 import org.reactivestreams.Publisher;
 
