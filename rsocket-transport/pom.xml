@@ -13,7 +13,7 @@
 	<properties>
 		<rsocket.version>0.10.3</rsocket.version>
 	</properties>
-	
+
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
@@ -75,7 +75,6 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
 	<repositories>
 		<repository>
 			<snapshots>
@@ -97,5 +96,4 @@
 			<url>http://jcenter.bintray.com</url>
 		</pluginRepository>
 	</pluginRepositories>
-
 </project>
