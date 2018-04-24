@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import reactor.core.publisher.Mono;
+
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
  *
@@ -261,8 +263,10 @@ public class Reflect {
     Class<?> returnType = method.getReturnType();
     if (Publisher.class.isAssignableFrom(returnType)) {
       return (Publisher<T>) result;
+    } else if(Void.TYPE.equals(returnType)) {
+      return Mono.empty();
     } else {
-      // should we later support 2 parameters? message and the Stream processor?
+      //TODO: should we later support 2 parameters? message and the Stream processor?
       throw new UnsupportedOperationException("Service Method can return of type Publisher only");
     }
   }

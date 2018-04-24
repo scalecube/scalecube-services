@@ -14,6 +14,12 @@ public interface TestRequests {
         .request(SERVICE_NAME, "failingVoid")
         .data(new GreetingRequest("joe"))
         .build();
+   
+    ServiceMessage GREETING_ERROR_REQ = Messages.builder()
+        .request(SERVICE_NAME, "exceptionVoid")
+        .data(new GreetingRequest("joe"))
+        .build();
+   
     
     ServiceMessage GREETING_NO_PARAMS_REQUEST = Messages.builder()
             .request(SERVICE_NAME, "greetingNoParams").build();
