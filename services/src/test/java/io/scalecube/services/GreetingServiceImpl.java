@@ -34,9 +34,8 @@ final class GreetingServiceImpl implements GreetingService {
   @Override
   public Publisher<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
     System.out.println("[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
-    return Mono.delay(request.getDuration()).from(
-        Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode()))));
-
+    return Mono.delay(request.getDuration()).flatMap(
+        i -> Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode()))));
   }
 
   @Override
