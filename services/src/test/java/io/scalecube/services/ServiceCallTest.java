@@ -156,8 +156,10 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     AtomicReference<SignalType> success = new AtomicReference<>();
-    gateway.call().oneWay(GREETING_FAIL_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
-        .block();
+    gateway.call().oneWay(GREETING_FAIL_REQ).doOnError(onError->{
+      System.out.println(onError);
+      success.set(SignalType.ON_ERROR);
+    }).block();
 
     // Then:
     assertNotNull(success.get());

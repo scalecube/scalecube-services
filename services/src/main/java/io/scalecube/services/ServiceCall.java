@@ -123,6 +123,8 @@ public class ServiceCall {
 
     public Mono<Void> oneWay(ServiceMessage request, final ServiceReference serviceReference) {
       Address address = Address.create(serviceReference.host(), serviceReference.port());
+      // FIXME: in request response its not good idea to create transport for address per call.
+      // better to reuse same channel.
       return transport.create(address).fireAndForget(request);
     }
 
