@@ -258,14 +258,12 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    Publisher<ServiceMessage> resultFuture =
-        consumer.call().requestOne(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> result =
+        consumer.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     // Then
-    ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));;
-    assertNotNull(result);
-    assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
-    assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
+    GreetingResponse greeting = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
+    assertEquals(" hello to: joe", greeting.getResult());
 
     provider.shutdown().block();
     consumer.shutdown().block();
@@ -523,22 +521,12 @@ public class ServiceCallTest extends BaseTest {
         .services(new GreetingServiceImpl())
         .build();
 
-    Call service = gateway.call();
+    Publisher<ServiceMessage> result = gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
-    Publisher<ServiceMessage> result = service.requestOne(GREETING_REQUEST_REQ);
+    GreetingResponse greetings = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
+    System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
+    assertTrue(greetings.getResult().equals(" hello to: joe"));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    Mono.from(result).doOnNext(success -> {
-      System.out.println(success);
-      GreetingResponse greetings = success.data();
-      // print the greeting.
-      System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
-      assertTrue(greetings.getResult().equals(" hello to: joe"));
-      timeLatch.countDown();
-    });
-
-    assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
-    assertTrue(timeLatch.getCount() == 0);
     gateway.shutdown().block();
     node.shutdown().block();
   }
@@ -553,21 +541,12 @@ public class ServiceCallTest extends BaseTest {
 
     Call service = gateway.call();
 
-    Publisher<ServiceMessage> result =
-        service.requestOne(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> result = service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    Mono.from(result).doOnNext(success -> {
-      System.out.println(success);
-      GreetingResponse greetings = success.data();
-      // print the greeting.
-      System.out.println("1. greeting_request_completes_before_timeout : " + greetings.getResult());
-      assertTrue(greetings.getResult().equals(" hello to: joe"));
-      timeLatch.countDown();
-    });
+    GreetingResponse greetings = Mono.from(result).timeout(Duration.ofSeconds(TIMEOUT)).block().data();
+    System.out.println("1. greeting_request_completes_before_timeout : " + greetings.getResult());
+    assertTrue(greetings.getResult().equals(" hello to: joe"));
 
-    assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
-    assertTrue(timeLatch.getCount() == 0);
     gateway.shutdown().block();
   }
 
