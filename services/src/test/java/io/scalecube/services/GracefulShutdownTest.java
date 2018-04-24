@@ -132,7 +132,6 @@ public class GracefulShutdownTest extends BaseTest {
     try {
       Thread.sleep(interval);
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
       e.printStackTrace();
     }
   }
