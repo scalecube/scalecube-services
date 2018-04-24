@@ -48,7 +48,7 @@ public class ServiceDispatcher {
 
         if (method.getReturnType().equals(Void.TYPE)) {
           result.complete(serviceInstance.get().invoke(request));
-        }else if (method.getReturnType().equals(CompletableFuture.class)) {
+        } else if (method.getReturnType().equals(CompletableFuture.class)) {
           result.complete(serviceInstance.get().invoke(request));
 
         } else if (method.getReturnType().equals(Observable.class)
