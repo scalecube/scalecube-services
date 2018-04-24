@@ -28,6 +28,7 @@ public class RemoteServiceTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
+  @Ignore
   @Test
   public void test_remote_service_tags() throws InterruptedException, ExecutionException {
     Microservices gateway = Microservices.builder()
