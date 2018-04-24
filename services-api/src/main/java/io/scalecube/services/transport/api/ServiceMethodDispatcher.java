@@ -14,7 +14,5 @@ public interface ServiceMethodDispatcher<REQ> {
    */
   Publisher<ServiceMessage> invoke(REQ request);
 
-  String methodName();
-
   ServiceMessageDataCodec getCodec();
 }
