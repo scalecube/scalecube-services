@@ -270,11 +270,6 @@ public class Microservices {
   }
 
   public Mono<Void> shutdown() {
-    // FIXME: implement gracefull shudown.
-    // gracefull shutdown should kepp service port open and accpeting messages
-    // until service discovery remove this endpoint and stop routing messages to it.
-    // it notifies other parties about my intention to lave the cluster
-    // and only until cluster is shutdown services can stop.
     return Mono.when(Mono.fromFuture(cluster.shutdown()), this.server.stop());
   }
 

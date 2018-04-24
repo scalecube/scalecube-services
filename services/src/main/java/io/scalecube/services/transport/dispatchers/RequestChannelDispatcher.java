@@ -1,5 +1,6 @@
 package io.scalecube.services.transport.dispatchers;
 
+import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 import io.scalecube.services.transport.AbstractServiceMethodDispatcher;
@@ -25,7 +26,7 @@ public class RequestChannelDispatcher
     return Flux.from(publisher).map(request -> payloadCodec.decodeData(request, super.requestType))
         .map(message -> {
           try {
-            return super.dispatchServiceMethod(message);
+            return Reflect.invokeMessage(serviceObject, method, message);
           } catch (Exception e) {
             return Flux.error(e);
           }

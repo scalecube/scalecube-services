@@ -16,7 +16,6 @@ import org.junit.Test;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import reactor.core.Disposable;
@@ -93,7 +92,7 @@ public class TestStreamingService extends BaseTest {
 
   @Test
   public void test_quotes_batch() throws InterruptedException {
-    int streamBound = (int) 5e4;
+    int streamBound = 1000;
 
     Microservices gateway = Microservices.builder().build();
     Microservices node = Microservices.builder()
@@ -102,28 +101,14 @@ public class TestStreamingService extends BaseTest {
         .metrics(registry)
         .build();
 
-    
     QuoteService service = gateway.call().api(QuoteService.class);
-    // warmup
-    service.snapshot(10000).blockLast(Duration.ofSeconds(5));
     CountDownLatch latch1 = new CountDownLatch(streamBound);
-    AtomicInteger count = new AtomicInteger(0);
-    
-    Duration startTime = Duration.ofMillis(System.currentTimeMillis());
-    Disposable sub1 = service.snapshot(streamBound)
-        .subscribe(onNext -> {
-          count.incrementAndGet();
-          latch1.countDown();
-        });
 
-    
-    latch1.await(4, TimeUnit.SECONDS);
-    Duration endTime = Duration.ofMillis(System.currentTimeMillis() - startTime.toMillis());
-    Double ratePerMilli = ((double) count.get()) / ((double) endTime.toMillis());
-    System.out.println("Messages throghput of: " + count.get() + "ms Messages in: " + endTime.toMillis());
-    System.out.println("Messages Rate (Per one Secound) : " + ratePerMilli * 1000);
-    System.out.println("Messages Rate (Per one Milli)   : " + ratePerMilli);
-    System.out.println("Messages Rate (Per one Micro)   : " + ratePerMilli / 1000);
+    Disposable sub1 = service.snapshot(streamBound)
+        .subscribe(onNext -> latch1.countDown());
+
+    latch1.await(15, TimeUnit.SECONDS);
+    System.out.println("Curr value received: " + latch1.getCount());
     assertTrue(latch1.getCount() == 0);
     sub1.dispose();
     node.shutdown();

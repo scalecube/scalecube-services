@@ -1,5 +1,6 @@
 package io.scalecube.services.transport.dispatchers;
 
+import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 import io.scalecube.services.transport.AbstractServiceMethodDispatcher;
@@ -24,7 +25,7 @@ public class RequestResponseDispatcher
   public Publisher<ServiceMessage> invoke(ServiceMessage request) {
     ServiceMessage message = payloadCodec.decodeData(request, super.requestType);
     try {
-      return Mono.from(super.dispatchServiceMethod(message)).map(this::toReturnMessage);
+      return Mono.from(Reflect.invokeMessage(serviceObject, method, message)).map(this::toReturnMessage);
     } catch (Exception e) {
       return Mono.error(e);
     }
