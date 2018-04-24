@@ -12,25 +12,22 @@ import java.lang.reflect.Method;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class RequestStreamDispatcher extends AbstractServiceMethodDispatcher<ServiceMessage, Publisher<ServiceMessage>> {
+public class RequestStreamDispatcher
+    extends AbstractServiceMethodDispatcher<ServiceMessage, Publisher<ServiceMessage>> {
 
-  public RequestStreamDispatcher(Object serviceObject, Method method, 
+  public RequestStreamDispatcher(String qualifier,
+      Object serviceObject,
+      Method method,
       ServiceMessageDataCodec payloadCodec) {
-    
-    super(serviceObject, method, payloadCodec);
+    super(qualifier, serviceObject, method, payloadCodec);
   }
 
   public Publisher<ServiceMessage> invoke(ServiceMessage request) {
-    
     ServiceMessage message = payloadCodec.decodeData(request, super.requestType);
     try {
-      return Flux.from(Reflect.invokeMessage(serviceObject, method, message))
-          .map(obj->toReturnMessage(obj));
-      
+      return Flux.from(Reflect.invokeMessage(serviceObject, method, message)).map(this::toReturnMessage);
     } catch (Exception e) {
       return Mono.error(e);
     }
-    
   }
-
 }

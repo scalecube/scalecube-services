@@ -14,21 +14,22 @@ import reactor.core.publisher.Flux;
 public class RequestChannelDispatcher
     extends AbstractServiceMethodDispatcher<Publisher<ServiceMessage>, Publisher<ServiceMessage>> {
 
-  public RequestChannelDispatcher(Object serviceObject, Method method,
+  public RequestChannelDispatcher(String qualifier,
+      Object serviceObject,
+      Method method,
       ServiceMessageDataCodec payloadCodec) {
-
-    super(serviceObject, method, payloadCodec);
+    super(qualifier, serviceObject, method, payloadCodec);
   }
 
   @Override
-  public Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> request) {
-    try {
-      return Flux.from(Reflect.invokeMessage(serviceObject, method, request))
-          .map(object -> toReturnMessage(object));
-    } catch (Exception error) {
-      return Flux.error(error);
-    }
-
+  public Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
+    return Flux.from(publisher).map(request -> payloadCodec.decodeData(request, super.requestType))
+        .map(message -> {
+          try {
+            return Reflect.invokeMessage(serviceObject, method, message);
+          } catch (Exception e) {
+            return Flux.error(e);
+          }
+        }).map(this::toReturnMessage);
   }
 }
-
