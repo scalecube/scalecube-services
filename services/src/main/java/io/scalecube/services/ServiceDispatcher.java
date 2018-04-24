@@ -46,7 +46,9 @@ public class ServiceDispatcher {
         LocalServiceInstance instance = (LocalServiceInstance) serviceInstance.get();
         Method method = instance.getMethod(request);
 
-        if (method.getReturnType().equals(CompletableFuture.class)) {
+        if (method.getReturnType().equals(Void.TYPE)) {
+          result.complete(serviceInstance.get().invoke(request));
+        } else if (method.getReturnType().equals(CompletableFuture.class)) {
           result.complete(serviceInstance.get().invoke(request));
 
         } else if (method.getReturnType().equals(Observable.class)
