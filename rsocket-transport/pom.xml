@@ -13,26 +13,45 @@
 	<properties>
 		<rsocket.version>0.10.3</rsocket.version>
 	</properties>
+	
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.scalecube</groupId>
+				<artifactId>scalecube-services-transport</artifactId>
+				<version>${project.version}</version>
+			</dependency>
 
+			<dependency>
+				<groupId>io.rsocket</groupId>
+				<artifactId>rsocket-core</artifactId>
+				<version>${rsocket.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>io.rsocket</groupId>
+				<artifactId>rsocket-transport-netty</artifactId>
+				<version>${rsocket.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
+
 		<dependency>
 			<groupId>io.scalecube</groupId>
 			<artifactId>scalecube-services-transport</artifactId>
-			<version>${project.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>io.rsocket</groupId>
 			<artifactId>rsocket-core</artifactId>
-			<version>${rsocket.version}</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>io.rsocket</groupId>
 			<artifactId>rsocket-transport-netty</artifactId>
-			<version>${rsocket.version}</version>
 		</dependency>
-		
+
 		<!-- Jackson deps -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
