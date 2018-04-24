@@ -151,20 +151,20 @@
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
-			<id>central</id>
-			<name>bintray</name>
-			<url>http://jcenter.bintray.com</url>
+			<id>oss.jfrog</id>
+			<name>jfrog</name>
+			<url>https://oss.jfrog.org/libs-release</url>
 		</repository>
 	</repositories>
 
-	<pluginRepositories>
+<!--	<pluginRepositories>
 		<pluginRepository>
 			<snapshots>
 				<enabled>false</enabled>
 			</snapshots>
-			<id>central</id>
-			<name>bintray-plugins</name>
-			<url>http://jcenter.bintray.com</url>
+			<id>oss.jfrog</id>
+			<name>jfrog</name>
+			<url>https://oss.jfrog.org/libs-release</url>
 		</pluginRepository>
-	</pluginRepositories>
+	</pluginRepositories> -->
 </project>
