@@ -47,7 +47,7 @@ final class GreetingServiceImpl implements GreetingService {
   @Override
   public Publisher<GreetingResponse> greetingRequest(GreetingRequest request) {
     System.out.println(instanceId + ":[greetingRequest] Hello... i am a service an just recived a message:" + request);
-    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "" + instanceId));
+    return Mono.just(new GreetingResponse(" hello to: " + request.getName() , String.valueOf(instanceId)));
   }
 
   @Override
@@ -66,7 +66,13 @@ final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<Void> failingVoid(GreetingRequest request) {
-    System.out.println("[failingVoid] Hello... i am a service an just recived a message:" + request);
+    System.out.println("[failingVoid] Hello... i am a service an just recived a message:" + request);  
     return Mono.error(new IllegalArgumentException(request.toString()));
+  }
+  
+  @Override
+  public Mono<Void> exceptionVoid(GreetingRequest request) {
+    System.out.println("[failingVoid] Hello... i am a service an just recived a message:" + request); 
+    throw new IllegalArgumentException(request.toString());
   }
 }

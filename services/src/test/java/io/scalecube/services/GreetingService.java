@@ -32,4 +32,7 @@ interface GreetingService {
 
   @ServiceMethod
   Mono<Void> failingVoid(GreetingRequest request);
+
+  @ServiceMethod
+  Mono<Void> exceptionVoid(GreetingRequest request);
 }

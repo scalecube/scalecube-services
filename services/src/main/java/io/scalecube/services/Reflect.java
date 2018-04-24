@@ -7,6 +7,7 @@ import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.metrics.Metrics;
 
 import com.google.common.base.Strings;
 
@@ -27,6 +28,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
+
+import reactor.core.publisher.Mono;
 
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
@@ -104,10 +107,14 @@ public class Reflect {
     }
 
     private void injectField(Field field, Object service) {
-      if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
-        setField(field, service, this.microservices);
-      } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
-        setField(field, service, this.microservices.call().api(field.getType()));
+      if (field.isAnnotationPresent(Inject.class)) {
+        if (field.getType().equals(Microservices.class)) {
+          setField(field, service, this.microservices);
+        } else if (isService(field.getType())) {
+          setField(field, service, this.microservices.call().api(field.getType()));
+        } else if (Metrics.class.equals(field.getType())) {
+          setField(field, service, this.microservices.metrics());
+        }
       }
     }
 
@@ -261,8 +268,10 @@ public class Reflect {
     Class<?> returnType = method.getReturnType();
     if (Publisher.class.isAssignableFrom(returnType)) {
       return (Publisher<T>) result;
+    } else if (Void.TYPE.equals(returnType)) {
+      return Mono.empty();
     } else {
-      // should we later support 2 parameters? message and the Stream processor?
+      // TODO: should we later support 2 parameters? message and the Stream processor?
       throw new UnsupportedOperationException("Service Method can return of type Publisher only");
     }
   }
