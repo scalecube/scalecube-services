@@ -34,8 +34,6 @@ public class ServiceScanner {
                 .map(serviceInterface -> {
                     String namespace = Reflect.serviceName(serviceInterface);
                     Map<String, String> serviceTags = serviceTags(serviceInterface);
-                    // FIXME: i am not sure this is good idea to bind service to content type
-                    // contentType should be driven by the transport meaning how transport provision this service.
                     ContentType ctAnnotation = serviceInterface.getAnnotation(ContentType.class);
                     String serviceContentType = ctAnnotation != null ? ctAnnotation.value() : ContentType.DEFAULT;
                     List<ServiceMethodDefinition> actions = Arrays.stream(serviceInterface.getMethods())
@@ -43,7 +41,6 @@ public class ServiceScanner {
                             .map(m -> {
 
                                 String action = Reflect.methodName(m);
-                                // FIXME: get content type from codec.getConetentType()
                                 String contentType = ContentType.DEFAULT;
                                 Map<String, String> methodTags = methodTags(m);
                                 String communicationMode = CommunicationMode.of(m).map(CommunicationMode::name).orElse("unsupported");
