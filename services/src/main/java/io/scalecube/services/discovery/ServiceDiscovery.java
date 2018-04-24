@@ -93,7 +93,7 @@ public class ServiceDiscovery {
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-            
+
             serviceRegistry.registerService(serviceEndpoint);
             LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
                 member, serviceEndpoint);

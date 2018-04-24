@@ -5,8 +5,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 
-import org.reactivestreams.Publisher;
-
 import java.lang.reflect.Method;
 
 public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements ServiceMethodDispatcher<REQ> {
@@ -43,10 +41,6 @@ public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements Serv
             .build();
   }
 
-  protected Publisher<ServiceMessage> dispatchServiceMethod(ServiceMessage request) throws Exception {
-    return Reflect.invokeMessage(serviceObject, method, request);
-  }
-  
   @Override
   public ServiceMessageDataCodec getCodec() {
     return this.payloadCodec;
