@@ -33,7 +33,7 @@ public class RSocketServiceMethodAcceptor implements SocketAcceptor {
       public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
 
         Flux<ServiceMessage> manyMessages = Flux.from(payloads)
-            .map(p -> codec.decodeMessage(p));
+            .map(payload -> codec.decodeMessage(payload));
 
         return Flux.from(acceptor.requestChannel(manyMessages))
             .map(resp -> codec.encodeMessage(resp));
