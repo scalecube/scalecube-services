@@ -165,7 +165,6 @@ public class Microservices {
     this.serviceRegistry = new ServiceRegistryImpl(localServiceEndpoint);
     this.routerFactory = new RouterFactory(this.serviceRegistry);
     this.discovery = new ServiceDiscovery(this.serviceRegistry);
-    this.discovery = new ServiceDiscovery(this.serviceRegistry);
     this.discovery.start(clusterConfig);
     this.cluster = this.discovery.cluster();
   }
