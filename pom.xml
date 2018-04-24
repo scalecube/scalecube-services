@@ -157,14 +157,14 @@
 		</repository>
 	</repositories>
 
-<!--	<pluginRepositories>
-		<pluginRepository>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-			<id>oss.jfrog</id>
-			<name>jfrog</name>
-			<url>https://oss.jfrog.org/libs-release</url>
-		</pluginRepository>
-	</pluginRepositories> -->
+    <pluginRepositories>
+        <pluginRepository>
+          <snapshots>
+            <enabled>false</enabled>
+          </snapshots>
+          <id>oss.jfrog</id>
+          <name>plugins-release</name>
+          <url>https://oss.jfrog.org/artifactory/plugins-release</url>
+        </pluginRepository>
+      </pluginRepositories>
 </project>
