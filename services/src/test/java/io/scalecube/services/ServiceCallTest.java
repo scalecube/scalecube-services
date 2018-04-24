@@ -23,6 +23,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.scalecube.services.TestRequests.GREETING_ERROR_REQ;
 import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
@@ -160,6 +161,26 @@ public class ServiceCallTest extends BaseTest {
     // Then:
     assertNotNull(success.get());
     assertEquals(SignalType.ON_ERROR, success.get());
+
+    gateway.shutdown().block();
+    node1.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_exception_void() throws Exception {
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage(containsString("[exceptionVoid] Hello... i am a service an just recived a message"));
+
+    // Given
+    Microservices gateway = gateway();
+
+    Microservices node1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // When
+    gateway.call().oneWay(GREETING_ERROR_REQ).block(timeout);
 
     gateway.shutdown().block();
     node1.shutdown().block();

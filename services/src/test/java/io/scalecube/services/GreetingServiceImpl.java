@@ -2,9 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
-
 import org.reactivestreams.Publisher;
-
 import reactor.core.publisher.Mono;
 
 final class GreetingServiceImpl implements GreetingService {
@@ -14,7 +12,8 @@ final class GreetingServiceImpl implements GreetingService {
 
   private int instanceId;
 
-  public GreetingServiceImpl() {}
+  public GreetingServiceImpl() {
+  }
 
   public GreetingServiceImpl(int id) {
     this.instanceId = id;
@@ -68,5 +67,11 @@ final class GreetingServiceImpl implements GreetingService {
   public Mono<Void> failingVoid(GreetingRequest request) {
     System.out.println("[failingVoid] Hello... i am a service an just recived a message:" + request);
     return Mono.error(new IllegalArgumentException(request.toString()));
+  }
+
+  @Override
+  public Mono<Void> exceptionVoid(GreetingRequest request) {
+    System.out.println("[exceptionVoid] Hello... i am a service an just recived a message:" + request);
+    throw new IllegalArgumentException(request.toString());
   }
 }
