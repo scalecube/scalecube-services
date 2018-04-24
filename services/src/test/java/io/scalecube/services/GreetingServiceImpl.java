@@ -47,7 +47,7 @@ final class GreetingServiceImpl implements GreetingService {
   @Override
   public Publisher<GreetingResponse> greetingRequest(GreetingRequest request) {
     System.out.println(instanceId + ":[greetingRequest] Hello... i am a service an just recived a message:" + request);
-    return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "" + instanceId));
+    return Mono.just(new GreetingResponse(" hello to: " + request.getName() , String.valueOf(instanceId)));
   }
 
   @Override
