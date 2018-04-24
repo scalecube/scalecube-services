@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
+import static io.scalecube.services.TestRequests.GREETING_ERROR_REQ;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
 import static io.scalecube.services.TestRequests.SERVICE_NAME;
@@ -169,6 +170,32 @@ public class ServiceCallTest extends BaseTest {
     node1.shutdown().block();
   }
 
+  @Test
+  public void test_remote_exception_void() throws InterruptedException, ExecutionException, TimeoutException {
+    // Given
+    Microservices gateway = gateway();
+
+    Microservices node1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build();
+
+    // When
+    AtomicReference<SignalType> success = new AtomicReference<>();
+    gateway.call().oneWay(GREETING_ERROR_REQ).doOnError(onError->{
+      System.out.println(onError);
+      success.set(SignalType.ON_ERROR);
+    }).block();
+
+    // Then:
+    assertNotNull(success.get());
+    assertEquals(SignalType.ON_ERROR, success.get());
+
+    gateway.shutdown().block();
+    node1.shutdown().block();
+  }
+
+  
   @Test
   public void test_local_void_greeting() throws Exception {
     // GIVEN
