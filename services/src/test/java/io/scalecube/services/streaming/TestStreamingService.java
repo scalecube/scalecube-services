@@ -1,5 +1,6 @@
 package io.scalecube.services.streaming;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.Messages;
@@ -12,6 +13,7 @@ import com.codahale.metrics.MetricRegistry;
 
 import org.junit.Test;
 
+import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -91,7 +93,7 @@ public class TestStreamingService extends BaseTest {
   @Test
   public void test_quotes_batch() throws InterruptedException {
     int streamBound = 1000;
-    
+
     Microservices gateway = Microservices.builder().build();
     Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
@@ -104,7 +106,7 @@ public class TestStreamingService extends BaseTest {
 
     Disposable sub1 = service.snapshot(streamBound)
         .subscribe(onNext -> latch1.countDown());
-    
+
     latch1.await(15, TimeUnit.SECONDS);
     System.out.println("Curr value received: " + latch1.getCount());
     assertTrue(latch1.getCount() == 0);
@@ -150,16 +152,7 @@ public class TestStreamingService extends BaseTest {
 
     QuoteService service = gateway.call().api(QuoteService.class);
 
-    final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
-    sub1.set(service.justOne().subscribe(onNext -> {
-      sub1.get().dispose();
-      latch1.countDown();
-    }));
-
-    latch1.await(2, TimeUnit.SECONDS);
-    assertTrue(latch1.getCount() == 0);
-    assertTrue(sub1.get().isDisposed());
+    assertEquals("1", service.justOne().block(Duration.ofSeconds(2)));
 
     gateway.shutdown();
     node.shutdown();

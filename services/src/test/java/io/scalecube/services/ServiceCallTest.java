@@ -4,6 +4,7 @@ import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
 import static io.scalecube.services.TestRequests.SERVICE_NAME;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -19,7 +20,9 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
@@ -37,6 +40,9 @@ import reactor.core.publisher.SignalType;
 public class ServiceCallTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   public static final ServiceMessage GREETING_REQ = Messages.builder()
       .request(SERVICE_NAME, "greeting")
@@ -165,7 +171,7 @@ public class ServiceCallTest extends BaseTest {
     // GIVEN
     Microservices node = serviceProvider();
 
-    
+
     // WHEN
     AtomicReference<SignalType> success = new AtomicReference<>();
     node.call().oneWay(GREETING_VOID_REQ).doFinally(success::set).block(Duration.ofSeconds(TIMEOUT));
@@ -177,8 +183,8 @@ public class ServiceCallTest extends BaseTest {
     TimeUnit.SECONDS.sleep(2);
     node.shutdown().block();
   }
-  
-  
+
+
 
   @Test
   public void test_local_fail_greeting() throws Exception {
@@ -265,9 +271,11 @@ public class ServiceCallTest extends BaseTest {
     consumer.shutdown().block();
   }
 
-  @Test(expected = TimeoutException.class)
-  public void test_local_greeting_request_timeout_expires()
-      throws Throwable {
+  @Test
+  public void test_local_greeting_request_timeout_expires() throws Throwable {
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage(containsString("Timeout on blocking read"));
+
     // Given:
     Microservices node = serviceProvider();
     Call service = node.call();
@@ -277,7 +285,7 @@ public class ServiceCallTest extends BaseTest {
         service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
 
     try {
-      Mono.from(future).block(Duration.ofSeconds(TIMEOUT));
+      Mono.from(future).block(Duration.ofSeconds(1));
     } finally {
       node.shutdown().block();
     }
@@ -286,6 +294,9 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_remote_greeting_request_timeout_expires() throws Throwable {
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage(containsString("Timeout on blocking read"));
+
     // Create microservices cluster.
     Microservices provider = serviceProvider();
 
@@ -301,7 +312,7 @@ public class ServiceCallTest extends BaseTest {
     Publisher<ServiceMessage> future =
         service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
     try {
-      Mono.from(future).block(Duration.ofSeconds(TIMEOUT));;
+      Mono.from(future).block(Duration.ofSeconds(1));;
     } finally {
       provider.shutdown().block();
       consumer.shutdown().block();

@@ -106,14 +106,12 @@ public class RSocketJsonPayloadCodec implements MessageCodec, ServiceMessageCode
       }
     }
 
-    payload.release();
-
     return builder.build();
   }
 
   @Override
   public ServiceMessage decodeData(ServiceMessage message, Class type) {
-    if (message.data() != null && message.data() instanceof ByteBuf) {
+    if (message.data() instanceof ByteBuf) {
       try (ByteBufInputStream inputStream = new ByteBufInputStream(message.data(), true)) {
         return ServiceMessage.from(message).data(readFrom(inputStream, type)).build();
       } catch (Throwable ex) {
