@@ -115,8 +115,7 @@ public class ServiceCall {
       return transport.create(address).requestResponse(request)
           .map(message -> {
             if (ExceptionProcessor.isError(message)) {
-              ServiceMessage decodedData = codec.decodeData(message, ErrorData.class);
-              throw ExceptionProcessor.toException(decodedData);
+              throw ExceptionProcessor.toException(codec.decodeData(message, ErrorData.class));
             } else {
               return codec.decodeData(message, returnType);
             }

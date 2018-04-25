@@ -187,7 +187,7 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    gateway.call().oneWay(GREETING_ERROR_REQ).block(timeout);
+    Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ)).block(timeout);
 
     gateway.shutdown().block();
     node1.shutdown().block();
