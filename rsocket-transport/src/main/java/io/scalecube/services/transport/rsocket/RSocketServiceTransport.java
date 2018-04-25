@@ -10,7 +10,7 @@ import io.scalecube.services.transport.server.api.ServerTransport;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RSocketServicesTransport implements ServiceTransport {
+public class RSocketServiceTransport implements ServiceTransport {
 
 
   private MessageCodec codec = new RSocketJsonPayloadCodec();

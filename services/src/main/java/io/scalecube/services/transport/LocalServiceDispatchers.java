@@ -101,9 +101,9 @@ public class LocalServiceDispatchers implements ServerMessageAcceptor {
     return this.codecs;
   }
 
-  public Publisher dispatchLocalService(String qualifier, Object request) {
+  public Publisher dispatchLocalService(ServiceMessage request) {
     // noinspection unchecked
-    return localServices.get(qualifier).invoke(request);
+    return localServices.get(request.qualifier()).invoke(request);
   }
 
   @Override
