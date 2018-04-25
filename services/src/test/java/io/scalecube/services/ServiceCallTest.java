@@ -16,6 +16,7 @@ import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
@@ -28,6 +29,7 @@ import org.junit.rules.ExpectedException;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -218,15 +220,17 @@ public class ServiceCallTest extends BaseTest {
     Microservices node = serviceProvider();
 
     // call the service.
-    AtomicReference<SignalType> success = new AtomicReference<>();
+    CompletableFuture<Throwable> result = new CompletableFuture<>();
+    Mono.from(node.call()
+        .requestOne(GREETING_FAIL_REQ))
+        .doOnError(result::complete)
+        .subscribe(n -> {
+          System.out.println(n);
+          Assert.fail("Should have received an error");
+        }, result::complete);
 
-    node.call().oneWay(GREETING_FAIL_REQ).doFinally(success::set).block(Duration.ofMinutes(TIMEOUT));
-
-    // Then:
-    assertNotNull(success.get());
-    assertEquals(SignalType.ON_ERROR, success.get());
-
-    TimeUnit.SECONDS.sleep(2);
+    ServiceException error = (ServiceException) result.get(TIMEOUT, TimeUnit.SECONDS);
+    Assert.assertEquals("Error message doesn't match", "joe", error.getMessage());
     node.shutdown().block();
   }
 
@@ -536,8 +540,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_dispatcher_local_greeting_request_completes_before_timeout()
-      throws Exception {
+  public void test_dispatcher_local_greeting_request_completes_before_timeout() {
 
     Microservices gateway = Microservices.builder()
         .services(new GreetingServiceImpl())
