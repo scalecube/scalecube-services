@@ -1,8 +1,9 @@
 package io.scalecube.services;
 
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codecs.api.MessageCodec;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.LocalServiceDispatchers;
@@ -105,7 +106,6 @@ public class ServiceCall {
      * @param request request with given headers.
      * @param serviceReference target instance to invoke.
      * @return Mono with service call dispatching result.
-     * @throws Exception in case of an error or TimeoutException if no response if a given duration.
      */
     public Publisher<ServiceMessage> requestOne(final ServiceMessage request, final Class<?> returnType,
         final ServiceReference serviceReference) {
@@ -113,7 +113,14 @@ public class ServiceCall {
       // better to reuse same channel.
       Address address = Address.create(serviceReference.host(), serviceReference.port());
       return transport.create(address).requestResponse(request)
-          .map(message -> codec.decodeData(message, returnType));
+          .map(message -> {
+            if (ExceptionProcessor.isError(message)) {
+              ServiceMessage decodedData = codec.decodeData(message, ErrorData.class);
+              throw ExceptionProcessor.toException(decodedData);
+            } else {
+              return codec.decodeData(message, returnType);
+            }
+          });
     }
 
     public Mono<Void> oneWay(ServiceMessage request) {
@@ -225,7 +232,5 @@ public class ServiceCall {
         return null;
       }
     }
-
-
   }
 }

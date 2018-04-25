@@ -1,28 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.a.b.testing.CanaryService;
-import io.scalecube.services.a.b.testing.CanaryTestingRouter;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
-import io.scalecube.services.routing.Router;
-import io.scalecube.testlib.BaseTest;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
-
-import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static io.scalecube.services.TestRequests.GREETING_ERROR_REQ;
 import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
@@ -34,6 +11,32 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
+import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.a.b.testing.CanaryService;
+import io.scalecube.services.a.b.testing.CanaryTestingRouter;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
+import io.scalecube.services.routing.Router;
+import io.scalecube.testlib.BaseTest;
+
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.reactivestreams.Publisher;
+
+import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 
 public class ServiceCallTest extends BaseTest {
 
@@ -96,7 +99,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_no_params() throws Exception {
+  public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
     Microservices provider = serviceProvider();
 
@@ -144,7 +147,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_fail_greeting() throws InterruptedException, ExecutionException, TimeoutException {
+  public void test_remote_fail_greeting() throws InterruptedException {
     // Given
     Microservices gateway = gateway();
 
@@ -154,14 +157,18 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    AtomicReference<SignalType> success = new AtomicReference<>();
-    gateway.call().oneWay(GREETING_FAIL_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
-        .block();
+    CountDownLatch l = new CountDownLatch(1);
+
+    Mono<ServiceMessage> from = Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ));
+
+    from.doOnError(t -> {
+      System.err.println(t.getMessage());
+      l.countDown();
+    }).subscribe();
 
     // Then:
-    assertNotNull(success.get());
-    assertEquals(SignalType.ON_ERROR, success.get());
-
+    l.await(TIMEOUT, TimeUnit.SECONDS);
+    Assert.assertEquals(l.getCount(), 0);
     gateway.shutdown().block();
     node1.shutdown().block();
   }
@@ -248,8 +255,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_local_async_greeting_return_GreetingResponse()
-      throws InterruptedException, ExecutionException, TimeoutException {
+  public void test_local_async_greeting_return_GreetingResponse() {
     // Given
     Microservices microservices = serviceProvider();
 
@@ -289,7 +295,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_local_greeting_request_timeout_expires() throws Throwable {
+  public void test_local_greeting_request_timeout_expires() {
     thrown.expect(RuntimeException.class);
     thrown.expectMessage(containsString("Timeout on blocking read"));
 
@@ -310,7 +316,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_greeting_request_timeout_expires() throws Throwable {
+  public void test_remote_greeting_request_timeout_expires() {
     thrown.expect(RuntimeException.class);
     thrown.expectMessage(containsString("Timeout on blocking read"));
 
