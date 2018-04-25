@@ -43,6 +43,8 @@ public class ServiceCallTest extends BaseTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+ 
+  private Duration timeout= Duration.ofSeconds(TIMEOUT);
 
   public static final ServiceMessage GREETING_REQ = Messages.builder()
       .request(SERVICE_NAME, "greeting")
