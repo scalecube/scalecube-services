@@ -3,6 +3,7 @@ package io.scalecube.services.transport.dispatchers;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.transport.AbstractServiceMethodDispatcher;
 
 import org.reactivestreams.Publisher;
@@ -23,11 +24,13 @@ public class RequestStreamDispatcher
   }
 
   public Publisher<ServiceMessage> invoke(ServiceMessage request) {
-    ServiceMessage message = payloadCodec.decodeData(request, super.requestType);
     try {
-      return Flux.from(Reflect.invokeMessage(serviceObject, method, message)).map(this::toReturnMessage);
+      ServiceMessage message = payloadCodec.decodeData(request, super.requestType);
+      return Flux.from(Reflect.invokeMessage(serviceObject, method, message))
+          .map(this::toReturnMessage)
+          .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)));
     } catch (Exception e) {
-      return Mono.error(e);
+      return Mono.just(ExceptionProcessor.toMessage(e));
     }
   }
 }

@@ -100,7 +100,7 @@ public final class Qualifier {
     if (pos == -1) {
       return qualifierAsString;
     }
-    return qualifierAsString.substring(pos, qualifierAsString.length());
+    return qualifierAsString.substring(pos + 1, qualifierAsString.length());
   }
 
 

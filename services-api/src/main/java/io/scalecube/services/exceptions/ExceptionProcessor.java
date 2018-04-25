@@ -30,7 +30,10 @@ public class ExceptionProcessor {
       }
     }
     ErrorData errorData = new ErrorData(errorCode, errorMessage);
-    return ServiceMessage.builder().qualifier(qualifier(errorType)).data(errorData).build();
+    return ServiceMessage.builder().qualifier(
+        new Qualifier(ERROR_NAMESPACE, Integer.toString(errorType)).asString())
+        .data(errorData)
+        .build();
   }
 
   public static ServiceException toException(ServiceMessage message) {
@@ -47,9 +50,4 @@ public class ExceptionProcessor {
         return new ServiceException(errorCode, errorMessage);
     }
   }
-
-  private static String qualifier(int statusCode) {
-    return new Qualifier(ERROR_NAMESPACE, Integer.toString(statusCode)).asString();
-  }
-
 }
