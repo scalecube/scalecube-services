@@ -4,12 +4,9 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 
-public class ExceptionProcessor {
+import java.util.Optional;
 
-  // Error types
-  private static final int GENERAL_SERVICE_ERROR = 503;
-  private static final int UNAUTHORIZED_SERVICE_ERROR = 401;
-  private static final int BAD_REQUEST_ERROR = 400;
+public class ExceptionProcessor {
 
   private static final String ERROR_NAMESPACE = "io.scalecube.service.error";
 
@@ -18,15 +15,15 @@ public class ExceptionProcessor {
   }
 
   public static ServiceMessage toMessage(Throwable throwable) {
-    String errorMessage = throwable.getMessage();
-    int errorCode = GENERAL_SERVICE_ERROR;
-    int errorType = GENERAL_SERVICE_ERROR;
+    String errorMessage = Optional.ofNullable(throwable.getMessage()).orElse(throwable.toString());
+    int errorCode = ServiceException.ERROR_TYPE;
+    int errorType = ServiceException.ERROR_TYPE;
     if (throwable instanceof ServiceException) {
       errorCode = ((ServiceException) throwable).getErrorCode();
       if (throwable instanceof BadRequestException) {
-        errorType = BAD_REQUEST_ERROR;
+        errorType = BadRequestException.ERROR_TYPE;
       } else if (throwable instanceof UnauthorizedException) {
-        errorType = UNAUTHORIZED_SERVICE_ERROR;
+        errorType = UnauthorizedException.ERROR_TYPE;
       }
     }
     ErrorData errorData = new ErrorData(errorCode, errorMessage);
@@ -41,9 +38,9 @@ public class ExceptionProcessor {
     int errorCode = ((ErrorData) message.data()).getErrorCode();
     String errorMessage = ((ErrorData) message.data()).getErrorMessage();
     switch (statusCode) {
-      case BAD_REQUEST_ERROR:
+      case BadRequestException.ERROR_TYPE:
         return new BadRequestException(errorCode, errorMessage);
-      case UNAUTHORIZED_SERVICE_ERROR:
+      case UnauthorizedException.ERROR_TYPE:
         return new UnauthorizedException(errorCode, errorMessage);
       // Handle other types of Service Exceptions here
       default:
