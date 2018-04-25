@@ -43,6 +43,8 @@ public class ServiceCallTest extends BaseTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
+ 
+  private Duration timeout= Duration.ofSeconds(TIMEOUT);
 
   public static final ServiceMessage GREETING_REQ = Messages.builder()
       .request(SERVICE_NAME, "greeting")
@@ -381,46 +383,25 @@ public class ServiceCallTest extends BaseTest {
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
+        .services(new GreetingServiceImpl(1))
         .build();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
+        .services(new GreetingServiceImpl(2))
         .build();
 
     Call service = gateway.call();
 
     // call the service.
-    Publisher<ServiceMessage> result1 =
-        service.requestOne(GREETING_REQUEST_REQ);
-    Publisher<ServiceMessage> result2 =
-        service.requestOne(GREETING_REQUEST_REQ);
+    GreetingResponse result1 =
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
+    GreetingResponse result2 =
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
 
-    Mono<Void> combined = Mono.when(result1, result2);
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    final AtomicBoolean success = new AtomicBoolean(false);
-    combined.doOnNext(onNext -> {
-      try {
-        // print the greeting.
-        System.out.println("11. round_robin_selection_logic :" + Mono.from(result1).block());
-        System.out.println("11. round_robin_selection_logic :" + Mono.from(result2).block());
-
-        GreetingResponse response1 = Mono.from(result1).block().data();
-        GreetingResponse response2 = Mono.from(result2).block().data();
-
-        success.set(!response1.sender().equals(response2.sender()));
-      } catch (Throwable e) {
-        assertTrue(false);
-      }
-      timeLatch.countDown();
-    });
-
-    assertTrue(await(timeLatch, 2, TimeUnit.SECONDS));
-    assertTrue(timeLatch.getCount() == 0);
-    assertTrue(success.get());
+    assertTrue(result1.sender() != result2.sender());
     provider2.shutdown().block();
     provider1.shutdown().block();
     gateway.shutdown().block();
