@@ -20,7 +20,6 @@ public final class ServiceMessage {
    * to be used by application directly and it is subject to changes in future releases.
    */
   public static final String HEADER_DATA_TYPE = "_type";
-
   public static final String HEADER_RESPONSE_DATA_TYPE = "_response_type";
 
   private Map<String, String> headers = Collections.emptyMap();

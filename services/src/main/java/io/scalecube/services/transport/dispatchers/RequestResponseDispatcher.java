@@ -1,16 +1,16 @@
 package io.scalecube.services.transport.dispatchers;
 
+import static io.scalecube.services.Reflect.invokeMessage;
 import static reactor.core.publisher.Mono.just;
 
-import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.transport.AbstractServiceMethodDispatcher;
 
 import org.reactivestreams.Publisher;
 
 import java.lang.reflect.Method;
-import java.util.function.Function;
 
 import reactor.core.publisher.Mono;
 
@@ -26,21 +26,14 @@ public class RequestResponseDispatcher
 
   @Override
   public Publisher<ServiceMessage> invoke(ServiceMessage request) {
-    ServiceMessage message = payloadCodec.decodeData(request, super.requestType);
+    ServiceMessage message = payloadCodec.decodeData(request, requestType);
     try {
-      Mono<ServiceMessage> map =
-          Mono.from(Reflect.invokeMessage(serviceObject, method, message)).map(this::toReturnMessage);
-      return map.onErrorResume(toServiceMsg());
+      return Mono.from(invokeMessage(serviceObject, method, message))
+          .map(this::toReturnMessage)
+          .onErrorResume(t -> just(ExceptionProcessor.toMessage(t)));
     } catch (Throwable e) {
       return Mono.error(e);
     }
-  }
-
-  private Function<Throwable, Mono<? extends ServiceMessage>> toServiceMsg() {
-    return t -> just(ServiceMessage.builder()
-        .qualifier("ERROR_FATAL")
-        .data(new ErrData().setErrCode(500).setErrMessage("Error Fatal occurred man..."))
-        .build());
   }
 }
 
