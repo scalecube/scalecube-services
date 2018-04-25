@@ -66,7 +66,7 @@ final class GreetingServiceImpl implements GreetingService {
   @Override
   public Mono<Void> failingVoid(GreetingRequest request) {
     System.out.println("[failingVoid] Hello... i am a service an just recived a message:" + request);
-    return Mono.error(new IllegalArgumentException(request.toString()));
+    return Mono.error(new IllegalArgumentException(request.getName()));
   }
 
   @Override
