@@ -99,7 +99,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_no_params() throws Exception {
+  public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
     Microservices provider = serviceProvider();
 
@@ -147,7 +147,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_fail_greeting() throws InterruptedException, ExecutionException, TimeoutException {
+  public void test_remote_fail_greeting() throws InterruptedException {
     // Given
     Microservices gateway = gateway();
 

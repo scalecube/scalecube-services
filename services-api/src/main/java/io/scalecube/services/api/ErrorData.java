@@ -1,49 +1,33 @@
 package io.scalecube.services.api;
 
-import java.util.Objects;
-
 public final class ErrorData {
 
-  public static final String ERROR_CODE_NAME = "errorCode";
-  public static final String MESSAGE_NAME = "message";
+  private int errorCode;
+  private String errorMessage;
 
-  private final int errorCode;
-  private final String message;
+  /**
+   * @deprecated exposed only for de/serialization purpose.
+   */
+  public ErrorData() {}
 
-  public ErrorData(int errorCode, String message) {
+  public ErrorData(int errorCode, String errorMessage) {
     this.errorCode = errorCode;
-    this.message = message;
+    this.errorMessage = errorMessage;
   }
 
   public int getErrorCode() {
     return errorCode;
   }
 
-  public String getMessage() {
-    return message;
-  }
-
-  @Override
-  public boolean equals(Object that) {
-    if (this == that) {
-      return true;
-    }
-    if (that == null || getClass() != that.getClass()) {
-      return false;
-    }
-    ErrorData errorData = (ErrorData) that;
-    return errorCode == errorData.errorCode && Objects.equals(message, errorData.message);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(errorCode, message);
+  public String getErrorMessage() {
+    return errorMessage;
   }
 
   @Override
   public String toString() {
-    return "ErrorData [errorCode=" + errorCode
-        + ", message=" + message
-        + "]";
+    return "ErrorData{" +
+        "errorCode=" + errorCode +
+        ", errorMessage='" + errorMessage + '\'' +
+        '}';
   }
 }

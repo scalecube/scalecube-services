@@ -1,12 +1,13 @@
 package io.scalecube.services;
 
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.dispatchers.ErrData;
 import io.scalecube.transport.Address;
 
 import com.codahale.metrics.Timer;
@@ -113,15 +114,12 @@ public class ServiceCall {
       Address address = Address.create(serviceReference.host(), serviceReference.port());
       return transport.create(address).requestResponse(request)
           .map(message -> {
-            Class<?> returnType1 = message.qualifier().equals("ERROR_FATAL") ? ErrData.class : returnType;
-            return codec.decodeData(message, returnType1);
-          })
-          .map(decoded -> {
-            if (decoded.qualifier().equals("ERROR_FATAL")) {
-              // TODO: map errCode type to Exception
-              throw new RuntimeException(((ErrData) decoded.data()).getErrMessage());
-            } else
-              return decoded;
+            if (ExceptionProcessor.isError(message)) {
+              ServiceMessage decodedData = codec.decodeData(message, ErrorData.class);
+              throw ExceptionProcessor.toException(decodedData);
+            } else {
+              return codec.decodeData(message, returnType);
+            }
           });
     }
 
@@ -234,7 +232,5 @@ public class ServiceCall {
         return null;
       }
     }
-
-
   }
 }
