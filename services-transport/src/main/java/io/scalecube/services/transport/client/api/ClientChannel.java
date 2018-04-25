@@ -10,7 +10,7 @@ public interface ClientChannel {
   /**
    * Request-Response interaction model of {@code RSocket}.
    *
-   * @param payload Request payload.
+   * @param request Request payload.
    * @return {@code Publisher} containing at most a single {@code ServiceMessage} representing the response.
    */
   public Mono<ServiceMessage> requestResponse(ServiceMessage request);
