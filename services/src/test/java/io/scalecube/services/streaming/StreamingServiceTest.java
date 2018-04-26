@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
-public class TestStreamingService extends BaseTest {
+public class StreamingServiceTest extends BaseTest {
 
   private MetricRegistry registry = new MetricRegistry();
 

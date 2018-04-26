@@ -9,4 +9,10 @@ public interface ServiceMessageCodec<T> {
 
   ServiceMessage decodeMessage(T payload);
 
+  ServiceMessage encodeData(ServiceMessage message);
+
+  ServiceMessage decodeData(ServiceMessage message, Class<?> requestType);
+
+  String contentType();
+
 }

@@ -2,9 +2,7 @@ package io.scalecube.services.transport.rsocket;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
-import io.scalecube.services.codecs.api.MessageCodec;
 import io.scalecube.services.codecs.api.ServiceMessageCodec;
-import io.scalecube.services.codecs.api.ServiceMessageDataCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -34,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class RSocketJsonPayloadCodec implements MessageCodec, ServiceMessageCodec<Payload>, ServiceMessageDataCodec {
+public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
 
 
   @Override

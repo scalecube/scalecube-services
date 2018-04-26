@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.scalecube.services.codecs.api.MessageCodec;
+import io.scalecube.services.codecs.api.ServiceMessageCodec;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.rsocket.client.RSocketClientTransport;
@@ -10,10 +10,10 @@ import io.scalecube.services.transport.server.api.ServerTransport;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RSocketServicesTransport implements ServiceTransport {
+public class RSocketServiceTransport implements ServiceTransport {
 
 
-  private MessageCodec codec = new RSocketJsonPayloadCodec();
+  private ServiceMessageCodec codec = new RSocketJsonPayloadCodec();
 
   @Override
   public ClientTransport getClientTransport() {
@@ -26,8 +26,8 @@ public class RSocketServicesTransport implements ServiceTransport {
   }
 
   @Override
-  public Map<String, MessageCodec> getMessageCodec() {
-    Map<String, MessageCodec> codecs = new HashMap<>();
+  public Map<String, ServiceMessageCodec> getMessageCodecs() {
+    Map<String, ServiceMessageCodec> codecs = new HashMap<>();
     codecs.put(codec.contentType(), codec);
     return codecs;
   }

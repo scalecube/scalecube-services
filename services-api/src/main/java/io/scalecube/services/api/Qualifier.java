@@ -92,6 +92,18 @@ public final class Qualifier {
     return qualifierAsString.substring(0, pos);
   }
 
+  /**
+   * @return qualifier action.
+   */
+  public static String getQualifierAction(String qualifierAsString) {
+    int pos = qualifierAsString.indexOf(Q_DELIMITER);
+    if (pos == -1) {
+      return qualifierAsString;
+    }
+    return qualifierAsString.substring(pos + 1, qualifierAsString.length());
+  }
+
+
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
