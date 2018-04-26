@@ -5,7 +5,9 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.testlib.BaseTest;
 
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -17,12 +19,15 @@ import reactor.core.publisher.Mono;
 
 public class LocalServiceTest extends BaseTest {
 
+  private static final Duration timeout = Duration.ofSeconds(3);
+
   private static AtomicInteger port = new AtomicInteger(4000);
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void test_local_greeting_request_completes_before_timeout() throws Exception {
-    Duration duration = Duration.ofSeconds(1);
-
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
@@ -32,7 +37,8 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = node1.call().api(GreetingService.class);
 
     // call the service.
-    Mono<GreetingResponse> result = Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
+    Mono<GreetingResponse> result =
+        Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)));
 
     CountDownLatch timeLatch = new CountDownLatch(1);
     result.subscribe(onNext -> {
@@ -45,7 +51,6 @@ public class LocalServiceTest extends BaseTest {
     assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
     assertTrue(timeLatch.getCount() == 0);
     node1.shutdown();
-
   }
 
   @Test
@@ -146,6 +151,9 @@ public class LocalServiceTest extends BaseTest {
 
   @Test
   public void test_local_greeting_request_timeout_expires() throws Exception {
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage("Did not observe any item or terminal signal");
+
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
         .port(port.incrementAndGet())
@@ -155,14 +163,10 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = node1.call().api(GreetingService.class);
 
     // call the service.
-    Mono<GreetingResponse> result = Mono.from(
-        service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(3)))
-            ).timeout(Duration.ofSeconds(1));
 
-    result.doOnError(error -> {
-      // print the greeting.
-      System.out.println("local_greeting_request_timeout_expires : " + error);
-    }).block(Duration.ofSeconds(5));
+    Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)))
+        .timeout(Duration.ofSeconds(1))
+        .block();
 
     node1.shutdown().block();
   }

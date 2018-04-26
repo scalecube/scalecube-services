@@ -5,7 +5,6 @@ import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
 import static io.scalecube.services.TestRequests.SERVICE_NAME;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -21,7 +20,6 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
 
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,7 +27,6 @@ import org.junit.rules.ExpectedException;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -87,9 +84,10 @@ public class ServiceCallTest extends BaseTest {
     Publisher<ServiceMessage> future =
         serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST);
 
-    Mono.from(future).doOnNext(message -> {
-      assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
-    }).block(Duration.ofSeconds(TIMEOUT));
+    ServiceMessage message = Mono.from(future).block(Duration.ofSeconds(TIMEOUT));
+
+    assertEquals("Didn't get desired response", GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier());
+
     microservices.shutdown().block();
   }
 
@@ -117,16 +115,17 @@ public class ServiceCallTest extends BaseTest {
     Publisher<ServiceMessage> future =
         serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST, GreetingResponse.class);
 
-    Mono.from(future).doOnNext(message -> {
-      assertThat(message.data(), instanceOf(GreetingResponse.class));
-      assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
-    }).block(Duration.ofHours(TIMEOUT));
+    ServiceMessage message = Mono.from(future).block(Duration.ofHours(TIMEOUT));
+
+    assertThat(message.data(), instanceOf(GreetingResponse.class));
+    assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
+
     provider.shutdown().block();
     consumer.shutdown().block();
   }
 
   @Test
-  public void test_remote_void_greeting() throws InterruptedException, ExecutionException, TimeoutException {
+  public void test_remote_void_greeting() throws Exception {
     // Given
     Microservices gateway = gateway();
 
@@ -137,7 +136,9 @@ public class ServiceCallTest extends BaseTest {
 
     // When
     AtomicReference<SignalType> success = new AtomicReference<>();
-    gateway.call().oneWay(GREETING_VOID_REQ).doFinally(success::set).timeout(Duration.ofSeconds(TIMEOUT))
+    gateway.call().oneWay(GREETING_VOID_REQ)
+        .doFinally(success::set)
+        .timeout(Duration.ofSeconds(TIMEOUT))
         .block();
 
     // Then:
@@ -150,6 +151,9 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_remote_fail_greeting() throws InterruptedException {
+    thrown.expect(ServiceException.class);
+    thrown.expectMessage("GreetingRequest{name='joe'}");
+
     // Given
     Microservices gateway = gateway();
 
@@ -159,26 +163,16 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     // When
-    CountDownLatch l = new CountDownLatch(1);
+    Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ)).block(timeout);
 
-    Mono<ServiceMessage> from = Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ));
-
-    from.doOnError(t -> {
-      System.err.println(t.getMessage());
-      l.countDown();
-    }).subscribe();
-
-    // Then:
-    l.await(TIMEOUT, TimeUnit.SECONDS);
-    Assert.assertEquals(l.getCount(), 0);
     gateway.shutdown().block();
     node1.shutdown().block();
   }
 
   @Test
   public void test_remote_exception_void() throws Exception {
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage(containsString("[exceptionVoid] Hello... i am a service an just recived a message"));
+    thrown.expect(ServiceException.class);
+    thrown.expectMessage("GreetingRequest{name='joe'}");
 
     // Given
     Microservices gateway = gateway();
@@ -216,27 +210,34 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_local_fail_greeting() throws Exception {
+    thrown.expect(ServiceException.class);
+    thrown.expectMessage("GreetingRequest{name='joe'}");
+
     // Create microservices instance.
     Microservices node = serviceProvider();
 
     // call the service.
-    CompletableFuture<Throwable> result = new CompletableFuture<>();
-    Mono.from(node.call()
-        .requestOne(GREETING_FAIL_REQ))
-        .doOnError(result::complete)
-        .subscribe(n -> {
-          System.out.println(n);
-          Assert.fail("Should have received an error");
-        }, result::complete);
+    Mono.from(node.call().requestOne(GREETING_FAIL_REQ)).block(timeout);
 
-    ServiceException error = (ServiceException) result.get(TIMEOUT, TimeUnit.SECONDS);
-    Assert.assertEquals("Error message doesn't match", "joe", error.getMessage());
     node.shutdown().block();
   }
 
   @Test
-  public void test_remote_async_greeting_return_string()
-      throws InterruptedException, ExecutionException, TimeoutException {
+  public void test_local_exception_greeting() throws Exception {
+    thrown.expect(ServiceException.class);
+    thrown.expectMessage("GreetingRequest{name='joe'}");
+
+    // Create microservices instance.
+    Microservices node = serviceProvider();
+
+    // call the service.
+    Mono.from(node.call().requestOne(GREETING_ERROR_REQ)).block(timeout);
+
+    node.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_async_greeting_return_string() throws Exception {
     // Create microservices cluster.
     Microservices provider = serviceProvider();
 
@@ -301,7 +302,7 @@ public class ServiceCallTest extends BaseTest {
   @Test
   public void test_local_greeting_request_timeout_expires() {
     thrown.expect(RuntimeException.class);
-    thrown.expectMessage(containsString("Timeout on blocking read"));
+    thrown.expectMessage("Timeout on blocking read");
 
     // Given:
     Microservices node = serviceProvider();
@@ -322,7 +323,7 @@ public class ServiceCallTest extends BaseTest {
   @Test
   public void test_remote_greeting_request_timeout_expires() {
     thrown.expect(RuntimeException.class);
-    thrown.expectMessage(containsString("Timeout on blocking read"));
+    thrown.expectMessage("Timeout on blocking read");
 
     // Create microservices cluster.
     Microservices provider = serviceProvider();

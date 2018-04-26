@@ -1,6 +1,6 @@
 package io.scalecube.services.transport;
 
-import io.scalecube.services.codecs.api.MessageCodec;
+import io.scalecube.services.codecs.api.ServiceMessageCodec;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 
@@ -12,6 +12,6 @@ public interface ServiceTransport {
   
   ServerTransport getServerTransport();
 
-  Map<String, ? extends MessageCodec> getMessageCodec();
+  Map<String, ? extends ServiceMessageCodec> getMessageCodecs();
  
 }
