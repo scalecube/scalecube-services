@@ -10,7 +10,9 @@ import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
@@ -25,6 +27,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import reactor.core.publisher.Mono;
 
 public class RemoteServiceTest extends BaseTest {
+
+  @Rule
+  public ExpectedException thrown = ExpectedException.none();
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
@@ -102,9 +107,8 @@ public class RemoteServiceTest extends BaseTest {
 
   }
 
-  @Ignore
   @Test
-  public void test_remote_void_greeting() throws InterruptedException, ExecutionException {
+  public void test_remote_void_greeting() throws Exception {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
@@ -362,10 +366,11 @@ public class RemoteServiceTest extends BaseTest {
     assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
   }
 
-  @Ignore
   @Test
-  public void test_remote_serviceA_calls_serviceB_with_timeout() throws InterruptedException, ExecutionException {
-    CountDownLatch countLatch = new CountDownLatch(1);
+  public void test_remote_serviceA_calls_serviceB_with_timeout() throws Exception {
+    thrown.expect(RuntimeException.class);
+    thrown.expectMessage("Timeout on blocking read");
+
     Microservices gateway = createSeed();
 
     // getting proxy from any node at any given time.
@@ -374,7 +379,7 @@ public class RemoteServiceTest extends BaseTest {
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 
     // Create microservices instance cluster.
-    Microservices provider = Microservices.builder()
+    Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
         .services(greeting, another) // add service a and b

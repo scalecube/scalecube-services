@@ -5,7 +5,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.codecs.api.MessageCodec;
+import io.scalecube.services.codecs.api.ServiceMessageCodec;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.metrics.Metrics;
@@ -14,6 +14,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.transport.DefaultServerMessageAcceptor;
 import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.TransportFactory;
 import io.scalecube.services.transport.client.api.ClientTransport;
@@ -122,7 +123,7 @@ public class Microservices {
 
   private Cluster cluster;
 
-  private Map<String, ? extends MessageCodec> codecs;
+  private Map<String, ? extends ServiceMessageCodec> codecs;
 
   private ServerTransport server;
 
@@ -132,7 +133,7 @@ public class Microservices {
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
       Object[] services,
-      Map<String, ? extends MessageCodec> codecs,
+      Map<String, ? extends ServiceMessageCodec> codecs,
       Metrics metrics) {
 
     // provision services for service access.
@@ -141,13 +142,10 @@ public class Microservices {
     this.client = client;
     this.server = server;
 
-    localServices = LocalServiceDispatchers.builder()
-        .services(services)
-        .codecs(this.codecs.get("application/json"))
-        .build();
+    localServices = LocalServiceDispatchers.builder().services(services).build();
 
     if (services != null && services.length > 0) {
-      server.accept(localServices);
+      server.accept(new DefaultServerMessageAcceptor(localServices, codecs));
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
       this.serviceAddress = Address.create(inet.getHostString(), inet.getPort());
 
@@ -190,7 +188,7 @@ public class Microservices {
 
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
-    private Map<String, ? extends MessageCodec> codecs = TransportFactory.getTransport().getMessageCodec();
+    private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodecs();
 
 
     /**

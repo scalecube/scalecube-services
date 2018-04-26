@@ -9,12 +9,14 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
 
 import com.google.common.base.Strings;
+import com.google.common.base.Throwables;
 
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -23,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -195,7 +198,6 @@ public class Reflect {
   /**
    * Util function that returns the parameterized of the request Type of a given object.
    * 
-   * @param object to inspect
    * @return the parameterized Type of a given object or Object class if unknown.
    */
   public static Type parameterizedRequestType(Method method) {
@@ -253,60 +255,47 @@ public class Reflect {
         .collect(Collectors.toList());
   }
 
-
-  public static <T> Publisher<T> invokeMessage(Object serviceObject, Method method, final ServiceMessage request)
-      throws Exception {
-
-    Object result = invoke(serviceObject, method, request);
-    Class<?> returnType = method.getReturnType();
-    if (Publisher.class.isAssignableFrom(returnType)) {
-      return (Publisher<T>) result;
-    } else {
-      // should we later support 2 parameters? message and the Stream processor?
-      throw new UnsupportedOperationException("Service Method can return of type Publisher only");
-    }
-  }
-
   /**
-   * invoke a java method by a given ServiceMessage.
+   * Invoke a java method by a given ServiceMessage.
    *
    * @param serviceObject instance to invoke its method.
    * @param method method to invoke.
    * @param request stream message request containing data or message to invoke.
    * @return invoke result.
-   * @throws Exception in case method expects more then one parameter
    */
   @SuppressWarnings("unchecked")
-  public static <T> T invoke(Object serviceObject, Method method, final ServiceMessage request) throws Exception {
-    // handle invoke
-    if (method.getParameters().length == 0) { // method expect no params.
-      return (T) method.invoke(serviceObject);
-    } else if (method.getParameters().length == 1) { // method expect 1 param.
-      if (method.getParameters()[0].getType().isAssignableFrom(ServiceMessage.class)) {
-        return (T) method.invoke(serviceObject, request);
-      } else {
-        Object invoke = method.invoke(serviceObject, new Object[]{request.data()});
-        return (T) invoke;
-      }
-    } else {
-      // should we later support 2 parameters? message and the Stream processor?
+  public static <T> Publisher<T> invoke(Object serviceObject, Method method, final ServiceMessage request)
+      throws Exception {
+
+    // handle validation
+    Class<?> returnType = method.getReturnType();
+    if (!Publisher.class.isAssignableFrom(returnType)) {
+      throw new UnsupportedOperationException("Service Method can return of type Publisher only");
+    }
+    if (method.getParameters().length > 1) {
       throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
     }
-  }
 
-  public static <T> T invokeMessage(Object serviceObject, Method method, Publisher<ServiceMessage> request)
-      throws Exception {
-    return (T) method.invoke(serviceObject, new Object[] {request});
+    // handle invoke
+    try {
+      if (method.getParameters().length == 0) { // method expect no params.
+        return (Publisher<T>) method.invoke(serviceObject);
+      } else { // method expect 1 param.
+        Class<?> requestType = Reflect.requestType(method);
+        boolean isRequestTypeServiceMessage = requestType.isAssignableFrom(ServiceMessage.class);
+        return (Publisher<T>) method.invoke(serviceObject, isRequestTypeServiceMessage ? request : request.data());
+      }
+    } catch (InvocationTargetException e) {
+      throw Throwables.propagate(Optional.ofNullable(e.getCause()).orElse(e));
+    }
   }
 
   public static String methodName(Method method) {
     ServiceMethod annotation = method.getAnnotation(ServiceMethod.class);
-    String action = Strings.isNullOrEmpty(annotation.value()) ? method.getName() : annotation.value();
-    return action;
+    return Strings.isNullOrEmpty(annotation.value()) ? method.getName() : annotation.value();
   }
 
   public static String qualifier(Class serviceInterface, Method method) {
-
     return serviceName(serviceInterface) + "/" + methodName(method);
   }
 }
