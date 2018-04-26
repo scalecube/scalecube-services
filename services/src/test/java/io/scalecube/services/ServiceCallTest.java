@@ -69,8 +69,6 @@ public class ServiceCallTest extends BaseTest {
       .request(SERVICE_NAME, "unknown")
       .data("joe").build();
 
-  private static final Duration timeout = Duration.ofSeconds(3);
-
   private static AtomicInteger port = new AtomicInteger(4000);
 
 
