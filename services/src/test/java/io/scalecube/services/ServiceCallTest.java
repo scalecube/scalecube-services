@@ -44,8 +44,8 @@ public class ServiceCallTest extends BaseTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
- 
-  private Duration timeout= Duration.ofSeconds(TIMEOUT);
+
+  private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   public static final ServiceMessage GREETING_REQ = Messages.builder()
       .request(SERVICE_NAME, "greeting")
@@ -483,34 +483,32 @@ public class ServiceCallTest extends BaseTest {
     Call service = gateway.call()
         .router(gateway.router(CanaryTestingRouter.class));
 
+    ServiceMessage req = Messages.builder()
+        .request(CanaryService.class, "greeting")
+        .data(new GreetingRequest("joe"))
+        .build();
+
     AtomicInteger count = new AtomicInteger(0);
     AtomicInteger responses = new AtomicInteger(0);
     CountDownLatch timeLatch = new CountDownLatch(1);
 
-    for (int i = 0; i < 100; i++) {
-      // call the service.
-      Publisher<ServiceMessage> future = service.requestOne(Messages.builder()
-          .request(CanaryService.class, "greeting")
-          .data("joe")
-          .build());
-
-      Mono.from(future).doOnNext(success -> {
-        responses.incrementAndGet();
-        if (success.data().toString().startsWith("B")) {
-          count.incrementAndGet();
-          if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
-            timeLatch.countDown();
-          }
+    int n = 100;
+    for (int i = 0; i < n; i++) {
+      ServiceMessage success = Mono.from(service.requestOne(req)).block(Duration.ofSeconds(TIMEOUT));
+      responses.incrementAndGet();
+      if (success.data().toString().contains("SERVICE_B_TALKING")) {
+        count.incrementAndGet();
+        if ((responses.get() == n) && (60 < count.get() && count.get() < 80)) {
+          timeLatch.countDown();
         }
-      });
+      }
     }
-
     assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
     System.out.println("responses: " + responses.get());
     System.out.println("count: " + count.get());
     System.out.println("Service B was called: " + count.get() + " times.");
 
-    assertTrue((responses.get() == 100) && (60 < count.get() && count.get() < 80));
+    assertTrue((responses.get() == n) && (60 < count.get() && count.get() < 80));
     services1.shutdown().block();
     services2.shutdown().block();
     gateway.shutdown().block();

@@ -35,7 +35,7 @@ public class RemoteServiceTest extends BaseTest {
   private static AtomicInteger port = new AtomicInteger(4000);
 
   @Test
-  public void test_remote_service_tags() throws InterruptedException, ExecutionException {
+  public void test_remote_service_tags() {
     Microservices gateway = Microservices.builder()
         .port(port.incrementAndGet())
         .build();
@@ -63,15 +63,14 @@ public class RemoteServiceTest extends BaseTest {
     CountDownLatch timeLatch = new CountDownLatch(1);
     for (int i = 0; i < 100; i++) {
 
-      Mono.from(service.greeting("joe")).subscribe(success -> {
-        if (success.startsWith("B")) {
+      Mono.from(service.greeting(new GreetingRequest("joe"))).subscribe(success -> {
+        if (success.getResult().contains("SERVICE_B_TALKING")) {
           count.incrementAndGet();
           if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
             timeLatch.countDown();
           }
         }
       });
-
     }
 
     services2.shutdown().block();

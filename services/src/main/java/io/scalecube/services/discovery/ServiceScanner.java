@@ -24,7 +24,7 @@ public class ServiceScanner {
       Map<String, String> endpointTags) {
     String endpointId = IdGenerator.generateId();
     List<ServiceRegistration> serviceRegistrations = serviceInstances.stream()
-        .flatMap(inst -> Arrays.stream(inst.getClass().getInterfaces())
+        .flatMap(inst -> Arrays.stream(inst.service().getClass().getInterfaces())
             .map(serviceInterface -> new InterfaceAndTags(serviceInterface, inst.tags())))
         .filter(iAndTags -> iAndTags.serviceInterface.isAnnotationPresent(Service.class))
         .map(iAndTags -> {
@@ -39,7 +39,7 @@ public class ServiceScanner {
                 String action = Reflect.methodName(m);
                 String contentType = ContentType.DEFAULT;
                 Map<String, String> methodTags = methodTags(m);
-                String communicationMode = CommunicationMode.of(m).map(CommunicationMode::name).orElse("unsupported");
+                String communicationMode = CommunicationMode.of(m).name();
                 return new ServiceMethodDefinition(action, contentType, communicationMode, methodTags);
               }).collect(Collectors.toList());
           return new ServiceRegistration(namespace,
