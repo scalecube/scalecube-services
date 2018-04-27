@@ -121,10 +121,6 @@ public class Microservices {
 
   private ServiceDiscovery discovery;
 
-  private Cluster cluster;
-
-  private Map<String, ? extends ServiceMessageCodec> codecs;
-
   private ServerTransport server;
 
   private final LocalServiceDispatchers localServices;
@@ -138,7 +134,6 @@ public class Microservices {
 
     // provision services for service access.
     this.metrics = metrics;
-    this.codecs = codecs;
     this.client = client;
     this.server = server;
 
@@ -147,10 +142,9 @@ public class Microservices {
     if (services != null && services.length > 0) {
       server.accept(new DefaultServerMessageAcceptor(localServices, codecs));
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
-      this.serviceAddress = Address.create(inet.getHostString(), inet.getPort());
-
+      serviceAddress = Address.create(inet.getHostString(), inet.getPort());
     } else {
-      this.serviceAddress = Address.from("localhost:0");
+      serviceAddress = Address.from("localhost:0");
     }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
@@ -160,11 +154,13 @@ public class Microservices {
         new HashMap<>());
     // register and make them discover-able
 
-    this.serviceRegistry = new ServiceRegistryImpl(localServiceEndpoint);
-    this.routerFactory = new RouterFactory(this.serviceRegistry);
-    this.discovery = new ServiceDiscovery(this.serviceRegistry);
-    this.discovery.start(clusterConfig);
-    this.cluster = this.discovery.cluster();
+    serviceRegistry = new ServiceRegistryImpl();
+    serviceRegistry.registerService(localServiceEndpoint);
+
+    routerFactory = new RouterFactory(serviceRegistry);
+
+    discovery = new ServiceDiscovery(serviceRegistry);
+    discovery.start(clusterConfig);
   }
 
   public Metrics metrics() {
@@ -198,7 +194,7 @@ public class Microservices {
      */
     public Microservices build() {
       return Reflect
-          .builder(new Microservices(this.server, this.client, clusterConfig, services, codecs, this.metrics))
+          .builder(new Microservices(server, client, clusterConfig, services, codecs, metrics))
           .inject();
     }
 
@@ -268,11 +264,11 @@ public class Microservices {
   }
 
   public Mono<Void> shutdown() {
-    return Mono.when(Mono.fromFuture(cluster.shutdown()), this.server.stop());
+    return Mono.when(Mono.fromFuture(discovery.shutdown()), server.stop());
   }
 
   public Cluster cluster() {
-    return this.cluster;
+    return discovery.cluster();
   }
 
 }

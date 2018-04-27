@@ -16,7 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -41,19 +40,13 @@ public class ServiceDiscovery {
   }
 
   public void start(ClusterConfig.Builder config) {
-    cluster = Cluster.joinAwait(addMetadata(config, Arrays.asList(serviceRegistry.localEndpoint())).build());
+    cluster = Cluster.joinAwait(addMetadata(config, serviceRegistry.listServiceEndpoints()).build());
     loadClusterServices();
     listenCluster();
   }
 
   public CompletableFuture<Void> shutdown() {
-    CompletableFuture<Void> result = new CompletableFuture<>();
-    if (!cluster.isShutdown()) {
-      return cluster.shutdown();
-    } else {
-      result.completeExceptionally(new IllegalStateException("Cluster transport already stopped"));
-      return result;
-    }
+    return cluster.shutdown();
   }
 
   private ClusterConfig.Builder addMetadata(ClusterConfig.Builder cfg, Collection<ServiceEndpoint> serviceEndpoints) {
