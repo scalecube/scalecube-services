@@ -28,9 +28,9 @@ public class LocalServiceDispatchers {
   }
 
   public static class Builder {
-    private Object[] services;
+    private List<Object> services;
 
-    public Builder services(Object[] services) {
+    public Builder services(List<Object> services) {
       this.services = services;
       return this;
     }
@@ -44,7 +44,7 @@ public class LocalServiceDispatchers {
     return new Builder();
   }
 
-  private LocalServiceDispatchers(Object[] serviceObjects) {
+  private LocalServiceDispatchers(List<Object> serviceObjects) {
     this.services = Arrays.asList(serviceObjects);
 
     this.services().forEach(service -> {

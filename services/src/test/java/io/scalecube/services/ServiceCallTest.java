@@ -14,13 +14,14 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
+import io.scalecube.services.a.b.testing.GreetingServiceImplA;
+import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -460,7 +461,6 @@ public class ServiceCallTest extends BaseTest {
     provider1.shutdown().block();
   }
 
-  @Ignore("https://api.travis-ci.org/v3/job/346827972/log.txt")
   @Test
   public void test_service_tags() throws Exception {
     Microservices gateway = gateway();
@@ -468,15 +468,13 @@ public class ServiceCallTest extends BaseTest {
     Microservices services1 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        // .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
-        // .build()
+        .withService(new GreetingServiceImplA()).withTag("Weight", "0.3").register()
         .build();
 
     Microservices services2 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        // .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
-        // .build()
+        .withService(new GreetingServiceImplB()).withTag("Weight", "0.7").register()
         .build();
 
     System.out.println(gateway.cluster().members());

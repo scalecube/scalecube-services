@@ -12,14 +12,12 @@ public class ServiceTagsExample {
 
     Microservices services1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        //.services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
-        //.build()
+        .withService(new GreetingServiceImplA()).withTag("Weight", "0.3").register()
         .build();
 
     Microservices services2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        //.services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
-        //.build()
+        .withService(new GreetingServiceImplB()).withTag("Weight", "0.7").register()
         .build();
 
     CanaryService service = gateway.call()
