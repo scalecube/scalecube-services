@@ -22,7 +22,7 @@ public interface ServiceRegistry {
 
   List<ServiceReference> lookupService(Predicate<? super ServiceReference> filter);
 
-  ServiceEndpoint registerService(ServiceEndpoint serviceEndpoint);
+  boolean registerService(ServiceEndpoint serviceEndpoint);
 
   ServiceEndpoint unregisterService(String endpointId);
 }
