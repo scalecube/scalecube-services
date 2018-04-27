@@ -57,9 +57,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public ServiceEndpoint registerService(ServiceEndpoint serviceEndpoint) {
-    String endpointId = serviceEndpoint.id();
-    return serviceEndpoints.compute(endpointId, (k, oldServiceEndpoint) -> serviceEndpoint);
+  public boolean registerService(ServiceEndpoint serviceEndpoint) {
+    return serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
   }
 
   @Override

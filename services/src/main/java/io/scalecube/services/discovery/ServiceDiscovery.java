@@ -93,15 +93,15 @@ public class ServiceDiscovery {
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
           if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-
-            serviceRegistry.registerService(serviceEndpoint);
-            LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
-                member, serviceEndpoint);
+            if (serviceRegistry.registerService(serviceEndpoint)) {
+              LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
+                  member, serviceEndpoint);
+            }
           } else if (type.equals(DiscoveryType.REMOVED)) {
-
-            serviceRegistry.unregisterService(serviceEndpoint.id());
-            LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
-                member, serviceEndpoint);
+            if (serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
+              LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
+                  member, serviceEndpoint);
+            }
           }
         });
   }
