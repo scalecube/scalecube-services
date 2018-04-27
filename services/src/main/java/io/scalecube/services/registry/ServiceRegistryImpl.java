@@ -14,18 +14,7 @@ import java.util.stream.Stream;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
-  private final ServiceEndpoint localEndpoint;
   private final ConcurrentMap<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
-
-  public ServiceRegistryImpl(ServiceEndpoint localEndpoint) {
-    serviceEndpoints.put(localEndpoint.id(), localEndpoint);
-    this.localEndpoint = localEndpoint;
-  }
-
-  @Override
-  public ServiceEndpoint localEndpoint() {
-    return localEndpoint;
-  }
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
