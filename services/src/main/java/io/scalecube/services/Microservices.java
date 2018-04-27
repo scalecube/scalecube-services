@@ -143,7 +143,7 @@ public class Microservices {
     localServices = LocalServiceDispatchers.builder()
         .services(services.stream().map(ServiceWithTags::service).collect(Collectors.toList())).build();
 
-    if (services != null && services.size() > 0) {
+    if (services.size() > 0) {
       server.accept(new DefaultServerMessageAcceptor(localServices, codecs));
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
       serviceAddress = Address.create(inet.getHostString(), inet.getPort());

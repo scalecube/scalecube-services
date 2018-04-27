@@ -1,5 +1,6 @@
 package io.scalecube.services.a.b.testing;
 
+import io.scalecube.services.GreetingRequest;
 import io.scalecube.services.Microservices;
 
 import reactor.core.publisher.Mono;
@@ -25,8 +26,8 @@ public class ServiceTagsExample {
         .api(CanaryService.class);
 
     for (int i = 0; i < 10; i++) {
-      Mono.from(service.greeting("joe")).doOnNext(success -> {
-        success.startsWith("B");
+      Mono.from(service.greeting(new GreetingRequest("joe"))).doOnNext(success -> {
+        success.getResult().startsWith("B");
         System.out.println(success);
       });
     }
