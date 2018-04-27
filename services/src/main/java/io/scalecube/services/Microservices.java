@@ -25,9 +25,12 @@ import io.scalecube.transport.Addressing;
 import com.codahale.metrics.MetricRegistry;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -128,7 +131,7 @@ public class Microservices {
   private Microservices(ServerTransport server,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
-      Object[] services,
+      List<ServiceWithTags> services,
       Map<String, ? extends ServiceMessageCodec> codecs,
       Metrics metrics) {
 
@@ -137,9 +140,10 @@ public class Microservices {
     this.client = client;
     this.server = server;
 
-    localServices = LocalServiceDispatchers.builder().services(services).build();
+    localServices = LocalServiceDispatchers.builder()
+        .services(services.stream().map(ServiceWithTags::service).collect(Collectors.toList())).build();
 
-    if (services != null && services.length > 0) {
+    if (services != null && services.size() > 0) {
       server.accept(new DefaultServerMessageAcceptor(localServices, codecs));
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
       serviceAddress = Address.create(inet.getHostString(), inet.getPort());
@@ -148,7 +152,8 @@ public class Microservices {
     }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
-        Arrays.stream(services).map(Object::getClass).collect(Collectors.toList()),
+        // TODO: pass tags as well [sergeyr]
+        services,
         serviceAddress.host(),
         serviceAddress.port(),
         new HashMap<>());
@@ -177,15 +182,12 @@ public class Microservices {
 
   public static final class Builder {
 
-    private Object[] services = new Object[] {};
+    private List<ServiceWithTags> services = new ArrayList<>();
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
-
-
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
     private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodecs();
-
 
     /**
      * Microservices instance builder.
@@ -223,22 +225,20 @@ public class Microservices {
       return this;
     }
 
-    /**
-     * Services list to be registered.
-     *
-     * @param services list of instances decorated with @Service
-     * @return builder.
-     */
-    public Builder services(Object... services) {
-      checkNotNull(services);
-      this.services = services;
-      return this;
-    }
-
     public Builder metrics(MetricRegistry metrics) {
       checkNotNull(metrics);
       this.metrics = new Metrics(metrics);
       return this;
+    }
+
+    public Builder services(Object... services) {
+      checkNotNull(services);
+      this.services = Arrays.stream(services).map(ServiceWithTags::new).collect(Collectors.toList());
+      return this;
+    }
+
+    public ServiceWithTagsBuilder withService(Object serviceInstance) {
+      return new ServiceWithTagsBuilder(serviceInstance, this);
     }
   }
 
@@ -271,4 +271,47 @@ public class Microservices {
     return discovery.cluster();
   }
 
+  public static class ServiceWithTagsBuilder {
+    private final Object serviceInstance;
+    private final Map<String, String> tags = new HashMap<>();
+    private final Builder that;
+
+    ServiceWithTagsBuilder(Object serviceInstance, Builder that) {
+      this.serviceInstance = serviceInstance;
+      this.that = that;
+    }
+
+    public ServiceWithTagsBuilder withTag(String key, String value) {
+      tags.put(key, value);
+      return this;
+    }
+
+    public Builder register() {
+      that.services.add(new ServiceWithTags(serviceInstance, tags));
+      return that;
+    }
+  }
+
+  public static class ServiceWithTags {
+
+    private final Object serviceInstance;
+    private final Map<String, String> tags;
+
+    ServiceWithTags(Object serviceInstance) {
+      this(serviceInstance, Collections.emptyMap());
+    }
+
+    ServiceWithTags(Object serviceInstance, Map<String, String> tags) {
+      this.serviceInstance = serviceInstance;
+      this.tags = tags;
+    }
+
+    public Object service() {
+      return serviceInstance;
+    }
+
+    public Map<String, String> tags() {
+      return tags;
+    }
+  }
 }

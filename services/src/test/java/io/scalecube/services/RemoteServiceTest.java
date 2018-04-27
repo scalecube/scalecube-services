@@ -7,9 +7,10 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
+import io.scalecube.services.a.b.testing.GreetingServiceImplA;
+import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.testlib.BaseTest;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -33,7 +34,6 @@ public class RemoteServiceTest extends BaseTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
 
-  @Ignore
   @Test
   public void test_remote_service_tags() throws InterruptedException, ExecutionException {
     Microservices gateway = Microservices.builder()
@@ -43,15 +43,13 @@ public class RemoteServiceTest extends BaseTest {
     Microservices services1 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        // .services().service(new GreetingServiceImplA()).tag("Weight", "0.3").add()
-        // .build()
+        .withService(new GreetingServiceImplA()).withTag("Weight", "0.3").register()
         .build();
 
     Microservices services2 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        // .services().service(new GreetingServiceImplB()).tag("Weight", "0.7").add()
-        // .build()
+        .withService(new GreetingServiceImplB()).withTag("Weight", "0.7").register()
         .build();
 
     CanaryService service = gateway.call()
