@@ -13,15 +13,15 @@ public interface ClientChannel {
    * @param request Request payload.
    * @return {@code Publisher} containing at most a single {@code ServiceMessage} representing the response.
    */
-  public Mono<ServiceMessage> requestResponse(ServiceMessage request);
+  Mono<ServiceMessage> requestResponse(ServiceMessage request);
 
   /**
    * Request-Stream interaction model of.
    *
-   * @param ServiceMessage Request.
+   * @param request Request.
    * @return {@code Publisher} containing the stream of {@code ServiceMessage}s representing the response.
    */
-  public Flux<ServiceMessage> requestStream(ServiceMessage request);
+  Flux<ServiceMessage> requestStream(ServiceMessage request);
 
   /**
    * Fire and Forget interaction model of {@code ServiceMessage}.
@@ -34,9 +34,9 @@ public interface ClientChannel {
   /**
    * Request-Stream interaction model of.
    *
-   * @param ServiceMessage Request.
+   * @param request Request.
    * @return {@code Publisher} containing the stream of {@code ServiceMessage}s representing the response.
    */
-  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request);
+  Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request);
 
 }
