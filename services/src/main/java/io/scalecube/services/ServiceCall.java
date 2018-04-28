@@ -92,8 +92,6 @@ public class ServiceCall {
         Address address =
             Address.create(serviceReference.host(), serviceReference.port());
 
-        // FIXME: in request response its not good idea to create transport for address per call.
-        // better to reuse same channel.
         return transport.create(address)
             .requestResponse(request)
             .map(message -> {
