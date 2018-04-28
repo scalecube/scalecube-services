@@ -14,7 +14,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
 
   @Inject
-  private GreetingService greetingServiceTimeout;
+  public GreetingService greetingServiceTimeout;
 
   @Inject
   private GreetingService greetingService;
@@ -29,8 +29,12 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
   @Override
   public Publisher<String> callGreetingTimeout(String request) {
+    System.out.println("callGreetingTimeout: " + request);
     return Mono
-        .from(this.greetingServiceTimeout.greetingRequestTimeout(new GreetingRequest(request, Duration.ofSeconds(2))))
+        .from(
+            this.greetingServiceTimeout.greetingRequestTimeout(
+                new GreetingRequest(request, Duration.ofSeconds(3))))
+        .timeout(Duration.ofSeconds(1))
         .map(GreetingResponse::getResult);
   }
 

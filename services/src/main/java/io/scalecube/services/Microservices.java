@@ -128,6 +128,8 @@ public class Microservices {
 
   private final LocalServiceDispatchers localServices;
 
+  private List<Object> services;
+
   private Microservices(ServerTransport server,
       ClientTransport client,
       ClusterConfig.Builder clusterConfig,
@@ -139,7 +141,7 @@ public class Microservices {
     this.metrics = metrics;
     this.client = client;
     this.server = server;
-
+    this.services= services.stream().map(mapper->mapper.serviceInstance).collect(Collectors.toList()); 
     localServices = LocalServiceDispatchers.builder()
         .services(services.stream().map(ServiceWithTags::service).collect(Collectors.toList())).build();
 
@@ -173,7 +175,7 @@ public class Microservices {
   }
 
   public Collection<Object> services() {
-    return localServices.services();
+    return services;
   }
 
   public Collection<ServiceEndpoint> serviceEndpoints() {

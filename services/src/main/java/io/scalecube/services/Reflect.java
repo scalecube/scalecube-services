@@ -63,18 +63,18 @@ public class Reflect {
      * @return injected microservices instance.
      */
     public Microservices inject() {
-      this.inject(this.microservices);
+      this.inject(this.microservices.services().toArray());
       return this.microservices;
     }
 
     /**
      * scan all local service instances and inject a service proxy.
      */
-    private void inject(Microservices microservices) {
-      new ArrayList<>(microservices.services()).forEach(instance -> {
+    private void inject(Object[] services) {
+      for(Object instance : services ) {
         scanServiceFields(instance);
         processPostConstruct(instance);
-      });
+      }
     }
 
     private void processPostConstruct(Object targetInstance) {
