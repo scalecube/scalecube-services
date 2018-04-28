@@ -9,6 +9,7 @@ import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
+import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.testlib.BaseTest;
 
 import org.junit.Rule;
@@ -365,18 +366,19 @@ public class RemoteServiceTest extends BaseTest {
 
   @Test
   public void test_remote_serviceA_calls_serviceB_with_timeout() throws Exception {
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("Timeout on blocking read");
-
+    thrown.expect(InternalServiceException.class);
+    thrown.expectMessage("Did not observe any item or terminal signal");
+    
     Microservices gateway = createSeed();
 
+    
     // getting proxy from any node at any given time.
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 
     // Create microservices instance cluster.
-    Microservices.builder()
+    Microservices ms = Microservices.builder()
         .seeds(gateway.cluster().address())
         .port(port.incrementAndGet())
         .services(greeting, another) // add service a and b
@@ -384,7 +386,12 @@ public class RemoteServiceTest extends BaseTest {
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
-    Mono.from(service.callGreetingTimeout("joe")).block(Duration.ofSeconds(1));
+    Mono.from(
+        service.callGreetingTimeout("joe")
+        ).block();
+    
+    System.out.println("done");
+    ms.shutdown();
   }
 
   @Test
