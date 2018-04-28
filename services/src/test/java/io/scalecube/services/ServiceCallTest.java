@@ -468,13 +468,13 @@ public class ServiceCallTest extends BaseTest {
     Microservices services1 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .withService(new GreetingServiceImplA()).withTag("Weight", "0.3").register()
+        .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
         .build();
 
     Microservices services2 = Microservices.builder()
         .port(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .withService(new GreetingServiceImplB()).withTag("Weight", "0.7").register()
+        .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
         .build();
 
     System.out.println(gateway.cluster().members());

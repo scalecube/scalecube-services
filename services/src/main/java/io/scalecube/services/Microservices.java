@@ -239,7 +239,7 @@ public class Microservices {
       return this;
     }
 
-    public ServiceWithTagsBuilder withService(Object serviceInstance) {
+    public ServiceWithTagsBuilder service(Object serviceInstance) {
       return new ServiceWithTagsBuilder(serviceInstance, this);
     }
   }
@@ -283,7 +283,7 @@ public class Microservices {
       this.that = that;
     }
 
-    public ServiceWithTagsBuilder withTag(String key, String value) {
+    public ServiceWithTagsBuilder tag(String key, String value) {
       tags.put(key, value);
       return this;
     }
