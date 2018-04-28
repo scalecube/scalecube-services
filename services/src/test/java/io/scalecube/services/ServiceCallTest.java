@@ -494,7 +494,7 @@ public class ServiceCallTest extends BaseTest {
 
     int n = 100;
     for (int i = 0; i < n; i++) {
-      ServiceMessage success = Mono.from(service.requestOne(req)).block(Duration.ofSeconds(TIMEOUT));
+      ServiceMessage success = Mono.from(service.requestOne(req)).block();
       responses.incrementAndGet();
       if (success.data().toString().contains("SERVICE_B_TALKING")) {
         count.incrementAndGet();
@@ -503,7 +503,6 @@ public class ServiceCallTest extends BaseTest {
         }
       }
     }
-    assertTrue(await(timeLatch, 5, TimeUnit.SECONDS));
     System.out.println("responses: " + responses.get());
     System.out.println("count: " + count.get());
     System.out.println("Service B was called: " + count.get() + " times.");
