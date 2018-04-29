@@ -16,6 +16,7 @@ function decryptsecrets {
 function importpgp {
 	echo   importing pgp secret
 	echo *-*-*-*-*-*-*-*-*-*-*-*
+	eval $(gpg-agent --daemon --batch)
     gpg --batch --passphrase $GPG_PASSPHRASE --import  ~/.ssh/codesigning.asc
     shred -z -u ~/.ssh/codesigning.asc
 }
