@@ -130,32 +130,40 @@ public class Microservices {
 
   private final List<Object> services;
 
-  private Microservices(ServerTransport server,
-      ClientTransport client,
-      ClusterConfig.Builder clusterConfig,
-      List<ServiceInfo> services,
-      Map<String, ? extends ServiceMessageCodec> codecs,
-      Metrics metrics) {
+  private final int servicePort;
+
+  private final List<ServiceInfo> servicesInfo;
+
+  private final Map<String, ? extends ServiceMessageCodec> codecs;
+
+  private final ClusterConfig.Builder clusterConfig;
+
+  private Microservices(Builder builder) {
 
     // provision services for service access.
-    this.metrics = metrics;
-    this.client = client;
-    this.server = server;
-    this.services= services.stream().map(mapper->mapper.serviceInstance).collect(Collectors.toList()); 
-    serviceDispatchers = LocalServiceDispatchers.builder()
-        .services(services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
+    this.metrics = builder.metrics;
+    this.client = builder.client;
+    this.server = builder.server;
+    this.servicesInfo = builder.services;
+    this.codecs = builder.codecs;
+    this.clusterConfig = builder.clusterConfig;
+    this.servicePort = builder.servicePort;
+    
+    this.services = builder.services.stream().map(mapper -> mapper.serviceInstance).collect(Collectors.toList());
+    this.serviceDispatchers = LocalServiceDispatchers.builder()
+        .services(this.servicesInfo.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
     if (services.size() > 0) {
       server.accept(new DefaultServerMessageAcceptor(serviceDispatchers, codecs));
-      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
+      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
       serviceAddress = Address.create(inet.getHostString(), inet.getPort());
     } else {
-      serviceAddress = Address.from("localhost:0");
+      serviceAddress = Address.from("localhost:"+servicePort);
     }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
         // TODO: pass tags as well [sergeyr]
-        services,
+        servicesInfo,
         serviceAddress.host(),
         serviceAddress.port(),
         new HashMap<>());
@@ -184,6 +192,7 @@ public class Microservices {
 
   public static final class Builder {
 
+    public int servicePort = 0;
     private List<ServiceInfo> services = new ArrayList<>();
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
@@ -197,8 +206,7 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-      return Reflect
-          .builder(new Microservices(server, client, clusterConfig, services, codecs, metrics))
+      return Reflect.builder(new Microservices(this))
           .inject();
     }
 
@@ -212,8 +220,13 @@ public class Microservices {
       return this;
     }
 
-    public Builder port(int port) {
+    public Builder discoveryPort(int port) {
       this.clusterConfig.port(port);
+      return this;
+    }
+    
+    public Builder port(int port) {
+      this.servicePort = port;
       return this;
     }
 
