@@ -3,16 +3,14 @@ package io.scalecube.services.transport;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.transport.api.CommunicationMode;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
-import io.scalecube.services.transport.dispatchers.FireAndForgetInvoker;
+import io.scalecube.services.transport.dispatchers.FireAndForgetDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestChannelDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestResponseDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestStreamDispatcher;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -28,9 +26,9 @@ public class LocalServiceDispatchers {
   }
 
   public static class Builder {
-    private Object[] services;
+    private List<Object> services;
 
-    public Builder services(Object[] services) {
+    public Builder services(List<Object> services) {
       this.services = services;
       return this;
     }
@@ -44,26 +42,29 @@ public class LocalServiceDispatchers {
     return new Builder();
   }
 
-  private LocalServiceDispatchers(Object[] serviceObjects) {
-    this.services = Arrays.asList(serviceObjects);
+  private LocalServiceDispatchers(List<Object> serviceObjects) {
+    this.services = Collections.singletonList(serviceObjects);
 
-    this.services().forEach(service -> {
+    serviceObjects.forEach(service -> {
       Reflect.serviceInterfaces(service).forEach(serviceInterface -> {
-
         Reflect.serviceMethods(serviceInterface).forEach((key, method) -> {
-          Optional<CommunicationMode> communicationMode = CommunicationMode.of(method);
+          CommunicationMode communicationMode = CommunicationMode.of(method);
           String qualifier = Reflect.qualifier(serviceInterface, method);
-          if (communicationMode.get().equals(CommunicationMode.REQUEST_ONE)) {
-            this.register(qualifier, new RequestResponseDispatcher(qualifier, service, method));
-
-          } else if (communicationMode.get().equals(CommunicationMode.REQUEST_STREAM)) {
-            this.register(qualifier, new RequestChannelDispatcher(qualifier, service, method));
-
-          } else if (communicationMode.get().equals(CommunicationMode.ONE_WAY)) {
-            this.register(qualifier, new FireAndForgetInvoker(qualifier, service, method));
-
-          } else if (communicationMode.get().equals(CommunicationMode.REQUEST_MANY)) {
-            this.register(qualifier, new RequestStreamDispatcher(qualifier, service, method));
+          switch (communicationMode) {
+            case REQUEST_ONE:
+              register(qualifier, new RequestResponseDispatcher(qualifier, service, method));
+              break;
+            case REQUEST_STREAM:
+              register(qualifier, new RequestChannelDispatcher(qualifier, service, method));
+              break;
+            case ONE_WAY:
+              register(qualifier, new FireAndForgetDispatcher(qualifier, service, method));
+              break;
+            case REQUEST_MANY:
+              register(qualifier, new RequestStreamDispatcher(qualifier, service, method));
+              break;
+            default:
+              break;
           }
         });
       });

@@ -21,7 +21,7 @@ public class LocalServiceTest extends BaseTest {
 
   private static final Duration timeout = Duration.ofSeconds(3);
 
-  private static AtomicInteger port = new AtomicInteger(4000);
+  private static AtomicInteger port = new AtomicInteger(7000);
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -30,7 +30,7 @@ public class LocalServiceTest extends BaseTest {
   public void test_local_greeting_request_completes_before_timeout() throws Exception {
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
@@ -57,7 +57,7 @@ public class LocalServiceTest extends BaseTest {
   public void test_local_async_greeting() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
@@ -78,7 +78,7 @@ public class LocalServiceTest extends BaseTest {
   public void test_local_no_params() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
@@ -101,7 +101,7 @@ public class LocalServiceTest extends BaseTest {
   public void test_local_void_greeting() {
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
@@ -128,7 +128,7 @@ public class LocalServiceTest extends BaseTest {
   public void test_local_async_greeting_return_GreetingResponse() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
@@ -156,7 +156,7 @@ public class LocalServiceTest extends BaseTest {
 
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
@@ -176,7 +176,7 @@ public class LocalServiceTest extends BaseTest {
   public void test_local_async_greeting_return_Message() throws Exception {
     // Create microservices cluster.
     Microservices microservices = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 

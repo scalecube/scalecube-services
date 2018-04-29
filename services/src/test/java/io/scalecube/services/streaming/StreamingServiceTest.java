@@ -16,6 +16,7 @@ import org.junit.Test;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import reactor.core.Disposable;
@@ -24,7 +25,8 @@ import reactor.core.publisher.Flux;
 public class StreamingServiceTest extends BaseTest {
 
   private MetricRegistry registry = new MetricRegistry();
-
+  private static AtomicInteger port = new AtomicInteger(6000);
+  
   @Test
   public void test_quotes() throws InterruptedException {
     QuoteService service = new SimpleQuoteService();
@@ -40,7 +42,9 @@ public class StreamingServiceTest extends BaseTest {
 
   @Test
   public void test_local_quotes_service() throws InterruptedException {
-    Microservices node = Microservices.builder().services(new SimpleQuoteService()).build();
+    Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .services(new SimpleQuoteService()).build();
 
     QuoteService service = node.call().api(QuoteService.class);
 
@@ -58,9 +62,12 @@ public class StreamingServiceTest extends BaseTest {
 
   @Test
   public void test_remote_quotes_service() throws InterruptedException {
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .build();
 
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
@@ -94,8 +101,10 @@ public class StreamingServiceTest extends BaseTest {
   public void test_quotes_batch() throws InterruptedException {
     int streamBound = 1000;
 
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet()).build();
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
         .metrics(registry)
@@ -118,9 +127,11 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_call_quotes_snapshot() throws InterruptedException {
     int batchSize = 1000;
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet()).build();
 
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
@@ -144,9 +155,12 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_just_once() throws InterruptedException {
     int batchSize = 1;
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .build();
 
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
@@ -165,6 +179,7 @@ public class StreamingServiceTest extends BaseTest {
     Microservices gateway = Microservices.builder().build();
 
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
@@ -189,6 +204,7 @@ public class StreamingServiceTest extends BaseTest {
     Microservices gateway = Microservices.builder().build();
 
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
@@ -214,8 +230,11 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_unknown_method() throws InterruptedException {
 
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .build();
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 
@@ -242,9 +261,12 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_remote_node_died() throws InterruptedException {
     int batchSize = 1;
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .build();
 
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService()).build();
 

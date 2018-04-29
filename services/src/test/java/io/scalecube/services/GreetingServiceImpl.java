@@ -5,6 +5,8 @@ import io.scalecube.services.api.ServiceMessage;
 
 import org.reactivestreams.Publisher;
 
+import java.util.concurrent.CountDownLatch;
+
 import reactor.core.publisher.Mono;
 
 final class GreetingServiceImpl implements GreetingService {
@@ -14,11 +16,16 @@ final class GreetingServiceImpl implements GreetingService {
 
   private int instanceId;
 
-  public GreetingServiceImpl() {
-  }
+  private CountDownLatch signal;
+
+  public GreetingServiceImpl() {}
 
   public GreetingServiceImpl(int id) {
     this.instanceId = id;
+  }
+
+  public GreetingServiceImpl(CountDownLatch signal) {
+    this.signal = signal;
   }
 
   @Override
@@ -62,6 +69,9 @@ final class GreetingServiceImpl implements GreetingService {
   public Mono<Void> greetingVoid(GreetingRequest request) {
     System.out.println("[greetingVoid] Hello... i am a service an just recived a message:" + request);
     System.out.println(" hello to: " + request.getName());
+    if (signal != null) {
+      signal.countDown();
+    }
     return Mono.empty();
   }
 

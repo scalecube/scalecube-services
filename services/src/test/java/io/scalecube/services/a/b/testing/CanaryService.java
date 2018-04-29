@@ -1,15 +1,17 @@
 package io.scalecube.services.a.b.testing;
 
+import io.scalecube.services.GreetingRequest;
+import io.scalecube.services.GreetingResponse;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 
-import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 
 @Service
 public interface CanaryService {
 
   @ServiceMethod
-  Publisher<String> greeting(String string);
+  Mono<GreetingResponse> greeting(GreetingRequest request);
 
 }

@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
@@ -25,9 +25,12 @@ import io.scalecube.transport.Addressing;
 import com.codahale.metrics.MetricRegistry;
 
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -67,12 +70,12 @@ import reactor.core.publisher.Mono;
  *    &#64; Service
  *    public interface GreetingService {
  *         &#64; ServiceMethod
- *         CompletableFuture<String> asyncGreeting(String string);
+ *         Mono<String> asyncGreeting(String string);
  *     }
  *
  *     public class GreetingServiceImpl implements GreetingService {
  *       &#64; Override
- *       public CompletableFuture<String> asyncGreeting(String name) {
+ *       public Mono<String> asyncGreeting(String name) {
  *         return CompletableFuture.completedFuture(" hello to: " + name);
  *       }
  *     }
@@ -88,7 +91,7 @@ import reactor.core.publisher.Mono;
  *         .api(GreetingService.class);
  *
  *     // Invoke the greeting service async:
- *     CompletableFuture<String> future = service.sayHello("joe");
+ *     Mono<String> future = service.sayHello("joe");
  *
  *     // handle completable success or error:
  *     future.whenComplete((result, ex) -> {
@@ -113,42 +116,51 @@ public class Microservices {
 
   private final ClientTransport client;
 
-  private Metrics metrics;
+  private final Metrics metrics;
 
-  private Address serviceAddress;
+  private final Address serviceAddress;
 
-  public RouterFactory routerFactory;
+  public final RouterFactory routerFactory;
 
-  private ServiceDiscovery discovery;
+  private final ServiceDiscovery discovery;
 
-  private ServerTransport server;
+  private final ServerTransport server;
 
-  private final LocalServiceDispatchers localServices;
+  private final LocalServiceDispatchers serviceDispatchers;
 
-  private Microservices(ServerTransport server,
-      ClientTransport client,
-      ClusterConfig.Builder clusterConfig,
-      Object[] services,
-      Map<String, ? extends ServiceMessageCodec> codecs,
-      Metrics metrics) {
+  private final List<Object> services;
+
+  private final int servicePort;
+
+  private final Map<String, ? extends ServiceMessageCodec> codecs;
+
+  private final ClusterConfig.Builder clusterConfig;
+
+  private Microservices(Builder builder) {
 
     // provision services for service access.
-    this.metrics = metrics;
-    this.client = client;
-    this.server = server;
+    this.metrics = builder.metrics;
+    this.client = builder.client;
+    this.server = builder.server;
+    this.codecs = builder.codecs;
+    this.clusterConfig = builder.clusterConfig;
+    this.servicePort = builder.servicePort;
 
-    localServices = LocalServiceDispatchers.builder().services(services).build();
+    this.services = builder.services.stream().map(mapper -> mapper.serviceInstance).collect(Collectors.toList());
+    this.serviceDispatchers = LocalServiceDispatchers.builder()
+        .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
-    if (services != null && services.length > 0) {
-      server.accept(new DefaultServerMessageAcceptor(localServices, codecs));
-      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), 0));
+    if (services.size() > 0) {
+      server.accept(new DefaultServerMessageAcceptor(serviceDispatchers, codecs));
+      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
       serviceAddress = Address.create(inet.getHostString(), inet.getPort());
     } else {
-      serviceAddress = Address.from("localhost:0");
+      serviceAddress = Address.from("localhost:" + servicePort);
     }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
-        Arrays.stream(services).map(Object::getClass).collect(Collectors.toList()),
+        // TODO: pass tags as well [sergeyr]
+        builder.services,
         serviceAddress.host(),
         serviceAddress.port(),
         new HashMap<>());
@@ -168,7 +180,7 @@ public class Microservices {
   }
 
   public Collection<Object> services() {
-    return localServices.services();
+    return services;
   }
 
   public Collection<ServiceEndpoint> serviceEndpoints() {
@@ -177,15 +189,13 @@ public class Microservices {
 
   public static final class Builder {
 
-    private Object[] services = new Object[] {};
+    public int servicePort = 0;
+    private List<ServiceInfo> services = new ArrayList<>();
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
-
-
     private ServerTransport server = TransportFactory.getTransport().getServerTransport();
     private ClientTransport client = TransportFactory.getTransport().getClientTransport();
     private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodecs();
-
 
     /**
      * Microservices instance builder.
@@ -193,52 +203,59 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-      return Reflect
-          .builder(new Microservices(server, client, clusterConfig, services, codecs, metrics))
+      return Reflect.builder(new Microservices(this))
           .inject();
     }
 
     public Builder server(ServerTransport server) {
+      requireNonNull(server);
       this.server = server;
       return this;
     }
 
     public Builder client(ClientTransport client) {
+      requireNonNull(client);
       this.client = client;
       return this;
     }
 
-    public Builder port(int port) {
+    public Builder discoveryPort(int port) {
       this.clusterConfig.port(port);
       return this;
     }
 
+    public Builder servicePort(int port) {
+      this.servicePort = port;
+      return this;
+    }
+
     public Builder seeds(Address... seeds) {
+      requireNonNull(seeds);
       this.clusterConfig.seedMembers(seeds);
       return this;
     }
 
     public Builder clusterConfig(ClusterConfig.Builder clusterConfig) {
+      requireNonNull(clusterConfig);
       this.clusterConfig = clusterConfig;
       return this;
     }
 
-    /**
-     * Services list to be registered.
-     *
-     * @param services list of instances decorated with @Service
-     * @return builder.
-     */
-    public Builder services(Object... services) {
-      checkNotNull(services);
-      this.services = services;
+    public Builder metrics(MetricRegistry metrics) {
+      requireNonNull(metrics);
+      this.metrics = new Metrics(metrics);
       return this;
     }
 
-    public Builder metrics(MetricRegistry metrics) {
-      checkNotNull(metrics);
-      this.metrics = new Metrics(metrics);
+    public Builder services(Object... services) {
+      requireNonNull(services);
+      this.services = Arrays.stream(services).map(ServiceInfo::new).collect(Collectors.toList());
       return this;
+    }
+
+    public ServiceBuilder service(Object serviceInstance) {
+      requireNonNull(serviceInstance);
+      return new ServiceBuilder(serviceInstance, this);
     }
   }
 
@@ -260,7 +277,7 @@ public class Microservices {
 
   public Call call() {
     Router router = this.router(RoundRobinServiceRouter.class);
-    return new ServiceCall(client, localServices).call().metrics(metrics).router(router);
+    return new ServiceCall(client, serviceDispatchers).call().metrics(metrics).router(router);
   }
 
   public Mono<Void> shutdown() {
@@ -271,4 +288,47 @@ public class Microservices {
     return discovery.cluster();
   }
 
+  public static class ServiceBuilder {
+    private final Object serviceInstance;
+    private final Map<String, String> tags = new HashMap<>();
+    private final Builder that;
+
+    ServiceBuilder(Object serviceInstance, Builder that) {
+      this.serviceInstance = serviceInstance;
+      this.that = that;
+    }
+
+    public ServiceBuilder tag(String key, String value) {
+      tags.put(key, value);
+      return this;
+    }
+
+    public Builder register() {
+      that.services.add(new ServiceInfo(serviceInstance, tags));
+      return that;
+    }
+  }
+
+  public static class ServiceInfo {
+
+    private final Object serviceInstance;
+    private final Map<String, String> tags;
+
+    ServiceInfo(Object serviceInstance) {
+      this(serviceInstance, Collections.emptyMap());
+    }
+
+    ServiceInfo(Object serviceInstance, Map<String, String> tags) {
+      this.serviceInstance = serviceInstance;
+      this.tags = tags;
+    }
+
+    public Object service() {
+      return serviceInstance;
+    }
+
+    public Map<String, String> tags() {
+      return tags;
+    }
+  }
 }

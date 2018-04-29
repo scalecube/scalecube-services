@@ -20,7 +20,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -63,18 +62,18 @@ public class Reflect {
      * @return injected microservices instance.
      */
     public Microservices inject() {
-      this.inject(this.microservices);
+      this.inject(this.microservices.services());
       return this.microservices;
     }
 
     /**
      * scan all local service instances and inject a service proxy.
      */
-    private void inject(Microservices microservices) {
-      new ArrayList<>(microservices.services()).forEach(instance -> {
+    private void inject(Collection<Object> collection) {
+      for(Object instance : collection ) {
         scanServiceFields(instance);
         processPostConstruct(instance);
-      });
+      }
     }
 
     private void processPostConstruct(Object targetInstance) {
