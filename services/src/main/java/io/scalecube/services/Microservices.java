@@ -1,6 +1,6 @@
 package io.scalecube.services;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
@@ -145,7 +145,7 @@ public class Microservices {
     this.codecs = builder.codecs;
     this.clusterConfig = builder.clusterConfig;
     this.servicePort = builder.servicePort;
-    
+
     this.services = builder.services.stream().map(mapper -> mapper.serviceInstance).collect(Collectors.toList());
     this.serviceDispatchers = LocalServiceDispatchers.builder()
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
@@ -155,7 +155,7 @@ public class Microservices {
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
       serviceAddress = Address.create(inet.getHostString(), inet.getPort());
     } else {
-      serviceAddress = Address.from("localhost:"+servicePort);
+      serviceAddress = Address.from("localhost:" + servicePort);
     }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
@@ -208,11 +208,13 @@ public class Microservices {
     }
 
     public Builder server(ServerTransport server) {
+      requireNonNull(server);
       this.server = server;
       return this;
     }
 
     public Builder client(ClientTransport client) {
+      requireNonNull(client);
       this.client = client;
       return this;
     }
@@ -221,35 +223,38 @@ public class Microservices {
       this.clusterConfig.port(port);
       return this;
     }
-    
+
     public Builder servicePort(int port) {
       this.servicePort = port;
       return this;
     }
 
     public Builder seeds(Address... seeds) {
+      requireNonNull(seeds);
       this.clusterConfig.seedMembers(seeds);
       return this;
     }
 
     public Builder clusterConfig(ClusterConfig.Builder clusterConfig) {
+      requireNonNull(clusterConfig);
       this.clusterConfig = clusterConfig;
       return this;
     }
 
     public Builder metrics(MetricRegistry metrics) {
-      checkNotNull(metrics);
+      requireNonNull(metrics);
       this.metrics = new Metrics(metrics);
       return this;
     }
 
     public Builder services(Object... services) {
-      checkNotNull(services);
+      requireNonNull(services);
       this.services = Arrays.stream(services).map(ServiceInfo::new).collect(Collectors.toList());
       return this;
     }
 
     public ServiceBuilder service(Object serviceInstance) {
+      requireNonNull(serviceInstance);
       return new ServiceBuilder(serviceInstance, this);
     }
   }
