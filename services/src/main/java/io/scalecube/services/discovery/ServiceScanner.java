@@ -25,7 +25,7 @@ public class ServiceScanner {
     String endpointId = IdGenerator.generateId();
     List<ServiceRegistration> serviceRegistrations = serviceInstances.stream()
         .flatMap(inst -> Arrays.stream(inst.service().getClass().getInterfaces())
-            .map(serviceInterface -> new InterfaceAndTags(serviceInterface, inst.tags())))
+            .map(serviceInterface -> new InterfaceInfo(serviceInterface, inst.tags())))
         .filter(iAndTags -> iAndTags.serviceInterface.isAnnotationPresent(Service.class))
         .map(iAndTags -> {
           Class<?> serviceInterface = iAndTags.serviceInterface;
@@ -50,11 +50,11 @@ public class ServiceScanner {
     return new ServiceEndpoint(endpointId, host, port, endpointTags, serviceRegistrations);
   }
 
-  private static class InterfaceAndTags {
-    final Class<?> serviceInterface;
-    final Map<String, String> tags;
+  private static class InterfaceInfo {
+    private final Class<?> serviceInterface;
+    private final Map<String, String> tags;
 
-    private InterfaceAndTags(Class<?> serviceInterface, Map<String, String> tags) {
+    private InterfaceInfo(Class<?> serviceInterface, Map<String, String> tags) {
       this.serviceInterface = serviceInterface;
       this.tags = tags;
     }
