@@ -21,7 +21,7 @@ public class LocalServiceTest extends BaseTest {
 
   private static final Duration timeout = Duration.ofSeconds(3);
 
-  private static AtomicInteger port = new AtomicInteger(4000);
+  private static AtomicInteger port = new AtomicInteger(7000);
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
