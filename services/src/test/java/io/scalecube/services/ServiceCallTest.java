@@ -22,6 +22,7 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -126,7 +127,6 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  @Ignore("just for enabling CI")
   public void test_remote_void_greeting() throws Exception {
     // Given
     Microservices gateway = gateway();
