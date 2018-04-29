@@ -95,7 +95,7 @@ public class ServiceCallTest extends BaseTest {
 
   private Microservices serviceProvider() {
     return Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
   }
@@ -107,7 +107,7 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
 
@@ -248,7 +248,7 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
 
@@ -288,7 +288,7 @@ public class ServiceCallTest extends BaseTest {
     // Given
     Microservices provider = serviceProvider();
     Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
 
@@ -335,7 +335,7 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
 
@@ -386,7 +386,7 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build();
 
@@ -415,14 +415,14 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(1))
         .build();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(2))
         .build();
 
@@ -470,13 +470,13 @@ public class ServiceCallTest extends BaseTest {
     Microservices gateway = gateway();
 
     Microservices services1 = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
         .build();
 
     Microservices services2 = Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
         .build();
@@ -560,13 +560,13 @@ public class ServiceCallTest extends BaseTest {
   private Microservices provider(Microservices gateway) {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .build();
   }
 
   private Microservices gateway() {
     return Microservices.builder()
-        .port(port.incrementAndGet())
+        .discoveryPort(port.incrementAndGet())
         .build();
   }
 
