@@ -62,6 +62,7 @@ public class LocalServiceDispatchers {
               break;
             case REQUEST_MANY:
               register(qualifier, new RequestStreamDispatcher(qualifier, service, method));
+              break;
             default:
               break;
           }
