@@ -33,7 +33,7 @@ public class RemoteServiceTest extends BaseTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private static AtomicInteger port = new AtomicInteger(4000);
+  private static AtomicInteger port = new AtomicInteger(3000);
 
   @Test
   public void test_remote_service_tags() {

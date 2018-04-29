@@ -22,7 +22,6 @@ import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.testlib.BaseTest;
 
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -133,6 +132,7 @@ public class ServiceCallTest extends BaseTest {
 
     CountDownLatch signal = new CountDownLatch(1);
     Microservices node1 = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl(signal))
         .build();
@@ -163,6 +163,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices gateway = gateway();
 
     Microservices node1 = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -183,6 +184,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices gateway = gateway();
 
     Microservices node1 = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -525,6 +527,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices gateway = gateway();
 
     Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build();
@@ -543,6 +546,7 @@ public class ServiceCallTest extends BaseTest {
   public void test_dispatcher_local_greeting_request_completes_before_timeout() {
 
     Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build();
 
@@ -565,7 +569,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   private Microservices gateway() {
-    return Microservices.builder()
+    return Microservices.builder()        
         .discoveryPort(port.incrementAndGet())
         .build();
   }
