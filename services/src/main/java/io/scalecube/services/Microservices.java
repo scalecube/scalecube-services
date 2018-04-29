@@ -222,7 +222,7 @@ public class Microservices {
       return this;
     }
     
-    public Builder port(int port) {
+    public Builder servicePort(int port) {
       this.servicePort = port;
       return this;
     }
