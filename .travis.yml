@@ -1,0 +1,29 @@
+language: java
+addons:
+  apt:
+    packages:
+    - libxml-xpath-perl
+sudo: required
+services:
+- docker
+jdk:
+- oraclejdk8
+notifications:
+  email: false
+  slack:
+    secure: FwMHwOFfe7lNgwo+ID+mIX4w9A1T0BJEthGM2aSDH9iqnlFdYKiequgzIFAfQHuzHIzjZsEF6y12uYPANrZvTa+3uqMStMqrWtkeNpGTXew5fnZLztgcJwXsPwbkDpNJcctXV++0TwWheVXBF9+mYbiXdQsimfbhqTu5yxnUG62UEhN/W+HlyAvf1TrMogCWABns00Iy9rAZjd9Ry5fGF1Fu1r3hOryipvoiVfnQJIn0+X+a6wAIyFddzA1p/GxS6/BOeT3dtXCBc+/pGjsHW9TWJoEkpxJ2AiZohAR+fTVW8e38/O6zIpSMOYSSCz8AGjWNfHCR0RjsDA0A6Ahsooon7KNx9qaK1X/tUtfQvE3c1HhwAEqz7vFE4OTSeY93f0Xiy/uLu7j21SGTl+CuYK8osbqFGW+pIwm8bu7oRRlHHDGZniWqGZkmvEPOLOKyk8/J7iYzJExgAZfyHawUUK0fYh8t/yxCXVyOz9G+s5gq6AX3rEvDp12kJzfUzxZX1XB4J6G2k9vlez5C9zghCkiSWSB5QuptafpauoKMdWmuGaftDdDHO+L0ZR14L08ctioPkQnVIWm7BNHUgGWiX2HFo9nsuhZ3+jzNUnt6hl7f3r4j2FAsYeQCy0Vfb51LhdVojIwPtpAbi68Uj3t2dIcA1nc357zfRvDCe+zORW4=
+before_install:
+- "./src/main/scripts/ci/before-install.sh"
+- "./src/main/scripts/cd/before-deploy.sh"
+after_success:
+- java -jar ~/codacy-coverage-reporter-assembly.jar -l Java -r ./services/target/site/jacoco/jacoco.xml
+deploy:
+- provider: script
+  script: mvn -P release deploy -DskipTests=true -B -V -s travis-settings.xml
+  on:
+    branch: develop
+- provider: script
+  script:
+  - "./src/main/scripts/cd/deploy.sh"
+  on:
+    branch: master
