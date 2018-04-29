@@ -131,9 +131,10 @@ public class ServiceCallTest extends BaseTest {
     // Given
     Microservices gateway = gateway();
 
+    CountDownLatch signal = new CountDownLatch(1);
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl())
+        .services(new GreetingServiceImpl(signal))
         .build();
 
     // When
@@ -144,6 +145,8 @@ public class ServiceCallTest extends BaseTest {
         .block();
 
     // Then:
+    signal.await(2, TimeUnit.SECONDS);
+    assertTrue(signal.getCount()==0);
     assertNotNull(success.get());
     assertEquals(SignalType.ON_COMPLETE, success.get());
 
