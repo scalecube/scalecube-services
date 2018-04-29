@@ -17,7 +17,7 @@ after_success:
 - java -jar ~/codacy-coverage-reporter-assembly.jar -l Java -r ./services/target/site/jacoco/jacoco.xml
 deploy:
 - provider: script
-  script: mvn -P release deploy -DskipTests=true -B -V -s travis-settings.xml
+  script: mvn -P release deploy -DskipTests=true -B -V -s travis.settings.xml
   on:
     branch: develop
 - provider: script
