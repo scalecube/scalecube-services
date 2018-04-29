@@ -3,7 +3,7 @@ package io.scalecube.services.transport;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.transport.api.CommunicationMode;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
-import io.scalecube.services.transport.dispatchers.FireAndForgetInvoker;
+import io.scalecube.services.transport.dispatchers.FireAndForgetDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestChannelDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestResponseDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestStreamDispatcher;
@@ -58,7 +58,7 @@ public class LocalServiceDispatchers {
               register(qualifier, new RequestChannelDispatcher(qualifier, service, method));
               break;
             case ONE_WAY:
-              register(qualifier, new FireAndForgetInvoker(qualifier, service, method));
+              register(qualifier, new FireAndForgetDispatcher(qualifier, service, method));
               break;
             case REQUEST_MANY:
               register(qualifier, new RequestStreamDispatcher(qualifier, service, method));

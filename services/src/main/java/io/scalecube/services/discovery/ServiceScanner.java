@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 
 public class ServiceScanner {
 
-  public static ServiceEndpoint scan(List<Microservices.ServiceWithTags> serviceInstances, String host, int port,
+  public static ServiceEndpoint scan(List<Microservices.ServiceInfo> serviceInstances, String host, int port,
       Map<String, String> endpointTags) {
     String endpointId = IdGenerator.generateId();
     List<ServiceRegistration> serviceRegistrations = serviceInstances.stream()
