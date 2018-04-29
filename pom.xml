@@ -68,6 +68,14 @@
         <protostuff.version>1.6.0</protostuff.version>
         <slf4j.version>1.7.7</slf4j.version>
         <log4j.version>2.6.2</log4j.version>
+        <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
+        <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
+        <maven-surefire-plugin.version>2.20</maven-surefire-plugin.version>
+        <maven-enforcer-plugin.version>1.4.1</maven-enforcer-plugin.version>
+        <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
+        <nexus-staging-maven-plugin.version>1.6.3</nexus-staging-maven-plugin.version>
+        <maven-release-plugin.version>2.5</maven-release-plugin.version>
     </properties>
 
     <modules>
