@@ -10,10 +10,10 @@ import java.lang.reflect.Method;
 
 import reactor.core.publisher.Mono;
 
-public class FireAndForgetInvoker
+public class FireAndForgetDispatcher
     extends AbstractServiceMethodDispatcher<ServiceMessage, Publisher<Void>> {
 
-  public FireAndForgetInvoker(String qualifier, Object serviceObject, Method method) {
+  public FireAndForgetDispatcher(String qualifier, Object serviceObject, Method method) {
     super(qualifier, serviceObject, method);
   }
 
