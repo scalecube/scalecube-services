@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.rsocket.server;
 
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 import io.scalecube.services.transport.server.api.ServerTransport;
 
@@ -12,8 +12,9 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServerTransport implements ServerTransport {
 
+  private final ServiceMessageCodec codec;
+
   private NettyContextCloseable server;
-  private ServiceMessageCodec codec;
   private ServerMessageAcceptor acceptor;
 
   public RSocketServerTransport(ServiceMessageCodec codec) {

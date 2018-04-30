@@ -1,6 +1,7 @@
-package io.scalecube.services.transport.rsocket;
+package io.scalecube.services.codec.jackson;
 
-import io.scalecube.services.codecs.api.ServiceMessageCodecInterface;
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.codec.HeadersCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -18,17 +19,17 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
-public class JsonServiceMessageCodecImpl implements ServiceMessageCodecInterface {
+public final class JacksonCodec implements DataCodec, HeadersCodec {
 
   private final TypeReference<Map<String, String>> mapType = new TypeReference<Map<String, String>>() {};
 
   private final ObjectMapper mapper;
 
-  public JsonServiceMessageCodecImpl() {
+  public JacksonCodec() {
     this(initMapper());
   }
 
-  public JsonServiceMessageCodecImpl(ObjectMapper mapper) {
+  public JacksonCodec(ObjectMapper mapper) {
     this.mapper = mapper;
   }
 
@@ -38,22 +39,22 @@ public class JsonServiceMessageCodecImpl implements ServiceMessageCodecInterface
   }
 
   @Override
-  public void writeHeaders(OutputStream stream, Map<String, String> headers) throws IOException {
+  public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
     mapper.writeValue(stream, headers);
   }
 
   @Override
-  public Map<String, String> readHeaders(InputStream stream) throws IOException {
+  public Map<String, String> decode(InputStream stream) throws IOException {
     return stream.available() == 0 ? Collections.emptyMap() : mapper.readValue(stream, mapType);
   }
 
   @Override
-  public void writeBody(OutputStream stream, Object value) throws IOException {
+  public void encode(OutputStream stream, Object value) throws IOException {
     mapper.writeValue(stream, value);
   }
 
   @Override
-  public Object readBody(InputStream stream, Class<?> type) throws IOException {
+  public Object decode(InputStream stream, Class<?> type) throws IOException {
     Objects.requireNonNull(type, "ServiceMessageDataCodecImpl.readFrom requires type is not null");
     return mapper.readValue(stream, type);
   }

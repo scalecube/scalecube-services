@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
@@ -42,12 +42,12 @@ public class ServiceCall {
     private Metrics metrics;
     private Timer latency;
     private ClientTransport transport;
-    private ServiceMessageCodec codec;
+    private ServiceMessageDataCodec codec;
     private LocalServiceDispatchers localServices;
 
     public Call(ClientTransport transport, LocalServiceDispatchers localServices) {
       this.transport = transport;
-      this.codec = transport.getMessageCodec();
+      this.codec = new ServiceMessageDataCodec();
       this.localServices = localServices;
     }
 

@@ -32,6 +32,12 @@
 
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-services-jackson</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>scalecube-cluster</artifactId>
 			<version>${scalecube.version}</version>
 		</dependency>
