@@ -84,11 +84,9 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
   @Override
   public ServiceMessage decodeMessage(Payload payload) {
     Builder builder = ServiceMessage.builder();
-
     if (payload.getData().hasRemaining()) {
       builder.data(payload.sliceData());
     }
-
     if (payload.hasMetadata()) {
       try (ByteBufInputStream inputStream = new ByteBufInputStream(payload.sliceMetadata(), true)) {
         builder.headers(readFrom(inputStream, mapType));

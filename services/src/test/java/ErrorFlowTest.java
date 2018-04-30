@@ -2,16 +2,20 @@ import io.scalecube.services.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.TestRequests;
 import io.scalecube.services.api.ServiceMessage;
-
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.UnauthorizedException;
+
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.reactivestreams.Publisher;
-import reactor.core.publisher.Mono;
 
 import java.util.concurrent.atomic.AtomicInteger;
+
+import reactor.core.publisher.Mono;
+
+import static reactor.core.publisher.Mono.*;
 
 public class ErrorFlowTest {
 
@@ -42,15 +46,24 @@ public class ErrorFlowTest {
   public void testCorruptedRequest() {
     Publisher<ServiceMessage> req = consumer
         .call().requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST);
-
-      ServiceMessage resp = Mono.from(req).block();
-      Assert.assertNotNull(resp);
-
+    from(req).block();
+    Assert.fail("Should have failed");
   }
 
-  @Test
-  public void testCorruptedResponse() {
+  @Test(expected = UnauthorizedException.class)
+  public void testNotAuthorized() {
+    Publisher<ServiceMessage> req = consumer
+            .call().requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST);
+    from(req).block();
+    Assert.fail("Should have failed");
+  }
 
+  @Test(expected = BadRequestException.class)
+  public void testCorruptedResponse() {
+    Publisher<ServiceMessage> req = consumer
+            .call().requestOne(TestRequests.GREETING_CORRUPTED_RESPONSE);
+    ServiceMessage block = from(req).block();
+    Assert.fail("Should have failed");
   }
 
   @Test
@@ -58,9 +71,6 @@ public class ErrorFlowTest {
 
   }
 
-  @Test
-  public void testNotAuthorized() {
 
-  }
 
 }
