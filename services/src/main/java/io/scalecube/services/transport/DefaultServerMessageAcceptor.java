@@ -45,19 +45,17 @@ public class DefaultServerMessageAcceptor implements ServerMessageAcceptor {
 
   @Override
   @SuppressWarnings("unchecked")
-  public Publisher<ServiceMessage> requestResponse(ServiceMessage request) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
     ServiceMessageCodec codec = getCodec(request);
-    ServiceMessage message = codec.decodeData(request, dispatcher.requestType());
-
-    return ((Mono<ServiceMessage>) Mono.from(dispatcher.invoke(message))
+    return ((Mono<ServiceMessage>) Mono.from(dispatcher.invoke(codec.decodeData(request, dispatcher.requestType())))
         .map(resp -> codec.encodeData((ServiceMessage) resp)))
             .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)));
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public Publisher<ServiceMessage> fireAndForget(ServiceMessage request) {
+  public Mono<ServiceMessage> fireAndForget(ServiceMessage request) {
     ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
     ServiceMessageCodec codec = getCodec(request);
     ServiceMessage message = codec.decodeData(request, dispatcher.requestType());

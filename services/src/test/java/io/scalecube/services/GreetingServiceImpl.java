@@ -9,7 +9,7 @@ import java.util.concurrent.CountDownLatch;
 
 import reactor.core.publisher.Mono;
 
-final class GreetingServiceImpl implements GreetingService {
+public final class GreetingServiceImpl implements GreetingService {
 
   @Inject
   Microservices ms;
@@ -36,6 +36,11 @@ final class GreetingServiceImpl implements GreetingService {
   @Override
   public Mono<String> greeting(String name) {
     return Mono.just(" hello to: " + name);
+  }
+
+  @Override
+  public Mono<GreetingResponse> greetingPojo(GreetingRequest name) {
+    return Mono.just(new GreetingResponse(" hello to: " + name));
   }
 
 

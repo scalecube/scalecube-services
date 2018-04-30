@@ -1,10 +1,6 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.TestRequests.GREETING_ERROR_REQ;
-import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
-import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
-import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
-import static io.scalecube.services.TestRequests.SERVICE_NAME;
+import static io.scalecube.services.TestRequests.*;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -47,28 +43,7 @@ public class ServiceCallTest extends BaseTest {
 
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
-  public static final ServiceMessage GREETING_REQ = Messages.builder()
-      .request(SERVICE_NAME, "greeting")
-      .data("joe")
-      .build();
 
-  public static final ServiceMessage GREETING_REQUEST_REQ = Messages.builder()
-      .request(SERVICE_NAME, "greetingRequest")
-      .data(new GreetingRequest("joe"))
-      .build();
-
-  public static final ServiceMessage GREETING_REQUEST_TIMEOUT_REQ = Messages.builder()
-      .request(SERVICE_NAME, "greetingRequestTimeout")
-      .data(new GreetingRequest("joe", Duration.ofSeconds(3)))
-      .build();
-
-  // public static final ServiceMessage GREETING_MESSAGE_REQ = Messages.builder()
-  // .request(SERVICE_NAME, "greetingMessage")
-  // .data("joe").build();
-
-  public static final ServiceMessage NOT_FOUND_REQ = Messages.builder()
-      .request(SERVICE_NAME, "unknown")
-      .data("joe").build();
 
   private static AtomicInteger port = new AtomicInteger(4000);
 

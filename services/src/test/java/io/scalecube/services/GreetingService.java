@@ -18,6 +18,9 @@ interface GreetingService {
   Publisher<String> greeting(String string);
 
   @ServiceMethod
+  Mono<GreetingResponse> greetingPojo(GreetingRequest name);
+
+  @ServiceMethod
   Publisher<GreetingResponse> greetingRequestTimeout(GreetingRequest request);
 
   @ServiceMethod
