@@ -18,9 +18,8 @@ public interface ServiceTransport {
   static <T> T getNext(ServiceLoader<T> loader) {
     if (loader.iterator().hasNext()) {
       return loader.iterator().next();
-    } else {
-      return null;
     }
+    throw new IllegalStateException("ServiceTransport not configured");
   }
 
 }
