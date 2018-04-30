@@ -19,8 +19,6 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
-import io.rsocket.Payload;
-import io.rsocket.util.ByteBufPayload;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
+public class RSocketJsonPayloadCodec implements ServiceMessageCodec {
 
 
   @Override
@@ -55,8 +53,10 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
   }
 
   @Override
-  public Payload encodeMessage(ServiceMessage message) {
+  public ByteBuf[] encodeMessage(ServiceMessage message) {
     ByteBuf dataBuffer = Unpooled.EMPTY_BUFFER;
+
+    ByteBuf[] buffers = new ByteBuf[2];
 
     if (message.data() instanceof ByteBuf) { // has data ?
       dataBuffer = message.data(); // ok so use it as is
@@ -81,23 +81,22 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
       }
     }
 
-    return ByteBufPayload.create(dataBuffer, headersBuffer);
+    buffers[0] = dataBuffer;
+    buffers[1] = headersBuffer;
+
+    return buffers;
   }
 
   @Override
-  public ServiceMessage decodeMessage(Payload payload) {
+  public ServiceMessage decodeMessage(ByteBuf dataBuffer, ByteBuf headersBuffer) {
     Builder builder = ServiceMessage.builder();
 
-    if (payload.getData().hasRemaining()) {
-      try {
-        builder.data(payload.sliceData());
-      } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
-      }
+    if (dataBuffer.isReadable()) {
+      builder.data(dataBuffer);
     }
 
-    if (payload.hasMetadata()) {
-      try (ByteBufInputStream inputStream = new ByteBufInputStream(payload.sliceMetadata(), true)) {
+    if (headersBuffer.isReadable()) {
+      try (ByteBufInputStream inputStream = new ByteBufInputStream(headersBuffer, true)) {
         builder.headers(readFrom(inputStream, mapType));
       } catch (Throwable ex) {
         LOGGER.error("Failed to deserialize data", ex);
