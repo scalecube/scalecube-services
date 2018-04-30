@@ -14,8 +14,8 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   private final ServiceMessageCodec codec;
 
-  public RSocketServiceTransport(ServiceMessageCodec codec) {
-    this.codec = codec;
+  public RSocketServiceTransport() {
+    this.codec = null;
   }
 
   @Override
