@@ -16,7 +16,7 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
 import io.scalecube.services.transport.DefaultServerMessageAcceptor;
 import io.scalecube.services.transport.LocalServiceDispatchers;
-import io.scalecube.services.transport.TransportFactory;
+import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
@@ -193,9 +193,9 @@ public class Microservices {
     private List<ServiceInfo> services = new ArrayList<>();
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
-    private ServerTransport server = TransportFactory.getTransport().getServerTransport();
-    private ClientTransport client = TransportFactory.getTransport().getClientTransport();
-    private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodecs();
+    private ServerTransport server = ServiceTransport.getTransport().getServerTransport();
+    private ClientTransport client = ServiceTransport.getTransport().getClientTransport();
+    private Map<String, ? extends ServiceMessageCodec> codecs = ServiceTransport.getTransport().getMessageCodecs();
 
     /**
      * Microservices instance builder.

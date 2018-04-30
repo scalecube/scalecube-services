@@ -2,7 +2,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.transport.rsocket.RSocketJsonPayloadCodec;
+import io.scalecube.services.codecs.api.DefaultServiceMessageCodec;
+import io.scalecube.services.transport.rsocket.JsonServiceMessageCodecImpl;
 import io.scalecube.testlib.BaseTest;
 
 import io.netty.buffer.ByteBuf;
@@ -13,11 +14,10 @@ import org.junit.Test;
 
 public class ServiceMessageDataCodecImplTest extends BaseTest {
 
+  DefaultServiceMessageCodec codec = new DefaultServiceMessageCodec(new JsonServiceMessageCodecImpl());
+
   @Test
   public void test_encode_decode_ServiceMessage_success() {
-
-    RSocketJsonPayloadCodec codec = new RSocketJsonPayloadCodec();
-
     ServiceMessage given = ServiceMessage.builder()
         .header("key1", "hello")
         .header("key2", "world")
@@ -35,8 +35,6 @@ public class ServiceMessageDataCodecImplTest extends BaseTest {
 
   @Test
   public void test_encode_decode_ServiceMessage_data_success() {
-
-    RSocketJsonPayloadCodec codec = new RSocketJsonPayloadCodec();
     ServiceMessage given = ServiceMessage.builder()
         .header("key1", "hello")
         .header("key2", "world")
@@ -57,8 +55,6 @@ public class ServiceMessageDataCodecImplTest extends BaseTest {
 
   @Test
   public void test_encode_decode_ServiceMessage_only_data_success() {
-
-    RSocketJsonPayloadCodec codec = new RSocketJsonPayloadCodec();
     ServiceMessage given = ServiceMessage.builder()
         .data(new MyPojo("ronen", 42))
         .build();
@@ -75,8 +71,6 @@ public class ServiceMessageDataCodecImplTest extends BaseTest {
 
   @Test
   public void test_encode_decode_ServiceMessage_only_header_success() {
-
-    RSocketJsonPayloadCodec codec = new RSocketJsonPayloadCodec();
     ServiceMessage given = ServiceMessage.builder()
         .header("key1", "hello")
         .header("key2", "world")
