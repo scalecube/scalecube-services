@@ -3,6 +3,8 @@ package io.scalecube.services;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 
+import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.exceptions.UnauthorizedException;
 import org.reactivestreams.Publisher;
 
 import java.util.concurrent.CountDownLatch;
@@ -43,6 +45,15 @@ public final class GreetingServiceImpl implements GreetingService {
     return Mono.just(new GreetingResponse(" hello to: " + name));
   }
 
+  @Override
+  public Mono<GreetingResponse> greetingNotAuthorized(GreetingRequest name) {
+    return Mono.error(new UnauthorizedException(500, "Not authorized"));
+  }
+
+  @Override
+  public Mono<GreetingNoConstructor> greetingCorruptedResponse(GreetingRequest name) {
+    return Mono.just(new GreetingNoConstructor(name.getName()));
+  }
 
   @Override
   public Publisher<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {

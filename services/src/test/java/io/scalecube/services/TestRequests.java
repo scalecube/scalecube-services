@@ -48,4 +48,10 @@ public interface TestRequests {
   ServiceMessage GREETING_CORRUPTED_PAYLOAD_REQUEST = Messages.builder()
       .request(SERVICE_NAME, "greetingPojo").data(new Integer(-1)).build();
 
+  ServiceMessage GREETING_UNAUTHORIZED_REQUEST = Messages.builder()
+          .request(SERVICE_NAME, "greetingNotAuthorized").build();
+
+  ServiceMessage GREETING_CORRUPTED_RESPONSE = Messages.builder()
+          .request(SERVICE_NAME, "greetingCorruptedResponse").build();
+
 }

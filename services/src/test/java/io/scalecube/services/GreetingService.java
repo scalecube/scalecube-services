@@ -21,6 +21,12 @@ interface GreetingService {
   Mono<GreetingResponse> greetingPojo(GreetingRequest name);
 
   @ServiceMethod
+  Mono<GreetingResponse> greetingNotAuthorized(GreetingRequest name);
+
+  @ServiceMethod
+  Mono<GreetingNoConstructor> greetingCorruptedResponse(GreetingRequest name);
+
+  @ServiceMethod
   Publisher<GreetingResponse> greetingRequestTimeout(GreetingRequest request);
 
   @ServiceMethod
