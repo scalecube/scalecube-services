@@ -3,6 +3,7 @@ package io.scalecube.services.transport.rsocket;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.exceptions.BadRequestException;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -13,11 +14,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.netty.buffer.ByteBufInputStream;
-import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.*;
 import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
@@ -65,8 +62,9 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
       try {
         writeTo(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
+        LOGGER.error("Message serialization failed: ", ex);
         ReferenceCountUtil.release(dataBuffer);
+        throw new BadRequestException("Message serialization failed. " + ex.getMessage());
       }
     }
 
@@ -80,7 +78,6 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
         ReferenceCountUtil.release(headersBuffer);
       }
     }
-
     return ByteBufPayload.create(dataBuffer, headersBuffer);
   }
 
@@ -89,21 +86,17 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
     Builder builder = ServiceMessage.builder();
 
     if (payload.getData().hasRemaining()) {
-      try {
-        builder.data(payload.sliceData());
-      } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
-      }
+      builder.data(payload.sliceData());
     }
 
     if (payload.hasMetadata()) {
       try (ByteBufInputStream inputStream = new ByteBufInputStream(payload.sliceMetadata(), true)) {
         builder.headers(readFrom(inputStream, mapType));
       } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
+        LOGGER.error("Message deserialization failed", ex);
+        throw new BadRequestException("Message deserialization failed. " + ex.getMessage());
       }
     }
-
     return builder.build();
   }
 
@@ -113,7 +106,8 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
       try (ByteBufInputStream inputStream = new ByteBufInputStream(message.data(), true)) {
         return ServiceMessage.from(message).data(readFrom(inputStream, type)).build();
       } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
+        LOGGER.error("Payload deserialization failed: ", ex);
+        throw new BadRequestException("Payload deserialization failed. " + ex.getMessage());
       }
     }
     return message;
@@ -127,32 +121,26 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
         writeTo(new ByteBufOutputStream(buffer), message.data());
         return ServiceMessage.from(message).data(buffer).build();
       } catch (Throwable ex) {
-        LOGGER.error("Failed to serialize data", ex);
+        LOGGER.error("Payload serialization failed: ", ex);
         ReferenceCountUtil.release(buffer);
+        throw new BadRequestException("Payload serialization failed. " + ex.getMessage());
       }
     }
     return message;
   }
 
-  private Object readFrom(InputStream stream, Class<?> type) throws IOException {
+  private Object readFrom(InputStream stream, Class<?> type) throws Exception {
     Objects.requireNonNull(type, "ServiceMessageDataCodecImpl.readFrom requires type is not null");
-    try {
-      return mapper.readValue(stream, type);
-    } catch (Throwable ex) {
-      throw new RuntimeException("mapper.readValue with type: " + type, ex);
-    }
+    return mapper.readValue(stream, type);
   }
 
-  private Map<String, String> readFrom(ByteBufInputStream stream, TypeReference<Map<String, String>> type) {
+  private Map<String, String> readFrom(ByteBufInputStream stream, TypeReference<Map<String, String>> type)
+      throws IOException {
     Objects.requireNonNull(type, "ServiceMessageDataCodecImpl.readFrom requires type is not null");
-    try {
-      if (stream.available() == 0) {
-        return new HashMap<>();
-      }
-      return mapper.readValue(stream, type);
-    } catch (Throwable ex) {
-      throw new RuntimeException("mapper.readValue with type: " + type, ex);
+    if (stream.available() == 0) {
+      return new HashMap<>();
     }
+    return mapper.readValue(stream, type);
   }
 
   private void writeTo(OutputStream stream, Object value) throws IOException {
@@ -172,6 +160,4 @@ public class RSocketJsonPayloadCodec implements ServiceMessageCodec<Payload> {
 
     return objectMapper;
   }
-
-
 }
