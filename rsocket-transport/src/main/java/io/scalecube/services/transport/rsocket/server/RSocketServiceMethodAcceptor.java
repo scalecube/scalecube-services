@@ -1,10 +1,15 @@
 package io.scalecube.services.transport.rsocket.server;
 
 import io.scalecube.services.codecs.api.ServiceMessageCodec;
-import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 
-import io.rsocket.*;
+import io.netty.buffer.ByteBuf;
+import io.rsocket.AbstractRSocket;
+import io.rsocket.ConnectionSetupPayload;
+import io.rsocket.Payload;
+import io.rsocket.RSocket;
+import io.rsocket.SocketAcceptor;
+import io.rsocket.util.ByteBufPayload;
 
 import org.reactivestreams.Publisher;
 
@@ -13,10 +18,10 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
-  private ServiceMessageCodec<Payload> codec;
+  private ServiceMessageCodec codec;
   private ServerMessageAcceptor acceptor;
 
-  public RSocketServiceMethodAcceptor(ServerMessageAcceptor acceptor, ServiceMessageCodec<Payload> codec) {
+  public RSocketServiceMethodAcceptor(ServerMessageAcceptor acceptor, ServiceMessageCodec codec) {
     this.codec = codec;
     this.acceptor = acceptor;
   }
@@ -33,25 +38,25 @@ public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
       @Override
       public Flux<Payload> requestStream(Payload payload) {
-        return acceptor
-            .requestStream(codec.decodeMessage(payload))
-            .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
-            .map(response -> codec.encodeMessage(response));
+        return Flux.from(acceptor.requestStream(codec.decodeMessage(payload.sliceData(), payload.sliceMetadata())))
+            .map(response -> {
+              ByteBuf[] bufs = codec.encodeMessage(response);
+              return ByteBufPayload.create(bufs[0], bufs[1]);
+            });
       }
 
       @Override
       public Mono<Payload> requestResponse(Payload payload) {
-        return acceptor
-            .requestResponse(codec.decodeMessage(payload))
-            .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
-            .map(response -> codec.encodeMessage(response));
+        return Mono.from(acceptor.requestResponse(codec.decodeMessage(payload.sliceData(), payload.sliceMetadata())))
+            .map(response -> {
+              ByteBuf[] bufs = codec.encodeMessage(response);
+              return ByteBufPayload.create(bufs[0], bufs[1]);
+            });
       }
 
       @Override
       public Mono<Void> fireAndForget(Payload payload) {
-        return acceptor
-            .fireAndForget(codec.decodeMessage(payload))
-            .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
+        return Mono.from(acceptor.fireAndForget(codec.decodeMessage(payload.sliceData(), payload.sliceMetadata())))
             .map(message -> null);
       }
     });
