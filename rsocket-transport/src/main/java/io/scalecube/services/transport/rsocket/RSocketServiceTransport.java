@@ -12,8 +12,11 @@ import java.util.Map;
 
 public class RSocketServiceTransport implements ServiceTransport {
 
+  private final ServiceMessageCodec codec;
 
-  private ServiceMessageCodec codec = new RSocketJsonPayloadCodec();
+  public RSocketServiceTransport(ServiceMessageCodec codec) {
+    this.codec = codec;
+  }
 
   @Override
   public ClientTransport getClientTransport() {
@@ -26,9 +29,9 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public Map<String, ServiceMessageCodec> getMessageCodecs() {
+  public Map<String, ? extends ServiceMessageCodec> getMessageCodecs() {
     Map<String, ServiceMessageCodec> codecs = new HashMap<>();
-    codecs.put(codec.contentType(), codec);
+    codecs.put("application/json", codec);
     return codecs;
   }
 
