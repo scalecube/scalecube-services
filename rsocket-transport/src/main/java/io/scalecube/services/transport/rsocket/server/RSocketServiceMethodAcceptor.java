@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.rsocket.server;
 
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
 
 import io.netty.buffer.ByteBuf;
@@ -18,8 +18,8 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServiceMethodAcceptor implements SocketAcceptor {
 
-  private ServiceMessageCodec codec;
-  private ServerMessageAcceptor acceptor;
+  private final ServiceMessageCodec codec;
+  private final ServerMessageAcceptor acceptor;
 
   public RSocketServiceMethodAcceptor(ServerMessageAcceptor acceptor, ServiceMessageCodec codec) {
     this.codec = codec;

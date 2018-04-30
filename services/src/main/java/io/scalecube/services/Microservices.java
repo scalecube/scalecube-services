@@ -5,7 +5,6 @@ import static java.util.Objects.requireNonNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.metrics.Metrics;
@@ -132,8 +131,6 @@ public class Microservices {
 
   private final int servicePort;
 
-  private final Map<String, ? extends ServiceMessageCodec> codecs;
-
   private final ClusterConfig.Builder clusterConfig;
 
   private Microservices(Builder builder) {
@@ -142,7 +139,6 @@ public class Microservices {
     this.metrics = builder.metrics;
     this.client = builder.client;
     this.server = builder.server;
-    this.codecs = builder.codecs;
     this.clusterConfig = builder.clusterConfig;
     this.servicePort = builder.servicePort;
 
@@ -151,7 +147,7 @@ public class Microservices {
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
     if (services.size() > 0) {
-      server.accept(new DefaultServerMessageAcceptor(serviceDispatchers, codecs));
+      server.accept(new DefaultServerMessageAcceptor(serviceDispatchers));
       InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
       serviceAddress = Address.create(inet.getHostString(), inet.getPort());
     } else {
@@ -195,7 +191,6 @@ public class Microservices {
     private Metrics metrics;
     private ServerTransport server = ServiceTransport.getTransport().getServerTransport();
     private ClientTransport client = ServiceTransport.getTransport().getClientTransport();
-    private Map<String, ? extends ServiceMessageCodec> codecs = ServiceTransport.getTransport().getMessageCodecs();
 
     /**
      * Microservices instance builder.
