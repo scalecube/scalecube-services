@@ -1,5 +1,7 @@
 package io.scalecube.services.codec;
 
+import io.scalecube.services.ServiceLoaderUtil;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

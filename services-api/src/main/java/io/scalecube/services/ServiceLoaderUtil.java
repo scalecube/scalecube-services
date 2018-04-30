@@ -1,4 +1,4 @@
-package io.scalecube.services.codec;
+package io.scalecube.services;
 
 import java.util.Optional;
 import java.util.ServiceLoader;
@@ -10,6 +10,11 @@ public final class ServiceLoaderUtil {
 
   private ServiceLoaderUtil() {
     // Do not instantiate
+  }
+
+  public static <T> Optional<T> findFirstMatched(Class<T> aClass) {
+    ServiceLoader<T> load = ServiceLoader.load(aClass);
+    return StreamSupport.stream(load.spliterator(), false).findFirst();
   }
 
   public static <T> Optional<T> findFirst(Class<T> aClass, Predicate<? super T> predicate) {
