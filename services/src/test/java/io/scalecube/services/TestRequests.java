@@ -54,4 +54,7 @@ public interface TestRequests {
   ServiceMessage GREETING_CORRUPTED_RESPONSE = Messages.builder()
           .request(SERVICE_NAME, "greetingCorruptedResponse").build();
 
+  ServiceMessage GREETING_NULL_PAYLOAD = Messages.builder()
+          .request(SERVICE_NAME, "greetingCorruptedResponse").build();
+
 }

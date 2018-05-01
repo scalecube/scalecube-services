@@ -22,7 +22,7 @@ public class RequestStreamDispatcher
     try {
       return Flux.from(Reflect.invoke(serviceObject, method, request)).map(this::toReturnMessage);
     } catch (Exception e) {
-      return Mono.error(e);
+      return Flux.error(e);
     }
   }
 }
