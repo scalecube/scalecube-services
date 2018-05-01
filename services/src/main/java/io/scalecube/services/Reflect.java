@@ -11,6 +11,7 @@ import io.scalecube.services.api.ServiceMessage;
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 
+import io.scalecube.services.exceptions.BadRequestException;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -275,13 +276,17 @@ public class Reflect {
       throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
     }
 
+    Class<?> requestType = Reflect.requestType(method);
+    boolean isRequestTypeServiceMessage = requestType.isAssignableFrom(ServiceMessage.class);
+    if(!isRequestTypeServiceMessage && request.data() == null){
+      throw new BadRequestException("Expected payload in request but got null");
+    }
+
     // handle invoke
     try {
       if (method.getParameters().length == 0) { // method expect no params.
         return (Publisher<T>) method.invoke(serviceObject);
       } else { // method expect 1 param.
-        Class<?> requestType = Reflect.requestType(method);
-        boolean isRequestTypeServiceMessage = requestType.isAssignableFrom(ServiceMessage.class);
         return (Publisher<T>) method.invoke(serviceObject, isRequestTypeServiceMessage ? request : request.data());
       }
     } catch (InvocationTargetException e) {
