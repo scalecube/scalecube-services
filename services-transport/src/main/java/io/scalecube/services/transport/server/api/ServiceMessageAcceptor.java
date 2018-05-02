@@ -6,7 +6,7 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface ServerMessageAcceptor {
+public interface ServiceMessageAcceptor {
 
   Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> payloads);
 

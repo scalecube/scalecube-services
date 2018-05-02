@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono;
 
 public interface ServerTransport {
 
-  ServerTransport accept(ServerMessageAcceptor acceptor);
+  ServerTransport accept(ServiceMessageAcceptor acceptor);
 
   InetSocketAddress bindAwait(InetSocketAddress address);
 

@@ -1,8 +1,6 @@
 package io.scalecube.services.api;
 
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +19,7 @@ public final class ServiceMessage {
    */
   public static final String HEADER_DATA_TYPE = "_type";
   public static final String HEADER_RESPONSE_DATA_TYPE = "_response_type";
+  public static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = Collections.emptyMap();
   private Object data;
@@ -71,7 +70,6 @@ public final class ServiceMessage {
    * @param headers headers to set
    */
   void setHeaders(Map<String, String> headers) {
-    requireNonNull(headers != null);
     this.headers = Collections.unmodifiableMap(headers);
   }
 
@@ -122,6 +120,15 @@ public final class ServiceMessage {
   }
 
   /**
+   * Returns data format of the message data.
+   *
+   * @return data format of the data
+   */
+  public String dataFormat() {
+    return header(HEADER_DATA_FORMAT);
+  }
+
+  /**
    * Return the message data, which can be byte array, string or any type.
    *
    * @param <T> data type
@@ -159,6 +166,11 @@ public final class ServiceMessage {
 
     public Builder dataType(Class<?> data) {
       headers.put(HEADER_DATA_TYPE, data.getName());
+      return this;
+    }
+
+    public Builder dataFormat(String dataFormat) {
+      headers.put(HEADER_DATA_FORMAT, dataFormat);
       return this;
     }
 

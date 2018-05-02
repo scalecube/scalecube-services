@@ -1,6 +1,6 @@
 package io.scalecube.services.transport.rsocket.client;
 
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.client.api.ClientChannel;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
@@ -37,11 +37,6 @@ public class RSocketClientTransport implements ClientTransport {
   public ClientChannel create(Address address) {
     // noinspection unchecked
     return new RSocketServiceClientAdapter(rSockets.computeIfAbsent(address, this::connect), codec);
-  }
-
-  @Override
-  public ServiceMessageCodec getMessageCodec() {
-    return codec;
   }
 
   private Mono<RSocket> connect(Address address) {
