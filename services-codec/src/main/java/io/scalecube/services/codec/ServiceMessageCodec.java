@@ -1,6 +1,7 @@
 package io.scalecube.services.codec;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -9,17 +10,16 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 public final class ServiceMessageCodec {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
-
   private static final String DEFAULT_DATA_FORMAT = "application/json";
+
+  private static final String ERROR_DATA_ENCODE_FAILED = "Failed to serialize data on %s, cause: %s";
+  private static final String ERROR_HEADERS_ENCODE_FAILED = "Failed to serialize headers on %s, cause: %s";
+  private static final String ERROR_HEADERS_DECODE_FAILED = "Failed to deserialize headers, cause: %s";
 
   private final HeadersCodec headersCodec;
 
@@ -40,8 +40,8 @@ public final class ServiceMessageCodec {
         DataCodec dataCodec = DataCodec.getInstance(contentType);
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
         ReferenceCountUtil.release(dataBuffer);
+        throw new BadRequestException(String.format(ERROR_DATA_ENCODE_FAILED, message, ex));
       }
     }
 
@@ -50,8 +50,8 @@ public final class ServiceMessageCodec {
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
-        LOGGER.error("Failed to serialize data", ex);
         ReferenceCountUtil.release(headersBuffer);
+        throw new BadRequestException(String.format(ERROR_HEADERS_ENCODE_FAILED, message, ex));
       }
     }
 
@@ -67,7 +67,7 @@ public final class ServiceMessageCodec {
       try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
+        throw new BadRequestException(String.format(ERROR_HEADERS_DECODE_FAILED, ex));
       }
     }
     return builder.build();

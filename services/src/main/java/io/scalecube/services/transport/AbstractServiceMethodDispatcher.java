@@ -6,7 +6,10 @@ import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 
 import java.lang.reflect.Method;
 
-public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements ServiceMethodDispatcher<REQ> {
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+public abstract class AbstractServiceMethodDispatcher implements ServiceMethodDispatcher {
 
   protected final Method method;
   protected final Object serviceObject;
@@ -38,5 +41,25 @@ public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements Serv
   @Override
   public Class returnType() {
     return returnType;
+  }
+
+  @Override
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
+    return Mono.empty();
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
+    return Flux.empty();
+  }
+
+  @Override
+  public Mono<Void> fireAndForget(ServiceMessage request) {
+    return Mono.empty();
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
+    return Flux.empty();
   }
 }
