@@ -6,8 +6,6 @@ import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 import io.scalecube.services.transport.server.api.ServiceMessageAcceptor;
 
-import org.reactivestreams.Publisher;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,14 +21,14 @@ public class DefaultServiceMessageAcceptor implements ServiceMessageAcceptor {
 
   @Override
   @SuppressWarnings("unchecked")
-  public Publisher<ServiceMessage> requestChannel(final Publisher<ServiceMessage> request) {
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
     // FIXME: need to seek handler and invoke it.
     throw new UnsupportedOperationException();
   }
 
   @Override
   @SuppressWarnings("unchecked")
-  public Publisher<ServiceMessage> requestStream(ServiceMessage request) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
     ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
     ServiceMessage message = messageDataCodec.decode(request, dispatcher.requestType());
 
@@ -41,7 +39,7 @@ public class DefaultServiceMessageAcceptor implements ServiceMessageAcceptor {
 
   @Override
   @SuppressWarnings("unchecked")
-  public Publisher<ServiceMessage> requestResponse(ServiceMessage request) {
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
     ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
     ServiceMessage message = messageDataCodec.decode(request, dispatcher.requestType());
 
@@ -52,7 +50,7 @@ public class DefaultServiceMessageAcceptor implements ServiceMessageAcceptor {
 
   @Override
   @SuppressWarnings("unchecked")
-  public Publisher<ServiceMessage> fireAndForget(ServiceMessage request) {
+  public Mono<ServiceMessage> fireAndForget(ServiceMessage request) {
     ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
     ServiceMessage message = messageDataCodec.decode(request, dispatcher.requestType());
 

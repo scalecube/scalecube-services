@@ -20,13 +20,13 @@
 				<version>${project.version}</version>
 			</dependency>
 
-			<dependency>
-				<groupId>io.scalecube</groupId>
-				<artifactId>scalecube-services-codec</artifactId>
-				<version>${project.version}</version>
-			</dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services-codec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
 
-			<dependency>
+      <dependency>
 				<groupId>io.rsocket</groupId>
 				<artifactId>rsocket-core</artifactId>
 				<version>${rsocket.version}</version>
@@ -46,10 +46,10 @@
 			<artifactId>scalecube-services-transport</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>io.scalecube</groupId>
-			<artifactId>scalecube-services-codec</artifactId>
-		</dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-codec</artifactId>
+    </dependency>
 
 		<dependency>
 			<groupId>io.rsocket</groupId>
