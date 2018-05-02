@@ -14,5 +14,10 @@
 			<artifactId>scalecube-services-api</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>scalecube-utils</artifactId>
+		</dependency>
+
 	</dependencies>
 </project>
