@@ -1,8 +1,7 @@
+package io.scalecube.services;
+
 import static reactor.core.publisher.Mono.from;
 
-import io.scalecube.services.GreetingServiceImpl;
-import io.scalecube.services.Microservices;
-import io.scalecube.services.TestRequests;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
