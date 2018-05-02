@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 public final class ServiceMessageCodec {
 
@@ -26,9 +27,7 @@ public final class ServiceMessageCodec {
     this.headersCodec = headersCodec;
   }
 
-  public ByteBuf[] encodeMessage(ServiceMessage message) {
-    ByteBuf[] bufs = new ByteBuf[2];
-
+  public <T> T encodeAndTransform(ServiceMessage message, BiFunction<ByteBuf, ByteBuf, T> transformer) {
     ByteBuf dataBuffer = Unpooled.EMPTY_BUFFER;
     ByteBuf headersBuffer = Unpooled.EMPTY_BUFFER;
 
@@ -56,13 +55,10 @@ public final class ServiceMessageCodec {
       }
     }
 
-    bufs[0] = dataBuffer;
-    bufs[1] = headersBuffer;
-
-    return bufs;
+    return transformer.apply(dataBuffer, headersBuffer);
   }
 
-  public ServiceMessage decodeMessage(ByteBuf dataBuffer, ByteBuf headersBuffer) {
+  public ServiceMessage decode(ByteBuf dataBuffer, ByteBuf headersBuffer) {
     ServiceMessage.Builder builder = ServiceMessage.builder();
     if (dataBuffer.isReadable()) {
       builder.data(dataBuffer);

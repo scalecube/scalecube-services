@@ -19,20 +19,7 @@ public final class ServiceMessageDataCodec {
 
   private static final String DEFAULT_DATA_FORMAT = "application/json";
 
-  public ServiceMessage decodeData(ServiceMessage message, Class type) {
-    if (message.data() instanceof ByteBuf) {
-      try (ByteBufInputStream inputStream = new ByteBufInputStream(message.data(), true)) {
-        String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-        DataCodec dataCodec = DataCodec.getInstance(contentType);
-        return ServiceMessage.from(message).data(dataCodec.decode(inputStream, type)).build();
-      } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
-      }
-    }
-    return message;
-  }
-
-  public ServiceMessage encodeData(ServiceMessage message) {
+  public ServiceMessage encode(ServiceMessage message) {
     if (message.data() != null) {
       ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
       try {
@@ -43,6 +30,19 @@ public final class ServiceMessageDataCodec {
       } catch (Throwable ex) {
         LOGGER.error("Failed to serialize data", ex);
         ReferenceCountUtil.release(buffer);
+      }
+    }
+    return message;
+  }
+
+  public ServiceMessage decode(ServiceMessage message, Class type) {
+    if (message.data() instanceof ByteBuf) {
+      try (ByteBufInputStream inputStream = new ByteBufInputStream(message.data(), true)) {
+        String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
+        DataCodec dataCodec = DataCodec.getInstance(contentType);
+        return ServiceMessage.from(message).data(dataCodec.decode(inputStream, type)).build();
+      } catch (Throwable ex) {
+        LOGGER.error("Failed to deserialize data", ex);
       }
     }
     return message;
