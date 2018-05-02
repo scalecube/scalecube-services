@@ -4,6 +4,7 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codecs.api.ServiceMessageCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.LocalServiceDispatchers;
@@ -221,10 +222,10 @@ public class ServiceCall {
       });
     }
 
-    private IllegalStateException noReachableMemberException(ServiceMessage request) {
+    private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
       LOGGER.error("Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
           request.qualifier(), request);
-      return new IllegalStateException("No reachable member with such service: " + request.qualifier());
+      return new ServiceUnavailableException("No reachable member with such service: " + request.qualifier());
     }
 
     private Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {
