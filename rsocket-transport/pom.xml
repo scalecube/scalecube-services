@@ -20,7 +20,13 @@
 				<version>${project.version}</version>
 			</dependency>
 
-			<dependency>
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services-codec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
 				<groupId>io.rsocket</groupId>
 				<artifactId>rsocket-core</artifactId>
 				<version>${rsocket.version}</version>
@@ -40,6 +46,11 @@
 			<artifactId>scalecube-services-transport</artifactId>
 		</dependency>
 
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-codec</artifactId>
+    </dependency>
+
 		<dependency>
 			<groupId>io.rsocket</groupId>
 			<artifactId>rsocket-core</artifactId>
@@ -50,22 +61,6 @@
 			<artifactId>rsocket-transport-netty</artifactId>
 		</dependency>
 
-		<!-- Jackson deps -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>${jackson.version}</version>
-		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>scalecube-testlib</artifactId>

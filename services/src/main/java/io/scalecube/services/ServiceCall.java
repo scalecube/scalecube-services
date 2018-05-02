@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+
   private final ClientTransport transport;
   private final LocalServiceDispatchers localServices;
 
@@ -43,12 +44,12 @@ public class ServiceCall {
     private Metrics metrics;
     private Timer latency;
     private ClientTransport transport;
-    private ServiceMessageCodec codec;
+    private ServiceMessageDataCodec messageDataCodec;
     private LocalServiceDispatchers localServices;
 
     public Call(ClientTransport transport, LocalServiceDispatchers localServices) {
       this.transport = transport;
-      this.codec = transport.getMessageCodec();
+      this.messageDataCodec = new ServiceMessageDataCodec();
       this.localServices = localServices;
     }
 
@@ -84,8 +85,7 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Mono<ServiceMessage>) Mono.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.requestResponse(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
         ServiceReference serviceReference =
             router.route(request).orElseThrow(() -> noReachableMemberException(request));
@@ -97,9 +97,9 @@ public class ServiceCall {
             .requestResponse(request)
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(codec.decodeData(message, ErrorData.class));
+                throw ExceptionProcessor.toException(messageDataCodec.decode(message, ErrorData.class));
               } else {
-                return codec.decodeData(message, returnType);
+                return messageDataCodec.decode(message, returnType);
               }
             });
       }
@@ -118,8 +118,9 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Mono<Void>) Mono.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.fireAndForget(request)
+            .onErrorMap(ExceptionProcessor::mapException)
+            .map(message -> null);
       } else {
         ServiceReference serviceReference =
             router.route(request).orElseThrow(() -> noReachableMemberException(request));
@@ -144,8 +145,7 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Flux<ServiceMessage>) Flux.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.requestStream(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
         Class responseType =
             request.responseType() != null ? request.responseType() : Object.class;
@@ -160,9 +160,9 @@ public class ServiceCall {
             .requestStream(request)
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(codec.decodeData(message, ErrorData.class));
+                throw ExceptionProcessor.toException(messageDataCodec.decode(message, ErrorData.class));
               } else {
-                return codec.decodeData(message, responseType);
+                return messageDataCodec.decode(message, responseType);
               }
             });
       }
@@ -194,26 +194,24 @@ public class ServiceCall {
             .build();
 
 
-        if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
+        if ((returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) ||
+            (returnType.isAssignableFrom(Void.class) || returnType.equals(Void.TYPE))) {
+          // noinspection unchecked
           return serviceCall.oneWay(reqMsg);
 
         } else if (returnType.isAssignableFrom(Mono.class)) {
           // noinspection unchecked
           return Mono.from(serviceCall.requestOne(reqMsg, parameterizedReturnType))
-              .map(message -> codec.decodeData(message, parameterizedReturnType))
+              .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
               .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
                   : mono.map(ServiceMessage::data));
 
         } else if (returnType.isAssignableFrom(Flux.class)) {
           // noinspection unchecked
           return Flux.from(serviceCall.requestMany(reqMsg))
-              .map(message -> codec.decodeData(message, parameterizedReturnType))
+              .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
               .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                   : flux.map(ServiceMessage::data));
-
-        } else if (returnType.isAssignableFrom(Void.class) || returnType.equals(Void.TYPE)) {
-          serviceCall.oneWay(reqMsg);
-          return null;
 
         } else {
           LOGGER.error("return value is not supported type.");

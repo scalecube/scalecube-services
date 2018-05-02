@@ -1,10 +1,12 @@
 package io.scalecube.services.transport.rsocket.server;
 
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
-import io.scalecube.services.transport.server.api.ServerMessageAcceptor;
+import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.server.api.ServerTransport;
+import io.scalecube.services.transport.server.api.ServiceMessageAcceptor;
 
+import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
+import io.rsocket.transport.netty.server.TcpServerTransport;
 
 import java.net.InetSocketAddress;
 
@@ -12,16 +14,17 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServerTransport implements ServerTransport {
 
+  private final ServiceMessageCodec codec;
+
   private NettyContextCloseable server;
-  private ServiceMessageCodec codec;
-  private ServerMessageAcceptor acceptor;
+  private ServiceMessageAcceptor acceptor;
 
   public RSocketServerTransport(ServiceMessageCodec codec) {
     this.codec = codec;
   }
 
   @Override
-  public ServerTransport accept(ServerMessageAcceptor acceptor) {
+  public ServerTransport accept(ServiceMessageAcceptor acceptor) {
     this.acceptor = acceptor;
     return this;
   }
@@ -29,8 +32,14 @@ public class RSocketServerTransport implements ServerTransport {
   @Override
   public InetSocketAddress bindAwait(InetSocketAddress address) {
 
-    this.server = RSocketServerFactory.create(address, codec, acceptor)
-        .start().block();
+    TcpServerTransport transport = TcpServerTransport.create(address);
+
+    this.server = RSocketFactory.receive()
+        .acceptor(new RSocketServiceAcceptor(acceptor, codec))
+        .transport(transport)
+        .start()
+        .block();
+
     return server.address();
   }
 
