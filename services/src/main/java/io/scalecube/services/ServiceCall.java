@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
@@ -42,12 +42,12 @@ public class ServiceCall {
     private Metrics metrics;
     private Timer latency;
     private ClientTransport transport;
-    private ServiceMessageCodec codec;
+    private ServiceMessageDataCodec messageDataCodec;
     private LocalServiceDispatchers localServices;
 
     public Call(ClientTransport transport, LocalServiceDispatchers localServices) {
       this.transport = transport;
-      this.codec = transport.getMessageCodec();
+      this.messageDataCodec = new ServiceMessageDataCodec();
       this.localServices = localServices;
     }
 
@@ -96,9 +96,9 @@ public class ServiceCall {
             .requestResponse(request)
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(codec.decodeData(message, ErrorData.class));
+                throw ExceptionProcessor.toException(messageDataCodec.decode(message, ErrorData.class));
               } else {
-                return codec.decodeData(message, returnType);
+                return messageDataCodec.decode(message, returnType);
               }
             });
       }
@@ -159,9 +159,9 @@ public class ServiceCall {
             .requestStream(request)
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(codec.decodeData(message, ErrorData.class));
+                throw ExceptionProcessor.toException(messageDataCodec.decode(message, ErrorData.class));
               } else {
-                return codec.decodeData(message, responseType);
+                return messageDataCodec.decode(message, responseType);
               }
             });
       }
@@ -199,14 +199,14 @@ public class ServiceCall {
         } else if (returnType.isAssignableFrom(Mono.class)) {
           // noinspection unchecked
           return Mono.from(serviceCall.requestOne(reqMsg, parameterizedReturnType))
-              .map(message -> codec.decodeData(message, parameterizedReturnType))
+              .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
               .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
                   : mono.map(ServiceMessage::data));
 
         } else if (returnType.isAssignableFrom(Flux.class)) {
           // noinspection unchecked
           return Flux.from(serviceCall.requestMany(reqMsg))
-              .map(message -> codec.decodeData(message, parameterizedReturnType))
+              .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
               .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                   : flux.map(ServiceMessage::data));
 

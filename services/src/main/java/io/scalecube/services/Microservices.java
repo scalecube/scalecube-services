@@ -5,7 +5,6 @@ import static java.util.Objects.requireNonNull;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.metrics.Metrics;
@@ -14,9 +13,9 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.services.transport.DefaultServerMessageAcceptor;
+import io.scalecube.services.transport.DefaultServiceMessageAcceptor;
 import io.scalecube.services.transport.LocalServiceDispatchers;
-import io.scalecube.services.transport.TransportFactory;
+import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
@@ -132,8 +131,6 @@ public class Microservices {
 
   private final int servicePort;
 
-  private final Map<String, ? extends ServiceMessageCodec> codecs;
-
   private final ClusterConfig.Builder clusterConfig;
 
   private Microservices(Builder builder) {
@@ -142,7 +139,6 @@ public class Microservices {
     this.metrics = builder.metrics;
     this.client = builder.client;
     this.server = builder.server;
-    this.codecs = builder.codecs;
     this.clusterConfig = builder.clusterConfig;
     this.servicePort = builder.servicePort;
 
@@ -151,11 +147,11 @@ public class Microservices {
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
     if (services.size() > 0) {
-      server.accept(new DefaultServerMessageAcceptor(serviceDispatchers, codecs));
-      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
-      serviceAddress = Address.create(inet.getHostString(), inet.getPort());
+      server.accept(new DefaultServiceMessageAcceptor(serviceDispatchers));
+      InetSocketAddress address = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
+      serviceAddress = Address.create(address.getHostString(), address.getPort());
     } else {
-      serviceAddress = Address.from("localhost:" + servicePort);
+      serviceAddress = Address.create("localhost", servicePort);
     }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
@@ -193,9 +189,8 @@ public class Microservices {
     private List<ServiceInfo> services = new ArrayList<>();
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
-    private ServerTransport server = TransportFactory.getTransport().getServerTransport();
-    private ClientTransport client = TransportFactory.getTransport().getClientTransport();
-    private Map<String, ? extends ServiceMessageCodec> codecs = TransportFactory.getTransport().getMessageCodecs();
+    private ServerTransport server = ServiceTransport.getTransport().getServerTransport();
+    private ClientTransport client = ServiceTransport.getTransport().getClientTransport();
 
     /**
      * Microservices instance builder.

@@ -80,6 +80,8 @@
         <module>services-api</module>
         <module>rsocket-transport</module>
         <module>services-transport</module>
+        <module>services-codec</module>
+        <module>services-codec-jackson</module>
         <module>services</module>
     </modules>
 

@@ -1,35 +1,27 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.scalecube.services.codecs.api.ServiceMessageCodec;
+import io.scalecube.services.codec.HeadersCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.rsocket.client.RSocketClientTransport;
 import io.scalecube.services.transport.rsocket.server.RSocketServerTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class RSocketServiceTransport implements ServiceTransport {
 
-
-  private ServiceMessageCodec codec = new RSocketJsonPayloadCodec();
+  private static final String DEFAULT_HEADERS_FORMAT = "application/json";
 
   @Override
   public ClientTransport getClientTransport() {
-    return new RSocketClientTransport(this.codec);
+    HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
+    return new RSocketClientTransport(new ServiceMessageCodec(headersCodec));
   }
 
   @Override
   public ServerTransport getServerTransport() {
-    return new RSocketServerTransport(this.codec);
-  }
-
-  @Override
-  public Map<String, ServiceMessageCodec> getMessageCodecs() {
-    Map<String, ServiceMessageCodec> codecs = new HashMap<>();
-    codecs.put(codec.contentType(), codec);
-    return codecs;
+    HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
+    return new RSocketServerTransport(new ServiceMessageCodec(headersCodec));
   }
 
 }
