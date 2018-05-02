@@ -13,7 +13,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.services.transport.DefaultServerMessageAcceptor;
+import io.scalecube.services.transport.DefaultServiceMessageAcceptor;
 import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
@@ -147,11 +147,11 @@ public class Microservices {
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
     if (services.size() > 0) {
-      server.accept(new DefaultServerMessageAcceptor(serviceDispatchers));
-      InetSocketAddress inet = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
-      serviceAddress = Address.create(inet.getHostString(), inet.getPort());
+      server.accept(new DefaultServiceMessageAcceptor(serviceDispatchers));
+      InetSocketAddress address = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
+      serviceAddress = Address.create(address.getHostString(), address.getPort());
     } else {
-      serviceAddress = Address.from("localhost:" + servicePort);
+      serviceAddress = Address.create("localhost", servicePort);
     }
 
     ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(

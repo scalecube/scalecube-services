@@ -4,7 +4,7 @@ import io.scalecube.services.api.ServiceMessage;
 
 import org.reactivestreams.Publisher;
 
-public interface ServerMessageAcceptor {
+public interface ServiceMessageAcceptor {
 
   Publisher<ServiceMessage> requestChannel(Publisher<ServiceMessage> payloads);
 
