@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Address;
 
 import org.junit.Test;
