@@ -25,6 +25,7 @@ import reactor.core.publisher.Mono;
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+
   private final ClientTransport transport;
   private final LocalServiceDispatchers localServices;
 
@@ -84,8 +85,7 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Mono<ServiceMessage>) Mono.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.requestResponse(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
         ServiceReference serviceReference =
             router.route(request).orElseThrow(() -> noReachableMemberException(request));
@@ -118,8 +118,9 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Mono<Void>) Mono.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.fireAndForget(request)
+            .onErrorMap(ExceptionProcessor::mapException)
+            .map(message -> null);
       } else {
         ServiceReference serviceReference =
             router.route(request).orElseThrow(() -> noReachableMemberException(request));
@@ -144,8 +145,7 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Flux<ServiceMessage>) Flux.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.requestStream(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
         Class responseType =
             request.responseType() != null ? request.responseType() : Object.class;
@@ -194,7 +194,9 @@ public class ServiceCall {
             .build();
 
 
-        if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
+        if ((returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) ||
+            (returnType.isAssignableFrom(Void.class) || returnType.equals(Void.TYPE))) {
+          // noinspection unchecked
           return serviceCall.oneWay(reqMsg);
 
         } else if (returnType.isAssignableFrom(Mono.class)) {
@@ -210,10 +212,6 @@ public class ServiceCall {
               .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
               .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                   : flux.map(ServiceMessage::data));
-
-        } else if (returnType.isAssignableFrom(Void.class) || returnType.equals(Void.TYPE)) {
-          serviceCall.oneWay(reqMsg);
-          return null;
 
         } else {
           LOGGER.error("return value is not supported type.");

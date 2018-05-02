@@ -13,6 +13,6 @@ public interface ServiceMessageAcceptor {
 
   Mono<ServiceMessage> requestResponse(ServiceMessage payload);
 
-  Mono<ServiceMessage> fireAndForget(ServiceMessage payload);
+  Mono<Void> fireAndForget(ServiceMessage payload);
 
 }

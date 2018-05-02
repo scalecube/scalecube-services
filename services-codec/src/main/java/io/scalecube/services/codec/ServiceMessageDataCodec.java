@@ -1,6 +1,7 @@
 package io.scalecube.services.codec;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -8,16 +9,14 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Optional;
 
 public final class ServiceMessageDataCodec {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageDataCodec.class);
-
   private static final String DEFAULT_DATA_FORMAT = "application/json";
+
+  private static final String ERROR_DATA_ENCODE_FAILED = "Failed to serialize data on %s, cause: %s";
+  private static final String ERROR_DATA_DECODE_FAILED = "Failed to deserialize data on %s, cause: %s";
 
   public ServiceMessage encode(ServiceMessage message) {
     if (message.data() != null) {
@@ -28,8 +27,8 @@ public final class ServiceMessageDataCodec {
         dataCodec.encode(new ByteBufOutputStream(buffer), message.data());
         return ServiceMessage.from(message).data(buffer).build();
       } catch (Throwable ex) {
-        LOGGER.error("Failed to serialize data", ex);
         ReferenceCountUtil.release(buffer);
+        throw new BadRequestException(String.format(ERROR_DATA_ENCODE_FAILED, message, ex));
       }
     }
     return message;
@@ -42,7 +41,7 @@ public final class ServiceMessageDataCodec {
         DataCodec dataCodec = DataCodec.getInstance(contentType);
         return ServiceMessage.from(message).data(dataCodec.decode(inputStream, type)).build();
       } catch (Throwable ex) {
-        LOGGER.error("Failed to deserialize data", ex);
+        throw new BadRequestException(String.format(ERROR_DATA_DECODE_FAILED, message, ex));
       }
     }
     return message;
