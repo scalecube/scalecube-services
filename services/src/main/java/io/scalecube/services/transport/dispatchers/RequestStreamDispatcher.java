@@ -9,7 +9,6 @@ import org.reactivestreams.Publisher;
 import java.lang.reflect.Method;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class RequestStreamDispatcher
     extends AbstractServiceMethodDispatcher<ServiceMessage, Publisher<ServiceMessage>> {
@@ -18,7 +17,7 @@ public class RequestStreamDispatcher
     super(qualifier, serviceObject, method);
   }
 
-  public Publisher<ServiceMessage> invoke(ServiceMessage request) {
+  public Flux<ServiceMessage> invoke(ServiceMessage request) {
     try {
       return Flux.from(Reflect.invoke(serviceObject, method, request)).map(this::toReturnMessage);
     } catch (Exception e) {

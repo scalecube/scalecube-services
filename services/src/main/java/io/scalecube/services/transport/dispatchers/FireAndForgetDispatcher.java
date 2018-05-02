@@ -18,7 +18,7 @@ public class FireAndForgetDispatcher
   }
 
   @Override
-  public Publisher<ServiceMessage> invoke(ServiceMessage request) {
+  public Mono<ServiceMessage> invoke(ServiceMessage request) {
     try {
       return Mono.from(Reflect.invoke(serviceObject, method, request)).map(this::toReturnMessage);
     } catch (Exception e) {
