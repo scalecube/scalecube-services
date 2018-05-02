@@ -49,12 +49,12 @@ public interface TestRequests {
       .request(SERVICE_NAME, "greetingPojo").data(new Integer(-1)).build();
 
   ServiceMessage GREETING_UNAUTHORIZED_REQUEST = Messages.builder()
-          .request(SERVICE_NAME, "greetingNotAuthorized").build();
-
-  ServiceMessage GREETING_CORRUPTED_RESPONSE = Messages.builder()
-          .request(SERVICE_NAME, "greetingCorruptedResponse").build();
+      .request(SERVICE_NAME, "greetingNotAuthorized").data(new GreetingRequest("joe")).build();
 
   ServiceMessage GREETING_NULL_PAYLOAD = Messages.builder()
-          .request(SERVICE_NAME, "greetingCorruptedResponse").build();
+      .request(SERVICE_NAME, "greetingPojo").build();
+
+  ServiceMessage SERVICE_NOT_FOUND = Messages.builder()
+      .request(SERVICE_NAME, "unknown_service").build();
 
 }

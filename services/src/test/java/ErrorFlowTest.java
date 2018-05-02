@@ -5,9 +5,12 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.TestRequests;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.reactivestreams.Publisher;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,7 +45,6 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req = consumer
         .call().requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST);
     from(req).block();
-    Assert.fail("Should have failed");
   }
 
   @Test(expected = UnauthorizedException.class)
@@ -50,17 +52,6 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req = consumer
         .call().requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST);
     from(req).block();
-    Assert.fail("Should have failed");
-  }
-
-  // TODO: Fail to simulate corrupted response [sergeyr]
-  @Ignore
-  @Test(expected = BadRequestException.class)
-  public void testCorruptedResponse() {
-    Publisher<ServiceMessage> req = consumer
-        .call().requestOne(TestRequests.GREETING_CORRUPTED_RESPONSE);
-    ServiceMessage block = from(req).block();
-    Assert.fail("Should have failed");
   }
 
   @Test(expected = BadRequestException.class)
@@ -68,9 +59,12 @@ public class ErrorFlowTest {
     Publisher<ServiceMessage> req = consumer
         .call().requestOne(TestRequests.GREETING_NULL_PAYLOAD);
     from(req).block();
-    Assert.fail("Should have failed");
   }
 
-
-
+  @Test(expected = ServiceUnavailableException.class)
+  public void testServiceUnavailable() {
+    Publisher<ServiceMessage> req = consumer
+        .call().requestOne(TestRequests.NOT_FOUND_REQ);
+    from(req).block();
+  }
 }
