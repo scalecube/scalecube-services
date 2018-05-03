@@ -9,7 +9,6 @@ import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.ContentType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.transport.api.CommunicationMode;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -39,8 +38,7 @@ public class ServiceScanner {
                 String action = Reflect.methodName(m);
                 String contentType = ContentType.DEFAULT;
                 Map<String, String> methodTags = methodTags(m);
-                String communicationMode = CommunicationMode.of(m).name();
-                return new ServiceMethodDefinition(action, contentType, communicationMode, methodTags);
+                return new ServiceMethodDefinition(action, contentType, methodTags);
               }).collect(Collectors.toList());
           return new ServiceRegistration(namespace,
               serviceContentType,

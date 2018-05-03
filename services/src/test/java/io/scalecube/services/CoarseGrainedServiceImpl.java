@@ -3,8 +3,6 @@ package io.scalecube.services;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 
-import org.reactivestreams.Publisher;
-
 import java.time.Duration;
 
 import reactor.core.publisher.Mono;
@@ -23,12 +21,12 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   private Microservices microservices;
 
   @Override
-  public Publisher<String> callGreeting(String name) {
+  public Mono<String> callGreeting(String name) {
     return this.greetingService.greeting(name);
   }
 
   @Override
-  public Publisher<String> callGreetingTimeout(String request) {
+  public Mono<String> callGreetingTimeout(String request) {
     System.out.println("callGreetingTimeout: " + request);
     return Mono
         .from(
@@ -39,7 +37,7 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
   }
 
   @Override
-  public Publisher<String> callGreetingWithDispatcher(String request) {
+  public Mono<String> callGreetingWithDispatcher(String request) {
     return Mono.from(microservices.call().requestOne(Messages.builder().request(SERVICE_NAME, "greeting")
         .data("joe").build()))
         .map(ServiceMessage::data);

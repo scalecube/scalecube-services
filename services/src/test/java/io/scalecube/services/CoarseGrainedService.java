@@ -3,18 +3,18 @@ package io.scalecube.services;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 
-import org.reactivestreams.Publisher;
+import reactor.core.publisher.Mono;
 
 @Service
 public interface CoarseGrainedService {
 
   @ServiceMethod
-  public Publisher<String> callGreeting(String name);
+  Mono<String> callGreeting(String name);
 
   @ServiceMethod
-  public Publisher<String> callGreetingTimeout(String request);
+  Mono<String> callGreetingTimeout(String request);
 
   @ServiceMethod
-  public Publisher<String> callGreetingWithDispatcher(String request);
+  Mono<String> callGreetingWithDispatcher(String request);
 
 }

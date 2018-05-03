@@ -34,7 +34,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       @Override
       public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
         // FIXME: need to seek handler and invoke it.
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("requestChannel");
       }
 
       @Override

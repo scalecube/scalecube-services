@@ -153,7 +153,7 @@ public class RemoteServiceTest extends BaseTest {
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
-    assertTrue(" hello to: joe".equals(future.block(Duration.ofHours(1))));
+    assertTrue(" hello to: joe".equals(future.block(Duration.ofSeconds(3))));
     provider.shutdown().block();
     consumer.shutdown().block();
   }
