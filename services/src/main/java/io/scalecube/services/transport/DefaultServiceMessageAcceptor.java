@@ -22,7 +22,7 @@ public class DefaultServiceMessageAcceptor implements ServiceMessageAcceptor {
   @SuppressWarnings("unchecked")
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
     // FIXME: need to seek handler and invoke it.
-    throw new UnsupportedOperationException("requestChannel");
+    throw new UnsupportedOperationException("requestChannel is not implemented");
   }
 
   @Override

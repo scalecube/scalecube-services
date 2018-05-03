@@ -45,21 +45,21 @@ public abstract class AbstractServiceMethodDispatcher implements ServiceMethodDi
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
-    return Mono.error(new UnsupportedOperationException("requestResponse"));
+    return Mono.error(new UnsupportedOperationException("requestResponse is not implemented"));
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    return Flux.error(new UnsupportedOperationException("requestStream"));
+    return Flux.error(new UnsupportedOperationException("requestStream is not implemented"));
   }
 
   @Override
   public Mono<Void> fireAndForget(ServiceMessage request) {
-    return Mono.error(new UnsupportedOperationException("fireAndForget"));
+    return Mono.error(new UnsupportedOperationException("fireAndForget is not implemented"));
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
-    return Flux.error(new UnsupportedOperationException("requestChannel"));
+    return Flux.error(new UnsupportedOperationException("requestChannel is not implemented"));
   }
 }

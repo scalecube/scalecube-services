@@ -270,7 +270,7 @@ public class Reflect {
     // handle validation
     Class<?> returnType = method.getReturnType();
     if (!Publisher.class.isAssignableFrom(returnType)) {
-      throw new UnsupportedOperationException("Service method' return type can be Publisher only");
+      throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
     if (method.getParameters().length > 1) {
       throw new UnsupportedOperationException("Service method can accept 0 or 1 parameters only");

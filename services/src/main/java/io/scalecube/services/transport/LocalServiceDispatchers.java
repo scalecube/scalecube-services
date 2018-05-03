@@ -64,7 +64,7 @@ public class LocalServiceDispatchers {
             register(qualifier, new RequestStreamDispatcher(qualifier, service, method));
 
           } else {
-            throw new IllegalArgumentException("Return type not supported on method: " + method);
+            throw new IllegalArgumentException("Return type is not supported on method: " + method);
           }
         });
       });
