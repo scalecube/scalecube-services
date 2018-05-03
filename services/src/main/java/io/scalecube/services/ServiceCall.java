@@ -212,7 +212,7 @@ public class ServiceCall {
                   : flux.map(ServiceMessage::data));
 
         } else {
-          throw new IllegalArgumentException("Return type not supported on method: " + method);
+          throw new IllegalArgumentException("Return type is not supported on method: " + method);
         }
       });
     }
