@@ -23,7 +23,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-import io.scalecube.testlib.BaseTest;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -486,7 +485,7 @@ public class ServiceCallTest extends BaseTest {
       responses.incrementAndGet();
       if (success.data().toString().contains("SERVICE_B_TALKING")) {
         count.incrementAndGet();
-        if ((responses.get() == n) && (60 < count.get() && count.get() < 80)) {
+        if ((responses.get() == n) && (60 < count.get() && count.get() < 85)) {
           timeLatch.countDown();
         }
       }
@@ -495,7 +494,7 @@ public class ServiceCallTest extends BaseTest {
     System.out.println("count: " + count.get());
     System.out.println("Service B was called: " + count.get() + " times.");
 
-    assertTrue((responses.get() == n) && (60 < count.get() && count.get() < 80));
+    assertTrue((responses.get() == n) && (60 < count.get() && count.get() < 85));
     services1.shutdown().block();
     services2.shutdown().block();
     gateway.shutdown().block();

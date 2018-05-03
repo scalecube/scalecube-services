@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.RouterFactory;
-import io.scalecube.testlib.BaseTest;
 
 import org.junit.Test;
 
