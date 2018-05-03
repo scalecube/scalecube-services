@@ -62,6 +62,10 @@ public class ExceptionProcessor {
   }
 
   public static Throwable mapException(Throwable throwable) {
+    if (ServiceException.class.isAssignableFrom(throwable.getClass())) {
+      return throwable;
+    }
+    // Not a Service Exception
     String errorMessage = Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
     // Handle other mappings of Service Exceptions here
     return new InternalServiceException(DEFAULT_ERROR_CODE, errorMessage);

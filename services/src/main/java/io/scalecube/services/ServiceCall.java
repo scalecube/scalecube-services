@@ -4,6 +4,7 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.LocalServiceDispatchers;
@@ -24,6 +25,7 @@ import reactor.core.publisher.Mono;
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+
   private final ClientTransport transport;
   private final LocalServiceDispatchers localServices;
 
@@ -83,8 +85,7 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Mono<ServiceMessage>) Mono.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.requestResponse(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
         ServiceReference serviceReference =
             router.route(request).orElseThrow(() -> noReachableMemberException(request));
@@ -117,8 +118,9 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Mono<Void>) Mono.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.fireAndForget(request)
+            .onErrorMap(ExceptionProcessor::mapException)
+            .map(message -> null);
       } else {
         ServiceReference serviceReference =
             router.route(request).orElseThrow(() -> noReachableMemberException(request));
@@ -143,8 +145,7 @@ public class ServiceCall {
 
       if (localServices.contains(qualifier)) {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return ((Flux<ServiceMessage>) Flux.from(dispatcher.invoke((request))))
-            .onErrorMap(ExceptionProcessor::mapException);
+        return dispatcher.requestStream(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
         Class responseType =
             request.responseType() != null ? request.responseType() : Object.class;
@@ -192,8 +193,8 @@ public class ServiceCall {
             .data(method.getParameterCount() != 0 ? args[0] : null)
             .build();
 
-
         if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
+          // noinspection unchecked
           return serviceCall.oneWay(reqMsg);
 
         } else if (returnType.isAssignableFrom(Mono.class)) {
@@ -210,21 +211,16 @@ public class ServiceCall {
               .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                   : flux.map(ServiceMessage::data));
 
-        } else if (returnType.isAssignableFrom(Void.class) || returnType.equals(Void.TYPE)) {
-          serviceCall.oneWay(reqMsg);
-          return null;
-
         } else {
-          LOGGER.error("return value is not supported type.");
-          return null;
+          throw new IllegalArgumentException("Return type is not supported on method: " + method);
         }
       });
     }
 
-    private IllegalStateException noReachableMemberException(ServiceMessage request) {
+    private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
       LOGGER.error("Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
           request.qualifier(), request);
-      return new IllegalStateException("No reachable member with such service: " + request.qualifier());
+      return new ServiceUnavailableException("No reachable member with such service: " + request.qualifier());
     }
 
     private Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {

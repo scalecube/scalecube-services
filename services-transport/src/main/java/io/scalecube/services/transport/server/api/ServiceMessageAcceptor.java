@@ -2,16 +2,17 @@ package io.scalecube.services.transport.server.api;
 
 import io.scalecube.services.api.ServiceMessage;
 
-import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface ServiceMessageAcceptor {
 
-  Publisher<ServiceMessage> requestChannel(Publisher<ServiceMessage> payloads);
+  Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> payloads);
 
-  Publisher<ServiceMessage> requestStream(ServiceMessage payload);
+  Flux<ServiceMessage> requestStream(ServiceMessage payload);
 
-  Publisher<ServiceMessage> requestResponse(ServiceMessage payload);
+  Mono<ServiceMessage> requestResponse(ServiceMessage payload);
 
-  Publisher<ServiceMessage> fireAndForget(ServiceMessage payload);
+  Mono<Void> fireAndForget(ServiceMessage payload);
 
 }

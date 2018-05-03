@@ -5,12 +5,6 @@ import java.util.Map;
 
 public class ServiceReference {
 
-  @Override
-  public String toString() {
-    return "ServiceReference [endpointId=" + endpointId + ", host=" + host + ", port=" + port + ", namespace="
-        + namespace + ", contentType=" + contentType + ", tags=" + tags + ", action=" + action + "]";
-  }
-
   private String endpointId;
   private String host;
   private int port;
@@ -36,7 +30,8 @@ public class ServiceReference {
     this.action = serviceMethodDefinition.getAction();
   }
 
-  public ServiceReference(String endpointId, String host, int port, String namespace, String contentType, Map<String, String> tags, String action) {
+  public ServiceReference(String endpointId, String host, int port, String namespace, String contentType,
+      Map<String, String> tags, String action) {
     this.endpointId = endpointId;
     this.host = host;
     this.port = port;
@@ -85,7 +80,7 @@ public class ServiceReference {
   }
 
   private String mergeContentType(ServiceMethodDefinition serviceMethodDefinition,
-                                  ServiceRegistration serviceRegistration) {
+      ServiceRegistration serviceRegistration) {
     if (serviceMethodDefinition.getContentType() != null && !serviceMethodDefinition.getContentType().isEmpty()) {
       return serviceMethodDefinition.getContentType();
     }
@@ -93,5 +88,18 @@ public class ServiceReference {
       return serviceRegistration.contentType();
     }
     throw new IllegalArgumentException();
+  }
+
+  @Override
+  public String toString() {
+    return "ServiceReference{" +
+        "endpointId='" + endpointId + '\'' +
+        ", host='" + host + '\'' +
+        ", port=" + port +
+        ", namespace='" + namespace + '\'' +
+        ", contentType='" + contentType + '\'' +
+        ", tags=" + tags +
+        ", action='" + action + '\'' +
+        '}';
   }
 }

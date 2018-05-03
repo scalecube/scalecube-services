@@ -1,10 +1,8 @@
 package io.scalecube.services.transport;
 
 import io.scalecube.services.Reflect;
-import io.scalecube.services.transport.api.CommunicationMode;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 import io.scalecube.services.transport.dispatchers.FireAndForgetDispatcher;
-import io.scalecube.services.transport.dispatchers.RequestChannelDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestResponseDispatcher;
 import io.scalecube.services.transport.dispatchers.RequestStreamDispatcher;
 
@@ -13,6 +11,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class LocalServiceDispatchers {
 
@@ -48,23 +49,22 @@ public class LocalServiceDispatchers {
     serviceObjects.forEach(service -> {
       Reflect.serviceInterfaces(service).forEach(serviceInterface -> {
         Reflect.serviceMethods(serviceInterface).forEach((key, method) -> {
-          CommunicationMode communicationMode = CommunicationMode.of(method);
+
           String qualifier = Reflect.qualifier(serviceInterface, method);
-          switch (communicationMode) {
-            case REQUEST_ONE:
-              register(qualifier, new RequestResponseDispatcher(qualifier, service, method));
-              break;
-            case REQUEST_STREAM:
-              register(qualifier, new RequestChannelDispatcher(qualifier, service, method));
-              break;
-            case ONE_WAY:
-              register(qualifier, new FireAndForgetDispatcher(qualifier, service, method));
-              break;
-            case REQUEST_MANY:
-              register(qualifier, new RequestStreamDispatcher(qualifier, service, method));
-              break;
-            default:
-              break;
+          Class<?> parameterizedReturnType = Reflect.parameterizedReturnType(method);
+          Class<?> returnType = method.getReturnType();
+
+          if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
+            register(qualifier, new FireAndForgetDispatcher(qualifier, service, method));
+
+          } else if (returnType.isAssignableFrom(Mono.class)) {
+            register(qualifier, new RequestResponseDispatcher(qualifier, service, method));
+
+          } else if (returnType.isAssignableFrom(Flux.class)) {
+            register(qualifier, new RequestStreamDispatcher(qualifier, service, method));
+
+          } else {
+            throw new IllegalArgumentException("Return type is not supported on method: " + method);
           }
         });
       });

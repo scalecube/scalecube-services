@@ -7,6 +7,7 @@ import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
@@ -269,10 +270,10 @@ public class Reflect {
     // handle validation
     Class<?> returnType = method.getReturnType();
     if (!Publisher.class.isAssignableFrom(returnType)) {
-      throw new UnsupportedOperationException("Service Method can return of type Publisher only");
+      throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
     if (method.getParameters().length > 1) {
-      throw new UnsupportedOperationException("Service Method can accept 0 or 1 paramters only!");
+      throw new UnsupportedOperationException("Service method can accept 0 or 1 parameters only");
     }
 
     // handle invoke
@@ -280,8 +281,12 @@ public class Reflect {
       if (method.getParameters().length == 0) { // method expect no params.
         return (Publisher<T>) method.invoke(serviceObject);
       } else { // method expect 1 param.
+        // Expected 1 param but null passed
         Class<?> requestType = Reflect.requestType(method);
         boolean isRequestTypeServiceMessage = requestType.isAssignableFrom(ServiceMessage.class);
+        if (!isRequestTypeServiceMessage && request.data() == null) {
+          throw new BadRequestException("Expected payload in request but got null");
+        }
         return (Publisher<T>) method.invoke(serviceObject, isRequestTypeServiceMessage ? request : request.data());
       }
     } catch (InvocationTargetException e) {

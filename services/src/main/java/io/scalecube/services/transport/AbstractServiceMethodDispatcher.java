@@ -6,7 +6,10 @@ import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 
 import java.lang.reflect.Method;
 
-public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements ServiceMethodDispatcher<REQ> {
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+public abstract class AbstractServiceMethodDispatcher implements ServiceMethodDispatcher {
 
   protected final Method method;
   protected final Object serviceObject;
@@ -38,5 +41,25 @@ public abstract class AbstractServiceMethodDispatcher<REQ, RESP> implements Serv
   @Override
   public Class returnType() {
     return returnType;
+  }
+
+  @Override
+  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
+    return Mono.error(new UnsupportedOperationException("requestResponse is not implemented"));
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
+    return Flux.error(new UnsupportedOperationException("requestStream is not implemented"));
+  }
+
+  @Override
+  public Mono<Void> fireAndForget(ServiceMessage request) {
+    return Mono.error(new UnsupportedOperationException("fireAndForget is not implemented"));
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
+    return Flux.error(new UnsupportedOperationException("requestChannel is not implemented"));
   }
 }

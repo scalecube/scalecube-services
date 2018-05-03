@@ -54,10 +54,10 @@ public class ServiceRegistration {
   @Override
   public String toString() {
     return "ServiceRegistration{" +
-            "namespace='" + namespace + '\'' +
-            ", contentType='" + contentType + '\'' +
-            ", tags=" + tags +
-            ", methods=" + methods +
-            '}';
+        "namespace='" + namespace + '\'' +
+        ", contentType='" + contentType + '\'' +
+        ", tags=" + tags +
+        ", methods=" + methods +
+        '}';
   }
 }
