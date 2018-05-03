@@ -188,7 +188,7 @@ public class StreamingServiceTest extends BaseTest {
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    Flux.from(service.requestMany(justOne)).subscribe(onNext -> {
+    Flux.from(service.requestOne(justOne)).subscribe(onNext -> {
       latch1.countDown();
     });
 
