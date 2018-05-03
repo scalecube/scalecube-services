@@ -14,12 +14,12 @@ public interface TestRequests {
       .build();
 
   ServiceMessage GREETING_FAIL_REQ = Messages.builder()
-      .request(SERVICE_NAME, "failingVoid")
+      .request(SERVICE_NAME, "failingRequest")
       .data(new GreetingRequest("joe"))
       .build();
 
   ServiceMessage GREETING_ERROR_REQ = Messages.builder()
-      .request(SERVICE_NAME, "exceptionVoid")
+      .request(SERVICE_NAME, "exceptionRequest")
       .data(new GreetingRequest("joe"))
       .build();
 

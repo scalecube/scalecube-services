@@ -5,62 +5,57 @@ import java.util.Map;
 
 public class ServiceEndpoint {
 
-    private String id;
-    private String host;
-    private int port;
-    private Map<String, String> tags;
-    private Collection<ServiceRegistration> serviceRegistrations;
+  private String id;
+  private String host;
+  private int port;
+  private Map<String, String> tags;
+  private Collection<ServiceRegistration> serviceRegistrations;
 
-    /**
-     * @deprecated exposed only for deserialization purpose.
-     */
-    public ServiceEndpoint() {
-    }
-    public static ServiceEndpoint empty() {
-      return new ServiceEndpoint();
-    }
-    public ServiceEndpoint(String id,
-                           String host,
-                           int port,
-                           Map<String, String> tags,
-                           Collection<ServiceRegistration> serviceRegistrations) {
-        this.id = id;
-        this.host = host;
-        this.port = port;
-        this.tags = tags;
-        this.serviceRegistrations = serviceRegistrations;
-    }
+  /**
+   * @deprecated exposed only for deserialization purpose.
+   */
+  public ServiceEndpoint() {}
 
-    public String id() {
-        return id;
-    }
+  public ServiceEndpoint(String id,
+      String host,
+      int port,
+      Map<String, String> tags,
+      Collection<ServiceRegistration> serviceRegistrations) {
+    this.id = id;
+    this.host = host;
+    this.port = port;
+    this.tags = tags;
+    this.serviceRegistrations = serviceRegistrations;
+  }
 
-    public String host() {
-        return host;
-    }
+  public String id() {
+    return id;
+  }
 
-    public int port() {
-        return port;
-    }
+  public String host() {
+    return host;
+  }
 
-    public Map<String, String> tags() {
-        return tags;
-    }
+  public int port() {
+    return port;
+  }
 
-    public Collection<ServiceRegistration> serviceRegistrations() {
-        return serviceRegistrations;
-    }
+  public Map<String, String> tags() {
+    return tags;
+  }
 
-    @Override
-    public String toString() {
-        return "ServiceEndpoint{" +
-                "id='" + id + '\'' +
-                ", host='" + host + '\'' +
-                ", port=" + port +
-                ", tags=" + tags +
-                ", serviceRegistrations=" + serviceRegistrations +
-                '}';
-    }
+  public Collection<ServiceRegistration> serviceRegistrations() {
+    return serviceRegistrations;
+  }
 
-    
+  @Override
+  public String toString() {
+    return "ServiceEndpoint{" +
+        "id='" + id + '\'' +
+        ", host='" + host + '\'' +
+        ", port=" + port +
+        ", tags=" + tags +
+        ", serviceRegistrations=" + serviceRegistrations +
+        '}';
+  }
 }

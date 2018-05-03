@@ -193,9 +193,7 @@ public class ServiceCall {
             .data(method.getParameterCount() != 0 ? args[0] : null)
             .build();
 
-
-        if ((returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) ||
-            (returnType.isAssignableFrom(Void.class) || returnType.equals(Void.TYPE))) {
+        if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
           // noinspection unchecked
           return serviceCall.oneWay(reqMsg);
 
@@ -214,8 +212,7 @@ public class ServiceCall {
                   : flux.map(ServiceMessage::data));
 
         } else {
-          LOGGER.error("return value is not supported type.");
-          return null;
+          throw new IllegalArgumentException("Return type not supported on method: " + method);
         }
       });
     }

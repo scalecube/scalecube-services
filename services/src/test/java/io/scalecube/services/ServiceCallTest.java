@@ -1,6 +1,13 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.TestRequests.*;
+import static io.scalecube.services.TestRequests.GREETING_ERROR_REQ;
+import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
+import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
+import static io.scalecube.services.TestRequests.GREETING_REQ;
+import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
+import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
+import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
+import static io.scalecube.services.TestRequests.NOT_FOUND_REQ;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -91,7 +98,7 @@ public class ServiceCallTest extends BaseTest {
     Publisher<ServiceMessage> future =
         serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST, GreetingResponse.class);
 
-    ServiceMessage message = Mono.from(future).block(Duration.ofHours(TIMEOUT));
+    ServiceMessage message = Mono.from(future).block(timeout);
 
     assertThat(message.data(), instanceOf(GreetingResponse.class));
     assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
