@@ -82,7 +82,6 @@
         <module>examples</module>
         <module>services</module>
         <module>utils</module>
-        <module>gateway</module>
         <module>stresstests</module>
     </modules>
 
