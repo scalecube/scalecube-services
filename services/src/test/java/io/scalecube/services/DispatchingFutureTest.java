@@ -21,7 +21,7 @@ public class DispatchingFutureTest extends BaseTest {
   public void test_dispatching_future() throws Exception {
 
     Microservices member = Microservices.builder().build();
-    ServiceResponse response = ServiceResponse.correlationId(IdGenerator.generateId());
+    ServiceResponse response = new ServiceResponse();
 
     Message request = Message.builder().correlationId(response.correlationId())
         .header(ServiceHeaders.SERVICE_RESPONSE, "").build();
@@ -52,7 +52,7 @@ public class DispatchingFutureTest extends BaseTest {
   public void test_dispatching_future_error() throws Exception {
 
     Microservices member = Microservices.builder().build();
-    ServiceResponse response = ServiceResponse.correlationId(IdGenerator.generateId());
+    ServiceResponse response = new ServiceResponse();
 
     Message request = Message.builder().correlationId(response.correlationId())
         .header(ServiceHeaders.SERVICE_RESPONSE, "").build();
@@ -82,7 +82,7 @@ public class DispatchingFutureTest extends BaseTest {
   public void test_dispatching_future_completeExceptionally() throws Exception {
 
     Microservices member = Microservices.builder().build();
-    ServiceResponse response = ServiceResponse.correlationId(IdGenerator.generateId());
+    ServiceResponse response = new ServiceResponse();
 
     Message request = Message.builder().correlationId(response.correlationId())
         .header(ServiceHeaders.SERVICE_RESPONSE, "").build();

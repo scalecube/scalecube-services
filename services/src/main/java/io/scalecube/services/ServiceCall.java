@@ -2,14 +2,12 @@ package io.scalecube.services;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.routing.Router;
 import io.scalecube.transport.Message;
 
-import com.codahale.metrics.Counter;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
-import com.codahale.metrics.Timer.Context;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,17 +25,18 @@ import java.util.concurrent.CompletableFuture;
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceProxyFactory.class);
+  private final Meter reqMeter;
+  private final Meter respMeter;
 
   private Duration timeout;
   private Router router;
-  private Timer latency;
-  private Metrics metrics;
+  private Timer responses;
 
   /**
    * ServiceCall is a service communication pattern for async request reply and reactive streams. it communicates with
    * local and remote services using messages and handles. it acts as proxy and middle-ware between service consumer and
    * service provider.
-   * 
+   *
    * @param router strategy to select service instance.
    * @param timeout waiting for response.
    * @param metrics provider to collect metrics regards service execution.
@@ -45,8 +44,9 @@ public class ServiceCall {
   public ServiceCall(Router router, Duration timeout, Metrics metrics) {
     this.router = router;
     this.timeout = timeout;
-    this.metrics = metrics;
-    this.latency = Metrics.timer(this.metrics, ServiceCall.class.getName(), "invoke");
+    this.responses = Metrics.timer(metrics, ServiceCall.class.getName(), "responsesTime");
+    this.reqMeter = Metrics.meter(metrics, ServiceCall.class.getName(), "serviceCall", "requests");
+    this.respMeter = Metrics.meter(metrics, ServiceCall.class.getName(), "serviceCall", "responses");
   }
 
   /**
@@ -88,7 +88,7 @@ public class ServiceCall {
 
     if (optionalServiceInstance.isPresent()) {
       ServiceInstance instance = optionalServiceInstance.get();
-      return this.invoke(request, instance, timeout);
+      return invoke(request, instance, timeout);
     } else {
       throw noReachableMemberException(request);
     }
@@ -121,34 +121,12 @@ public class ServiceCall {
    */
   public CompletableFuture<Message> invoke(final Message request, final ServiceInstance serviceInstance,
       final Duration duration) {
-
-    Objects.requireNonNull(serviceInstance);
-    Messages.validate().serviceRequest(request);
-    serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
-
+    reqMeter.mark();
+    validateRequest(request, serviceInstance);
     if (!serviceInstance.isLocal()) {
-      String cid = IdGenerator.generateId();
-
-      final ServiceResponse responseFuture = ServiceResponse.correlationId(cid);
-
-      final Context ctx = Metrics.time(latency);
-      Metrics.mark(this.metrics, ServiceCall.class.getName(), "invoke", "request");
-      Counter counter = Metrics.counter(metrics, ServiceCall.class.getName(), "invoke-pending");
-      Metrics.inc(counter);
-      serviceInstance.invoke(Messages.asRequest(request, cid))
-          .whenComplete((success, error) -> {
-            Metrics.dec(counter);
-            Metrics.stop(ctx);
-            if (error == null) {
-              Metrics.mark(metrics, ServiceCall.class, "invoke", "response");
-              responseFuture.withTimeout(duration);
-            } else {
-              Metrics.mark(metrics, ServiceCall.class.getName(), "invoke", "error");
-              responseFuture.completeExceptionally(error);
-            }
-          });
-
-      return responseFuture.future();
+      final ServiceResponse response = new ServiceResponse(responses, respMeter);
+      serviceInstance.invoke(Messages.asRequest(request, response.correlationId()));
+      return response.future();
     } else {
       return serviceInstance.invoke(request);
     }
@@ -227,5 +205,12 @@ public class ServiceCall {
         "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
         serviceName, request);
     return new IllegalStateException("No reachable member with such service: " + methodName);
+  }
+
+
+  private void validateRequest(Message request, ServiceInstance serviceInstance) {
+    Objects.requireNonNull(serviceInstance);
+    Messages.validate().serviceRequest(request);
+    serviceInstance.checkMethodExists(request.header(ServiceHeaders.METHOD));
   }
 }

@@ -106,6 +106,15 @@ public class Metrics {
   }
 
 
+  public static Meter meter(Metrics metrics, String component, String methodName, String eventType) {
+    if (metrics != null) {
+      return metrics.getMeter(component, methodName, eventType);
+    } else {
+      return null;
+    }
+  }
+
+
   public static void mark(Meter meter) {
     if (meter != null) {
       meter.mark();

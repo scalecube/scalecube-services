@@ -1,6 +1,12 @@
 package io.scalecube.services;
 
+import com.codahale.metrics.Meter;
+import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.services.metrics.Metrics;
 import io.scalecube.transport.Message;
+
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Timer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,16 +39,21 @@ public class ServiceResponse {
   private static final ConcurrentMap<String, ServiceResponse> futures = new ConcurrentHashMap<>();
 
   private final CompletableFuture<Message> messageFuture;
+  private final Timer.Context responseTimer;
+  private final Meter responseMeter;
 
-  private ServiceResponse(String cid) {
-    this.correlationId = cid;
+  public ServiceResponse() {
+    this(null, null);
+  }
+
+  public ServiceResponse(Timer responses, Meter responseMeter) {
+    this.correlationId = IdGenerator.generateId();
     this.messageFuture = new CompletableFuture<>();
+    this.responseTimer = responses.time();
+    this.responseMeter = responseMeter;
     futures.putIfAbsent(this.correlationId, this);
   }
 
-  public static ServiceResponse correlationId(String cid) {
-    return new ServiceResponse(cid);
-  }
 
   /**
    * Correlation id of the request.
@@ -64,6 +75,8 @@ public class ServiceResponse {
     ServiceResponse response = futures.remove(correlationId);
     if (response != null) {
       if (message.header(ServiceHeaders.EXCEPTION) == null) {
+        response.responseTimer.stop();
+        response.responseMeter.mark();
         response.complete(message);
       } else {
         LOGGER.error("cid [{}] remote service invoke respond with error message {}", correlationId, message);
