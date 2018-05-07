@@ -1,6 +1,3 @@
-#!/bin/bash
-
-
 #!/bin/sh
 
 setup_git() {
