@@ -6,14 +6,17 @@ setup_git() {
 }
 
 commit_to_develop() { 
- git checkout develop
- git fetch
- git add .  
+ git status
+ git checkout origin/develop
+ git status
+ git merge origin/master 
+ git status
+ git add . 
+ git status
  git commit --message "++ Prepare for next development iteration build: $TRAVIS_BUILD_NUMBER"
-}
-
-push() {
-  git push
+ git status
+ git push
+ git status
 }
 
 mvn -P release release:prepare release:perform -DautoVersionSubmodules=true -DscmCommentPrefix="$TRAVIS_COMMIT_MESSAGE [skip ci] " -DskipTests=true -B -V -s travis-settings.xml
@@ -22,7 +25,6 @@ pr_master_to_dev=$(curl -u "$GITHUBUSER:$GITHUBTOKEN" -d '{"title": "Prepare for
 
 setup_git
 commit_to_develop
-push
 
 prid=$(echo $pr_master_to_dev | jq '.id')
 
