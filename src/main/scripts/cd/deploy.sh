@@ -1,29 +1,17 @@
 #!/bin/sh
 
-setup_git() {
-  git config --global user.email "$GITHUBUSER@gmail.com"
-  git config --global user.name "$GITHUBUSER - Travis CI"
-}
 
 commit_to_develop() { 
- git status
  git checkout origin/develop
- git status
  git merge origin/master 
- git status
- git add . 
- git status
  git commit --message "++ Prepare for next development iteration build: $TRAVIS_BUILD_NUMBER"
- git status
- git push
- git status
+ git push origin develop
 }
 
 mvn -P release release:prepare release:perform -DautoVersionSubmodules=true -DscmCommentPrefix="$TRAVIS_COMMIT_MESSAGE [skip ci] " -DskipTests=true -B -V -s travis-settings.xml
 
 pr_master_to_dev=$(curl -u "$GITHUBUSER:$GITHUBTOKEN" -d '{"title": "Prepare for next development iteration","base": "develop" ,"head":"master"}' https://api.github.com/repos/$TRAVIS_REPO_SLUG/pulls)
 
-setup_git
 commit_to_develop
 
 prid=$(echo $pr_master_to_dev | jq '.id')
