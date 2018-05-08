@@ -2,9 +2,8 @@
 
 
 commit_to_develop() { 
- git checkout origin/develop
- git merge origin/master 
- git commit --message "++ Prepare for next development iteration build: $TRAVIS_BUILD_NUMBER"
+ git checkout develop
+ git merge master -m "++ Prepare for next development iteration build: $TRAVIS_BUILD_NUMBER"
  git push origin develop
 }
 
