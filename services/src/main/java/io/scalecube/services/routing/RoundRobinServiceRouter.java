@@ -18,15 +18,10 @@ public class RoundRobinServiceRouter implements Router {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RoundRobinServiceRouter.class);
 
-  private final ServiceRegistry serviceRegistry;
   private final ConcurrentMap<String, AtomicInteger> counterByServiceName = new ConcurrentHashMap<>();
 
-  public RoundRobinServiceRouter(ServiceRegistry serviceRegistry) {
-    this.serviceRegistry = serviceRegistry;
-  }
-
   @Override
-  public Optional<ServiceReference> route(ServiceMessage request) {
+  public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
 
     String serviceName = Messages.qualifierOf(request).getNamespace();
     String methodName = Messages.qualifierOf(request).getAction();
@@ -50,7 +45,7 @@ public class RoundRobinServiceRouter implements Router {
   }
 
   @Override
-  public List<ServiceReference> routes(ServiceMessage request) {
+  public List<ServiceReference> routes(ServiceRegistry serviceRegistry, ServiceMessage request) {
     return serviceRegistry.lookupService(Messages.qualifierOf(request).getNamespace());
   }
 

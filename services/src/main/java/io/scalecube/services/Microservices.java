@@ -165,7 +165,7 @@ public class Microservices {
     serviceRegistry = new ServiceRegistryImpl();
     serviceRegistry.registerService(localServiceEndpoint);
 
-    routerFactory = new RouterFactory(serviceRegistry);
+    routerFactory = new RouterFactory();
 
     discovery = new ServiceDiscovery(serviceRegistry);
     discovery.start(clusterConfig);
@@ -272,7 +272,7 @@ public class Microservices {
 
   public Call call() {
     Router router = this.router(RoundRobinServiceRouter.class);
-    return new ServiceCall(client, serviceDispatchers).call().metrics(metrics).router(router);
+    return new ServiceCall(client, serviceDispatchers, serviceRegistry).call().metrics(metrics).router(router);
   }
 
   public Mono<Void> shutdown() {

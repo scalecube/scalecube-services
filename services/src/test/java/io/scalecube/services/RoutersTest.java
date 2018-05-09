@@ -12,7 +12,7 @@ public class RoutersTest extends BaseTest {
 
   @Test
   public void test_router_factory() {
-    RouterFactory factory = new RouterFactory(null);
+    RouterFactory factory = new RouterFactory();
     Router router = factory.getRouter(RandomServiceRouter.class);
     assertTrue(router != null);
 
