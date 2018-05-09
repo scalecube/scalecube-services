@@ -119,7 +119,7 @@ public class Microservices {
 
   private final Address serviceAddress;
 
-  public final RouterFactory routerFactory;
+//  public final RouterFactory routerFactory;
 
   private final ServiceDiscovery discovery;
 
@@ -165,7 +165,7 @@ public class Microservices {
     serviceRegistry = new ServiceRegistryImpl();
     serviceRegistry.registerService(localServiceEndpoint);
 
-    routerFactory = new RouterFactory();
+//    routerFactory = new RouterFactory();
 
     discovery = new ServiceDiscovery(serviceRegistry);
     discovery.start(clusterConfig);
@@ -267,7 +267,7 @@ public class Microservices {
   }
 
   public Router router(Class<? extends Router> routerType) {
-    return routerFactory.getRouter(routerType);
+    return RouterFactory.getRouter(routerType);
   }
 
   public Call call() {
