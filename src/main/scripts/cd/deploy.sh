@@ -3,7 +3,8 @@
 
 commit_to_develop() { 
  git fetch
- git checkout develop
+ git branch -r
+ git checkout -B develop 
  git rebase master
  git commit --amend -m "++++ Prepare for next development iteration build: $TRAVIS_BUILD_NUMBER ++++"
  git push origin develop
