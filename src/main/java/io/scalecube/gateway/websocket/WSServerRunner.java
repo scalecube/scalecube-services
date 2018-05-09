@@ -19,15 +19,21 @@ import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 
 public class WSServerRunner {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(WSServerRunner.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WSServerRunner.class);
 
   public static void main(String[] args) {
     BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> handler =
         (HttpServerRequest httpRequest, HttpServerResponse httpResponse) -> {
-
           // noinspection UnnecessaryLocalVariable
           Mono<Void> voidMono =
               httpResponse.sendWebsocket((WebsocketInbound inbound, WebsocketOutbound outbound) -> {
+
+                inbound.context().onClose(() -> LOGGER.info("Byte byte"));
+
+                // return outbound
+                // .options(NettyPipeline.SendOptions::flushOnEach)
+                // .sendObject(new CloseWebSocketFrame(1000, "Byte byte"))
+                // .then();
 
                 Flux<WebSocketFrame> receiveFlux = inbound
                     .aggregateFrames()
@@ -36,8 +42,8 @@ public class WSServerRunner {
 
                 return outbound
                     .options(NettyPipeline.SendOptions::flushOnEach)
-                    .sendObject(receiveFlux);
-
+                    .sendObject(receiveFlux)
+                    .then();
               });
 
           return voidMono;
@@ -47,8 +53,6 @@ public class WSServerRunner {
         .port(8080)
         .validateHeaders(true)
         .maxChunkSize(65536)
-        .initialBufferSize(8192)
-        .preferNative(false))
-        .startAndAwait(handler);
+        .initialBufferSize(8192)).startAndAwait(handler);
   }
 }
