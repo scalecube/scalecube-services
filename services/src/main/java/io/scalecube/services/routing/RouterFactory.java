@@ -11,10 +11,8 @@ public class RouterFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(RouterFactory.class);
 
   private final ConcurrentHashMap<Class<? extends Router>, Router> routers = new ConcurrentHashMap<>();
-  private final ServiceRegistry serviceRegistry;
 
-  public RouterFactory(ServiceRegistry serviceRegistry) {
-    this.serviceRegistry = serviceRegistry;
+  public RouterFactory() {
   }
 
   /**
@@ -29,7 +27,7 @@ public class RouterFactory {
 
   private Router create(Class<? extends Router> routing) {
     try {
-      return routing.getDeclaredConstructor(ServiceRegistry.class).newInstance(serviceRegistry);
+      return routing.getDeclaredConstructor(ServiceRegistry.class).newInstance();
     } catch (Exception ex) {
       LOGGER.error("create router type: {} failed: {}", routing, ex);
       return null;

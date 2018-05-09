@@ -6,6 +6,7 @@ import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
+import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
@@ -28,14 +29,17 @@ public class ServiceCall {
 
   private final ClientTransport transport;
   private final LocalServiceDispatchers localServices;
-
-  public ServiceCall(ClientTransport transport, LocalServiceDispatchers localServices) {
+  private final ServiceRegistry serviceRegistry;
+  
+  public ServiceCall(ClientTransport transport, LocalServiceDispatchers localServices,ServiceRegistry serviceRegistry) {
     this.transport = transport;
     this.localServices = localServices;
+    this.serviceRegistry = serviceRegistry;
+    
   }
 
   public Call call() {
-    return new Call(this.transport, this.localServices);
+    return new Call(this.transport, this.localServices, serviceRegistry);
   }
 
   public static class Call {
@@ -46,9 +50,12 @@ public class ServiceCall {
     private ClientTransport transport;
     private ServiceMessageDataCodec messageDataCodec;
     private LocalServiceDispatchers localServices;
+    private final ServiceRegistry serviceRegistry;
 
-    public Call(ClientTransport transport, LocalServiceDispatchers localServices) {
+
+    public Call(ClientTransport transport, LocalServiceDispatchers localServices,ServiceRegistry serviceRegistry) {
       this.transport = transport;
+      this.serviceRegistry = serviceRegistry;
       this.messageDataCodec = new ServiceMessageDataCodec();
       this.localServices = localServices;
     }
@@ -74,7 +81,7 @@ public class ServiceCall {
      * @return CompletableFuture with service call dispatching result.
      */
     public Publisher<ServiceMessage> requestOne(final ServiceMessage request) {
-      Class responseType = request.responseType() != null ? request.responseType() : Object.class;
+      Class<?> responseType = request.responseType() != null ? request.responseType() : Object.class;
       return requestOne(request, responseType);
     }
 
@@ -87,8 +94,9 @@ public class ServiceCall {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
         return dispatcher.requestResponse(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
+        
         ServiceReference serviceReference =
-            router.route(request).orElseThrow(() -> noReachableMemberException(request));
+            router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
 
         Address address =
             Address.create(serviceReference.host(), serviceReference.port());
@@ -123,7 +131,7 @@ public class ServiceCall {
             .map(message -> null);
       } else {
         ServiceReference serviceReference =
-            router.route(request).orElseThrow(() -> noReachableMemberException(request));
+            router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
 
         Address address =
             Address.create(serviceReference.host(), serviceReference.port());
@@ -151,7 +159,7 @@ public class ServiceCall {
             request.responseType() != null ? request.responseType() : Object.class;
 
         ServiceReference serviceReference =
-            router.route(request).orElseThrow(() -> noReachableMemberException(request));
+            router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
 
         Address address =
             Address.create(serviceReference.host(), serviceReference.port());
