@@ -35,7 +35,12 @@ public interface TestRequests {
       .request(SERVICE_NAME, "greetingRequest")
       .data(new GreetingRequest("joe"))
       .build();
-
+  
+  ServiceMessage GREETING_REQUEST_REQ2 = Messages.builder()
+      .request(SERVICE_NAME, "greetingRequest")
+      .data(new GreetingRequest("fransin"))
+      .build();
+  
   ServiceMessage GREETING_REQUEST_TIMEOUT_REQ = Messages.builder()
       .request(SERVICE_NAME, "greetingRequestTimeout")
       .data(new GreetingRequest("joe", Duration.ofSeconds(3)))
