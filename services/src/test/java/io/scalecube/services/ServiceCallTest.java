@@ -57,7 +57,8 @@ public class ServiceCallTest extends BaseTest {
     
     
     latch.await(2, TimeUnit.SECONDS);
-   
+    subscription1.unsubscribe();
+    subscription2.unsubscribe();
     node.shutdown();
     gateway.shutdown(); 
     
