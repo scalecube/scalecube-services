@@ -18,12 +18,11 @@ public class DummyRouter implements Router {
 
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
-    return null;
+    return Optional.empty();
   }
 
   @Override
   public List<ServiceReference> routes(ServiceRegistry serviceRegistry, ServiceMessage request) {
-    // TODO Auto-generated method stub
     return null;
   }
 

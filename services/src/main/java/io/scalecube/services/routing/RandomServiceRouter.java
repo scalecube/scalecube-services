@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class RandomServiceRouter implements Router {
 
   @Override
-  public Optional<ServiceReference> route(ServiceRegistry serviceRegistry,ServiceMessage request) {
+  public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
     List<ServiceReference> serviceInstances = routes(serviceRegistry, request);
     if (!serviceInstances.isEmpty()) {
       int index = ThreadLocalRandom.current().nextInt((serviceInstances.size()));
@@ -23,7 +23,7 @@ public class RandomServiceRouter implements Router {
   }
 
   @Override
-  public List<ServiceReference> routes(ServiceRegistry serviceRegistry,ServiceMessage request) {
+  public List<ServiceReference> routes(ServiceRegistry serviceRegistry, ServiceMessage request) {
     return serviceRegistry.lookupService(Messages.qualifierOf(request).getNamespace());
   }
 
