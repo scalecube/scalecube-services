@@ -14,10 +14,14 @@ import io.scalecube.transport.Message;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import rx.Subscription;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -29,8 +33,8 @@ public class ServiceCallTest extends BaseTest {
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
   private static AtomicInteger port = new AtomicInteger(4000);
 
-  @Test 
-  public void test_none_duplicate_responses() throws InterruptedException{
+  @Test
+  public void test_none_duplicate_responses() throws InterruptedException {
     Microservices gateway = Microservices.builder()
         .build();
 
@@ -40,21 +44,34 @@ public class ServiceCallTest extends BaseTest {
         .build();
 
     GeneratorService service = gateway.proxy().api(GeneratorService.class).create();
-    List<String> results = new ArrayList<String>();
-    service.generate().subscribe(r ->results.add("s1: " + r.data));
-    service.generate().subscribe(r ->results.add("s2: " + r.data));
+    Map<String, String> results = new ConcurrentHashMap<>();
+    CountDownLatch latch = new CountDownLatch(6);
+    Subscription subscription1 = service.generate().subscribe(r -> {
+      results.put(r.data, "s1");
+      latch.countDown();
+    });
+    Subscription subscription2 = service.generate().subscribe(r -> {
+      latch.countDown();
+      results.put(r.data, "s2");
+    });
+    
+    
+    latch.await(1, TimeUnit.SECONDS);
+   
+    
+    assertEquals(results.get("1 => 1"), "s1");
+    assertEquals(results.get("2 => 1"), "s2");
 
-    TimeUnit.SECONDS.sleep(5);
-    assertEquals(results.get(0),"s1: 1 => 1");
-    assertEquals(results.get(1),"s2: 2 => 1");
+    assertEquals(results.get("1 => 2"), "s1");
+    assertEquals(results.get("2 => 2"), "s2");
+
+    assertEquals(results.get("1 => 3"), "s1");
+    assertEquals(results.get("2 => 3"), "s2");
     
-    assertEquals(results.get(2),"s1: 1 => 2");
-    assertEquals(results.get(3),"s2: 2 => 2");
-    
-    assertEquals(results.get(4),"s1: 1 => 3");
-    assertEquals(results.get(5),"s2: 2 => 3");
+    node.shutdown()
+    .thenRun(gateway::shutdown); 
   }
-  
+
   @Test
   public void test_local_async_no_params() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
