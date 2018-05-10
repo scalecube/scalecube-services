@@ -43,32 +43,32 @@ public class ServiceCallTest extends BaseTest {
 
     GeneratorService service = gateway.proxy().api(GeneratorService.class).create();
     Map<String, String> results = new ConcurrentHashMap<>();
-    CountDownLatch latch = new CountDownLatch(6);
-    Subscription subscription1 = service.generate().subscribe(r -> {
+    CountDownLatch latch = new CountDownLatch(7);
+    Subscription subscription1 = service.generate().serialize().subscribe(r -> {
       results.put(r.data, "s1");
       latch.countDown();
     });
-    Subscription subscription2 = service.generate().subscribe(r -> {
+    Subscription subscription2 = service.generate().serialize().subscribe(r -> {
       latch.countDown();
       results.put(r.data, "s2");
     });
-    
-    
+
+
     latch.await(2, TimeUnit.SECONDS);
+
+    assertEquals("s1", results.get("1 => 1"));
+    assertEquals("s2", results.get("2 => 1"));
+
+    assertEquals("s1", results.get("1 => 2"));
+    assertEquals("s2", results.get("2 => 2"));
+
+    assertEquals("s1", results.get("1 => 3"));
+    assertEquals("s2", results.get("2 => 3"));
     subscription1.unsubscribe();
     subscription2.unsubscribe();
     node.shutdown();
-    gateway.shutdown(); 
-    
-    assertEquals(results.get("1 => 1"), "s1");
-    assertEquals(results.get("2 => 1"), "s2");
+    gateway.shutdown();
 
-    assertEquals(results.get("1 => 2"), "s1");
-    assertEquals(results.get("2 => 2"), "s2");
-
-    assertEquals(results.get("1 => 3"), "s1");
-    assertEquals(results.get("2 => 3"), "s2");
-    
   }
 
   @Test

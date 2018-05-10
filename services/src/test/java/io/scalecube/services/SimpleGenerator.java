@@ -14,6 +14,6 @@ public class SimpleGenerator implements GeneratorService {
   public Observable<Response> generate() {
     AtomicInteger i = new AtomicInteger();
     int sub = this.sub.incrementAndGet();
-    return Observable.interval(10, TimeUnit.MILLISECONDS).map(s -> new Response(sub + " => " + i.incrementAndGet()));
+    return Observable.interval(10, TimeUnit.MILLISECONDS).serialize().map(s -> new Response(sub + " => " + i.incrementAndGet()));
   }
 }
