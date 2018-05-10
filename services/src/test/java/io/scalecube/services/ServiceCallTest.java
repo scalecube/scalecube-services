@@ -56,7 +56,7 @@ public class ServiceCallTest extends BaseTest {
     });
     
     
-    latch.await(1, TimeUnit.SECONDS);
+    latch.await(2, TimeUnit.SECONDS);
    
     
     assertEquals(results.get("1 => 1"), "s1");
