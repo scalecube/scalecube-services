@@ -58,6 +58,8 @@ public class ServiceCallTest extends BaseTest {
     
     latch.await(2, TimeUnit.SECONDS);
    
+    node.shutdown();
+    gateway.shutdown(); 
     
     assertEquals(results.get("1 => 1"), "s1");
     assertEquals(results.get("2 => 1"), "s2");
@@ -68,8 +70,6 @@ public class ServiceCallTest extends BaseTest {
     assertEquals(results.get("1 => 3"), "s1");
     assertEquals(results.get("2 => 3"), "s2");
     
-    node.shutdown()
-    .thenRun(gateway::shutdown); 
   }
 
   @Test
