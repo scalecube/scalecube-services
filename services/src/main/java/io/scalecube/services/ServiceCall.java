@@ -25,8 +25,6 @@ import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
-
   private final ClientTransport transport;
   private final LocalServiceDispatchers localServices;
   private final ServiceRegistry serviceRegistry;
@@ -43,6 +41,7 @@ public class ServiceCall {
   }
 
   public static class Call {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
     private Router router;
     private Metrics metrics;
@@ -72,20 +71,19 @@ public class ServiceCall {
     }
 
     /**
-     * Invoke a request message and invoke a service by a given service name and method name. expected headers in *
+     * Invoke a request message and invoke a service by a given service name and method name. expected headers in 
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
      * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception
-     * in* case of an error or TimeoutException if no response if a given duration.
+     * in case of an error or TimeoutException if no response if a given duration.
      *
      * @param request request with given headers.
-     * @return CompletableFuture with service call dispatching result.
+     * @return {@link Publisher} with service call dispatching result.
      */
     public Publisher<ServiceMessage> requestOne(final ServiceMessage request) {
       Class<?> responseType = request.responseType() != null ? request.responseType() : Object.class;
       return requestOne(request, responseType);
     }
 
-    @SuppressWarnings("unchecked")
     public Publisher<ServiceMessage> requestOne(final ServiceMessage request, final Class<?> returnType) {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
@@ -119,7 +117,6 @@ public class ServiceCall {
      * @param request request to send.
      * @return Mono of type Void.
      */
-    @SuppressWarnings("unchecked")
     public Mono<Void> oneWay(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
@@ -141,12 +138,11 @@ public class ServiceCall {
     }
 
     /**
-     * sending subscription request message to a service that returns Observable.
+     * sending subscription request message to a service that returns Publisher.
      *
      * @param request containing subscription data.
-     * @return rx.Observable for the specific stream.
+     * @return Publisher for the specific stream.
      */
-    @SuppressWarnings("unchecked")
     public Publisher<ServiceMessage> requestMany(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
@@ -155,7 +151,7 @@ public class ServiceCall {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
         return dispatcher.requestStream(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
-        Class responseType =
+        Class<?> responseType =
             request.responseType() != null ? request.responseType() : Object.class;
 
         ServiceReference serviceReference =
@@ -225,13 +221,13 @@ public class ServiceCall {
       });
     }
 
-    private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
+    private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
       LOGGER.error("Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
           request.qualifier(), request);
       return new ServiceUnavailableException("No reachable member with such service: " + request.qualifier());
     }
 
-    private Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {
+    private static Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {
       if (method.equals("hashCode")) {
         return serviceInterface.hashCode();
       } else if (method.equals("equals")) {
