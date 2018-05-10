@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -14,6 +15,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -26,6 +29,32 @@ public class ServiceCallTest extends BaseTest {
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
   private static AtomicInteger port = new AtomicInteger(4000);
 
+  @Test 
+  public void test_none_duplicate_responses() throws InterruptedException{
+    Microservices gateway = Microservices.builder()
+        .build();
+
+    Microservices node = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new SimpleGenerator())
+        .build();
+
+    Generator service = gateway.proxy().api(Generator.class).create();
+    List<String> results = new ArrayList<String>();
+    service.generate().subscribe(r ->results.add("s1: " + r.data));
+    service.generate().subscribe(r ->results.add("s2: " + r.data));
+
+    TimeUnit.SECONDS.sleep(5);
+    assertEquals(results.get(0),"s1: 1 => 1");
+    assertEquals(results.get(1),"s2: 2 => 1");
+    
+    assertEquals(results.get(2),"s1: 1 => 2");
+    assertEquals(results.get(3),"s2: 2 => 2");
+    
+    assertEquals(results.get(4),"s1: 1 => 3");
+    assertEquals(results.get(5),"s2: 2 => 3");
+  }
+  
   @Test
   public void test_local_async_no_params() throws InterruptedException, ExecutionException {
     // Create microservices cluster.
