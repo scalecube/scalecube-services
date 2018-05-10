@@ -6,6 +6,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 
 import java.util.List;
+
 @Null
 class NullRouter implements Router {
 
