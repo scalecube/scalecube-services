@@ -24,6 +24,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,7 +62,7 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices cluster.
     Microservices microservices = serviceProvider();
 
-    Router router = microservices.router(RoundRobinServiceRouter.class);
+    Router router = RouterFactory.getRouter(RoundRobinServiceRouter.class);
     Call serviceCall = microservices.call().router(router);
 
     // call the service.
@@ -541,7 +542,7 @@ public class ServiceCallTest extends BaseTest {
 
     TimeUnit.SECONDS.sleep(3);
     Call service = gateway.call()
-        .router(gateway.router(CanaryTestingRouter.class));
+        .router(RouterFactory.getRouter(CanaryTestingRouter.class));
 
     ServiceMessage req = Messages.builder()
         .request(CanaryService.class, "greeting")

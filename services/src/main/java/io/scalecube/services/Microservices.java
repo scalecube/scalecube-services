@@ -119,8 +119,6 @@ public class Microservices {
 
   private final Address serviceAddress;
 
-//  public final RouterFactory routerFactory;
-
   private final ServiceDiscovery discovery;
 
   private final ServerTransport server;
@@ -164,8 +162,6 @@ public class Microservices {
 
     serviceRegistry = new ServiceRegistryImpl();
     serviceRegistry.registerService(localServiceEndpoint);
-
-//    routerFactory = new RouterFactory();
 
     discovery = new ServiceDiscovery(serviceRegistry);
     discovery.start(clusterConfig);
@@ -266,12 +262,8 @@ public class Microservices {
     return this.serviceAddress;
   }
 
-  public Router router(Class<? extends Router> routerType) {
-    return RouterFactory.getRouter(routerType);
-  }
-
   public Call call() {
-    Router router = this.router(RoundRobinServiceRouter.class);
+    Router router = RouterFactory.getRouter(RoundRobinServiceRouter.class);
     return new ServiceCall(client, serviceDispatchers, serviceRegistry).call().metrics(metrics).router(router);
   }
 
