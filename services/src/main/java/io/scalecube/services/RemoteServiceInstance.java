@@ -86,7 +86,7 @@ public class RemoteServiceInstance implements ServiceInstance {
 
     subscription.set(sub);
     sendRemote(request);
-    return serviceResponses;
+    return serviceResponses.filter(message -> message.correlationId().equals(cid));
   }
 
   /**

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -13,8 +14,12 @@ import io.scalecube.transport.Message;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import rx.Subscription;
+
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +30,46 @@ public class ServiceCallTest extends BaseTest {
 
   public static final String SERVICE_NAME = "io.scalecube.services.GreetingService";
   private static AtomicInteger port = new AtomicInteger(4000);
+
+  @Test
+  public void test_none_duplicate_responses() throws InterruptedException {
+    Microservices gateway = Microservices.builder()
+        .build();
+
+    Microservices node = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new SimpleGenerator())
+        .build();
+
+    GeneratorService service = gateway.proxy().api(GeneratorService.class).create();
+    Map<String, String> results = new ConcurrentHashMap<>();
+    CountDownLatch latch = new CountDownLatch(7);
+    Subscription subscription1 = service.generate().serialize().subscribe(r -> {
+      results.put(r.data, "s1");
+      latch.countDown();
+    });
+    Subscription subscription2 = service.generate().serialize().subscribe(r -> {
+      latch.countDown();
+      results.put(r.data, "s2");
+    });
+
+
+    latch.await(2, TimeUnit.SECONDS);
+
+    assertEquals("s1", results.get("1 => 1"));
+    assertEquals("s2", results.get("2 => 1"));
+
+    assertEquals("s1", results.get("1 => 2"));
+    assertEquals("s2", results.get("2 => 2"));
+
+    assertEquals("s1", results.get("1 => 3"));
+    assertEquals("s2", results.get("2 => 3"));
+    subscription1.unsubscribe();
+    subscription2.unsubscribe();
+    node.shutdown();
+    gateway.shutdown();
+
+  }
 
   @Test
   public void test_local_async_no_params() throws InterruptedException, ExecutionException {

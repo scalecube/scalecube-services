@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.membership.IdGenerator;
-
 import io.scalecube.testlib.BaseTest;
 import io.scalecube.transport.Message;
 
