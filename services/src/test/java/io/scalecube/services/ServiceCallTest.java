@@ -39,7 +39,7 @@ public class ServiceCallTest extends BaseTest {
         .services(new SimpleGenerator())
         .build();
 
-    Generator service = gateway.proxy().api(Generator.class).create();
+    GeneratorService service = gateway.proxy().api(GeneratorService.class).create();
     List<String> results = new ArrayList<String>();
     service.generate().subscribe(r ->results.add("s1: " + r.data));
     service.generate().subscribe(r ->results.add("s2: " + r.data));

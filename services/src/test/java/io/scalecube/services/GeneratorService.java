@@ -6,7 +6,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import rx.Observable;
 
 @Service
-public interface Generator {
+public interface GeneratorService {
     @ServiceMethod
     Observable<Response> generate();
 

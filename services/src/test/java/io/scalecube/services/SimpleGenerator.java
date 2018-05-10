@@ -6,7 +6,7 @@ import rx.Observable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SimpleGenerator implements Generator {
+public class SimpleGenerator implements GeneratorService {
 
   private AtomicInteger sub = new AtomicInteger();
 
