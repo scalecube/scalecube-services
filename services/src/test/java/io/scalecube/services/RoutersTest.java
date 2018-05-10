@@ -12,12 +12,11 @@ public class RoutersTest extends BaseTest {
 
   @Test
   public void test_router_factory() {
-    RouterFactory factory = new RouterFactory(null);
-    Router router = factory.getRouter(RandomServiceRouter.class);
+    Router router = RouterFactory.getRouter(RandomServiceRouter.class);
     assertTrue(router != null);
 
     // dummy router will always throw exception thus cannot be created.
-    Router dummy = factory.getRouter(DummyRouter.class);
+    Router dummy = RouterFactory.getRouter(DummyRouter.class);
     assertTrue(dummy == null);
 
   }

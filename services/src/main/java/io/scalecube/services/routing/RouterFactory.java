@@ -1,7 +1,5 @@
 package io.scalecube.services.routing;
 
-import io.scalecube.services.registry.api.ServiceRegistry;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,26 +8,25 @@ import java.util.concurrent.ConcurrentHashMap;
 public class RouterFactory {
   private static final Logger LOGGER = LoggerFactory.getLogger(RouterFactory.class);
 
-  private final ConcurrentHashMap<Class<? extends Router>, Router> routers = new ConcurrentHashMap<>();
-  private final ServiceRegistry serviceRegistry;
+  private static final ConcurrentHashMap<Class<? extends Router>, Router> routers = new ConcurrentHashMap<>();
 
-  public RouterFactory(ServiceRegistry serviceRegistry) {
-    this.serviceRegistry = serviceRegistry;
+  private RouterFactory() {
   }
 
   /**
    * get router instance by a given router class.
+   * The class should have a default constructor. otherwise no router can be created
    * 
    * @param routing the type of the Router.
    * @return instance of the Router.
    */
-  public Router getRouter(Class<? extends Router> routing) {
-    return routers.computeIfAbsent(routing, this::create);
+  public static Router getRouter(Class<? extends Router> routing) {
+    return routers.computeIfAbsent(routing, RouterFactory::create);
   }
 
-  private Router create(Class<? extends Router> routing) {
+  private static Router create(Class<? extends Router> routing) {
     try {
-      return routing.getDeclaredConstructor(ServiceRegistry.class).newInstance(serviceRegistry);
+      return routing.newInstance();
     } catch (Exception ex) {
       LOGGER.error("create router type: {} failed: {}", routing, ex);
       return null;

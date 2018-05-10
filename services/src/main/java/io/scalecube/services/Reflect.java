@@ -3,11 +3,15 @@ package io.scalecube.services;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.annotations.Inject;
+import io.scalecube.services.annotations.Null;
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
+import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.RouterFactory;
 
 import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
@@ -37,7 +41,6 @@ import javax.annotation.PostConstruct;
  */
 public class Reflect {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
 
   /**
    * Injector builder.
@@ -50,10 +53,11 @@ public class Reflect {
   }
 
   static class Builder {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
 
     private Microservices microservices;
 
-    private Builder(Microservices ms) {
+    Builder(Microservices ms) {
       this.microservices = ms;
     }
 
@@ -71,7 +75,7 @@ public class Reflect {
      * scan all local service instances and inject a service proxy.
      */
     private void inject(Collection<Object> collection) {
-      for(Object instance : collection ) {
+      for (Object instance : collection) {
         scanServiceFields(instance);
         processPostConstruct(instance);
       }
@@ -110,15 +114,24 @@ public class Reflect {
       if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
         setField(field, service, this.microservices);
       } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
-        setField(field, service, this.microservices.call().api(field.getType()));
+        Inject injection = field.getAnnotation(Inject.class);
+        Class<? extends Router> routerClass = injection.router();
+        if (routerClass.isAnnotationPresent(Null.class)) {
+          routerClass = RoundRobinServiceRouter.class;
+        }
+        Router router = Optional.of(routerClass).map(RouterFactory::getRouter).orElseGet(() -> {
+          LOGGER.warn("Unable to inject router {}, using RoundRobin", injection.router());
+          return RouterFactory.getRouter(RoundRobinServiceRouter.class);
+        });
+        setField(field, service, this.microservices.call().router(router).api(field.getType()));
       }
     }
 
-    private boolean isService(Class type) {
+    private static boolean isService(Class<?> type) {
       return type.isAnnotationPresent(Service.class);
     }
 
-    private void setField(Field field, Object object, Object value) {
+    private static void setField(Field field, Object object, Object value) {
       try {
         field.setAccessible(true);
         field.set(object, value);
@@ -299,7 +312,7 @@ public class Reflect {
     return Strings.isNullOrEmpty(annotation.value()) ? method.getName() : annotation.value();
   }
 
-  public static String qualifier(Class serviceInterface, Method method) {
+  public static String qualifier(Class<?> serviceInterface, Method method) {
     return serviceName(serviceInterface) + "/" + methodName(method);
   }
 }
