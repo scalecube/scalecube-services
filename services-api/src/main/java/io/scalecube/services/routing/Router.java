@@ -6,6 +6,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 
 import java.util.List;
 import java.util.Optional;
+
 @FunctionalInterface
 public interface Router {
 

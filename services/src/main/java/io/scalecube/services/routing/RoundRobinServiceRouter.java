@@ -27,9 +27,10 @@ public class RoundRobinServiceRouter implements Router {
     String serviceName = Messages.qualifierOf(request).getNamespace();
     String methodName = Messages.qualifierOf(request).getAction();
 
-    System.out.println( serviceRegistry.listServiceReferences());
+    System.out.println(serviceRegistry.listServiceReferences());
     List<ServiceReference> serviceInstances =
-        routes(serviceRegistry, request).stream().filter(sr->methodName.equalsIgnoreCase(sr.action())).collect(Collectors.toList());
+        routes(serviceRegistry, request).stream().filter(sr -> methodName.equalsIgnoreCase(sr.action()))
+            .collect(Collectors.toList());
 
     if (serviceInstances.size() > 1) {
       AtomicInteger counter = counterByServiceName

@@ -28,12 +28,14 @@ public class ServiceCall {
   private final ClientTransport transport;
   private final LocalServiceDispatchers localServices;
   private final ServiceRegistry serviceRegistry;
-  
-  public ServiceCall(ClientTransport transport, LocalServiceDispatchers localServices,ServiceRegistry serviceRegistry) {
+
+  public ServiceCall(ClientTransport transport,
+      LocalServiceDispatchers localServices,
+      ServiceRegistry serviceRegistry) {
     this.transport = transport;
     this.localServices = localServices;
     this.serviceRegistry = serviceRegistry;
-    
+
   }
 
   public Call call() {
@@ -52,7 +54,9 @@ public class ServiceCall {
     private final ServiceRegistry serviceRegistry;
 
 
-    public Call(ClientTransport transport, LocalServiceDispatchers localServices,ServiceRegistry serviceRegistry) {
+    public Call(ClientTransport transport,
+        LocalServiceDispatchers localServices,
+        ServiceRegistry serviceRegistry) {
       this.transport = transport;
       this.serviceRegistry = serviceRegistry;
       this.messageDataCodec = new ServiceMessageDataCodec();
@@ -71,10 +75,10 @@ public class ServiceCall {
     }
 
     /**
-     * Invoke a request message and invoke a service by a given service name and method name. expected headers in 
+     * Invoke a request message and invoke a service by a given service name and method name. expected headers in
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception
-     * in case of an error or TimeoutException if no response if a given duration.
+     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
+     * case of an error or TimeoutException if no response if a given duration.
      *
      * @param request request with given headers.
      * @return {@link Publisher} with service call dispatching result.
@@ -92,7 +96,6 @@ public class ServiceCall {
         ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
         return dispatcher.requestResponse(request).onErrorMap(ExceptionProcessor::mapException);
       } else {
-        
         ServiceReference serviceReference =
             router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
 
