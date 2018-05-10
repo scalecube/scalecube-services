@@ -8,8 +8,7 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.transport.LocalServiceDispatchers;
-import io.scalecube.services.transport.api.ServiceMethodDispatcher;
+import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
 
@@ -24,47 +23,47 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
+import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
 public class ServiceCall {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+
   private final ClientTransport transport;
-  private final LocalServiceDispatchers localServices;
+  private final LocalServiceHandlers serviceHandlers;
   private final ServiceRegistry serviceRegistry;
 
   public ServiceCall(ClientTransport transport,
-      LocalServiceDispatchers localServices,
+      LocalServiceHandlers serviceHandlers,
       ServiceRegistry serviceRegistry) {
     this.transport = transport;
-    this.localServices = localServices;
+    this.serviceHandlers = serviceHandlers;
     this.serviceRegistry = serviceRegistry;
-
   }
 
   public Call call() {
-    return new Call(this.transport, this.localServices, serviceRegistry);
+    return new Call(this.transport, this.serviceHandlers, this.serviceRegistry);
   }
 
   public static class Call {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
     private Router router;
     private Metrics metrics;
     private Timer latency;
     private ClientTransport transport;
-    private ServiceMessageDataCodec messageDataCodec;
-    private LocalServiceDispatchers localServices;
+    private ServiceMessageDataCodec dataCodec;
+    private LocalServiceHandlers serviceHandlers;
     private final ServiceRegistry serviceRegistry;
 
-
     public Call(ClientTransport transport,
-        LocalServiceDispatchers localServices,
+        LocalServiceHandlers serviceHandlers,
         ServiceRegistry serviceRegistry) {
       this.transport = transport;
       this.serviceRegistry = serviceRegistry;
-      this.messageDataCodec = new ServiceMessageDataCodec();
-      this.localServices = localServices;
+      this.dataCodec = new ServiceMessageDataCodec();
+      this.serviceHandlers = serviceHandlers;
     }
 
     public Call router(Router router) {
@@ -88,17 +87,17 @@ public class ServiceCall {
      * @return {@link Publisher} with service call dispatching result.
      */
     public Publisher<ServiceMessage> requestOne(final ServiceMessage request) {
-      Class<?> responseType = request.responseType() != null ? request.responseType() : Object.class;
-      return requestOne(request, responseType);
+      return requestOne(request, request.responseType() != null ? request.responseType() : Object.class);
     }
 
     public Publisher<ServiceMessage> requestOne(final ServiceMessage request, final Class<?> returnType) {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
-      if (localServices.contains(qualifier)) {
-        ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return dispatcher.requestResponse(request).onErrorMap(ExceptionProcessor::mapException);
+      if (serviceHandlers.contains(qualifier)) {
+        return Mono
+            .from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
+            .onErrorMap(ExceptionProcessor::mapException);
       } else {
         ServiceReference serviceReference =
             router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
@@ -110,9 +109,9 @@ public class ServiceCall {
             .requestResponse(request)
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(messageDataCodec.decode(message, ErrorData.class));
+                throw ExceptionProcessor.toException(dataCodec.decode(message, ErrorData.class));
               } else {
-                return messageDataCodec.decode(message, returnType);
+                return dataCodec.decode(message, returnType);
               }
             });
       }
@@ -128,9 +127,9 @@ public class ServiceCall {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
-      if (localServices.contains(qualifier)) {
-        ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return dispatcher.fireAndForget(request)
+      if (serviceHandlers.contains(qualifier)) {
+        return Mono
+            .from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
             .onErrorMap(ExceptionProcessor::mapException)
             .map(message -> null);
       } else {
@@ -154,13 +153,11 @@ public class ServiceCall {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
-      if (localServices.contains(qualifier)) {
-        ServiceMethodDispatcher dispatcher = localServices.getDispatcher(qualifier);
-        return dispatcher.requestStream(request).onErrorMap(ExceptionProcessor::mapException);
+      if (serviceHandlers.contains(qualifier)) {
+        return Flux
+            .from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
+            .onErrorMap(ExceptionProcessor::mapException);
       } else {
-        Class<?> responseType =
-            request.responseType() != null ? request.responseType() : Object.class;
-
         ServiceReference serviceReference =
             router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
 
@@ -171,9 +168,10 @@ public class ServiceCall {
             .requestStream(request)
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(messageDataCodec.decode(message, ErrorData.class));
+                throw ExceptionProcessor.toException(dataCodec.decode(message, ErrorData.class));
               } else {
-                return messageDataCodec.decode(message, responseType);
+                Class returnType = request.responseType() != null ? request.responseType() : Object.class;
+                return dataCodec.decode(message, returnType);
               }
             });
       }
@@ -198,32 +196,39 @@ public class ServiceCall {
 
         Metrics.mark(serviceInterface, metrics, method, "request");
         Class<?> parameterizedReturnType = Reflect.parameterizedReturnType(method);
-        final ServiceMessage reqMsg = ServiceMessage.builder()
+        Class<?> returnType = method.getReturnType();
+        Class<?> requestType = Reflect.requestType(method);
+        CommunicationMode mode = Reflect.communicationMode(method);
+
+        ServiceMessage request = ServiceMessage.builder()
             .qualifier(Reflect.serviceName(serviceInterface), method.getName())
             .data(method.getParameterCount() != 0 ? args[0] : null)
             .build();
 
-        CommunicationMode mode = Reflect.communicationMode(method);
         if (mode == FIRE_AND_FORGET) {
-          // noinspection unchecked
-          return serviceCall.oneWay(reqMsg);
-
-        } else if (mode == REQUEST_RESPONSE) {
-          // noinspection unchecked
-          return Mono.from(serviceCall.requestOne(reqMsg, parameterizedReturnType))
-              .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
+          // FireAndForget
+          return serviceCall.oneWay(request);
+        }
+        if (mode == REQUEST_RESPONSE) {
+          // RequestResponse
+          return Mono
+              .from(serviceCall.requestOne(request, parameterizedReturnType))
               .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
                   : mono.map(ServiceMessage::data));
-
-        } else if (mode == REQUEST_STREAM) {
-          // noinspection unchecked
-          return Flux.from(serviceCall.requestMany(reqMsg))
-              .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
+        }
+        if (mode == REQUEST_CHANNEL) {
+          // RequestChannel
+          throw new IllegalArgumentException("REQUEST_CHANNEL mode is not supported: " + method);
+        }
+        if (mode == REQUEST_CHANNEL) {
+          // RequestStream
+          return Flux
+              .from(serviceCall.requestMany(request))
               .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                   : flux.map(ServiceMessage::data));
-
         } else {
-          throw new IllegalArgumentException("REQUEST_CHANNEL mode is not supported: " + method);
+          throw new IllegalArgumentException(
+              "Service method is not supported (check return type or parameter type): " + method);
         }
       });
     }

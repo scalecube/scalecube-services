@@ -284,9 +284,7 @@ public class Reflect {
    * @return invoke result.
    */
   @SuppressWarnings("unchecked")
-  public static <T> Publisher<T> invoke(Object serviceObject, Method method, final ServiceMessage request)
-      throws Exception {
-
+  public static <T> Publisher<T> invoke(Object serviceObject, Method method, ServiceMessage request) throws Exception {
     // handle validation
     Class<?> returnType = method.getReturnType();
     if (!Publisher.class.isAssignableFrom(returnType)) {
@@ -311,6 +309,22 @@ public class Reflect {
       }
     } catch (InvocationTargetException e) {
       throw Throwables.propagate(Optional.ofNullable(e.getCause()).orElse(e));
+    }
+  }
+
+  /**
+   * Shortcut method for {@link #invoke(Object, Method, ServiceMessage)}.
+   *
+   * @param serviceObject instance to invoke its method.
+   * @param method method to invoke.
+   * @param request stream message request containing data or message to invoke.
+   * @return invoke result.
+   */
+  public static <T> Publisher<T> invokeOrThrow(Object serviceObject, Method method, ServiceMessage request) {
+    try {
+      return invoke(serviceObject, method, request);
+    } catch (Exception e) {
+      throw Throwables.propagate(e);
     }
   }
 

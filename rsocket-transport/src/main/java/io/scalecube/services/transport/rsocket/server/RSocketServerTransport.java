@@ -1,8 +1,8 @@
 package io.scalecube.services.transport.rsocket.server;
 
+import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.server.api.ServerTransport;
-import io.scalecube.services.transport.server.api.ServiceMessageAcceptor;
 
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
@@ -17,20 +17,13 @@ public class RSocketServerTransport implements ServerTransport {
   private final ServiceMessageCodec codec;
 
   private NettyContextCloseable server;
-  private ServiceMessageAcceptor acceptor;
 
   public RSocketServerTransport(ServiceMessageCodec codec) {
     this.codec = codec;
   }
 
   @Override
-  public ServerTransport accept(ServiceMessageAcceptor acceptor) {
-    this.acceptor = acceptor;
-    return this;
-  }
-
-  @Override
-  public InetSocketAddress bindAwait(InetSocketAddress address) {
+  public InetSocketAddress bindAwait(InetSocketAddress address, ServiceMessageHandler acceptor) {
 
     TcpServerTransport transport = TcpServerTransport.create(address);
 
