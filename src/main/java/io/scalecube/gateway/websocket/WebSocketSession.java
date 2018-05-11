@@ -38,6 +38,14 @@ public final class WebSocketSession {
   private final String contentType;
   private final String auth;
 
+  WebsocketInbound getInbound() {
+    return inbound;
+  }
+
+  WebsocketOutbound getOutbound() {
+    return outbound;
+  }
+
   public WebSocketSession(HttpServerRequest httpRequest,
       WebsocketInbound inbound,
       WebsocketOutbound outbound) {
@@ -97,7 +105,7 @@ public final class WebSocketSession {
               ServiceMessage.builder().qualifier(uri).dataFormat(contentType).data(content).build();
           frame.retain();
           return message;
-        });
+        }).log();
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
@@ -106,7 +114,7 @@ public final class WebSocketSession {
         .sendObject(Flux
             .from(messages)
             .map(message -> (ByteBuf) message.data())
-            .map(BinaryWebSocketFrame::new))
+            .map(BinaryWebSocketFrame::new).log())
         .then();
   }
 

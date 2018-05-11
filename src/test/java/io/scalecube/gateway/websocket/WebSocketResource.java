@@ -27,10 +27,12 @@ import reactor.core.publisher.Mono;
 
 public class WebSocketResource extends ExternalResource implements Closeable {
 
+  private static NettyDataBufferFactory BUFFER_FACTORY =
+      new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
+
   private WebSocketServer server;
   private InetSocketAddress serverAddress;
   private WebSocketClient client;
-  private NettyDataBufferFactory bufferFactory = new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);;
 
   public InetSocketAddress newServer(Function<WebSocketSession, Mono<Void>> onConnect,
       Function<WebSocketSession, Mono<Void>> onDisconnect) {
@@ -84,7 +86,7 @@ public class WebSocketResource extends ExternalResource implements Closeable {
     try {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       new ObjectMapper().writeValue(baos, message);
-      NettyDataBuffer dataBuffer = bufferFactory.allocateBuffer();
+      NettyDataBuffer dataBuffer = BUFFER_FACTORY.allocateBuffer();
       dataBuffer.write(baos.toByteArray());
       return new WebSocketMessage(WebSocketMessage.Type.BINARY, dataBuffer);
     } catch (IOException e) {
