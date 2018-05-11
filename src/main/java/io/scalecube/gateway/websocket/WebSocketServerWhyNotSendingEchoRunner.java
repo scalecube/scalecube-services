@@ -1,9 +1,6 @@
 package io.scalecube.gateway.websocket;
 
-import io.scalecube.services.api.ServiceMessage;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 import java.net.InetSocketAddress;
 
@@ -13,7 +10,7 @@ import reactor.ipc.netty.NettyPipeline;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
 import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 
-public class WebSocketServerWhyDoesnSendResponsesRunner {
+public class WebSocketServerWhyNotSendingEchoRunner {
   public static void main(String[] args) throws InterruptedException {
     WebSocketServer server = new WebSocketServer(new WebSocketAcceptor() {
       @Override
@@ -21,16 +18,17 @@ public class WebSocketServerWhyDoesnSendResponsesRunner {
         WebsocketInbound inbound = session.getInbound();
         WebsocketOutbound outbound = session.getOutbound();
 
-        // Flux<WebSocketFrame> receiveFlux = inbound
-        // .aggregateFrames()
-        // .receiveFrames()
-        // .doOnNext(WebSocketFrame::retain);
+        Flux<WebSocketFrame> receiveFlux = inbound
+            .aggregateFrames()
+            .receiveFrames()
+            .doOnNext(WebSocketFrame::retain);
 
-        Flux<ServiceMessage> receiveFlux = session.receive();
+        // Flux<ServiceMessage> receiveFlux = session.receive();
 
         return outbound
             .options(NettyPipeline.SendOptions::flushOnEach)
-            .sendObject(receiveFlux.map(message -> (ByteBuf) message.data()).map(BinaryWebSocketFrame::new).log())
+            /* .sendObject(receiveFlux.map(message -> (ByteBuf) message.data()).map(BinaryWebSocketFrame::new).log()) */
+            .sendObject(receiveFlux.log())
             .then();
       }
 
