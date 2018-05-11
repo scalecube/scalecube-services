@@ -7,8 +7,9 @@ import io.scalecube.services.api.ServiceMessage;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 import org.reactivestreams.Publisher;
 
@@ -37,14 +38,6 @@ public final class WebSocketSession {
   private final InetSocketAddress remoteAddress;
   private final String contentType;
   private final String auth;
-
-  WebsocketInbound getInbound() {
-    return inbound;
-  }
-
-  WebsocketOutbound getOutbound() {
-    return outbound;
-  }
 
   public WebSocketSession(HttpServerRequest httpRequest,
       WebsocketInbound inbound,
@@ -99,7 +92,7 @@ public final class WebSocketSession {
     return inbound
         .aggregateFrames()
         .receiveFrames()
-        .map(frame -> {
+        .map((WebSocketFrame frame) -> {
           ByteBuf content = frame.content();
           ServiceMessage message =
               ServiceMessage.builder().qualifier(uri).dataFormat(contentType).data(content).build();
@@ -114,7 +107,7 @@ public final class WebSocketSession {
         .sendObject(Flux
             .from(messages)
             .map(message -> (ByteBuf) message.data())
-            .map(BinaryWebSocketFrame::new).log())
+            .map(TextWebSocketFrame::new).log())
         .then();
   }
 
