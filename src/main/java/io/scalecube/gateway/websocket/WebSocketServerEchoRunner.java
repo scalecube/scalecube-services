@@ -4,7 +4,8 @@ import java.net.InetSocketAddress;
 
 import reactor.core.publisher.Mono;
 
-public class WebSocketServerWhyNotSendingEchoRunner {
+public class WebSocketServerEchoRunner {
+
   public static void main(String[] args) throws InterruptedException {
     WebSocketServer server = new WebSocketServer(new WebSocketAcceptor() {
       @Override
