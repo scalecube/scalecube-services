@@ -12,6 +12,13 @@
   <artifactId>scalecube-gateway-http</artifactId>
 
   <dependencies>
+    <!-- Tests and logs dependency -->
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-testlib</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>io.projectreactor.ipc</groupId>
       <artifactId>reactor-netty</artifactId>
@@ -31,13 +38,6 @@
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <!-- Tests and logs dependency -->
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-testlib</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
