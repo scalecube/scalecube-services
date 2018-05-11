@@ -329,9 +329,12 @@ public class Reflect {
     if (returnType.isAssignableFrom(Mono.class)) {
       return Void.class.isAssignableFrom(paramType) ? FIRE_AND_FORGET : REQUEST_RESPONSE;
     } else if (returnType.isAssignableFrom(Flux.class)) {
-      return Flux.class.isAssignableFrom(m.getParameterTypes()[0]) ? REQUEST_CHANNEL : REQUEST_STREAM;
+      Class<?>[] reqTypes = m.getParameterTypes();
+      boolean hasFluxAsReqParam = reqTypes.length > 0
+          && Flux.class.isAssignableFrom(reqTypes[0]);
+      return hasFluxAsReqParam ? REQUEST_CHANNEL : REQUEST_STREAM;
     } else {
-      throw new IllegalArgumentException("Return type is not supported on method: " + m);
+      throw new IllegalArgumentException("Service method is not supported (check return type or parameter type): " + m);
     }
   }
 }

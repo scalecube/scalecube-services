@@ -1,5 +1,6 @@
 package io.scalecube.services.transport;
 
+import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 import io.scalecube.services.transport.dispatchers.FireAndForgetDispatcher;
@@ -49,22 +50,16 @@ public class LocalServiceDispatchers {
     serviceObjects.forEach(service -> {
       Reflect.serviceInterfaces(service).forEach(serviceInterface -> {
         Reflect.serviceMethods(serviceInterface).forEach((key, method) -> {
-
           String qualifier = Reflect.qualifier(serviceInterface, method);
-          Class<?> parameterizedReturnType = Reflect.parameterizedReturnType(method);
-          Class<?> returnType = method.getReturnType();
-
-          if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
+          CommunicationMode mode = Reflect.communicationMode(method);
+          if (mode == CommunicationMode.FIRE_AND_FORGET) {
             register(qualifier, new FireAndForgetDispatcher(qualifier, service, method));
-
-          } else if (returnType.isAssignableFrom(Mono.class)) {
+          } else if (mode == CommunicationMode.REQUEST_RESPONSE) {
             register(qualifier, new RequestResponseDispatcher(qualifier, service, method));
-
-          } else if (returnType.isAssignableFrom(Flux.class)) {
+          } else if (mode == CommunicationMode.REQUEST_STREAM) {
             register(qualifier, new RequestStreamDispatcher(qualifier, service, method));
-
           } else {
-            throw new IllegalArgumentException("Return type is not supported on method: " + method);
+            throw new IllegalArgumentException("REQUEST_CHANNEL mode is not supported: " + method);
           }
         });
       });
