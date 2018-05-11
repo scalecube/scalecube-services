@@ -1,5 +1,9 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
+import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
+import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
+import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.annotations.Inject;
@@ -34,6 +38,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
@@ -314,5 +321,17 @@ public class Reflect {
 
   public static String qualifier(Class<?> serviceInterface, Method method) {
     return serviceName(serviceInterface) + "/" + methodName(method);
+  }
+
+  public static CommunicationMode communicationMode(Method m) {
+    Class<?> returnType = m.getReturnType();
+    Class<?> paramType = parameterizedReturnType(m);
+    if (returnType.isAssignableFrom(Mono.class)) {
+      return Void.class.isAssignableFrom(paramType) ? FIRE_AND_FORGET : REQUEST_RESPONSE;
+    } else if (returnType.isAssignableFrom(Flux.class)) {
+      return Flux.class.isAssignableFrom(m.getParameterTypes()[0]) ? REQUEST_CHANNEL : REQUEST_STREAM;
+    } else {
+      throw new IllegalArgumentException("Return type is not supported on method: " + m);
+    }
   }
 }

@@ -7,16 +7,18 @@ public class ServiceMethodDefinition {
   private String action;
   private String contentType;
   private Map<String, String> tags;
+  private CommunicationMode communicationMode;
 
   /**
    * @deprecated exposed only for deserialization purpose.
    */
   public ServiceMethodDefinition() {}
 
-  public ServiceMethodDefinition(String action, String contentType, Map<String, String> tags) {
+  public ServiceMethodDefinition(String action, String contentType, Map<String, String> tags, CommunicationMode communicationMode) {
     this.action = action;
     this.contentType = contentType;
     this.tags = tags;
+    this.communicationMode = communicationMode;
   }
 
   public String getAction() {
@@ -44,6 +46,14 @@ public class ServiceMethodDefinition {
   public ServiceMethodDefinition setTags(Map<String, String> tags) {
     this.tags = tags;
     return this;
+  }
+
+  public CommunicationMode getCommunicationMode() {
+    return communicationMode;
+  }
+
+  public void setCommunicationMode(CommunicationMode communicationMode) {
+    this.communicationMode = communicationMode;
   }
 
   @Override

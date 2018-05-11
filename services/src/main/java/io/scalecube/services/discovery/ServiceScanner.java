@@ -1,6 +1,7 @@
 package io.scalecube.services.discovery;
 
 import io.scalecube.cluster.membership.IdGenerator;
+import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceEndpoint;
@@ -38,7 +39,8 @@ public class ServiceScanner {
                 String action = Reflect.methodName(m);
                 String contentType = ContentType.DEFAULT;
                 Map<String, String> methodTags = methodTags(m);
-                return new ServiceMethodDefinition(action, contentType, methodTags);
+                CommunicationMode communicationMode = Reflect.communicationMode(m);
+                return new ServiceMethodDefinition(action, contentType, methodTags, communicationMode);
               }).collect(Collectors.toList());
           return new ServiceRegistration(namespace,
               serviceContentType,

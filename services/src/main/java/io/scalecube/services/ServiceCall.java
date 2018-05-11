@@ -23,6 +23,10 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
+import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
+import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
+
 public class ServiceCall {
 
   private final ClientTransport transport;
@@ -194,24 +198,24 @@ public class ServiceCall {
 
         Metrics.mark(serviceInterface, metrics, method, "request");
         Class<?> parameterizedReturnType = Reflect.parameterizedReturnType(method);
-        Class<?> returnType = method.getReturnType();
         final ServiceMessage reqMsg = ServiceMessage.builder()
             .qualifier(Reflect.serviceName(serviceInterface), method.getName())
             .data(method.getParameterCount() != 0 ? args[0] : null)
             .build();
 
-        if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
+        CommunicationMode mode = Reflect.communicationMode(method);
+        if (mode == FIRE_AND_FORGET) {
           // noinspection unchecked
           return serviceCall.oneWay(reqMsg);
 
-        } else if (returnType.isAssignableFrom(Mono.class)) {
+        } else if (mode == REQUEST_RESPONSE) {
           // noinspection unchecked
           return Mono.from(serviceCall.requestOne(reqMsg, parameterizedReturnType))
               .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
               .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
                   : mono.map(ServiceMessage::data));
 
-        } else if (returnType.isAssignableFrom(Flux.class)) {
+        } else if (mode == REQUEST_STREAM) {
           // noinspection unchecked
           return Flux.from(serviceCall.requestMany(reqMsg))
               .map(message -> messageDataCodec.decode(message, parameterizedReturnType))
