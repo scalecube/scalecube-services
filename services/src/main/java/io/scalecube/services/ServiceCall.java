@@ -22,11 +22,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
-import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
-import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
-import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
-
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
@@ -196,8 +191,6 @@ public class ServiceCall {
 
         Metrics.mark(serviceInterface, metrics, method, "request");
         Class<?> parameterizedReturnType = Reflect.parameterizedReturnType(method);
-        Class<?> returnType = method.getReturnType();
-        Class<?> requestType = Reflect.requestType(method);
         CommunicationMode mode = Reflect.communicationMode(method);
 
         ServiceMessage request = ServiceMessage.builder()
@@ -205,30 +198,23 @@ public class ServiceCall {
             .data(method.getParameterCount() != 0 ? args[0] : null)
             .build();
 
-        if (mode == FIRE_AND_FORGET) {
-          // FireAndForget
-          return serviceCall.oneWay(request);
-        }
-        if (mode == REQUEST_RESPONSE) {
-          // RequestResponse
-          return Mono
-              .from(serviceCall.requestOne(request, parameterizedReturnType))
-              .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
-                  : mono.map(ServiceMessage::data));
-        }
-        if (mode == REQUEST_CHANNEL) {
-          // RequestChannel
-          throw new IllegalArgumentException("REQUEST_CHANNEL mode is not supported: " + method);
-        }
-        if (mode == REQUEST_CHANNEL) {
-          // RequestStream
-          return Flux
-              .from(serviceCall.requestMany(request))
-              .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
-                  : flux.map(ServiceMessage::data));
-        } else {
-          throw new IllegalArgumentException(
-              "Service method is not supported (check return type or parameter type): " + method);
+        switch (mode) {
+          case FIRE_AND_FORGET:
+            return serviceCall.oneWay(request);
+          case REQUEST_RESPONSE:
+            return Mono
+                .from(serviceCall.requestOne(request, parameterizedReturnType))
+                .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
+                    : mono.map(ServiceMessage::data));
+          case REQUEST_STREAM:
+            return Flux
+                .from(serviceCall.requestMany(request))
+                .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
+                    : flux.map(ServiceMessage::data));
+          case REQUEST_CHANNEL:
+            // falls to default
+          default:
+            throw new IllegalArgumentException("Communication mode is not supported: " + method);
         }
       });
     }

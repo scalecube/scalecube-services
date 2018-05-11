@@ -1,5 +1,6 @@
 package io.scalecube.services.transport;
 
+import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
@@ -19,8 +20,8 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   private final Class<?> requestType;
   private final String qualifier;
   private final Class<?> returnType;
-  private final Class<?> parameterizedReturnType;
   private final ServiceMessageDataCodec dataCodec;
+  private final CommunicationMode mode;
 
   public LocalServiceMessageHandler(String qualifier, Object service, Method method) {
     this.qualifier = qualifier;
@@ -28,35 +29,30 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
     this.method = method;
     this.requestType = Reflect.requestType(method);
     this.returnType = method.getReturnType();
-    this.parameterizedReturnType = Reflect.parameterizedReturnType(method);
     this.dataCodec = new ServiceMessageDataCodec();
+    this.mode = Reflect.communicationMode(method);
   }
 
   @Override
   public Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
-    if (returnType.isAssignableFrom(Mono.class) && parameterizedReturnType.isAssignableFrom(Void.class)) {
-      // FireAndForget
-      return Mono.from(publisher)
-          .flatMap(request -> Mono.from(invokeOrThrow(request)));
-    }
-    if (returnType.isAssignableFrom(Mono.class)) {
-      // RequestResponse
-      return Mono.from(publisher)
-          .flatMap(request -> Mono.from(invokeOrThrow(request)))
-          .map(this::toResponse);
-    }
-    if (returnType.isAssignableFrom(Flux.class) && requestType.isAssignableFrom(Flux.class)) {
-      // RequestChannel
-      throw new UnsupportedOperationException("No supported service signature: srv(Flux) -> Flux");
-    }
-    if (returnType.isAssignableFrom(Flux.class)) {
-      // RequestStream
-      return Mono.from(publisher)
-          .transform(mono -> mono.map(request -> Flux.from(invokeOrThrow(request))))
-          .map(this::toResponse);
-    } else {
-      throw new IllegalArgumentException(
-          "Service method is not supported (check return type or parameter type): " + method);
+    switch (mode) {
+      case FIRE_AND_FORGET:
+        return Mono
+            .from(publisher)
+            .flatMap(request -> Mono.from(invokeOrThrow(request)));
+      case REQUEST_RESPONSE:
+        return Mono.from(publisher)
+            .flatMap(request -> Mono.from(invokeOrThrow(request)))
+            .map(this::toResponse);
+      case REQUEST_STREAM:
+        return Mono
+            .from(publisher)
+            .transform(mono -> mono.map(request -> Flux.from(invokeOrThrow(request))))
+            .map(this::toResponse);
+      case REQUEST_CHANNEL:
+        // falls to default
+      default:
+        throw new IllegalArgumentException("Communication mode is not supported: " + method);
     }
   }
 
