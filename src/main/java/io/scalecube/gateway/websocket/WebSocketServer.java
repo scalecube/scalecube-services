@@ -23,7 +23,7 @@ public class WebSocketServer {
   }
 
   public synchronized InetSocketAddress start() {
-    return start(new InetSocketAddress(0));
+    return start(new InetSocketAddress("localhost", 0));
   }
 
   public synchronized InetSocketAddress start(InetSocketAddress listenAddress) {
