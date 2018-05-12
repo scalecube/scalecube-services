@@ -90,8 +90,7 @@ public class ServiceCall {
       String qualifier = request.qualifier();
 
       if (serviceHandlers.contains(qualifier)) {
-        return Mono
-            .from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
+        return Mono.from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
             .onErrorMap(ExceptionProcessor::mapException);
       } else {
         ServiceReference serviceReference =
@@ -123,8 +122,7 @@ public class ServiceCall {
       String qualifier = request.qualifier();
 
       if (serviceHandlers.contains(qualifier)) {
-        return Mono
-            .from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
+        return Mono.from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
             .onErrorMap(ExceptionProcessor::mapException)
             .map(message -> null);
       } else {
@@ -149,8 +147,7 @@ public class ServiceCall {
       String qualifier = request.qualifier();
 
       if (serviceHandlers.contains(qualifier)) {
-        return Flux
-            .from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
+        return Flux.from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
             .onErrorMap(ExceptionProcessor::mapException);
       } else {
         ServiceReference serviceReference =
@@ -202,13 +199,11 @@ public class ServiceCall {
           case FIRE_AND_FORGET:
             return serviceCall.oneWay(request);
           case REQUEST_RESPONSE:
-            return Mono
-                .from(serviceCall.requestOne(request, parameterizedReturnType))
+            return Mono.from(serviceCall.requestOne(request, parameterizedReturnType))
                 .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
                     : mono.map(ServiceMessage::data));
           case REQUEST_STREAM:
-            return Flux
-                .from(serviceCall.requestMany(request))
+            return Flux.from(serviceCall.requestMany(request))
                 .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                     : flux.map(ServiceMessage::data));
           case REQUEST_CHANNEL:

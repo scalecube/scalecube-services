@@ -37,16 +37,15 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   public Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
     switch (mode) {
       case FIRE_AND_FORGET:
-        return Mono
-            .from(publisher)
-            .flatMap(request -> Mono.from(invokeOrThrow(request)));
+        return Mono.from(publisher)
+            .flatMap(request -> Mono.from(invokeOrThrow(request)))
+            .map(response -> null);
       case REQUEST_RESPONSE:
         return Mono.from(publisher)
             .flatMap(request -> Mono.from(invokeOrThrow(request)))
             .map(this::toResponse);
       case REQUEST_STREAM:
-        return Mono
-            .from(publisher)
+        return Mono.from(publisher)
             .transform(mono -> mono.map(request -> Flux.from(invokeOrThrow(request))))
             .map(this::toResponse);
       case REQUEST_CHANNEL:
@@ -56,19 +55,17 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
     }
   }
 
-  private Publisher<ServiceMessage> invokeOrThrow(ServiceMessage request) {
+  private Publisher<?> invokeOrThrow(ServiceMessage request) {
     return Reflect.invokeOrThrow(service, method, dataCodec.decode(request, requestType));
   }
 
   private ServiceMessage toResponse(Object response) {
-    return dataCodec.encode(
-        (response instanceof ServiceMessage)
-            ? (ServiceMessage) response
-            : ServiceMessage
-                .builder()
-                .qualifier(qualifier)
-                .header("_type", returnType.getName())
-                .data(response)
-                .build());
+    return (response instanceof ServiceMessage)
+        ? (ServiceMessage) response
+        : ServiceMessage.builder()
+            .qualifier(qualifier)
+            .header("_type", returnType.getName())
+            .data(response)
+            .build();
   }
 }
