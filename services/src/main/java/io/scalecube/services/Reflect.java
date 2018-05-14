@@ -333,18 +333,19 @@ public class Reflect {
     }
   }
 
-  public static CommunicationMode communicationMode(Method m) {
-    Class<?> returnType = m.getReturnType();
-    Class<?> paramType = parameterizedReturnType(m);
+  public static CommunicationMode communicationMode(Method method) {
+    Class<?> returnType = method.getReturnType();
+    Class<?> paramType = parameterizedReturnType(method);
     if (returnType.isAssignableFrom(Mono.class)) {
       return Void.class.isAssignableFrom(paramType) ? FIRE_AND_FORGET : REQUEST_RESPONSE;
     } else if (returnType.isAssignableFrom(Flux.class)) {
-      Class<?>[] reqTypes = m.getParameterTypes();
+      Class<?>[] reqTypes = method.getParameterTypes();
       boolean hasFluxAsReqParam = reqTypes.length > 0
           && Flux.class.isAssignableFrom(reqTypes[0]);
       return hasFluxAsReqParam ? REQUEST_CHANNEL : REQUEST_STREAM;
     } else {
-      throw new IllegalArgumentException("Service method is not supported (check return type or parameter type): " + m);
+      throw new IllegalArgumentException(
+          "Service method is not supported (check return type or parameter type): " + method);
     }
   }
 
