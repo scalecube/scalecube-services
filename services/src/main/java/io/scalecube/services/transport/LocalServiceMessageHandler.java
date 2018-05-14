@@ -5,6 +5,7 @@ import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
+import io.scalecube.services.exceptions.BadRequestException;
 
 import org.reactivestreams.Publisher;
 
@@ -54,6 +55,10 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
 
   private Object toRequest(ServiceMessage message) {
     ServiceMessage request = dataCodec.decode(message, requestType);
-    return isRequestTypeServiceMessage ? request : request.data();
+    Object obj = isRequestTypeServiceMessage ? request : request.data();
+    if (!isRequestTypeServiceMessage && !request.hasData()) {
+      throw new BadRequestException("Expected payload in request but got null");
+    }
+    return obj;
   }
 }
