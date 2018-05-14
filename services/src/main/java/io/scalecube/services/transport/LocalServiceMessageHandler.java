@@ -28,7 +28,7 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
     this.service = service;
     this.method = method;
     this.requestType = Reflect.requestType(method);
-    this.returnType = method.getReturnType();
+    this.returnType = Reflect.parameterizedReturnType(method);
     this.dataCodec = new ServiceMessageDataCodec();
     this.mode = Reflect.communicationMode(method);
   }
@@ -45,8 +45,8 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
             .flatMap(request -> Mono.from(invokeOrThrow(request)))
             .map(this::toResponse);
       case REQUEST_STREAM:
-        return Mono.from(publisher)
-            .transform(mono -> mono.map(request -> Flux.from(invokeOrThrow(request))))
+        return Flux.from(publisher)
+            .flatMap(request -> Flux.from(invokeOrThrow(request)))
             .map(this::toResponse);
       case REQUEST_CHANNEL:
         // falls to default

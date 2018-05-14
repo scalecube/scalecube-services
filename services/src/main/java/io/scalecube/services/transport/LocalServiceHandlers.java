@@ -1,6 +1,5 @@
 package io.scalecube.services.transport;
 
-import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessageHandler;
 
