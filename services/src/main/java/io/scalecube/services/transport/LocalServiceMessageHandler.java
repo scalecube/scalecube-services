@@ -10,10 +10,13 @@ import io.scalecube.services.exceptions.BadRequestException;
 import org.reactivestreams.Publisher;
 
 import java.lang.reflect.Method;
+import java.util.Optional;
 
 import reactor.core.publisher.Flux;
 
 public final class LocalServiceMessageHandler implements ServiceMessageHandler {
+
+  private static final String ERROR_DATA_TYPE_MISMATCH = "Expected data of type '%s' but got '%s'";
 
   private final Method method;
   private final Object service;
@@ -23,6 +26,7 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   private final ServiceMessageDataCodec dataCodec;
   private final CommunicationMode mode;
   private final boolean isRequestTypeServiceMessage;
+  private boolean isRequestTypeVoid;
 
   public LocalServiceMessageHandler(String qualifier, Object service, Method method) {
     this.qualifier = qualifier;
@@ -33,6 +37,7 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
     this.dataCodec = new ServiceMessageDataCodec();
     this.mode = Reflect.communicationMode(method);
     this.isRequestTypeServiceMessage = Reflect.isRequestTypeServiceMessage(method);
+    this.isRequestTypeVoid = requestType.isAssignableFrom(Void.TYPE);
   }
 
   @Override
@@ -55,10 +60,10 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
 
   private Object toRequest(ServiceMessage message) {
     ServiceMessage request = dataCodec.decode(message, requestType);
-    Object obj = isRequestTypeServiceMessage ? request : request.data();
-    if (!isRequestTypeServiceMessage && !request.hasData()) {
-      throw new BadRequestException("Expected payload in request but got null");
+    if (!isRequestTypeVoid && !isRequestTypeServiceMessage && !request.hasData(requestType)) {
+      throw new BadRequestException(String.format(ERROR_DATA_TYPE_MISMATCH,
+          requestType, Optional.ofNullable(request.data()).map(Object::getClass).orElse(null)));
     }
-    return obj;
+    return isRequestTypeServiceMessage ? request : request.data();
   }
 }
