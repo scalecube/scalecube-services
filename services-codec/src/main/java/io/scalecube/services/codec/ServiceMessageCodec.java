@@ -31,9 +31,9 @@ public final class ServiceMessageCodec {
     ByteBuf dataBuffer = Unpooled.EMPTY_BUFFER;
     ByteBuf headersBuffer = Unpooled.EMPTY_BUFFER;
 
-    if (message.data() instanceof ByteBuf) { // has data ?
-      dataBuffer = message.data(); // ok so use it as is
-    } else if (message.data() != null) {
+    if (message.hasData(ByteBuf.class)) {
+      dataBuffer = message.data();
+    } else if (message.hasData()) {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
         String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);

@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
@@ -192,7 +193,7 @@ public class ServiceCall {
 
         ServiceMessage request = ServiceMessage.builder()
             .qualifier(Reflect.serviceName(serviceInterface), method.getName())
-            .data(method.getParameterCount() != 0 ? args[0] : null)
+            .data(method.getParameterCount() != 0 ? args[0] : NullData.NULL_DATA)
             .build();
 
         switch (mode) {
