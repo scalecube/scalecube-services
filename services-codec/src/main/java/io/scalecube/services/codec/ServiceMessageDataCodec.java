@@ -19,7 +19,7 @@ public final class ServiceMessageDataCodec {
   private static final String ERROR_DATA_DECODE_FAILED = "Failed to deserialize data on %s, cause: %s";
 
   public ServiceMessage encode(ServiceMessage message) {
-    if (message.data() != null) {
+    if (message.hasData()) {
       ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
       try {
         String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
@@ -35,7 +35,7 @@ public final class ServiceMessageDataCodec {
   }
 
   public ServiceMessage decode(ServiceMessage message, Class type) {
-    if (message.data() instanceof ByteBuf) {
+    if (message.hasData(ByteBuf.class)) {
       try (ByteBufInputStream inputStream = new ByteBufInputStream(message.data(), true)) {
         String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
         DataCodec dataCodec = DataCodec.getInstance(contentType);

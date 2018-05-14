@@ -42,6 +42,9 @@ public class LocalServiceHandlers {
     serviceObjects.forEach(service -> {
       Reflect.serviceInterfaces(service).forEach(serviceInterface -> {
         Reflect.serviceMethods(serviceInterface).forEach((key, method) -> {
+          // perform vailidation
+          Reflect.validateMethodOrThrow(method);
+          // then keep it
           String qualifier = Reflect.qualifier(serviceInterface, method);
           put(qualifier, new LocalServiceMessageHandler(qualifier, service, method));
         });

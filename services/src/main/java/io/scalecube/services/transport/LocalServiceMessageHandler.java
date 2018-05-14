@@ -11,7 +11,6 @@ import org.reactivestreams.Publisher;
 import java.lang.reflect.Method;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public final class LocalServiceMessageHandler implements ServiceMessageHandler {
 
@@ -22,6 +21,7 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   private final Class<?> returnType;
   private final ServiceMessageDataCodec dataCodec;
   private final CommunicationMode mode;
+  private final boolean isRequestTypeServiceMessage;
 
   public LocalServiceMessageHandler(String qualifier, Object service, Method method) {
     this.qualifier = qualifier;
@@ -31,32 +31,15 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
     this.returnType = Reflect.parameterizedReturnType(method);
     this.dataCodec = new ServiceMessageDataCodec();
     this.mode = Reflect.communicationMode(method);
+    this.isRequestTypeServiceMessage = Reflect.isRequestTypeServiceMessage(method);
   }
 
   @Override
   public Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
-    switch (mode) {
-      case FIRE_AND_FORGET:
-        return Mono.from(publisher)
-            .flatMap(request -> Mono.from(invokeOrThrow(request)))
-            .map(response -> null);
-      case REQUEST_RESPONSE:
-        return Mono.from(publisher)
-            .flatMap(request -> Mono.from(invokeOrThrow(request)))
-            .map(this::toResponse);
-      case REQUEST_STREAM:
-        return Flux.from(publisher)
-            .flatMap(request -> Flux.from(invokeOrThrow(request)))
-            .map(this::toResponse);
-      case REQUEST_CHANNEL:
-        // falls to default
-      default:
-        throw new IllegalArgumentException("Communication mode is not supported: " + method);
-    }
-  }
-
-  private Publisher<?> invokeOrThrow(ServiceMessage request) {
-    return Reflect.invokeOrThrow(service, method, dataCodec.decode(request, requestType));
+    return Flux.from(publisher)
+        .map(this::toRequest)
+        .transform((Flux<?> publisher1) -> Reflect.invokePublisher(service, method, mode, publisher1))
+        .map(this::toResponse);
   }
 
   private ServiceMessage toResponse(Object response) {
@@ -67,5 +50,10 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
             .header("_type", returnType.getName())
             .data(response)
             .build();
+  }
+
+  private Object toRequest(ServiceMessage message) {
+    ServiceMessage request = dataCodec.decode(message, requestType);
+    return isRequestTypeServiceMessage ? request : request.data();
   }
 }
