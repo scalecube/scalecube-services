@@ -23,15 +23,17 @@ public class RSocketServiceClientAdapter implements ClientChannel {
 
   @Override
   public Flux<ServiceMessage> requestBidirectional(Flux<ServiceMessage> publisher) {
-    return rSocket.as(Flux::from)
-        .flatMap(rSocket -> rSocket.requestChannel(publisher.map(this::toPayload)).map(this::toMessage));
+    return rSocket.as(Flux::from).flatMap(rSocket -> {
+      Flux<Payload> payloads = publisher.map(this::toPayload);
+      return rSocket.requestChannel(payloads).map(this::toMessage);
+    });
   }
 
   private Payload toPayload(ServiceMessage request) {
     return messageCodec.encodeAndTransform(request, ByteBufPayload::create);
   }
 
-  private ServiceMessage toMessage(Payload payload1) {
-    return messageCodec.decode(payload1.sliceData(), payload1.sliceMetadata());
+  private ServiceMessage toMessage(Payload payload) {
+    return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
   }
 }

@@ -36,12 +36,14 @@ public final class ServiceMessageDataCodec {
 
   public ServiceMessage decode(ServiceMessage message, Class type) {
     if (message.hasData(ByteBuf.class)) {
-      try (ByteBufInputStream inputStream = new ByteBufInputStream(message.data(), true)) {
+      try (ByteBufInputStream inputStream = new ByteBufInputStream(((ByteBuf) message.data()).slice())) {
         String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
         DataCodec dataCodec = DataCodec.getInstance(contentType);
         return ServiceMessage.from(message).data(dataCodec.decode(inputStream, type)).build();
       } catch (Throwable ex) {
         throw new BadRequestException(String.format(ERROR_DATA_DECODE_FAILED, message, ex));
+      } finally {
+        ReferenceCountUtil.release(message.data());
       }
     }
     return message;

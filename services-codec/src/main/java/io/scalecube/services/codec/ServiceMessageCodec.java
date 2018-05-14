@@ -10,6 +10,7 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 
+import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -64,10 +65,13 @@ public final class ServiceMessageCodec {
       builder.data(dataBuffer);
     }
     if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice())) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
+        System.err.println("ServiceMessageCodec decode: " + headersBuffer.toString(Charset.defaultCharset()));
         throw new BadRequestException(String.format(ERROR_HEADERS_DECODE_FAILED, ex));
+      } finally {
+        ReferenceCountUtil.release(headersBuffer);
       }
     }
     return builder.build();
