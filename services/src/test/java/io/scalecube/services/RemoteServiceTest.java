@@ -21,7 +21,6 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,7 +79,7 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_greeting_request_completes_before_timeout() throws Exception {
+  public void test_remote_greeting_request_completes_before_timeout() {
     Duration duration = Duration.ofSeconds(1);
 
     // Create microservices instance.
@@ -102,7 +101,6 @@ public class RemoteServiceTest extends BaseTest {
 
     node2.shutdown().block();
     gateway.shutdown().block();
-
   }
 
   @Test
@@ -112,9 +110,10 @@ public class RemoteServiceTest extends BaseTest {
         .discoveryPort(port.incrementAndGet())
         .build();
 
+    CountDownLatch signal = new CountDownLatch(1);
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl())
+        .services(new GreetingServiceImpl(signal))
         .build();
 
     GreetingService service = gateway.call()
@@ -123,9 +122,8 @@ public class RemoteServiceTest extends BaseTest {
     // call the service.
     Mono.from(service.greetingVoid(new GreetingRequest("joe"))).block();
 
-    // send and forget so we have no way to know what happen
-    // but at least we didn't get exception :)
-    assertTrue(true);
+    signal.await(2, TimeUnit.SECONDS);
+    assertEquals(0, signal.getCount());
     System.out.println("test_remote_void_greeting done.");
 
     Thread.sleep(1000);
@@ -135,7 +133,7 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_return_string() throws Exception {
+  public void test_remote_async_greeting_return_string() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
@@ -159,7 +157,7 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_no_params() throws Exception {
+  public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
@@ -185,7 +183,7 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_greeting_return_GreetingResponse() throws Exception {
+  public void test_remote_greeting_return_GreetingResponse() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
@@ -210,9 +208,8 @@ public class RemoteServiceTest extends BaseTest {
     consumer.shutdown().block();
   }
 
-
   @Test
-  public void test_remote_greeting_request_timeout_expires() throws InterruptedException, ExecutionException {
+  public void test_remote_greeting_request_timeout_expires() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
@@ -226,7 +223,7 @@ public class RemoteServiceTest extends BaseTest {
         .build();
 
     // get a proxy to the service api.
-    GreetingService service = createProxy(consumer, Duration.ofSeconds(1));
+    GreetingService service = createProxy(consumer);
 
     // call the service.
     Publisher<GreetingResponse> result =
@@ -239,9 +236,8 @@ public class RemoteServiceTest extends BaseTest {
     });
   }
 
-
   @Test
-  public void test_remote_async_greeting_return_Message() throws Exception {
+  public void test_remote_async_greeting_return_Message() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
@@ -267,7 +263,7 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_round_robin_selection_logic() throws Exception {
+  public void test_remote_round_robin_selection_logic() {
     Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
@@ -315,11 +311,8 @@ public class RemoteServiceTest extends BaseTest {
     provider1.shutdown();
   }
 
-
-
   @Test
-  public void test_remote_serviceA_calls_serviceB_using_setter() throws InterruptedException, ExecutionException {
-
+  public void test_remote_serviceA_calls_serviceB_using_setter() {
     Microservices gateway = createSeed();
 
     CoarseGrainedServiceImpl coarseGrained = new CoarseGrainedServiceImpl();
@@ -327,6 +320,7 @@ public class RemoteServiceTest extends BaseTest {
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 
     // Create microservices instance cluster.
+    // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
@@ -342,8 +336,7 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_serviceA_calls_serviceB() throws InterruptedException, ExecutionException {
-
+  public void test_remote_serviceA_calls_serviceB() {
     Microservices gateway = createSeed();
 
     // getting proxy from any node at any given time.
@@ -352,6 +345,7 @@ public class RemoteServiceTest extends BaseTest {
     GreetingServiceImpl greeting = new GreetingServiceImpl();
 
     // Create microservices instance cluster.
+    // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
@@ -365,13 +359,12 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_serviceA_calls_serviceB_with_timeout() throws Exception {
+  public void test_remote_serviceA_calls_serviceB_with_timeout() {
     thrown.expect(InternalServiceException.class);
     thrown.expectMessage("Did not observe any item or terminal signal");
-    
+
     Microservices gateway = createSeed();
 
-    
     // getting proxy from any node at any given time.
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
@@ -387,15 +380,14 @@ public class RemoteServiceTest extends BaseTest {
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
     Mono.from(
-        service.callGreetingTimeout("joe")
-        ).block();
-    
+        service.callGreetingTimeout("joe")).block();
+
     System.out.println("done");
     ms.shutdown();
   }
 
   @Test
-  public void test_remote_serviceA_calls_serviceB_with_dispatcher() throws InterruptedException, ExecutionException {
+  public void test_remote_serviceA_calls_serviceB_with_dispatcher() throws Exception {
     CountDownLatch countLatch = new CountDownLatch(1);
     Microservices gateway = createSeed();
 
@@ -424,7 +416,6 @@ public class RemoteServiceTest extends BaseTest {
     assertTrue(countLatch.getCount() == 0);
     gateway.shutdown().block();
     provider.shutdown().block();
-
   }
 
   @Test
@@ -439,15 +430,8 @@ public class RemoteServiceTest extends BaseTest {
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));
   }
 
-  private GreetingService createProxy(Microservices gateway) {
-    return gateway.call()
-        .api(GreetingService.class); // create proxy for GreetingService API
-
-  }
-
-  private GreetingService createProxy(Microservices micro, Duration duration) {
+  private GreetingService createProxy(Microservices micro) {
     return micro.call().api(GreetingService.class); // create proxy for GreetingService API
-
   }
 
   private Microservices createProvider(Microservices gateway) {

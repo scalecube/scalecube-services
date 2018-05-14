@@ -74,6 +74,16 @@ public class ServiceCall {
     }
 
     /**
+     * Issues fire-and-rorget request.
+     *
+     * @param request request to send.
+     * @return Mono of type Void.
+     */
+    public Mono<Void> oneWay(ServiceMessage request) {
+      return requestOne(request).map(message -> null);
+    }
+
+    /**
      * Invoke a request message and invoke a service by a given service name and method name. expected headers in
      * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
      * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
@@ -82,11 +92,21 @@ public class ServiceCall {
      * @param request request with given headers.
      * @return {@link Publisher} with service call dispatching result.
      */
-    public Publisher<ServiceMessage> requestOne(final ServiceMessage request) {
+    public Mono<ServiceMessage> requestOne(ServiceMessage request) {
       return requestOne(request, request.responseType() != null ? request.responseType() : Object.class);
     }
 
-    public Publisher<ServiceMessage> requestOne(final ServiceMessage request, final Class<?> returnType) {
+    /**
+     * Invoke a request message and invoke a service by a given service name and method name. expected headers in
+     * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
+     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
+     * case of an error or TimeoutException if no response if a given duration.
+     *
+     * @param request request with given headers.
+     * @param returnType return type of service message response.
+     * @return {@link Publisher} with service call dispatching result.
+     */
+    public Mono<ServiceMessage> requestOne(ServiceMessage request, final Class<?> returnType) {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
@@ -101,49 +121,25 @@ public class ServiceCall {
             Address.create(serviceReference.host(), serviceReference.port());
 
         return transport.create(address)
-            .requestResponse(request)
+            .requestBidirectional(Flux.just(request))
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
                 throw ExceptionProcessor.toException(dataCodec.decode(message, ErrorData.class));
               } else {
                 return dataCodec.decode(message, returnType);
               }
-            });
+            })
+            .as(Mono::from);
       }
     }
 
     /**
-     * Issues fire-and-rorget request.
+     * Issues request to service which returns stream of service messages back.
      *
-     * @param request request to send.
-     * @return Mono of type Void.
+     * @param request request with given headers.
+     * @return {@link Publisher} with service call dispatching result.
      */
-    public Mono<Void> oneWay(ServiceMessage request) {
-      Messages.validate().serviceRequest(request);
-      String qualifier = request.qualifier();
-
-      if (serviceHandlers.contains(qualifier)) {
-        return Mono.from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
-            .onErrorMap(ExceptionProcessor::mapException)
-            .map(message -> null);
-      } else {
-        ServiceReference serviceReference =
-            router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
-
-        Address address =
-            Address.create(serviceReference.host(), serviceReference.port());
-
-        return transport.create(address).fireAndForget(request);
-      }
-    }
-
-    /**
-     * sending subscription request message to a service that returns Publisher.
-     *
-     * @param request containing subscription data.
-     * @return Publisher for the specific stream.
-     */
-    public Publisher<ServiceMessage> requestMany(ServiceMessage request) {
+    public Flux<ServiceMessage> requestMany(ServiceMessage request) {
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
@@ -158,7 +154,7 @@ public class ServiceCall {
             Address.create(serviceReference.host(), serviceReference.port());
 
         return transport.create(address)
-            .requestStream(request)
+            .requestBidirectional(Flux.just(request))
             .map(message -> {
               if (ExceptionProcessor.isError(message)) {
                 throw ExceptionProcessor.toException(dataCodec.decode(message, ErrorData.class));
@@ -176,7 +172,7 @@ public class ServiceCall {
      * @param serviceInterface Service Interface type.
      * @return newly created service proxy object.
      */
-    public <T> T api(final Class<T> serviceInterface) {
+    public <T> T api(Class<T> serviceInterface) {
 
       final Call serviceCall = this;
 
@@ -200,11 +196,11 @@ public class ServiceCall {
           case FIRE_AND_FORGET:
             return serviceCall.oneWay(request);
           case REQUEST_RESPONSE:
-            return Mono.from(serviceCall.requestOne(request, parameterizedReturnType))
+            return serviceCall.requestOne(request, parameterizedReturnType)
                 .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
                     : mono.map(ServiceMessage::data));
           case REQUEST_STREAM:
-            return Flux.from(serviceCall.requestMany(request))
+            return serviceCall.requestMany(request)
                 .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                     : flux.map(ServiceMessage::data));
           case REQUEST_CHANNEL:

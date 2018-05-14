@@ -29,34 +29,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
-
     return Mono.just(new AbstractRSocket() {
       @Override
       public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
         return Flux.from(acceptor.invoke(Flux.from(payloads).map(this::toMessage)))
             .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
             .map(this::toPayload);
-      }
-
-      @Override
-      public Flux<Payload> requestStream(Payload payload) {
-        return Flux.from(acceptor.invoke(Mono.fromSupplier(() -> toMessage(payload))))
-            .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
-            .map(this::toPayload);
-      }
-
-      @Override
-      public Mono<Payload> requestResponse(Payload payload) {
-        return Mono.from(acceptor.invoke(Mono.fromSupplier(() -> toMessage(payload))))
-            .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
-            .map(this::toPayload);
-      }
-
-      @Override
-      public Mono<Void> fireAndForget(Payload payload) {
-        return Mono.from(acceptor.invoke(Mono.fromSupplier(() -> toMessage(payload))))
-            .onErrorResume(Mono::error)
-            .map(message -> null);
       }
 
       private Payload toPayload(ServiceMessage response) {
