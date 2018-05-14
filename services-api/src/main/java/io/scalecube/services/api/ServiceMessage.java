@@ -145,7 +145,12 @@ public final class ServiceMessage {
   }
 
   public boolean hasData(Class<?> dataClass) {
-    return dataClass.isInstance(data);
+    Objects.requireNonNull(dataClass);
+    if (dataClass.isPrimitive()) {
+      return hasData();
+    } else {
+      return dataClass.isInstance(data);
+    }
   }
 
   @Override
