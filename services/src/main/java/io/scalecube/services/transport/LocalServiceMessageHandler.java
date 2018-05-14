@@ -48,6 +48,15 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
         .map(this::toResponse);
   }
 
+  private Object toRequest(ServiceMessage message) {
+    ServiceMessage request = dataCodec.decode(message, requestType);
+    if (!isRequestTypeVoid && !isRequestTypeServiceMessage && !request.hasData(requestType)) {
+      throw new BadRequestException(String.format(ERROR_DATA_TYPE_MISMATCH,
+          requestType, Optional.ofNullable(request.data()).map(Object::getClass).orElse(null)));
+    }
+    return isRequestTypeServiceMessage ? request : request.data();
+  }
+
   private ServiceMessage toResponse(Object response) {
     return (response instanceof ServiceMessage)
         ? (ServiceMessage) response
@@ -56,14 +65,5 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
             .header("_type", returnType.getName())
             .data(response)
             .build();
-  }
-
-  private Object toRequest(ServiceMessage message) {
-    ServiceMessage request = dataCodec.decode(message, requestType);
-    if (!isRequestTypeVoid && !isRequestTypeServiceMessage && !request.hasData(requestType)) {
-      throw new BadRequestException(String.format(ERROR_DATA_TYPE_MISMATCH,
-          requestType, Optional.ofNullable(request.data()).map(Object::getClass).orElse(null)));
-    }
-    return isRequestTypeServiceMessage ? request : request.data();
   }
 }

@@ -14,6 +14,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.a.b.testing.CanaryService;
@@ -33,9 +34,7 @@ import org.reactivestreams.Publisher;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -58,7 +57,7 @@ public class ServiceCallTest extends BaseTest {
 
 
   @Test
-  public void test_local_async_no_params() throws Exception {
+  public void test_local_async_no_params() {
     // Create microservices cluster.
     Microservices microservices = serviceProvider();
 
@@ -139,7 +138,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_fail_greeting() throws InterruptedException {
+  public void test_remote_fail_greeting() {
     thrown.expect(ServiceException.class);
     thrown.expectMessage("GreetingRequest{name='joe'}");
 
@@ -160,7 +159,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_exception_void() throws Exception {
+  public void test_remote_exception_void() {
     thrown.expect(ServiceException.class);
     thrown.expectMessage("GreetingRequest{name='joe'}");
 
@@ -183,14 +182,19 @@ public class ServiceCallTest extends BaseTest {
   @Test
   public void test_local_void_greeting() throws Exception {
     // GIVEN
-    Microservices node = serviceProvider();
-
+    CountDownLatch signal = new CountDownLatch(1);
+    Microservices node = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .services(new GreetingServiceImpl(signal))
+        .build();
 
     // WHEN
     AtomicReference<SignalType> success = new AtomicReference<>();
     node.call().oneWay(GREETING_VOID_REQ).doFinally(success::set).block(Duration.ofSeconds(TIMEOUT));
 
     // Then:
+    signal.await(2, TimeUnit.SECONDS);
+    assertEquals(0, signal.getCount());
     assertNotNull(success.get());
     assertEquals(SignalType.ON_COMPLETE, success.get());
 
@@ -200,7 +204,7 @@ public class ServiceCallTest extends BaseTest {
 
 
   @Test
-  public void test_local_fail_greeting() throws Exception {
+  public void test_local_fail_greeting() {
     thrown.expect(ServiceException.class);
     thrown.expectMessage("GreetingRequest{name='joe'}");
 
@@ -214,7 +218,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_local_exception_greeting() throws Exception {
+  public void test_local_exception_greeting() {
     thrown.expect(ServiceException.class);
     thrown.expectMessage("GreetingRequest{name='joe'}");
 
@@ -228,7 +232,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_return_string() throws Exception {
+  public void test_remote_async_greeting_return_string() {
     // Create microservices cluster.
     Microservices provider = serviceProvider();
 
@@ -269,8 +273,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_return_GreetingResponse()
-      throws InterruptedException, ExecutionException, TimeoutException {
+  public void test_remote_async_greeting_return_GreetingResponse() {
     // Given
     Microservices provider = serviceProvider();
     Microservices consumer = Microservices.builder()
@@ -308,7 +311,6 @@ public class ServiceCallTest extends BaseTest {
     } finally {
       node.shutdown().block();
     }
-
   }
 
   @Test
@@ -341,7 +343,7 @@ public class ServiceCallTest extends BaseTest {
   // Since here and below tests were not reviewed [sergeyr]
 
   @Test
-  public void test_local_async_greeting_return_Message() throws InterruptedException, ExecutionException {
+  public void test_local_async_greeting_return_Message() throws Exception {
     // Given:
     Microservices microservices = serviceProvider();
 
@@ -366,7 +368,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_async_greeting_return_Message() throws Exception {
+  public void test_remote_async_greeting_return_Message() {
     // Create microservices cluster.
     Microservices provider = serviceProvider();
 
@@ -395,7 +397,7 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
-  public void test_round_robin_selection_logic() throws Exception {
+  public void test_round_robin_selection_logic() {
     Microservices gateway = gateway();
 
     // Create microservices instance cluster.
@@ -420,7 +422,7 @@ public class ServiceCallTest extends BaseTest {
     GreetingResponse result2 =
         Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
 
-    assertTrue(result1.sender() != result2.sender());
+    assertTrue(!result1.sender().equals(result2.sender()));
     provider2.shutdown().block();
     provider1.shutdown().block();
     gateway.shutdown().block();
@@ -428,7 +430,7 @@ public class ServiceCallTest extends BaseTest {
 
 
   @Test
-  public void test_tag_selection_logic() throws Exception {
+  public void test_tag_selection_logic() {
     Microservices gateway = gateway();
 
     // Create microservices instance cluster.
@@ -445,23 +447,22 @@ public class ServiceCallTest extends BaseTest {
         .service(new GreetingServiceImpl(2)).tag("SENDER", "2").register()
         .build();
 
-    Call service = gateway.call().router((reg, msg) -> 
-      reg.listServiceReferences().stream().filter(ref -> "2".equals(
-          ref.tags().get("SENDER"))).collect(Collectors.toList()));
+    Call service = gateway.call().router((reg, msg) -> reg.listServiceReferences().stream().filter(ref -> "2".equals(
+        ref.tags().get("SENDER"))).collect(Collectors.toList()));
 
     // call the service.
-   for (int i = 0; i < 10 ; i++) {
-     GreetingResponse result =
-         Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
-     assertEquals("2", result.sender());
-   }
+    for (int i = 0; i < 10; i++) {
+      GreetingResponse result =
+          Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
+      assertEquals("2", result.sender());
+    }
     provider2.shutdown().block();
     provider1.shutdown().block();
     gateway.shutdown().block();
   }
-  
+
   @Test
-  public void test_tag_request_selection_logic() throws Exception {
+  public void test_tag_request_selection_logic() {
     Microservices gateway = gateway();
 
     // Create microservices instance cluster.
@@ -478,28 +479,26 @@ public class ServiceCallTest extends BaseTest {
         .service(new GreetingServiceImpl(2)).tag("ONLYFOR", "fransin").register()
         .build();
 
-    Call service = gateway.call().router((reg, msg) -> 
-    reg.listServiceReferences().stream().filter(ref -> ((GreetingRequest)msg.data()).getName()
-        .equals(ref.tags().get("ONLYFOR"))).collect(Collectors.toList())
-      );
+    Call service = gateway.call().router(
+        (reg, msg) -> reg.listServiceReferences().stream().filter(ref -> ((GreetingRequest) msg.data()).getName()
+            .equals(ref.tags().get("ONLYFOR"))).collect(Collectors.toList()));
 
     // call the service.
-   for (int i = 0; i < 10 ; i++) {
-     GreetingResponse resultForFransin =
-         Mono.from(service.requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class)).timeout(timeout).block().data();
-     GreetingResponse resultForJoe =
-         Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
-     assertEquals("1", resultForJoe.sender());
-     assertEquals("2", resultForFransin.sender());
-   }
+    for (int i = 0; i < 10; i++) {
+      GreetingResponse resultForFransin =
+          Mono.from(service.requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class)).timeout(timeout).block().data();
+      GreetingResponse resultForJoe =
+          Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
+      assertEquals("1", resultForJoe.sender());
+      assertEquals("2", resultForFransin.sender());
+    }
     provider2.shutdown().block();
     provider1.shutdown().block();
     gateway.shutdown().block();
   }
 
   @Test
-  public void test_async_greeting_return_string_service_not_found_error_case()
-      throws Exception {
+  public void test_async_greeting_return_string_service_not_found_error_case() throws Exception {
     Microservices gateway = gateway();
 
     // Create microservices instance cluster.
@@ -510,8 +509,8 @@ public class ServiceCallTest extends BaseTest {
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       // call the service.
-      Publisher<ServiceMessage> future = service.requestOne(NOT_FOUND_REQ);
-
+      Mono.from(service.requestOne(NOT_FOUND_REQ)).block(timeout);
+      fail("Expected no-service-found exception");
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
       timeLatch.countDown();
@@ -572,12 +571,10 @@ public class ServiceCallTest extends BaseTest {
     services1.shutdown().block();
     services2.shutdown().block();
     gateway.shutdown().block();
-
   }
 
   @Test
-  public void test_dispatcher_remote_greeting_request_completes_before_timeout() throws Exception {
-
+  public void test_dispatcher_remote_greeting_request_completes_before_timeout() {
     // Create microservices instance.
     Microservices gateway = gateway();
 
@@ -599,7 +596,6 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_dispatcher_local_greeting_request_completes_before_timeout() {
-
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
