@@ -1,6 +1,6 @@
 package io.scalecube.services.api;
 
-public class NullData {
+public final class NullData {
 
   public static final NullData NULL_DATA = new NullData();
 
