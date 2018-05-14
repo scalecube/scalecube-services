@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class LocalServiceHandlers {
+public final class LocalServiceHandlers {
 
   private ConcurrentMap<String, ServiceMessageHandler> localServices = new ConcurrentHashMap<>();
 
