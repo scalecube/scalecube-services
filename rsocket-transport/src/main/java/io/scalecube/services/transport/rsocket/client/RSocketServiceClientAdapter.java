@@ -32,11 +32,13 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   }
 
   private Payload toPayload(ServiceMessage request) {
-    return messageCodec.encodeAndTransform(request, ByteBufPayload::create);
+    Payload payload = messageCodec.encodeAndTransform(request, ByteBufPayload::create);
+    System.err.println(">>> Client encode: " + payload.sliceMetadata().toString(Charset.defaultCharset()));
+    return payload;
   }
 
   private ServiceMessage toMessage(Payload payload) {
-    System.err.println("Client decode: " + payload.sliceMetadata().toString(Charset.defaultCharset()));
+    System.err.println(">>> Client decode: " + payload.sliceMetadata().toString(Charset.defaultCharset()));
     return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
   }
 }
