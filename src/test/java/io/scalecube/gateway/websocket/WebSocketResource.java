@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 import io.netty.buffer.ByteBufAllocator;
 
 import org.junit.rules.ExternalResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.web.reactive.socket.WebSocketMessage;
@@ -19,13 +21,17 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
 
 public class WebSocketResource extends ExternalResource implements Closeable {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketResource.class);
 
   private static NettyDataBufferFactory BUFFER_FACTORY =
       new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
@@ -51,26 +57,38 @@ public class WebSocketResource extends ExternalResource implements Closeable {
     return serverAddress;
   }
 
-  public Flux<Object> newClientSession(String path, Flux<Object> flux) {
+  public Flux<Object> newClientSession(String path, Flux<Object> requests) {
     client = new ReactorNettyWebSocketClient();
+    URI uri = getUri(path);
+    FluxProcessor<Object, Object> responses =
+        ReplayProcessor.create().serialize();
+    client.execute(uri,
+        session -> {
+          LOGGER.info("Start sending messages");
+          return session
+              .send(requests.map(this::encode).take(10).log("Client-OUT"))
+              .thenMany(session.receive().map(this::decode))
+              .subscribeWith(responses)
+              .log("Client-IN")
+              .then();
+        })
+        .doOnSuccessOrError((aVoid, ex) -> LOGGER.debug("Done: " + (ex != null ? ex.getMessage() : "success")))
+        .block(Duration.ofSeconds(10));
+    return responses;
+  }
 
-    return FluxProcessor.create(emitter -> {
-      UriComponentsBuilder builder = UriComponentsBuilder
-          .newInstance()
-          .scheme("ws")
-          .host(serverAddress.getAddress().getHostAddress())
-          .port(serverAddress.getPort());
+  private URI getUri(String path) {
+    UriComponentsBuilder builder = UriComponentsBuilder
+        .newInstance()
+        .scheme("ws")
+        .host(serverAddress.getAddress().getHostAddress())
+        .port(serverAddress.getPort());
 
-      if (path != null) {
-        builder.path(path);
-      }
+    if (path != null) {
+      builder.path(path);
+    }
 
-      URI url = builder.build().toUri();
-
-      client.execute(url, session -> session.send(flux.map(this::encode)).log()
-          .thenMany(session.receive().map(this::decode).log())
-          .then());
-    });
+    return builder.build().toUri();
   }
 
   private Object decode(WebSocketMessage message) {
