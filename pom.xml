@@ -63,10 +63,9 @@
         <reactor.version>3.1.6.RELEASE</reactor.version>
         <rxjava.version>1.3.8</rxjava.version>
         <metrics.version>3.1.2</metrics.version>
-        <rsocket.version>0.10.3</rsocket.version>
+        <rsocket.version>0.11.1</rsocket.version>
         <protostuff.version>1.6.0</protostuff.version>
-        <netty.version>4.1.21.Final</netty.version>
-        <rsocket.version>0.10.3</rsocket.version>
+        <netty.version>4.1.24.Final</netty.version>
         <slf4j.version>1.7.7</slf4j.version>
         <log4j.version>2.6.2</log4j.version>
         <junit.version>4.12</junit.version>
@@ -193,6 +192,7 @@
             <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-transport-native-epoll</artifactId>
+                <classifier>linux-x86_64</classifier>
                 <version>${netty.version}</version>
             </dependency>
 
