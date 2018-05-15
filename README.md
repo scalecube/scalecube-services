@@ -12,10 +12,10 @@ ScaleCube Services Features:
 
 * Provision and interconnect microservices as a service-mesh (cluster)</li>
 * Reactive Streams support.
-  * Fire And Forget - send and forget pattern
-  * Request Response - async request reply
-  * Request Stream - subscribe to a stream. 
-  * Request Channel - bidirectional communication.
+  * Fire And Forget - Send and not wait for a reply
+  * Request Response - Send single request and expect single reply
+  * Request Stream - Send single request and expect stream of responses. 
+  * Request bidirectional - send stream of requests and expect stream of responses.
 * No single-point-of-failure or single-point-of-bottleneck
 * Cluster aware and distributed
 * Modular, flexible deployment models and topology
