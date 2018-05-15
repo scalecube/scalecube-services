@@ -68,7 +68,7 @@ public final class ServiceMessageCodec {
       try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice())) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
-        System.err.println("ServiceMessageCodec decode: " + headersBuffer.toString(Charset.defaultCharset()));
+        System.err.println("### Codec decode: " + headersBuffer.toString(Charset.defaultCharset()));
         throw new BadRequestException(String.format(ERROR_HEADERS_DECODE_FAILED, ex));
       } finally {
         ReferenceCountUtil.release(headersBuffer);

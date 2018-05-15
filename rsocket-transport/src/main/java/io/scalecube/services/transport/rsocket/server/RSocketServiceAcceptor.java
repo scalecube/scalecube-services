@@ -14,6 +14,8 @@ import io.rsocket.util.ByteBufPayload;
 
 import org.reactivestreams.Publisher;
 
+import java.nio.charset.Charset;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -43,6 +45,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       }
 
       private ServiceMessage toMessage(Payload payload) {
+        System.err.println("### Server decode: " + payload.sliceMetadata().toString(Charset.defaultCharset()));
         return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
       }
     });
