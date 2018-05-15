@@ -41,7 +41,9 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       }
 
       private Payload toPayload(ServiceMessage response) {
-        return messageCodec.encodeAndTransform(response, ByteBufPayload::create);
+        Payload payload = messageCodec.encodeAndTransform(response, ByteBufPayload::create);
+        System.err.println("### Server encode: " + payload.sliceMetadata().toString(Charset.defaultCharset()));
+        return payload;
       }
 
       private ServiceMessage toMessage(Payload payload) {
