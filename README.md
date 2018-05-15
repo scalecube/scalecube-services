@@ -3,6 +3,19 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/5e2ee9be41f7425590313ee1b8f737d7)](https://app.codacy.com/app/ScaleCube/scalecube-services?utm_source=github.com&utm_medium=referral&utm_content=scalecube/scalecube-services&utm_campaign=badger)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
 
+##Maven
+Binaries and dependency information for Maven can be found at http://search.maven.org.
+
+To add a dependency on ScaleCube Services using Maven, use the following:
+
+```xml
+<dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-services</artifactId>
+  <version>2.y.z</version> 
+</dependency>
+```
+
 ### MICROSERVICES 2.0
 
 ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery 
