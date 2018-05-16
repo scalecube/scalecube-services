@@ -14,7 +14,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.routing.Routers;
 
 import com.google.common.base.Strings;
 
@@ -124,9 +124,9 @@ public class Reflect {
         if (routerClass.isAnnotationPresent(Null.class)) {
           routerClass = RoundRobinServiceRouter.class;
         }
-        Router router = Optional.of(routerClass).map(RouterFactory::getRouter).orElseGet(() -> {
+        Router router = Optional.of(routerClass).map(Routers::getRouter).orElseGet(() -> {
           LOGGER.warn("Unable to inject router {}, using RoundRobin", injection.router());
-          return RouterFactory.getRouter(RoundRobinServiceRouter.class);
+          return Routers.getRouter(RoundRobinServiceRouter.class);
         });
         setField(field, service, this.microservices.call().router(router).api(field.getType()));
       }

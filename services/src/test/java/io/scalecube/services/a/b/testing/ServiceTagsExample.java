@@ -2,7 +2,7 @@ package io.scalecube.services.a.b.testing;
 
 import io.scalecube.services.GreetingRequest;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.routing.Routers;
 
 import reactor.core.publisher.Mono;
 
@@ -25,7 +25,7 @@ public class ServiceTagsExample {
         .startAwait();
 
     CanaryService service = gateway.call()
-        .router(RouterFactory.getRouter(CanaryTestingRouter.class))
+        .router(CanaryTestingRouter.class)
         .api(CanaryService.class);
 
     for (int i = 0; i < 10; i++) {

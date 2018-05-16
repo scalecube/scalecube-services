@@ -13,9 +13,9 @@ import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.DefaultServiceMessageAcceptor;
-import io.scalecube.services.transport.LocalServiceHandlers;
+import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
@@ -114,7 +114,7 @@ public class Microservices {
   private final Address serviceAddress;
   private final ServiceDiscovery discovery;
   private final ServerTransport server;
-  private final LocalServiceHandlers serviceHandlers;
+  private final LocalServiceDispatchers serviceDispatchers;
   private final List<Object> services;
   private final ClusterConfig.Builder clusterConfig;
 
@@ -128,11 +128,12 @@ public class Microservices {
     this.server = builder.server;
 
     this.services = builder.services.stream().map(mapper -> mapper.serviceInstance).collect(Collectors.toList());
-    this.serviceHandlers = LocalServiceHandlers.builder()
+    this.serviceDispatchers = LocalServiceDispatchers.builder()
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
+    server.accept(new DefaultServiceMessageAcceptor(serviceDispatchers));
     InetSocketAddress socketAddress = new InetSocketAddress(Addressing.getLocalIpAddress(), builder.servicePort);
-    InetSocketAddress address = server.bindAwait(socketAddress, new DefaultServiceMessageAcceptor(serviceHandlers));
+    InetSocketAddress address = server.bindAwait(socketAddress);
     serviceAddress = Address.create(address.getHostString(), address.getPort());
 
     serviceRegistry = new ServiceRegistryImpl();
@@ -262,8 +263,8 @@ public class Microservices {
   }
 
   public Call call() {
-    Router router = RouterFactory.getRouter(RoundRobinServiceRouter.class);
-    return new ServiceCall(client, serviceHandlers, serviceRegistry).call().metrics(metrics).router(router);
+    Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+    return new ServiceCall(client, serviceDispatchers, serviceRegistry).call().metrics(metrics).router(router);
   }
 
   public Mono<Void> shutdown() {
