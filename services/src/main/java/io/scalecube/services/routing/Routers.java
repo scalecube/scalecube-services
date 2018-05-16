@@ -5,12 +5,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class RouterFactory {
-  private static final Logger LOGGER = LoggerFactory.getLogger(RouterFactory.class);
+public class Routers {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Routers.class);
 
   private static final ConcurrentHashMap<Class<? extends Router>, Router> routers = new ConcurrentHashMap<>();
 
-  private RouterFactory() {
+  private Routers() {
   }
 
   /**
@@ -21,7 +21,7 @@ public class RouterFactory {
    * @return instance of the Router.
    */
   public static Router getRouter(Class<? extends Router> routing) {
-    return routers.computeIfAbsent(routing, RouterFactory::create);
+    return routers.computeIfAbsent(routing, Routers::create);
   }
 
   private static Router create(Class<? extends Router> routing) {

@@ -10,7 +10,7 @@ import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.routing.Routers;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,7 +57,7 @@ public class RemoteServiceTest extends BaseTest {
         .startAwait();
 
     CanaryService service = gateway.call()
-        .router(RouterFactory.getRouter(CanaryTestingRouter.class))
+        .router(Routers.getRouter(CanaryTestingRouter.class))
         .api(CanaryService.class);
 
     Util.sleep(1000);

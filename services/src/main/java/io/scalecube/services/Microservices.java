@@ -13,7 +13,7 @@ import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.DefaultServiceMessageAcceptor;
 import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.ServiceTransport;
@@ -263,7 +263,7 @@ public class Microservices {
   }
 
   public Call call() {
-    Router router = RouterFactory.getRouter(RoundRobinServiceRouter.class);
+    Router router = Routers.getRouter(RoundRobinServiceRouter.class);
     return new ServiceCall(client, serviceDispatchers, serviceRegistry).call().metrics(metrics).router(router);
   }
 

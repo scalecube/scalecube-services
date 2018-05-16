@@ -8,6 +8,7 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.LocalServiceDispatchers;
 import io.scalecube.services.transport.api.ServiceMethodDispatcher;
 import io.scalecube.services.transport.client.api.ClientTransport;
@@ -67,6 +68,11 @@ public class ServiceCall {
       this.localServices = localServices;
     }
 
+    public Call router(Class<? extends Router> routerType) {
+      this.router = Routers.getRouter(routerType);
+      return this;
+    }
+    
     public Call router(Router router) {
       this.router = router;
       return this;
