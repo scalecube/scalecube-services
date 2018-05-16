@@ -25,7 +25,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final ConcurrentMap<Address, Mono<RSocket>> rSockets = new ConcurrentHashMap<>();
+  private final ConcurrentMap<Address, ThreadLocal<Mono<RSocket>>> rSockets = new ConcurrentHashMap<>();
 
   private final ServiceMessageCodec codec;
 
@@ -36,10 +36,10 @@ public class RSocketClientTransport implements ClientTransport {
   @Override
   public ClientChannel create(Address address) {
     // noinspection unchecked
-    return new RSocketServiceClientAdapter(rSockets.computeIfAbsent(address, this::connect), codec);
+    return new RSocketServiceClientAdapter(rSockets.computeIfAbsent(address, this::connect).get(), codec);
   }
 
-  private Mono<RSocket> connect(Address address) {
+  private ThreadLocal<Mono<RSocket>> connect(Address address) {
     CompletableFuture<RSocket> promise = new CompletableFuture<>();
 
     RSocketFactory.connect()
@@ -60,7 +60,7 @@ public class RSocketClientTransport implements ClientTransport {
               promise.completeExceptionally(throwable);
             });
 
-    return Mono.fromFuture(promise);
+    return ThreadLocal.withInitial(() -> Mono.fromFuture(promise));
   }
 
   private TcpClientTransport createTcpClientTransport(Address address) {
