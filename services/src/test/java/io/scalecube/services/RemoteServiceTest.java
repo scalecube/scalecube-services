@@ -10,7 +10,7 @@ import io.scalecube.services.a.b.testing.CanaryTestingRouter;
 import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.routing.Routers;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,22 +38,25 @@ public class RemoteServiceTest extends BaseTest {
   public void test_remote_service_tags() {
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
 
     Microservices services1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
+        .build()
         .startAwait();
 
     Microservices services2 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
+        .build()
         .startAwait();
 
     CanaryService service = gateway.call()
-        .router(RouterFactory.getRouter(CanaryTestingRouter.class))
+        .router(Routers.getRouter(CanaryTestingRouter.class))
         .api(CanaryService.class);
 
     Util.sleep(1000);
@@ -85,11 +88,13 @@ public class RemoteServiceTest extends BaseTest {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
 
     Microservices node2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     GreetingService service = gateway.call()
@@ -108,12 +113,14 @@ public class RemoteServiceTest extends BaseTest {
     // Create microservices instance.
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
 
     CountDownLatch signal = new CountDownLatch(1);
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl(signal))
+        .build()
         .startAwait();
 
     GreetingService service = gateway.call()
@@ -138,12 +145,14 @@ public class RemoteServiceTest extends BaseTest {
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -162,12 +171,14 @@ public class RemoteServiceTest extends BaseTest {
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -188,12 +199,14 @@ public class RemoteServiceTest extends BaseTest {
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -214,12 +227,14 @@ public class RemoteServiceTest extends BaseTest {
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -242,12 +257,14 @@ public class RemoteServiceTest extends BaseTest {
     Microservices provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -271,6 +288,7 @@ public class RemoteServiceTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(1))
+        .build()
         .startAwait();
 
     // Create microservices instance cluster.
@@ -278,6 +296,7 @@ public class RemoteServiceTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(2))
+        .build()
         .startAwait();
 
     GreetingService service = createProxy(gateway);
@@ -325,6 +344,7 @@ public class RemoteServiceTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(greeting, coarseGrained) // add service a and b
+        .build()
         .startAwait();
 
     // Get a proxy to the service api.
@@ -350,6 +370,7 @@ public class RemoteServiceTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(greeting, another) // add service a and b
+        .build()
         .startAwait();
 
     // Get a proxy to the service api.
@@ -375,6 +396,7 @@ public class RemoteServiceTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(greeting, another) // add service a and b
+        .build()
         .startAwait();
 
     // Get a proxy to the service api.
@@ -401,6 +423,7 @@ public class RemoteServiceTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(greeting, another) // add service a and b
+        .build()
         .startAwait();
 
     // Get a proxy to the service api.
@@ -426,6 +449,7 @@ public class RemoteServiceTest extends BaseTest {
     Microservices ms = Microservices.builder()
         .clusterConfig(clusterConfig)
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));
@@ -439,12 +463,14 @@ public class RemoteServiceTest extends BaseTest {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
   }
 
   private Microservices createSeed() {
     return Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
   }
 

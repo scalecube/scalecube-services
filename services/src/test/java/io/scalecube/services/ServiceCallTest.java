@@ -24,8 +24,6 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
-import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.RouterFactory;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,8 +59,7 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices cluster.
     Microservices microservices = serviceProvider();
 
-    Router router = RouterFactory.getRouter(RoundRobinServiceRouter.class);
-    Call serviceCall = microservices.call().router(router);
+    Call serviceCall = microservices.call().router(RoundRobinServiceRouter.class);
 
     // call the service.
     Publisher<ServiceMessage> future =
@@ -79,6 +76,7 @@ public class ServiceCallTest extends BaseTest {
     return Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
   }
 
@@ -86,6 +84,7 @@ public class ServiceCallTest extends BaseTest {
     return Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(latch))
+        .build()
         .startAwait();
   }
 
@@ -98,6 +97,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     Call serviceCall = consumer.call();
@@ -125,6 +125,7 @@ public class ServiceCallTest extends BaseTest {
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl(signal))
+        .build()
         .startAwait();
 
     // When
@@ -156,6 +157,7 @@ public class ServiceCallTest extends BaseTest {
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     // When
@@ -177,6 +179,7 @@ public class ServiceCallTest extends BaseTest {
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     // When
@@ -244,6 +247,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     Publisher<ServiceMessage> resultFuture = consumer.call().requestOne(GREETING_REQ);
@@ -283,6 +287,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     // When
@@ -329,6 +334,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     Call service = consumer.call();
@@ -380,6 +386,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
+        .build()
         .startAwait();
 
     Call service = consumer.call();
@@ -409,6 +416,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(1))
+        .build()
         .startAwait();
 
     // Create microservices instance cluster.
@@ -416,6 +424,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(2))
+        .build()
         .startAwait();
 
     Call service = gateway.call();
@@ -442,6 +451,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .service(new GreetingServiceImpl(1)).tag("SENDER", "1").register()
+        .build()
         .startAwait();
 
     // Create microservices instance cluster.
@@ -449,6 +459,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .service(new GreetingServiceImpl(2)).tag("SENDER", "2").register()
+        .build()
         .startAwait();
 
     Call service = gateway.call().router((reg, msg) -> reg.listServiceReferences().stream().filter(ref -> "2".equals(
@@ -474,6 +485,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .service(new GreetingServiceImpl(1)).tag("ONLYFOR", "joe").register()
+        .build()
         .startAwait();
 
     // Create microservices instance cluster.
@@ -481,6 +493,7 @@ public class ServiceCallTest extends BaseTest {
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
         .service(new GreetingServiceImpl(2)).tag("ONLYFOR", "fransin").register()
+        .build()
         .startAwait();
 
     Call service = gateway.call().router(
@@ -533,19 +546,20 @@ public class ServiceCallTest extends BaseTest {
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
+        .build()
         .startAwait();
 
     Microservices services2 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
+        .build()
         .startAwait();
 
     System.out.println(gateway.cluster().members());
 
     TimeUnit.SECONDS.sleep(3);
-    Call service = gateway.call()
-        .router(RouterFactory.getRouter(CanaryTestingRouter.class));
+    Call service = gateway.call().router(CanaryTestingRouter.class);
 
     ServiceMessage req = Messages.builder()
         .request(CanaryService.class, "greeting")
@@ -588,6 +602,7 @@ public class ServiceCallTest extends BaseTest {
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     Publisher<ServiceMessage> result = gateway.call().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
@@ -605,6 +620,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
+        .build()
         .startAwait();
 
     Call service = gateway.call();
@@ -622,12 +638,14 @@ public class ServiceCallTest extends BaseTest {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
   }
 
   private Microservices gateway() {
     return Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
   }
 

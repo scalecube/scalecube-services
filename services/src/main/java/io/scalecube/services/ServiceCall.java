@@ -9,6 +9,7 @@ import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
@@ -60,6 +61,11 @@ public class ServiceCall {
       this.serviceRegistry = serviceRegistry;
       this.dataCodec = new ServiceMessageDataCodec();
       this.serviceHandlers = serviceHandlers;
+    }
+
+    public Call router(Class<? extends Router> routerType) {
+      this.router = Routers.getRouter(routerType);
+      return this;
     }
 
     public Call router(Router router) {
