@@ -46,6 +46,7 @@ public class StreamingServiceTest extends BaseTest {
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     QuoteService service = node.call().api(QuoteService.class);
@@ -66,12 +67,14 @@ public class StreamingServiceTest extends BaseTest {
   public void test_remote_quotes_service() throws InterruptedException {
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     QuoteService service = gateway.call().api(QuoteService.class);
@@ -105,12 +108,13 @@ public class StreamingServiceTest extends BaseTest {
     int streamBound = 1000;
 
     Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet()).startAwait();
+        .discoveryPort(port.incrementAndGet()).build().startAwait();
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
         .metrics(registry)
+        .build()
         .startAwait();
 
     QuoteService service = gateway.call().api(QuoteService.class);
@@ -132,12 +136,14 @@ public class StreamingServiceTest extends BaseTest {
     int batchSize = 1000;
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     Call service = gateway.call();
@@ -161,12 +167,14 @@ public class StreamingServiceTest extends BaseTest {
   public void test_just_once() {
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     QuoteService service = gateway.call().api(QuoteService.class);
@@ -181,12 +189,13 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_just_one_message() throws InterruptedException {
     int batchSize = 1;
-    Microservices gateway = Microservices.builder().startAwait();
+    Microservices gateway = Microservices.builder().build().startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     Call service = gateway.call();
@@ -205,12 +214,13 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_scheduled_messages() throws InterruptedException {
     int batchSize = 1;
-    Microservices gateway = Microservices.builder().startAwait();
+    Microservices gateway = Microservices.builder().build().startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     Call service = gateway.call();
@@ -237,11 +247,13 @@ public class StreamingServiceTest extends BaseTest {
 
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     Call service = gateway.call();
@@ -269,12 +281,14 @@ public class StreamingServiceTest extends BaseTest {
     int batchSize = 1;
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
+        .build()
         .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
+        .build()
         .startAwait();
 
     Call service = gateway.call();
