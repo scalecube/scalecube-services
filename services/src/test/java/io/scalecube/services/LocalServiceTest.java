@@ -30,7 +30,7 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build();
+        .startAwait();
 
     GreetingService service = node1.call().api(GreetingService.class);
 
@@ -57,7 +57,7 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build();
+        .startAwait();
 
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
@@ -78,7 +78,7 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build();
+        .startAwait();
 
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
@@ -102,7 +102,7 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(signal))
-        .build();
+        .startAwait();
 
     GreetingService service = node1.call().api(GreetingService.class);
 
@@ -128,7 +128,7 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build();
+        .startAwait();
 
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
@@ -156,7 +156,7 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build();
+        .startAwait();
 
     GreetingService service = node1.call().api(GreetingService.class);
 
@@ -176,7 +176,7 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build();
+        .startAwait();
 
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);

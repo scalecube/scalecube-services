@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.discovery.ServiceDiscovery.SERVICE_METADATA;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.Cluster;
@@ -115,6 +116,9 @@ public class Microservices {
   private final ServerTransport server;
   private final LocalServiceHandlers serviceHandlers;
   private final List<Object> services;
+  private final ClusterConfig.Builder clusterConfig;
+
+  private Cluster cluster; // calculated field
 
   private Microservices(Builder builder) {
 
@@ -143,7 +147,8 @@ public class Microservices {
     }
 
     discovery = new ServiceDiscovery(serviceRegistry);
-    discovery.start(builder.clusterConfig);
+
+    clusterConfig = builder.clusterConfig;
   }
 
   public Metrics metrics() {
@@ -174,6 +179,27 @@ public class Microservices {
      */
     public Microservices build() {
       return Reflect.builder(new Microservices(this)).inject();
+    }
+
+    public Mono<Microservices> start() {
+      final Microservices microservices = Reflect.builder(new Microservices(this)).inject();
+
+      List<ServiceEndpoint> serviceEndpoints = microservices.serviceRegistry.listServiceEndpoints();
+      if (serviceEndpoints != null && !serviceEndpoints.isEmpty()) {
+        microservices.clusterConfig.addMetadata(serviceEndpoints.stream()
+            .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
+      }
+
+      final ClusterConfig clusterConfig = microservices.clusterConfig.build();
+      return Mono.fromFuture(Cluster.join(clusterConfig)).map(cluster -> {
+        microservices.cluster(cluster);
+        microservices.discovery.init(cluster);
+        return microservices;
+      });
+    }
+
+    public Microservices startAwait() {
+      return start().block();
     }
 
     public Builder server(ServerTransport server) {
@@ -228,6 +254,11 @@ public class Microservices {
     }
   }
 
+  private Microservices cluster(Cluster cluster) {
+    this.cluster = cluster;
+    return this;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -246,11 +277,11 @@ public class Microservices {
   }
 
   public Mono<Void> shutdown() {
-    return Mono.when(Mono.fromFuture(discovery.shutdown()), server.stop());
+    return Mono.when(Mono.fromFuture(cluster.shutdown()), server.stop());
   }
 
   public Cluster cluster() {
-    return discovery.cluster();
+    return cluster;
   }
 
   public static class ServiceBuilder {
