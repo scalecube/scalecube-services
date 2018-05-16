@@ -9,14 +9,17 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.charset.Charset;
 import java.util.Optional;
 
 public final class ServiceMessageDataCodec {
 
-  private static final String DEFAULT_DATA_FORMAT = "application/json";
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageDataCodec.class);
 
-  private static final String ERROR_DATA_ENCODE_FAILED = "Failed to serialize data on %s, cause: %s";
-  private static final String ERROR_DATA_DECODE_FAILED = "Failed to deserialize data on %s, cause: %s";
+  private static final String DEFAULT_DATA_FORMAT = "application/json";
 
   public ServiceMessage encode(ServiceMessage message) {
     if (message.hasData()) {
@@ -28,7 +31,8 @@ public final class ServiceMessageDataCodec {
         return ServiceMessage.from(message).data(buffer).build();
       } catch (Throwable ex) {
         ReferenceCountUtil.release(buffer);
-        throw new BadRequestException(String.format(ERROR_DATA_ENCODE_FAILED, message, ex));
+        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
+        throw new BadRequestException("Failed to encode data on message q=" + message.qualifier());
       }
     }
     return message;
@@ -41,7 +45,9 @@ public final class ServiceMessageDataCodec {
         DataCodec dataCodec = DataCodec.getInstance(contentType);
         return ServiceMessage.from(message).data(dataCodec.decode(inputStream, type)).build();
       } catch (Throwable ex) {
-        throw new BadRequestException(String.format(ERROR_DATA_DECODE_FAILED, message, ex));
+        LOGGER.error("Failed to decode data on: {}, data buffer: {}, cause: {}",
+            message, ex, ((ByteBuf) message.data()).toString(Charset.defaultCharset()));
+        throw new BadRequestException("Failed to decode data on message q=" + message.qualifier());
       } finally {
         ReferenceCountUtil.release(message.data());
       }

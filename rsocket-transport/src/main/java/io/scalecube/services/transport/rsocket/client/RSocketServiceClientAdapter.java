@@ -8,8 +8,6 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
 
-import java.nio.charset.Charset;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -31,13 +29,10 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   }
 
   private Payload toPayload(ServiceMessage request) {
-    Payload payload = messageCodec.encodeAndTransform(request, ByteBufPayload::create);
-    System.err.println(">>> Client encode: " + payload.sliceMetadata().toString(Charset.defaultCharset()));
-    return payload;
+    return messageCodec.encodeAndTransform(request, ByteBufPayload::create);
   }
 
   private ServiceMessage toMessage(Payload payload) {
-    System.err.println(">>> Client decode: " + payload.sliceMetadata().toString(Charset.defaultCharset()));
     return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
   }
 }
