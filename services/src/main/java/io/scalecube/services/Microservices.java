@@ -152,6 +152,16 @@ public class Microservices {
     clusterConfig = builder.clusterConfig;
   }
 
+  public Mono<Microservices> start() {
+    clusterConfig.addMetadata(serviceRegistry.listServiceEndpoints().stream()
+        .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
+    return Mono.fromFuture(Cluster.join(clusterConfig.build())).map(this::init);
+  }
+
+  public Microservices startAwait() {
+    return start().block();
+  }
+
   public Metrics metrics() {
     return this.metrics;
   }
@@ -179,28 +189,7 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-      return Reflect.builder(new Microservices(this)).inject();
-    }
-
-    public Mono<Microservices> start() {
-      final Microservices microservices = Reflect.builder(new Microservices(this)).inject();
-
-      List<ServiceEndpoint> serviceEndpoints = microservices.serviceRegistry.listServiceEndpoints();
-      if (serviceEndpoints != null && !serviceEndpoints.isEmpty()) {
-        microservices.clusterConfig.addMetadata(serviceEndpoints.stream()
-            .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
-      }
-
-      final ClusterConfig clusterConfig = microservices.clusterConfig.build();
-      return Mono.fromFuture(Cluster.join(clusterConfig)).map(cluster -> {
-        microservices.cluster(cluster);
-        microservices.discovery.init(cluster);
-        return microservices;
-      });
-    }
-
-    public Microservices startAwait() {
-      return start().block();
+      return new Microservices(this);
     }
 
     public Builder server(ServerTransport server) {
@@ -255,9 +244,10 @@ public class Microservices {
     }
   }
 
-  private Microservices cluster(Cluster cluster) {
+  private Microservices init(Cluster cluster) {
     this.cluster = cluster;
-    return this;
+    discovery.init(cluster);
+    return Reflect.builder(this).inject();
   }
 
   public static Builder builder() {
