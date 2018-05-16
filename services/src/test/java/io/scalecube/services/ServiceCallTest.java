@@ -552,26 +552,28 @@ public class ServiceCallTest extends BaseTest {
         .data(new GreetingRequest("joe"))
         .build();
 
-    AtomicInteger count = new AtomicInteger(0);
-    AtomicInteger responses = new AtomicInteger(0);
-    CountDownLatch timeLatch = new CountDownLatch(1);
+    AtomicInteger serviceBCount = new AtomicInteger(0);
 
     int n = (int) 1e3;
+    CountDownLatch timeLatch = new CountDownLatch(n);
     for (int i = 0; i < n; i++) {
-      ServiceMessage success = Mono.from(service.requestOne(req)).block();
-      responses.incrementAndGet();
-      if (success.data().toString().contains("SERVICE_B_TALKING")) {
-        count.incrementAndGet();
-        if ((responses.get() == n) && (60 < count.get() && count.get() < 85)) {
-          timeLatch.countDown();
+      Mono<ServiceMessage> response = service.requestOne(req);
+      response.doOnNext(message -> {
+        timeLatch.countDown();
+        if (message.data().toString().contains("SERVICE_B_TALKING")) {
+          serviceBCount.incrementAndGet();
         }
-      }
+      }).subscribe();
     }
-    System.out.println("responses: " + responses.get());
-    System.out.println("count: " + count.get());
-    System.out.println("Service B was called: " + count.get() + " times.");
 
-    assertTrue((responses.get() == n) && (60 < count.get() && count.get() < 85));
+    timeLatch.await(1, TimeUnit.MINUTES);
+    assertEquals(0, timeLatch.getCount());
+
+    System.out.println("count: " + serviceBCount.get());
+    System.out.println("Service B was called: " + serviceBCount.get() + " times.");
+
+    assertEquals(0.7d, serviceBCount.doubleValue() / n, 0.1d);
+
     services1.shutdown().block();
     services2.shutdown().block();
     gateway.shutdown().block();
