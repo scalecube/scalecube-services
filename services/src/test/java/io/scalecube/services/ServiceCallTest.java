@@ -82,6 +82,13 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
   }
 
+  private Microservices serviceProvider(CountDownLatch latch) {
+    return Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .services(new GreetingServiceImpl(latch))
+        .startAwait();
+  }
+
   @Test
   public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
@@ -183,10 +190,7 @@ public class ServiceCallTest extends BaseTest {
   public void test_local_void_greeting() throws Exception {
     // GIVEN
     CountDownLatch signal = new CountDownLatch(1);
-    Microservices node = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl(signal))
-        .build();
+    Microservices node = serviceProvider(signal);
 
     // WHEN
     AtomicReference<SignalType> success = new AtomicReference<>();
