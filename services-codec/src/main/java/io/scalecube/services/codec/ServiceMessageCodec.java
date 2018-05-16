@@ -73,8 +73,8 @@ public final class ServiceMessageCodec {
       } catch (Throwable ex) {
         LOGGER.error("Failed to decode message headers: {}, cause: {}",
             headersBuffer.toString(Charset.defaultCharset()), ex);
-        throw new BadRequestException("Failed to decode message headers {h_bytes=" + headersBuffer.readableBytes()
-            + ", d_bytes=" + dataBuffer.readableBytes() + "}");
+        throw new BadRequestException("Failed to decode message headers {headers=" + headersBuffer.readableBytes()
+            + ", data=" + dataBuffer.readableBytes() + "}");
       } finally {
         ReferenceCountUtil.release(headersBuffer);
       }
