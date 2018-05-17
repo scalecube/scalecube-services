@@ -123,6 +123,7 @@ public class ServiceCallTest extends BaseTest {
     AtomicReference<SignalType> success = new AtomicReference<>();
     gateway.call().oneWay(GREETING_VOID_REQ)
         .doFinally(success::set)
+        .log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&7 doFinally")
         .block(Duration.ofSeconds(TIMEOUT));
 
     // Then:
