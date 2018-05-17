@@ -137,8 +137,8 @@ public class ServiceCallTest extends BaseTest {
 
     // Then:
     signal.await(2, TimeUnit.SECONDS);
-    assertTrue(signal.getCount() == 0);
-    assertNotNull(success.get());
+    assertEquals(0, signal.getCount());
+    assertNotNull("SignalType is null: " + success, success.get());
     assertEquals(SignalType.ON_COMPLETE, success.get());
 
     gateway.shutdown().block();
