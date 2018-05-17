@@ -572,7 +572,7 @@ public class ServiceCallTest extends BaseTest {
     System.out.println("count: " + serviceBCount.get());
     System.out.println("Service B was called: " + serviceBCount.get() + " times.");
 
-    assertEquals(0.7d, serviceBCount.doubleValue() / n, 0.1d);
+    assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.2d);
 
     services1.shutdown().block();
     services2.shutdown().block();
