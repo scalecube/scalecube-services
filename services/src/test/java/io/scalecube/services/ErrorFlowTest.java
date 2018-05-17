@@ -44,21 +44,21 @@ public class ErrorFlowTest {
   @Test(expected = BadRequestException.class)
   public void testCorruptedRequest() {
     Publisher<ServiceMessage> req = consumer
-        .call().requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST);
+        .call().requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
     from(req).block();
   }
 
   @Test(expected = UnauthorizedException.class)
   public void testNotAuthorized() {
     Publisher<ServiceMessage> req = consumer
-        .call().requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST);
+        .call().requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
     from(req).block();
   }
 
   @Test(expected = BadRequestException.class)
   public void testNullRequestPayload() {
     Publisher<ServiceMessage> req = consumer
-        .call().requestOne(TestRequests.GREETING_NULL_PAYLOAD);
+        .call().requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
     from(req).block();
   }
 
