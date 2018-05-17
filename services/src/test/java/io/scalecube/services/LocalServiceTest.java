@@ -101,10 +101,9 @@ public class LocalServiceTest extends BaseTest {
   @Test
   public void test_local_void_greeting() throws Exception {
     // Create microservices instance.
-    CountDownLatch signal = new CountDownLatch(1);
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl(signal))
+        .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
@@ -113,10 +112,9 @@ public class LocalServiceTest extends BaseTest {
     CountDownLatch exectOne = new CountDownLatch(1);
     // call the service.
     service.greetingVoid(new GreetingRequest("joe"))
-        .doOnSuccess((success) -> exectOne.countDown()).subscribe();
+        .doOnSuccess((success) -> exectOne.countDown())
+        .block(Duration.ofSeconds(3));
 
-    signal.await(2, TimeUnit.SECONDS);
-    assertEquals(0, signal.getCount());
     // send and forget so we have no way to know what happen
     // but at least we didn't get exception :)
     assertTrue(exectOne.getCount() == 0);

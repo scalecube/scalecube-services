@@ -116,10 +116,9 @@ public class RemoteServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    CountDownLatch signal = new CountDownLatch(1);
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl(signal))
+        .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
@@ -127,10 +126,9 @@ public class RemoteServiceTest extends BaseTest {
         .api(GreetingService.class);
 
     // call the service.
-    Mono.from(service.greetingVoid(new GreetingRequest("joe"))).block();
+    Mono.from(service.greetingVoid(new GreetingRequest("joe")))
+        .block(Duration.ofSeconds(3));
 
-    signal.await(2, TimeUnit.SECONDS);
-    assertEquals(0, signal.getCount());
     System.out.println("test_remote_void_greeting done.");
 
     Thread.sleep(1000);
