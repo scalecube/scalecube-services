@@ -25,17 +25,20 @@ public class WebSocketServerEchoRunner {
   public static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServerEchoRunner.class);
 
   @Service("greeting")
-  public interface ServiceHello {
-    @ServiceMethod
-    Mono<String> helloString(String hello);
+  public interface GreetingService {
+    
+    @ServiceMethod("to")
+    Mono<String> sayHello(String name);
   }
 
-  public static class ServiceHelloImpl implements ServiceHello {
+  public static class ServiceHelloImpl implements GreetingService {
+    
     @Override
-    public Mono<String> helloString(String hello) {
+    public Mono<String> sayHello(String hello) {
       System.out.println("ServiceHelloImpl/helloString say: " + hello);
-      return Mono.just(hello).log("^^^^^^^^^ ServiceHelloImpl");
+      return Mono.just("Greetings to: " +  hello).log("^^^^^^^^^ ServiceHelloImpl");
     }
+    
   }
 
   public static void main(String[] args) throws InterruptedException {
