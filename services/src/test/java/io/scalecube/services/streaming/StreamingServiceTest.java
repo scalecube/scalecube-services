@@ -262,7 +262,7 @@ public class StreamingServiceTest extends BaseTest {
 
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
     try {
-      service.requestMany(scheduled);
+      service.requestMany(scheduled).blockFirst(Duration.ofSeconds(3));
     } catch (Exception ex) {
       if (ex.getMessage().contains("No reachable member with such service")) {
         latch1.countDown();
