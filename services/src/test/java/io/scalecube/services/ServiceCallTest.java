@@ -161,7 +161,7 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
 
     // When
-    Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ)).block(timeout);
+    Mono.from(gateway.call().requestOne(GREETING_FAIL_REQ, GreetingResponse.class)).block(timeout);
 
     gateway.shutdown().block();
     node1.shutdown().block();
@@ -183,7 +183,7 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
 
     // When
-    Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ)).block(timeout);
+    Mono.from(gateway.call().requestOne(GREETING_ERROR_REQ, GreetingResponse.class)).block(timeout);
 
     gateway.shutdown().block();
     node1.shutdown().block();
@@ -250,7 +250,7 @@ public class ServiceCallTest extends BaseTest {
         .build()
         .startAwait();
 
-    Publisher<ServiceMessage> resultFuture = consumer.call().requestOne(GREETING_REQ);
+    Publisher<ServiceMessage> resultFuture = consumer.call().requestOne(GREETING_REQ, String.class);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
@@ -571,7 +571,7 @@ public class ServiceCallTest extends BaseTest {
     int n = (int) 1e3;
     CountDownLatch timeLatch = new CountDownLatch(n);
     for (int i = 0; i < n; i++) {
-      Mono<ServiceMessage> response = service.requestOne(req);
+      Mono<ServiceMessage> response = service.requestOne(req, GreetingResponse.class);
       response.doOnNext(message -> {
         timeLatch.countDown();
         if (message.data().toString().contains("SERVICE_B_TALKING")) {
