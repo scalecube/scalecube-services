@@ -13,11 +13,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.projectreactor.ipc</groupId>
-      <artifactId>reactor-netty</artifactId>
-      <version>0.7.7.RELEASE</version>
-    </dependency>
-    <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-gateway-http</artifactId>
       <version>${project.version}</version>
