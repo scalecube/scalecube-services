@@ -24,8 +24,6 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
-import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.Routers;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -82,13 +80,6 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
   }
 
-  private Microservices serviceProvider(CountDownLatch latch) {
-    return Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl(latch))
-        .startAwait();
-  }
-
   @Test
   public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
@@ -121,27 +112,20 @@ public class ServiceCallTest extends BaseTest {
     // Given
     Microservices gateway = gateway();
 
-    CountDownLatch signal = new CountDownLatch(1);
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl(signal))
+        .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
     // When
     AtomicReference<SignalType> success = new AtomicReference<>();
     gateway.call().oneWay(GREETING_VOID_REQ)
-        // .doFinally(success::set)
-        .timeout(Duration.ofSeconds(TIMEOUT))
-        .subscribe(aVoid -> {
-          success.set(SignalType.ON_COMPLETE);
-        })
-    /* .block() */;
+        .doFinally(success::set)
+        .block(Duration.ofSeconds(TIMEOUT));
 
     // Then:
-    signal.await(2, TimeUnit.SECONDS);
-    assertEquals(0, signal.getCount());
     assertNotNull("SignalType is null: " + success, success.get());
     assertEquals(SignalType.ON_COMPLETE, success.get());
 
@@ -196,16 +180,13 @@ public class ServiceCallTest extends BaseTest {
   @Test
   public void test_local_void_greeting() throws Exception {
     // GIVEN
-    CountDownLatch signal = new CountDownLatch(1);
-    Microservices node = serviceProvider(signal);
+    Microservices node = serviceProvider();
 
     // WHEN
     AtomicReference<SignalType> success = new AtomicReference<>();
     node.call().oneWay(GREETING_VOID_REQ).doFinally(success::set).block(Duration.ofSeconds(TIMEOUT));
 
     // Then:
-    signal.await(2, TimeUnit.SECONDS);
-    assertEquals(0, signal.getCount());
     assertNotNull(success.get());
     assertEquals(SignalType.ON_COMPLETE, success.get());
 
