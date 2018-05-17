@@ -95,7 +95,7 @@ public final class WebSocketSession {
         .map((WebSocketFrame frame) -> {
           ByteBuf content = frame.content();
           ServiceMessage message =
-              ServiceMessage.builder().qualifier(uri).dataFormat(contentType).data(content).build();
+              ServiceMessage.builder().qualifier(uri.replaceFirst("/", "")).dataFormat(contentType).data(content).build();
           frame.retain();
           return message;
         }).log();
