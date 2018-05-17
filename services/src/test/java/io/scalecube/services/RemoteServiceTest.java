@@ -323,7 +323,7 @@ public class RemoteServiceTest extends BaseTest {
     GreetingService service = createProxy(gateway);
     CountDownLatch timeLatch = new CountDownLatch(1);
     try {
-      service.greeting("hello");
+      service.greeting("hello").block(Duration.ofSeconds(3));
     } catch (Exception ex) {
       assertTrue(ex.getMessage().contains("No reachable member with such service"));
       timeLatch.countDown();
