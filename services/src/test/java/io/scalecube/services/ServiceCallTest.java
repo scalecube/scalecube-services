@@ -131,9 +131,12 @@ public class ServiceCallTest extends BaseTest {
     // When
     AtomicReference<SignalType> success = new AtomicReference<>();
     gateway.call().oneWay(GREETING_VOID_REQ)
-        .doFinally(success::set)
+        // .doFinally(success::set)
         .timeout(Duration.ofSeconds(TIMEOUT))
-        .block();
+        .subscribe(aVoid -> {
+          success.set(SignalType.ON_COMPLETE);
+        })
+    /* .block() */;
 
     // Then:
     signal.await(2, TimeUnit.SECONDS);
