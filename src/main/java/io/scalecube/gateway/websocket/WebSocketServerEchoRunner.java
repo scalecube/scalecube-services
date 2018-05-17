@@ -14,6 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 
@@ -30,6 +33,7 @@ public class WebSocketServerEchoRunner {
   public static class ServiceHelloImpl implements ServiceHello {
     @Override
     public Mono<String> helloString(String hello) {
+      System.out.println("ServiceHelloImpl/helloString say: " + hello);
       return Mono.just(hello).log("^^^^^^^^^ ServiceHelloImpl");
     }
   }
@@ -54,18 +58,18 @@ public class WebSocketServerEchoRunner {
     WebSocketAcceptor acceptor = new WebSocketAcceptor() {
       @Override
       public Mono<Void> onConnect(WebSocketSession session) {
+
         ServiceCall.Call call = services.call();
-
-        MonoProcessor<ServiceMessage> requestProcessor = MonoProcessor.create();
-        MonoProcessor<ServiceMessage> responseProcessor = MonoProcessor.create();
-
+        FluxProcessor<ServiceMessage, ServiceMessage> requestProcessor = EmitterProcessor.create();
+        FluxProcessor<ServiceMessage, ServiceMessage> responseProcessor = EmitterProcessor.create();
         session.receive().subscribe(requestProcessor::onNext);
 
-        call.requestBidirectional(requestProcessor)
-            .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)))
-            .map(dataCodec::encode)
-            .subscribe(responseProcessor::onNext);
-
+        requestProcessor.subscribe(next -> {
+          call.requestOne(next)
+              .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)))
+              .map(dataCodec::encode)
+              .subscribe(responseProcessor::onNext);
+        });
         return session.send(responseProcessor);
       }
 
