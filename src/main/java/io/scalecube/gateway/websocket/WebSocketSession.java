@@ -4,16 +4,32 @@ import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.HeadersCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.transport.rsocket.client.RSocketClientTransport;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.codec.json.JsonObjectDecoder;
 
 import org.reactivestreams.Publisher;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +54,16 @@ public final class WebSocketSession {
   private final InetSocketAddress remoteAddress;
   private final String contentType;
   private final String auth;
+
+  private static ObjectMapper mapper = new ObjectMapper();
+  {
+    mapper.setVisibility(mapper.getSerializationConfig().getDefaultVisibilityChecker()
+        .withFieldVisibility(Visibility.ANY)
+        .withGetterVisibility(Visibility.NONE)
+        .withSetterVisibility(Visibility.NONE)
+        .withCreatorVisibility(Visibility.NONE));
+    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+  }
 
   public WebSocketSession(HttpServerRequest httpRequest,
       WebsocketInbound inbound,
@@ -89,16 +115,41 @@ public final class WebSocketSession {
   }
 
   public Flux<ServiceMessage> receive() {
-    return inbound
-        .aggregateFrames()
-        .receiveFrames()
-        .map((WebSocketFrame frame) -> {
-          ByteBuf content = frame.content();
-          ServiceMessage message =
-              ServiceMessage.builder().qualifier(uri.replaceFirst("/", "")).dataFormat(contentType).data(content).build();
-          frame.retain();
-          return message;
-        }).log();
+    if (uri.equals("/")) {
+      return inbound
+          .aggregateFrames()
+          .receiveFrames()
+          .map((WebSocketFrame frame) -> {
+            ByteBuf content = frame.content();
+            byte[] bytes = new byte[content.readableBytes()];
+            int readerIndex = content.readerIndex();
+            content.getBytes(readerIndex, bytes);
+            try {
+              JsonNode node = mapper.readValue(bytes, JsonNode.class);
+              return ServiceMessage.builder()
+                  .dataFormat(contentType)
+                  .qualifier(node.get("q").asText())
+                  .data(Unpooled.copiedBuffer(mapper.writeValueAsBytes(node.get("d"))))
+                  .build();
+            } catch (Exception e) {
+              return ServiceMessage.builder().qualifier("error").build();
+            } finally {
+              frame.retain();
+            }
+          }).log();
+    } else {
+      return inbound
+          .aggregateFrames()
+          .receiveFrames()
+          .map((WebSocketFrame frame) -> {
+            ByteBuf content = frame.content();
+            ServiceMessage message =
+                ServiceMessage.builder().qualifier(uri.replaceFirst("/", "")).dataFormat(contentType).data(content)
+                    .build();
+            frame.retain();
+            return message;
+          }).log();
+    }
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
