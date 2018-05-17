@@ -50,7 +50,6 @@ public class ServiceCall {
     private Router router;
     private Metrics metrics;
     private Timer latency;
-    private boolean rawData = false;
 
     private final ClientTransport transport;
     private final LocalServiceHandlers serviceHandlers;
@@ -80,11 +79,6 @@ public class ServiceCall {
       return this;
     }
 
-    public Call withRawData() {
-      this.rawData = true;
-      return this;
-    }
-
     /**
      * Issues fire-and-rorget request.
      *
@@ -109,27 +103,52 @@ public class ServiceCall {
      * Issues request-and-reply request.
      *
      * @param request request message to send.
+     * @param responseType type of response.
      * @return mono publisher completing with single response message or with error.
      */
-    public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> returnType) {
-      return requestBidirectional(Mono.just(request), returnType).as(Mono::from);
+    public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
+      return requestBidirectional(Mono.just(request), responseType).as(Mono::from);
+    }
+
+    /**
+     * Issues request to service which returns stream of service messages back.
+     *
+     * @param request request message to send.
+     * @return todo
+     */
+    public Flux<ServiceMessage> requestMany(ServiceMessage request) {
+      return requestBidirectional(Mono.just(request));
     }
 
     /**
      * Issues request to service which returns stream of service messages back.
      *
      * @param request request with given headers.
-     * @return {@link Publisher} with service call dispatching result.
+     * @param responseType type of responses.
+     * @return todo
      */
-    public Flux<ServiceMessage> requestMany(ServiceMessage request) {
-      return requestBidirectional(Mono.just(request));
+    public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
+      return requestBidirectional(Mono.just(request), responseType);
     }
 
+    /**
+     * todo
+     * 
+     * @param publisher
+     * @return
+     */
     public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher) {
       return requestBidirectional(publisher, null);
     }
 
-    public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher, Class<?> returnType) {
+    /**
+     * todo
+     * 
+     * @param publisher
+     * @param responseType type of responses.
+     * @return
+     */
+    public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher, Class<?> responseType) {
       return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
 
         ServiceMessage request = pair.head();
@@ -153,12 +172,9 @@ public class ServiceCall {
           Flux<ServiceMessage> responsePublisher =
               transport.create(address).requestBidirectional(requestPublisher);
 
-          if (rawData) {
-            return responsePublisher;
-          } else {
-            Class<?> responseType = returnType != null ? returnType : Object.class;
-            return responsePublisher.map(message -> dataCodec.decode(message, responseType));
-          }
+          return responseType == null
+              ? responsePublisher
+              : responsePublisher.map(message -> dataCodec.decode(message, responseType));
         }
       });
     }
@@ -197,7 +213,7 @@ public class ServiceCall {
                 .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
                     : mono.map(ServiceMessage::data));
           case REQUEST_STREAM:
-            return serviceCall.requestMany(request)
+            return serviceCall.requestMany(request, parameterizedReturnType)
                 .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
                     : flux.map(ServiceMessage::data));
           case REQUEST_CHANNEL:
