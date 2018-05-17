@@ -1,15 +1,15 @@
 package io.scalecube.services;
 
-import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageDataCodec;
+import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
+import io.scalecube.services.transport.HeadAndTail;
 import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
@@ -49,17 +49,15 @@ public class ServiceCall {
     private Router router;
     private Metrics metrics;
     private Timer latency;
-    private ClientTransport transport;
-    private ServiceMessageDataCodec dataCodec;
-    private LocalServiceHandlers serviceHandlers;
+    private ResponseMapper responseMapper = DefaultResponseMapper.DEFAULT_INSTANCE;
+
+    private final ClientTransport transport;
+    private final LocalServiceHandlers serviceHandlers;
     private final ServiceRegistry serviceRegistry;
 
-    public Call(ClientTransport transport,
-        LocalServiceHandlers serviceHandlers,
-        ServiceRegistry serviceRegistry) {
+    public Call(ClientTransport transport, LocalServiceHandlers serviceHandlers, ServiceRegistry serviceRegistry) {
       this.transport = transport;
       this.serviceRegistry = serviceRegistry;
-      this.dataCodec = new ServiceMessageDataCodec();
       this.serviceHandlers = serviceHandlers;
     }
 
@@ -79,64 +77,39 @@ public class ServiceCall {
       return this;
     }
 
+    public Call responseMapper(ResponseMapper responseMapper) {
+      this.responseMapper = responseMapper;
+      return this;
+    }
+
     /**
      * Issues fire-and-rorget request.
      *
-     * @param request request to send.
-     * @return Mono of type Void.
+     * @param request request message to send.
+     * @return mono publisher completing normally or with error.
      */
     public Mono<Void> oneWay(ServiceMessage request) {
       return requestOne(request).map(message -> null);
     }
 
     /**
-     * Invoke a request message and invoke a service by a given service name and method name. expected headers in
-     * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
-     * case of an error or TimeoutException if no response if a given duration.
+     * Issues request-and-reply request.
      *
-     * @param request request with given headers.
-     * @return {@link Publisher} with service call dispatching result.
+     * @param request request message to send.
+     * @return mono publisher completing with single response message or with error.
      */
     public Mono<ServiceMessage> requestOne(ServiceMessage request) {
-      return requestOne(request, request.responseType() != null ? request.responseType() : Object.class);
+      return requestBidirectional(Mono.just(request)).as(Mono::from);
     }
 
     /**
-     * Invoke a request message and invoke a service by a given service name and method name. expected headers in
-     * request: ServiceHeaders.SERVICE_REQUEST the logical name of the service. ServiceHeaders.METHOD the method name to
-     * invoke message uses the router to select the target endpoint service instance in the cluster. Throws Exception in
-     * case of an error or TimeoutException if no response if a given duration.
+     * Issues request-and-reply request.
      *
-     * @param request request with given headers.
-     * @param returnType return type of service message response.
-     * @return {@link Publisher} with service call dispatching result.
+     * @param request request message to send.
+     * @return mono publisher completing with single response message or with error.
      */
-    public Mono<ServiceMessage> requestOne(ServiceMessage request, final Class<?> returnType) {
-      Messages.validate().serviceRequest(request);
-      String qualifier = request.qualifier();
-
-      if (serviceHandlers.contains(qualifier)) {
-        return Mono.from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
-            .onErrorMap(ExceptionProcessor::mapException);
-      } else {
-        ServiceReference serviceReference =
-            router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
-
-        Address address =
-            Address.create(serviceReference.host(), serviceReference.port());
-
-        return transport.create(address)
-            .requestBidirectional(Flux.just(request))
-            .map(message -> {
-              if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(dataCodec.decode(message, ErrorData.class));
-              } else {
-                return dataCodec.decode(message, returnType);
-              }
-            })
-            .as(Mono::from);
-      }
+    public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> returnType) {
+      return requestBidirectional(Mono.just(request), returnType).as(Mono::from);
     }
 
     /**
@@ -146,30 +119,52 @@ public class ServiceCall {
      * @return {@link Publisher} with service call dispatching result.
      */
     public Flux<ServiceMessage> requestMany(ServiceMessage request) {
-      Messages.validate().serviceRequest(request);
-      String qualifier = request.qualifier();
+      return requestBidirectional(Mono.just(request));
+    }
 
-      if (serviceHandlers.contains(qualifier)) {
-        return Flux.from(serviceHandlers.get(qualifier).invoke(Mono.just(request)))
-            .onErrorMap(ExceptionProcessor::mapException);
-      } else {
-        ServiceReference serviceReference =
-            router.route(serviceRegistry, request).orElseThrow(() -> noReachableMemberException(request));
+    public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher) {
+      return requestBidirectional(publisher, null);
+    }
 
-        Address address =
-            Address.create(serviceReference.host(), serviceReference.port());
+    public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher, Class<?> returnType) {
+      return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
 
-        return transport.create(address)
-            .requestBidirectional(Flux.just(request))
-            .map(message -> {
-              if (ExceptionProcessor.isError(message)) {
-                throw ExceptionProcessor.toException(dataCodec.decode(message, ErrorData.class));
-              } else {
-                Class returnType = request.responseType() != null ? request.responseType() : Object.class;
-                return dataCodec.decode(message, returnType);
-              }
-            });
-      }
+        ServiceMessage request = pair.head();
+        Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
+
+        Messages.validate().serviceRequest(request);
+        String qualifier = request.qualifier();
+
+        if (serviceHandlers.contains(qualifier)) {
+          ServiceMessageHandler serviceHandler = serviceHandlers.get(qualifier);
+          return serviceHandler.invoke(requestPublisher).onErrorMap(ExceptionProcessor::mapException);
+        } else {
+
+          ServiceReference serviceReference =
+              router.route(serviceRegistry, request)
+                  .orElseThrow(() -> noReachableMemberException(request));
+
+          Address address =
+              Address.create(serviceReference.host(), serviceReference.port());
+
+          Flux<ServiceMessage> responsePublisher =
+              transport.create(address).requestBidirectional(requestPublisher);
+
+          if (responseMapper == null) {
+            return responsePublisher;
+          } else {
+            Class<?> responseType;
+            if (returnType != null) {
+              responseType = returnType;
+            } else if (request.responseType() != null) {
+              responseType = request.responseType();
+            } else {
+              responseType = Object.class;
+            }
+            return responsePublisher.map(response -> responseMapper.apply(response, responseType));
+          }
+        }
+      });
     }
 
     /**

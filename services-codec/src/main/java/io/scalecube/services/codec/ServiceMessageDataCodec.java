@@ -38,7 +38,7 @@ public final class ServiceMessageDataCodec {
     return message;
   }
 
-  public ServiceMessage decode(ServiceMessage message, Class type) {
+  public ServiceMessage decode(ServiceMessage message, Class<?> type) {
     if (message.hasData(ByteBuf.class)) {
       try (ByteBufInputStream inputStream = new ByteBufInputStream(((ByteBuf) message.data()).slice())) {
         String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);

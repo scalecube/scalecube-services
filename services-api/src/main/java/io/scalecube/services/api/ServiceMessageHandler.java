@@ -1,9 +1,8 @@
 package io.scalecube.services.api;
 
-import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 
 public interface ServiceMessageHandler {
 
-  Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> publisher);
-
+  Flux<ServiceMessage> invoke(Flux<ServiceMessage> publisher);
 }

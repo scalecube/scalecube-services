@@ -7,8 +7,6 @@ import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.BadRequestException;
 
-import org.reactivestreams.Publisher;
-
 import java.lang.reflect.Method;
 import java.util.Optional;
 
@@ -41,8 +39,8 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   }
 
   @Override
-  public Publisher<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
-    return Flux.from(publisher)
+  public Flux<ServiceMessage> invoke(Flux<ServiceMessage> publisher) {
+    return publisher
         .map(this::toRequest)
         .transform((Flux<?> publisher1) -> Reflect.invokePublisher(service, method, mode, publisher1))
         .map(this::toResponse);
