@@ -1,11 +1,12 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -18,12 +19,11 @@ import reactor.test.StepVerifier;
 
 public class LocalServiceTest extends BaseTest {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceTest.class);
+
   private static final Duration timeout = Duration.ofSeconds(3);
 
   private static AtomicInteger port = new AtomicInteger(7000);
-
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
 
   @Test
   public void test_local_greeting_request_completes_before_timeout() throws Exception {
@@ -181,24 +181,20 @@ public class LocalServiceTest extends BaseTest {
 
   @Test
   public void test_local_greeting_request_timeout_expires() {
-    thrown.expect(RuntimeException.class);
-    thrown.expectMessage("Did not observe any item or terminal signal");
-
     // Create microservices instance.
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
-
     GreetingService service = node1.call().create().api(GreetingService.class);
 
     // call the service.
-
-    Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)))
-        .timeout(Duration.ofSeconds(1))
-        .block();
-
+    Throwable exception = assertThrows(RuntimeException.class,
+        () -> Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)))
+            .timeout(Duration.ofSeconds(1))
+            .block());
+    assertTrue(exception.getCause().getMessage().contains("Did not observe any item or terminal signal"));
     node1.shutdown().block();
   }
 

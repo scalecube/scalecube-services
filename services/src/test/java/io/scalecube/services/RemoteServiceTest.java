@@ -1,8 +1,8 @@
 package io.scalecube.services;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
@@ -13,11 +13,9 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.routing.Routers;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
@@ -31,19 +29,18 @@ import reactor.test.StepVerifier;
 
 public class RemoteServiceTest extends BaseTest {
 
-  @Rule
-  public ExpectedException thrown = ExpectedException.none();
+  private static AtomicInteger port = new AtomicInteger(3000);
 
   private Microservices gateway;
 
-  @Before
+  @BeforeEach
   public void setup() {
-    this.gateway = gateway();
+      this.gateway = gateway();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
-    gateway.shutdown().block();
+      gateway.shutdown().block();
   }
 
   @Test
@@ -414,9 +411,6 @@ public class RemoteServiceTest extends BaseTest {
 
   @Test
   public void test_remote_serviceA_calls_serviceB_with_timeout() {
-    thrown.expect(InternalServiceException.class);
-    thrown.expectMessage("Did not observe any item or terminal signal");
-
     // getting proxy from any node at any given time.
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
@@ -431,9 +425,9 @@ public class RemoteServiceTest extends BaseTest {
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
-    Mono.from(
-        service.callGreetingTimeout("joe")).block();
-
+    InternalServiceException exception =
+        assertThrows(InternalServiceException.class, () -> Mono.from(service.callGreetingTimeout("joe")).block());
+    assertTrue(exception.getMessage().contains("Did not observe any item or terminal signal"));
     System.out.println("done");
     ms.shutdown();
   }

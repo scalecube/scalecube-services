@@ -2,8 +2,9 @@ package io.scalecube.services;
 
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.a.b.testing.CanaryService;
@@ -15,9 +16,7 @@ import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;

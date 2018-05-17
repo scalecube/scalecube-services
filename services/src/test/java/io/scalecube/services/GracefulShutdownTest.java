@@ -1,15 +1,15 @@
 package io.scalecube.services;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.api.ServiceMessage;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import rx.exceptions.Exceptions;
 
@@ -26,8 +26,8 @@ import reactor.core.publisher.Mono;
  */
 public class GracefulShutdownTest extends BaseTest {
 
-  @Ignore
-  @Test()
+  @Test
+  @Disabled
   public void test_graceful_shutdown() throws InterruptedException {
 
     // create cluster members with 3 nodes: gateway, node1, node2
@@ -57,7 +57,7 @@ public class GracefulShutdownTest extends BaseTest {
         count.decrementAndGet();
       });
       future.doOnError(onError->{
-        fail(); // if one request fails fail the test
+        fail("One of requests failed"); // if one request fails fail the test
         // print the greeting.
         System.out.println(onError);
         Exceptions.propagate(onError);

@@ -1,9 +1,8 @@
 package io.scalecube.services;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.TestInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,17 +10,14 @@ public abstract class BaseTest {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(BaseTest.class);
 
-  @Rule
-  public final TestName testName = new TestName();
-
-  @Before
-  public final void baseSetUp() {
-    LOGGER.info("***** Test started  : " + getClass().getSimpleName() + "." + testName.getMethodName() + " *****");
+  @BeforeEach
+  public final void baseSetUp(TestInfo testInfo) {
+    LOGGER.info("***** Test started  : " + getClass().getSimpleName() + "." + testInfo.getDisplayName() + " *****");
   }
 
-  @After
-  public final void baseTearDown() {
-    LOGGER.info("***** Test finished : " + getClass().getSimpleName() + "." + testName.getMethodName() + " *****");
+  @AfterEach
+  public final void baseTearDown(TestInfo testInfo) {
+    LOGGER.info("***** Test finished : " + getClass().getSimpleName() + "." + testInfo.getDisplayName() + " *****");
   }
 
 }
