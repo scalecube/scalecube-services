@@ -25,7 +25,6 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   public Flux<ServiceMessage> requestBidirectional(Flux<ServiceMessage> publisher) {
     return rSocket.as(Flux::from)
         .flatMap(rSocket -> rSocket.requestChannel(publisher.map(this::toPayload)))
-        .log("********************* RSocketServiceClientAdapter")
         .map(this::toMessage);
   }
 

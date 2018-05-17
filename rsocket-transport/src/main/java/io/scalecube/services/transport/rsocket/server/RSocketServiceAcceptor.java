@@ -34,7 +34,6 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
       public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
         return acceptor.invoke(Flux.from(payloads).map(this::toMessage))
             .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
-            .log("++++++++++++++ RSocketServiceAcceptor ")
             .map(this::toPayload);
       }
 
