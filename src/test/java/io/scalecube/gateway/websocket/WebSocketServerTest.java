@@ -1,12 +1,14 @@
 package io.scalecube.gateway.websocket;
 
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
-import java.net.ServerSocket;
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class WebSocketServerTest {
@@ -19,16 +21,18 @@ public class WebSocketServerTest {
 
   @Test
   public void testEcho() {
-    System.out.println(
-        resource.newServer(
-            session -> session.send(session.receive().log("SERVER-IN")).then(),
-            session -> Mono.empty()));
+    resource.newServer(
+        session -> session.send(session.receive()).then(),
+        session -> Mono.empty());
 
-    Flux<Object> req = Flux.range(1, COUNT).map(Integer::toHexString).map(Echo::new);
-    Flux<Object> resp = resource.newClientSession("/", req);
+    List<Echo> req = IntStream.range(0, COUNT).boxed().map(Integer::toHexString)
+        .map(Echo::new).collect(Collectors.toList());
 
-    Object blockLast = resp.take(COUNT).blockLast(TIMEOUT);
-    System.out.println(blockLast);
+    List<Echo> responses = resource.newClientSession("/", req, Echo.class)
+        .collectList()
+        .block(TIMEOUT);
+
+    Assert.assertEquals(COUNT, responses.size());
   }
 
   public static class Echo {

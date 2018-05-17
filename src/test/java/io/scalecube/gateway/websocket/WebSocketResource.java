@@ -22,10 +22,10 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.List;
 import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 
@@ -57,20 +57,23 @@ public class WebSocketResource extends ExternalResource implements Closeable {
     return serverAddress;
   }
 
-  public Flux<Object> newClientSession(String path, Flux<Object> requests) {
+  public <T> Flux<T> newClientSession(String path, List<T> requests, Class<T> clazz) {
     client = new ReactorNettyWebSocketClient();
     URI uri = getUri(path);
-    FluxProcessor<Object, Object> responses =
-        ReplayProcessor.create().serialize();
+    ReplayProcessor<T> responses = ReplayProcessor.create();
+
     client.execute(uri,
         session -> {
           LOGGER.info("Start sending messages");
+
           return session
-              .send(requests.map(this::encode).take(10).log("Client-OUT"))
-              .thenMany(session.receive().map(this::decode))
-              .subscribeWith(responses)
-              .log("Client-IN")
+              .send(Flux.fromIterable(requests).map(this::encode))
+              .thenMany(session.receive()
+                  .map(nxt -> this.decode(nxt, clazz))
+                  .take(requests.size())
+                  .subscribeWith(responses))
               .then();
+
         })
         .doOnSuccessOrError((aVoid, ex) -> LOGGER.debug("Done: " + (ex != null ? ex.getMessage() : "success")))
         .block(Duration.ofSeconds(10));
@@ -91,10 +94,10 @@ public class WebSocketResource extends ExternalResource implements Closeable {
     return builder.build().toUri();
   }
 
-  private Object decode(WebSocketMessage message) {
+  private <T> T decode(WebSocketMessage message, Class<T> clazz) {
     ByteBuffer buffer = message.getPayload().asByteBuffer();
     try {
-      return new ObjectMapper().readValue(new ByteBufferBackedInputStream(buffer), Object.class);
+      return new ObjectMapper().readValue(new ByteBufferBackedInputStream(buffer), clazz);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
