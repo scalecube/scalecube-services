@@ -3,6 +3,7 @@ package io.scalecube.services;
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
+import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
@@ -49,11 +50,13 @@ public class ServiceCall {
     private Router router;
     private Metrics metrics;
     private Timer latency;
-    private ResponseMapper responseMapper = DefaultResponseMapper.DEFAULT_INSTANCE;
+    private boolean rawData = false;
 
     private final ClientTransport transport;
     private final LocalServiceHandlers serviceHandlers;
     private final ServiceRegistry serviceRegistry;
+
+    private final ServiceMessageDataCodec dataCodec = new ServiceMessageDataCodec();
 
     public Call(ClientTransport transport, LocalServiceHandlers serviceHandlers, ServiceRegistry serviceRegistry) {
       this.transport = transport;
@@ -77,8 +80,8 @@ public class ServiceCall {
       return this;
     }
 
-    public Call responseMapper(ResponseMapper responseMapper) {
-      this.responseMapper = responseMapper;
+    public Call withRawData() {
+      this.rawData = true;
       return this;
     }
 
@@ -150,18 +153,11 @@ public class ServiceCall {
           Flux<ServiceMessage> responsePublisher =
               transport.create(address).requestBidirectional(requestPublisher);
 
-          if (responseMapper == null) {
+          if (rawData) {
             return responsePublisher;
           } else {
-            Class<?> responseType;
-            if (returnType != null) {
-              responseType = returnType;
-            } else if (request.responseType() != null) {
-              responseType = request.responseType();
-            } else {
-              responseType = Object.class;
-            }
-            return responsePublisher.map(response -> responseMapper.apply(response, responseType));
+            Class<?> responseType = returnType != null ? returnType : Object.class;
+            return responsePublisher.map(message -> dataCodec.decode(message, responseType));
           }
         }
       });
