@@ -8,6 +8,7 @@ import static io.scalecube.services.TestRequests.GREETING_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
+import static io.scalecube.services.TestRequests.GREETING_THROWING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
 import static io.scalecube.services.TestRequests.NOT_FOUND_REQ;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -148,6 +149,27 @@ public class ServiceCallTest extends BaseTest {
   }
 
   @Test
+  public void test_remote_throwing_void_greeting() {
+    // Given
+    Microservices gateway = gateway();
+
+    Microservices node1 = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build()
+        .startAwait();
+
+    // When
+    StepVerifier.create(gateway.call().oneWay(GREETING_THROWING_VOID_REQ))
+        .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
+        .verify(Duration.ofSeconds(TIMEOUT));
+
+    gateway.shutdown().block();
+    node1.shutdown().block();
+  }
+
+  @Test
   public void test_remote_fail_greeting() {
     thrown.expect(ServiceException.class);
     thrown.expectMessage("GreetingRequest{name='joe'}");
@@ -216,6 +238,18 @@ public class ServiceCallTest extends BaseTest {
     node.shutdown().block();
   }
 
+  @Test
+  public void test_local_throwing_void_greeting() throws Exception {
+    // GIVEN
+    Microservices node = serviceProvider();
+
+    StepVerifier.create(node.call().oneWay(GREETING_THROWING_VOID_REQ))
+        .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
+        .verify(Duration.ofSeconds(TIMEOUT));
+
+    TimeUnit.SECONDS.sleep(2);
+    node.shutdown().block();
+  }
 
   @Test
   public void test_local_fail_greeting() {
