@@ -86,7 +86,7 @@ public class ServiceCall {
      * @return mono publisher completing normally or with error.
      */
     public Mono<Void> oneWay(ServiceMessage request) {
-      return requestOne(request).flatMap(message -> Mono.empty()).cast(Void.class);
+      return requestOne(request, Void.class).then();
     }
 
     /**
