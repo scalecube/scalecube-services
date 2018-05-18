@@ -55,15 +55,7 @@ public final class WebSocketSession {
   private final String contentType;
   private final String auth;
 
-  private static ObjectMapper mapper = new ObjectMapper();
-  {
-    mapper.setVisibility(mapper.getSerializationConfig().getDefaultVisibilityChecker()
-        .withFieldVisibility(Visibility.ANY)
-        .withGetterVisibility(Visibility.NONE)
-        .withSetterVisibility(Visibility.NONE)
-        .withCreatorVisibility(Visibility.NONE));
-    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-  }
+  private final JsonCodec codec = new JsonCodec();
 
   public WebSocketSession(HttpServerRequest httpRequest,
       WebsocketInbound inbound,
@@ -120,19 +112,13 @@ public final class WebSocketSession {
           .aggregateFrames()
           .receiveFrames()
           .map((WebSocketFrame frame) -> {
-            ByteBuf content = frame.content();
-            byte[] bytes = new byte[content.readableBytes()];
-            int readerIndex = content.readerIndex();
-            content.getBytes(readerIndex, bytes);
             try {
-              JsonNode node = mapper.readValue(bytes, JsonNode.class);
-              return ServiceMessage.builder()
-                  .dataFormat(contentType)
-                  .qualifier(node.get("q").asText())
-                  .data(Unpooled.copiedBuffer(mapper.writeValueAsBytes(node.get("d"))))
-                  .build();
+              return codec.decodeServiceMessage(frame.content());
             } catch (Exception e) {
-              return ServiceMessage.builder().qualifier("error").build();
+              return ServiceMessage.builder()
+                  .qualifier("error")
+                  .data(e.getMessage())
+                  .build();
             } finally {
               frame.retain();
             }
