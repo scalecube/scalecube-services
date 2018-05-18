@@ -5,10 +5,9 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.scalecube.services.api.ServiceMessage;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 import org.reactivestreams.Publisher;
@@ -29,7 +28,9 @@ import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 public final class WebSocketSession {
 
   public static final String DEFAULT_CONTENT_TYPE = "application/json";
-  private final WebsocketInbound inbound;
+  public static final int STATUS_CODE_NORMAL_CLOSE = 1000;
+
+  private final Flux<ServiceMessage> inbound;
   private final WebsocketOutbound outbound;
 
   private final String id;
@@ -39,18 +40,12 @@ public final class WebSocketSession {
   private final String contentType;
   private final String auth;
 
-  private final JsonCodec codec = new JsonCodec();
-
-  public WebSocketSession(HttpServerRequest httpRequest,
-      WebsocketInbound inbound,
-      WebsocketOutbound outbound) {
-    this.inbound = inbound;
-    this.outbound = outbound;
-
+  public WebSocketSession(HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.uri = httpRequest.uri();
     this.remoteAddress = httpRequest.remoteAddress();
 
+    // prepare headers
     Map<String, String> headers = new HashMap<>();
     HttpHeaders httpHeaders = httpRequest.requestHeaders();
     httpHeaders.names().forEach(name -> {
@@ -61,9 +56,14 @@ public final class WebSocketSession {
     });
 
     this.headers = Collections.unmodifiableMap(headers);
-
     this.contentType = Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
     this.auth = httpHeaders.get(AUTHORIZATION);
+
+    // prepare inbound
+    this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log("++++++++++ RECEIVE");
+
+    // prepare outbound
+    this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
   }
 
   public String id() {
@@ -91,45 +91,11 @@ public final class WebSocketSession {
   }
 
   public Flux<ServiceMessage> receive() {
-    if (uri.equals("/")) {
-      return inbound
-          .aggregateFrames()
-          .receiveFrames()
-          .map((WebSocketFrame frame) -> {
-            try {
-              return codec.decodeServiceMessage(frame.content());
-            } catch (Exception e) {
-              return ServiceMessage.builder()
-                  .qualifier("error")
-                  .data(e.getMessage())
-                  .build();
-            } finally {
-              frame.retain();
-            }
-          }).log();
-    } else {
-      return inbound
-          .aggregateFrames()
-          .receiveFrames()
-          .map((WebSocketFrame frame) -> {
-            ByteBuf content = frame.content();
-            ServiceMessage message =
-                ServiceMessage.builder().qualifier(uri.replaceFirst("/", "")).dataFormat(contentType).data(content)
-                    .build();
-            frame.retain();
-            return message;
-          }).log();
-    }
+    return inbound;
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
-    return outbound
-        .options(NettyPipeline.SendOptions::flushOnEach)
-        .sendObject(Flux
-            .from(messages)
-            .map(message -> (ByteBuf) message.data())
-            .map(TextWebSocketFrame::new).log())
-        .then();
+    return outbound.sendObject(Flux.from(messages).map(this::toFrame)).then();
   }
 
   /**
@@ -138,10 +104,19 @@ public final class WebSocketSession {
    * closure, meaning that the purpose for which the connection was established has been fulfilled.</i>
    */
   public Mono<Void> close() {
-    return outbound
-        .options(NettyPipeline.SendOptions::flushOnEach)
-        .sendObject(new CloseWebSocketFrame(1000, "close"))
-        .then();
+    return outbound.sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close")).then();
+  }
+
+  private ServiceMessage toMessage(WebSocketFrame frame) {
+    return ServiceMessage.builder()
+        .qualifier(uri)
+        .dataFormat(contentType)
+        .data(frame.content().retain())
+        .build();
+  }
+
+  private WebSocketFrame toFrame(ServiceMessage message) {
+    return new BinaryWebSocketFrame(message.data());
   }
 
   @Override
