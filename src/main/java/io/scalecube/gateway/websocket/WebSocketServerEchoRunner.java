@@ -20,6 +20,7 @@ public class WebSocketServerEchoRunner {
 
   /**
    * Run test runner of Websocket server.
+   * 
    * @param args - program arguments if any.
    * @throws InterruptedException - in case the program was interrupted.
    */
@@ -27,21 +28,18 @@ public class WebSocketServerEchoRunner {
 
     GreetingService serviceInstance = new GreetingServiceImpl();
 
-    Microservices services = Microservices.builder()
-        .services(serviceInstance).build().startAwait();
+    Microservices services = Microservices.builder().services(serviceInstance).build().startAwait();
     ServiceCall.Call call = services.call();
+
     LOGGER.info("Started services at address: {}", services.serviceAddress());
-
     ServiceMessageDataCodec dataCodec = new ServiceMessageDataCodec();
-
     WebSocketAcceptor acceptor = new WebSocketAcceptor() {
-
       @Override
       public Mono<Void> onConnect(WebSocketSession session) {
         Flux<ServiceMessage> respStream = session
-            .receive().log("###.receive()")
-            .concatMap(call::requestOne).log("###.transform()")
-            .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)));
+            .receive().map(WebSocketServerEchoRunner::cutSlash).log("++++-receive()")
+            .transform(call::requestBidirectional).log("++++-transform()")
+            .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable))).take(1);
         return session
             .send(respStream.map(dataCodec::encode))
             .then();
@@ -58,4 +56,7 @@ public class WebSocketServerEchoRunner {
     Thread.currentThread().join();
   }
 
+  private static ServiceMessage cutSlash(ServiceMessage message) {
+    return ServiceMessage.from(message).qualifier(message.qualifier().replaceFirst("/", "")).build();
+  }
 }
