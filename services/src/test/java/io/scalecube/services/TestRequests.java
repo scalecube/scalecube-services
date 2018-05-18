@@ -13,6 +13,16 @@ public interface TestRequests {
       .data(new GreetingRequest("joe"))
       .build();
 
+  ServiceMessage GREETING_FAILING_VOID_REQ = Messages.builder()
+      .request(SERVICE_NAME, "failingVoid")
+      .data(new GreetingRequest("joe"))
+      .build();
+
+  ServiceMessage GREETING_THROWING_VOID_REQ = Messages.builder()
+      .request(SERVICE_NAME, "throwingVoid")
+      .data(new GreetingRequest("joe"))
+      .build();
+
   ServiceMessage GREETING_FAIL_REQ = Messages.builder()
       .request(SERVICE_NAME, "failingRequest")
       .data(new GreetingRequest("joe"))
