@@ -26,6 +26,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 public class RemoteServiceTest extends BaseTest {
 
@@ -130,6 +131,68 @@ public class RemoteServiceTest extends BaseTest {
         .block(Duration.ofSeconds(3));
 
     System.out.println("test_remote_void_greeting done.");
+
+    Thread.sleep(1000);
+
+    gateway.shutdown().block();
+    node1.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_failing_void_greeting() throws Exception {
+    // Create microservices instance.
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .build()
+        .startAwait();
+
+    Microservices node1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build()
+        .startAwait();
+
+    GreetingService service = gateway.call()
+        .api(GreetingService.class);
+
+    GreetingRequest request = new GreetingRequest("joe");
+    // call the service.
+    StepVerifier.create(service.failingVoid(request))
+        .expectErrorMessage(request.toString())
+        .verify(Duration.ofSeconds(3));
+
+    System.out.println("test_remote_failing_void_greeting done.");
+
+    Thread.sleep(1000);
+
+    gateway.shutdown().block();
+    node1.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_throwing_void_greeting() throws Exception {
+    // Create microservices instance.
+    Microservices gateway = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .build()
+        .startAwait();
+
+    Microservices node1 = Microservices.builder()
+        .seeds(gateway.cluster().address())
+        .services(new GreetingServiceImpl())
+        .build()
+        .startAwait();
+
+    GreetingService service = gateway.call()
+        .api(GreetingService.class);
+
+    GreetingRequest request = new GreetingRequest("joe");
+    // call the service.
+    StepVerifier.create(service.throwingVoid(request))
+        .expectErrorMessage(request.toString())
+        .verify(Duration.ofSeconds(3));
+
+    System.out.println("test_remote_throwing_void_greeting done.");
 
     Thread.sleep(1000);
 
