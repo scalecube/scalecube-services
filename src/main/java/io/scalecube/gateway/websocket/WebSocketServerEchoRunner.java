@@ -35,7 +35,7 @@ public class WebSocketServerEchoRunner {
       public Mono<Void> onConnect(WebSocketSession session) {
         Flux<ServiceMessage> respStream = session
             .receive().log("###.receive()")
-            .compose(call::requestBidirectional).log("###.transform()")
+            .concatMap(call::requestOne).log("###.transform()")
             .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)));
         return session
             .send(respStream.map(dataCodec::encode))
