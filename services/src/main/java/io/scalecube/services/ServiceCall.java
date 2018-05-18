@@ -93,7 +93,7 @@ public class ServiceCall {
      * Issues request-and-reply request.
      *
      * @param request request message to send.
-     * @return mono publisher completing with single response message or with error.
+     * @return mono publisher of service responses.
      */
     public Mono<ServiceMessage> requestOne(ServiceMessage request) {
       return requestBidirectional(Mono.just(request)).as(Mono::from);
@@ -104,7 +104,7 @@ public class ServiceCall {
      *
      * @param request request message to send.
      * @param responseType type of response.
-     * @return mono publisher completing with single response message or with error.
+     * @return mono publisher of service responses.
      */
     public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
       return requestBidirectional(Mono.just(request), responseType).as(Mono::from);
@@ -114,7 +114,7 @@ public class ServiceCall {
      * Issues request to service which returns stream of service messages back.
      *
      * @param request request message to send.
-     * @return todo
+     * @return flux publisher of service responses.
      */
     public Flux<ServiceMessage> requestMany(ServiceMessage request) {
       return requestBidirectional(Mono.just(request));
@@ -125,28 +125,28 @@ public class ServiceCall {
      *
      * @param request request with given headers.
      * @param responseType type of responses.
-     * @return todo
+     * @return flux publisher of service responses.
      */
     public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
       return requestBidirectional(Mono.just(request), responseType);
     }
 
     /**
-     * todo
+     * Issues bidirectional request channel communication.
      * 
-     * @param publisher
-     * @return
+     * @param publisher of service requests.
+     * @return flux publisher of service responses.
      */
     public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher) {
       return requestBidirectional(publisher, null);
     }
 
     /**
-     * todo
+     * Issues bidirectional request channel communication.
      * 
-     * @param publisher
+     * @param publisher of service requests.
      * @param responseType type of responses.
-     * @return
+     * @return flux publisher of service responses.
      */
     public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher, Class<?> responseType) {
       return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
