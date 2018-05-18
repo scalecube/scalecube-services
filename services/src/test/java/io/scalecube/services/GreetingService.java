@@ -34,6 +34,9 @@ interface GreetingService {
   Mono<Void> greetingVoid(GreetingRequest request);
 
   @ServiceMethod
+  Mono<Void> failingVoid(GreetingRequest request);
+
+  @ServiceMethod
   Mono<GreetingResponse> failingRequest(GreetingRequest request);
 
   @ServiceMethod
