@@ -542,7 +542,7 @@ public class ServiceCallTest extends BaseTest {
             .equals(ref.tags().get("ONLYFOR"))).collect(Collectors.toList()));
 
     // call the service.
-    for (int i = 0; i < 1e3; i++) {
+    for (int i = 0; i < 1e2; i++) {
       GreetingResponse resultForFransin =
           Mono.from(service.requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class)).timeout(timeout).block().data();
       GreetingResponse resultForJoe =
@@ -609,7 +609,7 @@ public class ServiceCallTest extends BaseTest {
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
-    int n = (int) 1e3;
+    int n = (int) 1e2;
     CountDownLatch timeLatch = new CountDownLatch(n);
     for (int i = 0; i < n; i++) {
       Mono<ServiceMessage> response = service.requestOne(req, GreetingResponse.class);
