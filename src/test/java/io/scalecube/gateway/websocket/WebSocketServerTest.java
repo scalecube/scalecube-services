@@ -1,5 +1,7 @@
 package io.scalecube.gateway.websocket;
 
+import reactor.core.publisher.Mono;
+
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -8,8 +10,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import reactor.core.publisher.Mono;
 
 public class WebSocketServerTest {
 

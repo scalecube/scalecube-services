@@ -5,6 +5,13 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.scalecube.services.api.ServiceMessage;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.NettyPipeline;
+import reactor.ipc.netty.http.server.HttpServerRequest;
+import reactor.ipc.netty.http.websocket.WebsocketInbound;
+import reactor.ipc.netty.http.websocket.WebsocketOutbound;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
@@ -18,13 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.NettyPipeline;
-import reactor.ipc.netty.http.server.HttpServerRequest;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 
 public final class WebSocketSession {
 
@@ -41,6 +41,13 @@ public final class WebSocketSession {
   private final String contentType;
   private final String auth;
 
+  /**
+   * Create a new websocket session with given handshake, inbound and outbound channels.
+   * 
+   * @param httpRequest - Init session HTTP request
+   * @param inbound - Websocket inbound
+   * @param outbound - Websocket outbound
+   */
   public WebSocketSession(HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.uri = httpRequest.uri();
@@ -122,13 +129,16 @@ public final class WebSocketSession {
 
   @Override
   public String toString() {
-    return "WebSocketSession{" +
-        "id='" + id + '\'' +
-        ", uri='" + uri + '\'' +
-        ", headers=" + headers +
-        ", remoteAddress=" + remoteAddress +
-        ", contentType='" + contentType + '\'' +
-        ", auth='" + auth + '\'' +
-        '}';
+    final StringBuilder sb = new StringBuilder("WebSocketSession{");
+    sb.append("inbound=").append(inbound);
+    sb.append(", outbound=").append(outbound);
+    sb.append(", id='").append(id).append('\'');
+    sb.append(", uri='").append(uri).append('\'');
+    sb.append(", headers=").append(headers);
+    sb.append(", remoteAddress=").append(remoteAddress);
+    sb.append(", contentType='").append(contentType).append('\'');
+    sb.append(", auth='").append(auth).append('\'');
+    sb.append('}');
+    return sb.toString();
   }
 }

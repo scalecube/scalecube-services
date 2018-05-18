@@ -3,6 +3,10 @@ package io.scalecube.gateway.websocket;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
+
 import io.netty.buffer.ByteBufAllocator;
 
 import org.junit.rules.ExternalResource;
@@ -24,10 +28,6 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.ReplayProcessor;
 
 public class WebSocketResource extends ExternalResource implements Closeable {
 
