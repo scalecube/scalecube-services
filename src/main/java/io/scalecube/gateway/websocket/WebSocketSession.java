@@ -5,9 +5,10 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.scalecube.services.api.ServiceMessage;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 import org.reactivestreams.Publisher;
@@ -116,7 +117,7 @@ public final class WebSocketSession {
   }
 
   private WebSocketFrame toFrame(ServiceMessage message) {
-    return new BinaryWebSocketFrame(message.data());
+    return new TextWebSocketFrame(((ByteBuf) message.data()));
   }
 
   @Override
