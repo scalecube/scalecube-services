@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import java.util.Collections;
 import java.util.Map;
 
 public class ServiceMethodDefinition {
@@ -14,7 +15,12 @@ public class ServiceMethodDefinition {
    */
   public ServiceMethodDefinition() {}
 
-  public ServiceMethodDefinition(String action, String contentType, Map<String, String> tags, CommunicationMode communicationMode) {
+  public ServiceMethodDefinition(String action, String contentType, CommunicationMode communicationMode) {
+    this(action, contentType, Collections.emptyMap(), communicationMode);
+  }
+
+  public ServiceMethodDefinition(String action, String contentType, Map<String, String> tags,
+      CommunicationMode communicationMode) {
     this.action = action;
     this.contentType = contentType;
     this.tags = tags;
