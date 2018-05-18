@@ -34,11 +34,9 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 
 public class ServiceCallTest extends BaseTest {
 
@@ -120,14 +118,7 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
 
     // When
-    AtomicReference<SignalType> success = new AtomicReference<>();
-    gateway.call().oneWay(GREETING_VOID_REQ)
-        .doFinally(success::set)
-        .block(Duration.ofSeconds(TIMEOUT));
-
-    // Then:
-    assertNotNull("SignalType is null: " + success, success.get());
-    assertEquals(SignalType.ON_COMPLETE, success.get());
+    gateway.call().oneWay(GREETING_VOID_REQ).block(Duration.ofSeconds(TIMEOUT));
 
     gateway.shutdown().block();
     node1.shutdown().block();
@@ -183,12 +174,7 @@ public class ServiceCallTest extends BaseTest {
     Microservices node = serviceProvider();
 
     // WHEN
-    AtomicReference<SignalType> success = new AtomicReference<>();
-    node.call().oneWay(GREETING_VOID_REQ).doFinally(success::set).block(Duration.ofSeconds(TIMEOUT));
-
-    // Then:
-    assertNotNull(success.get());
-    assertEquals(SignalType.ON_COMPLETE, success.get());
+    node.call().oneWay(GREETING_VOID_REQ).block(Duration.ofSeconds(TIMEOUT));
 
     TimeUnit.SECONDS.sleep(2);
     node.shutdown().block();
