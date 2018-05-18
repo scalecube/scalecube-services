@@ -10,16 +10,18 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.charset.Charset;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 public final class ServiceMessageCodec {
 
-  private static final String DEFAULT_DATA_FORMAT = "application/json";
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
 
-  private static final String ERROR_DATA_ENCODE_FAILED = "Failed to serialize data on %s, cause: %s";
-  private static final String ERROR_HEADERS_ENCODE_FAILED = "Failed to serialize headers on %s, cause: %s";
-  private static final String ERROR_HEADERS_DECODE_FAILED = "Failed to deserialize headers, cause: %s";
+  private static final String DEFAULT_DATA_FORMAT = "application/json";
 
   private final HeadersCodec headersCodec;
 
@@ -31,9 +33,9 @@ public final class ServiceMessageCodec {
     ByteBuf dataBuffer = Unpooled.EMPTY_BUFFER;
     ByteBuf headersBuffer = Unpooled.EMPTY_BUFFER;
 
-    if (message.data() instanceof ByteBuf) { // has data ?
-      dataBuffer = message.data(); // ok so use it as is
-    } else if (message.data() != null) {
+    if (message.hasData(ByteBuf.class)) {
+      dataBuffer = message.data();
+    } else if (message.hasData()) {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
         String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
@@ -41,7 +43,8 @@ public final class ServiceMessageCodec {
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.release(dataBuffer);
-        throw new BadRequestException(String.format(ERROR_DATA_ENCODE_FAILED, message, ex));
+        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
+        throw new BadRequestException("Failed to encode data on message q=" + message.qualifier());
       }
     }
 
@@ -51,7 +54,8 @@ public final class ServiceMessageCodec {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
         ReferenceCountUtil.release(headersBuffer);
-        throw new BadRequestException(String.format(ERROR_HEADERS_ENCODE_FAILED, message, ex));
+        LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
+        throw new BadRequestException("Failed to encode headers on message q=" + message.qualifier());
       }
     }
 
@@ -64,10 +68,15 @@ public final class ServiceMessageCodec {
       builder.data(dataBuffer);
     }
     if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice())) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
-        throw new BadRequestException(String.format(ERROR_HEADERS_DECODE_FAILED, ex));
+        LOGGER.error("Failed to decode message headers: {}, cause: {}",
+            headersBuffer.toString(Charset.defaultCharset()), ex);
+        throw new BadRequestException("Failed to decode message headers {headers=" + headersBuffer.readableBytes()
+            + ", data=" + dataBuffer.readableBytes() + "}");
+      } finally {
+        ReferenceCountUtil.release(headersBuffer);
       }
     }
     return builder.build();

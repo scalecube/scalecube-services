@@ -3,6 +3,7 @@ package io.scalecube.services.streaming;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
@@ -26,7 +27,7 @@ public class StreamingServiceTest extends BaseTest {
 
   private MetricRegistry registry = new MetricRegistry();
   private static AtomicInteger port = new AtomicInteger(6000);
-  
+
   @Test
   public void test_quotes() throws InterruptedException {
     QuoteService service = new SimpleQuoteService();
@@ -44,7 +45,9 @@ public class StreamingServiceTest extends BaseTest {
   public void test_local_quotes_service() throws InterruptedException {
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     QuoteService service = node.call().api(QuoteService.class);
 
@@ -64,12 +67,15 @@ public class StreamingServiceTest extends BaseTest {
   public void test_remote_quotes_service() throws InterruptedException {
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .build();
+        .build()
+        .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     QuoteService service = gateway.call().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(3);
@@ -102,13 +108,14 @@ public class StreamingServiceTest extends BaseTest {
     int streamBound = 1000;
 
     Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet()).build();
+        .discoveryPort(port.incrementAndGet()).build().startAwait();
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new SimpleQuoteService())
         .metrics(registry)
-        .build();
+        .build()
+        .startAwait();
 
     QuoteService service = gateway.call().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(streamBound);
@@ -128,12 +135,16 @@ public class StreamingServiceTest extends BaseTest {
   public void test_call_quotes_snapshot() throws InterruptedException {
     int batchSize = 1000;
     Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet()).build();
+        .discoveryPort(port.incrementAndGet())
+        .build()
+        .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     Call service = gateway.call();
 
@@ -153,16 +164,18 @@ public class StreamingServiceTest extends BaseTest {
   }
 
   @Test
-  public void test_just_once() throws InterruptedException {
-    int batchSize = 1;
+  public void test_just_once() {
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .build();
+        .build()
+        .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     QuoteService service = gateway.call().api(QuoteService.class);
 
@@ -176,21 +189,21 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_just_one_message() throws InterruptedException {
     int batchSize = 1;
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder().build().startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    Flux.from(service.requestOne(justOne)).subscribe(onNext -> {
-      latch1.countDown();
-    });
+    Flux.from(service.requestOne(justOne)).subscribe(onNext -> latch1.countDown());
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
@@ -201,17 +214,19 @@ public class StreamingServiceTest extends BaseTest {
   @Test
   public void test_scheduled_messages() throws InterruptedException {
     int batchSize = 1;
-    Microservices gateway = Microservices.builder().build();
+    Microservices gateway = Microservices.builder().build().startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
+    AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
@@ -232,11 +247,14 @@ public class StreamingServiceTest extends BaseTest {
 
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .build();
+        .build()
+        .startAwait();
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     Call service = gateway.call();
 
@@ -244,7 +262,7 @@ public class StreamingServiceTest extends BaseTest {
 
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
     try {
-      service.requestMany(scheduled);
+      service.requestMany(scheduled).blockFirst(Duration.ofSeconds(3));
     } catch (Exception ex) {
       if (ex.getMessage().contains("No reachable member with such service")) {
         latch1.countDown();
@@ -263,29 +281,27 @@ public class StreamingServiceTest extends BaseTest {
     int batchSize = 1;
     Microservices gateway = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .build();
+        .build()
+        .startAwait();
 
     Microservices node = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService()).build();
+        .services(new SimpleQuoteService())
+        .build()
+        .startAwait();
 
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Disposable> sub1 = new AtomicReference<Disposable>(null);
+    AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    sub1.set(Flux.from(service.requestMany(justOne))
-        .subscribe(onNext -> {
-          System.out.println(onNext);
-        }));
+    sub1.set(Flux.from(service.requestMany(justOne)).subscribe(System.out::println));
 
     gateway.cluster().listenMembership()
-        .filter(predicate -> predicate.isRemoved())
-        .subscribe(onNext -> {
-          latch1.countDown();
-        });
+        .filter(MembershipEvent::isRemoved)
+        .subscribe(onNext -> latch1.countDown());
 
     node.cluster().shutdown();
 

@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.discovery.ServiceDiscovery.SERVICE_METADATA;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.cluster.Cluster;
@@ -12,9 +13,9 @@ import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.RouterFactory;
+import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.DefaultServiceMessageAcceptor;
-import io.scalecube.services.transport.LocalServiceDispatchers;
+import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
@@ -105,33 +106,19 @@ import reactor.core.publisher.Mono;
  * }
  * </pre>
  */
-
 public class Microservices {
 
-
-  public static final int SERVICE_PORT = 5801;
-
   private final ServiceRegistry serviceRegistry;
-
   private final ClientTransport client;
-
   private final Metrics metrics;
-
   private final Address serviceAddress;
-
-  public final RouterFactory routerFactory;
-
   private final ServiceDiscovery discovery;
-
   private final ServerTransport server;
-
-  private final LocalServiceDispatchers serviceDispatchers;
-
+  private final LocalServiceHandlers serviceHandlers;
   private final List<Object> services;
-
-  private final int servicePort;
-
   private final ClusterConfig.Builder clusterConfig;
+
+  private Cluster cluster; // calculated field
 
   private Microservices(Builder builder) {
 
@@ -139,36 +126,39 @@ public class Microservices {
     this.metrics = builder.metrics;
     this.client = builder.client;
     this.server = builder.server;
-    this.clusterConfig = builder.clusterConfig;
-    this.servicePort = builder.servicePort;
 
     this.services = builder.services.stream().map(mapper -> mapper.serviceInstance).collect(Collectors.toList());
-    this.serviceDispatchers = LocalServiceDispatchers.builder()
+    this.serviceHandlers = LocalServiceHandlers.builder()
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
-    if (services.size() > 0) {
-      server.accept(new DefaultServiceMessageAcceptor(serviceDispatchers));
-      InetSocketAddress address = server.bindAwait(new InetSocketAddress(Addressing.getLocalIpAddress(), servicePort));
-      serviceAddress = Address.create(address.getHostString(), address.getPort());
-    } else {
-      serviceAddress = Address.create("localhost", servicePort);
-    }
-
-    ServiceEndpoint localServiceEndpoint = ServiceScanner.scan(
-        // TODO: pass tags as well [sergeyr]
-        builder.services,
-        serviceAddress.host(),
-        serviceAddress.port(),
-        new HashMap<>());
-    // register and make them discover-able
+    InetSocketAddress socketAddress = new InetSocketAddress(Addressing.getLocalIpAddress(), builder.servicePort);
+    InetSocketAddress address = server.bindAwait(socketAddress, new DefaultServiceMessageAcceptor(serviceHandlers));
+    serviceAddress = Address.create(address.getHostString(), address.getPort());
 
     serviceRegistry = new ServiceRegistryImpl();
-    serviceRegistry.registerService(localServiceEndpoint);
 
-    routerFactory = new RouterFactory(serviceRegistry);
+    if (services.size() > 0) {
+      // TODO: pass tags as well [sergeyr]
+      serviceRegistry.registerService(ServiceScanner.scan(
+          builder.services,
+          serviceAddress.host(),
+          serviceAddress.port(),
+          new HashMap<>()));
+    }
 
     discovery = new ServiceDiscovery(serviceRegistry);
-    discovery.start(clusterConfig);
+
+    clusterConfig = builder.clusterConfig;
+  }
+
+  public Mono<Microservices> start() {
+    clusterConfig.addMetadata(serviceRegistry.listServiceEndpoints().stream()
+        .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
+    return Mono.fromFuture(Cluster.join(clusterConfig.build())).map(this::init);
+  }
+
+  public Microservices startAwait() {
+    return start().block();
   }
 
   public Metrics metrics() {
@@ -198,8 +188,7 @@ public class Microservices {
      * @return Microservices instance.
      */
     public Microservices build() {
-      return Reflect.builder(new Microservices(this))
-          .inject();
+      return new Microservices(this);
     }
 
     public Builder server(ServerTransport server) {
@@ -254,6 +243,12 @@ public class Microservices {
     }
   }
 
+  private Microservices init(Cluster cluster) {
+    this.cluster = cluster;
+    discovery.init(cluster);
+    return Reflect.builder(this).inject();
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -266,21 +261,17 @@ public class Microservices {
     return this.serviceAddress;
   }
 
-  public Router router(Class<? extends Router> routerType) {
-    return routerFactory.getRouter(routerType);
-  }
-
   public Call call() {
-    Router router = this.router(RoundRobinServiceRouter.class);
-    return new ServiceCall(client, serviceDispatchers).call().metrics(metrics).router(router);
+    Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+    return new ServiceCall(client, serviceHandlers, serviceRegistry).call().metrics(metrics).router(router);
   }
 
   public Mono<Void> shutdown() {
-    return Mono.when(Mono.fromFuture(discovery.shutdown()), server.stop());
+    return Mono.when(Mono.fromFuture(cluster.shutdown()), server.stop());
   }
 
   public Cluster cluster() {
-    return discovery.cluster();
+    return cluster;
   }
 
   public static class ServiceBuilder {

@@ -41,10 +41,10 @@ public class ExceptionProcessor {
         .build();
   }
 
-  public static ServiceException toException(ServiceMessage message) {
-    int errorType = Integer.parseInt(Qualifier.getQualifierAction(message.qualifier()));
-    int errorCode = ((ErrorData) message.data()).getErrorCode();
-    String errorMessage = ((ErrorData) message.data()).getErrorMessage();
+  public static ServiceException toException(String qualifier, ErrorData data) {
+    int errorType = Integer.parseInt(Qualifier.getQualifierAction(qualifier));
+    int errorCode = data.getErrorCode();
+    String errorMessage = data.getErrorMessage();
 
     switch (errorType) {
       case BadRequestException.ERROR_TYPE:

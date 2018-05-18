@@ -91,18 +91,20 @@ public class GracefulShutdownTest extends BaseTest {
 
     public static Members create() {
       // Create microservices cluster.
-      Microservices gateway = Microservices.builder().build();
+      Microservices gateway = Microservices.builder().build().startAwait();
 
       // Create microservices cluster.
       Microservices node1 = Microservices.builder()
           .seeds(gateway.cluster().address())
           .services(new GreetingServiceImpl())
-          .build();
+          .build()
+          .startAwait();
 
       Microservices node2 = Microservices.builder()
           .seeds(gateway.cluster().address())
           .services(new GreetingServiceImpl())
-          .build();
+          .build()
+          .startAwait();
 
       return new Members(gateway, node1, node2);
 

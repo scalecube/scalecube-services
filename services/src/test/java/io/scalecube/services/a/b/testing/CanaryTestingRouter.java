@@ -9,29 +9,20 @@ import io.scalecube.services.routing.Router;
 import java.util.List;
 import java.util.Optional;
 
-
 public class CanaryTestingRouter implements Router {
 
-  private ServiceRegistry serviceRegistry;
-
-  public CanaryTestingRouter(ServiceRegistry serviceRegistry) {
-    this.serviceRegistry = serviceRegistry;
-  }
-
   @Override
-  public Optional<ServiceReference> route(ServiceMessage request) {
+  public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
     String serviceName = Messages.qualifierOf(request).getNamespace();
     RandomCollection<ServiceReference> weightedRandom = new RandomCollection<>();
-    serviceRegistry.lookupService(serviceName).forEach(serviceReference -> {
-      weightedRandom.add(
-          Double.valueOf(serviceReference.tags().get("Weight")),
-          serviceReference);
-    });
+    serviceRegistry.lookupService(serviceName)
+        .forEach(sr -> weightedRandom.add(Double.valueOf(sr.tags().get("Weight")), sr));
     return Optional.of(weightedRandom.next());
   }
 
   @Override
-  public List<ServiceReference> routes(ServiceMessage request) {
+  public List<ServiceReference> routes(ServiceRegistry serviceRegistry, ServiceMessage request) {
     return serviceRegistry.lookupService(Messages.qualifierOf(request).getNamespace());
   }
+
 }
