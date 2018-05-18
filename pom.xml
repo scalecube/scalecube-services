@@ -4,7 +4,7 @@
 
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-services-parent</artifactId>
-    <version>2.0.10-SNAPSHOT</version>
+    <version>2.0.12-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>ScaleCube</name>
@@ -301,6 +301,20 @@
                             </rules>
                             <fail>true</fail>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>${maven-source-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
