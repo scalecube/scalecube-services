@@ -3,7 +3,7 @@
     <parent>
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-services-parent</artifactId>
-        <version>2.0.11</version>
+        <version>2.0.12-SNAPSHOT</version>
     </parent>
     <artifactId>rsocket-services-transport</artifactId>
     <name>Scalecube/RSocket-Transport</name>
