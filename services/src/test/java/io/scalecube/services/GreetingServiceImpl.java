@@ -4,8 +4,6 @@ import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.UnauthorizedException;
 
-import java.util.concurrent.CountDownLatch;
-
 import reactor.core.publisher.Mono;
 
 public final class GreetingServiceImpl implements GreetingService {
@@ -15,16 +13,10 @@ public final class GreetingServiceImpl implements GreetingService {
 
   private int instanceId;
 
-  private CountDownLatch signal;
-
   public GreetingServiceImpl() {}
 
   public GreetingServiceImpl(int id) {
     this.instanceId = id;
-  }
-
-  public GreetingServiceImpl(CountDownLatch signal) {
-    this.signal = signal;
   }
 
   @Override
@@ -77,9 +69,6 @@ public final class GreetingServiceImpl implements GreetingService {
   public Mono<Void> greetingVoid(GreetingRequest request) {
     System.out.println("[greetingVoid] Hello... i am a service an just recived a message:" + request);
     System.out.println(" hello to: " + request.getName());
-    if (signal != null) {
-      signal.countDown();
-    }
     return Mono.empty();
   }
 

@@ -1,52 +1,24 @@
 package io.scalecube.services.transport;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageDataCodec;
-import io.scalecube.services.transport.api.ServiceMethodDispatcher;
-import io.scalecube.services.transport.server.api.ServiceMessageAcceptor;
+import io.scalecube.services.api.ServiceMessageHandler;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-public class DefaultServiceMessageAcceptor implements ServiceMessageAcceptor {
+public final class DefaultServiceMessageAcceptor implements ServiceMessageHandler {
 
-  private final LocalServiceDispatchers localServiceDispatchers;
-  private final ServiceMessageDataCodec messageDataCodec;
+  private final LocalServiceHandlers serviceHandlers;
 
-  public DefaultServiceMessageAcceptor(LocalServiceDispatchers localServiceDispatchers) {
-    this.localServiceDispatchers = localServiceDispatchers;
-    this.messageDataCodec = new ServiceMessageDataCodec();
+  public DefaultServiceMessageAcceptor(LocalServiceHandlers serviceHandlers) {
+    this.serviceHandlers = serviceHandlers;
   }
 
   @Override
-  @SuppressWarnings("unchecked")
-  public Flux<ServiceMessage> requestChannel(Flux<ServiceMessage> request) {
-    // FIXME: need to seek handler and invoke it.
-    throw new UnsupportedOperationException("requestChannel is not implemented");
+  public Flux<ServiceMessage> invoke(Flux<ServiceMessage> publisher) {
+    return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
+      ServiceMessage message = pair.head();
+      ServiceMessageHandler dispatcher = serviceHandlers.get(message.qualifier());
+      return dispatcher.invoke(Flux.from(pair.tail()).startWith(message));
+    });
   }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public Flux<ServiceMessage> requestStream(ServiceMessage request) {
-    ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
-    ServiceMessage message = messageDataCodec.decode(request, dispatcher.requestType());
-    return dispatcher.requestStream(message).map(messageDataCodec::encode);
-  }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public Mono<ServiceMessage> requestResponse(ServiceMessage request) {
-    ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
-    ServiceMessage message = messageDataCodec.decode(request, dispatcher.requestType());
-    return dispatcher.requestResponse(message).map(messageDataCodec::encode);
-  }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public Mono<Void> fireAndForget(ServiceMessage request) {
-    ServiceMethodDispatcher dispatcher = localServiceDispatchers.getDispatcher(request.qualifier());
-    ServiceMessage message = messageDataCodec.decode(request, dispatcher.requestType());
-    return dispatcher.fireAndForget(message);
-  }
-
 }

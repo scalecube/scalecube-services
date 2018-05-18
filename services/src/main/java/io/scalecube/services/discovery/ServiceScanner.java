@@ -71,7 +71,7 @@ public class ServiceScanner {
     return result;
   }
 
-  private static Map<String, String> methodTags(Method m) {
+  private static Map<String, String> methodTags(Method method) {
     // TODO: tags are not yet implemented on API level
     return new HashMap<>();
   }

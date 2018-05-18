@@ -14,9 +14,8 @@ import io.rsocket.transport.netty.client.TcpClientTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.tcp.TcpClient;
@@ -25,7 +24,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final ConcurrentMap<Address, Mono<RSocket>> rSockets = new ConcurrentHashMap<>();
+  private final ThreadLocal<Map<Address, Mono<RSocket>>> rSockets = ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec codec;
 
@@ -35,35 +34,29 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(Address address) {
-    // noinspection unchecked
-    return new RSocketServiceClientAdapter(rSockets.computeIfAbsent(address, this::connect), codec);
+    final Map<Address, Mono<RSocket>> monoMap = rSockets.get(); // Hint: keep reference for threadsafety
+    Mono<RSocket> rSocket = monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
+    return new RSocketServiceClientAdapter(rSocket, codec);
   }
 
-  private Mono<RSocket> connect(Address address) {
-    CompletableFuture<RSocket> promise = new CompletableFuture<>();
-
-    RSocketFactory.connect()
-        .transport(createTcpClientTransport(address))
+  private static Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
+    return RSocketFactory.connect()
+        .transport(createTcpClientTransport(monoMap, address))
         .start()
-        .subscribe(
-            rSocket -> {
-              LOGGER.debug("Connected successfully on {}", address);
-              rSocket.onClose().subscribe(aVoid -> {
-                rSockets.remove(address);
-                LOGGER.debug("Connection closed on {} and removed from the pool", address);
-              });
-              promise.complete(rSocket);
-            },
-            throwable -> {
-              LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
-              rSockets.remove(address);
-              promise.completeExceptionally(throwable);
-            });
-
-    return Mono.fromFuture(promise);
+        .doOnNext(rSocket -> {
+          LOGGER.debug("Connected successfully on {}", address);
+          rSocket.onClose().subscribe(aVoid -> {
+            monoMap.remove(address);
+            LOGGER.debug("Connection closed on {} and removed from the pool", address);
+          });
+        })
+        .doOnError(throwable -> {
+          LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+          monoMap.remove(address);
+        });
   }
 
-  private TcpClientTransport createTcpClientTransport(Address address) {
+  private static TcpClientTransport createTcpClientTransport(Map<Address, Mono<RSocket>> monoMap, Address address) {
     return TcpClientTransport.create(
         TcpClient.create(options -> options
             .disablePool()
@@ -72,7 +65,7 @@ public class RSocketClientTransport implements ClientTransport {
             .afterNettyContextInit(nettyContext -> nettyContext.addHandler(new ChannelInboundHandlerAdapter() {
               @Override
               public void channelInactive(ChannelHandlerContext ctx) {
-                rSockets.remove(address);
+                monoMap.remove(address);
                 LOGGER.debug("Connection inactive on {} and removed from the pool", address);
                 ctx.fireChannelInactive();
               }

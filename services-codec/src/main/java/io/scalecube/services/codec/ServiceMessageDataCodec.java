@@ -1,7 +1,9 @@
 package io.scalecube.services.codec;
 
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -9,17 +11,20 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.charset.Charset;
 import java.util.Optional;
 
 public final class ServiceMessageDataCodec {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageDataCodec.class);
+
   private static final String DEFAULT_DATA_FORMAT = "application/json";
 
-  private static final String ERROR_DATA_ENCODE_FAILED = "Failed to serialize data on %s, cause: %s";
-  private static final String ERROR_DATA_DECODE_FAILED = "Failed to deserialize data on %s, cause: %s";
-
   public ServiceMessage encode(ServiceMessage message) {
-    if (message.data() != null) {
+    if (message.hasData()) {
       ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
       try {
         String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
@@ -28,22 +33,36 @@ public final class ServiceMessageDataCodec {
         return ServiceMessage.from(message).data(buffer).build();
       } catch (Throwable ex) {
         ReferenceCountUtil.release(buffer);
-        throw new BadRequestException(String.format(ERROR_DATA_ENCODE_FAILED, message, ex));
+        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
+        throw new BadRequestException("Failed to encode data on message q=" + message.qualifier());
       }
     }
     return message;
   }
 
-  public ServiceMessage decode(ServiceMessage message, Class type) {
-    if (message.data() instanceof ByteBuf) {
-      try (ByteBufInputStream inputStream = new ByteBufInputStream(message.data(), true)) {
-        String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-        DataCodec dataCodec = DataCodec.getInstance(contentType);
-        return ServiceMessage.from(message).data(dataCodec.decode(inputStream, type)).build();
-      } catch (Throwable ex) {
-        throw new BadRequestException(String.format(ERROR_DATA_DECODE_FAILED, message, ex));
-      }
+  public ServiceMessage decode(ServiceMessage message, Class<?> type) {
+    if (!message.hasData(ByteBuf.class)) {
+      return message;
     }
-    return message;
+
+    Object data;
+    Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : type;
+
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(((ByteBuf) message.data()).slice())) {
+      String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
+      DataCodec dataCodec = DataCodec.getInstance(contentType);
+      data = dataCodec.decode(inputStream, targetType);
+    } catch (Throwable ex) {
+      LOGGER.error("Failed to decode data on: {}, data buffer: {}, cause: {}",
+          message, ex, ((ByteBuf) message.data()).toString(Charset.defaultCharset()));
+      throw new BadRequestException("Failed to decode data on message q=" + message.qualifier());
+    } finally {
+      ReferenceCountUtil.release(message.data());
+    }
+
+    if (targetType == ErrorData.class) {
+      throw ExceptionProcessor.toException(message.qualifier(), (ErrorData) data);
+    }
+    return ServiceMessage.from(message).data(data).build();
   }
 }

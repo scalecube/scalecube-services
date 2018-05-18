@@ -4,6 +4,7 @@ package io.scalecube.services.api;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public final class ServiceMessage {
 
@@ -22,7 +23,7 @@ public final class ServiceMessage {
   public static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = Collections.emptyMap();
-  private Object data;
+  private Object data = NullData.NULL_DATA;
 
   /**
    * Instantiates empty message for deserialization purpose.
@@ -61,7 +62,7 @@ public final class ServiceMessage {
    * @param data data to set
    */
   void setData(Object data) {
-    this.data = data;
+    this.data = Objects.requireNonNull(data);
   }
 
   /**
@@ -139,6 +140,19 @@ public final class ServiceMessage {
     return (T) data;
   }
 
+  public boolean hasData() {
+    return data != NullData.NULL_DATA;
+  }
+
+  public boolean hasData(Class<?> dataClass) {
+    Objects.requireNonNull(dataClass);
+    if (dataClass.isPrimitive()) {
+      return hasData();
+    } else {
+      return dataClass.isInstance(data);
+    }
+  }
+
   @Override
   public String toString() {
     return "ServiceMessage {headers: " + headers + ", data: " + data + '}';
@@ -147,7 +161,7 @@ public final class ServiceMessage {
   public static class Builder {
 
     private Map<String, String> headers = new HashMap<>();
-    private Object data;
+    private Object data = NullData.NULL_DATA;
 
     private Builder() {}
 
@@ -160,7 +174,7 @@ public final class ServiceMessage {
     }
 
     public Builder data(Object data) {
-      this.data = data;
+      this.data = Objects.requireNonNull(data);
       return this;
     }
 
