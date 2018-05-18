@@ -15,10 +15,8 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 
 import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
 
 public class WebSocketServerEchoRunner {
 
@@ -35,7 +33,7 @@ public class WebSocketServerEchoRunner {
     
     @Override
     public Mono<String> sayHello(String hello) {
-      System.out.println("ServiceHelloImpl/helloString say: " + hello);
+      LOGGER.info("ServiceHelloImpl/helloString say: " + hello);
       return Mono.just("Greetings to: " +  hello).log("^^^^^^^^^ ServiceHelloImpl");
     }
     

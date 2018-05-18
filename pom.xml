@@ -22,6 +22,11 @@
       <artifactId>scalecube-gateway-websocket</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-testlib</artifactId>
+      <version>${project.version}</version>
+    </dependency>
   </dependencies>
 
 </project>
