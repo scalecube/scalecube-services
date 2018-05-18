@@ -10,9 +10,6 @@ import reactor.core.publisher.Mono;
 interface GreetingService {
 
   @ServiceMethod
-  void notifyGreeting();
-
-  @ServiceMethod
   Mono<String> greetingNoParams();
 
   @ServiceMethod
@@ -35,12 +32,6 @@ interface GreetingService {
 
   @ServiceMethod
   Mono<Void> greetingVoid(GreetingRequest request);
-
-  @ServiceMethod
-  Mono<Void> failingVoid(GreetingRequest request);
-
-  @ServiceMethod
-  Mono<Void> throwingVoid(GreetingRequest request);
 
   @ServiceMethod
   Mono<GreetingResponse> failingRequest(GreetingRequest request);

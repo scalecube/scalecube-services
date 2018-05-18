@@ -13,8 +13,6 @@ public final class GreetingServiceImpl implements GreetingService {
 
   private int instanceId;
 
-  private boolean ci = System.getenv("TRAVIS") != null;
-
   public GreetingServiceImpl() {}
 
   public GreetingServiceImpl(int id) {
@@ -43,72 +41,46 @@ public final class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
-    print("[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
+    System.out.println("[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
     return Mono.delay(request.getDuration()).flatMap(
         i -> Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode()))));
   }
 
   @Override
   public Mono<String> greetingNoParams() {
-    print("[greetingNoParams] Hello... i am a service an just recived a call bu i dont know from who.");
+    System.out.println("[greetingNoParams] Hello... i am a service an just recived a call bu i dont know from who.");
     return Mono.just("hello unknown");
   }
 
   @Override
   public Mono<GreetingResponse> greetingRequest(GreetingRequest request) {
-    print(instanceId + ":[greetingRequest] Hello... i am a service an just recived a message:" + request);
+    System.out.println(instanceId + ":[greetingRequest] Hello... i am a service an just recived a message:" + request);
     return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "" + instanceId));
   }
 
   @Override
   public Mono<ServiceMessage> greetingMessage(ServiceMessage request) {
-    print("[greetingMessage] Hello... i am a service an just recived a message:" + request);
+    System.out.println("[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(), "1");
     return Mono.just(ServiceMessage.builder().data(resp).build());
   }
 
   @Override
   public Mono<Void> greetingVoid(GreetingRequest request) {
-    print("[greetingVoid] Hello... i am a service an just recived a message:" + request);
-    print(" hello to: " + request.getName());
+    System.out.println("[greetingVoid] Hello... i am a service an just recived a message:" + request);
+    System.out.println(" hello to: " + request.getName());
     return Mono.empty();
   }
 
   @Override
-  public Mono<Void> failingVoid(GreetingRequest request) {
-    print("[failingVoid] Hello... i am a service an just recived a message:" + request);
-    return Mono.error(new IllegalArgumentException(request.toString()));
-  }
-
-  @Override
-  public Mono<Void> throwingVoid(GreetingRequest request) {
-    print("[failingVoid] Hello... i am a service an just recived a message:" + request);
-    throw new IllegalArgumentException(request.toString());
-  }
-
-  @Override
   public Mono<GreetingResponse> failingRequest(GreetingRequest request) {
-    print("[failingRequest] Hello... i am a service an just recived a message:" + request);
+    System.out.println("[failingRequest] Hello... i am a service an just recived a message:" + request);
     return Mono.error(new IllegalArgumentException(request.toString()));
   }
 
   @Override
   public Mono<GreetingResponse> exceptionRequest(GreetingRequest request) {
-    print("[exceptionRequest] Hello... i am a service an just recived a message:" + request);
+    System.out.println("[exceptionRequest] Hello... i am a service an just recived a message:" + request);
     throw new IllegalArgumentException(request.toString());
   }
-
-  @Override
-  public void notifyGreeting() {
-    print("[notifyGreeting] Hello... i am a service and i just notefied");
-  }
-
-  private void print(String message) {
-    if (!ci) {
-      System.out.println(message);
-    }
-
-  }
-
-
 }
