@@ -6,18 +6,23 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 public class WebSocketServerEchoRunner {
 
   public static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServerEchoRunner.class);
 
+  /**
+   * Run test runner of Websocket server.
+   * @param args - program arguments if any.
+   * @throws InterruptedException - in case the program was interrupted.
+   */
   public static void main(String[] args) throws InterruptedException {
 
     GreetingService serviceInstance = new GreetingServiceImpl();
