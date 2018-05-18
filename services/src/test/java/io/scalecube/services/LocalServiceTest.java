@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 public class LocalServiceTest extends BaseTest {
 
@@ -122,7 +123,47 @@ public class LocalServiceTest extends BaseTest {
     node1.shutdown();
   }
 
+  @Test
+  public void test_local_failing_void_greeting() {
+    // Create microservices instance.
+    Microservices node1 = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build()
+        .startAwait();
 
+    GreetingService service = node1.call().api(GreetingService.class);
+
+    // call the service.
+    GreetingRequest request = new GreetingRequest("joe");
+    StepVerifier.create(service.failingVoid(request))
+        .expectErrorMessage(request.toString())
+        .verify(Duration.ofSeconds(3));
+
+    System.out.println("test_local_failing_void_greeting done.");
+    node1.shutdown();
+  }
+
+  @Test
+  public void test_local_throwing_void_greeting() {
+    // Create microservices instance.
+    Microservices node1 = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build()
+        .startAwait();
+
+    GreetingService service = node1.call().api(GreetingService.class);
+
+    // call the service.
+    GreetingRequest request = new GreetingRequest("joe");
+    StepVerifier.create(service.throwingVoid(request))
+        .expectErrorMessage(request.toString())
+        .verify(Duration.ofSeconds(3));
+
+    System.out.println("test_local_throwing_void_greeting done.");
+    node1.shutdown();
+  }
 
   @Test
   public void test_local_async_greeting_return_GreetingResponse() {
