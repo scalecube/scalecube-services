@@ -39,17 +39,11 @@ public class WebSocketServerEchoRunner {
 
       @Override
       public Mono<Void> onConnect(WebSocketSession session) {
-        Flux<ServiceMessage> respStream = session
-            .receive().log("###.receive()")
-            .concatMap(call::requestMany).log("###.transform()")
-            .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)));
-        
-        return session.send(respStream
-                .map(dataCodec::encode)
-                .log())
-            .then();
-        
-       
+        return session.send(
+            call.requestBidirectional(session.receive()
+                .log("recv"))
+            .log("send")
+            .map(dataCodec::encode)).then();
       }
 
       @Override
