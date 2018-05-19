@@ -5,6 +5,7 @@ import java.util.Map;
 
 public class ServiceReference {
 
+  private String qualifier;
   private String endpointId;
   private String host;
   private int port;
@@ -12,6 +13,7 @@ public class ServiceReference {
   private String contentType;
   private Map<String, String> tags;
   private String action;
+  private CommunicationMode mode;
 
   /**
    * @deprecated exposed only for deserialization purpose.
@@ -28,6 +30,8 @@ public class ServiceReference {
     this.contentType = mergeContentType(serviceMethodDefinition, serviceRegistration);
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.getAction();
+    this.mode = serviceMethodDefinition.getCommunicationMode();
+    this.qualifier = this.namespace + "/" + this.action;
   }
 
   public ServiceReference(String endpointId, String host, int port, String namespace, String contentType,
@@ -39,6 +43,14 @@ public class ServiceReference {
     this.contentType = contentType;
     this.tags = tags;
     this.action = action;
+  }
+
+  public CommunicationMode mode() {
+    return mode;
+  }
+
+  public String qualifier() {
+    return this.qualifier;
   }
 
   public String endpointId() {

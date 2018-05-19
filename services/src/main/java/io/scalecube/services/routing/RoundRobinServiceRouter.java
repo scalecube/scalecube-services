@@ -25,11 +25,12 @@ public class RoundRobinServiceRouter implements Router {
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
 
     String serviceName = Messages.qualifierOf(request).getNamespace();
-    String methodName = Messages.qualifierOf(request).getAction();
 
     System.out.println(serviceRegistry.listServiceReferences());
+
     List<ServiceReference> serviceInstances =
-        routes(serviceRegistry, request).stream().filter(sr -> methodName.equalsIgnoreCase(sr.action()))
+        routes(serviceRegistry, request).stream()
+            .filter(sr -> sr.qualifier().equalsIgnoreCase(request.qualifier()))
             .collect(Collectors.toList());
 
     if (serviceInstances.size() > 1) {
@@ -47,7 +48,7 @@ public class RoundRobinServiceRouter implements Router {
 
   @Override
   public List<ServiceReference> routes(ServiceRegistry serviceRegistry, ServiceMessage request) {
-    return serviceRegistry.lookupService(Messages.qualifierOf(request).getNamespace());
+    return serviceRegistry.lookupService(request.qualifier());
   }
 
 }
