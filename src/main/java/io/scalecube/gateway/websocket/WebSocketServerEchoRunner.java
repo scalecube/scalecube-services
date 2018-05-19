@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.time.Duration;
 
 public class WebSocketServerEchoRunner {
 
@@ -40,11 +41,15 @@ public class WebSocketServerEchoRunner {
       public Mono<Void> onConnect(WebSocketSession session) {
         Flux<ServiceMessage> respStream = session
             .receive().log("###.receive()")
-            .concatMap(call::requestOne).log("###.transform()")
+            .concatMap(call::requestMany).log("###.transform()")
             .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)));
-        return session
-            .send(respStream.map(dataCodec::encode))
+        
+        return session.send(respStream
+                .map(dataCodec::encode)
+                .log())
             .then();
+        
+       
       }
 
       @Override
