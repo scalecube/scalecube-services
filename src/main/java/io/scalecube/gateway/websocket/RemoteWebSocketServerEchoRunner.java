@@ -26,40 +26,18 @@ public class RemoteWebSocketServerEchoRunner {
    */
   public static void main(String[] args) throws InterruptedException {
 
-    GreetingService serviceInstance = new GreetingServiceImpl();
-
     Microservices gateway = Microservices.builder()
         .build().startAwait();
-
-    
-    Microservices services = Microservices.builder()
+   
+    Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(serviceInstance).build().startAwait();
+        .services(new GreetingServiceImpl()).build().startAwait();
 
-    ServiceCall.Call call = gateway.call();
-    LOGGER.info("Started services at address: {}", services.serviceAddress());
-
-    ServiceMessageDataCodec dataCodec = new ServiceMessageDataCodec();
-
-    WebSocketAcceptor acceptor = new WebSocketAcceptor() {
-
-      @Override
-      public Mono<Void> onConnect(WebSocketSession session) {
-        return session.send(
-            call.invoke(session.receive()
-                .log("recv"))
-            .log("send")
-            .map(dataCodec::encode)).then();
-      }
-
-      @Override
-      public Mono<Void> onDisconnect(WebSocketSession session) {
-        return Mono.never();
-      }
-    };
-
-    WebSocketServer server = new WebSocketServer(acceptor);
-    server.start(new InetSocketAddress(8080));
+    ServiceGateway
+      .builder(gateway.call()).ws().build()
+      // on instance
+      .start(new InetSocketAddress(8080));
+    
     Thread.currentThread().join();
   }
 
