@@ -303,11 +303,11 @@ public class ServiceCall {
     }
 
     private static Object objectToStringEqualsHashCode(String method, Class<?> serviceInterface, Object... args) {
-      if (method.equals("hashCode")) {
+      if ("hashCode".equals(method)) {
         return serviceInterface.hashCode();
-      } else if (method.equals("equals")) {
+      } else if ("equals".equals(method)) {
         return serviceInterface.equals(args[0]);
-      } else if (method.equals("toString")) {
+      } else if ("toString".equals(method)) {
         return serviceInterface.toString();
       } else {
         return null;

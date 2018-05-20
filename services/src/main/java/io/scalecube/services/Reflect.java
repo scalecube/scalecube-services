@@ -229,12 +229,10 @@ public class Reflect {
    * @return the parameterized Type of a given object or Object class if unknown.
    */
   public static Type parameterizedRequestType(Method method) {
-    if (method != null) {
-      if (method.getGenericParameterTypes().length > 0) {
-        Type type = method.getGenericParameterTypes()[0];
-        if (type instanceof ParameterizedType) {
-          return ((ParameterizedType) type).getActualTypeArguments()[0];
-        }
+    if (method != null && method.getGenericParameterTypes().length > 0) {
+      Type type = method.getGenericParameterTypes()[0];
+      if (type instanceof ParameterizedType) {
+        return ((ParameterizedType) type).getActualTypeArguments()[0];
       }
     }
     return Object.class;
