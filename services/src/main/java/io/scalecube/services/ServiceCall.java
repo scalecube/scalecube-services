@@ -30,9 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.TopicProcessor;
 import reactor.core.publisher.UnicastProcessor;
-import reactor.core.publisher.WorkQueueProcessor;
 
 public class ServiceCall {
 
@@ -196,7 +194,7 @@ public class ServiceCall {
      * @return flux publisher of service responses.
      */
     public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
-      
+
       final Processor<ServiceMessage, ServiceMessage> upstream =
           UnicastProcessor.<ServiceMessage>create();
 
