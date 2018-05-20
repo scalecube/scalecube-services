@@ -24,8 +24,8 @@ public final class ServiceMessageDataCodec {
   private static final String DEFAULT_DATA_FORMAT = "application/json";
 
   public ServiceMessage encode(ServiceMessage message) {
-    if(message.hasData() && message.data() instanceof ByteBuf) {
-     return message; 
+    if (message.hasData() && message.data() instanceof ByteBuf) {
+      return message;
     } else if (message.hasData()) {
       ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
       try {
@@ -43,7 +43,7 @@ public final class ServiceMessageDataCodec {
   }
 
   public ServiceMessage decode(ServiceMessage message, Class<?> type) {
-    if (!message.hasData(ByteBuf.class)) {
+    if (!message.hasData(ByteBuf.class) || type == null) {
       return message;
     }
 

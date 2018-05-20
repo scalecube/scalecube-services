@@ -25,6 +25,7 @@ public class ServiceTagsExample {
 
     CanaryService service = gateway.call()
         .router(CanaryTestingRouter.class)
+        .create()
         .api(CanaryService.class);
 
     for (int i = 0; i < 10; i++) {

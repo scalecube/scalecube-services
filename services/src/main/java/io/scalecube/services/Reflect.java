@@ -97,7 +97,7 @@ public class Reflect {
                 if (mapper.getType().equals(Microservices.class)) {
                   return this.microservices;
                 } else if (isService(mapper.getType())) {
-                  return this.microservices.call().api(mapper.getType());
+                  return this.microservices.call().create().api(mapper.getType());
                 } else {
                   return null;
                 }
@@ -128,7 +128,7 @@ public class Reflect {
           LOGGER.warn("Unable to inject router {}, using RoundRobin", injection.router());
           return Routers.getRouter(RoundRobinServiceRouter.class);
         });
-        setField(field, service, this.microservices.call().router(router).api(field.getType()));
+        setField(field, service, this.microservices.call().router(router).create().api(field.getType()));
       }
     }
 
@@ -235,6 +235,7 @@ public class Reflect {
         return ((ParameterizedType) type).getActualTypeArguments()[0];
       }
     }
+
     return Object.class;
   }
 
