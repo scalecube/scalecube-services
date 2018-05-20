@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.TopicProcessor;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.core.publisher.WorkQueueProcessor;
 
 public class ServiceCall {
@@ -194,13 +196,11 @@ public class ServiceCall {
      * @return flux publisher of service responses.
      */
     public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
-      final Processor<ServiceMessage, ServiceMessage> downstream =
-          WorkQueueProcessor.<ServiceMessage>builder().autoCancel(false).build();
+      
       final Processor<ServiceMessage, ServiceMessage> upstream =
-          WorkQueueProcessor.<ServiceMessage>builder().autoCancel(false).build();
-      Flux.from(publisher).subscribe(onNext -> downstream.onNext(onNext));
+          UnicastProcessor.<ServiceMessage>create();
 
-      Flux.from(downstream).subscribe(request -> {
+      Flux.from(publisher).subscribe(request -> {
 
         Messages.validate().serviceRequest(request);
         String qualifier = request.qualifier();
