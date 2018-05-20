@@ -201,30 +201,42 @@ public class ServiceCall {
       Flux.from(publisher).subscribe(onNext -> downstream.onNext(onNext));
 
       Flux.from(downstream).subscribe(request -> {
-        ServiceReference serviceReference =
-            router.route(serviceRegistry, request)
-                .orElseThrow(() -> noReachableMemberException(request));
 
-        Address address =
-            Address.create(serviceReference.host(), serviceReference.port());
+        Messages.validate().serviceRequest(request);
+        String qualifier = request.qualifier();
 
-        if (serviceReference.mode().equals(REQUEST_RESPONSE)) {
-          Flux.from(transport.create(address)
-              .requestBidirectional(Flux.just(request)).as(Mono::from))
-              .map(message -> dataCodec.encode(message))
-              .subscribe(next -> upstream.onNext(next));
+        if (serviceHandlers.contains(qualifier)) {
+          ServiceMessageHandler serviceHandler = serviceHandlers.get(qualifier);
+          Flux.from(serviceHandler
+              .invoke(Flux.from(publisher))
+              .onErrorMap(ExceptionProcessor::mapException))
+              .subscribe(upstream::onNext);
+        } else {
+          ServiceReference serviceReference =
+              router.route(serviceRegistry, request)
+                  .orElseThrow(() -> noReachableMemberException(request));
 
-        } else if (serviceReference.mode().equals(REQUEST_STREAM)) {
-          Flux.from(transport.create(address)
-              .requestBidirectional(Flux.just(request)))
-              .map(message -> dataCodec.encode(message))
-              .subscribe(next -> upstream.onNext(next));
-        } else if (serviceReference.mode().equals(FIRE_AND_FORGET)) {
-          Flux.from(transport.create(address)
-              .requestBidirectional(Flux.just(request)).as(Mono::from))
-              .then();
-        } else if (serviceReference.mode().equals(REQUEST_CHANNEL)) {
-          throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
+          Address address =
+              Address.create(serviceReference.host(), serviceReference.port());
+
+          if (serviceReference.mode().equals(REQUEST_RESPONSE)) {
+            Flux.from(transport.create(address)
+                .requestBidirectional(Flux.just(request)).as(Mono::from))
+                .map(message -> dataCodec.encode(message))
+                .subscribe(next -> upstream.onNext(next));
+
+          } else if (serviceReference.mode().equals(REQUEST_STREAM)) {
+            Flux.from(transport.create(address)
+                .requestBidirectional(Flux.just(request)))
+                .map(message -> dataCodec.encode(message))
+                .subscribe(next -> upstream.onNext(next));
+          } else if (serviceReference.mode().equals(FIRE_AND_FORGET)) {
+            Flux.from(transport.create(address)
+                .requestBidirectional(Flux.just(request)).as(Mono::from))
+                .then();
+          } else if (serviceReference.mode().equals(REQUEST_CHANNEL)) {
+            throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
+          }
         }
       });
 
