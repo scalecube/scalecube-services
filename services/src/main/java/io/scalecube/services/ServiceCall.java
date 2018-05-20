@@ -218,7 +218,7 @@ public class ServiceCall {
       if (serviceHandlers.contains(qualifier)) {
         ServiceMessageHandler serviceHandler = serviceHandlers.get(qualifier);
         Flux.from(serviceHandler
-            .invoke(Flux.from(publisher))
+            .invoke(Flux.just(request))
             .onErrorMap(ExceptionProcessor::mapException))
             .subscribe(upstream::onNext);
       } else {
