@@ -206,34 +206,26 @@ public class ServiceCall {
    * @return flux publisher of service responses decoded by a given responseType.
    */
   public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher, Class<?> responseType) {
-
-    final Processor<ServiceMessage, ServiceMessage> upstream =
-        UnicastProcessor.<ServiceMessage>create();
-
-    Flux.from(publisher).subscribe(request -> {
+    return Flux.from(publisher).flatMap(request -> {
 
       Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
       if (serviceHandlers.contains(qualifier)) {
         ServiceMessageHandler serviceHandler = serviceHandlers.get(qualifier);
-        Flux.from(serviceHandler
+        return Flux.from(serviceHandler
             .invoke(Flux.just(request))
-            .onErrorMap(ExceptionProcessor::mapException))
-            .subscribe(upstream::onNext);
+            .onErrorMap(ExceptionProcessor::mapException));
       } else {
         ServiceReference serviceReference =
             router.route(serviceRegistry, request)
                 .orElseThrow(() -> noReachableMemberException(request));
 
-        invoke(request, serviceReference.mode(),
+        return invoke(request, serviceReference.mode(),
             Address.create(serviceReference.host(), serviceReference.port()))
-                .map(message -> dataCodec.decode(message, responseType))
-                .subscribe(upstream::onNext);
+                .map(message -> dataCodec.decode(message, responseType));
       }
     });
-
-    return Flux.from(upstream);
   }
 
   /**
