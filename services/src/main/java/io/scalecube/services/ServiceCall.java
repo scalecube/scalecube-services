@@ -283,10 +283,12 @@ public class ServiceCall {
             .requestBidirectional(Flux.just(request)))
             .map(message -> dataCodec.encode(message))
             .subscribe(next -> upstream.onNext(next));
+
       } else if (mode.equals(FIRE_AND_FORGET)) {
         Flux.from(transport.create(address)
             .requestBidirectional(Flux.just(request)).as(Mono::from))
             .then();
+
       } else if (mode.equals(REQUEST_CHANNEL)) {
         throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
       }
