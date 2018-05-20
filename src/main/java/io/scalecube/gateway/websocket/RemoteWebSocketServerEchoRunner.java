@@ -15,9 +15,9 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 
-public class WebSocketServerEchoRunner {
+public class RemoteWebSocketServerEchoRunner {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServerEchoRunner.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(RemoteWebSocketServerEchoRunner.class);
 
   /**
    * Run test runner of Websocket server.
@@ -28,10 +28,15 @@ public class WebSocketServerEchoRunner {
 
     GreetingService serviceInstance = new GreetingServiceImpl();
 
+    Microservices gateway = Microservices.builder()
+        .build().startAwait();
+
+    
     Microservices services = Microservices.builder()
+        .seeds(gateway.cluster().address())
         .services(serviceInstance).build().startAwait();
 
-    ServiceCall.Call call = services.call();
+    ServiceCall.Call call = gateway.call();
     LOGGER.info("Started services at address: {}", services.serviceAddress());
 
     ServiceMessageDataCodec dataCodec = new ServiceMessageDataCodec();
