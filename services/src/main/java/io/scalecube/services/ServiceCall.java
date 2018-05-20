@@ -91,7 +91,7 @@ public class ServiceCall {
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return invoke(Mono.just(request), Void.class).then();
+    return invoke(Mono.just(request)).as(Mono::from).then();
   }
 
   /**
@@ -245,9 +245,8 @@ public class ServiceCall {
           .map(message -> dataCodec.encode(message));
 
     } else if (FIRE_AND_FORGET.equals(mode)) {
-      return Mono.just(transport.create(address)
-          .requestBidirectional(Flux.just(request)))
-          .thenMany(Flux.empty());
+      return Flux.from(transport.create(address)
+          .requestBidirectional(Flux.just(request)).as(Mono::from));
 
     } else {
       throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
@@ -282,7 +281,8 @@ public class ServiceCall {
 
       switch (mode) {
         case FIRE_AND_FORGET:
-          return serviceCall.oneWay(request);
+          serviceCall.oneWay(request).subscribe();
+          return Void.TYPE;
         case REQUEST_RESPONSE:
           return serviceCall.requestOne(request, parameterizedReturnType)
               .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
