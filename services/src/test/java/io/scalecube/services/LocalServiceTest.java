@@ -34,7 +34,7 @@ public class LocalServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = node1.call().api(GreetingService.class);
+    GreetingService service = node1.call().create().api(GreetingService.class);
 
     // call the service.
     Mono<GreetingResponse> result =
@@ -108,7 +108,7 @@ public class LocalServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = node1.call().api(GreetingService.class);
+    GreetingService service = node1.call().create().api(GreetingService.class);
 
     CountDownLatch exectOne = new CountDownLatch(1);
     // call the service.
@@ -132,7 +132,7 @@ public class LocalServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = node1.call().api(GreetingService.class);
+    GreetingService service = node1.call().create().api(GreetingService.class);
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -153,7 +153,7 @@ public class LocalServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = node1.call().api(GreetingService.class);
+    GreetingService service = node1.call().create().api(GreetingService.class);
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -203,7 +203,7 @@ public class LocalServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = node1.call().api(GreetingService.class);
+    GreetingService service = node1.call().create().api(GreetingService.class);
 
     // call the service.
 
@@ -243,7 +243,7 @@ public class LocalServiceTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway.call().api(GreetingService.class); // create proxy for GreetingService API
+    return gateway.call().create().api(GreetingService.class); // create proxy for GreetingService API
   }
 
   private boolean await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) throws Exception {
