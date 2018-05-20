@@ -214,27 +214,9 @@ public class ServiceCall {
               router.route(serviceRegistry, request)
                   .orElseThrow(() -> noReachableMemberException(request));
 
-          Address address =
-              Address.create(serviceReference.host(), serviceReference.port());
-
-          if (serviceReference.mode().equals(REQUEST_RESPONSE)) {
-            Flux.from(transport.create(address)
-                .requestBidirectional(Flux.just(request)).as(Mono::from))
-                .map(message -> dataCodec.encode(message))
-                .subscribe(next -> upstream.onNext(next));
-
-          } else if (serviceReference.mode().equals(REQUEST_STREAM)) {
-            Flux.from(transport.create(address)
-                .requestBidirectional(Flux.just(request)))
-                .map(message -> dataCodec.encode(message))
-                .subscribe(next -> upstream.onNext(next));
-          } else if (serviceReference.mode().equals(FIRE_AND_FORGET)) {
-            Flux.from(transport.create(address)
-                .requestBidirectional(Flux.just(request)).as(Mono::from))
-                .then();
-          } else if (serviceReference.mode().equals(REQUEST_CHANNEL)) {
-            throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
-          }
+          sendMessage(request, serviceReference.mode(),
+              Address.create(serviceReference.host(), serviceReference.port()))
+                  .subscribe(upstream::onNext);
         }
       });
 
@@ -285,6 +267,32 @@ public class ServiceCall {
         }
       });
     }
+
+    private Flux<ServiceMessage> sendMessage(ServiceMessage request, CommunicationMode mode, Address address) {
+      final Processor<ServiceMessage, ServiceMessage> upstream =
+          UnicastProcessor.<ServiceMessage>create();
+
+      if (mode.equals(REQUEST_RESPONSE)) {
+        Flux.from(transport.create(address)
+            .requestBidirectional(Flux.just(request)).as(Mono::from))
+            .map(message -> dataCodec.encode(message))
+            .subscribe(next -> upstream.onNext(next));
+
+      } else if (mode.equals(REQUEST_STREAM)) {
+        Flux.from(transport.create(address)
+            .requestBidirectional(Flux.just(request)))
+            .map(message -> dataCodec.encode(message))
+            .subscribe(next -> upstream.onNext(next));
+      } else if (mode.equals(FIRE_AND_FORGET)) {
+        Flux.from(transport.create(address)
+            .requestBidirectional(Flux.just(request)).as(Mono::from))
+            .then();
+      } else if (mode.equals(REQUEST_CHANNEL)) {
+        throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
+      }
+      return Flux.from(upstream);
+    }
+
 
     private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
       LOGGER.error("Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
