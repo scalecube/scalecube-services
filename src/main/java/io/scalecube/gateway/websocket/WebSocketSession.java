@@ -5,21 +5,12 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.scalecube.services.api.ServiceMessage;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.publisher.TopicProcessor;
-import reactor.ipc.netty.NettyPipeline;
-import reactor.ipc.netty.http.server.HttpServerRequest;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
-import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
 import java.net.InetSocketAddress;
@@ -28,6 +19,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.NettyPipeline;
+import reactor.ipc.netty.http.server.HttpServerRequest;
+import reactor.ipc.netty.http.websocket.WebsocketInbound;
+import reactor.ipc.netty.http.websocket.WebsocketOutbound;
+
 public final class WebSocketSession {
 
   public static final String DEFAULT_CONTENT_TYPE = "application/json";
@@ -35,12 +33,6 @@ public final class WebSocketSession {
 
   private final Flux<ServiceMessage> inbound;
   private final WebsocketOutbound outbound;
-
-  final Processor<ServiceMessage, ServiceMessage> downstream =
-      TopicProcessor.<ServiceMessage>builder().autoCancel(false).build();
-  final Processor<ServiceMessage, ServiceMessage> upstream =
-      TopicProcessor.<ServiceMessage>builder().autoCancel(false).build();
-
 
   private final String id;
   private final String uri;
