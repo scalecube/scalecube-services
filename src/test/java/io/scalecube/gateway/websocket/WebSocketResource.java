@@ -38,7 +38,7 @@ public class WebSocketResource extends ExternalResource implements Closeable {
 
   private WebSocketServer server;
   private InetSocketAddress serverAddress;
-  private WebSocketClient client;
+  
 
   public InetSocketAddress newServer(Function<WebSocketSession, Mono<Void>> onConnect,
       Function<WebSocketSession, Mono<Void>> onDisconnect) {
@@ -58,7 +58,7 @@ public class WebSocketResource extends ExternalResource implements Closeable {
   }
 
   public <T> Flux<T> newClientSession(String path, List<T> requests, Class<T> clazz) {
-    client = new ReactorNettyWebSocketClient();
+    WebSocketClient client = new ReactorNettyWebSocketClient();
     URI uri = getUri(path);
     ReplayProcessor<T> responses = ReplayProcessor.create();
 
