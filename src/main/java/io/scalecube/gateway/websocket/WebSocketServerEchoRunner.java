@@ -28,8 +28,14 @@ public class WebSocketServerEchoRunner {
 
     GreetingService serviceInstance = new GreetingServiceImpl();
 
+    Microservices gateway = Microservices.builder()
+        .build().startAwait();
+
+    
     Microservices services = Microservices.builder()
+        .seeds(gateway.cluster().address())
         .services(serviceInstance).build().startAwait();
+
     ServiceCall.Call call = services.call();
     LOGGER.info("Started services at address: {}", services.serviceAddress());
 
@@ -40,7 +46,7 @@ public class WebSocketServerEchoRunner {
       @Override
       public Mono<Void> onConnect(WebSocketSession session) {
         return session.send(
-            call.requestBidirectional(session.receive()
+            call.invoke(session.receive()
                 .log("recv"))
             .log("send")
             .map(dataCodec::encode)).then();
