@@ -24,8 +24,8 @@ public class WebSocketServerEchoRunner {
         .services(serviceInstance).build()
         .startAwait();
 
-    ServiceGateway
-      .builder(services.call()).ws().build()
+    WebsocketGateway
+      .builder(services.call()).build()
       // on instance
       .start(new InetSocketAddress(8080));
     

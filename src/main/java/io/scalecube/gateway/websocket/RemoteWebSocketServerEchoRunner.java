@@ -27,14 +27,16 @@ public class RemoteWebSocketServerEchoRunner {
   public static void main(String[] args) throws InterruptedException {
 
     Microservices gateway = Microservices.builder()
-        .build().startAwait();
-   
+        .build()
+        .startAwait();
+    
     Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl()).build().startAwait();
 
-    ServiceGateway
-      .builder(gateway.call()).ws().build()
+    WebsocketGateway
+      .builder(gateway.call())
+      .build()
       // on instance
       .start(new InetSocketAddress(8080));
     

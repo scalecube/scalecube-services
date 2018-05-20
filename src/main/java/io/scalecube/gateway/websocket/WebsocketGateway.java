@@ -5,7 +5,7 @@ import io.scalecube.services.codec.ServiceMessageDataCodec;
 
 import reactor.core.publisher.Mono;
 
-public class ServiceGateway {
+public class WebsocketGateway {
 
   public static class Builder {
 
@@ -16,8 +16,7 @@ public class ServiceGateway {
     public Builder(Call call) {
       this.call = call;
     }
-
-    public Builder ws() {
+    public WebSocketServer build() {
       acceptor = new WebSocketAcceptor() {
         @Override
         public Mono<Void> onConnect(WebSocketSession session) {
@@ -33,10 +32,7 @@ public class ServiceGateway {
           return Mono.never();
         }
       }; 
-      return this;
-    }
 
-    public WebSocketServer build() {
       return new WebSocketServer(acceptor);
     }
 
