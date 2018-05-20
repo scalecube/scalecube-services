@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
 import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
-import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
@@ -22,14 +21,12 @@ import io.scalecube.transport.Address;
 
 import com.google.common.reflect.Reflection;
 
-import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.UnicastProcessor;
 
 public class ServiceCall {
 
@@ -237,31 +234,24 @@ public class ServiceCall {
    * @return flux publisher of service responses no encoding is applied.
    */
   public Flux<ServiceMessage> invoke(ServiceMessage request, CommunicationMode mode, Address address) {
-
-    final Processor<ServiceMessage, ServiceMessage> upstream =
-        UnicastProcessor.<ServiceMessage>create();
-
     if (mode.equals(REQUEST_RESPONSE)) {
-      Flux.from(transport.create(address)
+      return Flux.from(transport.create(address)
           .requestBidirectional(Flux.just(request)).as(Mono::from))
-          .map(message -> dataCodec.encode(message))
-          .subscribe(next -> upstream.onNext(next));
+          .map(message -> dataCodec.encode(message));
 
     } else if (mode.equals(REQUEST_STREAM)) {
-      Flux.from(transport.create(address)
+      return Flux.from(transport.create(address)
           .requestBidirectional(Flux.just(request)))
-          .map(message -> dataCodec.encode(message))
-          .subscribe(next -> upstream.onNext(next));
+          .map(message -> dataCodec.encode(message));
 
     } else if (mode.equals(FIRE_AND_FORGET)) {
       Flux.from(transport.create(address)
           .requestBidirectional(Flux.just(request)).as(Mono::from))
           .then();
-
-    } else if (mode.equals(REQUEST_CHANNEL)) {
+      return Flux.empty();
+    } else {
       throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
     }
-    return Flux.from(upstream);
   }
 
   /**
