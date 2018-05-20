@@ -256,6 +256,32 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   @Test
+  public void test_remote_greeting_no_params_fire_and_forget() {
+    // Create microservices cluster.
+    Microservices provider = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build()
+        .startAwait();
+
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build()
+        .startAwait();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    // call the service.
+    service.notifyGreeting();
+
+    provider.shutdown().block();
+    consumer.shutdown().block();
+  }
+
+  @Test
   public void test_remote_greeting_return_GreetingResponse() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
