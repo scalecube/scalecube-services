@@ -103,7 +103,8 @@ public final class WebSocketSession {
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
-    return outbound.sendObject(Flux.from(messages).map(this::toFrame)).then();
+    return outbound.sendObject(Flux.from(messages).map(this::toFrame))
+        .then();
   }
 
   /**
