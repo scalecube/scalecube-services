@@ -38,6 +38,8 @@ public final class WebSocketSession {
 
   final Processor<ServiceMessage, ServiceMessage> downstream =
       TopicProcessor.<ServiceMessage>builder().autoCancel(false).build();
+  final Processor<ServiceMessage, ServiceMessage> upstream =
+      TopicProcessor.<ServiceMessage>builder().autoCancel(false).build();
 
 
   private final String id;
@@ -73,15 +75,11 @@ public final class WebSocketSession {
     this.contentType = Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
     this.auth = httpHeaders.get(AUTHORIZATION);
 
-   
     // prepare inbound
     this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log("++++++++++ RECEIVE");
-    Flux.from(this.inbound).subscribe(downstream::onNext);
     
     // prepare outbound
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
-    
-    
   }
 
   public String id() {
@@ -109,7 +107,7 @@ public final class WebSocketSession {
   }
 
   public Flux<ServiceMessage> receive() {
-    return Flux.from(downstream);
+    return inbound;
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
