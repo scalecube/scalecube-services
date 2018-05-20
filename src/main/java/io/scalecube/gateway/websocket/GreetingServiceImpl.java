@@ -11,11 +11,11 @@ public class GreetingServiceImpl implements GreetingService {
   public Mono<String> hello(String name) {
     return Mono.just("Echo:" + name);
   }
-  
+
   @Override
   public Flux<String> many(String name) {
     return Flux.interval(Duration.ofSeconds(1))
-        .map(i->"Greeting (" + i + ") to: " + name);
-    
+        .map(i -> "Greeting (" + i + ") to: " + name);
+
   }
 }

@@ -1,6 +1,6 @@
 package io.scalecube.gateway.websocket;
 
-import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
 
 import reactor.core.publisher.Mono;
@@ -9,13 +9,14 @@ public class WebsocketGateway {
 
   public static class Builder {
 
-    private Call call;
+    private ServiceCall call;
     private WebSocketAcceptor acceptor;
     private ServiceMessageDataCodec dataCodec = new ServiceMessageDataCodec();
 
-    public Builder(Call call) {
+    public Builder(ServiceCall call) {
       this.call = call;
     }
+
     public WebSocketServer build() {
       acceptor = new WebSocketAcceptor() {
         @Override
@@ -23,22 +24,23 @@ public class WebsocketGateway {
           return session.send(
               call.invoke(session.receive()
                   .log("recv"))
-              .log("send")
-              .map(dataCodec::encode)).then();
+                  .log("send")
+                  .map(dataCodec::encode))
+              .then();
         }
 
         @Override
         public Mono<Void> onDisconnect(WebSocketSession session) {
           return Mono.never();
         }
-      }; 
+      };
 
       return new WebSocketServer(acceptor);
     }
 
   }
 
-  public static Builder builder(Call call) {
+  public static Builder builder(ServiceCall call) {
     return new Builder(call);
   }
 

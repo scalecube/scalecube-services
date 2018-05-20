@@ -13,6 +13,7 @@ public class WebSocketServerEchoRunner {
 
   /**
    * Run test runner of Websocket server.
+   * 
    * @param args - program arguments if any.
    * @throws InterruptedException - in case the program was interrupted.
    */
@@ -25,10 +26,10 @@ public class WebSocketServerEchoRunner {
         .startAwait();
 
     WebsocketGateway
-      .builder(services.call()).build()
-      // on instance
-      .start(new InetSocketAddress(8080));
-    
+        .builder(services.call().create()).build()
+        // on instance
+        .start(new InetSocketAddress(8080));
+
     Thread.currentThread().join();
   }
 
