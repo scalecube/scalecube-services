@@ -20,7 +20,6 @@ import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
 
-import com.codahale.metrics.Timer;
 import com.google.common.reflect.Reflection;
 
 import org.reactivestreams.Processor;
