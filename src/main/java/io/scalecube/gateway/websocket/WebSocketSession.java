@@ -7,6 +7,7 @@ import io.scalecube.services.api.ServiceMessage;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.TopicProcessor;
 import reactor.ipc.netty.NettyPipeline;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
@@ -18,6 +19,7 @@ import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
+import org.reactivestreams.Processor;
 import org.reactivestreams.Publisher;
 
 import java.net.InetSocketAddress;
@@ -33,6 +35,10 @@ public final class WebSocketSession {
 
   private final Flux<ServiceMessage> inbound;
   private final WebsocketOutbound outbound;
+
+  final Processor<ServiceMessage, ServiceMessage> downstream =
+      TopicProcessor.<ServiceMessage>builder().autoCancel(false).build();
+
 
   private final String id;
   private final String uri;
@@ -67,11 +73,15 @@ public final class WebSocketSession {
     this.contentType = Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
     this.auth = httpHeaders.get(AUTHORIZATION);
 
+   
     // prepare inbound
     this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log("++++++++++ RECEIVE");
-
+    Flux.from(this.inbound).subscribe(downstream::onNext);
+    
     // prepare outbound
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
+    
+    
   }
 
   public String id() {
@@ -99,7 +109,7 @@ public final class WebSocketSession {
   }
 
   public Flux<ServiceMessage> receive() {
-    return inbound;
+    return Flux.from(downstream);
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
