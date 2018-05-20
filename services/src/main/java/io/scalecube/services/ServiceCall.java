@@ -85,13 +85,13 @@ public class ServiceCall {
   }
 
   /**
-   * Issues fire-and-rorget request.
+   * Issues fire-and-forget request.
    *
    * @param request request message to send.
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return requestOne(request, Void.class).then();
+    return invoke(Mono.just(request), Void.class).then();
   }
 
   /**
@@ -101,7 +101,7 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request) {
-    return requestBidirectional(Mono.just(request)).as(Mono::from);
+    return invoke(Mono.just(request)).as(Mono::from);
   }
 
   /**
@@ -112,7 +112,7 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
-    return requestBidirectional(Mono.just(request), responseType).as(Mono::from);
+    return invoke(Mono.just(request), responseType).as(Mono::from);
   }
 
   /**
@@ -122,7 +122,7 @@ public class ServiceCall {
    * @return stream of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request) {
-    return requestBidirectional(Mono.just(request));
+    return invoke(Mono.just(request));
   }
 
   /**
@@ -133,7 +133,7 @@ public class ServiceCall {
    * @return stream of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
-    return requestBidirectional(Mono.just(request), responseType);
+    return invoke(Mono.just(request), responseType);
   }
 
   /**
@@ -202,7 +202,7 @@ public class ServiceCall {
    * @param responseType type of responses.
    * @return flux publisher of service responses decoded by a given responseType.
    */
-  public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher, Class<?> responseType) {
+  public Flux<ServiceMessage> invoke(final Publisher<ServiceMessage> publisher, final Class<?> responseType) {
     return Flux.from(publisher).flatMap(request -> {
 
       Messages.validate().serviceRequest(request);
@@ -234,21 +234,21 @@ public class ServiceCall {
    * @return flux publisher of service responses no encoding is applied.
    */
   public Flux<ServiceMessage> invoke(ServiceMessage request, CommunicationMode mode, Address address) {
-    if (mode.equals(REQUEST_RESPONSE)) {
+    if (REQUEST_RESPONSE.equals(mode)) {
       return Flux.from(transport.create(address)
           .requestBidirectional(Flux.just(request)).as(Mono::from))
           .map(message -> dataCodec.encode(message));
 
-    } else if (mode.equals(REQUEST_STREAM)) {
+    } else if (REQUEST_STREAM.equals(mode)) {
       return Flux.from(transport.create(address)
           .requestBidirectional(Flux.just(request)))
           .map(message -> dataCodec.encode(message));
 
-    } else if (mode.equals(FIRE_AND_FORGET)) {
-      Flux.from(transport.create(address)
-          .requestBidirectional(Flux.just(request)).as(Mono::from))
-          .then();
-      return Flux.empty();
+    } else if (FIRE_AND_FORGET.equals(mode)) {
+      return Mono.just(transport.create(address)
+          .requestBidirectional(Flux.just(request)))
+          .thenMany(Flux.empty());
+
     } else {
       throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
     }
