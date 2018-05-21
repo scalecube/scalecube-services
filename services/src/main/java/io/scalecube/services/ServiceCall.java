@@ -91,7 +91,7 @@ public class ServiceCall {
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return invoke(Mono.just(request)).as(Mono::from).then();
+    return requestBidirectional(Mono.just(request)).as(Mono::from).then();
   }
 
   /**
@@ -101,7 +101,7 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request) {
-    return invoke(Mono.just(request)).as(Mono::from);
+    return requestBidirectional(Mono.just(request)).as(Mono::from);
   }
 
   /**
@@ -112,7 +112,7 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
-    return invoke(Mono.just(request), responseType).as(Mono::from);
+    return requestBidirectional(Mono.just(request), responseType).as(Mono::from);
   }
 
   /**
@@ -122,7 +122,7 @@ public class ServiceCall {
    * @return stream of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request) {
-    return invoke(Mono.just(request));
+    return requestBidirectional(Mono.just(request));
   }
 
   /**
@@ -133,7 +133,7 @@ public class ServiceCall {
    * @return stream of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
-    return invoke(Mono.just(request), responseType);
+    return requestBidirectional(Mono.just(request), responseType);
   }
 
   /**
@@ -180,77 +180,6 @@ public class ServiceCall {
         return responsePublisher.map(message -> dataCodec.decode(message, responseType));
       }
     });
-  }
-
-  /**
-   * Issues service request for each service message of the given stream for each message find a service endpoint and
-   * invoke the request according the target endpoint mode.
-   * 
-   * @param publisher of service requests.
-   * @return flux publisher of service responses no encoding is applied.
-   */
-  public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
-    return this.invoke(publisher, null);
-  }
-
-  /**
-   * Issues service request for each service message of the given stream for each message find a service endpoint and
-   * invoke the request according the target end-point type/mode. in case local handlers contains given end-point they
-   * will be preferred over remote end-point.
-   * 
-   * @param publisher of service requests.
-   * @param responseType type of responses.
-   * @return flux publisher of service responses decoded by a given responseType.
-   */
-  public Flux<ServiceMessage> invoke(final Publisher<ServiceMessage> publisher, final Class<?> responseType) {
-    return Flux.from(publisher).flatMap(request -> {
-
-      Messages.validate().serviceRequest(request);
-      String qualifier = request.qualifier();
-
-      if (serviceHandlers.contains(qualifier)) {
-        ServiceMessageHandler serviceHandler = serviceHandlers.get(qualifier);
-        return Flux.from(serviceHandler
-            .invoke(Flux.just(request))
-            .onErrorMap(ExceptionProcessor::mapException));
-      } else {
-        ServiceReference serviceReference =
-            router.route(serviceRegistry, request)
-                .orElseThrow(() -> noReachableMemberException(request));
-
-        return invoke(request, serviceReference.mode(),
-            Address.create(serviceReference.host(), serviceReference.port()))
-                .map(message -> dataCodec.decode(message, responseType));
-      }
-    });
-  }
-
-  /**
-   * Invoke remote service end-point with a given Address and mode of invocation.
-   * 
-   * @param request to invoke remote.
-   * @param mode and style of desired invocation.
-   * @param address of the target end-point.
-   * @return flux publisher of service responses no encoding is applied.
-   */
-  public Flux<ServiceMessage> invoke(ServiceMessage request, CommunicationMode mode, Address address) {
-    if (REQUEST_RESPONSE.equals(mode)) {
-      return Flux.from(transport.create(address)
-          .requestBidirectional(Flux.just(request)).as(Mono::from))
-          .map(message -> dataCodec.encode(message));
-
-    } else if (REQUEST_STREAM.equals(mode)) {
-      return Flux.from(transport.create(address)
-          .requestBidirectional(Flux.just(request)))
-          .map(message -> dataCodec.encode(message));
-
-    } else if (FIRE_AND_FORGET.equals(mode)) {
-      return Flux.from(transport.create(address)
-          .requestBidirectional(Flux.just(request)).as(Mono::from));
-
-    } else {
-      throw new IllegalArgumentException("Communication mode is not supported: " + request.qualifier());
-    }
   }
 
   /**
