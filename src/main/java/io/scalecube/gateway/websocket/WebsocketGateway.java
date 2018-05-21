@@ -22,7 +22,7 @@ public class WebsocketGateway {
         @Override
         public Mono<Void> onConnect(WebSocketSession session) {
           return session.send(
-              call.invoke(session.receive()
+              call.requestBidirectional(session.receive()
                   .log("recv"))
                   .log("send")
                   .map(dataCodec::encode))
