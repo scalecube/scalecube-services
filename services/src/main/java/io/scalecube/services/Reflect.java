@@ -97,7 +97,7 @@ public class Reflect {
                 if (mapper.getType().equals(Microservices.class)) {
                   return this.microservices;
                 } else if (isService(mapper.getType())) {
-                  return this.microservices.call().api(mapper.getType());
+                  return this.microservices.call().create().api(mapper.getType());
                 } else {
                   return null;
                 }
@@ -128,7 +128,7 @@ public class Reflect {
           LOGGER.warn("Unable to inject router {}, using RoundRobin", injection.router());
           return Routers.getRouter(RoundRobinServiceRouter.class);
         });
-        setField(field, service, this.microservices.call().router(router).api(field.getType()));
+        setField(field, service, this.microservices.call().router(router).create().api(field.getType()));
       }
     }
 
@@ -229,14 +229,13 @@ public class Reflect {
    * @return the parameterized Type of a given object or Object class if unknown.
    */
   public static Type parameterizedRequestType(Method method) {
-    if (method != null) {
-      if (method.getGenericParameterTypes().length > 0) {
-        Type type = method.getGenericParameterTypes()[0];
-        if (type instanceof ParameterizedType) {
-          return ((ParameterizedType) type).getActualTypeArguments()[0];
-        }
+    if (method != null && method.getGenericParameterTypes().length > 0) {
+      Type type = method.getGenericParameterTypes()[0];
+      if (type instanceof ParameterizedType) {
+        return ((ParameterizedType) type).getActualTypeArguments()[0];
       }
     }
+
     return Object.class;
   }
 
@@ -325,7 +324,10 @@ public class Reflect {
    */
   public static void validateMethodOrThrow(Method method) {
     Class<?> returnType = method.getReturnType();
-    if (!Publisher.class.isAssignableFrom(returnType)) {
+    if (returnType.equals(Void.TYPE)) {
+      return;
+    } else if (!Publisher.class.isAssignableFrom(returnType)) {
+      System.out.println(returnType);
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
     if (method.getParameters().length > 1) {
@@ -335,9 +337,10 @@ public class Reflect {
 
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
-    Class<?> paramType = parameterizedReturnType(method);
-    if (returnType.isAssignableFrom(Mono.class)) {
-      return Void.class.isAssignableFrom(paramType) ? FIRE_AND_FORGET : REQUEST_RESPONSE;
+    if (returnType.isAssignableFrom(Void.TYPE)) {
+      return FIRE_AND_FORGET;
+    } else if (returnType.isAssignableFrom(Mono.class)) {
+      return REQUEST_RESPONSE;
     } else if (returnType.isAssignableFrom(Flux.class)) {
       Class<?>[] reqTypes = method.getParameterTypes();
       boolean hasFluxAsReqParam = reqTypes.length > 0

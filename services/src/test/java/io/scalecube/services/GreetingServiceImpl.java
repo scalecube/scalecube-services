@@ -98,10 +98,17 @@ public final class GreetingServiceImpl implements GreetingService {
     throw new IllegalArgumentException(request.toString());
   }
 
+  @Override
+  public void notifyGreeting() {
+    print("[notifyGreeting] Hello... i am a service and i just notefied");
+  }
+
   private void print(String message) {
     if (!ci) {
       System.out.println(message);
     }
 
   }
+
+
 }

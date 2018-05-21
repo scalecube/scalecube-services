@@ -58,6 +58,7 @@ public class RemoteServiceTest extends BaseTest {
 
     CanaryService service = gateway.call()
         .router(Routers.getRouter(CanaryTestingRouter.class))
+        .create()
         .api(CanaryService.class);
 
     Util.sleep(1000);
@@ -98,7 +99,7 @@ public class RemoteServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = gateway.call()
+    GreetingService service = gateway.call().create()
         .api(GreetingService.class);
 
     // call the service.
@@ -123,7 +124,7 @@ public class RemoteServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = gateway.call()
+    GreetingService service = gateway.call().create()
         .api(GreetingService.class);
 
     // call the service.
@@ -152,7 +153,7 @@ public class RemoteServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = gateway.call()
+    GreetingService service = gateway.call().create()
         .api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
@@ -183,7 +184,7 @@ public class RemoteServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = gateway.call()
+    GreetingService service = gateway.call().create()
         .api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
@@ -249,6 +250,32 @@ public class RemoteServiceTest extends BaseTest {
     Mono<String> future = Mono.from(service.greetingNoParams());
 
     assertTrue("hello unknown".equals(future.block(Duration.ofSeconds(1))));
+
+    provider.shutdown().block();
+    consumer.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_greeting_no_params_fire_and_forget() {
+    // Create microservices cluster.
+    Microservices provider = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .services(new GreetingServiceImpl())
+        .build()
+        .startAwait();
+
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
+        .discoveryPort(port.incrementAndGet())
+        .seeds(provider.cluster().address())
+        .build()
+        .startAwait();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    // call the service.
+    service.notifyGreeting();
 
     provider.shutdown().block();
     consumer.shutdown().block();
@@ -409,7 +436,7 @@ public class RemoteServiceTest extends BaseTest {
         .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
 
     Publisher<String> future = service.callGreeting("joe");
 
@@ -435,7 +462,7 @@ public class RemoteServiceTest extends BaseTest {
         .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
     assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
   }
@@ -461,7 +488,7 @@ public class RemoteServiceTest extends BaseTest {
         .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
     Mono.from(
         service.callGreetingTimeout("joe")).block();
 
@@ -488,7 +515,7 @@ public class RemoteServiceTest extends BaseTest {
         .startAwait();
 
     // Get a proxy to the service api.
-    CoarseGrainedService service = gateway.call().api(CoarseGrainedService.class);
+    CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
 
     Mono.from(service.callGreetingWithDispatcher("joe"))
         .subscribe(success -> {
@@ -517,7 +544,7 @@ public class RemoteServiceTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices micro) {
-    return micro.call().api(GreetingService.class); // create proxy for GreetingService API
+    return micro.call().create().api(GreetingService.class); // create proxy for GreetingService API
   }
 
   private Microservices createProvider(Microservices gateway) {

@@ -23,6 +23,7 @@ public class ReflectTest {
   public static Collection<Object[]> data() {
     return Arrays.asList(new Object[][] {
         {"fireAndForget", FIRE_AND_FORGET},
+        {"emptyResponse", REQUEST_RESPONSE},
         {"requestResponse", REQUEST_RESPONSE},
         {"requestStream", REQUEST_STREAM},
         {"requestChannel", REQUEST_CHANNEL},
@@ -49,8 +50,10 @@ public class ReflectTest {
   }
 
   private interface TestService {
-    Mono<Void> fireAndForget(Integer i);
-
+    void fireAndForget(Integer i);
+    
+    Mono<Void> emptyResponse(Integer i);
+    
     Mono<Integer> requestResponse(Integer i);
 
     Flux<Integer> requestStream(Integer i);

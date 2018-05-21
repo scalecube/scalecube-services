@@ -49,7 +49,7 @@ public class StreamingServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    QuoteService service = node.call().api(QuoteService.class);
+    QuoteService service = node.call().create().api(QuoteService.class);
 
     CountDownLatch latch = new CountDownLatch(3);
     Flux<String> obs = service.quotes();
@@ -77,7 +77,7 @@ public class StreamingServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    QuoteService service = gateway.call().api(QuoteService.class);
+    QuoteService service = gateway.call().create().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(3);
     CountDownLatch latch2 = new CountDownLatch(3);
 
@@ -117,7 +117,7 @@ public class StreamingServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    QuoteService service = gateway.call().api(QuoteService.class);
+    QuoteService service = gateway.call().create().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(streamBound);
 
     Disposable sub1 = service.snapshot(streamBound)
@@ -149,7 +149,7 @@ public class StreamingServiceTest extends BaseTest {
     Call service = gateway.call();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Disposable sub1 = Flux.from(service.requestMany(Messages.builder()
+    Disposable sub1 = Flux.from(service.create().requestMany(Messages.builder()
         .request(QuoteService.NAME, "snapshot")
         .data(batchSize)
         .build()))
@@ -177,7 +177,7 @@ public class StreamingServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    QuoteService service = gateway.call().api(QuoteService.class);
+    QuoteService service = gateway.call().create().api(QuoteService.class);
 
     assertEquals("1", service.justOne().block(Duration.ofSeconds(2)));
 
@@ -203,7 +203,7 @@ public class StreamingServiceTest extends BaseTest {
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    Flux.from(service.requestOne(justOne)).subscribe(onNext -> latch1.countDown());
+    Flux.from(service.create().requestOne(justOne)).subscribe(onNext -> latch1.countDown());
 
     latch1.await(2, TimeUnit.SECONDS);
     assertTrue(latch1.getCount() == 0);
@@ -230,7 +230,7 @@ public class StreamingServiceTest extends BaseTest {
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
-    sub1.set(Flux.from(service.requestMany(scheduled)).subscribe(onNext -> {
+    sub1.set(Flux.from(service.create().requestMany(scheduled)).subscribe(onNext -> {
       sub1.get().isDisposed();
       latch1.countDown();
 
@@ -262,7 +262,7 @@ public class StreamingServiceTest extends BaseTest {
 
     ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
     try {
-      service.requestMany(scheduled).blockFirst(Duration.ofSeconds(3));
+      service.create().requestMany(scheduled).blockFirst(Duration.ofSeconds(3));
     } catch (Exception ex) {
       if (ex.getMessage().contains("No reachable member with such service")) {
         latch1.countDown();
@@ -297,7 +297,7 @@ public class StreamingServiceTest extends BaseTest {
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
     ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
 
-    sub1.set(Flux.from(service.requestMany(justOne)).subscribe(System.out::println));
+    sub1.set(Flux.from(service.create().requestMany(justOne)).subscribe(System.out::println));
 
     gateway.cluster().listenMembership()
         .filter(MembershipEvent::isRemoved)

@@ -45,8 +45,6 @@ public class ServiceDiscovery {
         loadMemberServices(DiscoveryType.REMOVED, event.member());
       }
     });
-    // ThreadFactory.singleScheduledExecutorService("service-registry-discovery")
-    // .scheduleAtFixedRate(this::loadClusterServices, 10, 10, TimeUnit.SECONDS);
   }
 
   private void loadClusterServices(Cluster cluster) {
@@ -65,16 +63,18 @@ public class ServiceDiscovery {
           }
 
           LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
-          if (type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED)) {
-            if (serviceRegistry.registerService(serviceEndpoint)) {
-              LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
-                  member, serviceEndpoint);
-            }
-          } else if (type.equals(DiscoveryType.REMOVED)) {
-            if (serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
-              LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
-                  member, serviceEndpoint);
-            }
+          if ((type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED))
+              && (serviceRegistry.registerService(serviceEndpoint))) {
+
+            LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
+                member, serviceEndpoint);
+
+          } else if (type.equals(DiscoveryType.REMOVED)
+              && (serviceRegistry.unregisterService(serviceEndpoint.id()) != null)) {
+
+            LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
+                member, serviceEndpoint);
+
           }
         });
   }
