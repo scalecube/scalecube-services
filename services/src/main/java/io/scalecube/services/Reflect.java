@@ -354,28 +354,28 @@ public class Reflect {
   private static Publisher<?> invokePublisher(Object serviceObject, Method method, Object request) {
     try {
       if (method.getParameters().length == 0) {
-        return (Publisher<?>) method.invoke(serviceObject);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject));
       } else {
-        return (Publisher<?>) method.invoke(serviceObject, request);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject, request));
       }
     } catch (InvocationTargetException ex) {
-      return Mono.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+      return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
     } catch (Throwable ex) {
-      return Mono.error(ex);
+      return Flux.error(ex);
     }
   }
 
   private static Publisher<?> invokePublisher(Object serviceObject, Method method, Publisher<?> publisher) {
     try {
       if (method.getParameters().length == 0) {
-        return (Publisher<?>) method.invoke(serviceObject);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject));
       } else {
-        return (Publisher<?>) method.invoke(serviceObject, publisher);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject, publisher));
       }
     } catch (InvocationTargetException ex) {
-      return Mono.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+      return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
     } catch (Throwable ex) {
-      return Mono.error(ex);
+      return Flux.error(ex);
     }
   }
 }
