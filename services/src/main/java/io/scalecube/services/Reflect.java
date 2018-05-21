@@ -298,11 +298,10 @@ public class Reflect {
     switch (mode) {
       case FIRE_AND_FORGET:
       case REQUEST_RESPONSE:
-        return Mono.from(publisher).flatMap(request -> invokeMono(serviceObject, method, request));
       case REQUEST_STREAM:
-        return Flux.from(publisher).flatMap(request -> invokeFlux(serviceObject, method, request));
+        return Flux.from(publisher).flatMap(request -> invokePublisher(serviceObject, method, request));
       case REQUEST_CHANNEL:
-        return Flux.from(publisher).transform(flux -> invokeFluxChannel(serviceObject, method, flux));
+        return Flux.from(publisher).transform(publisher1 -> invokePublisher(serviceObject, method, publisher1));
       default:
         throw new IllegalArgumentException("Communication mode is not supported: " + method);
     }
@@ -352,26 +351,12 @@ public class Reflect {
     }
   }
 
-  private static Mono<?> invokeMono(Object serviceObject, Method method, Object request) {
+  private static Publisher<?> invokePublisher(Object serviceObject, Method method, Object request) {
     try {
       if (method.getParameters().length == 0) {
-        return (Mono<?>) method.invoke(serviceObject);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject));
       } else {
-        return (Mono<?>) method.invoke(serviceObject, request);
-      }
-    } catch (InvocationTargetException ex) {
-      return Mono.error(Optional.ofNullable(ex.getCause()).orElse(ex));
-    } catch (Throwable ex) {
-      return Mono.error(ex);
-    }
-  }
-
-  private static Flux<?> invokeFlux(Object serviceObject, Method method, Object request) {
-    try {
-      if (method.getParameters().length == 0) {
-        return (Flux<?>) method.invoke(serviceObject);
-      } else {
-        return (Flux<?>) method.invoke(serviceObject, request);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject, request));
       }
     } catch (InvocationTargetException ex) {
       return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
@@ -380,12 +365,12 @@ public class Reflect {
     }
   }
 
-  private static Flux<?> invokeFluxChannel(Object serviceObject, Method method, Flux<?> flux) {
+  private static Publisher<?> invokePublisher(Object serviceObject, Method method, Publisher<?> publisher) {
     try {
       if (method.getParameters().length == 0) {
-        return (Flux<?>) method.invoke(serviceObject);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject));
       } else {
-        return (Flux<?>) method.invoke(serviceObject, flux);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject, publisher));
       }
     } catch (InvocationTargetException ex) {
       return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
