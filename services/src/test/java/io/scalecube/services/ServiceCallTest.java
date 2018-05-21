@@ -140,7 +140,7 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
 
     // When
-    StepVerifier.create(gateway.call().create().oneWay(GREETING_FAILING_VOID_REQ))
+    StepVerifier.create(gateway.call().create().requestOne(GREETING_FAILING_VOID_REQ, Void.class))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
 
@@ -161,7 +161,7 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
 
     // When
-    StepVerifier.create(gateway.call().create().oneWay(GREETING_THROWING_VOID_REQ))
+    StepVerifier.create(gateway.call().create().requestOne(GREETING_THROWING_VOID_REQ, Void.class))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
 
@@ -472,9 +472,11 @@ public class ServiceCallTest extends BaseTest {
 
     // call the service.
     GreetingResponse result1 =
-        Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
+        Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+            .data();
     GreetingResponse result2 =
-        Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
+        Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+            .data();
 
     assertTrue(!result1.sender().equals(result2.sender()));
     provider2.shutdown().block();
@@ -509,7 +511,8 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     for (int i = 0; i < 1e3; i++) {
       GreetingResponse result =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
+          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+              .data();
       assertEquals("2", result.sender());
     }
     provider2.shutdown().block();
@@ -544,9 +547,11 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     for (int i = 0; i < 1e2; i++) {
       GreetingResponse resultForFransin =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class)).timeout(timeout).block().data();
+          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class)).timeout(timeout).block()
+              .data();
       GreetingResponse resultForJoe =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block().data();
+          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+              .data();
       assertEquals("1", resultForJoe.sender());
       assertEquals("2", resultForFransin.sender());
     }
