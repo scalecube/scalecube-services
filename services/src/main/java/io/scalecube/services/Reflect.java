@@ -326,7 +326,6 @@ public class Reflect {
     if (returnType.equals(Void.TYPE)) {
       return;
     } else if (!Publisher.class.isAssignableFrom(returnType)) {
-      System.out.println(returnType);
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
     if (method.getParameters().length > 1) {
