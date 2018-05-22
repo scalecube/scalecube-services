@@ -1,71 +1,64 @@
 package io.scalecube.gateway.websocket;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 
-import org.junit.rules.ExternalResource;
+import io.netty.buffer.ByteBufAllocator;
+
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.client.ReactorNettyWebSocketClient;
-import org.springframework.web.reactive.socket.client.WebSocketClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
-
-import io.netty.buffer.ByteBufAllocator;
-
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
-public class WebSocketResource extends ExternalResource implements Closeable {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebSocketResource.class);
-
-  private static NettyDataBufferFactory BUFFER_FACTORY =
+public class TestWebsocketClient {
+  private static final Logger LOGGER = LoggerFactory.getLogger(TestWebsocketClient.class);
+  private final InetSocketAddress serverAddress;
+  private final URI uri;
+  private final ReactorNettyWebSocketClient client;
+  private final NettyDataBufferFactory BUFFER_FACTORY =
       new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
-  
-  private WebSocketServer server;
-  private InetSocketAddress serverAddress;
 
-  public InetSocketAddress newServer(Function<WebSocketSession, Mono<Void>> onConnect,
-      Function<WebSocketSession, Mono<Void>> onDisconnect) {
-    server = new WebSocketServer(new WebSocketAcceptor() {
-      @Override
-      public Mono<Void> onConnect(WebSocketSession session) {
-        return onConnect != null ? onConnect.apply(session) : Mono.empty();
-      }
-
-      @Override
-      public Mono<Void> onDisconnect(WebSocketSession session) {
-        return onDisconnect != null ? onDisconnect.apply(session) : Mono.empty();
-      }
-    });
-    serverAddress = server.start();
-    return serverAddress;
+  public TestWebsocketClient(InetSocketAddress serverAddress, String path) {
+    this.serverAddress = serverAddress;
+    this.uri = getUri(path);
+    client = new ReactorNettyWebSocketClient();
   }
 
-  public <T> Flux<T> newClientSession(String path, List<T> requests, Class<T> clazz) {
+  public <T> Flux send(Publisher<T> requests, Class<T> clazz) {
+    if (requests instanceof Flux) {
+      return send(((Flux) requests).collectList(), clazz);
+    } else if (requests instanceof Mono) {
+      return send(Collections.singletonList(((Mono<T>) requests).block()), clazz);
+    }
+    throw new IllegalArgumentException("The request must be either Flux or Mono");
+  }
 
-    WebSocketClient client = new ReactorNettyWebSocketClient();
-    URI uri = getUri(path);
+  public <T> Flux send(T request, Class<T> clazz) {
+    return send(Collections.singletonList(request), clazz);
+  }
+
+  public <T> Flux<T> send(List<T> requests, Class<T> clazz) {
     ReplayProcessor<T> responses = ReplayProcessor.create();
-
     client.execute(uri,
         session -> {
           LOGGER.info("Start sending messages");
-
           return session
               .send(Flux.fromIterable(requests).map(this::encode))
               .thenMany(session.receive()
@@ -94,15 +87,6 @@ public class WebSocketResource extends ExternalResource implements Closeable {
     return builder.build().toUri();
   }
 
-  private <T> T decode(WebSocketMessage message, Class<T> clazz) {
-    ByteBuffer buffer = message.getPayload().asByteBuffer();
-    try {
-      return new ObjectMapper().readValue(new ByteBufferBackedInputStream(buffer), clazz);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
   private WebSocketMessage encode(Object message) {
     try {
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -115,17 +99,12 @@ public class WebSocketResource extends ExternalResource implements Closeable {
     }
   }
 
-  @Override
-  protected void after() {
-    if (server != null) {
-      server.stop();
-    }
-  }
-
-  @Override
-  public void close() {
-    if (server != null) {
-      server.stop();
+  private <T> T decode(WebSocketMessage message, Class<T> clazz) {
+    ByteBuffer buffer = message.getPayload().asByteBuffer();
+    try {
+      return new ObjectMapper().readValue(new ByteBufferBackedInputStream(buffer), clazz);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }
