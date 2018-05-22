@@ -607,8 +607,8 @@ public class ServiceCallTest extends BaseTest {
     TimeUnit.SECONDS.sleep(3);
     Call service = gateway.call().router(CanaryTestingRouter.class);
 
-    ServiceMessage req = Messages.builder()
-        .request(CanaryService.class, "greeting")
+    ServiceMessage req = ServiceMessage.builder()
+        .qualifier(Reflect.serviceName(CanaryService.class), "greeting")
         .data(new GreetingRequest("joe"))
         .build();
 

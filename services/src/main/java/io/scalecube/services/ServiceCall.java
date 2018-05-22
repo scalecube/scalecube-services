@@ -156,7 +156,6 @@ public class ServiceCall {
       ServiceMessage request = pair.head();
       Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
 
-      Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
       if (serviceHandlers.contains(qualifier)) {

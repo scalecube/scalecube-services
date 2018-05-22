@@ -38,8 +38,8 @@ public class GracefulShutdownTest extends BaseTest {
 
     // call the service.
     AtomicInteger count = new AtomicInteger(3);
-    ServiceMessage request = Messages.builder()
-        .request(GreetingService.class, "greetingRequest")
+    ServiceMessage request = ServiceMessage.builder()
+        .qualifier(Reflect.serviceName(GreetingService.class), "greetingRequest")
         .data("joe")
         .build();
 
