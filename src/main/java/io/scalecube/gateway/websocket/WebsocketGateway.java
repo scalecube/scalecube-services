@@ -1,12 +1,14 @@
 package io.scalecube.gateway.websocket;
 
-import java.net.InetSocketAddress;
-
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.net.InetSocketAddress;
 
 public class WebsocketGateway {
 
@@ -48,10 +50,9 @@ public class WebsocketGateway {
       acceptor = new WebSocketAcceptor() {
         @Override
         public Mono<Void> onConnect(WebSocketSession session) {
-          return session.send(
-              call.requestBidirectional(inbound)
-                  .map(dataCodec::encode))
-              .then();
+          return session.send(session.receive().flatMap(message -> call.requestBidirectional(Mono.just(message))
+              .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)))
+              .map(dataCodec::encode)));
         }
 
         @Override
@@ -68,7 +69,4 @@ public class WebsocketGateway {
   public static Builder builder(ServiceCall call) {
     return new Builder(call);
   }
-
-
-
 }

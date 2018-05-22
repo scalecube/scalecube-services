@@ -5,6 +5,13 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.scalecube.services.api.ServiceMessage;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.NettyPipeline;
+import reactor.ipc.netty.http.server.HttpServerRequest;
+import reactor.ipc.netty.http.websocket.WebsocketInbound;
+import reactor.ipc.netty.http.websocket.WebsocketOutbound;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
@@ -18,13 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.NettyPipeline;
-import reactor.ipc.netty.http.server.HttpServerRequest;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 
 public final class WebSocketSession {
 
@@ -68,7 +68,7 @@ public final class WebSocketSession {
     this.auth = httpHeaders.get(AUTHORIZATION);
 
     // prepare inbound
-    this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log("++++++++++ RECEIVE");
+    this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log(">>> RECEIVE");
     
     // prepare outbound
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
@@ -103,8 +103,7 @@ public final class WebSocketSession {
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
-    return outbound.sendObject(Flux.from(messages).map(this::toFrame))
-        .then();
+    return outbound.sendObject(Flux.from(messages).map(this::toFrame).log(">>> SEND")).then();
   }
 
   /**
