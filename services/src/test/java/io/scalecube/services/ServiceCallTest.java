@@ -161,7 +161,7 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
 
     // When
-    StepVerifier.create(gateway.call().create().requestOne(GREETING_THROWING_VOID_REQ, Void.class))
+    StepVerifier.create(gateway.call().create().oneWay(GREETING_THROWING_VOID_REQ))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
 
