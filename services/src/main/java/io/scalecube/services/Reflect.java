@@ -11,6 +11,7 @@ import io.scalecube.services.annotations.Null;
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
@@ -313,7 +314,7 @@ public class Reflect {
   }
 
   public static String qualifier(Class<?> serviceInterface, Method method) {
-    return serviceName(serviceInterface) + "/" + methodName(method);
+    return Qualifier.asString(serviceName(serviceInterface), methodName(method));
   }
 
   /**
