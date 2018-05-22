@@ -17,6 +17,7 @@ public class BidirectionalServiceCallExample {
 
   /**
    * The main method of the class.
+   * 
    * @param args - command line params if any.
    */
   public static void main(String[] args) {
@@ -28,7 +29,7 @@ public class BidirectionalServiceCallExample {
     Flux<ServiceMessage> req = Flux.interval(Duration.ofSeconds(1)).map(Long::toHexString)
         .map(n -> dataCodec.encode(ServiceMessage.builder().qualifier("greeting/helloStream").data(n).build()));
 
-    List<ServiceMessage> list = call.requestBidirectional(req).log().collectList().block();
+    List<ServiceMessage> list = call.create().requestBidirectional(req).log().collectList().block();
     System.out.println(list.size());
   }
 }

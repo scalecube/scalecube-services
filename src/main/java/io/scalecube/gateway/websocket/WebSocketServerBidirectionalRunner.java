@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-public class WebSocketServerEchoRunner {
+public class WebSocketServerBidirectionalRunner {
 
-  public static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServerEchoRunner.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(WebSocketServerBidirectionalRunner.class);
 
   /**
    * Run test runner of Websocket server.
@@ -37,8 +37,8 @@ public class WebSocketServerEchoRunner {
       @Override
       public Mono<Void> onConnect(WebSocketSession session) {
         Flux<ServiceMessage> respStream = session
-            .receive().map(WebSocketServerEchoRunner::cutSlash).log("++++-receive()")
-            .transform(call::requestBidirectional).log("++++-transform()")
+            .receive().map(WebSocketServerBidirectionalRunner::cutSlash).log("++++-receive()")
+            .transform(call.create()::requestBidirectional).log("++++-transform()")
             .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable))).take(1);
         return session
             .send(respStream.map(dataCodec::encode))
