@@ -10,8 +10,8 @@
     </Appenders>
 
     <Loggers>
-        <Logger name="io.netty" level="info"/>
-        <Root level="info">
+        <Logger name="io.netty" level="error"/>
+        <Root level="error">
             <AppenderRef ref="console"/>
         </Root>
     </Loggers>
