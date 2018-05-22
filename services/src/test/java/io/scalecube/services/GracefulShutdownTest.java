@@ -38,8 +38,8 @@ public class GracefulShutdownTest extends BaseTest {
 
     // call the service.
     AtomicInteger count = new AtomicInteger(3);
-    ServiceMessage request = Messages.builder()
-        .request(GreetingService.class, "greetingRequest")
+    ServiceMessage request = ServiceMessage.builder()
+        .qualifier(Reflect.serviceName(GreetingService.class), "greetingRequest")
         .data("joe")
         .build();
 
@@ -48,7 +48,7 @@ public class GracefulShutdownTest extends BaseTest {
     while (members.gateway().cluster().member(members.node1().cluster().address()).isPresent()
         || postShutdown.get() >= 0) {
       
-      Mono<ServiceMessage> future = Mono.from(service.requestOne(request,GreetingResponse.class));
+      Mono<ServiceMessage> future = Mono.from(service.create().requestOne(request,GreetingResponse.class));
       future.subscribe(result->{
      // print the greeting.
         assertThat(result.data(), instanceOf(GreetingResponse.class));

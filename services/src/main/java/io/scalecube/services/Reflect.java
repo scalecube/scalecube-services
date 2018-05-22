@@ -11,6 +11,7 @@ import io.scalecube.services.annotations.Null;
 import io.scalecube.services.annotations.RequestType;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
@@ -97,7 +98,7 @@ public class Reflect {
                 if (mapper.getType().equals(Microservices.class)) {
                   return this.microservices;
                 } else if (isService(mapper.getType())) {
-                  return this.microservices.call().api(mapper.getType());
+                  return this.microservices.call().create().api(mapper.getType());
                 } else {
                   return null;
                 }
@@ -128,7 +129,7 @@ public class Reflect {
           LOGGER.warn("Unable to inject router {}, using RoundRobin", injection.router());
           return Routers.getRouter(RoundRobinServiceRouter.class);
         });
-        setField(field, service, this.microservices.call().router(router).api(field.getType()));
+        setField(field, service, this.microservices.call().router(router).create().api(field.getType()));
       }
     }
 
@@ -229,14 +230,13 @@ public class Reflect {
    * @return the parameterized Type of a given object or Object class if unknown.
    */
   public static Type parameterizedRequestType(Method method) {
-    if (method != null) {
-      if (method.getGenericParameterTypes().length > 0) {
-        Type type = method.getGenericParameterTypes()[0];
-        if (type instanceof ParameterizedType) {
-          return ((ParameterizedType) type).getActualTypeArguments()[0];
-        }
+    if (method != null && method.getGenericParameterTypes().length > 0) {
+      Type type = method.getGenericParameterTypes()[0];
+      if (type instanceof ParameterizedType) {
+        return ((ParameterizedType) type).getActualTypeArguments()[0];
       }
     }
+
     return Object.class;
   }
 
@@ -299,11 +299,10 @@ public class Reflect {
     switch (mode) {
       case FIRE_AND_FORGET:
       case REQUEST_RESPONSE:
-        return Mono.from(publisher).flatMap(request -> invokeMono(serviceObject, method, request));
       case REQUEST_STREAM:
-        return Flux.from(publisher).flatMap(request -> invokeFlux(serviceObject, method, request));
+        return Flux.from(publisher).flatMap(request -> invokePublisher(serviceObject, method, request));
       case REQUEST_CHANNEL:
-        return Flux.from(publisher).transform(flux -> invokeFluxChannel(serviceObject, method, flux));
+        return Flux.from(publisher).transform(publisher1 -> invokePublisher(serviceObject, method, publisher1));
       default:
         throw new IllegalArgumentException("Communication mode is not supported: " + method);
     }
@@ -315,7 +314,7 @@ public class Reflect {
   }
 
   public static String qualifier(Class<?> serviceInterface, Method method) {
-    return serviceName(serviceInterface) + "/" + methodName(method);
+    return Qualifier.asString(serviceName(serviceInterface), methodName(method));
   }
 
   /**
@@ -325,7 +324,9 @@ public class Reflect {
    */
   public static void validateMethodOrThrow(Method method) {
     Class<?> returnType = method.getReturnType();
-    if (!Publisher.class.isAssignableFrom(returnType)) {
+    if (returnType.equals(Void.TYPE)) {
+      return;
+    } else if (!Publisher.class.isAssignableFrom(returnType)) {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
     if (method.getParameters().length > 1) {
@@ -335,9 +336,10 @@ public class Reflect {
 
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
-    Class<?> paramType = parameterizedReturnType(method);
-    if (returnType.isAssignableFrom(Mono.class)) {
-      return Void.class.isAssignableFrom(paramType) ? FIRE_AND_FORGET : REQUEST_RESPONSE;
+    if (returnType.isAssignableFrom(Void.TYPE)) {
+      return FIRE_AND_FORGET;
+    } else if (returnType.isAssignableFrom(Mono.class)) {
+      return REQUEST_RESPONSE;
     } else if (returnType.isAssignableFrom(Flux.class)) {
       Class<?>[] reqTypes = method.getParameterTypes();
       boolean hasFluxAsReqParam = reqTypes.length > 0
@@ -349,26 +351,12 @@ public class Reflect {
     }
   }
 
-  private static Mono<?> invokeMono(Object serviceObject, Method method, Object request) {
+  private static Publisher<?> invokePublisher(Object serviceObject, Method method, Object request) {
     try {
       if (method.getParameters().length == 0) {
-        return (Mono<?>) method.invoke(serviceObject);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject));
       } else {
-        return (Mono<?>) method.invoke(serviceObject, request);
-      }
-    } catch (InvocationTargetException ex) {
-      return Mono.error(Optional.ofNullable(ex.getCause()).orElse(ex));
-    } catch (Throwable ex) {
-      return Mono.error(ex);
-    }
-  }
-
-  private static Flux<?> invokeFlux(Object serviceObject, Method method, Object request) {
-    try {
-      if (method.getParameters().length == 0) {
-        return (Flux<?>) method.invoke(serviceObject);
-      } else {
-        return (Flux<?>) method.invoke(serviceObject, request);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject, request));
       }
     } catch (InvocationTargetException ex) {
       return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
@@ -377,12 +365,12 @@ public class Reflect {
     }
   }
 
-  private static Flux<?> invokeFluxChannel(Object serviceObject, Method method, Flux<?> flux) {
+  private static Publisher<?> invokePublisher(Object serviceObject, Method method, Publisher<?> publisher) {
     try {
       if (method.getParameters().length == 0) {
-        return (Flux<?>) method.invoke(serviceObject);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject));
       } else {
-        return (Flux<?>) method.invoke(serviceObject, flux);
+        return Flux.from((Publisher<?>) method.invoke(serviceObject, publisher));
       }
     } catch (InvocationTargetException ex) {
       return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));

@@ -10,6 +10,9 @@ import reactor.core.publisher.Mono;
 interface GreetingService {
 
   @ServiceMethod
+  void notifyGreeting();
+
+  @ServiceMethod
   Mono<String> greetingNoParams();
 
   @ServiceMethod

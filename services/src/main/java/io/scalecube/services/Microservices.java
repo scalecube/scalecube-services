@@ -263,9 +263,9 @@ public class Microservices {
 
   public Call call() {
     Router router = Routers.getRouter(RoundRobinServiceRouter.class);
-    return new ServiceCall(client, serviceHandlers, serviceRegistry).call().metrics(metrics).router(router);
+    return new Call(client, serviceHandlers, serviceRegistry).metrics(metrics).router(router);
   }
-
+  
   public Mono<Void> shutdown() {
     return Mono.when(Mono.fromFuture(cluster.shutdown()), server.stop());
   }
