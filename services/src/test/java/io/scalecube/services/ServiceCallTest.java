@@ -161,49 +161,7 @@ public class ServiceCallTest extends BaseTest {
         .startAwait();
 
     // When
-    StepVerifier.create(gateway.call().create().requestOne(GREETING_THROWING_VOID_REQ, Void.class))
-        .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
-        .verify(Duration.ofSeconds(TIMEOUT));
-
-    gateway.shutdown().block();
-    node1.shutdown().block();
-  }
-
-  @Test
-  public void test_remote_failing_void_greeting() {
-    // Given
-    Microservices gateway = gateway();
-
-    Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl())
-        .build()
-        .startAwait();
-
-    // When
-    StepVerifier.create(gateway.call().oneWay(GREETING_FAILING_VOID_REQ))
-        .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
-        .verify(Duration.ofSeconds(TIMEOUT));
-
-    gateway.shutdown().block();
-    node1.shutdown().block();
-  }
-
-  @Test
-  public void test_remote_throwing_void_greeting() {
-    // Given
-    Microservices gateway = gateway();
-
-    Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl())
-        .build()
-        .startAwait();
-
-    // When
-    StepVerifier.create(gateway.call().oneWay(GREETING_THROWING_VOID_REQ))
+    StepVerifier.create(gateway.call().create().oneWay(GREETING_THROWING_VOID_REQ))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
 
