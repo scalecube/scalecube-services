@@ -67,7 +67,7 @@ public class HeadAndTailBenchmark {
     Flux.just(MESSAGE).flatMap(Flux::just).subscribe(bh::consume);
   }
 
-  public void headAndTail(Blackhole bh) {
+  private void headAndTail(Blackhole bh) {
     Flux.from(HeadAndTail.createFrom(Mono.just(MESSAGE)))
         .flatMap(pair -> Flux.from(pair.tail()).startWith(pair.head()))
         .subscribe(bh::consume);
