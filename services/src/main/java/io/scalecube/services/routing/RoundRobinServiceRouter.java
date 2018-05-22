@@ -26,8 +26,6 @@ public class RoundRobinServiceRouter implements Router {
 
     String serviceName = Messages.qualifierOf(request).getNamespace();
 
-    System.out.println(serviceRegistry.listServiceReferences());
-
     List<ServiceReference> serviceInstances =
         routes(serviceRegistry, request).stream()
             .filter(sr -> sr.qualifier().equalsIgnoreCase(request.qualifier()))

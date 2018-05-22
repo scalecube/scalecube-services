@@ -98,7 +98,7 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request) {
-    return requestBidirectional(Mono.just(request)).as(Mono::from);
+    return requestOne(request, null);
   }
 
   /**
@@ -119,7 +119,7 @@ public class ServiceCall {
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request) {
-    return requestBidirectional(Mono.just(request));
+    return requestMany(request, null);
   }
 
   /**
@@ -198,6 +198,7 @@ public class ServiceCall {
 
       Metrics.mark(serviceInterface, metrics, method, "request");
       Class<?> parameterizedReturnType = Reflect.parameterizedReturnType(method);
+      boolean isRequestTypeServiceMessage = Reflect.isRequestTypeServiceMessage(method);
       CommunicationMode mode = Reflect.communicationMode(method);
 
       ServiceMessage request = ServiceMessage.builder()
@@ -207,16 +208,13 @@ public class ServiceCall {
 
       switch (mode) {
         case FIRE_AND_FORGET:
-          serviceCall.oneWay(request).subscribe();
-          return Void.TYPE;
+          return serviceCall.oneWay(request);
         case REQUEST_RESPONSE:
           return serviceCall.requestOne(request, parameterizedReturnType)
-              .transform(mono -> parameterizedReturnType.equals(ServiceMessage.class) ? mono
-                  : mono.map(ServiceMessage::data));
+              .transform(mono -> isRequestTypeServiceMessage ? mono : mono.map(ServiceMessage::data));
         case REQUEST_STREAM:
           return serviceCall.requestMany(request, parameterizedReturnType)
-              .transform(flux -> parameterizedReturnType.equals(ServiceMessage.class) ? flux
-                  : flux.map(ServiceMessage::data));
+              .transform(flux -> isRequestTypeServiceMessage ? flux : flux.map(ServiceMessage::data));
         case REQUEST_CHANNEL:
           // falls to default
         default:
@@ -224,8 +222,6 @@ public class ServiceCall {
       }
     });
   }
-
-
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
     LOGGER.error("Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
