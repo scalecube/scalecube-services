@@ -68,7 +68,7 @@ public final class WebSocketSession {
     this.auth = httpHeaders.get(AUTHORIZATION);
 
     // prepare inbound
-    this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log(">>> RECEIVE");
+    this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log(">> RECEIVE");
     
     // prepare outbound
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
@@ -103,7 +103,7 @@ public final class WebSocketSession {
   }
 
   public Mono<Void> send(Publisher<ServiceMessage> messages) {
-    return outbound.sendObject(Flux.from(messages).map(this::toFrame).log(">>> SEND")).then();
+    return outbound.sendObject(Flux.from(messages).map(this::toFrame).log("<< SEND")).then();
   }
 
   /**
