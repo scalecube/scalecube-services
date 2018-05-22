@@ -24,12 +24,10 @@ import reactor.core.publisher.Mono;
 @State(Scope.Benchmark)
 @Threads(4)
 @Warmup(iterations = 2)
-@Measurement(iterations = 2)
-@BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.NANOSECONDS)
+@Measurement(iterations = 2, time = 5)
 public class HeadAndTailBenchmark {
 
-  private final ServiceMessage message = ServiceMessage.builder()
+  private static final ServiceMessage MESSAGE = ServiceMessage.builder()
       .qualifier("benchmark/test")
       .data("{\"greeting\":\"hello\"}")
       .dataFormat("application/json")
@@ -37,15 +35,43 @@ public class HeadAndTailBenchmark {
       .header("key2", "value2")
       .build();
 
+  @BenchmarkMode(Mode.AverageTime)
+  @OutputTimeUnit(TimeUnit.NANOSECONDS)
   @Benchmark
+  public void avgtOfHeadAndTail(Blackhole bh) {
+    headAndTail(bh);
+  }
+
+  @BenchmarkMode(Mode.Throughput)
+  @OutputTimeUnit(TimeUnit.SECONDS)
+  @Benchmark
+  public void thrptOfHeadAndTail(Blackhole bh) {
+    headAndTail(bh);
+  }
+
+  @BenchmarkMode(Mode.AverageTime)
+  @OutputTimeUnit(TimeUnit.NANOSECONDS)
+  @Benchmark
+  public void avgtOfFlatMap(Blackhole bh) {
+    flatMap(bh);
+  }
+
+  @BenchmarkMode(Mode.Throughput)
+  @OutputTimeUnit(TimeUnit.SECONDS)
+  @Benchmark
+  public void thrptOfFlatMap(Blackhole bh) {
+    flatMap(bh);
+  }
+
+  private void flatMap(Blackhole bh) {
+    Flux.just(MESSAGE).flatMap(Flux::just).subscribe(bh::consume);
+  }
+
   public void headAndTail(Blackhole bh) {
-    Flux.from(HeadAndTail.createFrom(Mono.just(message)))
+    Flux.from(HeadAndTail.createFrom(Mono.just(MESSAGE)))
         .flatMap(pair -> Flux.from(pair.tail()).startWith(pair.head()))
         .subscribe(bh::consume);
   }
 
-  @Benchmark
-  public void flatMap(Blackhole bh) {
-    Flux.just(message).flatMap(Flux::just).subscribe(bh::consume);
-  }
+
 }
