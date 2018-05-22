@@ -1,9 +1,5 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
-import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
-import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
-
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
@@ -57,7 +53,9 @@ public class ServiceCall {
     private final ServiceRegistry serviceRegistry;
 
 
-    public Call(ClientTransport transport, LocalServiceHandlers serviceHandlers, ServiceRegistry serviceRegistry) {
+    public Call(ClientTransport transport,
+        LocalServiceHandlers serviceHandlers,
+        ServiceRegistry serviceRegistry) {
       this.transport = transport;
       this.serviceRegistry = serviceRegistry;
       this.serviceHandlers = serviceHandlers;
@@ -81,17 +79,16 @@ public class ServiceCall {
     public ServiceCall create() {
       return new ServiceCall(this);
     }
-
   }
 
   /**
-   * Issues fire-and-forget request.
+   * Issues fire-and-rorget request.
    *
    * @param request request message to send.
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return requestBidirectional(Mono.just(request)).as(Mono::from).then();
+    return requestOne(request, Void.class).then();
   }
 
   /**
@@ -119,7 +116,7 @@ public class ServiceCall {
    * Issues request to service which returns stream of service messages back.
    *
    * @param request request message to send.
-   * @return stream of service responses.
+   * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request) {
     return requestBidirectional(Mono.just(request));
@@ -130,7 +127,7 @@ public class ServiceCall {
    *
    * @param request request with given headers.
    * @param responseType type of responses.
-   * @return stream of service responses.
+   * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
     return requestBidirectional(Mono.just(request), responseType);
@@ -139,8 +136,8 @@ public class ServiceCall {
   /**
    * Issues stream of service requests to service which returns stream of service messages back.
    * 
-   * @param stream of service requests.
-   * @return stream of service responses.
+   * @param publisher of service requests.
+   * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher) {
     return requestBidirectional(publisher, null);
@@ -149,9 +146,9 @@ public class ServiceCall {
   /**
    * Issues stream of service requests to service which returns stream of service messages back.
    * 
-   * @param stream of service requests.
+   * @param publisher of service requests.
    * @param responseType type of responses.
-   * @return stream of service responses.
+   * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher, Class<?> responseType) {
     return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
