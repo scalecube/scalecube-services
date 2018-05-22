@@ -1,11 +1,11 @@
 package io.scalecube.gateway.websocket;
 
-import io.scalecube.services.Microservices;
+import java.net.InetSocketAddress;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
+import io.scalecube.services.Microservices;
 
 public class WebSocketServerEchoRunner {
 
@@ -25,10 +25,12 @@ public class WebSocketServerEchoRunner {
         .services(serviceInstance).build()
         .startAwait();
 
-    WebsocketGateway
-        .builder(services.call().create()).build()
-        // on instance
-        .start(new InetSocketAddress(8080));
+    WebsocketGateway ws = WebsocketGateway
+        .builder(services.call().create())
+        .build();
+
+    // on instance
+    ws.start(new InetSocketAddress(8080));
 
     Thread.currentThread().join();
   }
