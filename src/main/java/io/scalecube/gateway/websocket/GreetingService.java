@@ -12,6 +12,11 @@ public interface GreetingService {
   @ServiceMethod("one")
   Mono<String> hello(String name);
 
+
   @ServiceMethod("many")
   Flux<String> many(String name);
+
+  @ServiceMethod("helloStream")
+  Flux<String> helloStream(Flux<String> name);
+
 }

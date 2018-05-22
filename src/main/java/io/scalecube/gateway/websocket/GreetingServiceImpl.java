@@ -16,6 +16,9 @@ public class GreetingServiceImpl implements GreetingService {
   public Flux<String> many(String name) {
     return Flux.interval(Duration.ofSeconds(1))
         .map(i -> "Greeting (" + i + ") to: " + name);
+  }
 
+  public Flux<String> helloStream(Flux<String> name) {
+    return name.map(s -> "ECHO:" + s);
   }
 }
