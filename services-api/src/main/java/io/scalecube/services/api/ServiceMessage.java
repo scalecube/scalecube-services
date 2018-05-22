@@ -211,7 +211,7 @@ public final class ServiceMessage {
     }
 
     public Builder qualifier(String serviceName, String methodName) {
-      return qualifier(new Qualifier(serviceName, methodName).asString());
+      return qualifier(Qualifier.asString(serviceName, methodName));
     }
   }
 }

@@ -1,118 +1,60 @@
 package io.scalecube.services.api;
 
-import java.util.Objects;
-
+/**
+ * Qualifier utility class.
+ */
 public final class Qualifier {
 
-  public static final String Q_DELIMITER = "/";
-  public static final String Q_NAMESPACE = "io.scalecube.streams";
-  public static final String Q_ERROR_NAMESPACE = Q_NAMESPACE + ".onError";
+  public static final String DELIMITER = "/";
 
-  private final String namespace;
-  private final String action;
-  private final String stringValue; // calculated
-
-  public static Qualifier error(int action) {
-    return error(Integer.toString(action));
-  }
-
-  public static Qualifier error(String action) {
-    return new Qualifier(Q_ERROR_NAMESPACE, action);
-  }
+  public static final String ERROR_NAMESPACE = "io.scalecube.services.error";
 
   /**
-   * Basic constructor with namespace and action.
+   * Builds error qualifier.
+   *
+   * @param action qualifier action.
+   * @return constructed qualifier string.
    */
-  public Qualifier(String namespace, String action) {
-    this.namespace = namespace;
-    this.action = action;
-
-    if (action == null) {
-      this.stringValue = namespace;
-    } else {
-      this.stringValue = namespace + Q_DELIMITER + action;
-    }
-  }
-
-  public String getNamespace() {
-    return namespace;
-  }
-
-  public String getAction() {
-    return action;
-  }
-
-  public String asString() {
-    return stringValue;
-  }
-
-  public boolean isEquals(String qualifier) {
-    return stringValue.equals(qualifier);
-  }
-
-  public boolean isEqualsIgnoreCase(String qualifier) {
-    return stringValue.equalsIgnoreCase(qualifier);
+  public static String asError(int action) {
+    return asString(ERROR_NAMESPACE, Integer.toString(action));
   }
 
   /**
-   * Constructs qualifier object from string.
+   * Builds qualifier string out of given namespace and action.
+   *
+   * @param namespace qualifier namespace.
+   * @param action qualifier action.
+   * @return constructed qualifier.
    */
-  public static Qualifier fromString(String qualifierAsString) throws IllegalArgumentException {
-    int indexOf = qualifierAsString.indexOf(Q_DELIMITER);
-    if (indexOf == -1) {
-      // whole string is namespace
-      return new Qualifier(qualifierAsString, null);
-    }
-    if (indexOf + 1 >= qualifierAsString.length()) {
-      String namespace = qualifierAsString.substring(0, indexOf);
-      if (namespace.isEmpty()) {
-        throw new IllegalArgumentException(qualifierAsString);
-      }
-      return new Qualifier(namespace, null);
-    }
-    String namespace = qualifierAsString.substring(0, indexOf);
-    String action = qualifierAsString.substring(indexOf + 1);
-    return new Qualifier(namespace, action);
+  public static String asString(String namespace, String action) {
+    return DELIMITER + namespace + DELIMITER + action;
   }
 
   /**
+   * Extracts qualifier namespace part from given qualifier string.
+   *
+   * @param qualifierAsString qualifier string.
    * @return qualifier namespace.
    */
   public static String getQualifierNamespace(String qualifierAsString) {
-    int pos = qualifierAsString.indexOf(Q_DELIMITER);
+    int pos = qualifierAsString.indexOf(DELIMITER, 1);
     if (pos == -1) {
-      return qualifierAsString;
+      throw new IllegalArgumentException("Wrong qualifier format: '" + qualifierAsString + "'");
     }
-    return qualifierAsString.substring(0, pos);
+    return qualifierAsString.substring(1, pos);
   }
 
   /**
+   * Extracts qualifier action part from given qualifier string.
+   *
+   * @param qualifierAsString qualifier string.
    * @return qualifier action.
    */
   public static String getQualifierAction(String qualifierAsString) {
-    int pos = qualifierAsString.lastIndexOf(Q_DELIMITER);
+    int pos = qualifierAsString.lastIndexOf(DELIMITER);
     if (pos == -1) {
-      return qualifierAsString;
+      throw new IllegalArgumentException("Wrong qualifier format: '" + qualifierAsString + "'");
     }
     return qualifierAsString.substring(pos + 1, qualifierAsString.length());
-  }
-
-
-  @Override
-  public boolean equals(Object obj) {
-    if (this == obj) {
-      return true;
-    }
-    if (obj == null || getClass() != obj.getClass()) {
-      return false;
-    }
-    Qualifier qualifier = (Qualifier) obj;
-
-    return Objects.equals(stringValue, qualifier.stringValue);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(stringValue);
   }
 }
