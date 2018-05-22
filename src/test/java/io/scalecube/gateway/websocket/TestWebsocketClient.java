@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.ByteBufferBackedInputStream;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;
 
 import io.netty.buffer.ByteBufAllocator;
 
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.buffer.NettyDataBuffer;
@@ -22,6 +24,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 
 public class TestWebsocketClient {
@@ -38,12 +41,24 @@ public class TestWebsocketClient {
     client = new ReactorNettyWebSocketClient();
   }
 
+  public <T> Flux send(Publisher<T> requests, Class<T> clazz) {
+    if (requests instanceof Flux) {
+      return send(((Flux) requests).collectList(), clazz);
+    } else if (requests instanceof Mono) {
+      return send(Collections.singletonList(((Mono<T>) requests).block()), clazz);
+    }
+    throw new IllegalArgumentException("The request must be either Flux or Mono");
+  }
+
+  public <T> Flux send(T request, Class<T> clazz) {
+    return send(Collections.singletonList(request), clazz);
+  }
+
   public <T> Flux<T> send(List<T> requests, Class<T> clazz) {
     ReplayProcessor<T> responses = ReplayProcessor.create();
     client.execute(uri,
         session -> {
           LOGGER.info("Start sending messages");
-
           return session
               .send(Flux.fromIterable(requests).map(this::encode))
               .thenMany(session.receive()
