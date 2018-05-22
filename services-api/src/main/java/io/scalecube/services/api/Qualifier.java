@@ -7,12 +7,6 @@ public final class Qualifier {
   public static final String Q_DELIMITER = "/";
   public static final String Q_NAMESPACE = "io.scalecube.streams";
   public static final String Q_ERROR_NAMESPACE = Q_NAMESPACE + ".onError";
-  public static final String Q_COMPLETED_NAMESPACE = Q_NAMESPACE + ".onCompleted";
-
-  // qualifier for generic error
-  public static final Qualifier Q_GENERAL_FAILURE = Qualifier.fromString(Q_ERROR_NAMESPACE + Q_DELIMITER + 500);
-  // qualifier for onCompleted event
-  public static final Qualifier Q_ON_COMPLETED = Qualifier.fromString(Q_COMPLETED_NAMESPACE + Q_DELIMITER + 1);
 
   private final String namespace;
   private final String action;
@@ -31,8 +25,8 @@ public final class Qualifier {
    */
   public Qualifier(String namespace, String action) {
     this.namespace = namespace;
-
     this.action = action;
+
     if (action == null) {
       this.stringValue = namespace;
     } else {
@@ -96,7 +90,7 @@ public final class Qualifier {
    * @return qualifier action.
    */
   public static String getQualifierAction(String qualifierAsString) {
-    int pos = qualifierAsString.indexOf(Q_DELIMITER);
+    int pos = qualifierAsString.lastIndexOf(Q_DELIMITER);
     if (pos == -1) {
       return qualifierAsString;
     }

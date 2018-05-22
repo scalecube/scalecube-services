@@ -5,7 +5,6 @@ import static org.junit.Assert.assertTrue;
 
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.BaseTest;
-import io.scalecube.services.Messages;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.api.ServiceMessage;
@@ -149,10 +148,10 @@ public class StreamingServiceTest extends BaseTest {
     Call service = gateway.call();
 
     CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Disposable sub1 = Flux.from(service.create().requestMany(Messages.builder()
-        .request(QuoteService.NAME, "snapshot")
-        .data(batchSize)
-        .build()))
+    Disposable sub1 = service.create().requestMany(
+        ServiceMessage.builder().qualifier(QuoteService.NAME, "snapshot")
+            .data(batchSize)
+            .build())
         .subscribe(onNext -> latch1.countDown());
 
 
@@ -201,7 +200,7 @@ public class StreamingServiceTest extends BaseTest {
     Call service = gateway.call();
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    ServiceMessage justOne = ServiceMessage.builder().qualifier(QuoteService.NAME, "justOne").build();
 
     Flux.from(service.create().requestOne(justOne)).subscribe(onNext -> latch1.countDown());
 
@@ -227,7 +226,7 @@ public class StreamingServiceTest extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
-    ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "scheduled")
+    ServiceMessage scheduled = ServiceMessage.builder().qualifier(QuoteService.NAME, "scheduled")
         .data(1000).build();
 
     sub1.set(Flux.from(service.create().requestMany(scheduled)).subscribe(onNext -> {
@@ -260,7 +259,8 @@ public class StreamingServiceTest extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(1);
 
-    ServiceMessage scheduled = Messages.builder().request(QuoteService.NAME, "unknonwn").build();
+    ServiceMessage scheduled = ServiceMessage.builder()
+        .qualifier(QuoteService.NAME, "unknonwn").build();
     try {
       service.create().requestMany(scheduled).blockFirst(Duration.ofSeconds(3));
     } catch (Exception ex) {
@@ -295,7 +295,7 @@ public class StreamingServiceTest extends BaseTest {
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
     AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
-    ServiceMessage justOne = Messages.builder().request(QuoteService.NAME, "justOne").build();
+    ServiceMessage justOne = ServiceMessage.builder().qualifier(QuoteService.NAME, "justOne").build();
 
     sub1.set(Flux.from(service.create().requestMany(justOne)).subscribe(System.out::println));
 
