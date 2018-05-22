@@ -6,7 +6,7 @@ import io.scalecube.services.annotations.ServiceMethod;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Service("/greeting")
+@Service("greeting")
 public interface GreetingService {
 
   @ServiceMethod("one")
