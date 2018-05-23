@@ -398,23 +398,17 @@ public class ServiceCallTest extends BaseTest {
     // Given:
     Microservices microservices = serviceProvider();
 
-    Call service = microservices.call();
-
     // call the service.
-    Publisher<ServiceMessage> future =
-        service.create().requestOne(GREETING_REQUEST_REQ);
 
+    ServiceMessage result =
+        microservices.call().create().requestOne(GREETING_REQUEST_REQ).block(timeout);
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    Mono.from(future).doOnNext(result -> {
+    // print the greeting.
+    GreetingResponse responseData = result.data();
+    System.out.println("9. local_async_greeting_return_Message :" + responseData);
 
-      assertTrue(result.data().equals(" hello to: joe"));
-      // print the greeting.
-      System.out.println("9. local_async_greeting_return_Message :" + result.data());
+    assertEquals(" hello to: joe", responseData.getResult());
 
-      timeLatch.countDown();
-    });
-    TimeUnit.SECONDS.sleep(1);
     microservices.shutdown().block();
   }
 
@@ -547,11 +541,9 @@ public class ServiceCallTest extends BaseTest {
     // call the service.
     for (int i = 0; i < 1e2; i++) {
       GreetingResponse resultForFransin =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class)).timeout(timeout).block()
-              .data();
+          service.create().requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class).block(timeout).data();
       GreetingResponse resultForJoe =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
-              .data();
+          service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class).block(timeout).data();
       assertEquals("1", resultForJoe.sender());
       assertEquals("2", resultForFransin.sender());
     }
@@ -569,17 +561,14 @@ public class ServiceCallTest extends BaseTest {
 
     Call service = provider1.call();
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       // call the service.
       Mono.from(service.create().requestOne(NOT_FOUND_REQ)).block(timeout);
       fail("Expected no-service-found exception");
     } catch (Exception ex) {
       assertTrue(ex.getMessage().equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
-      timeLatch.countDown();
     }
 
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     gateway.shutdown().block();
     provider1.shutdown().block();
   }
@@ -615,19 +604,12 @@ public class ServiceCallTest extends BaseTest {
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
     int n = (int) 1e2;
-    CountDownLatch timeLatch = new CountDownLatch(n);
     for (int i = 0; i < n; i++) {
-      Mono<ServiceMessage> response = service.create().requestOne(req, GreetingResponse.class);
-      response.doOnNext(message -> {
-        timeLatch.countDown();
-        if (message.data().toString().contains("SERVICE_B_TALKING")) {
-          serviceBCount.incrementAndGet();
-        }
-      }).subscribe();
+      ServiceMessage message = service.create().requestOne(req, GreetingResponse.class).block(timeout);
+      if (message.data().toString().contains("SERVICE_B_TALKING")) {
+        serviceBCount.incrementAndGet();
+      }
     }
-
-    timeLatch.await(1, TimeUnit.MINUTES);
-    assertEquals(0, timeLatch.getCount());
 
     System.out.println("count: " + serviceBCount.get());
     System.out.println("Service B was called: " + serviceBCount.get() + " times.");

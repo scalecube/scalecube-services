@@ -18,6 +18,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoProcessor;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.tcp.TcpClient;
 
 public class RSocketClientTransport implements ClientTransport {
@@ -34,41 +37,60 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(Address address) {
-    final Map<Address, Mono<RSocket>> monoMap = rSockets.get(); // Hint: keep reference for threadsafety
+    final Map<Address, Mono<RSocket>> monoMap = rSockets.get(); // keep reference for threadsafety
     Mono<RSocket> rSocket = monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
     return new RSocketServiceClientAdapter(rSocket, codec);
   }
 
   private static Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
-    return RSocketFactory.connect()
-        .transport(createTcpClientTransport(monoMap, address))
+    MonoProcessor<Scheduler> schedulerProcessor = MonoProcessor.create();
+    MonoProcessor<RSocket> rSocketProcessor = MonoProcessor.create();
+
+    RSocketFactory.connect()
+        .transport(createTcpClientTransport(monoMap, address, schedulerProcessor))
         .start()
-        .doOnNext(rSocket -> {
-          LOGGER.debug("Connected successfully on {}", address);
-          rSocket.onClose().subscribe(aVoid -> {
-            monoMap.remove(address);
-            LOGGER.debug("Connection closed on {} and removed from the pool", address);
-          });
-        })
-        .doOnError(throwable -> {
-          LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
-          monoMap.remove(address);
-        });
+        .subscribe(
+            rSocket -> {
+              LOGGER.debug("Connected successfully on {}", address);
+              rSocket.onClose().subscribe(aVoid -> {
+                monoMap.remove(address);
+                LOGGER.debug("Connection closed on {} and removed from the pool", address);
+              });
+              rSocketProcessor.onNext(rSocket);
+              rSocketProcessor.onComplete();
+            },
+            throwable -> {
+              LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+              monoMap.remove(address);
+              rSocketProcessor.onError(throwable);
+            });
+
+    return schedulerProcessor.flatMap(rSocketProcessor::subscribeOn);
   }
 
-  private static TcpClientTransport createTcpClientTransport(Map<Address, Mono<RSocket>> monoMap, Address address) {
+  private static TcpClientTransport createTcpClientTransport(Map<Address, Mono<RSocket>> monoMap,
+      Address address, MonoProcessor<Scheduler> schedulerProcessor) {
+
     return TcpClientTransport.create(
         TcpClient.create(options -> options
             .disablePool()
             .host(address.host())
             .port(address.port())
-            .afterNettyContextInit(nettyContext -> nettyContext.addHandler(new ChannelInboundHandlerAdapter() {
-              @Override
-              public void channelInactive(ChannelHandlerContext ctx) {
-                monoMap.remove(address);
-                LOGGER.debug("Connection inactive on {} and removed from the pool", address);
-                ctx.fireChannelInactive();
-              }
-            }))));
+            .afterNettyContextInit(nettyContext -> {
+              // add handler to react on remote node closes connection
+              nettyContext.addHandler(new ChannelInboundHandlerAdapter() {
+                @Override
+                public void channelInactive(ChannelHandlerContext ctx) {
+                  monoMap.remove(address);
+                  LOGGER.debug("Connection became inactive on {} and removed from monoMap", address);
+                  ctx.fireChannelInactive();
+                }
+              });
+              // expose executor where channel was assigned
+              Scheduler scheduler = Schedulers.fromExecutor(nettyContext.channel().eventLoop());
+              schedulerProcessor.onNext(scheduler);
+              schedulerProcessor.onComplete();
+              LOGGER.debug("Obtained scheduler {} on channel {}", scheduler, nettyContext.channel());
+            })));
   }
 }

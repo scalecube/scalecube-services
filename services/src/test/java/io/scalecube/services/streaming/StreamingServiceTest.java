@@ -2,6 +2,7 @@ package io.scalecube.services.streaming;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.BaseTest;
@@ -14,6 +15,7 @@ import com.codahale.metrics.MetricRegistry;
 import org.junit.Test;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -50,15 +52,12 @@ public class StreamingServiceTest extends BaseTest {
 
     QuoteService service = node.call().create().api(QuoteService.class);
 
-    CountDownLatch latch = new CountDownLatch(3);
-    Flux<String> obs = service.quotes();
+    int expected = 3;
+    List<String> list =
+        service.quotes().timeout(Duration.ofSeconds(4)).take(expected).collectList().block();
 
-    Disposable sub = obs.subscribe(onNext -> latch.countDown());
+    assertEquals(expected, list.size());
 
-    latch.await(4, TimeUnit.SECONDS);
-
-    sub.dispose();
-    assertTrue(latch.getCount() <= 0);
     node.shutdown();
   }
 
@@ -147,17 +146,14 @@ public class StreamingServiceTest extends BaseTest {
 
     Call service = gateway.call();
 
-    CountDownLatch latch1 = new CountDownLatch(batchSize);
-    Disposable sub1 = service.create().requestMany(
-        ServiceMessage.builder().qualifier(QuoteService.NAME, "snapshot")
-            .data(batchSize)
-            .build())
-        .subscribe(onNext -> latch1.countDown());
+    ServiceMessage message =
+        ServiceMessage.builder().qualifier(QuoteService.NAME, "snapshot").data(batchSize).build();
 
+    List<ServiceMessage> serviceMessages =
+        service.create().requestMany(message).timeout(Duration.ofSeconds(5)).collectList().block();
 
-    latch1.await(10, TimeUnit.SECONDS);
-    assertTrue(latch1.getCount() == 0);
-    sub1.dispose();
+    assertEquals(batchSize, serviceMessages.size());
+
     gateway.shutdown();
     node.shutdown();
   }
@@ -199,20 +195,19 @@ public class StreamingServiceTest extends BaseTest {
 
     Call service = gateway.call();
 
-    final CountDownLatch latch1 = new CountDownLatch(batchSize);
     ServiceMessage justOne = ServiceMessage.builder().qualifier(QuoteService.NAME, "justOne").build();
 
-    Flux.from(service.create().requestOne(justOne)).subscribe(onNext -> latch1.countDown());
+    List<ServiceMessage> list =
+        Flux.from(service.create().requestOne(justOne)).timeout(Duration.ofSeconds(3)).collectList().block();
 
-    latch1.await(2, TimeUnit.SECONDS);
-    assertTrue(latch1.getCount() == 0);
+    assertEquals(1, list.size());
+
     gateway.shutdown();
     node.shutdown();
   }
 
   @Test
   public void test_scheduled_messages() throws InterruptedException {
-    int batchSize = 1;
     Microservices gateway = Microservices.builder().build().startAwait();
 
     Microservices node = Microservices.builder()
@@ -224,19 +219,15 @@ public class StreamingServiceTest extends BaseTest {
 
     Call service = gateway.call();
 
-    final CountDownLatch latch1 = new CountDownLatch(batchSize);
-    AtomicReference<Disposable> sub1 = new AtomicReference<>(null);
-    ServiceMessage scheduled = ServiceMessage.builder().qualifier(QuoteService.NAME, "scheduled")
-        .data(1000).build();
+    ServiceMessage scheduled =
+        ServiceMessage.builder().qualifier(QuoteService.NAME, "scheduled").data(1000).build();
 
-    sub1.set(Flux.from(service.create().requestMany(scheduled)).subscribe(onNext -> {
-      sub1.get().isDisposed();
-      latch1.countDown();
+    int expected = 3;
+    List<ServiceMessage> list =
+        service.create().requestMany(scheduled).timeout(Duration.ofSeconds(4)).take(expected).collectList().block();
 
-    }));
+    assertEquals(expected, list.size());
 
-    latch1.await(2, TimeUnit.SECONDS);
-    assertTrue(latch1.getCount() == 0);
     node.shutdown();
     gateway.shutdown();
   }
@@ -257,20 +248,15 @@ public class StreamingServiceTest extends BaseTest {
 
     Call service = gateway.call();
 
-    final CountDownLatch latch1 = new CountDownLatch(1);
-
     ServiceMessage scheduled = ServiceMessage.builder()
         .qualifier(QuoteService.NAME, "unknonwn").build();
     try {
       service.create().requestMany(scheduled).blockFirst(Duration.ofSeconds(3));
+      fail("Expected no-reachable-service-exception");
     } catch (Exception ex) {
-      if (ex.getMessage().contains("No reachable member with such service")) {
-        latch1.countDown();
-      }
+      assertTrue(ex.getMessage().contains("No reachable member with such service"));
     }
 
-    latch1.await(3, TimeUnit.SECONDS);
-    assertTrue(latch1.getCount() == 0);
     node.shutdown();
     gateway.shutdown();
 
