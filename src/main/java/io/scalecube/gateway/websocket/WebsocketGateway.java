@@ -10,6 +10,9 @@ import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
 
+/**
+ * Websocket gateway server wrapper.
+ */
 public class WebsocketGateway {
 
   private WebSocketServer webSocketServer;
