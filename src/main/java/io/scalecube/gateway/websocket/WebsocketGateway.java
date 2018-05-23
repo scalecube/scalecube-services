@@ -49,6 +49,11 @@ public class WebsocketGateway {
       return this;
     }
 
+    /**
+     * Build an instance.
+     *
+     * @return WebsocketGateway instance
+     */
     public WebsocketGateway build() {
       acceptor = new WebSocketAcceptor() {
         @Override
