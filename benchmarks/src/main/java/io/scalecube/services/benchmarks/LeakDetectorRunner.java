@@ -3,7 +3,7 @@ package io.scalecube.services.benchmarks;
 /**
  * Helper utility to track down buffer leaks.
  */
-public class LeakDetection {
+public class LeakDetectorRunner {
   static {
     System.setProperty("io.netty.leakDetection.level", "paranoid");
   }
