@@ -22,18 +22,18 @@ public class ServicesBenchmarks {
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
   @Benchmark
-  public void fireAndForgetAverageTime(BenchmarkServiceState state) {
+  public void fireAndForgetAverageTime(ServicesBenchmarksState state) {
     fireAndForget(state);
   }
 
   @BenchmarkMode(Mode.Throughput)
   @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void fireAndForgetThroughput(BenchmarkServiceState state) {
+  public void fireAndForgetThroughput(ServicesBenchmarksState state) {
     fireAndForget(state);
   }
 
-  private void fireAndForget(BenchmarkServiceState state) {
+  private void fireAndForget(ServicesBenchmarksState state) {
     state.service().fireAndForget(MESSAGE).block();
   }
 }
