@@ -11,7 +11,6 @@ import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
@@ -20,10 +19,9 @@ import java.util.concurrent.TimeUnit;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Fork(2)
+@Fork(1)
 @State(Scope.Benchmark)
-@Threads(4)
-@Warmup(iterations = 2)
+@Warmup(iterations = 2, time = 5)
 @Measurement(iterations = 2, time = 5)
 public class HeadAndTailBenchmarks {
 

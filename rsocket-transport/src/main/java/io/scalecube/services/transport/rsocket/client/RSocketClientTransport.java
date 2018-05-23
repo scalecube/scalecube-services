@@ -7,7 +7,6 @@ import io.scalecube.transport.Address;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.concurrent.FastThreadLocal;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -18,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.tcp.TcpClient;
 
@@ -25,13 +25,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final FastThreadLocal<Map<Address, Mono<RSocket>>> rSockets =
-      new FastThreadLocal<Map<Address, Mono<RSocket>>>() {
-        @Override
-        protected Map<Address, Mono<RSocket>> initialValue() {
-          return new ConcurrentHashMap<>();
-        }
-      };
+  private final ThreadLocal<Map<Address, Mono<RSocket>>> rSockets = ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec codec;
 
@@ -47,20 +41,25 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private static Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
-    return RSocketFactory.connect()
+    EmitterProcessor<RSocket> connectProcessor = EmitterProcessor.create();
+    RSocketFactory.connect()
         .transport(createTcpClientTransport(monoMap, address))
         .start()
-        .doOnNext(rSocket -> {
-          LOGGER.debug("Connected successfully on {}", address);
-          rSocket.onClose().subscribe(aVoid -> {
-            monoMap.remove(address);
-            LOGGER.debug("Connection closed on {} and removed from the pool", address);
-          });
-        })
-        .doOnError(throwable -> {
-          LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
-          monoMap.remove(address);
-        });
+        .subscribe(
+            rSocket -> {
+              LOGGER.debug("Connected successfully on {}", address);
+              rSocket.onClose().subscribe(aVoid -> {
+                monoMap.remove(address);
+                LOGGER.debug("Connection closed on {} and removed from the pool", address);
+              });
+              connectProcessor.onNext(rSocket);
+            },
+            throwable -> {
+              LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+              monoMap.remove(address);
+              connectProcessor.onError(throwable);
+            });
+    return Mono.from(connectProcessor);
   }
 
   private static TcpClientTransport createTcpClientTransport(Map<Address, Mono<RSocket>> monoMap, Address address) {
