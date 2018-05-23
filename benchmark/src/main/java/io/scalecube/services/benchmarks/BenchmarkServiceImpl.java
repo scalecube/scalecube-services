@@ -3,7 +3,6 @@ package io.scalecube.services.benchmarks;
 import reactor.core.publisher.Mono;
 
 public class BenchmarkServiceImpl implements BenchmarkService {
-
   @Override
   public Mono<Void> fireAndForget0() {
     return Mono.empty();
