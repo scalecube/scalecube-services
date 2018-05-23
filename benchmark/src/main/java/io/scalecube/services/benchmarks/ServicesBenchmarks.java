@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 @Threads(4)
 @Warmup(iterations = 2)
 @Measurement(iterations = 2, time = 5)
-public class ServicesBenchmark {
+public class ServicesBenchmarks {
 
   private static final BenchmarkMessage MESSAGE = new BenchmarkMessage("benchmarkMessage");
 

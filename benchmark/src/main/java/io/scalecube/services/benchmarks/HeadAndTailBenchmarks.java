@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
 @Threads(4)
 @Warmup(iterations = 2)
 @Measurement(iterations = 2, time = 5)
-public class HeadAndTailBenchmark {
+public class HeadAndTailBenchmarks {
 
   private static final ServiceMessage MESSAGE = ServiceMessage.builder()
       .qualifier("benchmark/test")
