@@ -8,6 +8,7 @@ import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.concurrent.TimeUnit;
 
@@ -22,18 +23,18 @@ public class ServicesBenchmarks {
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
   @Benchmark
-  public void fireAndForgetAverageTime(ServicesBenchmarksState state) {
-    fireAndForget(state);
+  public void fireAndForgetAverageTime(ServicesBenchmarksState state, Blackhole bh) {
+    fireAndForget(state, bh);
   }
 
   @BenchmarkMode(Mode.Throughput)
   @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void fireAndForgetThroughput(ServicesBenchmarksState state) {
-    fireAndForget(state);
+  public void fireAndForgetThroughput(ServicesBenchmarksState state, Blackhole bh) {
+    fireAndForget(state, bh);
   }
 
-  private void fireAndForget(ServicesBenchmarksState state) {
-    state.service().fireAndForget(MESSAGE).block();
+  private void fireAndForget(ServicesBenchmarksState state, Blackhole bh) {
+    state.service().fireAndForget(MESSAGE).subscribe(bh::consume);
   }
 }
