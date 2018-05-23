@@ -10,11 +10,11 @@
         <version>2.0.16-SNAPSHOT</version>
     </parent>
 
-    <artifactId>scalecube-services-benchmark</artifactId>
-    <name>ScaleCube/scalecube-services-benchmark</name>
+    <artifactId>scalecube-services-benchmarks</artifactId>
+    <name>ScaleCube/scalecube-services-benchmarks</name>
 
     <properties>
-        <uberjar.name>scalecube-services-benchmark</uberjar.name>
+        <uberjar.name>scalecube-services-benchmarks</uberjar.name>
         <jmh.version>1.21</jmh.version>
     </properties>
 
