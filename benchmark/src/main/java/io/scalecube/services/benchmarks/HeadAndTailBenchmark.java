@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmark.transport;
+package io.scalecube.services.benchmarks;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.HeadAndTail;
@@ -38,28 +38,28 @@ public class HeadAndTailBenchmark {
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
   @Benchmark
-  public void avgtOfHeadAndTail(Blackhole bh) {
+  public void headAndTailAverageTime(Blackhole bh) {
     headAndTail(bh);
   }
 
   @BenchmarkMode(Mode.Throughput)
   @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void thrptOfHeadAndTail(Blackhole bh) {
+  public void headAndTailThroughput(Blackhole bh) {
     headAndTail(bh);
   }
 
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
   @Benchmark
-  public void avgtOfFlatMap(Blackhole bh) {
+  public void flatMapAverageTime(Blackhole bh) {
     flatMap(bh);
   }
 
   @BenchmarkMode(Mode.Throughput)
   @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void thrptOfFlatMap(Blackhole bh) {
+  public void flatMapThroughput(Blackhole bh) {
     flatMap(bh);
   }
 
@@ -72,6 +72,4 @@ public class HeadAndTailBenchmark {
         .flatMap(pair -> Flux.from(pair.tail()).startWith(pair.head()))
         .subscribe(bh::consume);
   }
-
-
 }
