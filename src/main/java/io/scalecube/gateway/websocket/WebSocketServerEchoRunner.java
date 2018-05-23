@@ -1,11 +1,11 @@
 package io.scalecube.gateway.websocket;
 
-import java.net.InetSocketAddress;
+import io.scalecube.services.Microservices;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.scalecube.services.Microservices;
+import java.net.InetSocketAddress;
 
 public class WebSocketServerEchoRunner {
 
