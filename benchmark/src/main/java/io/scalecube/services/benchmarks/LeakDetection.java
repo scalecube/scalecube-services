@@ -10,7 +10,7 @@ public class LeakDetection {
 
   public static void main(String[] args) {
     ServicesBenchmarksState state = new ServicesBenchmarksState();
-    state.setup(null);
+    state.setup();
     for (int i = 0; i < 1e3; i++) {
       state.service().fireAndForget0().block();
     }

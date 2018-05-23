@@ -6,7 +6,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
-import org.openjdk.jmh.infra.Blackhole;
 
 @State(Scope.Benchmark)
 public class ServicesBenchmarksState {
@@ -16,13 +15,14 @@ public class ServicesBenchmarksState {
   private BenchmarkService service;
 
   @Setup
-  public void setup(Blackhole bh) {
+  public void setup() {
     seed = Microservices.builder().build().startAwait();
     node = Microservices.builder()
         .seeds(seed.cluster().address())
-        .services(new BenchmarkServiceImpl(bh))
+        .services(new BenchmarkServiceImpl())
         .build()
         .startAwait();
+    System.err.println(seed.serviceRegistry().listServiceReferences());
     service = seed.call().create().api(BenchmarkService.class);
   }
 
