@@ -11,8 +11,8 @@ import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.concurrent.TimeUnit;
 
@@ -20,9 +20,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Fork(1)
+@Threads(Threads.MAX)
+@Warmup(iterations = 3)
+@Measurement(iterations = 3)
 @State(Scope.Benchmark)
-@Warmup(iterations = 2, time = 5)
-@Measurement(iterations = 2, time = 5)
 public class HeadAndTailBenchmarks {
 
   private static final ServiceMessage MESSAGE = ServiceMessage.builder()
@@ -36,38 +37,38 @@ public class HeadAndTailBenchmarks {
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
   @Benchmark
-  public void headAndTailAverageTime(Blackhole bh) {
-    headAndTail(bh);
+  public void headAndTailAverageTime() {
+    headAndTail();
   }
 
   @BenchmarkMode(Mode.Throughput)
   @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void headAndTailThroughput(Blackhole bh) {
-    headAndTail(bh);
+  public void headAndTailThroughput() {
+    headAndTail();
   }
 
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
   @Benchmark
-  public void flatMapAverageTime(Blackhole bh) {
-    flatMap(bh);
+  public void flatMapAverageTime() {
+    flatMap();
   }
 
   @BenchmarkMode(Mode.Throughput)
   @OutputTimeUnit(TimeUnit.SECONDS)
   @Benchmark
-  public void flatMapThroughput(Blackhole bh) {
-    flatMap(bh);
+  public void flatMapThroughput() {
+    flatMap();
   }
 
-  private void flatMap(Blackhole bh) {
-    Flux.just(MESSAGE).flatMap(Flux::just).subscribe(bh::consume);
+  private void flatMap() {
+    Flux.just(MESSAGE).flatMap(Flux::just).blockLast();
   }
 
-  private void headAndTail(Blackhole bh) {
+  private void headAndTail() {
     Flux.from(HeadAndTail.createFrom(Mono.just(MESSAGE)))
         .flatMap(pair -> Flux.from(pair.tail()).startWith(pair.head()))
-        .subscribe(bh::consume);
+        .blockLast();
   }
 }
