@@ -6,18 +6,18 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @Fork(1)
-@Warmup(iterations = 2, time = 5)
-@Measurement(iterations = 2, time = 5)
+@Threads(Threads.MAX)
+@Warmup(iterations = 3)
+@Measurement(iterations = 3)
 public class ServicesBenchmarks {
 
   private static final BenchmarkMessage MESSAGE = new BenchmarkMessage("benchmarkMessage");
-  private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -62,14 +62,14 @@ public class ServicesBenchmarks {
   }
 
   private void fireAndForget0(ServicesBenchmarksState state) {
-    state.service().fireAndForget0().block(TIMEOUT);
+    state.service().fireAndForget0().block();
   }
 
   private void fireAndForget(ServicesBenchmarksState state) {
-    state.service().fireAndForget(MESSAGE).block(TIMEOUT);
+    state.service().fireAndForget(MESSAGE).block();
   }
 
   private void requestOne(ServicesBenchmarksState state) {
-    state.service().requestOne(MESSAGE).block(TIMEOUT);
+    state.service().requestOne(MESSAGE).block();
   }
 }
