@@ -38,8 +38,9 @@ public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
   @Override
   public Mono<String> callGreetingWithDispatcher(String request) {
-    return Mono.from(microservices.call().create().requestOne(Messages.builder().request(SERVICE_NAME, "greeting")
-        .data("joe").build()))
+    return microservices.call().create().requestOne(
+        ServiceMessage.builder().qualifier(SERVICE_NAME, "greeting")
+            .data("joe").build())
         .map(ServiceMessage::data);
   }
 }

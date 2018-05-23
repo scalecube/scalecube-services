@@ -135,7 +135,7 @@ public class ServiceCall {
 
   /**
    * Issues stream of service requests to service which returns stream of service messages back.
-   * 
+   *
    * @param publisher of service requests.
    * @return flux publisher of service responses.
    */
@@ -145,7 +145,7 @@ public class ServiceCall {
 
   /**
    * Issues stream of service requests to service which returns stream of service messages back.
-   * 
+   *
    * @param publisher of service requests.
    * @param responseType type of responses.
    * @return flux publisher of service responses.
@@ -156,7 +156,6 @@ public class ServiceCall {
       ServiceMessage request = pair.head();
       Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
 
-      Messages.validate().serviceRequest(request);
       String qualifier = request.qualifier();
 
       if (serviceHandlers.contains(qualifier)) {

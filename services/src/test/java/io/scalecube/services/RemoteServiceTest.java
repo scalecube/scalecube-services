@@ -153,8 +153,7 @@ public class RemoteServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = gateway.call().create()
-        .api(GreetingService.class);
+    GreetingService service = gateway.call().create().api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
     // call the service.
@@ -184,8 +183,7 @@ public class RemoteServiceTest extends BaseTest {
         .build()
         .startAwait();
 
-    GreetingService service = gateway.call().create()
-        .api(GreetingService.class);
+    GreetingService service = gateway.call().create().api(GreetingService.class);
 
     GreetingRequest request = new GreetingRequest("joe");
     // call the service.

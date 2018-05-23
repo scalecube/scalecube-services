@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import io.scalecube.services.api.Qualifier;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,18 +33,7 @@ public class ServiceReference {
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.getAction();
     this.mode = serviceMethodDefinition.getCommunicationMode();
-    this.qualifier = this.namespace + "/" + this.action;
-  }
-
-  public ServiceReference(String endpointId, String host, int port, String namespace, String contentType,
-      Map<String, String> tags, String action) {
-    this.endpointId = endpointId;
-    this.host = host;
-    this.port = port;
-    this.namespace = namespace;
-    this.contentType = contentType;
-    this.tags = tags;
-    this.action = action;
+    this.qualifier = Qualifier.asString(namespace, action);
   }
 
   public CommunicationMode mode() {
@@ -105,13 +96,15 @@ public class ServiceReference {
   @Override
   public String toString() {
     return "ServiceReference{" +
-        "endpointId='" + endpointId + '\'' +
+        "qualifier='" + qualifier + '\'' +
+        ", endpointId='" + endpointId + '\'' +
         ", host='" + host + '\'' +
         ", port=" + port +
         ", namespace='" + namespace + '\'' +
         ", contentType='" + contentType + '\'' +
         ", tags=" + tags +
         ", action='" + action + '\'' +
+        ", mode=" + mode +
         '}';
   }
 }
