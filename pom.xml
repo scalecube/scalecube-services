@@ -87,7 +87,7 @@
         <module>services-codec</module>
         <module>services-codec-jackson</module>
         <module>services</module>
-    <module>benchmark</module>
+        <module>benchmarks</module>
     </modules>
 
   <dependencyManagement>
