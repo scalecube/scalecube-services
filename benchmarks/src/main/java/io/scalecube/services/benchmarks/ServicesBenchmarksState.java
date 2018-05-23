@@ -1,7 +1,6 @@
 package io.scalecube.services.benchmarks;
 
 import io.scalecube.services.Microservices;
-import io.scalecube.transport.Address;
 
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
@@ -18,13 +17,12 @@ public class ServicesBenchmarksState {
   @Setup
   public void setup() {
     seed = Microservices.builder().build().startAwait();
-    Address address = seed.cluster().address();
-    System.err.println("Seed address: " + address);
     node = Microservices.builder()
-        .seeds(address)
+        .seeds(seed.cluster().address())
         .services(new BenchmarkServiceImpl())
         .build()
         .startAwait();
+    System.err.println("Seed address: " + seed.cluster().address() + ", services address: " + node.serviceAddress());
     System.err.println("Seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
     service = seed.call().create().api(BenchmarkService.class);
   }
