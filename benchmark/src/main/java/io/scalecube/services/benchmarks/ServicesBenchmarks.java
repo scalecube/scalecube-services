@@ -34,6 +34,6 @@ public class ServicesBenchmarks {
   }
 
   private void fireAndForget(ServicesBenchmarksState state) {
-    state.service().fireAndForget(MESSAGE).block();
+    state.service().fireAndForget(MESSAGE).subscribe();
   }
 }
