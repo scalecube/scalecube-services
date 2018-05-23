@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoProcessor;
 import reactor.ipc.netty.tcp.TcpClient;
 
 public class RSocketClientTransport implements ClientTransport {
@@ -41,7 +41,7 @@ public class RSocketClientTransport implements ClientTransport {
   }
 
   private static Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
-    EmitterProcessor<RSocket> connectProcessor = EmitterProcessor.create();
+    MonoProcessor<RSocket> connectProcessor = MonoProcessor.create();
     RSocketFactory.connect()
         .transport(createTcpClientTransport(monoMap, address))
         .start()

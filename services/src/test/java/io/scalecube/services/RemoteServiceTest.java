@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
@@ -63,20 +64,17 @@ public class RemoteServiceTest extends BaseTest {
 
     Util.sleep(1000);
 
-    AtomicInteger count = new AtomicInteger(0);
-    AtomicInteger responses = new AtomicInteger(0);
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    for (int i = 0; i < 100; i++) {
+    AtomicInteger serviceBCount = new AtomicInteger(0);
 
-      Mono.from(service.greeting(new GreetingRequest("joe"))).subscribe(success -> {
-        if (success.getResult().contains("SERVICE_B_TALKING")) {
-          count.incrementAndGet();
-          if ((responses.get() == 100) && (60 < count.get() && count.get() < 80)) {
-            timeLatch.countDown();
-          }
-        }
-      });
+    int n = (int) 1e2;
+    for (int i = 0; i < n; i++) {
+      GreetingResponse success = service.greeting(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
+      if (success.getResult().contains("SERVICE_B_TALKING")) {
+        serviceBCount.incrementAndGet();
+      }
     }
+
+    assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.2d);
 
     services2.shutdown().block();
     services1.shutdown().block();
@@ -403,15 +401,13 @@ public class RemoteServiceTest extends BaseTest {
     Microservices provider1 = createProvider(gateway);
 
     GreetingService service = createProxy(gateway);
-    CountDownLatch timeLatch = new CountDownLatch(1);
     try {
       service.greeting("hello").block(Duration.ofSeconds(3));
+      fail("Expected no-reachable-member exception");
     } catch (Exception ex) {
       assertTrue(ex.getMessage().contains("No reachable member with such service"));
-      timeLatch.countDown();
     }
 
-    assertTrue(await(timeLatch, 1, TimeUnit.SECONDS));
     gateway.shutdown();
     provider1.shutdown();
   }
@@ -496,7 +492,6 @@ public class RemoteServiceTest extends BaseTest {
 
   @Test
   public void test_remote_serviceA_calls_serviceB_with_dispatcher() throws Exception {
-    CountDownLatch countLatch = new CountDownLatch(1);
     Microservices gateway = createSeed();
 
     // getting proxy from any node at any given time.
@@ -515,14 +510,9 @@ public class RemoteServiceTest extends BaseTest {
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
 
-    Mono.from(service.callGreetingWithDispatcher("joe"))
-        .subscribe(success -> {
-          assertEquals(success, " hello to: joe");
-          countLatch.countDown();
-        });
+    String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
+    assertEquals(response, " hello to: joe");
 
-    countLatch.await(5, TimeUnit.SECONDS);
-    assertTrue(countLatch.getCount() == 0);
     gateway.shutdown().block();
     provider.shutdown().block();
   }

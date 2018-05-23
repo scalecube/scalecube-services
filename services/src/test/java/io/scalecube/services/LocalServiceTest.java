@@ -37,19 +37,13 @@ public class LocalServiceTest extends BaseTest {
     GreetingService service = node1.call().create().api(GreetingService.class);
 
     // call the service.
-    Mono<GreetingResponse> result =
-        Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)));
+    GreetingResponse result =
+        service.greetingRequestTimeout(new GreetingRequest("joe", timeout)).block(timeout.plusSeconds(1));
 
-    CountDownLatch timeLatch = new CountDownLatch(1);
-    result.subscribe(onNext -> {
-      // print the greeting.
-      System.out.println("2. greeting_request_completes_before_timeout : " + onNext.getResult());
-      assertTrue(onNext.getResult().equals(" hello to: joe"));
-      timeLatch.countDown();
-    });
+    // print the greeting.
+    System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
+    assertTrue(result.getResult().equals(" hello to: joe"));
 
-    assertTrue(await(timeLatch, 10, TimeUnit.SECONDS));
-    assertTrue(timeLatch.getCount() == 0);
     node1.shutdown();
   }
 
@@ -110,15 +104,9 @@ public class LocalServiceTest extends BaseTest {
 
     GreetingService service = node1.call().create().api(GreetingService.class);
 
-    CountDownLatch exectOne = new CountDownLatch(1);
     // call the service.
-    service.greetingVoid(new GreetingRequest("joe"))
-        .doOnSuccess((success) -> exectOne.countDown())
-        .block(Duration.ofSeconds(3));
+    service.greetingVoid(new GreetingRequest("joe")).block(timeout);
 
-    // send and forget so we have no way to know what happen
-    // but at least we didn't get exception :)
-    assertTrue(exectOne.getCount() == 0);
     System.out.println("test_local_void_greeting done.");
     node1.shutdown();
   }
