@@ -9,7 +9,7 @@ import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.infra.Blackhole;
 
 @State(Scope.Benchmark)
-public class BenchmarkServiceState {
+public class ServicesBenchmarksState {
 
   private Microservices seed;
   private Microservices node;

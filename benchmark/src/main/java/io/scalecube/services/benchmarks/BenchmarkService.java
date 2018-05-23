@@ -9,5 +9,11 @@ import reactor.core.publisher.Mono;
 public interface BenchmarkService {
 
   @ServiceMethod
+  Mono<Void> fireAndForget0();
+
+  @ServiceMethod
   Mono<Void> fireAndForget(BenchmarkMessage request);
+
+  @ServiceMethod
+  Mono<BenchmarkMessage> requestOne(BenchmarkMessage request);
 }

@@ -13,8 +13,23 @@ public class BenchmarkServiceImpl implements BenchmarkService {
   }
 
   @Override
-  public Mono<Void> fireAndForget(BenchmarkMessage request) {
-    bh.consume(request);
+  public Mono<Void> fireAndForget0() {
     return Mono.empty();
+  }
+
+  @Override
+  public Mono<Void> fireAndForget(BenchmarkMessage request) {
+    if (bh != null) {
+      bh.consume(request);
+    }
+    return Mono.empty();
+  }
+
+  @Override
+  public Mono<BenchmarkMessage> requestOne(BenchmarkMessage request) {
+    if (bh != null) {
+      bh.consume(request);
+    }
+    return Mono.just(request);
   }
 }
