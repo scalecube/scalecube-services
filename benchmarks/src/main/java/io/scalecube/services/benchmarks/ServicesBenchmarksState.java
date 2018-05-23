@@ -22,8 +22,9 @@ public class ServicesBenchmarksState {
         .services(new BenchmarkServiceImpl())
         .build()
         .startAwait();
-    System.err.println("Seed address: " + seed.cluster().address() + ", services address: " + node.serviceAddress());
-    System.err.println("Seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
+    System.err.println("Seed address: " + seed.cluster().address() +
+        ", services address: " + node.serviceAddress() +
+        ", seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
     service = seed.call().create().api(BenchmarkService.class);
   }
 
