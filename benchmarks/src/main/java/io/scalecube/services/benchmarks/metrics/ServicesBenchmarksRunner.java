@@ -9,11 +9,15 @@ public class ServicesBenchmarksRunner {
   public static void main(String[] args) throws Exception {
     MetricRegistry registry = new MetricRegistry();
 
-    int n = 100_000;
+    int n = 3_000;
     ServicesBenchmarks servicesBenchmarks = new ServicesBenchmarks(nThreads, registry);
 
-    servicesBenchmarks.execute(servicesBenchmarks.fireAndForgetTaskWithSubscribe(n));
+    servicesBenchmarks.startAndWarmup(n);
+
     servicesBenchmarks.execute(servicesBenchmarks.fireAndForgetTaskWithBlock(n));
+    servicesBenchmarks.execute(servicesBenchmarks.fireAndForgetTaskWithSubscribe(n));
+    servicesBenchmarks.execute(servicesBenchmarks.requestOneTaskWithBlock(n));
+    servicesBenchmarks.execute(servicesBenchmarks.requestOneTaskWithSubscribe(n));
 
     servicesBenchmarks.tearDown();
   }
