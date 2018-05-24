@@ -22,8 +22,10 @@ public class ServicesBenchmarksRunner {
 
     servicesBenchmarks.startAndWarmup(n);
 
-    System.out.println("###### requestResponse, n=" + n);
-    servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestResponse(size).blockLast());
+    System.out.println("###### oneWay, n=" + n);
+    servicesBenchmarks.run(n, (size) -> servicesBenchmarks.oneWay(size).blockLast());
+    System.out.println("###### requestOne, n=" + n);
+    servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestOne(size).blockLast());
     System.out.println("###### requestMany, n=" + n + ", responseCount=" + responseCount);
     servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestMany(size, responseCount).blockLast());
 
