@@ -16,6 +16,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
 public class ServicesBenchmarks {
 
   private final int nThreads;
@@ -61,44 +65,44 @@ public class ServicesBenchmarks {
     });
   }
 
-  public Runnable fireAndForgetTaskWithSubscribe(int n) {
-    String taskName = "fireAndForgetTaskWithSubscribe";
-    Timer timer = registry.timer(taskName + "-timer");
-    return () -> {
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
-      CountDownLatch latch = new CountDownLatch(n);
-      for (int i = 0; i < n; i++) {
-        Timer.Context timeContext = timer.time();
-        state.service().fireAndForget(MESSAGE)
-            .doOnSuccess(v -> {
-              latch.countDown();
-              timeContext.stop();
-            })
-            .subscribe();
-      }
-      try {
-        latch.await();
-      } catch (InterruptedException e) {
-        Throwables.propagate(e);
-      }
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
-    };
-  }
-
-  public Runnable fireAndForgetTaskWithBlock(int n) {
-    String taskName = "fireAndForgetTaskWithBlock";
-    Timer timer = registry.timer(taskName + "-timer");
-    return () -> {
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
-      for (int i = 0; i < n; i++) {
-        Timer.Context timeContext = timer.time();
-        state.service().fireAndForget(MESSAGE)
-            .doOnSuccess(v -> timeContext.stop())
-            .block();
-      }
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
-    };
-  }
+  // public Runnable fireAndForgetTaskWithSubscribe(int n) {
+  // String taskName = "fireAndForgetTaskWithSubscribe";
+  // Timer timer = registry.timer(taskName + "-timer");
+  // return () -> {
+  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
+  // CountDownLatch latch = new CountDownLatch(n);
+  // for (int i = 0; i < n; i++) {
+  // Timer.Context timeContext = timer.time();
+  // state.service().fireAndForget(MESSAGE)
+  // .doOnSuccess(v -> {
+  // latch.countDown();
+  // timeContext.stop();
+  // })
+  // .subscribe();
+  // }
+  // try {
+  // latch.await();
+  // } catch (InterruptedException e) {
+  // Throwables.propagate(e);
+  // }
+  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
+  // };
+  // }
+  //
+  // public Runnable fireAndForgetTaskWithBlock(int n) {
+  // String taskName = "fireAndForgetTaskWithBlock";
+  // Timer timer = registry.timer(taskName + "-timer");
+  // return () -> {
+  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
+  // for (int i = 0; i < n; i++) {
+  // Timer.Context timeContext = timer.time();
+  // state.service().fireAndForget(MESSAGE)
+  // .doOnSuccess(v -> timeContext.stop())
+  // .block();
+  // }
+  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
+  // };
+  // }
 
   public Runnable requestOneTaskWithSubscribe(int n) {
     String taskName = "requestOneTaskWithSubscribe";
@@ -123,6 +127,17 @@ public class ServicesBenchmarks {
       System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
     };
   }
+
+  public Flux<Object> requestResponse(int n) {
+    String taskName = "requestOneTaskWithSubscribe";
+    Timer timer = registry.timer(taskName + "-timer");
+    return Flux.merge(Flux.range(0, n).map(i -> {
+      Timer.Context timeContext = timer.time();
+      return state.service().requestOne(MESSAGE)
+          .doOnSuccess(next -> timeContext.stop());
+    }));
+  }
+
 
   public Runnable requestOneTaskWithBlock(int n) {
     String taskName = "requestOneTaskWithBlock";
