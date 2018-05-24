@@ -20,14 +20,14 @@ public class ServicesBenchmarksRunner {
     int responseCount = 10;
     ServicesBenchmarks servicesBenchmarks = new ServicesBenchmarks(scheduler, registry);
 
-    servicesBenchmarks.startAndWarmup(n);
+    servicesBenchmarks.startAndWarmup(10000);
 
-    System.out.println("###### oneWay, n=" + n);
     servicesBenchmarks.run(n, (size) -> servicesBenchmarks.oneWay(size).blockLast());
-    System.out.println("###### requestOne, n=" + n);
+    servicesBenchmarks.run(n, (size) -> servicesBenchmarks.oneWayLatch(size, nThreads));
     servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestOne(size).blockLast());
-    System.out.println("###### requestMany, n=" + n + ", responseCount=" + responseCount);
+    servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestOneLatch(size, nThreads));
     servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestMany(size, responseCount).blockLast());
+    servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestManyLatch(size, responseCount, nThreads));
 
     servicesBenchmarks.tearDown();
   }
