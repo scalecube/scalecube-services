@@ -14,8 +14,11 @@ public interface BenchmarkService {
   Mono<Void> fireAndForget0();
 
   @ServiceMethod
-  Mono<Void> fireAndForget(BenchmarkMessage request);
+  Mono<Void> voidRequestResponse(BenchmarkMessage request);
 
   @ServiceMethod
-  Mono<BenchmarkMessage> requestOne(BenchmarkMessage request);
+  void fireAndForget(BenchmarkMessage request);
+
+  @ServiceMethod
+  Mono<BenchmarkMessage> requestResponse(BenchmarkMessage request);
 }

@@ -2,154 +2,86 @@ package io.scalecube.services.benchmarks.metrics;
 
 import static io.scalecube.services.benchmarks.BenchmarkService.MESSAGE;
 
+import io.scalecube.services.benchmarks.BenchmarkMessage;
 import io.scalecube.services.benchmarks.ServicesBenchmarksState;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
-import com.google.common.base.Throwables;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
+import java.util.function.Consumer;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.scheduler.Scheduler;
 
 public class ServicesBenchmarks {
 
-  private final int nThreads;
   private final MetricRegistry registry;
   private final ServicesBenchmarksState state;
-  private final ExecutorService executorService;
   private final ConsoleReporter reporter;
+  private final Scheduler scheduler;
 
-  public ServicesBenchmarks(int nThreads, MetricRegistry registry) {
-    this.nThreads = nThreads;
+  public ServicesBenchmarks(Scheduler scheduler, MetricRegistry registry) {
     this.registry = registry;
+    this.scheduler = scheduler;
     this.state = new ServicesBenchmarksState();
-    this.executorService = Executors.newFixedThreadPool(nThreads);
-    reporter = ConsoleReporter.forRegistry(registry)
+    this.reporter = ConsoleReporter.forRegistry(registry)
         .convertDurationsTo(TimeUnit.MILLISECONDS).build();
-  }
-
-  public synchronized void execute(Runnable task) {
-    CompletableFuture[] futures = new CompletableFuture[nThreads];
-    IntStream.range(0, nThreads)
-        .forEach(i -> futures[i] = CompletableFuture.runAsync(task, executorService));
-    CompletableFuture.allOf(futures).join();
-  }
-
-  public synchronized void tearDown() throws Exception {
-    reporter.report();
-    reporter.stop();
-    state.tearDown();
-    executorService.shutdown();
-    executorService.awaitTermination(1, TimeUnit.SECONDS);
-    System.out.println("###### DONE");
   }
 
   public synchronized void startAndWarmup(int n) {
     System.out.println("###### START AND WARMUP");
     state.setup();
-    reporter.start(3, TimeUnit.SECONDS);
-    execute(() -> {
-      for (int i = 0; i < n; i++) {
-        state.service().fireAndForget(MESSAGE)
-            .block();
-      }
-    });
+    reporter.start(1, TimeUnit.DAYS);
+    Flux.merge(Flux.range(0, n)
+        .subscribeOn(scheduler)
+        .map(i -> state.service().requestResponse(MESSAGE)))
+        .blockLast();
   }
 
-  // public Runnable fireAndForgetTaskWithSubscribe(int n) {
-  // String taskName = "fireAndForgetTaskWithSubscribe";
+  public synchronized void tearDown() {
+    reporter.report();
+    reporter.stop();
+    state.tearDown();
+    scheduler.dispose();
+    System.out.println("###### DONE");
+  }
+
+  public synchronized void run(int n, Consumer<Integer> consumer) {
+    System.out.println("###### TASK IS STARTED");
+    long start = System.nanoTime();
+
+    consumer.accept(n);
+
+    long diff = System.nanoTime() - start;
+    long nsByOp = diff / n;
+    double rps = ((double) n / diff) * 1e9;
+    double diffInSec = (double) diff / 1e9;
+    System.out.println("###### TASK IS DONE, RESULT: " + diffInSec + "sec, " + nsByOp + "ns/op, " + rps + "op/s");
+  }
+
+  public synchronized Flux<BenchmarkMessage> requestResponse(int n) {
+    String taskName = "requestResponse";
+    Timer timer = registry.timer(taskName + "-timer");
+    return Flux.merge(Flux.range(0, n)
+        .subscribeOn(scheduler)
+        .map(i -> {
+          Timer.Context timeContext = timer.time();
+          return state.service().requestResponse(MESSAGE)
+              .doOnSuccess(next -> timeContext.stop());
+        }));
+  }
+
+  // public Runnable fireAndForget(int n) {
+  // String taskName = "fireAndForget";
   // Timer timer = registry.timer(taskName + "-timer");
-  // return () -> {
-  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
-  // CountDownLatch latch = new CountDownLatch(n);
-  // for (int i = 0; i < n; i++) {
+  // return Flux.merge(Flux.range(0, n)
+  // .subscribeOn(scheduler)
+  // .map(i -> {
   // Timer.Context timeContext = timer.time();
-  // state.service().fireAndForget(MESSAGE)
-  // .doOnSuccess(v -> {
-  // latch.countDown();
-  // timeContext.stop();
-  // })
-  // .subscribe();
+  // return state.service().fireAndForget(MESSAGE)
+  // .doOnSuccess(next -> timeContext.stop());
+  // }));
   // }
-  // try {
-  // latch.await();
-  // } catch (InterruptedException e) {
-  // Throwables.propagate(e);
-  // }
-  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
-  // };
-  // }
-  //
-  // public Runnable fireAndForgetTaskWithBlock(int n) {
-  // String taskName = "fireAndForgetTaskWithBlock";
-  // Timer timer = registry.timer(taskName + "-timer");
-  // return () -> {
-  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
-  // for (int i = 0; i < n; i++) {
-  // Timer.Context timeContext = timer.time();
-  // state.service().fireAndForget(MESSAGE)
-  // .doOnSuccess(v -> timeContext.stop())
-  // .block();
-  // }
-  // System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
-  // };
-  // }
-
-  public Runnable requestOneTaskWithSubscribe(int n) {
-    String taskName = "requestOneTaskWithSubscribe";
-    Timer timer = registry.timer(taskName + "-timer");
-    return () -> {
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
-      CountDownLatch latch = new CountDownLatch(n);
-      for (int i = 0; i < n; i++) {
-        Timer.Context timeContext = timer.time();
-        state.service().requestOne(MESSAGE)
-            .doOnSuccess(v -> {
-              latch.countDown();
-              timeContext.stop();
-            })
-            .subscribe();
-      }
-      try {
-        latch.await();
-      } catch (InterruptedException e) {
-        Throwables.propagate(e);
-      }
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
-    };
-  }
-
-  public Flux<Object> requestResponse(int n) {
-    String taskName = "requestOneTaskWithSubscribe";
-    Timer timer = registry.timer(taskName + "-timer");
-    return Flux.merge(Flux.range(0, n).subscribeOn(Schedulers.fromExecutor(executorService)).map(i -> {
-      Timer.Context timeContext = timer.time();
-      return state.service().requestOne(MESSAGE)
-          .doOnSuccess(next -> timeContext.stop());
-    }));
-  }
-
-  public Runnable requestOneTaskWithBlock(int n) {
-    String taskName = "requestOneTaskWithBlock";
-    Timer timer = registry.timer(taskName + "-timer");
-    return () -> {
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS STARTED");
-      for (int i = 0; i < n; i++) {
-        Timer.Context timeContext = timer.time();
-        state.service().requestOne(MESSAGE)
-            .doOnSuccess(v -> timeContext.stop())
-            .block();
-      }
-      System.out.println("###### |" + Thread.currentThread().getName() + "| " + taskName + " TASK IS DONE");
-    };
-  }
 }
