@@ -12,25 +12,22 @@ public class BenchmarkServiceImpl implements BenchmarkService {
   }
 
   @Override
-  public Mono<Void> voidRequestResponse(BenchmarkMessage request) {
+  public Mono<Void> oneWay(BenchmarkMessage request) {
     return Mono.empty();
   }
 
   @Override
-  public void fireAndForget(BenchmarkMessage request) {}
-
-  @Override
-  public Mono<BenchmarkMessage> requestResponse(BenchmarkMessage request) {
+  public Mono<BenchmarkMessage> requestOne(BenchmarkMessage request) {
     return Mono.just(request);
   }
 
   @Override
   public Flux<BenchmarkMessage> requestMany(BenchmarkMessage request) {
     int count = 10;
-    // try {
-    // count = Integer.valueOf(request.text);
-    // } catch (Exception ignored) {
-    // }
+    try {
+      count = Integer.valueOf(request.text);
+    } catch (Exception ignored) {
+    }
     return Flux.fromStream(IntStream.range(0, count).mapToObj(i -> request));
   }
 }
