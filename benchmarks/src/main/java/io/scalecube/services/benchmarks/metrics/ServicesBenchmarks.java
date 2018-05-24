@@ -56,7 +56,7 @@ public class ServicesBenchmarks {
   public synchronized void startAndWarmup(int n) {
     System.out.println("###### START AND WARMUP");
     state.setup();
-    reporter.start(1, TimeUnit.DAYS);
+    reporter.start(3, TimeUnit.SECONDS);
     execute(() -> {
       for (int i = 0; i < n; i++) {
         state.service().fireAndForget(MESSAGE)
@@ -131,13 +131,12 @@ public class ServicesBenchmarks {
   public Flux<Object> requestResponse(int n) {
     String taskName = "requestOneTaskWithSubscribe";
     Timer timer = registry.timer(taskName + "-timer");
-    return Flux.merge(Flux.range(0, n).map(i -> {
+    return Flux.merge(Flux.range(0, n).subscribeOn(Schedulers.fromExecutor(executorService)).map(i -> {
       Timer.Context timeContext = timer.time();
       return state.service().requestOne(MESSAGE)
           .doOnSuccess(next -> timeContext.stop());
     }));
   }
-
 
   public Runnable requestOneTaskWithBlock(int n) {
     String taskName = "requestOneTaskWithBlock";
