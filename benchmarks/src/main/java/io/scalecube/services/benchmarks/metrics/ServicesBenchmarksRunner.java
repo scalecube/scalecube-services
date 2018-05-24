@@ -1,6 +1,10 @@
 package io.scalecube.services.benchmarks.metrics;
 
 import com.codahale.metrics.MetricRegistry;
+
+import java.util.concurrent.Executors;
+
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 public class ServicesBenchmarksRunner {
@@ -10,21 +14,15 @@ public class ServicesBenchmarksRunner {
   public static void main(String[] args) throws Exception {
     MetricRegistry registry = new MetricRegistry();
 
+    Scheduler scheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(nThreads));
+
     int n = 1_000_000;
-    ServicesBenchmarks servicesBenchmarks = new ServicesBenchmarks(nThreads, registry);
+    ServicesBenchmarks servicesBenchmarks = new ServicesBenchmarks(scheduler, registry);
 
-    servicesBenchmarks.startAndWarmup(500);
+    servicesBenchmarks.startAndWarmup(n);
 
-//    servicesBenchmarks.execute(servicesBenchmarks.fireAndForgetTaskWithBlock(n));
-//    servicesBenchmarks.execute(servicesBenchmarks.fireAndForgetTaskWithSubscribe(n));
-//    servicesBenchmarks.execute(servicesBenchmarks.requestOneTaskWithBlock(n));
-//    servicesBenchmarks.execute(servicesBenchmarks.requestOneTaskWithSubscribe(n));
+    servicesBenchmarks.run(n, (size) -> servicesBenchmarks.requestResponse(size).blockLast());
 
-//    servicesBenchmarks.requestResponse(n).subscribeOn(Schedulers.elastic()).block();
-    long start = System.nanoTime();
-    servicesBenchmarks.requestResponse(n).blockLast();
-    long l = (System.nanoTime() - start) / n ;
-    System.out.println("#### RESULT: " +  l + "ns/op");
     servicesBenchmarks.tearDown();
   }
 
