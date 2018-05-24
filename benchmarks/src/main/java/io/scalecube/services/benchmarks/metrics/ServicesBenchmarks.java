@@ -31,14 +31,11 @@ public class ServicesBenchmarks {
         .convertDurationsTo(TimeUnit.MILLISECONDS).build();
   }
 
-  public synchronized void startAndWarmup(int n) {
-    System.out.println("###### START AND WARMUP");
+  public synchronized ServicesBenchmarks start() {
+    System.out.println("###### START");
     state.setup();
     reporter.start(1, TimeUnit.DAYS);
-    Flux.merge(Flux.range(0, n)
-        .subscribeOn(scheduler)
-        .map(i -> state.service().requestOne(MESSAGE)))
-        .blockLast();
+    return this;
   }
 
   public synchronized void tearDown() {
