@@ -66,10 +66,10 @@ public class ServicesBenchmarks {
   }
 
   private void fireAndForget(ServicesBenchmarksState state) {
-    state.service().voidRequestResponse(MESSAGE).block();
+    state.service().oneWay(MESSAGE).block();
   }
 
   private void requestOne(ServicesBenchmarksState state) {
-    state.service().requestResponse(MESSAGE).block();
+    state.service().requestOne(MESSAGE).block();
   }
 }
