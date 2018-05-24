@@ -36,7 +36,7 @@ public class ServicesBenchmarks {
     reporter.start(1, TimeUnit.DAYS);
     Flux.merge(Flux.range(0, n)
         .subscribeOn(scheduler)
-        .map(i -> state.service().requestResponse(MESSAGE)))
+        .map(i -> state.service().requestOne(MESSAGE)))
         .blockLast();
   }
 
@@ -61,14 +61,26 @@ public class ServicesBenchmarks {
     System.out.println("###### TASK IS DONE, RESULT: " + diffInSec + "sec, " + nsByOp + "ns/op, " + rps + "op/s");
   }
 
-  public synchronized Flux<BenchmarkMessage> requestResponse(int n) {
-    String taskName = "requestResponse";
+  public synchronized Flux<Void> oneWay(int n) {
+    String taskName = "oneWay";
     Timer timer = registry.timer(taskName + "-timer");
     return Flux.merge(Flux.range(0, n)
         .subscribeOn(scheduler)
         .map(i -> {
           Timer.Context timeContext = timer.time();
-          return state.service().requestResponse(MESSAGE)
+          return state.service().oneWay(MESSAGE)
+              .doOnSuccess(next -> timeContext.stop());
+        }));
+  }
+
+  public synchronized Flux<BenchmarkMessage> requestOne(int n) {
+    String taskName = "requestOne";
+    Timer timer = registry.timer(taskName + "-timer");
+    return Flux.merge(Flux.range(0, n)
+        .subscribeOn(scheduler)
+        .map(i -> {
+          Timer.Context timeContext = timer.time();
+          return state.service().requestOne(MESSAGE)
               .doOnSuccess(next -> timeContext.stop());
         }));
   }
@@ -85,16 +97,4 @@ public class ServicesBenchmarks {
               .doOnTerminate(timeContext::stop);
         }));
   }
-
-  // public Runnable fireAndForget(int n) {
-  // String taskName = "fireAndForget";
-  // Timer timer = registry.timer(taskName + "-timer");
-  // return Flux.merge(Flux.range(0, n)
-  // .subscribeOn(scheduler)
-  // .map(i -> {
-  // Timer.Context timeContext = timer.time();
-  // return state.service().fireAndForget(MESSAGE)
-  // .doOnSuccess(next -> timeContext.stop());
-  // }));
-  // }
 }
