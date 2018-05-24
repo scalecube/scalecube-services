@@ -73,6 +73,19 @@ public class ServicesBenchmarks {
         }));
   }
 
+  public synchronized Flux<BenchmarkMessage> requestMany(int n, int responseCount) {
+    String taskName = "requestMany";
+    BenchmarkMessage message = new BenchmarkMessage(String.valueOf(responseCount));
+    Timer timer = registry.timer(taskName + "-timer");
+    return Flux.merge(Flux.range(0, n)
+        .subscribeOn(scheduler)
+        .map(i -> {
+          Timer.Context timeContext = timer.time();
+          return state.service().requestMany(message)
+              .doOnTerminate(timeContext::stop);
+        }));
+  }
+
   // public Runnable fireAndForget(int n) {
   // String taskName = "fireAndForget";
   // Timer timer = registry.timer(taskName + "-timer");
