@@ -10,10 +10,10 @@ public class ServicesBenchmarksRunner {
   public static void main(String[] args) throws Exception {
     MetricRegistry registry = new MetricRegistry();
 
-    int n = 30_000;
+    int n = 1_000_000;
     ServicesBenchmarks servicesBenchmarks = new ServicesBenchmarks(nThreads, registry);
 
-    servicesBenchmarks.startAndWarmup(n);
+    servicesBenchmarks.startAndWarmup(500);
 
 //    servicesBenchmarks.execute(servicesBenchmarks.fireAndForgetTaskWithBlock(n));
 //    servicesBenchmarks.execute(servicesBenchmarks.fireAndForgetTaskWithSubscribe(n));
