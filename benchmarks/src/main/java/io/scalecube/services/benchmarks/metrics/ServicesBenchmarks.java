@@ -5,9 +5,13 @@ import static io.scalecube.services.benchmarks.BenchmarkService.MESSAGE;
 import io.scalecube.services.benchmarks.BenchmarkMessage;
 import io.scalecube.services.benchmarks.ServicesBenchmarksState;
 
-import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.ScheduledReporter;
+import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.Timer;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.concurrent.Executors;
@@ -19,6 +23,8 @@ import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 public class ServicesBenchmarks {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServicesBenchmarks.class);
 
   private final int nThreads;
   private final Duration reporterPeriodDuration;
@@ -33,7 +39,7 @@ public class ServicesBenchmarks {
   }
 
   public synchronized ServicesBenchmarks start() {
-    System.out.println("###### START");
+    LOGGER.info("###### START");
     state.setup();
     return this;
   }
@@ -41,15 +47,14 @@ public class ServicesBenchmarks {
   public synchronized void tearDown() {
     state.tearDown();
     scheduler.dispose();
-    System.out.println("###### DONE");
+    LOGGER.info("###### DONE");
   }
 
   public synchronized Flux<Void> oneWay() {
     String taskName = "oneWay";
-    System.out.println("###### " + taskName + ", nThreads=" + nThreads);
+    LOGGER.info("###### " + taskName + ", nThreads=" + nThreads);
     MetricRegistry registry = new MetricRegistry();
-    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
-        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
+    ScheduledReporter reporter = reporter(registry);
     reporter.start(reporterPeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
     Timer timer = registry.timer(taskName + "-timer");
 
@@ -61,7 +66,7 @@ public class ServicesBenchmarks {
               .doOnSuccess(next -> timeContext.stop());
         }))
         .doOnCancel(() -> {
-          System.out.println("###### " + taskName + " done");
+          LOGGER.info("###### " + taskName + " done");
           reporter.report();
           reporter.stop();
         });
@@ -69,10 +74,9 @@ public class ServicesBenchmarks {
 
   public synchronized Flux<BenchmarkMessage> requestOne() {
     String taskName = "requestOne";
-    System.out.println("###### " + taskName + ", nThreads=" + nThreads);
+    LOGGER.info("###### " + taskName + ", nThreads=" + nThreads);
     MetricRegistry registry = new MetricRegistry();
-    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
-        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
+    ScheduledReporter reporter = reporter(registry);
     reporter.start(reporterPeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
     Timer timer = registry.timer(taskName + "-timer");
 
@@ -84,7 +88,7 @@ public class ServicesBenchmarks {
               .doOnSuccess(next -> timeContext.stop());
         }))
         .doOnCancel(() -> {
-          System.out.println("###### " + taskName + " done");
+          LOGGER.info("###### " + taskName + " done");
           reporter.report();
           reporter.stop();
         });
@@ -92,11 +96,10 @@ public class ServicesBenchmarks {
 
   public synchronized Flux<BenchmarkMessage> requestMany(int responseCount) {
     String taskName = "requestMany";
-    System.out.println("###### " + taskName + ", responseCount=" + responseCount + ", nThreads=" + nThreads);
+    LOGGER.info("###### " + taskName + ", responseCount=" + responseCount + ", nThreads=" + nThreads);
     BenchmarkMessage message = new BenchmarkMessage(String.valueOf(responseCount));
     MetricRegistry registry = new MetricRegistry();
-    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
-        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
+    ScheduledReporter reporter = reporter(registry);
     reporter.start(reporterPeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
     Timer timer = registry.timer(taskName + "-timer");
 
@@ -108,9 +111,14 @@ public class ServicesBenchmarks {
               .doOnTerminate(timeContext::stop);
         })
         .doOnCancel(() -> {
-          System.out.println("###### " + taskName + " done");
+          LOGGER.info("###### " + taskName + " done");
           reporter.report();
           reporter.stop();
         });
+  }
+
+  private ScheduledReporter reporter(MetricRegistry registry) {
+    return Slf4jReporter.forRegistry(registry)
+        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
   }
 }
