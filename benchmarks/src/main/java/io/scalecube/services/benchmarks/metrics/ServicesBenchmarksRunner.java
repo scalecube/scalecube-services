@@ -1,5 +1,8 @@
 package io.scalecube.services.benchmarks.metrics;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -9,6 +12,8 @@ import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 public class ServicesBenchmarksRunner {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServicesBenchmarksRunner.class);
 
   private static final int N_THREADS = Runtime.getRuntime().availableProcessors();
   private static final Duration EXECUTION_TASK_TIME = Duration.ofSeconds(20);
@@ -23,7 +28,7 @@ public class ServicesBenchmarksRunner {
 
   public static void main(String[] args) {
     Settings settings = Settings.from(args).build();
-    System.out.println(settings);
+    LOGGER.info(settings.toString());
     ServicesBenchmarks servicesBenchmarks = new ServicesBenchmarks(settings.nThreads, settings.reporterPeriod).start();
 
     settings.tasks.forEach(task -> task.accept(servicesBenchmarks, settings));
