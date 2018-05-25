@@ -9,176 +9,108 @@ import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
-import java.util.concurrent.CountDownLatch;
+import java.time.Duration;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import java.util.stream.LongStream;
 
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public class ServicesBenchmarks {
 
-  private final MetricRegistry registry;
+  private final int nThreads;
+  private final Duration reporterPeriodDuration;
   private final ServicesBenchmarksState state;
-  private final ConsoleReporter reporter;
   private final Scheduler scheduler;
 
-  public ServicesBenchmarks(Scheduler scheduler, MetricRegistry registry) {
-    this.registry = registry;
-    this.scheduler = scheduler;
+  public ServicesBenchmarks(int nThreads, Duration reporterPeriodDuration) {
+    this.nThreads = nThreads;
+    this.reporterPeriodDuration = reporterPeriodDuration;
+    this.scheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(nThreads));
     this.state = new ServicesBenchmarksState();
-    this.reporter = ConsoleReporter.forRegistry(registry)
-        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
   }
 
   public synchronized ServicesBenchmarks start() {
     System.out.println("###### START");
     state.setup();
-    reporter.start(1, TimeUnit.DAYS);
     return this;
   }
 
   public synchronized void tearDown() {
-    reporter.report();
-    reporter.stop();
     state.tearDown();
     scheduler.dispose();
     System.out.println("###### DONE");
   }
 
-  public synchronized void run(int n, Consumer<Integer> consumer) {
-    System.out.println("###### TASK IS STARTED");
-    long start = System.nanoTime();
-
-    consumer.accept(n);
-
-    long diff = System.nanoTime() - start;
-    long nsByOp = diff / n;
-    double rps = ((double) n / diff) * 1e9;
-    double diffInSec = (double) diff / 1e9;
-    System.out.println("###### TASK IS DONE, RESULT: " + diffInSec + "sec, " + nsByOp + "ns/op, " + rps + "op/s");
-  }
-
-  public synchronized Flux<Void> oneWay(int n) {
-    System.out.println("###### oneWay, n=" + n);
+  public synchronized Flux<Void> oneWay() {
     String taskName = "oneWay";
+    System.out.println("###### " + taskName + ", nThreads=" + nThreads);
+    MetricRegistry registry = new MetricRegistry();
+    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
+        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
+    reporter.start(reporterPeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
     Timer timer = registry.timer(taskName + "-timer");
-    return Flux.merge(Flux.range(0, n)
+
+    return Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
         .subscribeOn(scheduler)
         .map(i -> {
           Timer.Context timeContext = timer.time();
           return state.service().oneWay(MESSAGE)
               .doOnSuccess(next -> timeContext.stop());
-        }));
+        }))
+        .doOnCancel(() -> {
+          System.out.println("###### " + taskName + " done");
+          reporter.report();
+          reporter.stop();
+        });
   }
 
-  public synchronized void oneWayLatch(int n, int nThreads) {
-    System.out.println("###### oneWayLatch, n=" + n + ", nThreads=" + nThreads);
-    String taskName = "oneWayLatch";
-    Timer timer = registry.timer(taskName + "-timer");
-    CountDownLatch latch = new CountDownLatch(n);
-    int count = n / nThreads;
-    for (int j = 0; j < nThreads; j++) {
-      scheduler.schedule(() -> {
-        for (int i = 0; i < count; i++) {
-          Timer.Context timeContext = timer.time();
-          state.service().oneWay(MESSAGE)
-              .doOnSuccess(next -> {
-                timeContext.stop();
-                latch.countDown();
-              })
-              .doOnError(t -> System.exit(124))
-              .subscribe();
-        }
-      });
-    }
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      System.exit(123);
-    }
-  }
-
-  public synchronized Flux<BenchmarkMessage> requestOne(int n) {
-    System.out.println("###### requestOne, n=" + n);
+  public synchronized Flux<BenchmarkMessage> requestOne() {
     String taskName = "requestOne";
+    System.out.println("###### " + taskName + ", nThreads=" + nThreads);
+    MetricRegistry registry = new MetricRegistry();
+    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
+        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
+    reporter.start(reporterPeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
     Timer timer = registry.timer(taskName + "-timer");
-    return Flux.merge(Flux.range(0, n)
+
+    return Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
         .subscribeOn(scheduler)
         .map(i -> {
           Timer.Context timeContext = timer.time();
           return state.service().requestOne(MESSAGE)
               .doOnSuccess(next -> timeContext.stop());
-        }));
+        }))
+        .doOnCancel(() -> {
+          System.out.println("###### " + taskName + " done");
+          reporter.report();
+          reporter.stop();
+        });
   }
 
-  public synchronized void requestOneLatch(int n, int nThreads) {
-    System.out.println("###### requestOneLatch, n=" + n + ", nThreads=" + nThreads);
-    String taskName = "requestOneLatch";
-    Timer timer = registry.timer(taskName + "-timer");
-    CountDownLatch latch = new CountDownLatch(n);
-    int count = n / nThreads;
-    for (int j = 0; j < nThreads; j++) {
-      scheduler.schedule(() -> {
-        for (int i = 0; i < count; i++) {
-          Timer.Context timeContext = timer.time();
-          state.service().requestOne(MESSAGE)
-              .doOnSuccess(next -> {
-                timeContext.stop();
-                latch.countDown();
-              })
-              .doOnError(t -> System.exit(124))
-              .subscribe();
-        }
-      });
-    }
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      System.exit(123);
-    }
-  }
-
-  public synchronized Flux<BenchmarkMessage> requestMany(int n, int responseCount) {
-    System.out.println("###### requestMany, n=" + n + ", responseCount=" + responseCount);
+  public synchronized Flux<BenchmarkMessage> requestMany(int responseCount) {
     String taskName = "requestMany";
+    System.out.println("###### " + taskName + ", responseCount=" + responseCount + ", nThreads=" + nThreads);
     BenchmarkMessage message = new BenchmarkMessage(String.valueOf(responseCount));
+    MetricRegistry registry = new MetricRegistry();
+    ConsoleReporter reporter = ConsoleReporter.forRegistry(registry)
+        .convertDurationsTo(TimeUnit.MILLISECONDS).build();
+    reporter.start(reporterPeriodDuration.toMillis(), TimeUnit.MILLISECONDS);
     Timer timer = registry.timer(taskName + "-timer");
-    return Flux.merge(Flux.range(0, n)
+
+    return Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
         .subscribeOn(scheduler)
-        .map(i -> {
+        .flatMap(i -> {
           Timer.Context timeContext = timer.time();
           return state.service().requestMany(message)
               .doOnTerminate(timeContext::stop);
-        }));
-  }
-
-  public synchronized void requestManyLatch(int n, int responseCount, int nThreads) {
-    System.out
-        .println("###### requestManyLatch, n=" + n + ", responseCount=" + responseCount + ", nThreads=" + nThreads);
-    String taskName = "requestManyLatch";
-    BenchmarkMessage message = new BenchmarkMessage(String.valueOf(responseCount));
-    Timer timer = registry.timer(taskName + "-timer");
-    CountDownLatch latch = new CountDownLatch(n);
-    int count = n / nThreads;
-    for (int j = 0; j < nThreads; j++) {
-      scheduler.schedule(() -> {
-        for (int i = 0; i < count; i++) {
-          Timer.Context timeContext = timer.time();
-          state.service().requestMany(message)
-              .doOnTerminate(() -> {
-                timeContext.stop();
-                latch.countDown();
-              })
-              .doOnError(t -> System.exit(124))
-              .subscribe();
-        }
-      });
-    }
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      System.exit(123);
-    }
+        })
+        .doOnCancel(() -> {
+          System.out.println("###### " + taskName + " done");
+          reporter.report();
+          reporter.stop();
+        });
   }
 }
