@@ -123,6 +123,7 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_remote_failing_void_greeting() {
+
     // Given
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
