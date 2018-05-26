@@ -153,31 +153,23 @@ public class ServiceCall {
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher, Class<?> responseType) {
-    return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
+    return Flux.from(HeadAndTail.createFrom(publisher))
+        .flatMap(pair -> {
+          ServiceMessage request = pair.head();
+          String qualifier = request.qualifier();
+          
+          Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
 
-      ServiceMessage request = pair.head();
-      Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
-
-      String qualifier = request.qualifier();
-
-      if (serviceHandlers.contains(qualifier)) {
-        ServiceMessageHandler serviceHandler = serviceHandlers.get(qualifier);
-        return serviceHandler.invoke(requestPublisher).onErrorMap(ExceptionProcessor::mapException);
-      } else {
-
-        ServiceReference serviceReference =
-            router.route(serviceRegistry, request)
-                .orElseThrow(() -> noReachableMemberException(request));
-
-        Address address =
-            Address.create(serviceReference.host(), serviceReference.port());
-
-        Flux<ServiceMessage> responsePublisher =
-            transport.create(address).requestBidirectional(requestPublisher);
-
-        return responsePublisher.map(message -> dataCodec.decode(message, responseType));
-      }
-    });
+          if (serviceHandlers.contains(qualifier)) {
+            return serviceHandlers.get(qualifier)
+                .invoke(requestPublisher)
+                .onErrorMap(ExceptionProcessor::mapException);
+          } else {
+            return transport.create(addressLookup(request))
+                .requestBidirectional(requestPublisher)
+                .map(message -> dataCodec.decode(message, responseType));
+          }
+        });
   }
 
   /**
@@ -190,7 +182,7 @@ public class ServiceCall {
 
     final ServiceCall serviceCall = this;
     final Map<Method, MethodInfo> genericReturnTypes = Reflect.methodsInfo(serviceInterface);
-    
+
     return Reflection.newProxy(serviceInterface, (proxy, method, params) -> {
       MethodInfo methodInfo = genericReturnTypes.get(method);
       Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, params);
@@ -219,6 +211,14 @@ public class ServiceCall {
           throw new IllegalArgumentException("Communication mode is not supported: " + method);
       }
     });
+  }
+
+  private Address addressLookup(ServiceMessage request) {
+    ServiceReference serviceReference =
+        router.route(serviceRegistry, request)
+            .orElseThrow(() -> noReachableMemberException(request));
+
+    return Address.create(serviceReference.host(), serviceReference.port());
   }
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {

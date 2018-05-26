@@ -3,6 +3,10 @@ package io.scalecube.services.routing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.scalecube.services.ServiceReference;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.transport.Address;
+
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Routers {
