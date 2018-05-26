@@ -186,7 +186,7 @@ public class RoutersTest extends BaseTest {
 
     System.out.println("Service B was called: " + serviceBCount.get() + " times.");
 
-    assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.2d);
+    assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.25d);
 
     services1.shutdown().block();
     services2.shutdown().block();
