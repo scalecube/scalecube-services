@@ -223,9 +223,12 @@ public class Reflect {
     return Object.class;
   }
 
-  public static Map<Method, Class<?>> parameterizedReturnTypes(Class<?> serviceInterface) {
+  public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(Reflect.serviceMethods(serviceInterface).values().stream()
-        .collect(Collectors.toMap(m -> m, Reflect::parameterizedReturnType)));
+        .collect(Collectors.toMap(m -> m, m-> 
+          new MethodInfo(parameterizedReturnType(m),
+              communicationMode(m),
+              isRequestTypeServiceMessage(m)))));
   }
 
   /**

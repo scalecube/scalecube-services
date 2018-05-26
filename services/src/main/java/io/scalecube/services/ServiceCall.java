@@ -189,34 +189,30 @@ public class ServiceCall {
   public <T> T api(Class<T> serviceInterface) {
 
     final ServiceCall serviceCall = this;
-    final Map<Method, Class<?>> genericReturnTypes = Reflect.parameterizedReturnTypes(serviceInterface);
+    final Map<Method, MethodInfo> genericReturnTypes = Reflect.methodsInfo(serviceInterface);
     
-    return Reflection.newProxy(serviceInterface, (proxy, method, args) -> {
-
-      Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
+    return Reflection.newProxy(serviceInterface, (proxy, method, params) -> {
+      MethodInfo methodInfo = genericReturnTypes.get(method);
+      Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, params);
       if (check != null) {
         return check; // toString, hashCode was invoked.
       }
 
-      Metrics.mark(serviceInterface, metrics, method, "request");
-      Class<?> parameterizedReturnType = genericReturnTypes.get(method);
-      boolean isRequestTypeServiceMessage = Reflect.isRequestTypeServiceMessage(method);
-      CommunicationMode mode = Reflect.communicationMode(method);
-
       ServiceMessage request = ServiceMessage.builder()
           .qualifier(Reflect.serviceName(serviceInterface), method.getName())
-          .data(method.getParameterCount() != 0 ? args[0] : NullData.NULL_DATA)
+          .data(method.getParameterCount() != 0 ? params[0] : NullData.NULL_DATA)
           .build();
 
-      switch (mode) {
+      Metrics.mark(serviceInterface, metrics, method, "request");
+      switch (methodInfo.communicationMode()) {
         case FIRE_AND_FORGET:
           return serviceCall.oneWay(request);
         case REQUEST_RESPONSE:
-          return serviceCall.requestOne(request, parameterizedReturnType)
-              .transform(mono -> isRequestTypeServiceMessage ? mono : mono.map(ServiceMessage::data));
+          return serviceCall.requestOne(request, methodInfo.parameterizedReturnType())
+              .transform(mono -> methodInfo.isRequestTypeServiceMessage() ? mono : mono.map(ServiceMessage::data));
         case REQUEST_STREAM:
-          return serviceCall.requestMany(request, parameterizedReturnType)
-              .transform(flux -> isRequestTypeServiceMessage ? flux : flux.map(ServiceMessage::data));
+          return serviceCall.requestMany(request, methodInfo.parameterizedReturnType())
+              .transform(flux -> methodInfo.isRequestTypeServiceMessage() ? flux : flux.map(ServiceMessage::data));
         case REQUEST_CHANNEL:
           // falls to default
         default:
