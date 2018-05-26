@@ -6,23 +6,6 @@ import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 import static java.util.Objects.requireNonNull;
 
-import io.scalecube.services.annotations.Inject;
-import io.scalecube.services.annotations.Null;
-import io.scalecube.services.annotations.RequestType;
-import io.scalecube.services.annotations.Service;
-import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
-import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.Routers;
-
-import com.google.common.base.Strings;
-
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -38,6 +21,22 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Strings;
+
+import io.scalecube.services.annotations.Inject;
+import io.scalecube.services.annotations.Null;
+import io.scalecube.services.annotations.RequestType;
+import io.scalecube.services.annotations.Service;
+import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
+import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -224,16 +223,21 @@ public class Reflect {
     return Object.class;
   }
 
+  public static Map<Method, Class<?>> parameterizedReturnTypes(Class<?> serviceInterface) {
+    return Collections.unmodifiableMap(Reflect.serviceMethods(serviceInterface).values().stream()
+        .collect(Collectors.toMap(m -> m, Reflect::parameterizedReturnType)));
+  }
+
   /**
    * Util function that returns the parameterized of the request Type of a given object.
    * 
    * @return the parameterized Type of a given object or Object class if unknown.
    */
-  public static Type parameterizedRequestType(Method method) {
+  public static Class<?> parameterizedRequestType(Method method) {
     if (method != null && method.getGenericParameterTypes().length > 0) {
       Type type = method.getGenericParameterTypes()[0];
       if (type instanceof ParameterizedType) {
-        return ((ParameterizedType) type).getActualTypeArguments()[0];
+        return (Class<?>) ((ParameterizedType) type).getActualTypeArguments()[0];
       }
     }
 
@@ -378,4 +382,6 @@ public class Reflect {
       return Flux.error(ex);
     }
   }
+
+
 }
