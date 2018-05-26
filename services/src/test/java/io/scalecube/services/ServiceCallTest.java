@@ -18,9 +18,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -43,7 +41,6 @@ public class ServiceCallTest extends BaseTest {
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
-  private static AtomicInteger port = new AtomicInteger(4000);
 
   private Microservices gateway;
   
@@ -77,7 +74,6 @@ public class ServiceCallTest extends BaseTest {
 
   private Microservices serviceProvider() {
     return Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
@@ -90,7 +86,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -115,7 +110,6 @@ public class ServiceCallTest extends BaseTest {
     // Given
 
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -131,7 +125,6 @@ public class ServiceCallTest extends BaseTest {
   public void test_remote_failing_void_greeting() {
     // Given
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -149,7 +142,6 @@ public class ServiceCallTest extends BaseTest {
   public void test_remote_throwing_void_greeting() {
     // Given
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -170,7 +162,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Given
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -189,7 +180,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Given
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -274,7 +264,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -314,7 +303,6 @@ public class ServiceCallTest extends BaseTest {
     // Given
     Microservices provider = serviceProvider();
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -361,7 +349,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -407,7 +394,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -435,7 +421,6 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(1))
         .build()
         .startAwait();
@@ -443,7 +428,6 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(2))
         .build()
         .startAwait();
@@ -488,7 +472,6 @@ public class ServiceCallTest extends BaseTest {
   public void test_dispatcher_remote_greeting_request_completes_before_timeout() {
     // Create microservices instance.
     Microservices node = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -506,7 +489,6 @@ public class ServiceCallTest extends BaseTest {
   @Test
   public void test_dispatcher_local_greeting_request_completes_before_timeout() {
     Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
@@ -525,19 +507,13 @@ public class ServiceCallTest extends BaseTest {
   private Microservices provider(Microservices gateway) {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .build()
         .startAwait();
   }
 
   private Microservices gateway() {
     return Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .build()
         .startAwait();
-  }
-
-  private boolean await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) throws Exception {
-    return timeLatch.await(timeout, timeUnit);
   }
 }
