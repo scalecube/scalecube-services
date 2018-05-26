@@ -1,5 +1,14 @@
 package io.scalecube.services;
 
+import java.lang.reflect.Method;
+import java.util.Map;
+
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.reflect.Reflection;
+
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
@@ -14,13 +23,6 @@ import io.scalecube.services.transport.HeadAndTail;
 import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
-
-import com.google.common.reflect.Reflection;
-
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -187,7 +189,8 @@ public class ServiceCall {
   public <T> T api(Class<T> serviceInterface) {
 
     final ServiceCall serviceCall = this;
-
+    final Map<Method, Class<?>> genericReturnTypes = Reflect.parameterizedReturnTypes(serviceInterface);
+    
     return Reflection.newProxy(serviceInterface, (proxy, method, args) -> {
 
       Object check = objectToStringEqualsHashCode(method.getName(), serviceInterface, args);
@@ -196,7 +199,7 @@ public class ServiceCall {
       }
 
       Metrics.mark(serviceInterface, metrics, method, "request");
-      Class<?> parameterizedReturnType = Reflect.parameterizedReturnType(method);
+      Class<?> parameterizedReturnType = genericReturnTypes.get(method);
       boolean isRequestTypeServiceMessage = Reflect.isRequestTypeServiceMessage(method);
       CommunicationMode mode = Reflect.communicationMode(method);
 
