@@ -4,6 +4,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.reactivestreams.Publisher;
+
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.services.a.b.testing.CanaryService;
@@ -12,20 +25,6 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.routing.Routers;
-
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.reactivestreams.Publisher;
-
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -34,24 +33,27 @@ public class RemoteServiceTest extends BaseTest {
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private static AtomicInteger port = new AtomicInteger(3000);
+  private Microservices gateway;
+
+  @Before
+  public void setup() {
+    this.gateway = gateway();
+  }
+
+  @After
+  public void tearDown() {
+    gateway.shutdown().block();
+  }
 
   @Test
   public void test_remote_service_tags() {
-    Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .build()
-        .startAwait();
-
     Microservices services1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
         .build()
         .startAwait();
 
     Microservices services2 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
         .build()
@@ -78,18 +80,11 @@ public class RemoteServiceTest extends BaseTest {
 
     services2.shutdown().block();
     services1.shutdown().block();
-    gateway.shutdown().block();
   }
 
   @Test
   public void test_remote_greeting_request_completes_before_timeout() {
     Duration duration = Duration.ofSeconds(1);
-
-    // Create microservices instance.
-    Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .build()
-        .startAwait();
 
     Microservices node2 = Microservices.builder()
         .seeds(gateway.cluster().address())
@@ -105,17 +100,10 @@ public class RemoteServiceTest extends BaseTest {
     assertTrue(" hello to: joe".equals(result.block(Duration.ofSeconds(10)).getResult()));
 
     node2.shutdown().block();
-    gateway.shutdown().block();
   }
 
   @Test
   public void test_remote_void_greeting() throws Exception {
-    // Create microservices instance.
-    Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .build()
-        .startAwait();
-
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
@@ -132,19 +120,13 @@ public class RemoteServiceTest extends BaseTest {
     System.out.println("test_remote_void_greeting done.");
 
     Thread.sleep(1000);
-
-    gateway.shutdown().block();
+    
     node1.shutdown().block();
   }
 
   @Test
   public void test_remote_failing_void_greeting() throws Exception {
     // Create microservices instance.
-    Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .build()
-        .startAwait();
-
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
@@ -163,18 +145,12 @@ public class RemoteServiceTest extends BaseTest {
 
     Thread.sleep(1000);
 
-    gateway.shutdown().block();
     node1.shutdown().block();
   }
 
   @Test
   public void test_remote_throwing_void_greeting() throws Exception {
     // Create microservices instance.
-    Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .build()
-        .startAwait();
-
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
@@ -193,7 +169,6 @@ public class RemoteServiceTest extends BaseTest {
 
     Thread.sleep(1000);
 
-    gateway.shutdown().block();
     node1.shutdown().block();
   }
 
@@ -201,14 +176,12 @@ public class RemoteServiceTest extends BaseTest {
   public void test_remote_async_greeting_return_string() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -227,14 +200,12 @@ public class RemoteServiceTest extends BaseTest {
   public void test_remote_async_greeting_no_params() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -255,14 +226,12 @@ public class RemoteServiceTest extends BaseTest {
   public void test_remote_greeting_no_params_fire_and_forget() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -281,14 +250,12 @@ public class RemoteServiceTest extends BaseTest {
   public void test_remote_greeting_return_GreetingResponse() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -309,14 +276,12 @@ public class RemoteServiceTest extends BaseTest {
   public void test_remote_greeting_request_timeout_expires() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -339,14 +304,12 @@ public class RemoteServiceTest extends BaseTest {
   public void test_remote_async_greeting_return_Message() {
     // Create microservices cluster.
     Microservices provider = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -365,12 +328,10 @@ public class RemoteServiceTest extends BaseTest {
 
   @Test
   public void test_remote_round_robin_selection_logic() {
-    Microservices gateway = createSeed();
 
     // Create microservices instance cluster.
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(1))
         .build()
         .startAwait();
@@ -378,7 +339,6 @@ public class RemoteServiceTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(2))
         .build()
         .startAwait();
@@ -390,13 +350,10 @@ public class RemoteServiceTest extends BaseTest {
     assertTrue(!result1.sender().equals(result2.sender()));
     provider2.shutdown().block();
     provider1.shutdown().block();
-    gateway.shutdown().block();
   }
 
   @Test
   public void test_remote_async_greeting_return_string_service_not_found_error_case() throws Exception {
-    Microservices gateway = createSeed();
-
     // Create microservices instance cluster.
     Microservices provider1 = createProvider(gateway);
 
@@ -408,13 +365,11 @@ public class RemoteServiceTest extends BaseTest {
       assertTrue(ex.getMessage().contains("No reachable member with such service"));
     }
 
-    gateway.shutdown();
     provider1.shutdown();
   }
 
   @Test
   public void test_remote_serviceA_calls_serviceB_using_setter() {
-    Microservices gateway = createSeed();
 
     CoarseGrainedServiceImpl coarseGrained = new CoarseGrainedServiceImpl();
 
@@ -424,7 +379,6 @@ public class RemoteServiceTest extends BaseTest {
     // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(greeting, coarseGrained) // add service a and b
         .build()
         .startAwait();
@@ -439,8 +393,6 @@ public class RemoteServiceTest extends BaseTest {
 
   @Test
   public void test_remote_serviceA_calls_serviceB() {
-    Microservices gateway = createSeed();
-
     // getting proxy from any node at any given time.
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
@@ -450,7 +402,6 @@ public class RemoteServiceTest extends BaseTest {
     // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(greeting, another) // add service a and b
         .build()
         .startAwait();
@@ -466,8 +417,6 @@ public class RemoteServiceTest extends BaseTest {
     thrown.expect(InternalServiceException.class);
     thrown.expectMessage("Did not observe any item or terminal signal");
 
-    Microservices gateway = createSeed();
-
     // getting proxy from any node at any given time.
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
@@ -476,7 +425,6 @@ public class RemoteServiceTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(greeting, another) // add service a and b
         .build()
         .startAwait();
@@ -492,7 +440,6 @@ public class RemoteServiceTest extends BaseTest {
 
   @Test
   public void test_remote_serviceA_calls_serviceB_with_dispatcher() throws Exception {
-    Microservices gateway = createSeed();
 
     // getting proxy from any node at any given time.
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
@@ -502,7 +449,6 @@ public class RemoteServiceTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(greeting, another) // add service a and b
         .build()
         .startAwait();
@@ -513,7 +459,6 @@ public class RemoteServiceTest extends BaseTest {
     String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
     assertEquals(response, " hello to: joe");
 
-    gateway.shutdown().block();
     provider.shutdown().block();
   }
 
@@ -538,19 +483,13 @@ public class RemoteServiceTest extends BaseTest {
   private Microservices createProvider(Microservices gateway) {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .build()
         .startAwait();
   }
 
-  private Microservices createSeed() {
+  private Microservices gateway() {
     return Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .build()
         .startAwait();
-  }
-
-  private boolean await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) throws Exception {
-    return timeLatch.await(timeout, timeUnit);
   }
 }
