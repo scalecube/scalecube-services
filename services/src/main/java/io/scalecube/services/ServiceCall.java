@@ -11,7 +11,6 @@ import com.google.common.reflect.Reflection;
 
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -157,14 +156,14 @@ public class ServiceCall {
         .flatMap(pair -> {
           ServiceMessage request = pair.head();
           String qualifier = request.qualifier();
-          
+
           Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
 
-          if (serviceHandlers.contains(qualifier)) {
+          if (serviceHandlers.contains(qualifier)) { // local service.
             return serviceHandlers.get(qualifier)
                 .invoke(requestPublisher)
                 .onErrorMap(ExceptionProcessor::mapException);
-          } else {
+          } else { // remote service.
             return transport.create(addressLookup(request))
                 .requestBidirectional(requestPublisher)
                 .map(message -> dataCodec.decode(message, responseType));

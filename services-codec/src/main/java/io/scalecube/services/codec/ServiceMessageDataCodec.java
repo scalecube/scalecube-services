@@ -1,21 +1,19 @@
 package io.scalecube.services.codec;
 
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ExceptionProcessor;
+import java.nio.charset.Charset;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.charset.Charset;
-import java.util.Optional;
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 
 public final class ServiceMessageDataCodec {
 
@@ -23,14 +21,14 @@ public final class ServiceMessageDataCodec {
 
   private static final String DEFAULT_DATA_FORMAT = "application/json";
 
+  public static final DataCodec dataCodec = DataCodec.getInstance(DEFAULT_DATA_FORMAT);
+
   public ServiceMessage encode(ServiceMessage message) {
     if (message.hasData(ByteBuf.class)) {
       return message;
     } else if (message.hasData()) {
       ByteBuf buffer = ByteBufAllocator.DEFAULT.buffer();
       try {
-        String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-        DataCodec dataCodec = DataCodec.getInstance(contentType);
         dataCodec.encode(new ByteBufOutputStream(buffer), message.data());
         return ServiceMessage.from(message).data(buffer).build();
       } catch (Throwable ex) {
@@ -51,8 +49,6 @@ public final class ServiceMessageDataCodec {
     Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : type;
 
     try (ByteBufInputStream inputStream = new ByteBufInputStream(((ByteBuf) message.data()).slice())) {
-      String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-      DataCodec dataCodec = DataCodec.getInstance(contentType);
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
       LOGGER.error("Failed to decode data on: {}, data buffer: {}, cause: {}",
