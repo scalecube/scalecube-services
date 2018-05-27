@@ -5,11 +5,6 @@ import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.a.b.testing.CanaryService;
 import io.scalecube.services.a.b.testing.CanaryTestingRouter;
@@ -19,11 +14,17 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import reactor.core.publisher.Mono;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 3;

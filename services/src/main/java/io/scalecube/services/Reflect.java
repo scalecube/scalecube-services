@@ -6,6 +6,23 @@ import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 import static java.util.Objects.requireNonNull;
 
+import io.scalecube.services.annotations.Inject;
+import io.scalecube.services.annotations.Null;
+import io.scalecube.services.annotations.RequestType;
+import io.scalecube.services.annotations.Service;
+import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
+import io.scalecube.services.routing.Router;
+import io.scalecube.services.routing.Routers;
+
+import com.google.common.base.Strings;
+
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -21,22 +38,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Strings;
-
-import io.scalecube.services.annotations.Inject;
-import io.scalecube.services.annotations.Null;
-import io.scalecube.services.annotations.RequestType;
-import io.scalecube.services.annotations.Service;
-import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
-import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.Routers;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
