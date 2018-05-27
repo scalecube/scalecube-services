@@ -1,19 +1,20 @@
 package io.scalecube.services.codec;
 
-import java.nio.charset.Charset;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ExceptionProcessor;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.charset.Charset;
 
 public final class ServiceMessageDataCodec {
 
