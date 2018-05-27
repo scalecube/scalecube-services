@@ -1,7 +1,10 @@
 package io.scalecube.services.codec;
 
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
+import java.nio.charset.Charset;
+import java.util.function.BiFunction;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -9,19 +12,13 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.charset.Charset;
-import java.util.Optional;
-import java.util.function.BiFunction;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
 
 public final class ServiceMessageCodec {
-
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
-
   private static final String DEFAULT_DATA_FORMAT = "application/json";
+  private static final DataCodec dataCodec = DataCodec.getInstance(DEFAULT_DATA_FORMAT);
 
   private final HeadersCodec headersCodec;
 
@@ -38,8 +35,6 @@ public final class ServiceMessageCodec {
     } else if (message.hasData()) {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
-        String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-        DataCodec dataCodec = DataCodec.getInstance(contentType);
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.release(dataBuffer);
