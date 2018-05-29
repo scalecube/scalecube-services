@@ -13,6 +13,7 @@ import java.lang.reflect.Method;
 import java.util.Optional;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public final class LocalServiceMessageHandler implements ServiceMessageHandler {
 
@@ -39,15 +40,20 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   }
 
   @Override
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
+    try {
+      return Mono.from(invokeMethod(message)).map(this::toResponse);
+    } catch (InvocationTargetException ex) {
+      return Mono.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+    } catch (Throwable ex) {
+      return Mono.error(ex);
+    }
+  }
+
+  @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
     try {
-      Publisher<?> result;
-      if (method.getParameterCount() == 0) {
-        result = (Publisher<?>) method.invoke(service);
-      } else {
-        result = (Publisher<?>) method.invoke(service, toRequest(message));
-      }
-      return Flux.from(result).map(this::toResponse);
+      return Flux.from(invokeMethod(message)).map(this::toResponse);
     } catch (InvocationTargetException ex) {
       return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
     } catch (Throwable ex) {
@@ -59,15 +65,7 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
     return Flux.from(publisher)
         .map(this::toRequest)
-        .transform((Flux<?> publisher1) -> {
-          try {
-            return Flux.from((Publisher<?>) method.invoke(service, (Publisher<?>) publisher1));
-          } catch (InvocationTargetException ex) {
-            return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
-          } catch (Throwable ex) {
-            return Flux.error(ex);
-          }
-        })
+        .transform(this::invokeMethod)
         .map(this::toResponse);
   }
 
@@ -88,5 +86,23 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
             .header("_type", returnType.getName())
             .data(response)
             .build();
+  }
+
+  private Publisher<?> invokeMethod(ServiceMessage message) throws Exception {
+    if (method.getParameterCount() == 0) {
+      return (Publisher<?>) method.invoke(service);
+    } else {
+      return (Publisher<?>) method.invoke(service, toRequest(message));
+    }
+  }
+
+  private Publisher<?> invokeMethod(Publisher<?> publisher) {
+    try {
+      return Flux.from((Publisher<?>) method.invoke(service, publisher));
+    } catch (InvocationTargetException ex) {
+      return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+    } catch (Throwable ex) {
+      return Flux.error(ex);
+    }
   }
 }

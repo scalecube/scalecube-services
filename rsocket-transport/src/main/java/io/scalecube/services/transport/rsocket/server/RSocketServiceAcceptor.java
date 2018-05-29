@@ -30,6 +30,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
     return Mono.just(new AbstractRSocket() {
+      @Override
+      public Mono<Payload> requestResponse(Payload payload) {
+        return acceptor.requestResponse(toMessage(payload))
+            .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
+            .map(this::toPayload);
+      }
 
       @Override
       public Flux<Payload> requestStream(Payload payload) {
