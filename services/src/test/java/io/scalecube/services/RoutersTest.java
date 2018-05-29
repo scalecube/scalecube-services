@@ -31,17 +31,17 @@ public class RoutersTest extends BaseTest {
   private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   private Microservices gateway;
-  
+
   @Before
   public void setup() {
-    this.gateway =  Microservices.builder().build().startAwait();
+    this.gateway = Microservices.builder().build().startAwait();
   }
-  
+
   @After
   public void tearDown() {
     gateway.shutdown().block();
   }
-  
+
   @Test
   public void test_router_factory() {
     Router router = Routers.getRouter(RandomServiceRouter.class);
@@ -53,7 +53,7 @@ public class RoutersTest extends BaseTest {
 
   }
 
-  
+
 
   @Test
   public void test_round_robin_selection_logic() {

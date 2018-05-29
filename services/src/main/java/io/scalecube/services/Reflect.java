@@ -226,10 +226,8 @@ public class Reflect {
 
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(Reflect.serviceMethods(serviceInterface).values().stream()
-        .collect(Collectors.toMap(m -> m, m-> 
-          new MethodInfo(parameterizedReturnType(m),
-              communicationMode(m),
-              isRequestTypeServiceMessage(m)))));
+        .collect(Collectors.toMap(m -> m,
+            m -> new MethodInfo(parameterizedReturnType(m), communicationMode(m), isRequestTypeServiceMessage(m)))));
   }
 
   /**
@@ -386,6 +384,4 @@ public class Reflect {
       return Flux.error(ex);
     }
   }
-
-
 }

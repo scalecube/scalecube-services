@@ -44,17 +44,17 @@ public class ServiceCallTest extends BaseTest {
   public ExpectedException thrown = ExpectedException.none();
 
   private Microservices gateway;
-  
+
   @Before
   public void setup() {
     this.gateway = gateway();
   }
-  
+
   @After
   public void tearDown() {
     gateway.shutdown().block();
   }
-  
+
   @Test
   public void test_local_async_no_params() {
     // Create microservices cluster.
