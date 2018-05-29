@@ -6,5 +6,7 @@ import reactor.core.publisher.Flux;
 
 public interface ServiceMessageHandler {
 
-  Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher);
+  Flux<ServiceMessage> requestStream(ServiceMessage message);
+
+  Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher);
 }

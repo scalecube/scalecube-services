@@ -1,6 +1,5 @@
 package io.scalecube.services.transport;
 
-import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
@@ -9,6 +8,7 @@ import io.scalecube.services.exceptions.BadRequestException;
 
 import org.reactivestreams.Publisher;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 
@@ -24,7 +24,6 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   private final String qualifier;
   private final Class<?> returnType;
   private final ServiceMessageDataCodec dataCodec;
-  private final CommunicationMode mode;
   private final boolean isRequestTypeServiceMessage;
   private boolean isRequestTypeVoid;
 
@@ -35,16 +34,40 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
     this.requestType = Reflect.requestType(method);
     this.returnType = Reflect.parameterizedReturnType(method);
     this.dataCodec = new ServiceMessageDataCodec();
-    this.mode = Reflect.communicationMode(method);
     this.isRequestTypeServiceMessage = Reflect.isRequestTypeServiceMessage(method);
     this.isRequestTypeVoid = requestType.isAssignableFrom(Void.TYPE);
   }
 
   @Override
-  public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
+    try {
+      Publisher<?> result;
+      if (method.getParameterCount() == 0) {
+        result = (Publisher<?>) method.invoke(service);
+      } else {
+        result = (Publisher<?>) method.invoke(service, toRequest(message));
+      }
+      return Flux.from(result).map(this::toResponse);
+    } catch (InvocationTargetException ex) {
+      return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+    } catch (Throwable ex) {
+      return Flux.error(ex);
+    }
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
     return Flux.from(publisher)
         .map(this::toRequest)
-        .transform((Flux<?> publisher1) -> Reflect.invokePublisher(service, method, mode, publisher1))
+        .transform((Flux<?> publisher1) -> {
+          try {
+            return Flux.from((Publisher<?>) method.invoke(service, (Publisher<?>) publisher1));
+          } catch (InvocationTargetException ex) {
+            return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+          } catch (Throwable ex) {
+            return Flux.error(ex);
+          }
+        })
         .map(this::toResponse);
   }
 

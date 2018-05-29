@@ -8,6 +8,8 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
 
+import org.reactivestreams.Publisher;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -22,9 +24,16 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   }
 
   @Override
-  public Flux<ServiceMessage> requestBidirectional(Flux<ServiceMessage> publisher) {
-    return rSocket.as(Flux::from)
-        .flatMap(rSocket -> rSocket.requestChannel(publisher.map(this::toPayload)))
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
+    return Flux.from(rSocket)
+        .flatMap(rSocket -> rSocket.requestStream(toPayload(message)))
+        .map(this::toMessage);
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
+    return Flux.from(rSocket)
+        .flatMap(rSocket -> rSocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
         .map(this::toMessage);
   }
 

@@ -7,7 +7,7 @@ import io.scalecube.services.api.ServiceMessage;
 import reactor.core.publisher.Mono;
 
 @Service
-interface GreetingService {
+public interface GreetingService {
 
   @ServiceMethod
   Mono<String> greetingNoParams();
