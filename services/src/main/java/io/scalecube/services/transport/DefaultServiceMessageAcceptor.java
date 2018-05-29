@@ -6,6 +6,7 @@ import io.scalecube.services.api.ServiceMessageHandler;
 import org.reactivestreams.Publisher;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public final class DefaultServiceMessageAcceptor implements ServiceMessageHandler {
 
@@ -13,6 +14,11 @@ public final class DefaultServiceMessageAcceptor implements ServiceMessageHandle
 
   public DefaultServiceMessageAcceptor(LocalServiceHandlers serviceHandlers) {
     this.serviceHandlers = serviceHandlers;
+  }
+
+  @Override
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
+    return serviceHandlers.get(message.qualifier()).requestResponse(message);
   }
 
   @Override
