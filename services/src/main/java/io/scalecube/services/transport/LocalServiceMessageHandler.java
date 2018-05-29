@@ -11,10 +11,8 @@ import org.reactivestreams.Publisher;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
-import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public final class LocalServiceMessageHandler implements ServiceMessageHandler {
 
@@ -41,24 +39,36 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   }
 
   @Override
-  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
-    return Mono.from(invokeMethod(message, Mono::error))
-        .map(this::toResponse)
-        .switchIfEmpty(Mono.just(toEmptyResponse()));
-  }
-
-  @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
-    return Flux.from(invokeMethod(message, Flux::error))
-        .map(this::toResponse)
-        .switchIfEmpty(Flux.just(toEmptyResponse()));
+    try {
+      Publisher<?> result;
+      if (method.getParameterCount() == 0) {
+        result = (Publisher<?>) method.invoke(service);
+      } else {
+        result = (Publisher<?>) method.invoke(service, toRequest(message));
+      }
+      return Flux.from(result).map(this::toResponse);
+    } catch (InvocationTargetException ex) {
+      return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+    } catch (Throwable ex) {
+      return Flux.error(ex);
+    }
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
-    return Flux.from(invokeMethod(Flux.from(publisher).map(this::toRequest), Flux::error))
-        .map(this::toResponse)
-        .switchIfEmpty(Flux.just(toEmptyResponse()));
+    return Flux.from(publisher)
+        .map(this::toRequest)
+        .transform((Flux<?> publisher1) -> {
+          try {
+            return Flux.from((Publisher<?>) method.invoke(service, (Publisher<?>) publisher1));
+          } catch (InvocationTargetException ex) {
+            return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
+          } catch (Throwable ex) {
+            return Flux.error(ex);
+          }
+        })
+        .map(this::toResponse);
   }
 
   private Object toRequest(ServiceMessage message) {
@@ -78,44 +88,5 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
             .header("_type", returnType.getName())
             .data(response)
             .build();
-  }
-
-  public ServiceMessage toEmptyResponse() {
-    return ServiceMessage.builder()
-        .qualifier(qualifier)
-        .header("_type", returnType.getName())
-        .build();
-  }
-
-  private Publisher<?> invokeMethod(ServiceMessage message,
-      Function<Throwable, Publisher<?>> exceptionMapper) {
-    Publisher<?> result = null;
-    Throwable throwable = null;
-    try {
-      if (method.getParameterCount() == 0) {
-        result = (Publisher<?>) method.invoke(service);
-      } else {
-        result = (Publisher<?>) method.invoke(service, toRequest(message));
-      }
-    } catch (InvocationTargetException ex) {
-      throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
-    } catch (Throwable ex) {
-      throwable = ex;
-    }
-    return throwable != null ? exceptionMapper.apply(throwable) : result;
-  }
-
-  private Publisher<?> invokeMethod(Publisher<?> publisher,
-      Function<Throwable, Publisher<?>> exceptionMapper) {
-    Publisher<?> result = null;
-    Throwable throwable = null;
-    try {
-      result = (Publisher<?>) method.invoke(service, publisher);
-    } catch (InvocationTargetException ex) {
-      throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
-    } catch (Throwable ex) {
-      throwable = ex;
-    }
-    return throwable != null ? exceptionMapper.apply(throwable) : result;
   }
 }

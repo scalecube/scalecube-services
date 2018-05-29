@@ -10,19 +10,16 @@ public class ServicesBenchmarksSettings {
   private static final Duration EXECUTION_TASK_TIME = Duration.ofSeconds(60);
   private static final Duration REPORTER_PERIOD = Duration.ofSeconds(10);
   private static final String CSV_REPORTER_DIRECTORY = ".";
-  private static final int RESPONSE_COUNT = 100;
 
   private final int nThreads;
   private final Duration executionTaskTime;
   private final Duration reporterPeriod;
   private final File csvReporterDirectory;
-  private final int responseCount;
 
   private ServicesBenchmarksSettings(Builder builder) {
     this.nThreads = builder.nThreads;
     this.executionTaskTime = builder.executionTaskTime;
     this.reporterPeriod = builder.reporterPeriod;
-    this.responseCount = builder.responseCount;
     this.csvReporterDirectory = Paths.get(builder.csvReporterDirectory).toFile();
     // noinspection ResultOfMethodCallIgnored
     this.csvReporterDirectory.mkdirs();
@@ -42,10 +39,6 @@ public class ServicesBenchmarksSettings {
 
   public File csvReporterDirectory() {
     return csvReporterDirectory;
-  }
-
-  public int responseCount() {
-    return responseCount;
   }
 
   public static Builder builder() {
@@ -72,9 +65,6 @@ public class ServicesBenchmarksSettings {
           case "csvReporterDirectory":
             builder.csvReporterDirectory(value);
             break;
-          case "responseCount":
-            builder.responseCount(Integer.parseInt(value));
-            break;
           default:
             throw new IllegalArgumentException("unknown command: " + pair);
         }
@@ -90,7 +80,6 @@ public class ServicesBenchmarksSettings {
         ", executionTaskTime=" + executionTaskTime +
         ", reporterPeriod=" + reporterPeriod +
         ", csvReporterDirectory=" + csvReporterDirectory +
-        ", responseCount=" + responseCount +
         '}';
   }
 
@@ -98,8 +87,7 @@ public class ServicesBenchmarksSettings {
     private Integer nThreads = N_THREADS;
     private Duration executionTaskTime = EXECUTION_TASK_TIME;
     private Duration reporterPeriod = REPORTER_PERIOD;
-    private String csvReporterDirectory = CSV_REPORTER_DIRECTORY;
-    private Integer responseCount = RESPONSE_COUNT;
+    public String csvReporterDirectory = CSV_REPORTER_DIRECTORY;
 
     public Builder nThreads(Integer nThreads) {
       this.nThreads = nThreads;
@@ -118,11 +106,6 @@ public class ServicesBenchmarksSettings {
 
     public Builder csvReporterDirectory(String csvReporterDirectory) {
       this.csvReporterDirectory = csvReporterDirectory;
-      return this;
-    }
-
-    public Builder responseCount(Integer responseCount) {
-      this.responseCount = responseCount;
       return this;
     }
 

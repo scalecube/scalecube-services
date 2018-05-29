@@ -110,16 +110,7 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
-    String qualifier = request.qualifier();
-    if (serviceHandlers.contains(qualifier)) { // local service.
-      return serviceHandlers.get(qualifier)
-          .requestResponse(request)
-          .onErrorMap(ExceptionProcessor::mapException);
-    } else { // remote service.
-      return transport.create(addressLookup(request))
-          .requestResponse(request)
-          .map(message -> dataCodec.decode(message, responseType));
-    }
+    return requestMany(request, responseType).as(Mono::from);
   }
 
   /**
@@ -142,12 +133,10 @@ public class ServiceCall {
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
     String qualifier = request.qualifier();
     if (serviceHandlers.contains(qualifier)) { // local service.
-      return serviceHandlers.get(qualifier)
-          .requestStream(request)
+      return Flux.from(serviceHandlers.get(qualifier).requestStream(request))
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
-      return transport.create(addressLookup(request))
-          .requestStream(request)
+      return Flux.from(transport.create(addressLookup(request)).requestStream(request))
           .map(message -> dataCodec.decode(message, responseType));
     }
   }
@@ -177,12 +166,10 @@ public class ServiceCall {
       Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
 
       if (serviceHandlers.contains(qualifier)) { // local service.
-        return serviceHandlers.get(qualifier)
-            .requestChannel(requestPublisher)
+        return Flux.from(serviceHandlers.get(qualifier).requestChannel(requestPublisher))
             .onErrorMap(ExceptionProcessor::mapException);
       } else { // remote service.
-        return transport.create(addressLookup(request))
-            .requestChannel(requestPublisher)
+        return Flux.from(transport.create(addressLookup(request)).requestChannel(requestPublisher))
             .map(message -> dataCodec.decode(message, responseType));
       }
     });
