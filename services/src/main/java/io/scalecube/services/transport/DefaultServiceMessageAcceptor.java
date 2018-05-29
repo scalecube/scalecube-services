@@ -16,11 +16,16 @@ public final class DefaultServiceMessageAcceptor implements ServiceMessageHandle
   }
 
   @Override
-  public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
+    return serviceHandlers.get(message.qualifier()).requestStream(message);
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
     return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
       ServiceMessage message = pair.head();
       ServiceMessageHandler dispatcher = serviceHandlers.get(message.qualifier());
-      return dispatcher.invoke(Flux.from(pair.tail()).startWith(message));
+      return dispatcher.requestChannel(Flux.from(pair.tail()).startWith(message));
     });
   }
 }
