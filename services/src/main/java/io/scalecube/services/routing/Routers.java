@@ -10,12 +10,11 @@ public class Routers {
 
   private static final ConcurrentHashMap<Class<? extends Router>, Router> routers = new ConcurrentHashMap<>();
 
-  private Routers() {
-  }
+  private Routers() {}
 
   /**
-   * get router instance by a given router class.
-   * The class should have a default constructor. otherwise no router can be created
+   * get router instance by a given router class. The class should have a default constructor. otherwise no router can
+   * be created
    * 
    * @param routing the type of the Router.
    * @return instance of the Router.
