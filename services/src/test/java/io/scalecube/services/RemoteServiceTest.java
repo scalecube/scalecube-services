@@ -121,7 +121,7 @@ public class RemoteServiceTest extends BaseTest {
     System.out.println("test_remote_void_greeting done.");
 
     Thread.sleep(1000);
-    
+
     node1.shutdown().block();
   }
 
