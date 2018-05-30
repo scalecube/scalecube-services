@@ -27,7 +27,7 @@ public interface GreetingService {
   Mono<String> one(String name);
 
   @ServiceMethod("many")
-  Flux<String> many(String name);
+  Flux<String> many(EchoRequest name);
 
   @ServiceMethod("failing/one")
   Mono<String> failingOne(String name);

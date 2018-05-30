@@ -8,21 +8,28 @@ import java.time.Duration;
 public class GreetingServiceImpl implements GreetingService {
 
   @Override
-  public Mono<String> one(String name) {
+  public Mono<String> hello(String name) {
     return Mono.just("Echo:" + name);
   }
 
   @Override
-  public Mono<String> failingOne(String name) {
-    return Mono.error(new RuntimeException(name));
+  public Flux<String> manyStream(EchoRequest name) {
+    return Flux.interval(Duration.ofMillis(name.getFrequencyMillis())).map(i ->  {
+      String resp = name.getName() + ":" + i;
+      System.out.println(">> " + resp);
+      return resp;
+    });
   }
+    @Override
+    public Mono<String> failingOne(String name) {
+        return Mono.error(new RuntimeException(name));
+    }
 
-  @Override
-  public Flux<String> many(String name) {
-    return Flux.interval(Duration.ofMillis(100))
-        .map(i -> "Greeting (" + i + ") to: " + name);
-  }
-
+    @Override
+    public Flux<String> many(String name) {
+        return Flux.interval(Duration.ofMillis(100))
+                .map(i -> "Greeting (" + i + ") to: " + name);
+    }
   @Override
   public Flux<String> failingMany(String name) {
     return Flux.push(sink -> {
