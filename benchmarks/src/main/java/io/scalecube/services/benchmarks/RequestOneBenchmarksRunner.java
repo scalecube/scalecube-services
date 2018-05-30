@@ -8,7 +8,7 @@ import java.util.stream.LongStream;
 
 import reactor.core.publisher.Flux;
 
-public class ServicesBenchmarksRunner {
+public class RequestOneBenchmarksRunner {
 
   public static void main(String[] args) {
     ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
