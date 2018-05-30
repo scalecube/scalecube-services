@@ -1,7 +1,5 @@
 package io.scalecube.services.benchmarks;
 
-import static io.scalecube.services.benchmarks.BenchmarkService.MESSAGE;
-
 import com.codahale.metrics.Timer;
 
 import java.util.stream.LongStream;
@@ -22,7 +20,7 @@ public class RequestOneBenchmarksRunner {
         .subscribeOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
-          return benchmarkService.requestOne(MESSAGE).doOnSuccess(next -> timeContext.stop());
+          return benchmarkService.requestOne("hello").doOnSuccess(next -> timeContext.stop());
         }))
         .take(settings.executionTaskTime())
         .blockLast();
