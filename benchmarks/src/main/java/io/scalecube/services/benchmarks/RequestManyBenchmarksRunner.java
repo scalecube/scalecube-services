@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux;
 public class RequestManyBenchmarksRunner {
 
   public static void main(String[] args) {
-    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
+    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).responseCount(1).build();
     ServicesBenchmarksState state = new ServicesBenchmarksState(settings, new BenchmarkServiceImpl());
     state.setup();
 
@@ -21,7 +21,7 @@ public class RequestManyBenchmarksRunner {
         .subscribeOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
-          return benchmarkService.requestMany(responseCount).doOnEach(next -> timeContext.stop());
+          return benchmarkService.requestMany(responseCount).doOnNext(next -> timeContext.stop());
         }))
         .take(settings.executionTaskTime())
         .blockLast();
