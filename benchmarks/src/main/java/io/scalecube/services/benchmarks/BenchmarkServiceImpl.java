@@ -12,7 +12,7 @@ public class BenchmarkServiceImpl implements BenchmarkService {
   }
 
   @Override
-  public Mono<BenchmarkMessage> requestOne(BenchmarkMessage request) {
+  public Mono<String> requestOne(String request) {
     return Mono.just(request);
   }
 
