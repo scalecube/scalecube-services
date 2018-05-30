@@ -20,7 +20,7 @@ public class RequestOneBenchmarksRunner {
         .subscribeOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
-          return benchmarkService.requestOne("hello").doOnSuccess(next -> timeContext.stop());
+          return benchmarkService.requestOne("hello").doOnNext(next -> timeContext.stop());
         }))
         .take(settings.executionTaskTime())
         .blockLast();
