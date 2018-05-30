@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 public class BenchmarkServiceImpl implements BenchmarkService {
 
   @Override
-  public Mono<Void> oneWay(BenchmarkMessage request) {
+  public Mono<Void> oneWay(String request) {
     return Mono.empty();
   }
 
