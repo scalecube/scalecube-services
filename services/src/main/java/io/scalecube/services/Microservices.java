@@ -300,11 +300,11 @@ public class Microservices {
     private final Object serviceInstance;
     private final Map<String, String> tags;
 
-    ServiceInfo(Object serviceInstance) {
+    public ServiceInfo(Object serviceInstance) {
       this(serviceInstance, Collections.emptyMap());
     }
 
-    ServiceInfo(Object serviceInstance, Map<String, String> tags) {
+    public ServiceInfo(Object serviceInstance, Map<String, String> tags) {
       this.serviceInstance = serviceInstance;
       this.tags = tags;
     }
