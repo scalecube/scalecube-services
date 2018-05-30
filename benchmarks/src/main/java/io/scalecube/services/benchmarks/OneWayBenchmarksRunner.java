@@ -22,7 +22,7 @@ public class OneWayBenchmarksRunner {
         .subscribeOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
-          return benchmarkService.oneWay(MESSAGE).doOnSuccess(next -> timeContext.stop());
+          return benchmarkService.oneWay(MESSAGE).doOnTerminate(() -> timeContext.stop());
         }))
         .take(settings.executionTaskTime())
         .blockLast();
