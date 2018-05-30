@@ -9,10 +9,8 @@ import reactor.core.publisher.Mono;
 @Service
 public interface BenchmarkService {
 
-  BenchmarkMessage MESSAGE = new BenchmarkMessage("benchmarkMessage");
-
   @ServiceMethod
-  Mono<Void> oneWay(BenchmarkMessage request);
+  Mono<Void> oneWay(String request);
 
   @ServiceMethod
   Mono<String> requestOne(String request);
