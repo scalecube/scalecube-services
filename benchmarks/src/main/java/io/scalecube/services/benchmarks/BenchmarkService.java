@@ -12,9 +12,6 @@ public interface BenchmarkService {
   BenchmarkMessage MESSAGE = new BenchmarkMessage("benchmarkMessage");
 
   @ServiceMethod
-  Mono<Void> fireAndForget0();
-
-  @ServiceMethod
   Mono<Void> oneWay(BenchmarkMessage request);
 
   @ServiceMethod
