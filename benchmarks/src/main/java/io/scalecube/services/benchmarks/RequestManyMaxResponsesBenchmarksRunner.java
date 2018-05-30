@@ -1,14 +1,12 @@
 package io.scalecube.services.benchmarks;
 
-import static io.scalecube.services.benchmarks.BenchmarkService.MESSAGE;
-
 import com.codahale.metrics.Timer;
 
 import java.util.stream.LongStream;
 
 import reactor.core.publisher.Flux;
 
-public class RequestOneBenchmarksRunner {
+public class RequestManyMaxResponsesBenchmarksRunner {
 
   public static void main(String[] args) {
     ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
@@ -16,13 +14,14 @@ public class RequestOneBenchmarksRunner {
     state.setup();
 
     BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-    Timer timer = state.registry().timer("requestOne" + "-timer");
+    BenchmarkMessage message = new BenchmarkMessage(String.valueOf(Integer.MAX_VALUE));
+    Timer timer = state.registry().timer("requestManyMaxResponses" + "-timer");
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
         .subscribeOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
-          return benchmarkService.requestOne(MESSAGE).doOnSuccess(next -> timeContext.stop());
+          return benchmarkService.requestMany(message).doOnEach(next -> timeContext.stop());
         }))
         .take(settings.executionTaskTime())
         .blockLast();
