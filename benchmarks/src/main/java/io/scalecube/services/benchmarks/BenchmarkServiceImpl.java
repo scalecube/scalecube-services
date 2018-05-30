@@ -8,11 +8,6 @@ import reactor.core.publisher.Mono;
 public class BenchmarkServiceImpl implements BenchmarkService {
 
   @Override
-  public Mono<Void> fireAndForget0() {
-    return Mono.empty();
-  }
-
-  @Override
   public Mono<Void> oneWay(BenchmarkMessage request) {
     return Mono.empty();
   }
