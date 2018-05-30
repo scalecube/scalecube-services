@@ -8,4 +8,5 @@ public class BenchmarkMessage {
   public BenchmarkMessage(String text) {
     this.text = text;
   }
+  
 }
