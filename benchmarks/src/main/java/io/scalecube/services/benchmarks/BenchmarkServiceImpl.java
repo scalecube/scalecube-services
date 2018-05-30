@@ -18,12 +18,7 @@ public class BenchmarkServiceImpl implements BenchmarkService {
   }
 
   @Override
-  public Flux<BenchmarkMessage> requestMany(BenchmarkMessage request) {
-    int count = 10;
-    try {
-      count = Integer.valueOf(request.text);
-    } catch (Exception ignored) {
-    }
-    return Flux.fromStream(IntStream.range(0, count).mapToObj(i -> request));
+  public Flux<String> requestMany(int count) {
+    return Flux.fromStream(IntStream.range(0, count).mapToObj(i -> "response-" + i));
   }
 }

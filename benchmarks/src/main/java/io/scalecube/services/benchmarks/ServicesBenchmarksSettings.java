@@ -10,7 +10,7 @@ public class ServicesBenchmarksSettings {
   private static final Duration EXECUTION_TASK_TIME = Duration.ofSeconds(60);
   private static final Duration REPORTER_PERIOD = Duration.ofSeconds(10);
   private static final String CSV_REPORTER_DIRECTORY = ".";
-  private static final int RESPONSE_COUNT = 10;
+  private static final int RESPONSE_COUNT = 100;
 
   private final int nThreads;
   private final Duration executionTaskTime;
