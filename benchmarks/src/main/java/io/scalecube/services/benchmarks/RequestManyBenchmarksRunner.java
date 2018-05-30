@@ -14,14 +14,14 @@ public class RequestManyBenchmarksRunner {
     state.setup();
 
     BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-    BenchmarkMessage message = new BenchmarkMessage(String.valueOf(settings.responseCount()));
+    int responseCount = settings.responseCount();
     Timer timer = state.registry().timer("requestMany" + "-timer");
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
         .subscribeOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
-          return benchmarkService.requestMany(message).doOnEach(next -> timeContext.stop());
+          return benchmarkService.requestMany(responseCount).doOnEach(next -> timeContext.stop());
         }))
         .take(settings.executionTaskTime())
         .blockLast();

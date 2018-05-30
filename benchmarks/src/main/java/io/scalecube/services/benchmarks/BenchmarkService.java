@@ -18,5 +18,5 @@ public interface BenchmarkService {
   Mono<BenchmarkMessage> requestOne(BenchmarkMessage request);
 
   @ServiceMethod
-  Flux<BenchmarkMessage> requestMany(BenchmarkMessage request);
+  Flux<String> requestMany(int count);
 }
