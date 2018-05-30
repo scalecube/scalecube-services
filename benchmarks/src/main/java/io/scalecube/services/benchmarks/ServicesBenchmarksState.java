@@ -20,7 +20,6 @@ public class ServicesBenchmarksState {
 
   private MetricRegistry registry;
   private ConsoleReporter consoleReporter;
-  private Duration reporterPeriod;
   private Scheduler scheduler;
   private CsvReporter csvReporter;
 
@@ -52,8 +51,6 @@ public class ServicesBenchmarksState {
         ", services address: " + node.serviceAddress() +
         ", seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
 
-    reporterPeriod = settings.reporterPeriod();
-
     consoleReporter = ConsoleReporter.forRegistry(registry)
         .outputTo(System.err)
         .convertDurationsTo(TimeUnit.MILLISECONDS)
@@ -67,6 +64,7 @@ public class ServicesBenchmarksState {
 
     scheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(settings.nThreads()));
 
+    Duration reporterPeriod = settings.reporterPeriod();
     consoleReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
     csvReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
   }
