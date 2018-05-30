@@ -14,8 +14,7 @@ public class RequestManyBenchmarksRunner {
     state.setup();
 
     BenchmarkService benchmarkService = state.service();
-    int responseCount = 10;
-    BenchmarkMessage message = new BenchmarkMessage(String.valueOf(responseCount));
+    BenchmarkMessage message = new BenchmarkMessage(String.valueOf(settings.responseCount()));
     Timer timer = state.registry().timer("requestMany" + "-timer");
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())

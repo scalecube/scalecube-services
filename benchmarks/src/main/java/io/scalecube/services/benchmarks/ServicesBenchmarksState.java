@@ -6,7 +6,6 @@ import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.CsvReporter;
 import com.codahale.metrics.MetricRegistry;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -43,7 +42,7 @@ public class ServicesBenchmarksState {
     csvReporter = CsvReporter.forRegistry(registry)
         .convertDurationsTo(TimeUnit.MILLISECONDS)
         .convertRatesTo(TimeUnit.SECONDS)
-        .build(new File("."));
+        .build(settings.csvReporterDirectory());
 
     scheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(settings.nThreads()));
   }
