@@ -8,7 +8,7 @@ import java.util.stream.LongStream;
 
 import reactor.core.publisher.Flux;
 
-public class ServicesBenchmarksRunner {
+public class RequestOneBenchmarksRunner {
 
   public static void main(String[] args) {
     ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
@@ -16,7 +16,7 @@ public class ServicesBenchmarksRunner {
     state.setup();
 
     BenchmarkService benchmarkService = state.service();
-    Timer timer = state.registry().timer("taskName" + "-timer");
+    Timer timer = state.registry().timer("requestOne" + "-timer");
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
         .subscribeOn(state.scheduler())
