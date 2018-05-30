@@ -12,10 +12,10 @@ public class OneWayBenchmarksRunner {
 
   public static void main(String[] args) {
     ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
-    ServicesBenchmarksState state = new ServicesBenchmarksState(settings);
+    ServicesBenchmarksState state = new ServicesBenchmarksState(settings, new BenchmarkServiceImpl());
     state.setup();
 
-    BenchmarkService benchmarkService = state.service();
+    BenchmarkService benchmarkService = state.service(BenchmarkService.class);
     Timer timer = state.registry().timer("oneWay" + "-timer");
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
