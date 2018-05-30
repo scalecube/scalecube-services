@@ -16,20 +16,41 @@ import reactor.core.scheduler.Schedulers;
 public class ServicesBenchmarksState {
 
   private final ServicesBenchmarksSettings settings;
-  private final MetricRegistry registry;
-  private final ConsoleReporter consoleReporter;
-  private final Duration reporterPeriod;
-  private final Scheduler scheduler;
-  private final CsvReporter csvReporter;
+  private final Object[] services;
+
+  private MetricRegistry registry;
+  private ConsoleReporter consoleReporter;
+  private Duration reporterPeriod;
+  private Scheduler scheduler;
+  private CsvReporter csvReporter;
 
   private Microservices seed;
   private Microservices node;
-  private BenchmarkService service;
 
-  public ServicesBenchmarksState(ServicesBenchmarksSettings settings) {
+  public ServicesBenchmarksState(ServicesBenchmarksSettings settings, Object... services) {
     this.settings = settings;
+    this.services = services;
+  }
 
+  public void setup() {
     registry = new MetricRegistry();
+
+    seed = Microservices.builder()
+        .metrics(registry)
+        .build()
+        .startAwait();
+
+    node = Microservices.builder()
+        .metrics(registry)
+        .seeds(seed.cluster().address())
+        .services(services)
+        .build()
+        .startAwait();
+
+    System.err.println("Benchmarks settings: " + settings +
+        ", seed address: " + seed.cluster().address() +
+        ", services address: " + node.serviceAddress() +
+        ", seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
 
     reporterPeriod = settings.reporterPeriod();
 
@@ -45,40 +66,25 @@ public class ServicesBenchmarksState {
         .build(settings.csvReporterDirectory());
 
     scheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(settings.nThreads()));
-  }
-
-  public void setup() {
-    seed = Microservices.builder()
-        .metrics(registry)
-        .build()
-        .startAwait();
-
-    node = Microservices.builder()
-        .metrics(registry)
-        .seeds(seed.cluster().address())
-        .services(new BenchmarkServiceImpl())
-        .build()
-        .startAwait();
-
-    System.err.println("Benchmarks settings: " + settings +
-        ", seed address: " + seed.cluster().address() +
-        ", services address: " + node.serviceAddress() +
-        ", seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
-
-    service = seed.call().create().api(BenchmarkService.class);
 
     consoleReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
     csvReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
   }
 
   public void tearDown() {
-    consoleReporter.report();
-    consoleReporter.stop();
+    if (consoleReporter != null) {
+      consoleReporter.report();
+      consoleReporter.stop();
+    }
 
-    csvReporter.report();
-    csvReporter.stop();
+    if (csvReporter != null) {
+      csvReporter.report();
+      csvReporter.stop();
+    }
 
-    scheduler.dispose();
+    if (scheduler != null) {
+      scheduler.dispose();
+    }
 
     if (node != null) {
       node.shutdown().block();
@@ -97,7 +103,7 @@ public class ServicesBenchmarksState {
     return scheduler;
   }
 
-  public BenchmarkService service() {
-    return service;
+  public <T> T service(Class<T> c) {
+    return seed.call().create().api(c);
   }
 }
