@@ -115,8 +115,7 @@ public class RemoteServiceTest extends BaseTest {
         .api(GreetingService.class);
 
     // call the service.
-    Mono.from(service.greetingVoid(new GreetingRequest("joe")))
-        .block(Duration.ofSeconds(3));
+    service.greetingVoid(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
 
     System.out.println("test_remote_void_greeting done.");
 
