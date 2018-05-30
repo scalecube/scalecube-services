@@ -50,16 +50,17 @@ public final class ServiceMessageDataCodec {
     Object data;
     Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : type;
 
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(((ByteBuf) message.data()).slice())) {
+    ByteBuf dataBuffer = message.data();
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice())) {
       String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
       DataCodec dataCodec = DataCodec.getInstance(contentType);
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
-      LOGGER.error("Failed to decode data on: {}, data buffer: {}, cause: {}",
-          message, ex, ((ByteBuf) message.data()).toString(Charset.defaultCharset()));
+      LOGGER.error("Failed to decode data on: {}, cause: {}, data buffer: {}",
+          message, ex, dataBuffer.toString(Charset.defaultCharset()));
       throw new BadRequestException("Failed to decode data on message q=" + message.qualifier());
     } finally {
-      ReferenceCountUtil.release(message.data());
+      ReferenceCountUtil.release(dataBuffer);
     }
 
     if (targetType == ErrorData.class) {
