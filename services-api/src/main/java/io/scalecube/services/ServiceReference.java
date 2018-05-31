@@ -94,6 +94,11 @@ public class ServiceReference {
   }
 
   @Override
+  public boolean equals(Object that) {
+    return this == that;
+  }
+
+  @Override
   public String toString() {
     return "ServiceReference{" +
         "qualifier='" + qualifier + '\'' +
