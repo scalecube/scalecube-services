@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux;
 public class RequestManyBenchmarksRunner {
 
   public static void main(String[] args) {
-    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).responseCount(1).build();
+    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
     ServicesBenchmarksState state = new ServicesBenchmarksState(settings, new BenchmarkServiceImpl());
     state.setup();
 
