@@ -101,6 +101,10 @@ public class ServicesBenchmarksState {
     return scheduler;
   }
 
+  public Microservices seed() {
+    return seed;
+  }
+
   public <T> T service(Class<T> c) {
     return seed.call().create().api(c);
   }
