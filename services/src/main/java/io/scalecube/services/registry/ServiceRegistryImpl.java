@@ -70,7 +70,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
-    referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
+    if (serviceEndpoint != null) {
+      referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
+    }
     return serviceEndpoint;
   }
 
