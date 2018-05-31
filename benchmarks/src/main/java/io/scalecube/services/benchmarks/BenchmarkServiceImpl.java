@@ -2,6 +2,7 @@ package io.scalecube.services.benchmarks;
 
 import java.util.stream.IntStream;
 
+import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -24,6 +25,7 @@ public class BenchmarkServiceImpl implements BenchmarkService {
 
   @Override
   public Flux<String> requestBidirectionalEcho(Flux<String> counts) {
-    return counts;
+    return EmitterProcessor.create(
+        emitter -> counts.subscribe(emitter::next, emitter::error, emitter::complete));
   }
 }
