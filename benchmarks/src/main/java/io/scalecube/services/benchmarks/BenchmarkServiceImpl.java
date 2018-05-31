@@ -21,4 +21,9 @@ public class BenchmarkServiceImpl implements BenchmarkService {
   public Flux<String> requestMany(int count) {
     return Flux.fromStream(IntStream.range(0, count).mapToObj(i -> "response-" + i));
   }
+
+  @Override
+  public Flux<String> requestBidirectionalEcho(Flux<String> counts) {
+    return counts;
+  }
 }
