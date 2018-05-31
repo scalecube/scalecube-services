@@ -19,11 +19,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   // todo how to remove it (tags problem)?
   private final ConcurrentMap<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
-  private final ConcurrentMap<String, List<ServiceReference>> byQualifier = new ConcurrentHashMap<>();
+  private final ConcurrentMap<String, List<ServiceReference>> referencesByQualifier = new ConcurrentHashMap<>();
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
-    // todo reverse from byQualifier
+    // todo how to collect tags correctly?
     return new ArrayList<>(serviceEndpoints.values());
   }
 
@@ -34,7 +34,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> lookupService(String qualifier) {
-    return byQualifier.getOrDefault(qualifier, Collections.emptyList());
+    List<ServiceReference> result = referencesByQualifier.get(qualifier);
+    return result != null ? Collections.unmodifiableList(result) : Collections.emptyList();
   }
 
   @Override
@@ -53,35 +54,27 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public boolean registerService(ServiceEndpoint serviceEndpoint) {
-    // todo simplify it
-    boolean result = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
-    if (result) {
+    boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
+    if (success) {
       serviceEndpoint.serviceRegistrations().stream().flatMap(
           sr -> sr.methods().stream().map(
               sm -> new ServiceReference(sm, sr, serviceEndpoint)))
           .forEach(
-              reference -> {
-                byQualifier.computeIfAbsent(reference.qualifier(), k -> new CopyOnWriteArrayList<>())
-                    .add(reference);
-                // todo add to byTags
-              });
+              reference -> referencesByQualifier
+                  .computeIfAbsent(reference.qualifier(), k -> new CopyOnWriteArrayList<>())
+                  .add(reference));
     }
-    return result;
+    return success;
   }
 
   @Override
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
-    byQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
-    // todo remove from byTags
+    referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
     return serviceEndpoint;
   }
 
   private Stream<ServiceReference> serviceReferenceStream() {
-    // return serviceEndpoints.values().stream().flatMap(
-    // se -> se.serviceRegistrations().stream().flatMap(
-    // sr -> sr.methods().stream().map(
-    // sm -> new ServiceReference(sm, sr, se))));
-    return byQualifier.values().stream().flatMap(Collection::stream).distinct();
+    return referencesByQualifier.values().stream().flatMap(Collection::stream);
   }
 }
