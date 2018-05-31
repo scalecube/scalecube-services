@@ -10,6 +10,7 @@
 
     <artifactId>scalecube-services-benchmarks</artifactId>
     <name>ScaleCube/scalecube-services-benchmarks</name>
+    <packaging>jar</packaging>
 
     <properties>
         <uberjar.name>scalecube-services-benchmarks</uberjar.name>
@@ -21,6 +22,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>scalecube-services</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
         </dependency>
 
         <!-- Other dependencies -->
@@ -70,6 +76,30 @@
                                     </excludes>
                                 </filter>
                             </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <mainClass>
+                                        io.scalecube.services.benchmarks.metrics.ServicesBenchmarksRunner
+                                    </mainClass>
+                                </manifest>
+                            </archive>
+                            <descriptorRefs>
+                                <descriptorRef>jar-with-dependencies</descriptorRef>
+                            </descriptorRefs>
                         </configuration>
                     </execution>
                 </executions>

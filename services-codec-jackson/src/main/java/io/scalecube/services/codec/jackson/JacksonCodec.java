@@ -17,7 +17,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 
 public final class JacksonCodec implements DataCodec, HeadersCodec {
 
@@ -55,7 +54,6 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
 
   @Override
   public Object decode(InputStream stream, Class<?> type) throws IOException {
-    Objects.requireNonNull(type, "ServiceMessageDataCodecImpl.readFrom requires type is not null");
     return mapper.readValue(stream, type);
   }
 

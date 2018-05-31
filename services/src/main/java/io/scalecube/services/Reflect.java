@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -224,6 +223,13 @@ public class Reflect {
     return Object.class;
   }
 
+  public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
+    return Collections.unmodifiableMap(Reflect.serviceMethods(serviceInterface).values().stream()
+        .collect(Collectors.toMap(method -> method,
+            method1 -> new MethodInfo(serviceName(serviceInterface), parameterizedReturnType(method1),
+                communicationMode(method1), isRequestTypeServiceMessage(method1)))));
+  }
+
   /**
    * Util function that returns the parameterized of the request Type of a given object.
    * 
@@ -283,31 +289,6 @@ public class Reflect {
         .collect(Collectors.toList());
   }
 
-  /**
-   * Invoke service method by a given service message publisher.
-   *
-   * @param serviceObject instance to invoke its method.
-   * @param method method to invoke.
-   * @param publisher stream message request containing data or message to invoke.
-   * @param mode communication mode to determine what java method sygnature to invoke.
-   * @return invoke result; returns publisher.
-   */
-  public static Publisher<?> invokePublisher(Object serviceObject,
-      Method method,
-      CommunicationMode mode,
-      Publisher<?> publisher) {
-    switch (mode) {
-      case FIRE_AND_FORGET:
-      case REQUEST_RESPONSE:
-      case REQUEST_STREAM:
-        return Flux.from(publisher).flatMap(request -> invokePublisher(serviceObject, method, request));
-      case REQUEST_CHANNEL:
-        return Flux.from(publisher).transform(publisher1 -> invokePublisher(serviceObject, method, publisher1));
-      default:
-        throw new IllegalArgumentException("Communication mode is not supported: " + method);
-    }
-  }
-
   public static String methodName(Method method) {
     ServiceMethod annotation = method.getAnnotation(ServiceMethod.class);
     return Strings.isNullOrEmpty(annotation.value()) ? method.getName() : annotation.value();
@@ -329,7 +310,7 @@ public class Reflect {
     } else if (!Publisher.class.isAssignableFrom(returnType)) {
       throw new UnsupportedOperationException("Service method return type can be Publisher only");
     }
-    if (method.getParameters().length > 1) {
+    if (method.getParameterCount() > 1) {
       throw new UnsupportedOperationException("Service method can accept 0 or 1 parameters only");
     }
   }
@@ -348,34 +329,6 @@ public class Reflect {
     } else {
       throw new IllegalArgumentException(
           "Service method is not supported (check return type or parameter type): " + method);
-    }
-  }
-
-  private static Publisher<?> invokePublisher(Object serviceObject, Method method, Object request) {
-    try {
-      if (method.getParameters().length == 0) {
-        return Flux.from((Publisher<?>) method.invoke(serviceObject));
-      } else {
-        return Flux.from((Publisher<?>) method.invoke(serviceObject, request));
-      }
-    } catch (InvocationTargetException ex) {
-      return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
-    } catch (Throwable ex) {
-      return Flux.error(ex);
-    }
-  }
-
-  private static Publisher<?> invokePublisher(Object serviceObject, Method method, Publisher<?> publisher) {
-    try {
-      if (method.getParameters().length == 0) {
-        return Flux.from((Publisher<?>) method.invoke(serviceObject));
-      } else {
-        return Flux.from((Publisher<?>) method.invoke(serviceObject, publisher));
-      }
-    } catch (InvocationTargetException ex) {
-      return Flux.error(Optional.ofNullable(ex.getCause()).orElse(ex));
-    } catch (Throwable ex) {
-      return Flux.error(ex);
     }
   }
 }
