@@ -20,6 +20,11 @@ public interface BenchmarkService {
       .data("test")
       .build();
 
+  ServiceMessage REQUEST_BIDIRECTIONAL_ECHO = ServiceMessage.builder()
+      .qualifier(BenchmarkService.class.getName(), "requestBidirectionalEcho")
+      .data("test")
+      .build();
+
   @ServiceMethod
   Mono<Void> oneWay(String request);
 
@@ -28,4 +33,7 @@ public interface BenchmarkService {
 
   @ServiceMethod
   Flux<String> requestMany(int count);
+
+  @ServiceMethod
+  Flux<String> requestBidirectionalEcho(Flux<String> counts);
 }
