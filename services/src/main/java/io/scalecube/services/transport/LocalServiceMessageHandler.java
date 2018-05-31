@@ -1,6 +1,5 @@
 package io.scalecube.services.transport;
 
-import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
@@ -9,10 +8,13 @@ import io.scalecube.services.exceptions.BadRequestException;
 
 import org.reactivestreams.Publisher;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
+import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public final class LocalServiceMessageHandler implements ServiceMessageHandler {
 
@@ -24,7 +26,6 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
   private final String qualifier;
   private final Class<?> returnType;
   private final ServiceMessageDataCodec dataCodec;
-  private final CommunicationMode mode;
   private final boolean isRequestTypeServiceMessage;
   private boolean isRequestTypeVoid;
 
@@ -35,17 +36,29 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
     this.requestType = Reflect.requestType(method);
     this.returnType = Reflect.parameterizedReturnType(method);
     this.dataCodec = new ServiceMessageDataCodec();
-    this.mode = Reflect.communicationMode(method);
     this.isRequestTypeServiceMessage = Reflect.isRequestTypeServiceMessage(method);
     this.isRequestTypeVoid = requestType.isAssignableFrom(Void.TYPE);
   }
 
   @Override
-  public Flux<ServiceMessage> invoke(Publisher<ServiceMessage> publisher) {
-    return Flux.from(publisher)
-        .map(this::toRequest)
-        .transform((Flux<?> publisher1) -> Reflect.invokePublisher(service, method, mode, publisher1))
-        .map(this::toResponse);
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
+    return Mono.from(invokeMethod(message, Mono::error))
+        .map(this::toResponse)
+        .switchIfEmpty(Mono.just(toEmptyResponse()));
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
+    return Flux.from(invokeMethod(message, Flux::error))
+        .map(this::toResponse)
+        .switchIfEmpty(Flux.just(toEmptyResponse()));
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
+    return Flux.from(invokeMethod(Flux.from(publisher).map(this::toRequest), Flux::error))
+        .map(this::toResponse)
+        .switchIfEmpty(Flux.just(toEmptyResponse()));
   }
 
   private Object toRequest(ServiceMessage message) {
@@ -65,5 +78,44 @@ public final class LocalServiceMessageHandler implements ServiceMessageHandler {
             .header("_type", returnType.getName())
             .data(response)
             .build();
+  }
+
+  public ServiceMessage toEmptyResponse() {
+    return ServiceMessage.builder()
+        .qualifier(qualifier)
+        .header("_type", returnType.getName())
+        .build();
+  }
+
+  private Publisher<?> invokeMethod(ServiceMessage message,
+      Function<Throwable, Publisher<?>> exceptionMapper) {
+    Publisher<?> result = null;
+    Throwable throwable = null;
+    try {
+      if (method.getParameterCount() == 0) {
+        result = (Publisher<?>) method.invoke(service);
+      } else {
+        result = (Publisher<?>) method.invoke(service, toRequest(message));
+      }
+    } catch (InvocationTargetException ex) {
+      throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
+    } catch (Throwable ex) {
+      throwable = ex;
+    }
+    return throwable != null ? exceptionMapper.apply(throwable) : result;
+  }
+
+  private Publisher<?> invokeMethod(Publisher<?> publisher,
+      Function<Throwable, Publisher<?>> exceptionMapper) {
+    Publisher<?> result = null;
+    Throwable throwable = null;
+    try {
+      result = (Publisher<?>) method.invoke(service, publisher);
+    } catch (InvocationTargetException ex) {
+      throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
+    } catch (Throwable ex) {
+      throwable = ex;
+    }
+    return throwable != null ? exceptionMapper.apply(throwable) : result;
   }
 }
