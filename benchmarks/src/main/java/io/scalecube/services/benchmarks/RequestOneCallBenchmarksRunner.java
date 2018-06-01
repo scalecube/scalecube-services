@@ -6,7 +6,6 @@ import io.scalecube.services.ServiceCall;
 
 import com.codahale.metrics.Timer;
 
-import java.time.Duration;
 import java.util.stream.LongStream;
 
 import reactor.core.publisher.Flux;
@@ -14,9 +13,7 @@ import reactor.core.publisher.Flux;
 public class RequestOneCallBenchmarksRunner {
 
   public static void main(String[] args) {
-    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args)
-        .executionTaskTime(Duration.ofSeconds(1))
-        .build();
+    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
     ServicesBenchmarksState state = new ServicesBenchmarksState(settings, new BenchmarkServiceImpl());
     state.setup();
 
