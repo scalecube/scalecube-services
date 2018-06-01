@@ -68,6 +68,8 @@ public class ServicesBenchmarksState {
     Duration reporterPeriod = settings.reporterPeriod();
     consoleReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
     csvReporter.start(1, TimeUnit.DAYS);
+
+    Runtime.getRuntime().addShutdownHook(new Thread(this::tearDown));
   }
 
   public void tearDown() {
@@ -81,16 +83,16 @@ public class ServicesBenchmarksState {
       csvReporter.stop();
     }
 
-    if (scheduler != null) {
-      scheduler.dispose();
-    }
-
     if (node != null) {
       node.shutdown().block();
     }
 
     if (seed != null) {
       seed.shutdown().block();
+    }
+
+    if (scheduler != null) {
+      scheduler.dispose();
     }
   }
 
