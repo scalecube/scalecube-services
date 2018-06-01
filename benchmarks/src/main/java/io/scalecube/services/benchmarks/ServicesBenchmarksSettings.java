@@ -3,6 +3,7 @@ package io.scalecube.services.benchmarks;
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.time.LocalDateTime;
 
 public class ServicesBenchmarksSettings {
 
@@ -17,6 +18,7 @@ public class ServicesBenchmarksSettings {
   private final Duration reporterPeriod;
   private final File csvReporterDirectory;
   private final int responseCount;
+  private final String taskName;
 
   private ServicesBenchmarksSettings(Builder builder) {
     this.nThreads = builder.nThreads;
@@ -26,6 +28,7 @@ public class ServicesBenchmarksSettings {
     this.csvReporterDirectory = Paths.get(builder.csvReporterDirectory).toFile();
     // noinspection ResultOfMethodCallIgnored
     this.csvReporterDirectory.mkdirs();
+    this.taskName = builder.taskName;
   }
 
   public int nThreads() {
@@ -46,6 +49,10 @@ public class ServicesBenchmarksSettings {
 
   public int responseCount() {
     return responseCount;
+  }
+
+  public String taskName() {
+    return taskName;
   }
 
   public static Builder builder() {
@@ -75,6 +82,9 @@ public class ServicesBenchmarksSettings {
           case "responseCount":
             builder.responseCount(Integer.parseInt(value));
             break;
+          case "taskName":
+            builder.taskName(value);
+            break;
           default:
             throw new IllegalArgumentException("unknown command: " + pair);
         }
@@ -91,6 +101,7 @@ public class ServicesBenchmarksSettings {
         ", reporterPeriod=" + reporterPeriod +
         ", csvReporterDirectory=" + csvReporterDirectory +
         ", responseCount=" + responseCount +
+        ", taskName='" + taskName + '\'' +
         '}';
   }
 
@@ -98,8 +109,16 @@ public class ServicesBenchmarksSettings {
     private Integer nThreads = N_THREADS;
     private Duration executionTaskTime = EXECUTION_TASK_TIME;
     private Duration reporterPeriod = REPORTER_PERIOD;
-    private String csvReporterDirectory = CSV_REPORTER_DIRECTORY;
+    private String csvReporterDirectory;
     private Integer responseCount = RESPONSE_COUNT;
+    private String taskName;
+
+    private Builder() {
+      StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
+      String fileName = stackTrace[stackTrace.length - 1].getFileName();
+      this.taskName = fileName.substring(0, fileName.length() - ".java".length());
+      this.csvReporterDirectory = CSV_REPORTER_DIRECTORY + "/" + this.taskName + "/" + LocalDateTime.now();
+    }
 
     public Builder nThreads(Integer nThreads) {
       this.nThreads = nThreads;
@@ -123,6 +142,11 @@ public class ServicesBenchmarksSettings {
 
     public Builder responseCount(Integer responseCount) {
       this.responseCount = responseCount;
+      return this;
+    }
+
+    public Builder taskName(String taskName) {
+      this.taskName = taskName;
       return this;
     }
 

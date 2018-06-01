@@ -18,7 +18,7 @@ public class RequestManyCallBenchmarksRunner {
 
     ServiceCall serviceCall = state.seed().call().create();
     int responseCount = settings.responseCount();
-    Timer timer = state.registry().timer("requestManyCall" + "-timer");
+    Timer timer = state.timer();
 
     ServiceMessage message = ServiceMessage.builder()
         .qualifier(BenchmarkService.class.getName(), "requestMany")
