@@ -14,7 +14,7 @@ public class RequestOneBenchmarksRunner {
     state.setup();
 
     BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-    Timer timer = state.registry().timer("requestOne" + "-timer");
+    Timer timer = state.timer();
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
         .subscribeOn(state.scheduler())
