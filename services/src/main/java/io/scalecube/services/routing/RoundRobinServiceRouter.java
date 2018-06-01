@@ -4,20 +4,20 @@ import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
+import org.jctools.maps.NonBlockingHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class RoundRobinServiceRouter implements Router {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RoundRobinServiceRouter.class);
 
-  private final ConcurrentMap<String, AtomicInteger> counterByServiceName = new ConcurrentHashMap<>();
+  private final Map<String, AtomicInteger> counterByServiceName = new NonBlockingHashMap<>();
 
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
