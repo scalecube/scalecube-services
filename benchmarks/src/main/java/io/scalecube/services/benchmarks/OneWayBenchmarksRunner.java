@@ -14,10 +14,10 @@ public class OneWayBenchmarksRunner {
     state.setup();
 
     BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-    Timer timer = state.registry().timer("oneWay" + "-timer");
+    Timer timer = state.timer();
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
-        .subscribeOn(state.scheduler())
+        .publishOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
           return benchmarkService.oneWay("hello").doOnTerminate(() -> timeContext.stop());
