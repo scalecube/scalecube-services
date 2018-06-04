@@ -3,14 +3,16 @@ package io.scalecube.services.benchmarks;
 import java.io.File;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 public class ServicesBenchmarksSettings {
 
   private static final int N_THREADS = Runtime.getRuntime().availableProcessors();
   private static final Duration EXECUTION_TASK_TIME = Duration.ofSeconds(60);
   private static final Duration REPORTER_PERIOD = Duration.ofSeconds(10);
-  private static final String CSV_REPORTER_DIRECTORY = ".";
   private static final int RESPONSE_COUNT = 100;
 
   private final int nThreads;
@@ -25,10 +27,13 @@ public class ServicesBenchmarksSettings {
     this.executionTaskTime = builder.executionTaskTime;
     this.reporterPeriod = builder.reporterPeriod;
     this.responseCount = builder.responseCount;
-    this.csvReporterDirectory = Paths.get(builder.csvReporterDirectory).toFile();
+    this.taskName = builder.taskName;
+
+    String time = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC)
+        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+    this.csvReporterDirectory = Paths.get(".", this.taskName, time).toFile();
     // noinspection ResultOfMethodCallIgnored
     this.csvReporterDirectory.mkdirs();
-    this.taskName = builder.taskName;
   }
 
   public int nThreads() {
@@ -76,9 +81,6 @@ public class ServicesBenchmarksSettings {
           case "reporterPeriodInSec":
             builder.reporterPeriod(Duration.ofSeconds(Long.parseLong(value)));
             break;
-          case "csvReporterDirectory":
-            builder.csvReporterDirectory(value);
-            break;
           case "responseCount":
             builder.responseCount(Integer.parseInt(value));
             break;
@@ -109,15 +111,12 @@ public class ServicesBenchmarksSettings {
     private Integer nThreads = N_THREADS;
     private Duration executionTaskTime = EXECUTION_TASK_TIME;
     private Duration reporterPeriod = REPORTER_PERIOD;
-    private String csvReporterDirectory;
     private Integer responseCount = RESPONSE_COUNT;
     private String taskName;
 
     private Builder() {
-      StackTraceElement[] stackTrace = new RuntimeException().getStackTrace();
-      String fileName = stackTrace[stackTrace.length - 1].getFileName();
-      this.taskName = fileName.substring(0, fileName.length() - ".java".length());
-      this.csvReporterDirectory = CSV_REPORTER_DIRECTORY + "/" + this.taskName + "/" + LocalDateTime.now();
+      StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+      this.taskName = stackTrace[stackTrace.length - 1].getClassName();
     }
 
     public Builder nThreads(Integer nThreads) {
@@ -132,11 +131,6 @@ public class ServicesBenchmarksSettings {
 
     public Builder reporterPeriod(Duration reporterPeriod) {
       this.reporterPeriod = reporterPeriod;
-      return this;
-    }
-
-    public Builder csvReporterDirectory(String csvReporterDirectory) {
-      this.csvReporterDirectory = csvReporterDirectory;
       return this;
     }
 
