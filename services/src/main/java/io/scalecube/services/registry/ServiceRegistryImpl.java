@@ -4,20 +4,27 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
+import org.jctools.maps.NonBlockingHashMap;
+
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
-  private final ConcurrentMap<String, ServiceEndpoint> serviceEndpoints = new ConcurrentHashMap<>();
+  // todo how to remove it (tags problem)?
+  private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
+  private final Map<String, List<ServiceReference>> referencesByQualifier = new NonBlockingHashMap<>();
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
+    // todo how to collect tags correctly?
     return new ArrayList<>(serviceEndpoints.values());
   }
 
@@ -28,7 +35,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public List<ServiceReference> lookupService(String qualifier) {
-    return lookupService(sref -> sref.qualifier().equalsIgnoreCase(qualifier));
+    List<ServiceReference> result = referencesByQualifier.get(qualifier);
+    return result != null ? Collections.unmodifiableList(result) : Collections.emptyList();
   }
 
   @Override
@@ -47,18 +55,29 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public boolean registerService(ServiceEndpoint serviceEndpoint) {
-    return serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
+    boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
+    if (success) {
+      serviceEndpoint.serviceRegistrations().stream().flatMap(
+          sr -> sr.methods().stream().map(
+              sm -> new ServiceReference(sm, sr, serviceEndpoint)))
+          .forEach(
+              reference -> referencesByQualifier
+                  .computeIfAbsent(reference.qualifier(), k -> new CopyOnWriteArrayList<>())
+                  .add(reference));
+    }
+    return success;
   }
 
   @Override
   public ServiceEndpoint unregisterService(String endpointId) {
-    return serviceEndpoints.remove(endpointId);
+    ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
+    if (serviceEndpoint != null) {
+      referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
+    }
+    return serviceEndpoint;
   }
 
   private Stream<ServiceReference> serviceReferenceStream() {
-    return serviceEndpoints.values().stream().flatMap(
-        se -> se.serviceRegistrations().stream().flatMap(
-            sr -> sr.methods().stream().map(
-                sm -> new ServiceReference(sm, sr, se))));
+    return referencesByQualifier.values().stream().flatMap(Collection::stream);
   }
 }

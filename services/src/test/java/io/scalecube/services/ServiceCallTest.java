@@ -6,7 +6,6 @@ import static io.scalecube.services.TestRequests.GREETING_FAIL_REQ;
 import static io.scalecube.services.TestRequests.GREETING_NO_PARAMS_REQUEST;
 import static io.scalecube.services.TestRequests.GREETING_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
-import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
 import static io.scalecube.services.TestRequests.GREETING_THROWING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
@@ -19,24 +18,19 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.a.b.testing.CanaryService;
-import io.scalecube.services.a.b.testing.CanaryTestingRouter;
-import io.scalecube.services.a.b.testing.GreetingServiceImplA;
-import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -44,16 +38,22 @@ import reactor.test.StepVerifier;
 public class ServiceCallTest extends BaseTest {
 
   public static final int TIMEOUT = 3;
+  private Duration timeout = Duration.ofSeconds(TIMEOUT);
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
 
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
+  private Microservices gateway;
 
+  @Before
+  public void setup() {
+    this.gateway = gateway();
+  }
 
-
-  private static AtomicInteger port = new AtomicInteger(4000);
-
+  @After
+  public void tearDown() {
+    gateway.shutdown().block();
+  }
 
   @Test
   public void test_local_async_no_params() {
@@ -75,7 +75,6 @@ public class ServiceCallTest extends BaseTest {
 
   private Microservices serviceProvider() {
     return Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
@@ -88,7 +87,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -111,10 +109,8 @@ public class ServiceCallTest extends BaseTest {
   @Test
   public void test_remote_void_greeting() throws Exception {
     // Given
-    Microservices gateway = gateway();
 
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -123,17 +119,14 @@ public class ServiceCallTest extends BaseTest {
     // When
     gateway.call().create().oneWay(GREETING_VOID_REQ).block(Duration.ofSeconds(TIMEOUT));
 
-    gateway.shutdown().block();
     node1.shutdown().block();
   }
 
   @Test
   public void test_remote_failing_void_greeting() {
-    // Given
-    Microservices gateway = gateway();
 
+    // Given
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -144,17 +137,13 @@ public class ServiceCallTest extends BaseTest {
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
 
-    gateway.shutdown().block();
     node1.shutdown().block();
   }
 
   @Test
   public void test_remote_throwing_void_greeting() {
     // Given
-    Microservices gateway = gateway();
-
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -165,7 +154,6 @@ public class ServiceCallTest extends BaseTest {
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
 
-    gateway.shutdown().block();
     node1.shutdown().block();
   }
 
@@ -175,10 +163,7 @@ public class ServiceCallTest extends BaseTest {
     thrown.expectMessage("GreetingRequest{name='joe'}");
 
     // Given
-    Microservices gateway = gateway();
-
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -187,7 +172,6 @@ public class ServiceCallTest extends BaseTest {
     // When
     Mono.from(gateway.call().create().requestOne(GREETING_FAIL_REQ, GreetingResponse.class)).block(timeout);
 
-    gateway.shutdown().block();
     node1.shutdown().block();
   }
 
@@ -197,10 +181,7 @@ public class ServiceCallTest extends BaseTest {
     thrown.expectMessage("GreetingRequest{name='joe'}");
 
     // Given
-    Microservices gateway = gateway();
-
     Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -209,7 +190,6 @@ public class ServiceCallTest extends BaseTest {
     // When
     Mono.from(gateway.call().create().requestOne(GREETING_ERROR_REQ, GreetingResponse.class)).block(timeout);
 
-    gateway.shutdown().block();
     node1.shutdown().block();
   }
 
@@ -286,7 +266,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -326,7 +305,6 @@ public class ServiceCallTest extends BaseTest {
     // Given
     Microservices provider = serviceProvider();
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -373,7 +351,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -405,7 +382,7 @@ public class ServiceCallTest extends BaseTest {
 
     // print the greeting.
     GreetingResponse responseData = result.data();
-    System.out.println("9. local_async_greeting_return_Message :" + responseData);
+    System.out.println("local_async_greeting_return_Message :" + responseData);
 
     assertEquals(" hello to: joe", responseData.getResult());
 
@@ -419,7 +396,6 @@ public class ServiceCallTest extends BaseTest {
 
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
         .build()
         .startAwait();
@@ -444,12 +420,9 @@ public class ServiceCallTest extends BaseTest {
 
   @Test
   public void test_round_robin_selection_logic() {
-    Microservices gateway = gateway();
-
     // Create microservices instance cluster.
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(1))
         .build()
         .startAwait();
@@ -457,105 +430,29 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl(2))
         .build()
         .startAwait();
 
-    Call service = gateway.call();
+    ServiceCall service = gateway.call().create();
 
     // call the service.
     GreetingResponse result1 =
-        Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
             .data();
     GreetingResponse result2 =
-        Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
             .data();
 
     assertTrue(!result1.sender().equals(result2.sender()));
     provider2.shutdown().block();
     provider1.shutdown().block();
-    gateway.shutdown().block();
   }
 
 
-  @Test
-  public void test_tag_selection_logic() {
-    Microservices gateway = gateway();
-
-    // Create microservices instance cluster.
-    Microservices provider1 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
-        .service(new GreetingServiceImpl(1)).tag("SENDER", "1").register()
-        .build()
-        .startAwait();
-
-    // Create microservices instance cluster.
-    Microservices provider2 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
-        .service(new GreetingServiceImpl(2)).tag("SENDER", "2").register()
-        .build()
-        .startAwait();
-
-    Call service = gateway.call().router((reg, msg) -> reg.listServiceReferences().stream().filter(ref -> "2".equals(
-        ref.tags().get("SENDER"))).collect(Collectors.toList()));
-
-    // call the service.
-    for (int i = 0; i < 1e3; i++) {
-      GreetingResponse result =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
-              .data();
-      assertEquals("2", result.sender());
-    }
-    provider2.shutdown().block();
-    provider1.shutdown().block();
-    gateway.shutdown().block();
-  }
-
-  @Test
-  public void test_tag_request_selection_logic() {
-    Microservices gateway = gateway();
-
-    // Create microservices instance cluster.
-    Microservices provider1 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
-        .service(new GreetingServiceImpl(1)).tag("ONLYFOR", "joe").register()
-        .build()
-        .startAwait();
-
-    // Create microservices instance cluster.
-    Microservices provider2 = Microservices.builder()
-        .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
-        .service(new GreetingServiceImpl(2)).tag("ONLYFOR", "fransin").register()
-        .build()
-        .startAwait();
-
-    Call service = gateway.call().router(
-        (reg, msg) -> reg.listServiceReferences().stream().filter(ref -> ((GreetingRequest) msg.data()).getName()
-            .equals(ref.tags().get("ONLYFOR"))).collect(Collectors.toList()));
-
-    // call the service.
-    for (int i = 0; i < 1e2; i++) {
-      GreetingResponse resultForFransin =
-          service.create().requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class).block(timeout).data();
-      GreetingResponse resultForJoe =
-          service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class).block(timeout).data();
-      assertEquals("1", resultForJoe.sender());
-      assertEquals("2", resultForFransin.sender());
-    }
-    provider2.shutdown().block();
-    provider1.shutdown().block();
-    gateway.shutdown().block();
-  }
 
   @Test
   public void test_async_greeting_return_string_service_not_found_error_case() throws Exception {
-    Microservices gateway = gateway();
-
     // Create microservices instance cluster.
     Microservices provider1 = provider(gateway);
 
@@ -569,65 +466,14 @@ public class ServiceCallTest extends BaseTest {
       assertTrue(ex.getMessage().equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
     }
 
-    gateway.shutdown().block();
     provider1.shutdown().block();
   }
 
-  @Test
-  public void test_service_tags() throws Exception {
-    Microservices gateway = gateway();
-
-    Microservices services1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
-        .build()
-        .startAwait();
-
-    Microservices services2 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
-        .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
-        .build()
-        .startAwait();
-
-    System.out.println(gateway.cluster().members());
-
-    TimeUnit.SECONDS.sleep(3);
-    Call service = gateway.call().router(CanaryTestingRouter.class);
-
-    ServiceMessage req = ServiceMessage.builder()
-        .qualifier(Reflect.serviceName(CanaryService.class), "greeting")
-        .data(new GreetingRequest("joe"))
-        .build();
-
-    AtomicInteger serviceBCount = new AtomicInteger(0);
-
-    int n = (int) 1e2;
-    for (int i = 0; i < n; i++) {
-      ServiceMessage message = service.create().requestOne(req, GreetingResponse.class).block(timeout);
-      if (message.data().toString().contains("SERVICE_B_TALKING")) {
-        serviceBCount.incrementAndGet();
-      }
-    }
-
-    System.out.println("count: " + serviceBCount.get());
-    System.out.println("Service B was called: " + serviceBCount.get() + " times.");
-
-    assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.2d);
-
-    services1.shutdown().block();
-    services2.shutdown().block();
-    gateway.shutdown().block();
-  }
 
   @Test
   public void test_dispatcher_remote_greeting_request_completes_before_timeout() {
     // Create microservices instance.
-    Microservices gateway = gateway();
-
     Microservices node = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
         .build()
@@ -639,21 +485,19 @@ public class ServiceCallTest extends BaseTest {
     System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
     assertTrue(greetings.getResult().equals(" hello to: joe"));
 
-    gateway.shutdown().block();
     node.shutdown().block();
   }
 
   @Test
   public void test_dispatcher_local_greeting_request_completes_before_timeout() {
     Microservices gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .build()
         .startAwait();
 
-    Call service = gateway.call();
+    ServiceCall service = gateway.call().create();
 
-    Publisher<ServiceMessage> result = service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
+    Publisher<ServiceMessage> result = service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     GreetingResponse greetings = Mono.from(result).timeout(Duration.ofSeconds(TIMEOUT)).block().data();
     System.out.println("1. greeting_request_completes_before_timeout : " + greetings.getResult());
@@ -665,19 +509,13 @@ public class ServiceCallTest extends BaseTest {
   private Microservices provider(Microservices gateway) {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
-        .discoveryPort(port.incrementAndGet())
         .build()
         .startAwait();
   }
 
   private Microservices gateway() {
     return Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
         .build()
         .startAwait();
-  }
-
-  private boolean await(CountDownLatch timeLatch, long timeout, TimeUnit timeUnit) throws Exception {
-    return timeLatch.await(timeout, timeUnit);
   }
 }
