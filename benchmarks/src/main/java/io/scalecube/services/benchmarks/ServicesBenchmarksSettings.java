@@ -27,11 +27,13 @@ public class ServicesBenchmarksSettings {
     this.executionTaskTime = builder.executionTaskTime;
     this.reporterPeriod = builder.reporterPeriod;
     this.responseCount = builder.responseCount;
-    this.taskName = builder.taskName;
+
+    StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+    this.taskName = stackTrace[stackTrace.length - 1].getClassName();
 
     String time = LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC)
         .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-    this.csvReporterDirectory = Paths.get(".", this.taskName, time).toFile();
+    this.csvReporterDirectory = Paths.get(".", taskName, time).toFile();
     // noinspection ResultOfMethodCallIgnored
     this.csvReporterDirectory.mkdirs();
   }
@@ -84,9 +86,6 @@ public class ServicesBenchmarksSettings {
           case "responseCount":
             builder.responseCount(Integer.parseInt(value));
             break;
-          case "taskName":
-            builder.taskName(value);
-            break;
           default:
             throw new IllegalArgumentException("unknown command: " + pair);
         }
@@ -112,11 +111,8 @@ public class ServicesBenchmarksSettings {
     private Duration executionTaskTime = EXECUTION_TASK_TIME;
     private Duration reporterPeriod = REPORTER_PERIOD;
     private Integer responseCount = RESPONSE_COUNT;
-    private String taskName;
 
     private Builder() {
-      StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-      this.taskName = stackTrace[stackTrace.length - 1].getClassName();
     }
 
     public Builder nThreads(Integer nThreads) {
@@ -136,11 +132,6 @@ public class ServicesBenchmarksSettings {
 
     public Builder responseCount(Integer responseCount) {
       this.responseCount = responseCount;
-      return this;
-    }
-
-    public Builder taskName(String taskName) {
-      this.taskName = taskName;
       return this;
     }
 
