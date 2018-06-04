@@ -69,7 +69,11 @@ public class ServicesBenchmarksState {
     consoleReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
     csvReporter.start(1, TimeUnit.DAYS);
 
-    Runtime.getRuntime().addShutdownHook(new Thread(this::tearDown));
+    // Runtime.getRuntime().addShutdownHook(new Thread(this::tearDown));
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      consoleReporter.report();
+      csvReporter.report();
+    }));
   }
 
   public void tearDown() {
@@ -83,6 +87,10 @@ public class ServicesBenchmarksState {
       csvReporter.stop();
     }
 
+    if (scheduler != null) {
+      scheduler.dispose();
+    }
+
     if (node != null) {
       node.shutdown().block();
     }
@@ -91,9 +99,6 @@ public class ServicesBenchmarksState {
       seed.shutdown().block();
     }
 
-    if (scheduler != null) {
-      scheduler.dispose();
-    }
   }
 
   public MetricRegistry registry() {
