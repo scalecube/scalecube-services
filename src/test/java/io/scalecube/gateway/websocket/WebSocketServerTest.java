@@ -1,19 +1,17 @@
 package io.scalecube.gateway.websocket;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class WebSocketServerTest {
 
-  public static final Duration TIMEOUT = Duration.ofSeconds(5);
+  public static final Duration TIMEOUT = Duration.ofSeconds(3);
   public static final int COUNT = 10;
 
   @Rule
@@ -21,42 +19,13 @@ public class WebSocketServerTest {
 
   @Test
   public void testEcho() {
-    resource.newServer(
+    resource.startServer(
         session -> session.send(session.receive()).then(),
         session -> Mono.empty());
 
-    List<Echo> req = IntStream.range(0, COUNT).boxed().map(Integer::toHexString)
-        .map(Echo::new).collect(Collectors.toList());
+    Flux<EchoMessage> requests = Flux.range(0, COUNT).map(String::valueOf).map(EchoMessage::new);
 
-    List<Echo> responses = resource.newClientSession("/", req, Echo.class)
-        .collectList()
-        .block(TIMEOUT);
-
-    Assert.assertEquals(COUNT, responses.size());
-  }
-
-  public static class Echo {
-    private String text;
-
-    public Echo() {}
-
-    public Echo(String text) {
-      this.text = text;
-    }
-
-    public String getText() {
-      return text;
-    }
-
-    public void setText(String text) {
-      this.text = text;
-    }
-
-    @Override
-    public String toString() {
-      return "Echo{" +
-          "text='" + text + '\'' +
-          '}';
-    }
+    List<EchoMessage> echoMessages =
+        resource.sendAndReceive(requests, EchoMessage.class).collectList().block(TIMEOUT);
   }
 }
