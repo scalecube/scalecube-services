@@ -69,7 +69,6 @@ public class ServicesBenchmarksState {
     consoleReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
     csvReporter.start(1, TimeUnit.DAYS);
 
-    // Runtime.getRuntime().addShutdownHook(new Thread(this::tearDown));
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       consoleReporter.report();
       csvReporter.report();
