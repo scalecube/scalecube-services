@@ -20,10 +20,10 @@ public class RequestBidirectionalEchoCallBenchmarksRunner {
 
     ServiceCall serviceCall = state.seed().call().create();
     int responseCount = settings.responseCount();
-    Timer timer = state.registry().timer("requestBidirectionalEchoCall" + "-timer");
+    Timer timer = state.timer();
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
-        .subscribeOn(state.scheduler())
+        .publishOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
           Flux<ServiceMessage> request = Flux.fromStream(LongStream.range(0, responseCount).boxed())

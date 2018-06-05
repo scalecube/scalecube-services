@@ -15,10 +15,10 @@ public class RequestManyBenchmarksRunner {
 
     BenchmarkService benchmarkService = state.service(BenchmarkService.class);
     int responseCount = settings.responseCount();
-    Timer timer = state.registry().timer("requestMany" + "-timer");
+    Timer timer = state.timer();
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
-        .subscribeOn(state.scheduler())
+        .publishOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
           return benchmarkService.requestMany(responseCount).doOnNext(next -> timeContext.stop());

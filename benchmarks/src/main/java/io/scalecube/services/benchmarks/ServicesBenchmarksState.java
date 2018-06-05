@@ -5,6 +5,7 @@ import io.scalecube.services.Microservices;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.CsvReporter;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 
 import java.time.Duration;
 import java.util.concurrent.Executors;
@@ -66,7 +67,12 @@ public class ServicesBenchmarksState {
 
     Duration reporterPeriod = settings.reporterPeriod();
     consoleReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
-    csvReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
+    csvReporter.start(1, TimeUnit.DAYS);
+
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      consoleReporter.report();
+      csvReporter.report();
+    }));
   }
 
   public void tearDown() {
@@ -91,6 +97,7 @@ public class ServicesBenchmarksState {
     if (seed != null) {
       seed.shutdown().block();
     }
+
   }
 
   public MetricRegistry registry() {
@@ -107,5 +114,9 @@ public class ServicesBenchmarksState {
 
   public <T> T service(Class<T> c) {
     return seed.call().create().api(c);
+  }
+
+  public Timer timer() {
+    return registry.timer(settings.taskName() + "-timer");
   }
 }

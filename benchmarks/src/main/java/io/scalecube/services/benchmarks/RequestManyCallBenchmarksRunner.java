@@ -18,7 +18,7 @@ public class RequestManyCallBenchmarksRunner {
 
     ServiceCall serviceCall = state.seed().call().create();
     int responseCount = settings.responseCount();
-    Timer timer = state.registry().timer("requestManyCall" + "-timer");
+    Timer timer = state.timer();
 
     ServiceMessage message = ServiceMessage.builder()
         .qualifier(BenchmarkService.class.getName(), "requestMany")
@@ -26,7 +26,7 @@ public class RequestManyCallBenchmarksRunner {
         .build();
 
     Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
-        .subscribeOn(state.scheduler())
+        .publishOn(state.scheduler())
         .map(i -> {
           Timer.Context timeContext = timer.time();
           return serviceCall.requestMany(message).doOnNext(next -> timeContext.stop());
