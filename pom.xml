@@ -16,6 +16,12 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-examples</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
     <!-- Other dependencies -->
     <dependency>
       <groupId>io.projectreactor.ipc</groupId>
