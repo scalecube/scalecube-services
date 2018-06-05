@@ -16,7 +16,4 @@ public interface GreetingService {
   @ServiceMethod("many")
   Flux<String> many(String name);
 
-  @ServiceMethod("helloStream")
-  Flux<String> helloStream(Flux<String> name);
-
 }

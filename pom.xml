@@ -12,18 +12,11 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-http</artifactId>
-      <version>${project.version}</version>
+      <artifactId>scalecube-services</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-websocket</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-testlib</artifactId>
-      <version>${project.version}</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
   </dependencies>
 
