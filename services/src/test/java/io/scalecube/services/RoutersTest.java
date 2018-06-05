@@ -16,6 +16,8 @@ import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -31,12 +33,12 @@ public class RoutersTest extends BaseTest {
 
   private Microservices gateway;
 
-  @Before
+  @BeforeEach
   public void setup() {
     this.gateway = Microservices.builder().build().startAwait();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     gateway.shutdown().block();
   }
