@@ -5,6 +5,7 @@ import static reactor.core.publisher.Mono.from;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 
@@ -65,8 +66,7 @@ public class ErrorFlowTest {
 
   @Test
   public void testServiceUnavailable() {
-    Publisher<ServiceMessage> req = consumer
-        .call().create().requestOne(TestRequests.NOT_FOUND_REQ);
-    assertThrows(ServiceUnavailableException.class, () -> from(req).block());
+    assertThrows(ServiceUnavailableException.class, () ->
+            consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ));
   }
 }
