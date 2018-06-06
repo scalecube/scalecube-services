@@ -33,12 +33,12 @@ public class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Mono<GreetingResponse> dtoOne(GreetingRequest request) {
+  public Mono<GreetingResponse> pojoOne(GreetingRequest request) {
     return one(request.getText()).map(GreetingResponse::new);
   }
 
   @Override
-  public Flux<GreetingResponse> dtoMany(GreetingRequest request) {
+  public Flux<GreetingResponse> pojoMany(GreetingRequest request) {
     return many(request.getText()).map(GreetingResponse::new);
   }
 
