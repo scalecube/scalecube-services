@@ -1,18 +1,5 @@
 package io.scalecube.gateway.websocket;
 
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
-import org.junit.Rule;
-import org.junit.Test;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
-import java.time.Duration;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
@@ -20,6 +7,21 @@ import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_POJO_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_POJO_ONE;
 import static org.junit.Assert.assertEquals;
+
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
+
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import org.junit.Rule;
+import org.junit.Test;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class WebSocketServerTest {
 
@@ -170,11 +172,12 @@ public class WebSocketServerTest {
         .map(GreetingResponse::new)
         .collect(Collectors.toList());
 
-    List<GreetingResponse> actual = resource.sendThenReceive(Mono.just(GREETING_POJO_MANY), GreetingResponse.class, TIMEOUT)
-        .take(n)
-        .map(ServiceMessage::data)
-        .cast(GreetingResponse.class)
-        .collectList().block(TIMEOUT);
+    List<GreetingResponse> actual =
+        resource.sendThenReceive(Mono.just(GREETING_POJO_MANY), GreetingResponse.class, TIMEOUT)
+            .take(n)
+            .map(ServiceMessage::data)
+            .cast(GreetingResponse.class)
+            .collectList().block(TIMEOUT);
 
     assertEquals(expected, actual);
   }
