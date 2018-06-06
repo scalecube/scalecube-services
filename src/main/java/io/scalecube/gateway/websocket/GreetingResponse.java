@@ -15,15 +15,15 @@ public class GreetingResponse {
   }
 
   @Override
-  public boolean equals(Object other) {
-    if (this == other) {
+  public boolean equals(Object obj) {
+    if (this == obj) {
       return true;
     }
-    if (other == null || getClass() != other.getClass()) {
+    if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
 
-    GreetingResponse that = (GreetingResponse) other;
+    GreetingResponse that = (GreetingResponse) obj;
 
     return text != null ? text.equals(that.text) : that.text == null;
   }
@@ -35,9 +35,6 @@ public class GreetingResponse {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("GreetingResponse{");
-    sb.append("text='").append(text).append('\'');
-    sb.append('}');
-    return sb.toString();
+    return "GreetingResponse{" + "text='" + text + '\'' + '}';
   }
 }
