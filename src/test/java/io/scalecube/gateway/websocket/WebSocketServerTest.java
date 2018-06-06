@@ -1,29 +1,25 @@
 package io.scalecube.gateway.websocket;
 
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
+import org.junit.Rule;
+import org.junit.Test;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_ONE;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
-
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
-import org.junit.Rule;
-import org.junit.Test;
-
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import static org.junit.Assert.assertEquals;
 
 public class WebSocketServerTest {
 
@@ -39,7 +35,7 @@ public class WebSocketServerTest {
     String expectedData = "Echo:hello";
 
     StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), String.class, TIMEOUT))
-        .expectNextMatches(msg -> expectedData.equals(msg.data()))
+        .assertNext(msg -> assertEquals(expectedData, msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -51,7 +47,13 @@ public class WebSocketServerTest {
     ServiceMessage expected = errorServiceMessage(500, "hello");
 
     StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_ONE), ErrorData.class, TIMEOUT))
-        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) && expected.data().equals(msg.data()))
+        .assertNext(message -> {
+          assertEquals(expected.qualifier(), message.qualifier());
+          ErrorData actualData = message.data();
+          ErrorData expectedData = expected.data();
+          assertEquals(expectedData.getErrorCode(), actualData.getErrorCode());
+          assertEquals(expectedData.getErrorMessage(), actualData.getErrorMessage());
+        })
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -65,12 +67,13 @@ public class WebSocketServerTest {
         .mapToObj(i -> "Greeting (" + i + ") to: hello")
         .collect(Collectors.toList());
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_MANY), String.class, TIMEOUT)
+    List<String> actual = resource.sendThenReceive(Mono.just(GREETING_MANY), String.class, TIMEOUT)
         .take(n)
-        .map(message -> (String) message.data()))
-        .expectNextSequence(expected)
-        .expectComplete()
-        .verify(TIMEOUT);
+        .map(ServiceMessage::data)
+        .cast(String.class)
+        .collectList().block(TIMEOUT);
+
+    assertEquals(expected, actual);
   }
 
   @Test
@@ -78,13 +81,18 @@ public class WebSocketServerTest {
     resource.startServer().startServices();
 
     String content = "Echo:hello";
-    ServiceMessage expected = errorServiceMessage(400, content);
+    ServiceMessage expected = errorServiceMessage(500, content);
 
     StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_MANY), ErrorData.class, TIMEOUT))
-        .expectNextMatches(msg -> content.equals(msg.data()))
-        .expectNextMatches(msg -> content.equals(msg.data()))
-        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
-            expected.data().equals(msg.data()))
+        .assertNext(msg -> assertEquals(content, msg.data()))
+        .assertNext(msg -> assertEquals(content, msg.data()))
+        .assertNext(msg -> {
+          assertEquals(expected.qualifier(), msg.qualifier());
+          ErrorData actualData = msg.data();
+          ErrorData expectedData = expected.data();
+          assertEquals(expectedData.getErrorCode(), actualData.getErrorCode());
+          assertEquals(expectedData.getErrorMessage(), actualData.getErrorMessage());
+        })
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -96,8 +104,13 @@ public class WebSocketServerTest {
     ServiceMessage expected = unreachableServiceMessage(GREETING_ONE.qualifier());
 
     StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), ErrorData.class, TIMEOUT))
-        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
-            expected.data().equals(msg.data()))
+        .assertNext(msg -> {
+          assertEquals(expected.qualifier(), msg.qualifier());
+          ErrorData actualData = msg.data();
+          ErrorData expectedData = expected.data();
+          assertEquals(expectedData.getErrorCode(), actualData.getErrorCode());
+          assertEquals(expectedData.getErrorMessage(), actualData.getErrorMessage());
+        })
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -109,8 +122,13 @@ public class WebSocketServerTest {
     ServiceMessage unreachableServiceMessage = unreachableServiceMessage(GREETING_ONE.qualifier());
 
     StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), ErrorData.class, TIMEOUT))
-        .expectNextMatches(msg -> unreachableServiceMessage.qualifier().equals(msg.qualifier()) &&
-            unreachableServiceMessage.data().equals(msg.data()))
+        .assertNext(msg -> {
+          assertEquals(unreachableServiceMessage.qualifier(), msg.qualifier());
+          ErrorData actualData = msg.data();
+          ErrorData expectedData = unreachableServiceMessage.data();
+          assertEquals(expectedData.getErrorCode(), actualData.getErrorCode());
+          assertEquals(expectedData.getErrorMessage(), actualData.getErrorMessage());
+        })
         .expectComplete()
         .verify(TIMEOUT);
 
@@ -120,7 +138,7 @@ public class WebSocketServerTest {
     String expectedData = "Echo:hello";
 
     StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), String.class, TIMEOUT))
-        .expectNextMatches(msg -> expectedData.equals(msg.data()))
+        .assertNext(msg -> assertEquals(expectedData, msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -129,24 +147,15 @@ public class WebSocketServerTest {
   public void testGreetingDtoOne() {
     resource.startServer().startServices();
 
-    ServiceMessage expected = serviceMessage(GREETING_DTO_ONE.qualifier(), new GreetingResponse("Echo:hello"));
-
-    resource.sendThenReceive(Mono.just(GREETING_DTO_ONE), GreetingResponse.class, TIMEOUT)
-        .subscribe(System.err::println, Throwable::printStackTrace, () -> System.err.println("FIN"));
-
-    StepVerifier.create(Mono.defer(() -> {
-      Map<String, Object> content = new HashMap<>();
-      content.put("text", "Echo:hello");
-      return Mono.just(ServiceMessage.builder()
-          .data(content)
-          .build());
-    }))
-        .expectNextMatches(msg -> expected.data().equals(msg.data()))
-        .expectComplete()
-        .verify(TIMEOUT);
+    String expectedQualifier = GREETING_DTO_ONE.qualifier();
+    GreetingResponse expectedData = new GreetingResponse("Echo:hello");
 
     StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_DTO_ONE), GreetingResponse.class, TIMEOUT))
-        .expectNextMatches(msg -> expected.data().equals(msg.data()))
+        .assertNext(msg -> {
+          assertEquals(expectedQualifier, msg.qualifier());
+          GreetingResponse actualData = msg.data();
+          assertEquals(expectedData.getText(), actualData.getText());
+        })
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -156,30 +165,18 @@ public class WebSocketServerTest {
     resource.startServer().startServices();
 
     int n = 10;
-    List<?> expected = IntStream.range(0, n)
+    List<GreetingResponse> expected = IntStream.range(0, n)
         .mapToObj(i -> "Greeting (" + i + ") to: hello")
         .map(GreetingResponse::new)
-        .map(resp -> serviceMessage(GREETING_DTO_MANY.qualifier(), resp))
-        .map(ServiceMessage::data)
         .collect(Collectors.toList());
 
-    StepVerifier.create(Flux.fromIterable(expected)
-        .map(content -> ServiceMessage.builder()
-            .qualifier(GREETING_DTO_MANY.qualifier())
-            .data(content)
-            .build())
+    List<GreetingResponse> actual = resource.sendThenReceive(Mono.just(GREETING_DTO_MANY), GreetingResponse.class, TIMEOUT)
         .take(n)
-        .map(ServiceMessage::data))
-        .expectNextSequence(expected)
-        .expectComplete()
-        .verify(TIMEOUT);
+        .map(ServiceMessage::data)
+        .cast(GreetingResponse.class)
+        .collectList().block(TIMEOUT);
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_DTO_MANY), GreetingResponse.class, TIMEOUT)
-        .take(n)
-        .map(ServiceMessage::data))
-        .expectNextSequence(expected)
-        .expectComplete()
-        .verify(TIMEOUT);
+    assertEquals(expected, actual);
   }
 
   private ServiceMessage unreachableServiceMessage(String qualifier) {
@@ -192,15 +189,6 @@ public class WebSocketServerTest {
     return ServiceMessage.builder()
         .qualifier(Qualifier.asError(errorCode))
         .data(new ErrorData(errorCode, errorMessage))
-        .build();
-  }
-
-  private ServiceMessage serviceMessage(String qualifier, GreetingResponse response) {
-    Map<String, Object> content = new HashMap<>();
-    content.put("text", response.getText());
-    return ServiceMessage.builder()
-        .qualifier(qualifier)
-        .data(content)
         .build();
   }
 }
