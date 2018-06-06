@@ -13,6 +13,11 @@ public class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
+  public Mono<String> failing(String name) {
+    return Mono.error(new RuntimeException(name));
+  }
+
+  @Override
   public Flux<String> many(String name) {
     return Flux.interval(Duration.ofMillis(100))
         .map(i -> "Greeting (" + i + ") to: " + name);
