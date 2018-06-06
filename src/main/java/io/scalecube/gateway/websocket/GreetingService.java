@@ -27,7 +27,10 @@ public interface GreetingService {
   Mono<String> one(String name);
 
   @ServiceMethod("many")
-  Flux<String> many(EchoRequest name);
+  Flux<String> many(String name);
+
+  @ServiceMethod("manyStream")
+  Flux<String> manyStream(EchoRequest name);
 
   @ServiceMethod("failing/one")
   Mono<String> failingOne(String name);
@@ -40,5 +43,4 @@ public interface GreetingService {
 
   @ServiceMethod("pojo/many")
   Flux<GreetingResponse> pojoMany(GreetingRequest request);
-
 }

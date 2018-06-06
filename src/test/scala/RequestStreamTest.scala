@@ -17,7 +17,7 @@ class RequestStreamTest extends Simulation {
   val echoParam = """echoName"""
 
   // Scenario parameters
-  val url = s"ws://$host:$port/greeting/many"
+  val url = s"ws://$host:$port/greeting/manyStream"
   val echoRequest = s"""{"name":"$echoParam", "frequency":$frequencyMillis}"""
   val httpConfig = http.baseURL(s"http://$host:$port")
 
