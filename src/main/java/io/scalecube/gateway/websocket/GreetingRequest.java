@@ -16,6 +16,9 @@ public class GreetingRequest {
 
   @Override
   public String toString() {
-    return "GreetingRequest{" + "text='" + text + '\'' + '}';
+    final StringBuilder sb = new StringBuilder("GreetingRequest{");
+    sb.append("text='").append(text).append('\'');
+    sb.append('}');
+    return sb.toString();
   }
 }

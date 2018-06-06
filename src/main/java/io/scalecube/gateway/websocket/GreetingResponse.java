@@ -35,6 +35,9 @@ public class GreetingResponse {
 
   @Override
   public String toString() {
-    return "GreetingResponse{" + "text='" + text + '\'' + '}';
+    final StringBuilder sb = new StringBuilder("GreetingResponse{");
+    sb.append("text='").append(text).append('\'');
+    sb.append('}');
+    return sb.toString();
   }
 }
