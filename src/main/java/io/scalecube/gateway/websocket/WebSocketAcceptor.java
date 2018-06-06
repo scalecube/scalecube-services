@@ -77,7 +77,7 @@ public final class WebSocketAcceptor {
       ByteBuf byteBuf = message.data();
       try (InputStream stream = new ByteBufInputStream(byteBuf.slice())) {
         resultMessage = ServiceMessage.from(message)
-            .data(objectMapper.readValue(stream, String.class))
+            .data(objectMapper.readTree(stream))
             .build();
       } catch (Throwable ex) {
         LOGGER.error("Failed to decode data on: {}, cause: {}, data buffer: {}",

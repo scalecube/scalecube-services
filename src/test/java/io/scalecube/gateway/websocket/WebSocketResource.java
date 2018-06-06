@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Map;
 
 public class WebSocketResource extends ExternalResource implements Closeable {
 
@@ -76,7 +77,8 @@ public class WebSocketResource extends ExternalResource implements Closeable {
     return this;
   }
 
-  public Flux<ServiceMessage> sendThenReceive(Publisher<ServiceMessage> requests, Duration timeout) {
+  public Flux<ServiceMessage> sendThenReceive(Publisher<ServiceMessage> requests, Class<?> dataClass,
+      Duration timeout) {
     String hostAddress = serverAddress.getAddress().getHostAddress();
     int port = serverAddress.getPort();
     URI uri = UriComponentsBuilder.newInstance().scheme("ws").host(hostAddress).port(port).build().toUri();
@@ -89,7 +91,7 @@ public class WebSocketResource extends ExternalResource implements Closeable {
           LOGGER.info("{} started sending messages to: {}", client, uri);
           return session.send(Flux.from(requests).map(this::encode))
               .thenMany(
-                  session.receive().map(this::decode)
+                  session.receive().map(message -> decode(message.getPayloadAsText(), dataClass))
                       .doOnNext(emitter::next)
                       .doOnComplete(emitter::complete)
                       .doOnError(emitter::error))
@@ -97,11 +99,15 @@ public class WebSocketResource extends ExternalResource implements Closeable {
         }).block(timeout));
   }
 
-  private ServiceMessage decode(WebSocketMessage message) {
-    String payload = message.getPayloadAsText();
+  private ServiceMessage decode(String payload, Class<?> dataClass) {
     LOGGER.info("Decoding websocket message: " + payload);
     try {
-      return objectMapper.readValue(payload, ServiceMessage.class);
+      ServiceMessage message = objectMapper.readValue(payload, ServiceMessage.class);
+      if (message.hasData(Map.class)) {
+        Object data = objectMapper.convertValue(message.<Map>data(), dataClass);
+        return ServiceMessage.from(message).data(data).build();
+      }
+      return message;
     } catch (IOException e) {
       LOGGER.error("Failed to decode websocket message: " + payload);
       throw new RuntimeException(e);

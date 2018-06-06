@@ -1,12 +1,22 @@
 package io.scalecube.gateway.websocket;
 
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_MANY;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_ONE;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_MANY;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
+
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-import org.junit.Rule;
-import org.junit.Test;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import org.junit.Rule;
+import org.junit.Test;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -14,13 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_MANY;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_ONE;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_MANY;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
 
 public class WebSocketServerTest {
 
@@ -35,21 +38,20 @@ public class WebSocketServerTest {
 
     String expectedData = "Echo:hello";
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), String.class, TIMEOUT))
         .expectNextMatches(msg -> expectedData.equals(msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
   }
 
-  @Test // todo fix it! We received only complete without error message
+  @Test
   public void testGreetingFailingOne() {
     resource.startServer().startServices();
 
-    ServiceMessage expected = errorServiceMessage(400, "hello");
+    ServiceMessage expected = errorServiceMessage(500, "hello");
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_ONE), TIMEOUT))
-        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
-            expected.data().equals(msg.data()))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_ONE), ErrorData.class, TIMEOUT))
+        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) && expected.data().equals(msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -63,7 +65,7 @@ public class WebSocketServerTest {
         .mapToObj(i -> "Greeting (" + i + ") to: hello")
         .collect(Collectors.toList());
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_MANY), TIMEOUT)
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_MANY), String.class, TIMEOUT)
         .take(n)
         .map(message -> (String) message.data()))
         .expectNextSequence(expected)
@@ -71,14 +73,14 @@ public class WebSocketServerTest {
         .verify(TIMEOUT);
   }
 
-  @Test // todo fix it! We received only complete without error message
+  @Test
   public void testGreetingFailingMany() {
     resource.startServer().startServices();
 
     String content = "Echo:hello";
     ServiceMessage expected = errorServiceMessage(400, content);
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_MANY), TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_MANY), ErrorData.class, TIMEOUT))
         .expectNextMatches(msg -> content.equals(msg.data()))
         .expectNextMatches(msg -> content.equals(msg.data()))
         .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
@@ -93,7 +95,7 @@ public class WebSocketServerTest {
 
     ServiceMessage expected = unreachableServiceMessage(GREETING_ONE.qualifier());
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), ErrorData.class, TIMEOUT))
         .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
             expected.data().equals(msg.data()))
         .expectComplete()
@@ -106,7 +108,7 @@ public class WebSocketServerTest {
 
     ServiceMessage unreachableServiceMessage = unreachableServiceMessage(GREETING_ONE.qualifier());
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), ErrorData.class, TIMEOUT))
         .expectNextMatches(msg -> unreachableServiceMessage.qualifier().equals(msg.qualifier()) &&
             unreachableServiceMessage.data().equals(msg.data()))
         .expectComplete()
@@ -117,22 +119,21 @@ public class WebSocketServerTest {
 
     String expectedData = "Echo:hello";
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), String.class, TIMEOUT))
         .expectNextMatches(msg -> expectedData.equals(msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
   }
 
-  @Test // todo fix it
+  @Test
   public void testGreetingDtoOne() {
     resource.startServer().startServices();
 
     ServiceMessage expected = serviceMessage(GREETING_DTO_ONE.qualifier(), new GreetingResponse("Echo:hello"));
 
-    resource.sendThenReceive(Mono.just(GREETING_DTO_ONE), TIMEOUT)
+    resource.sendThenReceive(Mono.just(GREETING_DTO_ONE), GreetingResponse.class, TIMEOUT)
         .subscribe(System.err::println, Throwable::printStackTrace, () -> System.err.println("FIN"));
 
-    // todo this shows like it must be, remove after a fix
     StepVerifier.create(Mono.defer(() -> {
       Map<String, Object> content = new HashMap<>();
       content.put("text", "Echo:hello");
@@ -144,13 +145,13 @@ public class WebSocketServerTest {
         .expectComplete()
         .verify(TIMEOUT);
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_DTO_ONE), TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_DTO_ONE), GreetingResponse.class, TIMEOUT))
         .expectNextMatches(msg -> expected.data().equals(msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
   }
 
-  @Test // todo fix it
+  @Test
   public void testGreetingDtoMany() {
     resource.startServer().startServices();
 
@@ -162,7 +163,6 @@ public class WebSocketServerTest {
         .map(ServiceMessage::data)
         .collect(Collectors.toList());
 
-    // todo this shows like it must be, remove after a fix
     StepVerifier.create(Flux.fromIterable(expected)
         .map(content -> ServiceMessage.builder()
             .qualifier(GREETING_DTO_MANY.qualifier())
@@ -174,7 +174,7 @@ public class WebSocketServerTest {
         .expectComplete()
         .verify(TIMEOUT);
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_DTO_MANY), TIMEOUT)
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_DTO_MANY), GreetingResponse.class, TIMEOUT)
         .take(n)
         .map(ServiceMessage::data))
         .expectNextSequence(expected)
@@ -189,12 +189,9 @@ public class WebSocketServerTest {
   }
 
   private ServiceMessage errorServiceMessage(int errorCode, String errorMessage) {
-    Map<String, Object> errorData = new HashMap<>();
-    errorData.put("errorCode", errorCode);
-    errorData.put("errorMessage", errorMessage);
     return ServiceMessage.builder()
         .qualifier(Qualifier.asError(errorCode))
-        .data(errorData)
+        .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
 
