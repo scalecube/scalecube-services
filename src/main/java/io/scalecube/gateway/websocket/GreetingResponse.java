@@ -16,11 +16,15 @@ public class GreetingResponse {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
 
-    GreetingResponse that = (GreetingResponse) o;
+    GreetingResponse that = (GreetingResponse) obj;
 
     return text != null ? text.equals(that.text) : that.text == null;
   }
@@ -32,8 +36,6 @@ public class GreetingResponse {
 
   @Override
   public String toString() {
-    return "GreetingResponse{" +
-        "text='" + text + '\'' +
-        '}';
+    return "GreetingResponse{" + "text='" + text + '\'' + '}';
   }
 }

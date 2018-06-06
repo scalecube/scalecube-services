@@ -17,8 +17,6 @@ public class GreetingRequest {
 
   @Override
   public String toString() {
-    return "GreetingRequest{" +
-        "text='" + text + '\'' +
-        '}';
+    return "GreetingRequest{" + "text='" + text + '\'' + '}';
   }
 }
