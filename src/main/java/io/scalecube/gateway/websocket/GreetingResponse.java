@@ -4,8 +4,7 @@ public class GreetingResponse {
 
   private String text;
 
-  GreetingResponse() {
-  }
+  public GreetingResponse() {}
 
   public GreetingResponse(String text) {
     this.text = text;
@@ -16,11 +15,15 @@ public class GreetingResponse {
   }
 
   @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other == null || getClass() != other.getClass()) {
+      return false;
+    }
 
-    GreetingResponse that = (GreetingResponse) o;
+    GreetingResponse that = (GreetingResponse) other;
 
     return text != null ? text.equals(that.text) : that.text == null;
   }
@@ -32,8 +35,9 @@ public class GreetingResponse {
 
   @Override
   public String toString() {
-    return "GreetingResponse{" +
-        "text='" + text + '\'' +
-        '}';
+    final StringBuilder sb = new StringBuilder("GreetingResponse{");
+    sb.append("text='").append(text).append('\'');
+    sb.append('}');
+    return sb.toString();
   }
 }

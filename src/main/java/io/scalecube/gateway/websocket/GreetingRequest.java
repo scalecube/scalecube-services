@@ -4,8 +4,7 @@ public class GreetingRequest {
 
   private String text;
 
-  GreetingRequest() {
-  }
+  public GreetingRequest() {}
 
   public GreetingRequest(String text) {
     this.text = text;
@@ -17,8 +16,9 @@ public class GreetingRequest {
 
   @Override
   public String toString() {
-    return "GreetingRequest{" +
-        "text='" + text + '\'' +
-        '}';
+    final StringBuilder sb = new StringBuilder("GreetingRequest{");
+    sb.append("text='").append(text).append('\'');
+    sb.append('}');
+    return sb.toString();
   }
 }
