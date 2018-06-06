@@ -67,6 +67,22 @@ public class WebSocketServerTest {
         .verify(TIMEOUT);
   }
 
+  @Test // todo fix it! We received only complete without error message
+  public void testGreetingFailingMany() {
+    resource.startServer().startServices();
+
+    String content = "Echo:hello";
+    ServiceMessage expected = errorServiceMessage(400, content);
+
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_ONE), TIMEOUT))
+        .expectNextMatches(msg -> content.equals(msg.data()))
+        .expectNextMatches(msg -> content.equals(msg.data()))
+        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
+            expected.data().equals(msg.data()))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
   @Test
   public void testServicesNotStartedYet() {
     resource.startServer();
