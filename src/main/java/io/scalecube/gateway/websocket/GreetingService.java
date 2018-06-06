@@ -15,15 +15,20 @@ public interface GreetingService {
       ServiceMessage.builder().qualifier("/greeting/failing/one").data("hello").build();
   ServiceMessage GREETING_MANY =
       ServiceMessage.builder().qualifier("/greeting/many").data("hello").build();
+  ServiceMessage GREETING_FAILING_MANY =
+      ServiceMessage.builder().qualifier("/greeting/failing/many").data("hello").build();
 
   @ServiceMethod("one")
   Mono<String> hello(String name);
 
   @ServiceMethod("failing/one")
-  Mono<String> failing(String name);
+  Mono<String> failingOne(String name);
 
   @ServiceMethod("many")
   Flux<String> many(String name);
+
+  @ServiceMethod("failing/many")
+  Flux<String> failingMany(String name);
 
 
 }
