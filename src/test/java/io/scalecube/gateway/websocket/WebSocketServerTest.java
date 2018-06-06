@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
@@ -74,7 +75,7 @@ public class WebSocketServerTest {
     String content = "Echo:hello";
     ServiceMessage expected = errorServiceMessage(400, content);
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_ONE), TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_MANY), TIMEOUT))
         .expectNextMatches(msg -> content.equals(msg.data()))
         .expectNextMatches(msg -> content.equals(msg.data()))
         .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
