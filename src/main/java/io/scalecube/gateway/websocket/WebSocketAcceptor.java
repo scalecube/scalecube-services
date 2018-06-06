@@ -1,5 +1,12 @@
 package io.scalecube.gateway.websocket;
 
+import static io.scalecube.gateway.websocket.WebSocketSession.DEFAULT_CONTENT_TYPE;
+
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ExceptionProcessor;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -7,28 +14,25 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.util.ReferenceCountUtil;
-import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ExceptionProcessor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
-
-import static io.scalecube.gateway.websocket.WebSocketSession.DEFAULT_CONTENT_TYPE;
 
 public final class WebSocketAcceptor {
 
