@@ -41,6 +41,7 @@ public final class WebSocketAcceptor {
   private final ServiceCall serviceCall;
 
   private static final ObjectMapper objectMapper;
+
   static {
     objectMapper = initMapper();
   }
@@ -49,6 +50,12 @@ public final class WebSocketAcceptor {
     this.serviceCall = serviceCall;
   }
 
+  /**
+   * Connect handler method.
+   *
+   * @param session websocket session.
+   * @return mono void.
+   */
   public Mono<Void> onConnect(WebSocketSession session) {
     LOGGER.info("Session connected: " + session);
 
@@ -65,6 +72,12 @@ public final class WebSocketAcceptor {
     return voidMono.then();
   }
 
+  /**
+   * Diconnect handler method.
+   *
+   * @param session websocket session.
+   * @return mono void.
+   */
   public Mono<Void> onDisconnect(WebSocketSession session) {
     LOGGER.info("Session disconnected: " + session);
     return Mono.empty();
