@@ -17,18 +17,27 @@ public interface GreetingService {
       ServiceMessage.builder().qualifier("/greeting/many").data("hello").build();
   ServiceMessage GREETING_FAILING_MANY =
       ServiceMessage.builder().qualifier("/greeting/failing/many").data("hello").build();
+  ServiceMessage GREETING_DTO_ONE =
+      ServiceMessage.builder().qualifier("/greeting/dto/one").data(new GreetingRequest("hello")).build();
+  ServiceMessage GREETING_DTO_MANY =
+      ServiceMessage.builder().qualifier("/greeting/dto/many").data(new GreetingRequest("hello")).build();
 
   @ServiceMethod("one")
-  Mono<String> hello(String name);
-
-  @ServiceMethod("failing/one")
-  Mono<String> failingOne(String name);
+  Mono<String> one(String name);
 
   @ServiceMethod("many")
   Flux<String> many(String name);
 
+  @ServiceMethod("failing/one")
+  Mono<String> failingOne(String name);
+
   @ServiceMethod("failing/many")
   Flux<String> failingMany(String name);
 
+  @ServiceMethod("dto/one")
+  Mono<GreetingResponse> dtoOne(GreetingRequest request);
+
+  @ServiceMethod("dto/many")
+  Flux<GreetingResponse> dtoMany(GreetingRequest request);
 
 }

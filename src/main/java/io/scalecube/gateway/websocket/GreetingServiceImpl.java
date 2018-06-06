@@ -8,7 +8,7 @@ import java.time.Duration;
 public class GreetingServiceImpl implements GreetingService {
 
   @Override
-  public Mono<String> hello(String name) {
+  public Mono<String> one(String name) {
     return Mono.just("Echo:" + name);
   }
 
@@ -30,6 +30,16 @@ public class GreetingServiceImpl implements GreetingService {
       sink.next("Echo:" + name);
       sink.error(new RuntimeException("Echo:" + name));
     });
+  }
+
+  @Override
+  public Mono<GreetingResponse> dtoOne(GreetingRequest request) {
+    return one(request.getText()).map(GreetingResponse::new);
+  }
+
+  @Override
+  public Flux<GreetingResponse> dtoMany(GreetingRequest request) {
+    return many(request.getText()).map(GreetingResponse::new);
   }
 
 }
