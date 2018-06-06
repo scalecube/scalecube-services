@@ -1,32 +1,26 @@
 package io.scalecube.gateway.websocket;
 
-import static org.junit.Assert.assertEquals;
-
-import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-
+import org.junit.Rule;
+import org.junit.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import org.junit.Rule;
-import org.junit.Test;
-
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
+
 public class WebSocketServerTest {
 
-  public static final Duration TIMEOUT = Duration.ofSeconds(3);
-
-  public static final ServiceMessage greetingOne =
-      ServiceMessage.builder().qualifier("/greeting/one").data("hello").build();
-
-  public static final ServiceMessage greetingMany =
-      ServiceMessage.builder().qualifier("/greeting/many").data("hello").build();
+  private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @Rule
   public WebSocketResource resource = new WebSocketResource();
@@ -35,12 +29,25 @@ public class WebSocketServerTest {
   public void testGreetingOne() {
     resource.startServer().startServices();
 
-    String echo =
-        resource.sendThenReceive(Mono.just(greetingOne), TIMEOUT)
-            .map(message -> (String) message.data())
-            .blockFirst(TIMEOUT);
+    String expectedData = "Echo:hello";
 
-    assertEquals("Echo:hello", echo);
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+        .expectNextMatches(msg -> expectedData.equals(msg.data()))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test // todo fix it! We received only complete without error message
+  public void testGreetingFailingOne() {
+    resource.startServer().startServices();
+
+    ServiceMessage expected = errorServiceMessage(400, "hello");
+
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_FAILING_ONE), TIMEOUT))
+        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
+            expected.data().equals(msg.data()))
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -52,8 +59,8 @@ public class WebSocketServerTest {
         .mapToObj(i -> "Greeting (" + i + ") to: hello")
         .collect(Collectors.toList());
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(greetingMany), TIMEOUT)
-            .take(n)
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_MANY), TIMEOUT)
+        .take(n)
         .map(message -> (String) message.data()))
         .expectNextSequence(expected)
         .expectComplete()
@@ -64,17 +71,11 @@ public class WebSocketServerTest {
   public void testServicesNotStartedYet() {
     resource.startServer();
 
-    int expectedErrorCode = 503;
-    String expectedQualifier = Qualifier.asError(expectedErrorCode);
-    String expectedErrorMessage = "No reachable member with such service: " + greetingOne.qualifier();
+    ServiceMessage expected = unreachableServiceMessage(GREETING_ONE.qualifier());
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(greetingOne), TIMEOUT))
-        .expectNextMatches(msg -> {
-          ErrorData data = msg.data();
-          return Objects.equals(expectedQualifier, msg.qualifier()) &&
-              Objects.equals(expectedErrorCode, data.getErrorCode()) &&
-              Objects.equals(expectedErrorMessage, data.getErrorMessage());
-        })
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+        .expectNextMatches(msg -> expected.qualifier().equals(msg.qualifier()) &&
+            expected.data().equals(msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -83,17 +84,38 @@ public class WebSocketServerTest {
   public void testServicesRestarted() {
     resource.startServer();
 
-    ServiceMessage error =
-        resource.sendThenReceive(Mono.just(greetingOne), TIMEOUT).blockFirst(TIMEOUT);
+    ServiceMessage unreachableServiceMessage = unreachableServiceMessage(GREETING_ONE.qualifier());
 
-    assertEquals("Echo:hello", error);
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+        .expectNextMatches(msg -> unreachableServiceMessage.qualifier().equals(msg.qualifier()) &&
+            unreachableServiceMessage.data().equals(msg.data()))
+        .expectComplete()
+        .verify(TIMEOUT);
 
     // start services node
     resource.startServices();
 
-    ServiceMessage echo =
-        resource.sendThenReceive(Mono.just(greetingOne), TIMEOUT).blockFirst(TIMEOUT);
+    String expectedData = "Echo:hello";
 
-    assertEquals("Echo:hello", echo.data());
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_ONE), TIMEOUT))
+        .expectNextMatches(msg -> expectedData.equals(msg.data()))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  private ServiceMessage unreachableServiceMessage(String qualifier) {
+    int errorCode = 503;
+    String errorMessage = "No reachable member with such service: " + qualifier;
+    return errorServiceMessage(errorCode, errorMessage);
+  }
+
+  private ServiceMessage errorServiceMessage(int errorCode, String errorMessage) {
+    Map<String, Object> errorData = new HashMap<>();
+    errorData.put("errorCode", errorCode);
+    errorData.put("errorMessage", errorMessage);
+    return ServiceMessage.builder()
+        .qualifier(Qualifier.asError(errorCode))
+        .data(errorData)
+        .build();
   }
 }
