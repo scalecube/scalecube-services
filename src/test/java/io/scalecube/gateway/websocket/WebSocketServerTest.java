@@ -13,12 +13,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_MANY;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_DTO_ONE;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
 import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_POJO_MANY;
+import static io.scalecube.gateway.websocket.GreetingService.GREETING_POJO_ONE;
 import static org.junit.Assert.assertEquals;
 
 public class WebSocketServerTest {
@@ -144,13 +144,13 @@ public class WebSocketServerTest {
   }
 
   @Test
-  public void testGreetingDtoOne() {
+  public void testGreetingPojoOne() {
     resource.startServer().startServices();
 
-    String expectedQualifier = GREETING_DTO_ONE.qualifier();
+    String expectedQualifier = GREETING_POJO_ONE.qualifier();
     GreetingResponse expectedData = new GreetingResponse("Echo:hello");
 
-    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_DTO_ONE), GreetingResponse.class, TIMEOUT))
+    StepVerifier.create(resource.sendThenReceive(Mono.just(GREETING_POJO_ONE), GreetingResponse.class, TIMEOUT))
         .assertNext(msg -> {
           assertEquals(expectedQualifier, msg.qualifier());
           GreetingResponse actualData = msg.data();
@@ -161,7 +161,7 @@ public class WebSocketServerTest {
   }
 
   @Test
-  public void testGreetingDtoMany() {
+  public void testGreetingPojoMany() {
     resource.startServer().startServices();
 
     int n = 10;
@@ -170,7 +170,7 @@ public class WebSocketServerTest {
         .map(GreetingResponse::new)
         .collect(Collectors.toList());
 
-    List<GreetingResponse> actual = resource.sendThenReceive(Mono.just(GREETING_DTO_MANY), GreetingResponse.class, TIMEOUT)
+    List<GreetingResponse> actual = resource.sendThenReceive(Mono.just(GREETING_POJO_MANY), GreetingResponse.class, TIMEOUT)
         .take(n)
         .map(ServiceMessage::data)
         .cast(GreetingResponse.class)
