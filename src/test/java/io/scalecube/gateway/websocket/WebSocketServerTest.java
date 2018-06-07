@@ -1,13 +1,14 @@
 package io.scalecube.gateway.websocket;
 
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_MANY;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_FAILING_ONE;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_MANY;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_ONE;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_POJO_MANY;
-import static io.scalecube.gateway.websocket.GreetingService.GREETING_POJO_ONE;
+import static io.scalecube.gateway.examples.GreetingService.GREETING_FAILING_MANY;
+import static io.scalecube.gateway.examples.GreetingService.GREETING_FAILING_ONE;
+import static io.scalecube.gateway.examples.GreetingService.GREETING_MANY;
+import static io.scalecube.gateway.examples.GreetingService.GREETING_ONE;
+import static io.scalecube.gateway.examples.GreetingService.GREETING_POJO_MANY;
+import static io.scalecube.gateway.examples.GreetingService.GREETING_POJO_ONE;
 import static org.junit.Assert.assertEquals;
 
+import io.scalecube.gateway.examples.GreetingResponse;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;

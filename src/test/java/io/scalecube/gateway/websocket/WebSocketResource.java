@@ -1,5 +1,6 @@
 package io.scalecube.gateway.websocket;
 
+import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.transport.Address;
