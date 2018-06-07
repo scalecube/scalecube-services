@@ -12,7 +12,7 @@
   <artifactId>scalecube-gateway-examples-runner</artifactId>
 
   <properties>
-    <mainClass>io.scalecube.examples.runner.ExamplesRunner</mainClass>
+    <mainClass>io.scalecube.gateway.examples.ExamplesRunner</mainClass>
   </properties>
 
   <dependencies>
