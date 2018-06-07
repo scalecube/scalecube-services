@@ -1,8 +1,8 @@
 package io.scalecube.services.streaming;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.BaseTest;
@@ -12,7 +12,7 @@ import io.scalecube.services.api.ServiceMessage;
 
 import com.codahale.metrics.MetricRegistry;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.util.List;
