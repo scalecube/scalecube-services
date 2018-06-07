@@ -1,4 +1,4 @@
-package io.scalecube.gateway.websocket;
+package io.scalecube.gateway.examples;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

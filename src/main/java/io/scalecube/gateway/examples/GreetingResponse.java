@@ -1,4 +1,4 @@
-package io.scalecube.gateway.websocket;
+package io.scalecube.gateway.examples;
 
 public class GreetingResponse {
 
