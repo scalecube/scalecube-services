@@ -60,10 +60,17 @@ public final class WebSocketAcceptor {
     LOGGER.info("Session connected: " + session);
 
     Flux<ByteBuf> messages = session.receive()
-        .map(this::toMessage)
-        .flatMap(serviceCall::requestMany)
-        .onErrorResume(throwable -> Mono.just(ExceptionProcessor.toMessage(throwable)))
-        .map(this::toByteBuf);
+        .flatMap(frame -> {
+          ServiceMessage request;
+          try {
+            request = toMessage(frame);
+            return serviceCall.requestMany(request);
+          } catch (Throwable ex) {
+            return Flux.just(ExceptionProcessor.toMessage(ex));
+          }
+        })
+        .map(this::toByteBuf)
+        .doOnError(throwable -> session.close());
 
     Mono<Void> voidMono = session.send(messages);
 
