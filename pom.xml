@@ -11,13 +11,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-testlib</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <!-- Other dependencies -->
-    <dependency>
       <groupId>io.projectreactor.ipc</groupId>
       <artifactId>reactor-netty</artifactId>
     </dependency>
