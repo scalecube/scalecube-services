@@ -37,14 +37,12 @@ public class ServicesBenchmarksState {
 
     seed = Microservices.builder()
         .metrics(registry)
-        .build()
         .startAwait();
 
     node = Microservices.builder()
         .metrics(registry)
         .seeds(seed.cluster().address())
         .services(services)
-        .build()
         .startAwait();
 
     System.err.println("Benchmarks settings: " + settings +

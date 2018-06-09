@@ -8,13 +8,13 @@ import io.scalecube.services.exceptions.BadRequestException;
 
 import org.reactivestreams.Publisher;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.Function;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public final class LocalServiceMessageHandler implements ServiceMessageHandler {
 

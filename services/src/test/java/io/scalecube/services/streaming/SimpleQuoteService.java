@@ -1,11 +1,11 @@
 package io.scalecube.services.streaming;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class SimpleQuoteService implements QuoteService {
 

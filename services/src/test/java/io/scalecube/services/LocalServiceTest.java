@@ -8,14 +8,14 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 public class LocalServiceTest extends BaseTest {
 
@@ -31,7 +31,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     GreetingService service = node1.call().create().api(GreetingService.class);
@@ -53,7 +52,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -75,7 +73,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -99,7 +96,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     GreetingService service = node1.call().create().api(GreetingService.class);
@@ -117,7 +113,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     GreetingService service = node1.call().create().api(GreetingService.class);
@@ -138,7 +133,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     GreetingService service = node1.call().create().api(GreetingService.class);
@@ -159,7 +153,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // get a proxy to the service api.
@@ -185,7 +178,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
     GreetingService service = node1.call().create().api(GreetingService.class);
 
@@ -205,7 +197,6 @@ public class LocalServiceTest extends BaseTest {
     Microservices microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // get a proxy to the service api.

@@ -9,18 +9,16 @@ import reactor.core.publisher.Mono;
 public class ServiceTagsExample {
 
   public static void main(String[] args) {
-    Microservices gateway = Microservices.builder().build().startAwait();
+    Microservices gateway = Microservices.builder().startAwait();
 
     Microservices services1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
-        .build()
         .startAwait();
 
     Microservices services2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
-        .build()
         .startAwait();
 
     CanaryService service = gateway.call()

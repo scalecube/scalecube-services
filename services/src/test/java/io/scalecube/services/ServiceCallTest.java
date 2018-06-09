@@ -28,11 +28,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 public class ServiceCallTest extends BaseTest {
 
@@ -72,7 +72,6 @@ public class ServiceCallTest extends BaseTest {
   private Microservices serviceProvider() {
     return Microservices.builder()
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
   }
 
@@ -84,7 +83,6 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
-        .build()
         .startAwait();
 
     Call serviceCall = consumer.call();
@@ -109,7 +107,6 @@ public class ServiceCallTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // When
@@ -125,7 +122,6 @@ public class ServiceCallTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // When
@@ -142,7 +138,6 @@ public class ServiceCallTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // When
@@ -159,7 +154,6 @@ public class ServiceCallTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // When
@@ -176,7 +170,6 @@ public class ServiceCallTest extends BaseTest {
     Microservices node1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     // When
@@ -257,7 +250,6 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
-        .build()
         .startAwait();
 
     Publisher<ServiceMessage> resultFuture = consumer.call().create().requestOne(GREETING_REQ, String.class);
@@ -296,7 +288,6 @@ public class ServiceCallTest extends BaseTest {
     Microservices provider = serviceProvider();
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
-        .build()
         .startAwait();
 
     // When
@@ -339,7 +330,6 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
-        .build()
         .startAwait();
 
     Call service = consumer.call();
@@ -384,7 +374,6 @@ public class ServiceCallTest extends BaseTest {
     // Create microservices cluster.
     Microservices consumer = Microservices.builder()
         .seeds(provider.cluster().address())
-        .build()
         .startAwait();
 
     Call service = consumer.call();
@@ -411,14 +400,12 @@ public class ServiceCallTest extends BaseTest {
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl(1))
-        .build()
         .startAwait();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl(2))
-        .build()
         .startAwait();
 
     ServiceCall service = gateway.call().create();
@@ -463,7 +450,6 @@ public class ServiceCallTest extends BaseTest {
     Microservices node = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     Publisher<ServiceMessage> result = gateway.call().create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
@@ -479,7 +465,6 @@ public class ServiceCallTest extends BaseTest {
   public void test_dispatcher_local_greeting_request_completes_before_timeout() {
     Microservices gateway = Microservices.builder()
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
 
     ServiceCall service = gateway.call().create();
@@ -496,13 +481,11 @@ public class ServiceCallTest extends BaseTest {
   private Microservices provider(Microservices gateway) {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
-        .build()
         .startAwait();
   }
 
   private Microservices gateway() {
     return Microservices.builder()
-        .build()
         .startAwait();
   }
 }
