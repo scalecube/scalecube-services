@@ -2,6 +2,7 @@ package io.scalecube.services.transport;
 
 import io.scalecube.services.Reflect;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.BadRequestException;
 
@@ -15,7 +16,9 @@ import java.util.function.Function;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public final class LocalServiceMessageHandler {
+public final class LocalServiceMessageHandler implements ServiceMessageHandler {
+
+  private static final String ERROR_DATA_TYPE_MISMATCH = "Expected data of type '%s' but got '%s'";
 
   private final Method method;
   private final Object service;
@@ -37,36 +40,37 @@ public final class LocalServiceMessageHandler {
     this.isRequestTypeVoid = requestType.isAssignableFrom(Void.TYPE);
   }
 
-  public Mono<ServiceMessage> requestResponse(Object message) {
-    return ((Mono<?>) invokeMethod(message, Mono::error))
+  @Override
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
+    return Mono.from(invokeMethod(message, Mono::error))
         .map(this::toResponse)
         .switchIfEmpty(Mono.just(toEmptyResponse()));
   }
 
-  public Flux<ServiceMessage> requestStream(Object message) {
-    return ((Flux<?>) invokeMethod(message, Flux::error))
+  @Override
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
+    return Flux.from(invokeMethod(message, Flux::error))
         .map(this::toResponse)
         .switchIfEmpty(Flux.just(toEmptyResponse()));
   }
 
-  public Flux<ServiceMessage> requestChannel(Publisher<?> publisher) {
-    return ((Flux<?>) invokeMethod(publisher, Flux::error))
+  @Override
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
+    return Flux.from(invokeMethod(Flux.from(publisher).map(this::toRequest), Flux::error))
         .map(this::toResponse)
         .switchIfEmpty(Flux.just(toEmptyResponse()));
   }
 
-  public Object toRequest(ServiceMessage message) {
+  private Object toRequest(ServiceMessage message) {
     ServiceMessage request = dataCodec.decode(message, requestType);
-
     if (!isRequestTypeVoid && !isRequestTypeServiceMessage && !request.hasData(requestType)) {
-      Class<?> dataClass = Optional.ofNullable(request.data()).map(Object::getClass).orElseGet(null);
-      throw new BadRequestException(String.format("Expected data of type '%s' but got '%s'", requestType, dataClass));
+      throw new BadRequestException(String.format(ERROR_DATA_TYPE_MISMATCH,
+          requestType, Optional.ofNullable(request.data()).map(Object::getClass).orElse(null)));
     }
-
     return isRequestTypeServiceMessage ? request : request.data();
   }
 
-  public ServiceMessage toResponse(Object response) {
+  private ServiceMessage toResponse(Object response) {
     return (response instanceof ServiceMessage)
         ? (ServiceMessage) response
         : ServiceMessage.builder()
@@ -83,15 +87,30 @@ public final class LocalServiceMessageHandler {
         .build();
   }
 
-  private Publisher<?> invokeMethod(Object reqObj, Function<Throwable, Publisher<?>> exceptionMapper) {
+  private Publisher<?> invokeMethod(ServiceMessage message,
+      Function<Throwable, Publisher<?>> exceptionMapper) {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
       if (method.getParameterCount() == 0) {
         result = (Publisher<?>) method.invoke(service);
       } else {
-        result = (Publisher<?>) method.invoke(service, reqObj);
+        result = (Publisher<?>) method.invoke(service, toRequest(message));
       }
+    } catch (InvocationTargetException ex) {
+      throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
+    } catch (Throwable ex) {
+      throwable = ex;
+    }
+    return throwable != null ? exceptionMapper.apply(throwable) : result;
+  }
+
+  private Publisher<?> invokeMethod(Publisher<?> publisher,
+      Function<Throwable, Publisher<?>> exceptionMapper) {
+    Publisher<?> result = null;
+    Throwable throwable = null;
+    try {
+      result = (Publisher<?>) method.invoke(service, publisher);
     } catch (InvocationTargetException ex) {
       throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
     } catch (Throwable ex) {
