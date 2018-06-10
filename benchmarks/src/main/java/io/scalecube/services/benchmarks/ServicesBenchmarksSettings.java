@@ -13,7 +13,7 @@ public class ServicesBenchmarksSettings {
   private static final int N_THREADS = Runtime.getRuntime().availableProcessors();
   private static final Duration EXECUTION_TASK_TIME = Duration.ofSeconds(60);
   private static final Duration REPORTER_PERIOD = Duration.ofSeconds(10);
-  private static final int RESPONSE_COUNT = 100;
+  private static final int RESPONSE_COUNT = 1000;
 
   private final int nThreads;
   private final Duration executionTaskTime;
@@ -112,8 +112,7 @@ public class ServicesBenchmarksSettings {
     private Duration reporterPeriod = REPORTER_PERIOD;
     private Integer responseCount = RESPONSE_COUNT;
 
-    private Builder() {
-    }
+    private Builder() {}
 
     public Builder nThreads(Integer nThreads) {
       this.nThreads = nThreads;
