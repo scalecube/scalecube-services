@@ -18,12 +18,12 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
@@ -112,8 +112,7 @@ public class ServiceCall {
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
     String qualifier = request.qualifier();
     if (serviceHandlers.contains(qualifier)) { // local service.
-      return serviceHandlers.get(qualifier)
-          .requestResponse(request)
+      return serviceHandlers.requestResponse(request)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
       return transport.create(addressLookup(request))
@@ -142,8 +141,7 @@ public class ServiceCall {
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
     String qualifier = request.qualifier();
     if (serviceHandlers.contains(qualifier)) { // local service.
-      return serviceHandlers.get(qualifier)
-          .requestStream(request)
+      return serviceHandlers.requestStream(request)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
       return transport.create(addressLookup(request))
@@ -174,15 +172,14 @@ public class ServiceCall {
       ServiceMessage request = pair.head();
       String qualifier = request.qualifier();
 
-      Flux<ServiceMessage> requestPublisher = Flux.from(pair.tail()).startWith(request);
+      Flux<ServiceMessage> publisher1 = Flux.from(pair.tail()).startWith(request);
 
       if (serviceHandlers.contains(qualifier)) { // local service.
-        return serviceHandlers.get(qualifier)
-            .requestChannel(requestPublisher)
+        return serviceHandlers.requestChannel(publisher1)
             .onErrorMap(ExceptionProcessor::mapException);
       } else { // remote service.
         return transport.create(addressLookup(request))
-            .requestChannel(requestPublisher)
+            .requestChannel(publisher1)
             .map(message -> dataCodec.decode(message, responseType));
       }
     });

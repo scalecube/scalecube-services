@@ -15,32 +15,32 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServiceClientAdapter implements ClientChannel {
 
-  private Mono<RSocket> rSocket;
+  private Publisher<RSocket> rSocket;
   private ServiceMessageCodec messageCodec;
 
-  public RSocketServiceClientAdapter(Mono<RSocket> rSocket, ServiceMessageCodec codec) {
+  public RSocketServiceClientAdapter(Publisher<RSocket> rSocket, ServiceMessageCodec codec) {
     this.rSocket = rSocket;
     this.messageCodec = codec;
   }
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
-    return rSocket
+    return Mono.from(rSocket)
         .flatMap(rSocket -> rSocket.requestResponse(toPayload(message)))
         .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
-    return rSocket
-        .flatMapMany(rSocket -> rSocket.requestStream(toPayload(message)))
+    return Flux.from(rSocket)
+        .flatMap(rSocket -> rSocket.requestStream(toPayload(message)))
         .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
-    return rSocket
-        .flatMapMany(rSocket -> rSocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
+    return Flux.from(rSocket)
+        .flatMap(rSocket -> rSocket.requestChannel(Flux.from(publisher).map(this::toPayload)))
         .map(this::toMessage);
   }
 

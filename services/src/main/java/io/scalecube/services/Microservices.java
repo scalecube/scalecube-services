@@ -14,7 +14,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.DefaultServiceMessageAcceptor;
 import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
@@ -23,8 +22,6 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 
 import com.codahale.metrics.MetricRegistry;
-
-import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -35,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import reactor.core.publisher.Mono;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -132,7 +131,7 @@ public class Microservices {
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
     InetSocketAddress socketAddress = new InetSocketAddress(Addressing.getLocalIpAddress(), builder.servicePort);
-    InetSocketAddress address = server.bindAwait(socketAddress, new DefaultServiceMessageAcceptor(serviceHandlers));
+    InetSocketAddress address = server.bindAwait(socketAddress, serviceHandlers);
     serviceAddress = Address.create(address.getHostString(), address.getPort());
 
     serviceRegistry = new ServiceRegistryImpl();
@@ -271,7 +270,7 @@ public class Microservices {
     Router router = Routers.getRouter(RoundRobinServiceRouter.class);
     return new Call(client, serviceHandlers, serviceRegistry).metrics(metrics).router(router);
   }
-  
+
   public Mono<Void> shutdown() {
     return Mono.when(Mono.fromFuture(cluster.shutdown()), server.stop());
   }
