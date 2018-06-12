@@ -5,9 +5,9 @@ import scala.concurrent.duration._
 class RequestResponseTest extends Simulation {
   // Base test parameters
   val host = System.getProperty("host", "localhost")
-  val port = Integer.getInteger("port", 8080)
+  val port = Integer.getInteger("port", 9090)
   val users = Integer.getInteger("users", 5000)
-  val duration = Integer.getInteger("duration", 60)
+  val duration = Integer.getInteger("duration", 9)
   // Derived test parameters
   val rampUpDuration: Integer = duration.toInt / 10
   val scenarioDuration: Integer = 8 * duration.toInt / 10
