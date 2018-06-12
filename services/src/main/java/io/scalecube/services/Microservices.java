@@ -14,7 +14,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.DefaultServiceMessageAcceptor;
 import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
@@ -132,7 +131,7 @@ public class Microservices {
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
     InetSocketAddress socketAddress = new InetSocketAddress(Addressing.getLocalIpAddress(), builder.servicePort);
-    InetSocketAddress address = server.bindAwait(socketAddress, new DefaultServiceMessageAcceptor(serviceHandlers));
+    InetSocketAddress address = server.bindAwait(socketAddress, serviceHandlers);
     serviceAddress = Address.create(address.getHostString(), address.getPort());
 
     serviceRegistry = new ServiceRegistryImpl();
@@ -151,14 +150,10 @@ public class Microservices {
     clusterConfig = builder.clusterConfig;
   }
 
-  public Mono<Microservices> start() {
+  private Mono<Microservices> start() {
     clusterConfig.addMetadata(serviceRegistry.listServiceEndpoints().stream()
         .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
     return Mono.fromFuture(Cluster.join(clusterConfig.build())).map(this::init);
-  }
-
-  public Microservices startAwait() {
-    return start().block();
   }
 
   public Metrics metrics() {
@@ -185,10 +180,20 @@ public class Microservices {
     /**
      * Microservices instance builder.
      *
+     * @return Mono<Microservices> instance.
+     */
+    public Mono<Microservices> start() {
+      Microservices instance = new Microservices(this);
+      return instance.start();
+    }
+
+    /**
+     * Microservices instance builder.
+     *
      * @return Microservices instance.
      */
-    public Microservices build() {
-      return new Microservices(this);
+    public Microservices startAwait() {
+      return new Microservices(this).start().block();
     }
 
     public Builder server(ServerTransport server) {
@@ -265,7 +270,7 @@ public class Microservices {
     Router router = Routers.getRouter(RoundRobinServiceRouter.class);
     return new Call(client, serviceHandlers, serviceRegistry).metrics(metrics).router(router);
   }
-  
+
   public Mono<Void> shutdown() {
     return Mono.when(Mono.fromFuture(cluster.shutdown()), server.stop());
   }

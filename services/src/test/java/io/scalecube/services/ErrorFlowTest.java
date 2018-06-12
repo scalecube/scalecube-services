@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static reactor.core.publisher.Mono.from;
 
 import io.scalecube.services.api.ServiceMessage;
@@ -7,9 +8,9 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,51 +22,48 @@ public class ErrorFlowTest {
   private static Microservices consumer;
 
 
-  @BeforeClass
+  @BeforeAll
   public static void initNodes() {
     provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
     consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(provider.cluster().address())
-        .build()
         .startAwait();
   }
 
-  @AfterClass
+  @AfterAll
   public static void shutdownNodes() {
     consumer.shutdown().block();
     provider.shutdown().block();
   }
 
-  @Test(expected = BadRequestException.class)
+  @Test
   public void testCorruptedRequest() {
     Publisher<ServiceMessage> req = consumer
         .call().create().requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
-    from(req).block();
+    assertThrows(BadRequestException.class, () -> from(req).block());
   }
 
-  @Test(expected = UnauthorizedException.class)
+  @Test
   public void testNotAuthorized() {
     Publisher<ServiceMessage> req = consumer
         .call().create().requestOne(TestRequests.GREETING_UNAUTHORIZED_REQUEST, GreetingResponse.class);
-    from(req).block();
+    assertThrows(UnauthorizedException.class, () -> from(req).block());
   }
 
-  @Test(expected = BadRequestException.class)
+  @Test
   public void testNullRequestPayload() {
     Publisher<ServiceMessage> req = consumer
         .call().create().requestOne(TestRequests.GREETING_NULL_PAYLOAD, GreetingResponse.class);
-    from(req).block();
+    assertThrows(BadRequestException.class, () -> from(req).block());
   }
 
-  @Test(expected = ServiceUnavailableException.class)
+  @Test
   public void testServiceUnavailable() {
-    Publisher<ServiceMessage> req = consumer
-        .call().create().requestOne(TestRequests.NOT_FOUND_REQ);
-    from(req).block();
+    assertThrows(ServiceUnavailableException.class, () ->
+            consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ));
   }
 }

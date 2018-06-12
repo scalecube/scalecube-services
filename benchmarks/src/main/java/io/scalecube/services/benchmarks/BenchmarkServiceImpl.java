@@ -1,10 +1,10 @@
 package io.scalecube.services.benchmarks;
 
-import java.util.stream.IntStream;
-
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.stream.IntStream;
 
 public class BenchmarkServiceImpl implements BenchmarkService {
 
@@ -21,6 +21,11 @@ public class BenchmarkServiceImpl implements BenchmarkService {
   @Override
   public Flux<String> requestMany(int count) {
     return Flux.fromStream(IntStream.range(0, count).mapToObj(i -> "response-" + i));
+  }
+
+  @Override
+  public Flux<Long> nanoTime(int count) {
+    return Flux.fromStream(IntStream.range(0, count).mapToObj(i -> System.nanoTime()));
   }
 
   @Override

@@ -5,55 +5,45 @@ import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collection;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@RunWith(Parameterized.class)
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.stream.Stream;
+
 public class ReflectTest {
-  @Parameterized.Parameters(name = "method:{0}, mode:{1}")
-  public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][] {
-        {"fireAndForget", FIRE_AND_FORGET},
-        {"emptyResponse", REQUEST_RESPONSE},
-        {"requestResponse", REQUEST_RESPONSE},
-        {"requestStream", REQUEST_STREAM},
-        {"requestChannel", REQUEST_CHANNEL},
-    });
-  }
 
-  private String methodName;
-  private CommunicationMode expectedMode;
-
-  public ReflectTest(String methodName, CommunicationMode expectedMode) {
-    this.methodName = methodName;
-    this.expectedMode = expectedMode;
-  }
-
-  @Test
-  public void testCommunicationMode() {
+  @ParameterizedTest
+  @MethodSource("argsProvider")
+  public void testCommunicationMode(String methodName, CommunicationMode expectedMode) {
     // Given:
     Method m = Arrays.stream(TestService.class.getMethods()).filter(meth -> meth.getName().equals(methodName))
         .findFirst().get();
     // When:
     CommunicationMode communicationMode = Reflect.communicationMode(m);
     // Then:
-    Assert.assertEquals("Invalid communicationMode", expectedMode, communicationMode);
+    Assertions.assertEquals(expectedMode, communicationMode, "Invalid communicationMode");
+  }
+
+  static Stream<Arguments> argsProvider() {
+    return Stream.of(
+        Arguments.of("fireAndForget", FIRE_AND_FORGET),
+        Arguments.of("requestResponse", REQUEST_RESPONSE),
+        Arguments.of("requestStream", REQUEST_STREAM),
+        Arguments.of("requestChannel", REQUEST_CHANNEL));
   }
 
   private interface TestService {
     void fireAndForget(Integer i);
-    
+
     Mono<Void> emptyResponse(Integer i);
-    
+
     Mono<Integer> requestResponse(Integer i);
 
     Flux<Integer> requestStream(Integer i);

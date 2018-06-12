@@ -2,8 +2,8 @@ package io.scalecube.services;
 
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.a.b.testing.CanaryService;
@@ -15,16 +15,16 @@ import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 3;
@@ -32,12 +32,12 @@ public class RoutersTest extends BaseTest {
 
   private Microservices gateway;
 
-  @Before
+  @BeforeEach
   public void setup() {
-    this.gateway = Microservices.builder().build().startAwait();
+    this.gateway = Microservices.builder().startAwait();
   }
 
-  @After
+  @AfterEach
   public void tearDown() {
     gateway.shutdown().block();
   }
@@ -61,14 +61,12 @@ public class RoutersTest extends BaseTest {
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl(1))
-        .build()
         .startAwait();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .services(new GreetingServiceImpl(2))
-        .build()
         .startAwait();
 
     ServiceCall service = gateway.call().create();
@@ -93,14 +91,12 @@ public class RoutersTest extends BaseTest {
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImpl(1)).tag("SENDER", "1").register()
-        .build()
         .startAwait();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImpl(2)).tag("SENDER", "2").register()
-        .build()
         .startAwait();
 
     Call service = gateway.call().router((reg, msg) -> reg.listServiceReferences().stream().filter(ref -> "2".equals(
@@ -123,14 +119,12 @@ public class RoutersTest extends BaseTest {
     Microservices provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImpl(1)).tag("ONLYFOR", "joe").register()
-        .build()
         .startAwait();
 
     // Create microservices instance cluster.
     Microservices provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImpl(2)).tag("ONLYFOR", "fransin").register()
-        .build()
         .startAwait();
 
     ServiceCall service = gateway.call().router(
@@ -156,13 +150,11 @@ public class RoutersTest extends BaseTest {
     Microservices services1 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
-        .build()
         .startAwait();
 
     Microservices services2 = Microservices.builder()
         .seeds(gateway.cluster().address())
         .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
-        .build()
         .startAwait();
 
     System.out.println(gateway.cluster().members());

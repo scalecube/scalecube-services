@@ -4,15 +4,17 @@ import io.scalecube.services.Microservices;
 
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.CsvReporter;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
+
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 public class ServicesBenchmarksState {
 
@@ -37,14 +39,12 @@ public class ServicesBenchmarksState {
 
     seed = Microservices.builder()
         .metrics(registry)
-        .build()
         .startAwait();
 
     node = Microservices.builder()
         .metrics(registry)
         .seeds(seed.cluster().address())
         .services(services)
-        .build()
         .startAwait();
 
     System.err.println("Benchmarks settings: " + settings +
@@ -118,5 +118,13 @@ public class ServicesBenchmarksState {
 
   public Timer timer() {
     return registry.timer(settings.taskName() + "-timer");
+  }
+
+  public Meter meter(String name) {
+    return registry.meter(settings.taskName() + "-" + name);
+  }
+
+  public Histogram histogram(String name) {
+    return registry.histogram(settings.taskName() + "-" + name);
   }
 }
