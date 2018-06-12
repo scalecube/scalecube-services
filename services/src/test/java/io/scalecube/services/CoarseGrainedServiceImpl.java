@@ -3,9 +3,9 @@ package io.scalecube.services;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 
-import java.time.Duration;
-
 import reactor.core.publisher.Mono;
+
+import java.time.Duration;
 
 public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 

@@ -6,6 +6,7 @@ import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 import static java.util.Objects.requireNonNull;
 
+import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.Null;
 import io.scalecube.services.annotations.RequestType;
@@ -23,6 +24,9 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -34,11 +38,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Service Injector scan and injects beans to a given Microservices instance.
@@ -82,18 +81,18 @@ public class Reflect {
     private void inject(Collection<Object> collection) {
       for (Object instance : collection) {
         scanServiceFields(instance);
-        processPostConstruct(instance);
+        processAfterConstruct(instance);
       }
     }
 
-    private void processPostConstruct(Object targetInstance) {
+    private void processAfterConstruct(Object targetInstance) {
       Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
       Arrays.stream(declaredMethods)
-          .filter(method -> method.isAnnotationPresent(PostConstruct.class))
-          .forEach(postConstructMethod -> {
+          .filter(method -> method.isAnnotationPresent(AfterConstruct.class))
+          .forEach(afterConstructMethod -> {
             try {
-              postConstructMethod.setAccessible(true);
-              Object[] paramters = Arrays.asList(postConstructMethod.getParameters()).stream().map(mapper -> {
+              afterConstructMethod.setAccessible(true);
+              Object[] parameters = Arrays.stream(afterConstructMethod.getParameters()).map(mapper -> {
                 if (mapper.getType().equals(Microservices.class)) {
                   return this.microservices;
                 } else if (isService(mapper.getType())) {
@@ -101,8 +100,8 @@ public class Reflect {
                 } else {
                   return null;
                 }
-              }).collect(Collectors.toList()).toArray();
-              postConstructMethod.invoke(targetInstance, paramters);
+              }).toArray();
+              afterConstructMethod.invoke(targetInstance, parameters);
             } catch (Exception ex) {
               throw new RuntimeException(ex);
             }

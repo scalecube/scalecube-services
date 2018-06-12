@@ -27,7 +27,7 @@ public class RoundRobinServiceRouter implements Router {
     if (serviceInstances.size() > 1) {
       AtomicInteger counter = counterByServiceName
           .computeIfAbsent(request.qualifier(), or -> new AtomicInteger());
-      int index = counter.incrementAndGet() % serviceInstances.size();
+      int index = (counter.incrementAndGet() & Integer.MAX_VALUE) % serviceInstances.size();
       return Optional.of(serviceInstances.get(index));
     } else if (serviceInstances.size() == 1) {
       return Optional.of(serviceInstances.get(0));

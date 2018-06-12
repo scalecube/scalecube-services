@@ -36,4 +36,7 @@ public interface BenchmarkService {
 
   @ServiceMethod
   Flux<String> requestBidirectionalEcho(Flux<String> counts);
+
+  @ServiceMethod
+  Flux<Long> nanoTime(int count);
 }

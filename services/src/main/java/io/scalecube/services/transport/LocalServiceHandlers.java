@@ -1,19 +1,21 @@
 package io.scalecube.services.transport;
 
 import io.scalecube.services.Reflect;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessageHandler;
 
-import java.util.Collection;
-import java.util.Collections;
+import org.reactivestreams.Publisher;
+
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public final class LocalServiceHandlers {
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-  private ConcurrentMap<String, ServiceMessageHandler> localServices = new ConcurrentHashMap<>();
+public final class LocalServiceHandlers implements ServiceMessageHandler {
 
-  private List<Object> services;
+  private ConcurrentMap<String, LocalServiceMessageHandler> localServices = new ConcurrentHashMap<>();
 
   private LocalServiceHandlers() {
     // Do not instantiate
@@ -37,8 +39,6 @@ public final class LocalServiceHandlers {
   }
 
   private LocalServiceHandlers(List<Object> serviceObjects) {
-    this.services = Collections.singletonList(serviceObjects);
-
     serviceObjects.forEach(service -> {
       Reflect.serviceInterfaces(service).forEach(serviceInterface -> {
         Reflect.serviceMethods(serviceInterface).forEach((key, method) -> {
@@ -46,7 +46,7 @@ public final class LocalServiceHandlers {
           Reflect.validateMethodOrThrow(method);
           // then keep it
           String qualifier = Reflect.qualifier(serviceInterface, method);
-          put(qualifier, new LocalServiceMessageHandler(qualifier, service, method));
+          localServices.put(qualifier, new LocalServiceMessageHandler(qualifier, service, method));
         });
       });
     });
@@ -56,15 +56,33 @@ public final class LocalServiceHandlers {
     return localServices.get(qualifier) != null;
   }
 
-  public Collection<Object> services() {
-    return Collections.unmodifiableCollection(this.services);
+  @Override
+  public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
+    try {
+      LocalServiceMessageHandler dispatcher = localServices.get(message.qualifier());
+      return dispatcher.requestResponse(dispatcher.toRequest(message));
+    } catch (Throwable t) {
+      return Mono.error(t);
+    }
   }
 
-  public ServiceMessageHandler get(String qualifier) {
-    return localServices.get(qualifier);
+  @Override
+  public Flux<ServiceMessage> requestStream(ServiceMessage message) {
+    try {
+      LocalServiceMessageHandler dispatcher = localServices.get(message.qualifier());
+      return dispatcher.requestStream(dispatcher.toRequest(message));
+    } catch (Throwable t) {
+      return Flux.error(t);
+    }
   }
 
-  private void put(String qualifier, ServiceMessageHandler handler) {
-    localServices.put(qualifier, handler);
+  @Override
+  public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
+    return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
+      ServiceMessage message = pair.head();
+      LocalServiceMessageHandler dispatcher = localServices.get(message.qualifier());
+      Flux<ServiceMessage> publisher1 = Flux.from(pair.tail()).startWith(message);
+      return dispatcher.requestChannel(publisher1.map(dispatcher::toRequest));
+    });
   }
 }

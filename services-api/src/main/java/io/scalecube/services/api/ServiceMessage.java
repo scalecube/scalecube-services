@@ -19,7 +19,6 @@ public final class ServiceMessage {
    * to be used by application directly and it is subject to changes in future releases.
    */
   public static final String HEADER_DATA_TYPE = "_type";
-  public static final String HEADER_RESPONSE_DATA_TYPE = "_response_type";
   public static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = Collections.emptyMap();
@@ -100,24 +99,6 @@ public final class ServiceMessage {
    */
   public String qualifier() {
     return header(HEADER_QUALIFIER);
-  }
-
-  /**
-   * Returns message qualifier.
-   * 
-   * @return qualifier string
-   */
-  public Class<?> responseType() {
-    try {
-      String typeAsString = header(HEADER_RESPONSE_DATA_TYPE);
-      if (typeAsString != null) {
-        return Class.forName(typeAsString);
-      } else {
-        return null;
-      }
-    } catch (ClassNotFoundException e) {
-      return null;
-    }
   }
 
   /**
