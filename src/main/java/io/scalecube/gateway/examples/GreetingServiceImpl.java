@@ -16,7 +16,6 @@ public class GreetingServiceImpl implements GreetingService {
   public Flux<String> manyStream(EchoRequest name) {
     return Flux.interval(Duration.ofMillis(name.getFrequencyMillis())).map(i -> {
       String resp = name.getName() + ":" + i;
-      System.out.println(">> " + resp);
       return resp;
     });
   }
