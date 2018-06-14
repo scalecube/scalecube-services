@@ -12,9 +12,9 @@ class RequestStreamTest extends Simulation {
   val frequencyMillis: Integer = Integer.getInteger("frequencyMillis", 1000)
 
   // Derived test parameters: 1/10 - rampup, 8/10 - load, 1/10 - rampdown
-  val scenarioDuration: Integer = 2 * duration.toInt / 10 * 8
+  val scenarioDuration: Integer = 2 * duration.toInt / 3
   val echoParam = """echoName"""
-  val rampUpDuration: Integer = if (duration.toInt >= 10) duration.toInt / 10 else 1
+  val rampUpDuration: Integer = if (duration.toInt >= 3) duration.toInt / 3 else 1
   val times = scenarioDuration.toInt * frequencyMillis.toInt / 1000
 
   // Scenario parameters

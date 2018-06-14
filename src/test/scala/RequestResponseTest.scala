@@ -7,10 +7,10 @@ class RequestResponseTest extends Simulation {
   val host = System.getProperty("host", "localhost")
   val port = Integer.getInteger("port", 9090)
   val users = Integer.getInteger("users", 5000)
-  val duration = Integer.getInteger("duration", 9)
+  val duration = Integer.getInteger("duration", 900)
   // Derived test parameters
-  val rampUpDuration: Integer = duration.toInt / 10
-  val scenarioDuration: Integer = 8 * duration.toInt / 10
+  val rampUpDuration: Integer = duration.toInt / 3
+  val scenarioDuration: Integer = 2 * duration.toInt / 3
 
   val url = s"ws://$host:$port"
   val echoRequest = """{"headers":{"q":"/greeting/one"},"data":"echoName"}"""
