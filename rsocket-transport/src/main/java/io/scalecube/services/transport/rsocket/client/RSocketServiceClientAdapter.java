@@ -2,11 +2,11 @@ package io.scalecube.services.transport.rsocket.client;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.transport.client.api.ClientChannel;
 
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
-import io.rsocket.exceptions.ConnectionErrorException;
 import io.rsocket.util.ByteBufPayload;
 
 import org.reactivestreams.Publisher;
@@ -59,6 +59,10 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   private <T> Mono<T> listenConnectionClose(RSocket rSocket) {
     return rSocket.onClose()
         .map(aVoid -> (T) aVoid)
-        .switchIfEmpty(Mono.error(new ConnectionErrorException("Connection closed")));
+        .switchIfEmpty(Mono.defer(this::toConnectionClosedException));
+  }
+
+  private <T> Mono<T> toConnectionClosedException() {
+    return Mono.error(new ConnectionClosedException("Connection closed"));
   }
 }
