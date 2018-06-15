@@ -1,11 +1,11 @@
 package io.scalecube.services.streaming;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class SimpleQuoteService implements QuoteService {
 
@@ -31,5 +31,15 @@ public class SimpleQuoteService implements QuoteService {
   @Override
   public Flux<String> snapshot(int size) {
     return Flux.fromStream(IntStream.range(0, size).boxed().map(i -> "tick:" + i));
+  }
+
+  @Override
+  public Mono<String> justNever() {
+    return Mono.never();
+  }
+
+  @Override
+  public Flux<String> justManyNever() {
+    return Flux.never();
   }
 }
