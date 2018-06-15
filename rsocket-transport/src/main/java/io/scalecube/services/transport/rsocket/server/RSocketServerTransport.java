@@ -1,13 +1,12 @@
 package io.scalecube.services.transport.rsocket.server;
 
+import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.server.api.ServerTransport;
 
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.transport.netty.server.TcpServerTransport;
-import io.rsocket.util.ByteBufPayload;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +34,7 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public InetSocketAddress bindAwait(InetSocketAddress address, ServiceMethodRegistry methodRegistry) {
+  public InetSocketAddress bindAwait(InetSocketAddress address, ServiceMessageHandler acceptor) {
     TcpServer tcpServer =
         TcpServer.create(options -> options
             .listenAddress(address)
@@ -49,8 +48,7 @@ public class RSocketServerTransport implements ServerTransport {
             }));
 
     this.server = RSocketFactory.receive()
-        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
-        .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
+        .acceptor(new RSocketServiceAcceptor(acceptor, codec))
         .transport(TcpServerTransport.create(tcpServer))
         .start()
         .block();

@@ -6,7 +6,7 @@
   <artifactId>scalecube-services-parent</artifactId>
   <version>2.0.26-SNAPSHOT</version>
 
-  <packaging>pom</packaging>
+<packaging>pom</packaging>
 
   <name>ScaleCube</name>
   <description>
@@ -56,9 +56,11 @@
   </distributionManagement>
 
   <properties>
+    <argLine>-Xms1024m -Xmx2048m</argLine>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <jackson.version>2.9.0</jackson.version>
     <scalecube.version>1.0.9</scalecube.version>
-    <scalecube-benchmarks.version>1.1.1</scalecube-benchmarks.version>
     <reactor.version>3.1.6.RELEASE</reactor.version>
     <rxjava.version>1.3.8</rxjava.version>
     <metrics.version>3.1.2</metrics.version>
@@ -68,15 +70,6 @@
     <netty.version>4.1.25.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>2.6.2</log4j.version>
-    <jsr305.version>3.0.2</jsr305.version>
-    <jctools.version>2.1.2</jctools.version>
-    <junit.jupiter.version>5.2.0</junit.jupiter.version>
-    <hamcrest-all.version>1.3</hamcrest-all.version>
-
-    <argLine>-Xms1024m -Xmx2048m</argLine>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
     <maven-compiler-plugin.version>3.7.0</maven-compiler-plugin.version>
     <maven-source-plugin.version>3.0.1</maven-source-plugin.version>
     <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
@@ -85,7 +78,10 @@
     <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
     <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
     <maven-enforcer-plugin.version>3.0.0-M1</maven-enforcer-plugin.version>
-    <maven-shade-plugin.version>3.1.0</maven-shade-plugin.version>
+    <jsr305.version>3.0.2</jsr305.version>
+    <jctools.version>2.1.2</jctools.version>
+    <junit.jupiter.version>5.2.0</junit.jupiter.version>
+    <hamcrest-all.version>1.3</hamcrest-all.version>
   </properties>
 
   <modules>
@@ -96,7 +92,6 @@
     <module>services-codec-jackson</module>
     <module>services</module>
     <module>benchmarks</module>
-    <module>examples</module>
   </modules>
 
   <dependencyManagement>
@@ -214,11 +209,6 @@
       </dependency>
 
       <!-- Other libs -->
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-benchmarks-api</artifactId>
-        <version>${scalecube-benchmarks.version}</version>
-      </dependency>
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>

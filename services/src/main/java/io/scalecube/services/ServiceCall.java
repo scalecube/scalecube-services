@@ -1,48 +1,46 @@
 package io.scalecube.services;
 
-import static java.util.Objects.requireNonNull;
-
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.codec.ServiceMessageDataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.methods.MethodInfo;
-import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
+import io.scalecube.services.transport.HeadAndTail;
+import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
+
+import com.google.common.base.Optional;
 
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   private final ClientTransport transport;
-  private final ServiceMethodRegistry methodRegistry;
+  private final LocalServiceHandlers serviceHandlers;
   private final ServiceRegistry serviceRegistry;
   private final Router router;
   private final Metrics metrics;
+  private final ServiceMessageDataCodec dataCodec = new ServiceMessageDataCodec();
 
   ServiceCall(Call call) {
     this.transport = call.transport;
-    this.methodRegistry = call.methodRegistry;
+    this.serviceHandlers = call.serviceHandlers;
     this.serviceRegistry = call.serviceRegistry;
     this.router = call.router;
     this.metrics = call.metrics;
@@ -50,19 +48,20 @@ public class ServiceCall {
 
   public static class Call {
 
-    private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+    private Router router;
     private Metrics metrics;
 
     private final ClientTransport transport;
-    private final ServiceMethodRegistry methodRegistry;
+    private final LocalServiceHandlers serviceHandlers;
     private final ServiceRegistry serviceRegistry;
 
+
     public Call(ClientTransport transport,
-        ServiceMethodRegistry methodRegistry,
+        LocalServiceHandlers serviceHandlers,
         ServiceRegistry serviceRegistry) {
       this.transport = transport;
       this.serviceRegistry = serviceRegistry;
-      this.methodRegistry = methodRegistry;
+      this.serviceHandlers = serviceHandlers;
     }
 
     public Call router(Class<? extends Router> routerType) {
@@ -86,24 +85,13 @@ public class ServiceCall {
   }
 
   /**
-   * Issues fire-and-forget request.
+   * Issues fire-and-rorget request.
    *
    * @param request request message to send.
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
     return requestOne(request, Void.class).then();
-  }
-
-  /**
-   * Issues fire-and-forget request.
-   *
-   * @param request request message to send.
-   * @param address of remote target service to invoke.
-   * @return mono publisher completing normally or with error.
-   */
-  public Mono<Void> oneWay(ServiceMessage request, Address address) {
-    return requestOne(request, Void.class, address).then();
   }
 
   /**
@@ -125,28 +113,14 @@ public class ServiceCall {
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
     String qualifier = request.qualifier();
-    if (methodRegistry.containsInvoker(qualifier)) { // local service.
-      return methodRegistry.getInvoker(request.qualifier())
-          .invokeOne(request, ServiceMessageCodec::decodeData)
+    if (serviceHandlers.contains(qualifier)) { // local service.
+      return serviceHandlers.requestResponse(request)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
-      return requestOne(request, responseType, addressLookup(request));
+      return transport.create(addressLookup(request))
+          .requestResponse(request)
+          .map(message -> dataCodec.decode(message, responseType));
     }
-  }
-
-  /**
-   * Given an address issues request-and-reply request to a remote address.
-   *
-   * @param request request message to send.
-   * @param responseType type of response.
-   * @param address of remote target service to invoke.
-   * @return mono publisher completing with single response message or with error.
-   */
-  public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType, Address address) {
-    requireNonNull(address, "requestOne address paramter is required and must not be null");
-    return transport.create(address)
-        .requestResponse(request)
-        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
   }
 
   /**
@@ -168,28 +142,14 @@ public class ServiceCall {
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
     String qualifier = request.qualifier();
-    if (methodRegistry.containsInvoker(qualifier)) { // local service.
-      return methodRegistry.getInvoker(request.qualifier())
-          .invokeMany(request, ServiceMessageCodec::decodeData)
+    if (serviceHandlers.contains(qualifier)) { // local service.
+      return serviceHandlers.requestStream(request)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
-      return requestMany(request, responseType, addressLookup(request));
+      return transport.create(addressLookup(request))
+          .requestStream(request)
+          .map(message -> dataCodec.decode(message, responseType));
     }
-  }
-
-  /**
-   * Given an address issues request to remote service which returns stream of service messages back.
-   *
-   * @param request request with given headers.
-   * @param responseType type of responses.
-   * @param address of remote target service to invoke.
-   * @return flux publisher of service responses.
-   */
-  public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType, Address address) {
-    requireNonNull(address, "requestMany address paramter is required and must not be null");
-    return transport.create(address)
-        .requestStream(request)
-        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
   }
 
   /**
@@ -213,33 +173,18 @@ public class ServiceCall {
     return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
       ServiceMessage request = pair.head();
       String qualifier = request.qualifier();
-      Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(request);
 
-      if (methodRegistry.containsInvoker(qualifier)) { // local service.
-        return methodRegistry.getInvoker(qualifier)
-            .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
+      Flux<ServiceMessage> publisher1 = Flux.from(pair.tail()).startWith(request);
+
+      if (serviceHandlers.contains(qualifier)) { // local service.
+        return serviceHandlers.requestChannel(publisher1)
             .onErrorMap(ExceptionProcessor::mapException);
       } else { // remote service.
-        return requestBidirectional(messages, responseType, addressLookup(request));
+        return transport.create(addressLookup(request))
+            .requestChannel(publisher1)
+            .map(message -> dataCodec.decode(message, responseType));
       }
     });
-  }
-
-  /**
-   * Given an address issues stream of service requests to service which returns stream of service messages back.
-   *
-   * @param publisher of service requests.
-   * @param responseType type of responses.
-   * @param address of remote target service to invoke.
-   * @return flux publisher of service responses.
-   */
-  public Flux<ServiceMessage> requestBidirectional(Publisher<ServiceMessage> publisher, Class<?> responseType,
-      Address address) {
-    requireNonNull(address, "requestBidirectional address paramter is required and must not be null");
-    return transport.create(address)
-        .requestChannel(publisher)
-        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
-
   }
 
   /**
@@ -257,35 +202,30 @@ public class ServiceCall {
     // noinspection unchecked
     return (T) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] {serviceInterface},
         (proxy, method, params) -> {
-          final MethodInfo methodInfo = genericReturnTypes.get(method);
-          final Class<?> returnType = methodInfo.parameterizedReturnType();
-          final boolean isServiceMessage = methodInfo.isRequestTypeServiceMessage();
-
+          MethodInfo methodInfo = genericReturnTypes.get(method);
           Optional<Object> check = toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
           if (check.isPresent()) {
             return check.get(); // toString, hashCode was invoked.
           }
 
+          ServiceMessage request = ServiceMessage.builder()
+              .qualifier(methodInfo.serviceName(), method.getName())
+              .data(method.getParameterCount() != 0 ? params[0] : NullData.NULL_DATA)
+              .build();
+
           Metrics.mark(serviceInterface, metrics, method, "request");
 
           switch (methodInfo.communicationMode()) {
             case FIRE_AND_FORGET:
-              return serviceCall.oneWay(toServiceMessage(methodInfo, params));
-
+              return serviceCall.oneWay(request);
             case REQUEST_RESPONSE:
-              return serviceCall.requestOne(toServiceMessage(methodInfo, params), returnType)
-                  .transform(asMono(isServiceMessage));
-
+              return serviceCall.requestOne(request, methodInfo.parameterizedReturnType())
+                  .transform(mono -> methodInfo.isRequestTypeServiceMessage() ? mono : mono.map(ServiceMessage::data));
             case REQUEST_STREAM:
-              return serviceCall.requestMany(toServiceMessage(methodInfo, params), returnType)
-                  .transform(asFlux(isServiceMessage));
-
+              return serviceCall.requestMany(request, methodInfo.parameterizedReturnType())
+                  .transform(flux -> methodInfo.isRequestTypeServiceMessage() ? flux : flux.map(ServiceMessage::data));
             case REQUEST_CHANNEL:
-              // this is REQUEST_CHANNEL so it means params[0] must be a publisher - its safe to cast.
-              return serviceCall.requestBidirectional(Flux.from((Publisher) params[0])
-                  .map(data -> toServiceMessage(methodInfo, data)), returnType)
-                  .transform(asFlux(isServiceMessage));
-
+              // falls to default
             default:
               throw new IllegalArgumentException("Communication mode is not supported: " + method);
           }
@@ -298,27 +238,6 @@ public class ServiceCall {
             .orElseThrow(() -> noReachableMemberException(request));
 
     return Address.create(serviceReference.host(), serviceReference.port());
-  }
-
-  private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
-    return ServiceMessage.builder()
-        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-        .data(methodInfo.parameterCount() != 0 ? params[0] : NullData.NULL_DATA)
-        .build();
-  }
-
-  private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
-      boolean isRequestTypeServiceMessage) {
-    return flux -> isRequestTypeServiceMessage
-        ? flux
-        : flux.map(ServiceMessage::data);
-  }
-
-  private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
-      boolean isRequestTypeServiceMessage) {
-    return mono -> isRequestTypeServiceMessage
-        ? mono
-        : mono.map(ServiceMessage::data);
   }
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
@@ -347,7 +266,7 @@ public class ServiceCall {
         return Optional.of(serviceInterface.hashCode());
 
       default:
-        return Optional.empty();
+        return Optional.absent();
     }
   }
 }

@@ -6,20 +6,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.sut.QuoteService;
-import io.scalecube.services.sut.SimpleQuoteService;
+import io.scalecube.services.streaming.QuoteService;
+import io.scalecube.services.streaming.SimpleQuoteService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import reactor.core.Disposable;
 
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import reactor.core.Disposable;
 
 public class ServiceTransportTest {
 

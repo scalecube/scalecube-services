@@ -8,7 +8,6 @@ import io.scalecube.transport.Address;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.TcpClientTransport;
-import io.rsocket.util.ByteBufPayload;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final ThreadLocal<Map<Address, Mono<RSocket>>> rSockets = ThreadLocal.withInitial(ConcurrentHashMap::new);
+  private final Map<Address, Mono<RSocket>> rSockets = new ConcurrentHashMap<>();
 
   private final ServiceMessageCodec codec;
 
@@ -33,7 +32,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(Address address) {
-    final Map<Address, Mono<RSocket>> monoMap = rSockets.get(); // keep reference for threadsafety
+    final Map<Address, Mono<RSocket>> monoMap = rSockets; // keep reference for threadsafety
     Mono<RSocket> rSocket = monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
     return new RSocketServiceClientAdapter(rSocket, codec);
   }
@@ -47,10 +46,8 @@ public class RSocketClientTransport implements ClientTransport {
     TcpClientTransport tcpClientTransport =
         TcpClientTransport.create(tcpClient);
 
-    Mono<RSocket> rSocketMono = RSocketFactory.connect()
-        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
-        .transport(tcpClientTransport)
-        .start();
+    Mono<RSocket> rSocketMono =
+        RSocketFactory.connect().transport(tcpClientTransport).start();
 
     return rSocketMono
         .doOnSuccess(rSocket -> {
