@@ -21,6 +21,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,10 +35,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 public class RemoteServiceTest extends BaseTest {
 
@@ -454,6 +455,104 @@ public class RemoteServiceTest extends BaseTest {
     String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
     assertEquals(response, " hello to: joe");
 
+    provider.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_bidi_greeting_expect_IllegalArgumentException() {
+    // Create microservices cluster.
+    Microservices provider = Microservices.builder()
+        .services(new GreetingServiceImpl())
+        .startAwait();
+
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
+        .seeds(provider.cluster().address())
+        .startAwait();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    // call the service. bidiThrowingGreeting
+    Flux<GreetingResponse> responses = service.bidiGreetingIllegalArgumentException(
+        Mono.just(new GreetingRequest("IllegalArgumentException")));
+
+    // call the service.
+    StepVerifier.create(responses)
+        .expectErrorMessage("IllegalArgumentException")
+        .verify(Duration.ofSeconds(3));
+
+    consumer.shutdown().block();
+    provider.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_bidi_greeting_expect_NotAuthorized() {
+    // Create microservices cluster.
+    Microservices provider = Microservices.builder()
+        .services(new GreetingServiceImpl())
+        .startAwait();
+
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
+        .seeds(provider.cluster().address())
+        .startAwait();
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
+    // call the service.
+    Flux<GreetingResponse> responses = service.bidiGreetingNotAuthorized(requests);
+
+    // call the service.
+
+    requests.onNext(new GreetingRequest("joe-1"));
+    requests.onComplete();
+
+    StepVerifier.create(responses)
+        .expectErrorMessage("Not authorized")
+        .verify(Duration.ofSeconds(3));
+
+    consumer.shutdown().block();
+    provider.shutdown().block();
+  }
+
+  @Test
+  public void test_remote_bidi_greeting_expect_GreetingResponse() {
+    // Create microservices cluster.
+    Microservices provider = Microservices.builder()
+        .services(new GreetingServiceImpl())
+        .startAwait();
+
+    // Create microservices cluster.
+    Microservices consumer = Microservices.builder()
+        .seeds(provider.cluster().address())
+        .startAwait();
+
+
+    // get a proxy to the service api.
+    GreetingService service = createProxy(consumer);
+
+    EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
+    // call the service.
+    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
+
+    // call the service.
+
+    requests.onNext(new GreetingRequest("joe-1"));
+    requests.onNext(new GreetingRequest("joe-2"));
+    requests.onNext(new GreetingRequest("joe-3"));
+    requests.onComplete();
+
+    StepVerifier.create(responses)
+        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
+        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
+        .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
+        .expectComplete()
+        .verify(Duration.ofSeconds(3));
+
+    consumer.shutdown().block();
     provider.shutdown().block();
   }
 

@@ -4,6 +4,9 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
 
+import org.reactivestreams.Publisher;
+
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service
@@ -47,4 +50,13 @@ public interface GreetingService {
 
   @ServiceMethod
   Mono<GreetingResponse> exceptionRequest(GreetingRequest request);
+
+  @ServiceMethod
+  Flux<GreetingResponse> bidiGreeting(Publisher<GreetingRequest> request);
+
+  @ServiceMethod
+  Flux<GreetingResponse> bidiGreetingNotAuthorized(Flux<GreetingRequest> request);
+
+  @ServiceMethod
+  Flux<GreetingResponse> bidiGreetingIllegalArgumentException(Publisher<GreetingRequest> request);
 }

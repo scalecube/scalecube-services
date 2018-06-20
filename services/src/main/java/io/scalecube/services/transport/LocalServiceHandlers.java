@@ -6,12 +6,12 @@ import io.scalecube.services.api.ServiceMessageHandler;
 
 import org.reactivestreams.Publisher;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public final class LocalServiceHandlers implements ServiceMessageHandler {
 
