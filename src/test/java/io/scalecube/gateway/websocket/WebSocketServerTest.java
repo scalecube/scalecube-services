@@ -9,6 +9,7 @@ import io.scalecube.gateway.WebsocketResource;
 import io.scalecube.gateway.examples.GreetingRequest;
 import io.scalecube.gateway.examples.GreetingResponse;
 import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 
@@ -48,6 +49,12 @@ public class WebSocketServerTest {
 
   private static final ServiceMessage GREETING_POJO_MANY =
       ServiceMessage.builder().qualifier("/greeting/pojo/many").data(new GreetingRequest("hello")).build();
+
+  private static final ServiceMessage GREETING_EMPTY_ONE =
+      ServiceMessage.builder().qualifier("/greeting/empty/one").data("hello").build();
+
+  private static final ServiceMessage GREETING_EMPTY_MANY =
+      ServiceMessage.builder().qualifier("/greeting/empty/many").data("hello").build();
 
   @Rule
   public MicroservicesResource microservicesResource = new MicroservicesResource();
@@ -243,6 +250,43 @@ public class WebSocketServerTest {
     for (int i = 0; i < REQUEST_NUM; i++) {
       stepVerifier.assertNext(msg -> assertErrorMessage(error, msg));
     }
+
+    stepVerifier.expectComplete().verify(TIMEOUT);
+  }
+
+  @Test
+  public void testGreetingEmptyOne() {
+    microservicesResource.startGateway();
+    microservicesResource.startServices(microservicesResource.getGatewayAddress());
+    websocketResource.startWebSocketServer(microservicesResource.getGateway());
+
+    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_EMPTY_ONE);
+
+    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, NullData.class, TIMEOUT));
+
+    IntStream.range(0, REQUEST_NUM)
+        .forEach(i -> stepVerifier.assertNext(msg ->
+            assertThat(msg.data(), instanceOf(NullData.class))));
+
+    stepVerifier.expectComplete().verify(TIMEOUT);
+  }
+
+  @Test
+  public void testGreetingEmptyMany() {
+    microservicesResource.startGateway();
+    microservicesResource.startServices(microservicesResource.getGatewayAddress());
+    websocketResource.startWebSocketServer(microservicesResource.getGateway());
+
+    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_EMPTY_MANY);
+
+
+    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, NullData.class, TIMEOUT));
+
+    IntStream.range(0, REQUEST_NUM)
+        .forEach(i -> stepVerifier.assertNext(msg ->
+            assertThat(msg.data(), instanceOf(NullData.class))));
 
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
