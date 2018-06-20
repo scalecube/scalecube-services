@@ -246,6 +246,7 @@ public class Microservices {
       requireNonNull(serviceInstance);
       return new ServiceBuilder(serviceInstance, this);
     }
+
   }
 
   private Microservices init(Cluster cluster) {
@@ -267,8 +268,7 @@ public class Microservices {
   }
 
   public Call call() {
-    Router router = Routers.getRouter(RoundRobinServiceRouter.class);
-    return new Call(client, serviceHandlers, serviceRegistry).metrics(metrics).router(router);
+    return new Call(client, serviceHandlers, serviceRegistry).metrics(metrics);
   }
 
   public Mono<Void> shutdown() {

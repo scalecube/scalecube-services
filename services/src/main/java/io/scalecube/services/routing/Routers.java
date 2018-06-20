@@ -1,5 +1,7 @@
 package io.scalecube.services.routing;
 
+import com.google.common.base.Throwables;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,22 +15,22 @@ public class Routers {
   private Routers() {}
 
   /**
-   * get router instance by a given router class. The class should have a default constructor. otherwise no router can
+   * Get router instance by a given router class. The class should have a default constructor. Otherwise no router can
    * be created
    * 
-   * @param routing the type of the Router.
+   * @param routerType the type of the Router.
    * @return instance of the Router.
    */
-  public static Router getRouter(Class<? extends Router> routing) {
-    return routers.computeIfAbsent(routing, Routers::create);
+  public static Router getRouter(Class<? extends Router> routerType) {
+    return routers.computeIfAbsent(routerType, Routers::create);
   }
 
-  private static Router create(Class<? extends Router> routing) {
+  private static Router create(Class<? extends Router> routerType) {
     try {
-      return routing.newInstance();
+      return routerType.newInstance();
     } catch (Exception ex) {
-      LOGGER.error("create router type: {} failed: {}", routing, ex);
-      return null;
+      LOGGER.error("Create router type: {} failed: {}", routerType, ex);
+      throw Throwables.propagate(ex);
     }
   }
 }

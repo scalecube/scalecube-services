@@ -18,9 +18,4 @@ public class CanaryTestingRouter implements Router {
     return Optional.of(weightedRandom.next());
   }
 
-  @Override
-  public List<ServiceReference> routes(ServiceRegistry serviceRegistry, ServiceMessage request) {
-    return serviceRegistry.lookupService(request.qualifier());
-  }
-
 }

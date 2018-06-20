@@ -3,6 +3,8 @@ package io.scalecube.services;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.ServiceCall.Call;
@@ -12,19 +14,17 @@ import io.scalecube.services.a.b.testing.GreetingServiceImplA;
 import io.scalecube.services.a.b.testing.GreetingServiceImplB;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.RandomServiceRouter;
-import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import reactor.core.publisher.Mono;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+
+import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 3;
@@ -44,16 +44,11 @@ public class RoutersTest extends BaseTest {
 
   @Test
   public void test_router_factory() {
-    Router router = Routers.getRouter(RandomServiceRouter.class);
-    assertTrue(router != null);
+    assertNotNull(Routers.getRouter(RandomServiceRouter.class));
 
     // dummy router will always throw exception thus cannot be created.
-    Router dummy = Routers.getRouter(DummyRouter.class);
-    assertTrue(dummy == null);
-
+    assertThrows(IllegalArgumentException.class, () -> Routers.getRouter(DummyRouter.class));
   }
-
-
 
   @Test
   public void test_round_robin_selection_logic() {
@@ -100,7 +95,7 @@ public class RoutersTest extends BaseTest {
         .startAwait();
 
     Call service = gateway.call().router((reg, msg) -> reg.listServiceReferences().stream().filter(ref -> "2".equals(
-        ref.tags().get("SENDER"))).collect(Collectors.toList()));
+        ref.tags().get("SENDER"))).findFirst());
 
     // call the service.
     for (int i = 0; i < 1e3; i++) {
@@ -129,7 +124,7 @@ public class RoutersTest extends BaseTest {
 
     ServiceCall service = gateway.call().router(
         (reg, msg) -> reg.listServiceReferences().stream().filter(ref -> ((GreetingRequest) msg.data()).getName()
-            .equals(ref.tags().get("ONLYFOR"))).collect(Collectors.toList()))
+            .equals(ref.tags().get("ONLYFOR"))).findFirst())
         .create();
 
     // call the service.
