@@ -6,15 +6,22 @@ public class MethodInfo {
   private final Class<?> parameterizedReturnType;
   private final CommunicationMode communicationMode;
   private final boolean isRequestTypeServiceMessage;
+  private final String name;
+  private final int parameterCount;
 
   public MethodInfo(String serviceName,
       Class<?> parameterizedReturnType,
       CommunicationMode communicationMode,
-      boolean isRequestTypeServiceMessage) {
+      boolean isRequestTypeServiceMessage,
+      String name,
+      int parameterCount) {
+    
     this.parameterizedReturnType = parameterizedReturnType;
     this.communicationMode = communicationMode;
     this.isRequestTypeServiceMessage = isRequestTypeServiceMessage;
     this.serviceName = serviceName;
+    this.name = name;
+    this.parameterCount = parameterCount;
   }
 
   public String serviceName() {
@@ -31,5 +38,13 @@ public class MethodInfo {
 
   public boolean isRequestTypeServiceMessage() {
     return isRequestTypeServiceMessage;
+  }
+
+  public String methodName() {
+    return name;
+  }
+
+  public int parameterCount() {
+    return parameterCount;
   }
 }

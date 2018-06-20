@@ -4,6 +4,9 @@ import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.UnauthorizedException;
 
+import org.reactivestreams.Publisher;
+
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public final class GreetingServiceImpl implements GreetingService {
@@ -61,6 +64,22 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
+  public Flux<GreetingResponse> bidiGreeting(Publisher<GreetingRequest> request) {
+    return Flux.from(request)
+        .map(onNext -> new GreetingResponse(" hello to: " + onNext.getName(), "" + instanceId));
+  }
+
+  @Override
+  public Flux<GreetingResponse> bidiGreetingNotAuthorized(Flux<GreetingRequest> request) {
+    return Flux.error(new UnauthorizedException(500, "Not authorized"));
+  }
+
+  @Override
+  public Flux<GreetingResponse> bidiGreetingIllegalArgumentException(Publisher<GreetingRequest> request) {
+    throw new IllegalArgumentException("IllegalArgumentException");
+  }
+
+  @Override
   public Mono<ServiceMessage> greetingMessage(ServiceMessage request) {
     print("[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(), "1");
@@ -107,8 +126,5 @@ public final class GreetingServiceImpl implements GreetingService {
     if (!ci) {
       System.out.println(message);
     }
-
   }
-
-
 }
