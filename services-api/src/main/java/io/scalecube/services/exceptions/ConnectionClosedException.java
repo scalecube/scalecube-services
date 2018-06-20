@@ -1,12 +1,14 @@
 package io.scalecube.services.exceptions;
 
-public class ConnectionClosedException extends ServiceUnavailableException {
+import java.io.IOException;
+
+public class ConnectionClosedException extends IOException {
 
   public ConnectionClosedException(String message) {
     super(message);
   }
 
-  public ConnectionClosedException(int errorCode, String message) {
-    super(errorCode, message);
+  public ConnectionClosedException(Throwable cause) {
+    super(cause);
   }
 }
