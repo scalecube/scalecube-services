@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
 @Documented
 public @interface Inject {
 
-  Class<? extends Router> router() default NullRouter.class;
+  Class<? extends Router> router() default Router.class;
 
 }
 

@@ -9,6 +9,7 @@ import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.HeadAndTail;
@@ -50,13 +51,12 @@ public class ServiceCall {
 
   public static class Call {
 
-    private Router router;
+    private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
     private Metrics metrics;
 
     private final ClientTransport transport;
     private final LocalServiceHandlers serviceHandlers;
     private final ServiceRegistry serviceRegistry;
-
 
     public Call(ClientTransport transport,
         LocalServiceHandlers serviceHandlers,
@@ -305,7 +305,7 @@ public class ServiceCall {
         .data(methodInfo.parameterCount() != 0 ? params[0] : NullData.NULL_DATA)
         .build();
   }
-  
+
   private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
       boolean isRequestTypeServiceMessage) {
     return flux -> isRequestTypeServiceMessage
