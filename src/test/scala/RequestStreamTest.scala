@@ -7,19 +7,17 @@ class RequestStreamTest extends Simulation {
   // Base test parameters
   val host = System.getProperty("host", "localhost")
   val port = Integer.getInteger("port", 9090)
-  val users = Integer.getInteger("users", 5000)
+  val users = Integer.getInteger("users", 1000)
   val duration = Integer.getInteger("duration", 900)
-  val frequencyMillis: Integer = Integer.getInteger("frequencyMillis", 1000)
+  val count: Integer = Integer.getInteger("count", 1000)
 
   // Derived test parameters: 1/10 - rampup, 8/10 - load, 1/10 - rampdown
   val scenarioDuration: Integer = 2 * duration.toInt / 3
-  val echoParam = """echoName"""
   val rampUpDuration: Integer = if (duration.toInt >= 3) duration.toInt / 3 else 1
-  val times = scenarioDuration.toInt * frequencyMillis.toInt / 1000
 
   // Scenario parameters
   val url = s"ws://$host:$port"
-  val data = s"""{"name":"$echoParam", "frequencyMillis":$frequencyMillis}"""
+  val data = s"""$count"""
   val echoRequest = s"""{"headers":{"q":"/greeting/manyStream"},"data":$data}"""
   val httpConfig = http.baseURL(s"http://$host:$port")
 
@@ -28,19 +26,23 @@ class RequestStreamTest extends Simulation {
   System.out.println("Simulation duration: " + duration + " seconds")
   System.out.println("Scenario rampup: " + rampUpDuration + " seconds")
   System.out.println("Scenario duration: " + scenarioDuration + " seconds")
-  System.out.println("Scenario frequency: " + frequencyMillis + " milliseconds")
-  System.out.println("Scenario resp/stream: " + times + " responses")
+  System.out.println("Scenario count: " + count + " responses")
 
 
   // User scenario is a chain of requests and pauses
-  val usersScn =
-    scenario("RequestStreamTest")
+  val usersScn = {
+    scenario("RequestResponseTest")
       .exec(ws("socket").open(url))
-      .pause(1 seconds)
-      .exec(ws("Many Request")
-        .sendText(echoRequest)
-        .check(wsAwait.within(scenarioDuration seconds).until(times).regex( s"""${echoParam}""")))
-      .exec(ws("Close").close)
+      .pause(2)
+      .during(scenarioDuration seconds) {
+        exec(ws("Echo Request")
+          .sendText(echoRequest)
+          .check(wsAwait.within(rampUpDuration seconds).until(count).regex( """.*manyStream.*""")))
+          .pause(1)
+      }
+      .pause(1)
+      .exec(ws("close").close)
+  }
 
   // Start user scenarios
   setUp(usersScn.inject(

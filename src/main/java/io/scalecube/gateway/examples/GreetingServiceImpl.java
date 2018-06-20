@@ -13,11 +13,8 @@ public class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Flux<String> manyStream(EchoRequest name) {
-    return Flux.interval(Duration.ofMillis(name.getFrequencyMillis())).map(i -> {
-      String resp = name.getName() + ":" + i;
-      return resp;
-    });
+  public Flux<Integer> manyStream(Integer cnt) {
+    return Flux.range(0, cnt);
   }
 
   @Override
