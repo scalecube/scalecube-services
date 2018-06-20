@@ -29,4 +29,10 @@ public interface GreetingService {
 
   @ServiceMethod("pojo/many")
   Flux<GreetingResponse> pojoMany(GreetingRequest request);
+
+  @ServiceMethod("empty/one")
+  Mono<String> emptyOne(String name);
+
+  @ServiceMethod("empty/many")
+  Flux<String> emptyMany(String name);
 }

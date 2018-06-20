@@ -46,4 +46,14 @@ public class GreetingServiceImpl implements GreetingService {
   public Flux<GreetingResponse> pojoMany(GreetingRequest request) {
     return many(request.getText()).map(GreetingResponse::new);
   }
+
+  @Override
+  public Mono<String> emptyOne(String name) {
+    return Mono.empty();
+  }
+
+  @Override
+  public Flux<String> emptyMany(String name) {
+    return Flux.empty();
+  }
 }
