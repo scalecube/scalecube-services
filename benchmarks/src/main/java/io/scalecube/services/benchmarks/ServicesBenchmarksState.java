@@ -1,111 +1,61 @@
 package io.scalecube.services.benchmarks;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceCall;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
-
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
-public class ServicesBenchmarksState {
+public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksState> {
 
-  private final ServicesBenchmarksSettings settings;
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServicesBenchmarksState.class);
+
+  private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(6);
+
   private final Object[] services;
-
-  private MetricRegistry registry;
-  private ConsoleReporter consoleReporter;
-  private Scheduler scheduler;
-  private CsvReporter csvReporter;
 
   private Microservices seed;
   private Microservices node;
 
-  public ServicesBenchmarksState(ServicesBenchmarksSettings settings, Object... services) {
-    this.settings = settings;
+  public ServicesBenchmarksState(BenchmarksSettings settings, Object... services) {
+    super(settings);
     this.services = services;
   }
 
-  public void setup() {
-    registry = new MetricRegistry();
-
+  @Override
+  public void beforeAll() {
     seed = Microservices.builder()
-        .metrics(registry)
+        .metrics(settings.registry())
         .startAwait();
 
     node = Microservices.builder()
-        .metrics(registry)
+        .metrics(settings.registry())
         .seeds(seed.cluster().address())
         .services(services)
         .startAwait();
 
-    System.err.println("Benchmarks settings: " + settings +
-        ", seed address: " + seed.cluster().address() +
+    LOGGER.info("Seed address: " + seed.cluster().address() +
         ", services address: " + node.serviceAddress() +
         ", seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
-
-    consoleReporter = ConsoleReporter.forRegistry(registry)
-        .outputTo(System.err)
-        .convertDurationsTo(TimeUnit.MILLISECONDS)
-        .convertRatesTo(TimeUnit.SECONDS)
-        .build();
-
-    csvReporter = CsvReporter.forRegistry(registry)
-        .convertDurationsTo(TimeUnit.MILLISECONDS)
-        .convertRatesTo(TimeUnit.SECONDS)
-        .build(settings.csvReporterDirectory());
-
-    scheduler = Schedulers.fromExecutor(Executors.newFixedThreadPool(settings.nThreads()));
-
-    Duration reporterPeriod = settings.reporterPeriod();
-    consoleReporter.start(reporterPeriod.toMillis(), TimeUnit.MILLISECONDS);
-    csvReporter.start(1, TimeUnit.DAYS);
-
-    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      consoleReporter.report();
-      csvReporter.report();
-    }));
   }
 
-  public void tearDown() {
-    if (consoleReporter != null) {
-      consoleReporter.report();
-      consoleReporter.stop();
-    }
-
-    if (csvReporter != null) {
-      csvReporter.report();
-      csvReporter.stop();
-    }
-
-    if (scheduler != null) {
-      scheduler.dispose();
-    }
-
+  @Override
+  public void afterAll() {
     if (node != null) {
-      node.shutdown().block();
+      try {
+        node.shutdown().block(SHUTDOWN_TIMEOUT);
+      } catch (Throwable ignore) {
+      }
     }
 
     if (seed != null) {
-      seed.shutdown().block();
+      try {
+        seed.shutdown().block(SHUTDOWN_TIMEOUT);
+      } catch (Throwable ignore) {
+      }
     }
-
-  }
-
-  public MetricRegistry registry() {
-    return registry;
-  }
-
-  public Scheduler scheduler() {
-    return scheduler;
   }
 
   public Microservices seed() {
@@ -116,15 +66,7 @@ public class ServicesBenchmarksState {
     return seed.call().create().api(c);
   }
 
-  public Timer timer() {
-    return registry.timer(settings.taskName() + "-timer");
-  }
-
-  public Meter meter(String name) {
-    return registry.meter(settings.taskName() + "-" + name);
-  }
-
-  public Histogram histogram(String name) {
-    return registry.histogram(settings.taskName() + "-" + name);
+  public ServiceCall serviceCall() {
+    return seed.call().create();
   }
 }

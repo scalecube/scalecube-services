@@ -6,30 +6,19 @@ import io.scalecube.services.ServiceCall;
 
 import com.codahale.metrics.Timer;
 
-import java.util.stream.LongStream;
-
-import reactor.core.publisher.Flux;
-
 public class RequestOneCallBenchmarksRunner {
 
   public static void main(String[] args) {
-    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args).build();
-    ServicesBenchmarksState state = new ServicesBenchmarksState(settings, new BenchmarkServiceImpl());
-    state.setup();
+    BenchmarksSettings settings = BenchmarksSettings.from(args).build();
+    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).blockLastPublisher(state -> {
 
-    ServiceCall serviceCall = state.seed().call().create();
-    Timer timer = state.timer();
+      ServiceCall serviceCall = state.serviceCall();
+      Timer timer = state.timer("timer");
 
-    Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
-        .publishOn(state.scheduler())
-        .map(i -> {
-          Timer.Context timeContext = timer.time();
-          return serviceCall.requestOne(REQUEST_ONE)
-              .doOnNext(next -> timeContext.stop());
-        }))
-        .take(settings.executionTaskTime())
-        .blockLast();
-
-    state.tearDown();
+      return i -> {
+        Timer.Context timeContext = timer.time();
+        return serviceCall.requestOne(REQUEST_ONE).doOnTerminate(timeContext::stop);
+      };
+    });
   }
 }

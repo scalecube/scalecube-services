@@ -4,39 +4,29 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 
-import reactor.core.publisher.Flux;
-
-import java.util.stream.LongStream;
-
 public class RequestManyLatencyBenchmarksRunner {
 
+  private static final String RESPONSE_COUNT = "1000";
+
   public static void main(String[] args) {
-    ServicesBenchmarksSettings settings = ServicesBenchmarksSettings.from(args)
-        .build();
+    BenchmarksSettings settings = BenchmarksSettings.from(args).build();
+    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).blockLastPublisher(state -> {
 
-    ServicesBenchmarksState state = new ServicesBenchmarksState(settings, new BenchmarkServiceImpl());
-    state.setup();
+      BenchmarkService benchmarkService = state.service(BenchmarkService.class);
+      int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
+      Timer timer = state.timer("timer");
+      Meter responses = state.meter("responses");
+      Histogram latency = state.histogram("latency");
 
-    BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-    int responseCount = settings.responseCount();
-    Timer timer = state.timer();
-    Meter meter = state.meter("throughput");
-    Histogram latnecy = state.histogram("latency-nano");
-    Flux.merge(Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed())
-        .parallel(Runtime.getRuntime().availableProcessors())
-        .runOn(state.scheduler())
-        .map(i -> {
-          Timer.Context timeContext = timer.time();
-          return benchmarkService.nanoTime(responseCount)
-              .doOnNext(onNext -> {
-                latnecy.update(System.nanoTime() - onNext);
-                meter.mark();
-              })
-              .doFinally(next -> timeContext.stop());
-        }))
-        .take(settings.executionTaskTime())
-        .blockLast();
-
-    state.tearDown();
+      return i -> {
+        Timer.Context timeContext = timer.time();
+        return benchmarkService.nanoTime(responseCount)
+            .doOnNext(onNext -> {
+              latency.update(System.nanoTime() - onNext);
+              responses.mark();
+            })
+            .doFinally(next -> timeContext.stop());
+      };
+    });
   }
 }
