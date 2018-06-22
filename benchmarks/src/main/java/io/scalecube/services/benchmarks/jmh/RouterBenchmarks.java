@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmarks;
+package io.scalecube.services.benchmarks.jmh;
 
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.Microservices;

@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmarks;
+package io.scalecube.services.benchmarks.jmh;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.transport.HeadAndTail;
