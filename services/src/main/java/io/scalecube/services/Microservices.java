@@ -9,13 +9,11 @@ import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.discovery.ServiceScanner;
+import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.routing.RoundRobinServiceRouter;
-import io.scalecube.services.routing.Router;
-import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.ServiceTransport;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
@@ -23,8 +21,6 @@ import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 
 import com.codahale.metrics.MetricRegistry;
-
-import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -35,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import reactor.core.publisher.Mono;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -114,13 +112,13 @@ public class Microservices {
   private final Address serviceAddress;
   private final ServiceDiscovery discovery;
   private final ServerTransport server;
-  private final LocalServiceHandlers serviceHandlers;
+  private final ServiceMethodRegistry methodRegistry;
   private final List<Object> services;
   private final ClusterConfig.Builder clusterConfig;
   private final String id;
 
   private Cluster cluster; // calculated field
-  
+
   private Microservices(Builder builder) {
     this.id = IdGenerator.generateId();
     // provision services for service access.
@@ -129,11 +127,11 @@ public class Microservices {
     this.server = builder.server;
 
     this.services = builder.services.stream().map(mapper -> mapper.serviceInstance).collect(Collectors.toList());
-    this.serviceHandlers = LocalServiceHandlers.builder()
+    this.methodRegistry = ServiceMethodRegistryImpl.builder()
         .services(builder.services.stream().map(ServiceInfo::service).collect(Collectors.toList())).build();
 
     InetSocketAddress socketAddress = new InetSocketAddress(Addressing.getLocalIpAddress(), builder.servicePort);
-    InetSocketAddress address = server.bindAwait(socketAddress, serviceHandlers);
+    InetSocketAddress address = server.bindAwait(socketAddress, methodRegistry);
     serviceAddress = Address.create(address.getHostString(), address.getPort());
 
     serviceRegistry = new ServiceRegistryImpl();
@@ -156,7 +154,7 @@ public class Microservices {
   public String id() {
     return this.id;
   }
-  
+
   private Mono<Microservices> start() {
     clusterConfig.addMetadata(serviceRegistry.listServiceEndpoints().stream()
         .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
@@ -253,7 +251,6 @@ public class Microservices {
       requireNonNull(serviceInstance);
       return new ServiceBuilder(serviceInstance, this);
     }
-
   }
 
   private Microservices init(Cluster cluster) {
@@ -275,7 +272,7 @@ public class Microservices {
   }
 
   public Call call() {
-    return new Call(client, serviceHandlers, serviceRegistry).metrics(metrics);
+    return new Call(client, methodRegistry, serviceRegistry).metrics(metrics);
   }
 
   public Mono<Void> shutdown() {

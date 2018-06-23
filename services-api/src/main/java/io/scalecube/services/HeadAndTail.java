@@ -1,11 +1,11 @@
-package io.scalecube.services.transport;
+package io.scalecube.services;
 
 import org.reactivestreams.Publisher;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.UnicastProcessor;
-
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class HeadAndTail<T> {
 

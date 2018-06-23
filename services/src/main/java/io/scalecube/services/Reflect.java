@@ -13,6 +13,7 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.routing.Router;
 
 import com.google.common.base.Strings;
@@ -195,16 +196,6 @@ public class Reflect {
   }
 
   /**
-   * Util function to determine if method has parameter of type {@link ServiceMessage}.
-   *
-   * @param method in inspection.
-   * @return true if request paramter is of type {@link ServiceMessage} and false otherwise.
-   */
-  public static boolean isRequestTypeServiceMessage(Method method) {
-    return Reflect.requestType(method).isAssignableFrom(ServiceMessage.class);
-  }
-
-  /**
    * Util function that returns the parameterizedType of a given object.
    * 
    * @param object to inspect
@@ -221,15 +212,15 @@ public class Reflect {
   }
 
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
-    return Collections.unmodifiableMap(Reflect.serviceMethods(serviceInterface).values().stream()
+    return Collections.unmodifiableMap(serviceMethods(serviceInterface).values().stream()
         .collect(Collectors.toMap(method -> method,
             method1 -> new MethodInfo(
-                serviceName(serviceInterface), 
+                serviceName(serviceInterface),
+                methodName(method1),
                 parameterizedReturnType(method1),
-                communicationMode(method1), 
-                isRequestTypeServiceMessage(method1),
-                methodName(method1), 
-                method1.getParameterCount()))));
+                communicationMode(method1),
+                method1.getParameterCount(),
+                requestType(method1)))));
   }
 
   /**
@@ -328,7 +319,7 @@ public class Reflect {
       boolean hasFluxAsReqParam = reqTypes.length > 0
           && (Flux.class.isAssignableFrom(reqTypes[0])
               || Publisher.class.isAssignableFrom(reqTypes[0]));
-      
+
       return hasFluxAsReqParam ? REQUEST_CHANNEL : REQUEST_STREAM;
     } else {
       throw new IllegalArgumentException(
