@@ -4,16 +4,16 @@ import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageDataCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.methods.MethodInfo;
+import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.HeadAndTail;
-import io.scalecube.services.transport.LocalServiceHandlers;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
 
@@ -21,29 +21,28 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   private final ClientTransport transport;
-  private final LocalServiceHandlers serviceHandlers;
+  private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
   private final Router router;
   private final Metrics metrics;
-  private final ServiceMessageDataCodec dataCodec = new ServiceMessageDataCodec();
 
   ServiceCall(Call call) {
     this.transport = call.transport;
-    this.serviceHandlers = call.serviceHandlers;
+    this.methodRegistry = call.methodRegistry;
     this.serviceRegistry = call.serviceRegistry;
     this.router = call.router;
     this.metrics = call.metrics;
@@ -55,15 +54,15 @@ public class ServiceCall {
     private Metrics metrics;
 
     private final ClientTransport transport;
-    private final LocalServiceHandlers serviceHandlers;
+    private final ServiceMethodRegistry methodRegistry;
     private final ServiceRegistry serviceRegistry;
 
     public Call(ClientTransport transport,
-        LocalServiceHandlers serviceHandlers,
+        ServiceMethodRegistry methodRegistry,
         ServiceRegistry serviceRegistry) {
       this.transport = transport;
       this.serviceRegistry = serviceRegistry;
-      this.serviceHandlers = serviceHandlers;
+      this.methodRegistry = methodRegistry;
     }
 
     public Call router(Class<? extends Router> routerType) {
@@ -126,8 +125,9 @@ public class ServiceCall {
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
     String qualifier = request.qualifier();
-    if (serviceHandlers.contains(qualifier)) { // local service.
-      return serviceHandlers.requestResponse(request)
+    if (methodRegistry.containsInvoker(qualifier)) { // local service.
+      return methodRegistry.getInvoker(request.qualifier())
+          .invokeOne(request, ServiceMessageCodec::decodeData)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
       return requestOne(request, responseType, addressLookup(request));
@@ -146,7 +146,7 @@ public class ServiceCall {
     requireNonNull(address, "requestOne address paramter is required and must not be null");
     return transport.create(address)
         .requestResponse(request)
-        .map(message -> dataCodec.decode(message, responseType));
+        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
   }
 
   /**
@@ -168,8 +168,9 @@ public class ServiceCall {
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
     String qualifier = request.qualifier();
-    if (serviceHandlers.contains(qualifier)) { // local service.
-      return serviceHandlers.requestStream(request)
+    if (methodRegistry.containsInvoker(qualifier)) { // local service.
+      return methodRegistry.getInvoker(request.qualifier())
+          .invokeMany(request, ServiceMessageCodec::decodeData)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
       return requestMany(request, responseType, addressLookup(request));
@@ -188,7 +189,7 @@ public class ServiceCall {
     requireNonNull(address, "requestMany address paramter is required and must not be null");
     return transport.create(address)
         .requestStream(request)
-        .map(message -> dataCodec.decode(message, responseType));
+        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
   }
 
   /**
@@ -212,14 +213,14 @@ public class ServiceCall {
     return Flux.from(HeadAndTail.createFrom(publisher)).flatMap(pair -> {
       ServiceMessage request = pair.head();
       String qualifier = request.qualifier();
+      Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(request);
 
-      Flux<ServiceMessage> publisher1 = Flux.from(pair.tail()).startWith(request);
-
-      if (serviceHandlers.contains(qualifier)) { // local service.
-        return serviceHandlers.requestChannel(publisher1)
+      if (methodRegistry.containsInvoker(qualifier)) { // local service.
+        return methodRegistry.getInvoker(qualifier)
+            .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
             .onErrorMap(ExceptionProcessor::mapException);
       } else { // remote service.
-        return requestBidirectional(publisher1, responseType, addressLookup(request));
+        return requestBidirectional(messages, responseType, addressLookup(request));
       }
     });
   }
@@ -237,7 +238,7 @@ public class ServiceCall {
     requireNonNull(address, "requestBidirectional address paramter is required and must not be null");
     return transport.create(address)
         .requestChannel(publisher)
-        .map(message -> dataCodec.decode(message, responseType));
+        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
 
   }
 

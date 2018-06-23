@@ -1,7 +1,9 @@
 package io.scalecube.services.codec;
 
+import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -80,5 +82,32 @@ public final class ServiceMessageCodec {
       }
     }
     return builder.build();
+  }
+
+  public static ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) {
+    if (!message.hasData(ByteBuf.class) || dataType == null) {
+      return message;
+    }
+
+    Object data;
+    Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : dataType;
+
+    ByteBuf dataBuffer = message.data();
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice())) {
+      String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
+      DataCodec dataCodec = DataCodec.getInstance(contentType);
+      data = dataCodec.decode(inputStream, targetType);
+    } catch (Throwable ex) {
+      LOGGER.error("Failed to decode data on: {}, cause: {}, data buffer: {}",
+          message, ex, dataBuffer.toString(Charset.defaultCharset()));
+      throw new BadRequestException("Failed to decode data on message q=" + message.qualifier());
+    } finally {
+      ReferenceCountUtil.release(dataBuffer);
+    }
+
+    if (targetType == ErrorData.class) {
+      throw ExceptionProcessor.toException(message.qualifier(), (ErrorData) data);
+    }
+    return ServiceMessage.from(message).data(data).build();
   }
 }

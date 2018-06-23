@@ -1,7 +1,7 @@
 package io.scalecube.services.transport.rsocket.server;
 
-import io.scalecube.services.api.ServiceMessageHandler;
 import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.server.api.ServerTransport;
 
 import io.rsocket.RSocketFactory;
@@ -34,7 +34,7 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public InetSocketAddress bindAwait(InetSocketAddress address, ServiceMessageHandler acceptor) {
+  public InetSocketAddress bindAwait(InetSocketAddress address, ServiceMethodRegistry methodRegistry) {
     TcpServer tcpServer =
         TcpServer.create(options -> options
             .listenAddress(address)
@@ -48,7 +48,7 @@ public class RSocketServerTransport implements ServerTransport {
             }));
 
     this.server = RSocketFactory.receive()
-        .acceptor(new RSocketServiceAcceptor(acceptor, codec))
+        .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
         .transport(TcpServerTransport.create(tcpServer))
         .start()
         .block();

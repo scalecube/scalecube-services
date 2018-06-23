@@ -1,7 +1,7 @@
 package io.scalecube.services.benchmarks.jmh;
 
+import io.scalecube.services.HeadAndTail;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.transport.HeadAndTail;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
