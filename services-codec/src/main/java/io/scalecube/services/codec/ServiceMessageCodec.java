@@ -2,8 +2,8 @@ package io.scalecube.services.codec;
 
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.MessageCodecException;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -15,7 +15,7 @@ import io.netty.util.ReferenceCountUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -31,7 +31,8 @@ public final class ServiceMessageCodec {
     this.headersCodec = headersCodec;
   }
 
-  public <T> T encodeAndTransform(ServiceMessage message, BiFunction<ByteBuf, ByteBuf, T> transformer) {
+  public <T> T encodeAndTransform(ServiceMessage message, BiFunction<ByteBuf, ByteBuf, T> transformer)
+      throws MessageCodecException {
     ByteBuf dataBuffer = Unpooled.EMPTY_BUFFER;
     ByteBuf headersBuffer = Unpooled.EMPTY_BUFFER;
 
@@ -46,7 +47,7 @@ public final class ServiceMessageCodec {
       } catch (Throwable ex) {
         ReferenceCountUtil.release(dataBuffer);
         LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
-        throw new BadRequestException("Failed to encode data on message q=" + message.qualifier());
+        throw new MessageCodecException("Failed to encode data on message q=" + message.qualifier(), ex);
       }
     }
 
@@ -57,14 +58,14 @@ public final class ServiceMessageCodec {
       } catch (Throwable ex) {
         ReferenceCountUtil.release(headersBuffer);
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
-        throw new BadRequestException("Failed to encode headers on message q=" + message.qualifier());
+        throw new MessageCodecException("Failed to encode headers on message q=" + message.qualifier(), ex);
       }
     }
 
     return transformer.apply(dataBuffer, headersBuffer);
   }
 
-  public ServiceMessage decode(ByteBuf dataBuffer, ByteBuf headersBuffer) {
+  public ServiceMessage decode(ByteBuf dataBuffer, ByteBuf headersBuffer) throws MessageCodecException {
     ServiceMessage.Builder builder = ServiceMessage.builder();
     if (dataBuffer.isReadable()) {
       builder.data(dataBuffer);
@@ -74,9 +75,8 @@ public final class ServiceMessageCodec {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
         LOGGER.error("Failed to decode message headers: {}, cause: {}",
-            headersBuffer.toString(Charset.defaultCharset()), ex);
-        throw new BadRequestException("Failed to decode message headers {headers=" + headersBuffer.readableBytes()
-            + ", data=" + dataBuffer.readableBytes() + "}");
+            headersBuffer.toString(StandardCharsets.UTF_8), ex);
+        throw new MessageCodecException("Failed to decode message headers", ex);
       } finally {
         ReferenceCountUtil.release(headersBuffer);
       }
@@ -84,7 +84,7 @@ public final class ServiceMessageCodec {
     return builder.build();
   }
 
-  public static ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) {
+  public static ServiceMessage decodeData(ServiceMessage message, Class<?> dataType) throws MessageCodecException {
     if (!message.hasData(ByteBuf.class) || dataType == null) {
       return message;
     }
@@ -99,8 +99,8 @@ public final class ServiceMessageCodec {
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
       LOGGER.error("Failed to decode data on: {}, cause: {}, data buffer: {}",
-          message, ex, dataBuffer.toString(Charset.defaultCharset()));
-      throw new BadRequestException("Failed to decode data on message q=" + message.qualifier());
+          message, ex, dataBuffer.toString(StandardCharsets.UTF_8));
+      throw new MessageCodecException("Failed to decode data on message q=" + message.qualifier(), ex);
     } finally {
       ReferenceCountUtil.release(dataBuffer);
     }
@@ -108,6 +108,7 @@ public final class ServiceMessageCodec {
     if (targetType == ErrorData.class) {
       throw ExceptionProcessor.toException(message.qualifier(), (ErrorData) data);
     }
+
     return ServiceMessage.from(message).data(data).build();
   }
 }

@@ -1,11 +1,9 @@
 package io.scalecube.services.exceptions;
 
-import java.io.IOException;
+public class MessageCodecException extends RuntimeException {
 
-public class ConnectionClosedException extends IOException {
-
-  public ConnectionClosedException(String message) {
-    super(message);
+  public MessageCodecException(String message, Throwable cause) {
+    super(message, cause);
   }
 
   @Override
