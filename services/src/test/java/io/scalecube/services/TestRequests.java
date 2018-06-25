@@ -1,12 +1,13 @@
 package io.scalecube.services;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.sut.GreetingRequest;
 
 import java.time.Duration;
 
 public interface TestRequests {
 
-  String SERVICE_NAME = "io.scalecube.services.GreetingService";
+  String SERVICE_NAME = "greetings";
 
   ServiceMessage GREETING_VOID_REQ = Messages.builder()
       .request(SERVICE_NAME, "greetingVoid")

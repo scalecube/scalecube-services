@@ -1,4 +1,4 @@
-package io.scalecube.services.streaming;
+package io.scalecube.services.sut;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

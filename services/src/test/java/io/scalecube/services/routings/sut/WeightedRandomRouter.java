@@ -1,14 +1,13 @@
-package io.scalecube.services.a.b.testing;
+package io.scalecube.services.routings.sut;
 
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 
-import java.util.List;
 import java.util.Optional;
 
-public class CanaryTestingRouter implements Router {
+public class WeightedRandomRouter implements Router {
 
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {

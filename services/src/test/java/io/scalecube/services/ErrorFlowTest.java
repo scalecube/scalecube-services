@@ -7,6 +7,8 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
+import io.scalecube.services.sut.GreetingResponse;
+import io.scalecube.services.sut.GreetingServiceImpl;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
