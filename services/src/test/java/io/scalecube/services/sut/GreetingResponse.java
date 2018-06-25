@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package io.scalecube.services.sut;
 
 public final class GreetingResponse {
 

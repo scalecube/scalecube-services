@@ -4,6 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.scalecube.services.sut.GreetingRequest;
+import io.scalecube.services.sut.GreetingResponse;
+import io.scalecube.services.sut.GreetingService;
+import io.scalecube.services.sut.GreetingServiceImpl;
+
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,9 +22,9 @@ import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class LocalServiceTest extends BaseTest {
+public class ServiceLocalTest extends BaseTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(LocalServiceTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocalTest.class);
 
   private static final Duration timeout = Duration.ofSeconds(3);
 

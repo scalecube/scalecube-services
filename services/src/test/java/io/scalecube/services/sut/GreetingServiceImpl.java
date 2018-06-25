@@ -1,5 +1,6 @@
-package io.scalecube.services;
+package io.scalecube.services.sut;
 
+import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.UnauthorizedException;

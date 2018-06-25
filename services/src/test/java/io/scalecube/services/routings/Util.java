@@ -1,4 +1,4 @@
-package io.scalecube.services;
+package io.scalecube.services.routings;
 
 import java.util.concurrent.CountDownLatch;
 

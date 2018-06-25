@@ -1,4 +1,4 @@
-package io.scalecube.services.a.b.testing;
+package io.scalecube.services.routings.sut;
 
 import java.util.NavigableMap;
 import java.util.TreeMap;
