@@ -39,7 +39,7 @@ public class ExamplesRunner {
         .seeds(seedAddress)
         .servicePort(servicePort)
         .services(new GreetingServiceImpl())
-        .build().startAwait();
+        .startAwait();
 
     Thread.currentThread().join();
   }
