@@ -1,5 +1,6 @@
 package io.scalecube.services.benchmarks;
 
+import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 
@@ -12,7 +13,7 @@ public class RequestManyCallBenchmarksRunner {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).build();
-    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).blockLastPublisher(state -> {
+    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).runForAsync(state -> {
 
       ServiceCall serviceCall = state.serviceCall();
       int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));

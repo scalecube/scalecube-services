@@ -24,6 +24,10 @@
       <artifactId>scalecube-services</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>benchmarks-api</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
