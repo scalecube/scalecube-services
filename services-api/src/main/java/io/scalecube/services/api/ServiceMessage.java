@@ -4,7 +4,6 @@ package io.scalecube.services.api;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public final class ServiceMessage {
 
@@ -16,8 +15,8 @@ public final class ServiceMessage {
 
 
   /**
-   * This header stands for "Stream Id" and has to be used for Stream multiplexing.
-   * Messages within one logical stream have to be signed with equal sid-s.
+   * This header stands for "Stream Id" and has to be used for Stream multiplexing. Messages within one logical stream
+   * have to be signed with equal sid-s.
    */
   static final String HEADER_STREAM_ID = "sid";
 
@@ -68,7 +67,7 @@ public final class ServiceMessage {
    * @param data data to set
    */
   void setData(Object data) {
-    this.data = Objects.requireNonNull(data);
+    this.data = data != null ? data : NullData.NULL_DATA;
   }
 
   /**
@@ -138,11 +137,13 @@ public final class ServiceMessage {
   }
 
   public boolean hasData() {
-    return data != NullData.NULL_DATA;
+    return data != null && data != NullData.NULL_DATA;
   }
 
   public boolean hasData(Class<?> dataClass) {
-    Objects.requireNonNull(dataClass);
+    if (dataClass == null) {
+      return false;
+    }
     if (dataClass.isPrimitive()) {
       return hasData();
     } else {
@@ -171,7 +172,7 @@ public final class ServiceMessage {
     }
 
     public Builder data(Object data) {
-      this.data = Objects.requireNonNull(data);
+      this.data = data != null ? data : NullData.NULL_DATA;
       return this;
     }
 
