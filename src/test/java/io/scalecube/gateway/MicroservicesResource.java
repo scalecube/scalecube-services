@@ -34,7 +34,7 @@ public class MicroservicesResource extends ExternalResource {
   }
 
   public MicroservicesResource startGateway() {
-    gateway = Microservices.builder().build().startAwait();
+    gateway = Microservices.builder().startAwait();
     gatewayAddress = gateway.cluster().address();
     LOGGER.info("Started gateway {} on {}", gateway, gatewayAddress);
     return this;
@@ -44,7 +44,6 @@ public class MicroservicesResource extends ExternalResource {
     services = Microservices.builder()
         .seeds(gatewayAddress)
         .services(new GreetingServiceImpl())
-        .build()
         .startAwait();
     serviceAddress = services.serviceAddress();
     LOGGER.info("Started services {} on {}", services, serviceAddress);

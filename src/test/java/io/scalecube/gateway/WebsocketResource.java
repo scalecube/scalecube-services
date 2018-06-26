@@ -1,8 +1,15 @@
 package io.scalecube.gateway;
 
+import static io.scalecube.gateway.core.GatewayMessage.DATA_FIELD;
+import static io.scalecube.gateway.core.GatewayMessage.INACTIVITY_FIELD;
+import static io.scalecube.gateway.core.GatewayMessage.QUALIFIER_FIELD;
+import static io.scalecube.gateway.core.GatewayMessage.SIGNAL_FIELD;
+import static io.scalecube.gateway.core.GatewayMessage.STREAM_ID_FIELD;
+
+import io.scalecube.gateway.core.GatewayMessage;
 import io.scalecube.gateway.websocket.WebSocketServer;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.api.NullData;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -34,6 +41,7 @@ import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 
 public class WebsocketResource extends ExternalResource {
@@ -90,29 +98,30 @@ public class WebsocketResource extends ExternalResource {
     return this;
   }
 
-  public Flux<ServiceMessage> sendMessages(Publisher<ServiceMessage> messages, Class<?> dataClass, Duration timeout) {
-    return sendPayloads(Flux.from(messages).map(this::encode), dataClass, timeout);
+  public Flux<GatewayMessage> sendMessages(Publisher<GatewayMessage> messages, Duration timeout,
+      Class<?>... dataClasses) {
+    return sendPayloads(Flux.from(messages).map(this::encode), timeout, dataClasses);
   }
 
-  public Flux<ServiceMessage> sendPayloads(Publisher<String> messages, Class<?> dataClass, Duration timeout) {
+  public Flux<GatewayMessage> sendPayloads(Publisher<String> messages, Duration timeout, Class<?>... dataClasses) {
     return sendWebsocketMessages(Flux.from(messages).map(str -> {
       ByteBuf byteBuf = Unpooled.copiedBuffer(str, Charset.defaultCharset());
       return new WebSocketMessage(WebSocketMessage.Type.BINARY, BUFFER_FACTORY.wrap(byteBuf));
-    }), dataClass, timeout);
+    }), timeout, dataClasses);
   }
 
-  public Flux<ServiceMessage> sendWebsocketMessages(Publisher<WebSocketMessage> messages,
-      Class<?> dataClass,
-      Duration timeout) {
+  public Flux<GatewayMessage> sendWebsocketMessages(Publisher<WebSocketMessage> messages,
+      Duration timeout,
+      Class<?>... dataClasses) {
     ReactorNettyWebSocketClient client = new ReactorNettyWebSocketClient();
     LOGGER.info("Created websocket client: {} for uri: {}", client, websocketServerUri);
 
-    return Flux.create((FluxSink<ServiceMessage> emitter) -> client
+    return Flux.create((FluxSink<GatewayMessage> emitter) -> client
         .execute(websocketServerUri, session -> {
           LOGGER.info("{} started sending messages to: {}", client, websocketServerUri);
           return session.send(messages)
               .thenMany(
-                  session.receive().map(message -> decode(message.getPayloadAsText(), dataClass))
+                  session.receive().map(message -> decode(message.getPayloadAsText(), dataClasses))
                       .doOnNext(emitter::next)
                       .doOnComplete(emitter::complete)
                       .doOnError(emitter::error))
@@ -120,24 +129,47 @@ public class WebsocketResource extends ExternalResource {
         }).block(timeout));
   }
 
-  private ServiceMessage decode(String payload, Class<?> dataClass) {
+  private GatewayMessage decode(String payload, Class<?>[] dataClasses) {
     try {
-      ServiceMessage message = objectMapper.readValue(payload, ServiceMessage.class);
-      if (message.hasData(Map.class)) {
-        Object data = objectMapper.convertValue(message.<Map>data(), dataClass);
-        return ServiceMessage.from(message).data(data).build();
+      // noinspection unchecked
+      Map<String, Object> map = objectMapper.readValue(payload, HashMap.class);
+      Object data = map.get(DATA_FIELD);
+      GatewayMessage.Builder builder = GatewayMessage.builder()
+          .qualifier((String) map.get(QUALIFIER_FIELD))
+          .streamId((Integer) map.get(STREAM_ID_FIELD))
+          .signal((Integer) map.get(SIGNAL_FIELD))
+          .inactivity((Integer) map.get(INACTIVITY_FIELD));
+      if (data != null) {
+        Object content = data;
+        for (Class<?> dataClass : dataClasses) {
+          try {
+            content = objectMapper.convertValue(data, dataClass);
+            break;
+          } catch (Exception e) {
+            LOGGER.warn("Failed to decode data into {}: {}", dataClass, data);
+          }
+        }
+        builder.data(content);
+      } else {
+        builder.data(NullData.NULL_DATA);
       }
-      return message;
+      return builder.build();
     } catch (IOException e) {
       LOGGER.error("Failed to decode websocket message: " + payload);
       throw new RuntimeException(e);
     }
   }
 
-  private String encode(Object message) {
+  private String encode(GatewayMessage message) {
     try {
+      Map<String, Object> response = new HashMap<>();
+      response.put(QUALIFIER_FIELD, message.qualifier());
+      response.put(STREAM_ID_FIELD, message.streamId());
+      response.put(SIGNAL_FIELD, message.signal());
+      response.put(INACTIVITY_FIELD, message.inactivity());
+      response.put(DATA_FIELD, message.data());
       StringWriter writer = new StringWriter();
-      objectMapper.writeValue(writer, message);
+      objectMapper.writeValue(writer, response);
       writer.flush();
       return writer.getBuffer().toString();
     } catch (IOException e) {

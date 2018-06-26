@@ -6,12 +6,12 @@ import static org.junit.Assert.assertThat;
 
 import io.scalecube.gateway.MicroservicesResource;
 import io.scalecube.gateway.WebsocketResource;
+import io.scalecube.gateway.core.GatewayMessage;
 import io.scalecube.gateway.examples.GreetingRequest;
 import io.scalecube.gateway.examples.GreetingResponse;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,33 +28,33 @@ import java.util.stream.IntStream;
 
 public class WebSocketServerTest {
 
-  private static final Duration TIMEOUT = Duration.ofSeconds(3);
+  private static final Duration TIMEOUT = Duration.ofSeconds(6);
 
   private static final int REQUEST_NUM = 3;
 
-  private static final ServiceMessage GREETING_ONE =
-      ServiceMessage.builder().qualifier("/greeting/one").data("hello").build();
+  private static final GatewayMessage GREETING_ONE =
+      GatewayMessage.builder().qualifier("/greeting/one").data("hello").build();
 
-  private static final ServiceMessage GREETING_FAILING_ONE =
-      ServiceMessage.builder().qualifier("/greeting/failing/one").data("hello").build();
+  private static final GatewayMessage GREETING_FAILING_ONE =
+      GatewayMessage.builder().qualifier("/greeting/failing/one").data("hello").build();
 
-  private static final ServiceMessage GREETING_MANY =
-      ServiceMessage.builder().qualifier("/greeting/many").data("hello").build();
+  private static final GatewayMessage GREETING_MANY =
+      GatewayMessage.builder().qualifier("/greeting/many").data("hello").build();
 
-  private static final ServiceMessage GREETING_FAILING_MANY =
-      ServiceMessage.builder().qualifier("/greeting/failing/many").data("hello").build();
+  private static final GatewayMessage GREETING_FAILING_MANY =
+      GatewayMessage.builder().qualifier("/greeting/failing/many").data("hello").build();
 
-  private static final ServiceMessage GREETING_POJO_ONE =
-      ServiceMessage.builder().qualifier("/greeting/pojo/one").data(new GreetingRequest("hello")).build();
+  private static final GatewayMessage GREETING_POJO_ONE =
+      GatewayMessage.builder().qualifier("/greeting/pojo/one").data(new GreetingRequest("hello")).build();
 
-  private static final ServiceMessage GREETING_POJO_MANY =
-      ServiceMessage.builder().qualifier("/greeting/pojo/many").data(new GreetingRequest("hello")).build();
+  private static final GatewayMessage GREETING_POJO_MANY =
+      GatewayMessage.builder().qualifier("/greeting/pojo/many").data(new GreetingRequest("hello")).build();
 
-  private static final ServiceMessage GREETING_EMPTY_ONE =
-      ServiceMessage.builder().qualifier("/greeting/empty/one").data("hello").build();
+  private static final GatewayMessage GREETING_EMPTY_ONE =
+      GatewayMessage.builder().qualifier("/greeting/empty/one").data("hello").build();
 
-  private static final ServiceMessage GREETING_EMPTY_MANY =
-      ServiceMessage.builder().qualifier("/greeting/empty/many").data("hello").build();
+  private static final GatewayMessage GREETING_EMPTY_MANY =
+      GatewayMessage.builder().qualifier("/greeting/empty/many").data("hello").build();
 
   @Rule
   public MicroservicesResource microservicesResource = new MicroservicesResource();
@@ -68,10 +68,10 @@ public class WebSocketServerTest {
     microservicesResource.startServices(microservicesResource.getGatewayAddress());
     websocketResource.startWebSocketServer(microservicesResource.getGateway());
 
-    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_ONE);
+    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_ONE);
 
-    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, String.class, TIMEOUT));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, TIMEOUT, String.class));
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier.assertNext(msg -> {
@@ -89,12 +89,12 @@ public class WebSocketServerTest {
     microservicesResource.startServices(microservicesResource.getGatewayAddress());
     websocketResource.startWebSocketServer(microservicesResource.getGateway());
 
-    ServiceMessage error = errorServiceMessage(500, "hello");
+    GatewayMessage error = errorServiceMessage(500, "hello");
 
-    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_FAILING_ONE);
+    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_FAILING_ONE);
 
-    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, ErrorData.class, TIMEOUT));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier.assertNext(msg -> assertErrorMessage(error, msg));
@@ -115,9 +115,9 @@ public class WebSocketServerTest {
         .collect(Collectors.toList());
 
     List<String> actual =
-        websocketResource.sendMessages(Mono.just(GREETING_MANY), String.class, TIMEOUT)
+        websocketResource.sendMessages(Mono.just(GREETING_MANY), TIMEOUT, String.class)
             .take(expectedResponseNum)
-            .map(ServiceMessage::data)
+            .map(GatewayMessage::data)
             .cast(String.class)
             .collectList().block(TIMEOUT);
 
@@ -131,10 +131,11 @@ public class WebSocketServerTest {
     websocketResource.startWebSocketServer(microservicesResource.getGateway());
 
     String content = "Echo:hello";
-    ServiceMessage error = errorServiceMessage(500, content);
+    GatewayMessage error = errorServiceMessage(500, content);
 
     StepVerifier
-        .create(websocketResource.sendMessages(Mono.just(GREETING_FAILING_MANY), ErrorData.class, TIMEOUT))
+        .create(
+            websocketResource.sendMessages(Mono.just(GREETING_FAILING_MANY), TIMEOUT, String.class, ErrorData.class))
         .assertNext(msg -> assertEquals(content, msg.data()))
         .assertNext(msg -> assertEquals(content, msg.data()))
         .assertNext(msg -> assertErrorMessage(error, msg))
@@ -147,12 +148,12 @@ public class WebSocketServerTest {
     microservicesResource.startGateway();
     websocketResource.startWebSocketServer(microservicesResource.getGateway());
 
-    ServiceMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
+    GatewayMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
 
-    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_ONE);
+    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_ONE);
 
-    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, ErrorData.class, TIMEOUT));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier.assertNext(msg -> assertErrorMessage(error, msg));
@@ -166,13 +167,13 @@ public class WebSocketServerTest {
     microservicesResource.startGateway();
     websocketResource.startWebSocketServer(microservicesResource.getGateway());
 
-    ServiceMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
+    GatewayMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
 
     // send many requests and expect several error responses
-    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_ONE);
+    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_ONE);
 
-    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, ErrorData.class, TIMEOUT));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier.assertNext(msg -> assertErrorMessage(error, msg));
@@ -186,7 +187,7 @@ public class WebSocketServerTest {
     String expectedData = "Echo:hello";
 
     StepVerifier
-        .create(websocketResource.sendMessages(Mono.just(GREETING_ONE), String.class, TIMEOUT))
+        .create(websocketResource.sendMessages(Mono.just(GREETING_ONE), TIMEOUT, String.class))
         .assertNext(msg -> assertEquals(expectedData, msg.data()))
         .expectComplete()
         .verify(TIMEOUT);
@@ -201,7 +202,7 @@ public class WebSocketServerTest {
     GreetingResponse expectedData = new GreetingResponse("Echo:hello");
 
     StepVerifier
-        .create(websocketResource.sendMessages(Mono.just(GREETING_POJO_ONE), GreetingResponse.class, TIMEOUT))
+        .create(websocketResource.sendMessages(Mono.just(GREETING_POJO_ONE), TIMEOUT, GreetingResponse.class))
         .assertNext(msg -> {
           assertThat(msg.data(), instanceOf(GreetingResponse.class));
           assertEquals(expectedData.getText(), msg.<GreetingResponse>data().getText());
@@ -224,9 +225,9 @@ public class WebSocketServerTest {
 
     List<GreetingResponse> actual =
         websocketResource
-            .sendMessages(Mono.just(GREETING_POJO_MANY), GreetingResponse.class, TIMEOUT)
+            .sendMessages(Mono.just(GREETING_POJO_MANY), TIMEOUT, GreetingResponse.class)
             .take(n)
-            .map(ServiceMessage::data)
+            .map(GatewayMessage::data)
             .cast(GreetingResponse.class)
             .collectList().block(TIMEOUT);
 
@@ -242,10 +243,10 @@ public class WebSocketServerTest {
     Publisher<String> requests =
         Flux.range(0, REQUEST_NUM).map(i -> "q=/invalid/qualifier;data=invalid_message");
 
-    ServiceMessage error = errorServiceMessage(400, "Failed to decode message headers {headers=0, data=0}");
+    GatewayMessage error = errorServiceMessage(400, "Failed to decode message headers {headers=41, data=41}");
 
-    StepVerifier.FirstStep<ServiceMessage> stepVerifier =
-        StepVerifier.create(websocketResource.sendPayloads(requests, ErrorData.class, TIMEOUT));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier =
+        StepVerifier.create(websocketResource.sendPayloads(requests, TIMEOUT, ErrorData.class));
 
     for (int i = 0; i < REQUEST_NUM; i++) {
       stepVerifier.assertNext(msg -> assertErrorMessage(error, msg));
@@ -260,14 +261,13 @@ public class WebSocketServerTest {
     microservicesResource.startServices(microservicesResource.getGatewayAddress());
     websocketResource.startWebSocketServer(microservicesResource.getGateway());
 
-    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_EMPTY_ONE);
+    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_EMPTY_ONE);
 
-    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, NullData.class, TIMEOUT));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, TIMEOUT, NullData.class));
 
     IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> stepVerifier.assertNext(msg ->
-            assertThat(msg.data(), instanceOf(NullData.class))));
+        .forEach(i -> stepVerifier.assertNext(msg -> assertThat(msg.data(), instanceOf(NullData.class))));
 
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
@@ -278,33 +278,32 @@ public class WebSocketServerTest {
     microservicesResource.startServices(microservicesResource.getGatewayAddress());
     websocketResource.startWebSocketServer(microservicesResource.getGateway());
 
-    Publisher<ServiceMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_EMPTY_MANY);
+    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_EMPTY_MANY);
 
 
-    StepVerifier.FirstStep<ServiceMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, NullData.class, TIMEOUT));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
+        .create(websocketResource.sendMessages(requests, TIMEOUT, NullData.class));
 
     IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> stepVerifier.assertNext(msg ->
-            assertThat(msg.data(), instanceOf(NullData.class))));
+        .forEach(i -> stepVerifier.assertNext(msg -> assertThat(msg.data(), instanceOf(NullData.class))));
 
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
 
-  private ServiceMessage unreachableServiceMessage(String qualifier) {
+  private GatewayMessage unreachableServiceMessage(String qualifier) {
     int errorCode = 503;
     String errorMessage = "No reachable member with such service: " + qualifier;
     return errorServiceMessage(errorCode, errorMessage);
   }
 
-  private ServiceMessage errorServiceMessage(int errorCode, String errorMessage) {
-    return ServiceMessage.builder()
+  private GatewayMessage errorServiceMessage(int errorCode, String errorMessage) {
+    return GatewayMessage.builder()
         .qualifier(Qualifier.asError(errorCode))
         .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
 
-  private void assertErrorMessage(ServiceMessage expected, ServiceMessage actual) {
+  private void assertErrorMessage(GatewayMessage expected, GatewayMessage actual) {
     assertEquals(expected.qualifier(), actual.qualifier());
     assertThat(actual.data(), instanceOf(ErrorData.class));
     ErrorData expectedData = expected.data();
