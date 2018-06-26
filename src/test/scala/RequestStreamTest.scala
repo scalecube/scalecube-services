@@ -18,7 +18,7 @@ class RequestStreamTest extends Simulation {
   // Scenario parameters
   val url = s"ws://$host:$port"
   val data = s"""$count"""
-  val echoRequest = s"""{"headers":{"q":"/greeting/manyStream"},"data":$data}"""
+  val echoRequest = s"""{"q":"/greeting/manyStream","d":$data}"""
   val httpConfig = http.baseURL(s"http://$host:$port")
 
   System.out.println("Server address: " + url)
