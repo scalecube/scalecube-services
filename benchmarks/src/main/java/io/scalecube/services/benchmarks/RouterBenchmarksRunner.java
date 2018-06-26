@@ -1,5 +1,6 @@
 package io.scalecube.services.benchmarks;
 
+import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
@@ -20,7 +21,7 @@ public class RouterBenchmarksRunner {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
-    new RouterBenchmarksState(settings).blockLastObject(state -> {
+    new RouterBenchmarksState(settings).runForSync(state -> {
 
       Timer timer = state.timer("timer");
       Router router = state.getRouter();

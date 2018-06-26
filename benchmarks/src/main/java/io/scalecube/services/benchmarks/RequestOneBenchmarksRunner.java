@@ -1,12 +1,14 @@
 package io.scalecube.services.benchmarks;
 
+import io.scalecube.benchmarks.BenchmarksSettings;
+
 import com.codahale.metrics.Timer;
 
 public class RequestOneBenchmarksRunner {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).build();
-    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).blockLastPublisher(state -> {
+    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).runForAsync(state -> {
 
       BenchmarkService benchmarkService = state.service(BenchmarkService.class);
       Timer timer = state.timer("timer");

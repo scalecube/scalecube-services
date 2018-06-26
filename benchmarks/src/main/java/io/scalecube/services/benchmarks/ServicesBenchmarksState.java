@@ -1,5 +1,7 @@
 package io.scalecube.services.benchmarks;
 
+import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.BenchmarksState;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 
