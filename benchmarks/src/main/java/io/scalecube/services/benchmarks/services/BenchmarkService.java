@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmarks;
+package io.scalecube.services.benchmarks.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;

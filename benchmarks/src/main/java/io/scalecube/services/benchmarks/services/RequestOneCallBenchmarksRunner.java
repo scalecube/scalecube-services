@@ -1,6 +1,6 @@
-package io.scalecube.services.benchmarks;
+package io.scalecube.services.benchmarks.services;
 
-import static io.scalecube.services.benchmarks.BenchmarkService.REQUEST_ONE;
+import static io.scalecube.services.benchmarks.services.BenchmarkService.REQUEST_ONE;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.services.ServiceCall;

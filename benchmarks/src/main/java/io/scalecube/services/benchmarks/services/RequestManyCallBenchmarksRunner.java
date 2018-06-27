@@ -1,11 +1,13 @@
-package io.scalecube.services.benchmarks;
+package io.scalecube.services.benchmarks.services;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.api.ServiceMessage;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 
-public class RequestManyBenchmarksRunner {
+public class RequestManyCallBenchmarksRunner {
 
   private static final String RESPONSE_COUNT = "1000";
 
@@ -13,14 +15,19 @@ public class RequestManyBenchmarksRunner {
     BenchmarksSettings settings = BenchmarksSettings.from(args).build();
     new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).runForAsync(state -> {
 
-      BenchmarkService benchmarkService = state.service(BenchmarkService.class);
+      ServiceCall serviceCall = state.serviceCall();
       int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
       Timer timer = state.timer("timer");
       Meter meter = state.meter("responses");
 
+      ServiceMessage message = ServiceMessage.builder()
+          .qualifier(BenchmarkService.class.getName(), "requestMany")
+          .data(responseCount)
+          .build();
+
       return i -> {
         Timer.Context timeContext = timer.time();
-        return benchmarkService.requestMany(responseCount)
+        return serviceCall.requestMany(message)
             .doOnNext(onNext -> meter.mark())
             .doFinally(next -> timeContext.stop());
       };
