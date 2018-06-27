@@ -1,0 +1,34 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.scalecube</groupId>
+    <artifactId>scalecube-services-parent</artifactId>
+    <version>2.0.26-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>scalecube-services-examples</artifactId>
+  <name>ScaleCube/services-examples</name>
+  <packaging>jar</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>it.unimi.dsi</groupId>
+      <artifactId>fastutil</artifactId>
+      <version>8.1.1</version>
+    </dependency>
+  </dependencies>
+
+</project>
