@@ -48,7 +48,7 @@ public class ServiceProxyFactory {
       Duration timeout, Metrics metrics) {
 
     ServiceDefinition serviceDefinition = serviceRegistry.registerInterface(serviceInterface);
-    dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).create();
+    ServiceCall dispatcher = microservices.dispatcher().router(routerType).timeout(timeout).create();
 
     return Reflection.newProxy(serviceInterface, new InvocationHandler() {
 
@@ -63,7 +63,7 @@ public class ServiceProxyFactory {
           if (Reflect.parameterizedReturnType(method).equals(Message.class)) {
             return dispatcher.listen(reqMsg);
           } else {
-            return dispatcher.listen(reqMsg).map(message -> message.data());
+            return dispatcher.listen(reqMsg).map(Message::data);
           }
         } else {
           return toReturnValue(method,
