@@ -35,6 +35,8 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
+    LOGGER.info("Accepted rSocket: {}, connectionSetup: {}", socket, setup);
+
     return Mono.just(new AbstractRSocket() {
       @Override
       public Mono<Payload> requestResponse(Payload payload) {

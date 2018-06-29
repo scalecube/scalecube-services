@@ -26,7 +26,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>benchmarks-api</artifactId>
+      <artifactId>scalecube-benchmarks-api</artifactId>
     </dependency>
 
     <dependency>

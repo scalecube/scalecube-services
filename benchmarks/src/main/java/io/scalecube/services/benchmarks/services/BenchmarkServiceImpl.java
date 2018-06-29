@@ -24,6 +24,11 @@ public class BenchmarkServiceImpl implements BenchmarkService {
   }
 
   @Override
+  public Flux<String> requestManyNoParams() {
+    return Flux.fromStream(IntStream.range(0, (int) 1e3).mapToObj(i -> "response-" + i));
+  }
+
+  @Override
   public Flux<Long> nanoTime(int count) {
     return Flux.fromStream(IntStream.range(0, count).mapToObj(i -> System.nanoTime()));
   }
