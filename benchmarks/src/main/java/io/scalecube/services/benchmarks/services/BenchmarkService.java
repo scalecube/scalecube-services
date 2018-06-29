@@ -35,6 +35,9 @@ public interface BenchmarkService {
   Flux<String> requestMany(int count);
 
   @ServiceMethod
+  Flux<String> requestManyNoParams();
+
+  @ServiceMethod
   Flux<String> requestBidirectionalEcho(Flux<String> counts);
 
   @ServiceMethod

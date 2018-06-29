@@ -45,7 +45,7 @@ public final class ServiceMessageCodec {
         DataCodec dataCodec = DataCodec.getInstance(contentType);
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
-        ReferenceCountUtil.release(dataBuffer);
+        ReferenceCountUtil.safeRelease(dataBuffer);
         LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
         throw new MessageCodecException("Failed to encode data on message q=" + message.qualifier(), ex);
       }
@@ -56,7 +56,7 @@ public final class ServiceMessageCodec {
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
-        ReferenceCountUtil.release(headersBuffer);
+        ReferenceCountUtil.safeRelease(headersBuffer);
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
         throw new MessageCodecException("Failed to encode headers on message q=" + message.qualifier(), ex);
       }
@@ -78,7 +78,7 @@ public final class ServiceMessageCodec {
             headersBuffer.toString(StandardCharsets.UTF_8), ex);
         throw new MessageCodecException("Failed to decode message headers", ex);
       } finally {
-        ReferenceCountUtil.release(headersBuffer);
+        ReferenceCountUtil.safeRelease(headersBuffer);
       }
     }
     return builder.build();
@@ -102,7 +102,7 @@ public final class ServiceMessageCodec {
           message, ex, dataBuffer.toString(StandardCharsets.UTF_8));
       throw new MessageCodecException("Failed to decode data on message q=" + message.qualifier(), ex);
     } finally {
-      ReferenceCountUtil.release(dataBuffer);
+      ReferenceCountUtil.safeRelease(dataBuffer);
     }
 
     if (targetType == ErrorData.class) {
