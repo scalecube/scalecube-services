@@ -11,7 +11,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -32,26 +31,26 @@ public final class ServiceMethodInvoker {
 
   public Mono<ServiceMessage> invokeOne(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Mono.from(invoke(toRequest(message, dataDecoder), Mono::error))
+    return Mono.from(invoke(toRequest(message, dataDecoder)))
         .map(this::toResponse)
         .switchIfEmpty(Mono.just(toEmptyResponse()));
   }
 
   public Flux<ServiceMessage> invokeMany(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.from(invoke(toRequest(message, dataDecoder), Flux::error))
+    return Flux.from(invoke(toRequest(message, dataDecoder)))
         .map(this::toResponse)
         .switchIfEmpty(Flux.just(toEmptyResponse()));
   }
 
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder)), Flux::error))
+    return Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder))))
         .map(this::toResponse)
         .switchIfEmpty(Flux.just(toEmptyResponse()));
   }
 
-  private Publisher<?> invoke(Object args, Function<Throwable, Publisher<?>> exceptionMapper) {
+  private Publisher<?> invoke(Object args) {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
@@ -60,12 +59,15 @@ public final class ServiceMethodInvoker {
       } else {
         result = (Publisher<?>) method.invoke(service, args);
       }
+      if (result == null) {
+        result = Mono.empty();
+      }
     } catch (InvocationTargetException ex) {
       throwable = Optional.ofNullable(ex.getCause()).orElse(ex);
     } catch (Throwable ex) {
       throwable = ex;
     }
-    return throwable != null ? exceptionMapper.apply(throwable) : result;
+    return throwable != null ? Mono.error(throwable) : result;
   }
 
   private Object toRequest(ServiceMessage message,
