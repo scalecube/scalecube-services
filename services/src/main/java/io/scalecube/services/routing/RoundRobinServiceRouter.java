@@ -25,8 +25,7 @@ public class RoundRobinServiceRouter implements Router {
     List<ServiceReference> serviceInstances = serviceRegistry.lookupService(request.qualifier());
 
     if (serviceInstances.size() > 1) {
-      AtomicInteger counter = counterByServiceName
-          .computeIfAbsent(request.qualifier(), or -> new AtomicInteger());
+      AtomicInteger counter = counterByServiceName.computeIfAbsent(request.qualifier(), or -> new AtomicInteger());
       int index = (counter.incrementAndGet() & Integer.MAX_VALUE) % serviceInstances.size();
       return Optional.of(serviceInstances.get(index));
     } else if (serviceInstances.size() == 1) {
@@ -35,11 +34,6 @@ public class RoundRobinServiceRouter implements Router {
       LOGGER.warn("route selection return null since no service instance was found for {}", request.qualifier());
       return Optional.empty();
     }
-  }
-
-  @Override
-  public List<ServiceReference> routes(ServiceRegistry serviceRegistry, ServiceMessage request) {
-    return serviceRegistry.lookupService(request.qualifier());
   }
 
 }

@@ -4,7 +4,6 @@ package io.scalecube.services.api;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public final class ServiceMessage {
 
@@ -12,14 +11,21 @@ public final class ServiceMessage {
    * This header is supposed to be used by application in case if same data type can be reused for several messages so
    * it will allow to qualify the specific message type.
    */
-  public static final String HEADER_QUALIFIER = "q";
+  static final String HEADER_QUALIFIER = "q";
+
+
+  /**
+   * This header stands for "Stream Id" and has to be used for Stream multiplexing. Messages within one logical stream
+   * have to be signed with equal sid-s.
+   */
+  static final String HEADER_STREAM_ID = "sid";
 
   /**
    * This is a system header which used by transport for serialization and deserialization purpose. It is not supposed
    * to be used by application directly and it is subject to changes in future releases.
    */
-  public static final String HEADER_DATA_TYPE = "_type";
-  public static final String HEADER_DATA_FORMAT = "_data_format";
+  static final String HEADER_DATA_TYPE = "_type";
+  static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = Collections.emptyMap();
   private Object data = NullData.NULL_DATA;
@@ -61,7 +67,7 @@ public final class ServiceMessage {
    * @param data data to set
    */
   void setData(Object data) {
-    this.data = Objects.requireNonNull(data);
+    this.data = data != null ? data : NullData.NULL_DATA;
   }
 
   /**
@@ -93,12 +99,21 @@ public final class ServiceMessage {
   }
 
   /**
-   * Returns message qualifier.
+   * Returns message's qualifier.
    * 
    * @return qualifier string
    */
   public String qualifier() {
     return header(HEADER_QUALIFIER);
+  }
+
+  /**
+   * Returns message's sid.
+   *
+   * @return streamId.
+   */
+  public String streamId() {
+    return header(HEADER_STREAM_ID);
   }
 
   /**
@@ -122,11 +137,13 @@ public final class ServiceMessage {
   }
 
   public boolean hasData() {
-    return data != NullData.NULL_DATA;
+    return data != null && data != NullData.NULL_DATA;
   }
 
   public boolean hasData(Class<?> dataClass) {
-    Objects.requireNonNull(dataClass);
+    if (dataClass == null) {
+      return false;
+    }
     if (dataClass.isPrimitive()) {
       return hasData();
     } else {
@@ -155,7 +172,7 @@ public final class ServiceMessage {
     }
 
     public Builder data(Object data) {
-      this.data = Objects.requireNonNull(data);
+      this.data = data != null ? data : NullData.NULL_DATA;
       return this;
     }
 
@@ -185,6 +202,10 @@ public final class ServiceMessage {
 
     public Builder qualifier(String qualifier) {
       return header(HEADER_QUALIFIER, qualifier);
+    }
+
+    public Builder streamId(String streamId) {
+      return header(HEADER_STREAM_ID, streamId);
     }
 
     public ServiceMessage build() {
