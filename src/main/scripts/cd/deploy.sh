@@ -7,8 +7,7 @@ commit_to_develop() {
  git checkout -B develop 
  git rebase master
  git commit --amend -m "++++ Prepare for next development iteration build: $TRAVIS_BUILD_NUMBER ++++"
- git push origin develop && curl -u "$GITHUBUSER:$GITHUBTOKEN" -d '{"title": "Prepare new release","head": "develop","base": "master"}' https://api.github.com/repos/$TRAVIS_REPO_SLUG/pulls?access_token=$GITTOKEN
-
+ git push --force origin develop
 }
 
 mvn -P release release:prepare release:perform -DautoVersionSubmodules=true -DscmCommentPrefix="$TRAVIS_COMMIT_MESSAGE [skip ci] " -DskipTests=true -B -V -s travis-settings.xml
