@@ -13,7 +13,7 @@ class RequestResponseTest extends Simulation {
   val scenarioDuration: Integer = 2 * duration.toInt / 3
 
   val url = s"ws://$host:$port"
-  val echoRequest = """{"q":"/greeting/one","d":"echoName"}"""
+  val echoRequest = """{"q":"/greeting/one","sid":123,"d":"echoName"}"""
   val httpConfig = http.baseURL(s"http://$host:$port")
 
   System.out.println("Server address: " + url)
