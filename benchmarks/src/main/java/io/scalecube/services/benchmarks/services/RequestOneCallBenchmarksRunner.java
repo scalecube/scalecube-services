@@ -7,6 +7,8 @@ import io.scalecube.services.ServiceCall;
 
 import com.codahale.metrics.Timer;
 
+import io.netty.util.ReferenceCountUtil;
+
 public class RequestOneCallBenchmarksRunner {
 
   public static void main(String[] args) {
@@ -18,7 +20,9 @@ public class RequestOneCallBenchmarksRunner {
 
       return i -> {
         Timer.Context timeContext = timer.time();
-        return serviceCall.requestOne(REQUEST_ONE).doOnTerminate(timeContext::stop);
+        return serviceCall.requestOne(REQUEST_ONE)
+            .doOnNext(msg -> ReferenceCountUtil.safeRelease(msg.data()))
+            .doOnTerminate(timeContext::stop);
       };
     });
   }
