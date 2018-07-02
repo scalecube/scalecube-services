@@ -2,6 +2,7 @@ package io.scalecube.gateway.websocket;
 
 import io.scalecube.gateway.core.GatewayMessage;
 import io.scalecube.gateway.core.GatewayMessageCodec;
+import io.scalecube.gateway.core.Signal;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
@@ -17,6 +18,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.Charset;
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class WebSocketAcceptor {
 
@@ -41,14 +44,42 @@ public final class WebSocketAcceptor {
 
     Flux<ByteBuf> messages = session.receive()
         .flatMap(frame -> {
+          Long sid = null;
           try {
-            ServiceMessage request = GatewayMessage.toServiceMessage(toMessage(frame));
-            return serviceCall.requestMany(request);
+            GatewayMessage gatewayMessage = toMessage(frame);
+            Long streamId = gatewayMessage.streamId();
+            sid = streamId;
+            if (gatewayMessage.qualifier() == null) {
+              throw new BadRequestException("q is missing");
+            }
+            if (streamId == null) {
+              throw new BadRequestException("sid is missing");
+            }
+            ServiceMessage request = GatewayMessage.toServiceMessage(gatewayMessage);
+            AtomicBoolean isFailure = new AtomicBoolean(false);
+            Flux<ServiceMessage> serviceMessages = serviceCall.requestMany(request);
+            if (gatewayMessage.inactivity() != null) {
+              Duration inactivity = Duration.ofSeconds(gatewayMessage.inactivity());
+              serviceMessages = serviceMessages.timeout(inactivity);
+            }
+            return serviceMessages
+                .map(serviceMessage -> {
+                  GatewayMessage.Builder builder = GatewayMessage.from(serviceMessage).streamId(streamId);
+                  if (ExceptionProcessor.isError(serviceMessage)) {
+                    isFailure.set(true);
+                    builder.signal(Signal.ERROR);
+                  }
+                  return builder.build();
+                })
+                .concatWith(Flux.defer(() -> isFailure.get() ? Flux.empty()
+                    : Flux.just(GatewayMessage.builder().streamId(streamId).signal(Signal.COMPLETE).build())))
+                .onErrorResume(
+                    t -> Flux.just(GatewayMessage.builder().streamId(streamId).signal(Signal.ERROR).build()));
           } catch (Throwable ex) {
-            return Flux.just(ExceptionProcessor.toMessage(ex));
+            ServiceMessage serviceMessage = ExceptionProcessor.toMessage(ex);
+            return Flux.just(GatewayMessage.from(serviceMessage).streamId(sid).signal(Signal.ERROR).build());
           }
         })
-        .map(GatewayMessage::toGatewayMessage)
         .map(this::toByteBuf)
         .doOnError(throwable -> session.close());
 
