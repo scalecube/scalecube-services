@@ -9,7 +9,6 @@ import static io.scalecube.gateway.core.GatewayMessage.STREAM_ID_FIELD;
 import io.scalecube.gateway.core.GatewayMessage;
 import io.scalecube.gateway.websocket.WebSocketServer;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.api.NullData;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -136,7 +135,7 @@ public class WebsocketResource extends ExternalResource {
       Object data = map.get(DATA_FIELD);
       GatewayMessage.Builder builder = GatewayMessage.builder()
           .qualifier((String) map.get(QUALIFIER_FIELD))
-          .streamId((Integer) map.get(STREAM_ID_FIELD))
+          .streamId(map.containsKey(STREAM_ID_FIELD) ? Long.valueOf(String.valueOf(map.get(STREAM_ID_FIELD))) : null)
           .signal((Integer) map.get(SIGNAL_FIELD))
           .inactivity((Integer) map.get(INACTIVITY_FIELD));
       if (data != null) {
@@ -150,8 +149,6 @@ public class WebsocketResource extends ExternalResource {
           }
         }
         builder.data(content);
-      } else {
-        builder.data(NullData.NULL_DATA);
       }
       return builder.build();
     } catch (IOException e) {

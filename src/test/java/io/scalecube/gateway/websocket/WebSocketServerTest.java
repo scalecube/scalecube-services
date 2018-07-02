@@ -2,11 +2,14 @@ package io.scalecube.gateway.websocket;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 import io.scalecube.gateway.MicroservicesResource;
 import io.scalecube.gateway.WebsocketResource;
 import io.scalecube.gateway.core.GatewayMessage;
+import io.scalecube.gateway.core.Signal;
 import io.scalecube.gateway.examples.GreetingRequest;
 import io.scalecube.gateway.examples.GreetingResponse;
 import io.scalecube.services.api.ErrorData;
@@ -32,29 +35,33 @@ public class WebSocketServerTest {
 
   private static final int REQUEST_NUM = 3;
 
+  private static final long STREAM_ID = 1;
+
   private static final GatewayMessage GREETING_ONE =
-      GatewayMessage.builder().qualifier("/greeting/one").data("hello").build();
+      GatewayMessage.builder().qualifier("/greeting/one").data("hello").streamId(STREAM_ID).build();
 
   private static final GatewayMessage GREETING_FAILING_ONE =
-      GatewayMessage.builder().qualifier("/greeting/failing/one").data("hello").build();
+      GatewayMessage.builder().qualifier("/greeting/failing/one").data("hello").streamId(STREAM_ID).build();
 
   private static final GatewayMessage GREETING_MANY =
-      GatewayMessage.builder().qualifier("/greeting/many").data("hello").build();
+      GatewayMessage.builder().qualifier("/greeting/many").data("hello").streamId(STREAM_ID).build();
 
   private static final GatewayMessage GREETING_FAILING_MANY =
-      GatewayMessage.builder().qualifier("/greeting/failing/many").data("hello").build();
+      GatewayMessage.builder().qualifier("/greeting/failing/many").data("hello").streamId(STREAM_ID).build();
 
   private static final GatewayMessage GREETING_POJO_ONE =
-      GatewayMessage.builder().qualifier("/greeting/pojo/one").data(new GreetingRequest("hello")).build();
+      GatewayMessage.builder().qualifier("/greeting/pojo/one").data(new GreetingRequest("hello")).streamId(STREAM_ID)
+          .build();
 
   private static final GatewayMessage GREETING_POJO_MANY =
-      GatewayMessage.builder().qualifier("/greeting/pojo/many").data(new GreetingRequest("hello")).build();
+      GatewayMessage.builder().qualifier("/greeting/pojo/many").data(new GreetingRequest("hello")).streamId(STREAM_ID)
+          .build();
 
   private static final GatewayMessage GREETING_EMPTY_ONE =
-      GatewayMessage.builder().qualifier("/greeting/empty/one").data("hello").build();
+      GatewayMessage.builder().qualifier("/greeting/empty/one").data("hello").streamId(STREAM_ID).build();
 
   private static final GatewayMessage GREETING_EMPTY_MANY =
-      GatewayMessage.builder().qualifier("/greeting/empty/many").data("hello").build();
+      GatewayMessage.builder().qualifier("/greeting/empty/many").data("hello").streamId(STREAM_ID).build();
 
   @Rule
   public MicroservicesResource microservicesResource = new MicroservicesResource();
@@ -74,10 +81,9 @@ public class WebSocketServerTest {
         .create(websocketResource.sendMessages(requests, TIMEOUT, String.class));
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
-      stepVerifier.assertNext(msg -> {
-        assertThat(msg.data(), instanceOf(String.class));
-        assertEquals("Echo:hello", msg.data());
-      });
+      stepVerifier
+          .assertNext(msg -> assertMessage("Echo:hello", msg))
+          .assertNext(this::assertCompleteMessage);
     });
 
     stepVerifier.expectComplete().verify(TIMEOUT);
@@ -133,11 +139,10 @@ public class WebSocketServerTest {
     String content = "Echo:hello";
     GatewayMessage error = errorServiceMessage(500, content);
 
-    StepVerifier
-        .create(
-            websocketResource.sendMessages(Mono.just(GREETING_FAILING_MANY), TIMEOUT, String.class, ErrorData.class))
-        .assertNext(msg -> assertEquals(content, msg.data()))
-        .assertNext(msg -> assertEquals(content, msg.data()))
+    StepVerifier.create(
+        websocketResource.sendMessages(Mono.just(GREETING_FAILING_MANY), TIMEOUT, String.class, ErrorData.class))
+        .assertNext(msg -> assertMessage(content, msg))
+        .assertNext(msg -> assertMessage(content, msg))
         .assertNext(msg -> assertErrorMessage(error, msg))
         .expectComplete()
         .verify(TIMEOUT);
@@ -188,7 +193,8 @@ public class WebSocketServerTest {
 
     StepVerifier
         .create(websocketResource.sendMessages(Mono.just(GREETING_ONE), TIMEOUT, String.class))
-        .assertNext(msg -> assertEquals(expectedData, msg.data()))
+        .assertNext(msg -> assertMessage(expectedData, msg))
+        .assertNext(this::assertCompleteMessage)
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -203,10 +209,8 @@ public class WebSocketServerTest {
 
     StepVerifier
         .create(websocketResource.sendMessages(Mono.just(GREETING_POJO_ONE), TIMEOUT, GreetingResponse.class))
-        .assertNext(msg -> {
-          assertThat(msg.data(), instanceOf(GreetingResponse.class));
-          assertEquals(expectedData.getText(), msg.<GreetingResponse>data().getText());
-        })
+        .assertNext(msg -> assertMessage(expectedData, msg))
+        .assertNext(this::assertCompleteMessage)
         .expectComplete()
         .verify(TIMEOUT);
   }
@@ -243,7 +247,12 @@ public class WebSocketServerTest {
     Publisher<String> requests =
         Flux.range(0, REQUEST_NUM).map(i -> "q=/invalid/qualifier;data=invalid_message");
 
-    GatewayMessage error = errorServiceMessage(400, "Failed to decode message headers {headers=41, data=41}");
+    GatewayMessage error = GatewayMessage.builder()
+        .qualifier(Qualifier.asError(400))
+        .streamId(null)
+        .signal(Signal.ERROR)
+        .data(new ErrorData(400, "Failed to decode message headers {headers=41, data=41}"))
+        .build();
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier =
         StepVerifier.create(websocketResource.sendPayloads(requests, TIMEOUT, ErrorData.class));
@@ -264,10 +273,13 @@ public class WebSocketServerTest {
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM).map(i -> GREETING_EMPTY_ONE);
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, NullData.class));
+        .create(websocketResource.sendMessages(requests, TIMEOUT));
 
     IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> stepVerifier.assertNext(msg -> assertThat(msg.data(), instanceOf(NullData.class))));
+        .forEach(i -> {
+          stepVerifier.assertNext(msg -> assertMessage(null, msg));
+          stepVerifier.assertNext(this::assertCompleteMessage);
+        });
 
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
@@ -285,7 +297,10 @@ public class WebSocketServerTest {
         .create(websocketResource.sendMessages(requests, TIMEOUT, NullData.class));
 
     IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> stepVerifier.assertNext(msg -> assertThat(msg.data(), instanceOf(NullData.class))));
+        .forEach(i -> {
+          stepVerifier.assertNext(msg -> assertMessage(null, msg));
+          stepVerifier.assertNext(this::assertCompleteMessage);
+        });
 
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
@@ -293,22 +308,45 @@ public class WebSocketServerTest {
   private GatewayMessage unreachableServiceMessage(String qualifier) {
     int errorCode = 503;
     String errorMessage = "No reachable member with such service: " + qualifier;
-    return errorServiceMessage(errorCode, errorMessage);
+    return GatewayMessage.builder()
+        .qualifier(Qualifier.asError(errorCode))
+        .streamId(STREAM_ID)
+        .signal(Signal.ERROR)
+        .data(new ErrorData(errorCode, errorMessage))
+        .build();
   }
 
   private GatewayMessage errorServiceMessage(int errorCode, String errorMessage) {
     return GatewayMessage.builder()
         .qualifier(Qualifier.asError(errorCode))
+        .streamId(STREAM_ID)
+        .signal(Signal.ERROR)
         .data(new ErrorData(errorCode, errorMessage))
         .build();
   }
 
   private void assertErrorMessage(GatewayMessage expected, GatewayMessage actual) {
     assertEquals(expected.qualifier(), actual.qualifier());
+    assertEquals(expected.streamId(), actual.streamId());
+    assertEquals(expected.signal(), actual.signal());
     assertThat(actual.data(), instanceOf(ErrorData.class));
     ErrorData expectedData = expected.data();
     ErrorData actualData = actual.data();
     assertEquals(expectedData.getErrorCode(), actualData.getErrorCode());
     assertEquals(expectedData.getErrorMessage(), actualData.getErrorMessage());
+  }
+
+  private void assertCompleteMessage(GatewayMessage actual) {
+    assertNull(actual.qualifier());
+    assertNotNull(actual.streamId());
+    assertEquals(Signal.COMPLETE.code(), actual.signal().intValue());
+    assertNull(actual.data());
+  }
+
+  private void assertMessage(Object expectedData, GatewayMessage actual) {
+    assertNotNull(actual.qualifier());
+    assertNotNull(actual.streamId());
+    assertNull(actual.signal());
+    assertEquals(expectedData, actual.data());
   }
 }
