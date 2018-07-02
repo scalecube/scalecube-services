@@ -7,6 +7,8 @@ import io.scalecube.services.api.ServiceMessage;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 
+import io.netty.util.ReferenceCountUtil;
+
 public class RequestManyCallBenchmarksRunner {
 
   private static final String RESPONSE_COUNT = "1000";
@@ -29,6 +31,7 @@ public class RequestManyCallBenchmarksRunner {
         Timer.Context timeContext = timer.time();
         return serviceCall.requestMany(message)
             .doOnNext(onNext -> meter.mark())
+            .doOnNext(msg -> ReferenceCountUtil.safeRelease(msg.data()))
             .doFinally(next -> timeContext.stop());
       };
     });
