@@ -1,5 +1,8 @@
 package io.scalecube.gateway.websocket;
 
+import io.scalecube.services.Microservices;
+
+import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.server.HttpServer;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.server.HttpServerResponse;
@@ -13,13 +16,13 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.function.BiFunction;
 
-public class WebSocketServer {
+public final class WebSocketServer {
 
   private final WebSocketAcceptor acceptor;
   private BlockingNettyContext server;
 
-  public WebSocketServer(WebSocketAcceptor acceptor) {
-    this.acceptor = acceptor;
+  public WebSocketServer(Microservices microservices) {
+    this.acceptor = new WebSocketAcceptor(microservices.call().create());
   }
 
   public synchronized InetSocketAddress start() {
@@ -52,8 +55,9 @@ public class WebSocketServer {
     public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
       return httpResponse.sendWebsocket((WebsocketInbound inbound, WebsocketOutbound outbound) -> {
         WebSocketSession session = new WebSocketSession(httpRequest, inbound, outbound);
-        inbound.context().onClose(() -> acceptor.onDisconnect(session));
-        return acceptor.onConnect(session);
+        Mono<Void> voidMono = acceptor.onConnect(session);
+        session.onClose(() -> acceptor.onDisconnect(session));
+        return voidMono;
       });
     }
   }

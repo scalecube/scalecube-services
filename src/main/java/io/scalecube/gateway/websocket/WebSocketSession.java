@@ -1,9 +1,6 @@
 package io.scalecube.gateway.websocket;
 
-import static io.netty.handler.codec.http.HttpHeaderNames.AUTHORIZATION;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-
-import io.scalecube.services.api.ServiceMessage;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,10 +17,6 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 import org.reactivestreams.Publisher;
 
-import java.net.InetSocketAddress;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 
 public final class WebSocketSession {
@@ -31,15 +24,11 @@ public final class WebSocketSession {
   public static final String DEFAULT_CONTENT_TYPE = "application/json";
   public static final int STATUS_CODE_NORMAL_CLOSE = 1000;
 
-  private final Flux<ServiceMessage> inbound;
+  private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
 
   private final String id;
-  private final String uri;
-  private final Map<String, String> headers;
-  private final InetSocketAddress remoteAddress;
   private final String contentType;
-  private final String auth;
 
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
@@ -50,27 +39,11 @@ public final class WebSocketSession {
    */
   public WebSocketSession(HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
     this.id = Integer.toHexString(System.identityHashCode(this));
-    this.uri = httpRequest.uri();
-    this.remoteAddress = httpRequest.remoteAddress();
 
-    // prepare headers
-    Map<String, String> headers = new HashMap<>();
     HttpHeaders httpHeaders = httpRequest.requestHeaders();
-    httpHeaders.names().forEach(name -> {
-      String value = httpHeaders.get(name);
-      if (value != null) {
-        headers.put(name, value);
-      }
-    });
-
-    this.headers = Collections.unmodifiableMap(headers);
     this.contentType = Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
-    this.auth = httpHeaders.get(AUTHORIZATION);
 
-    // prepare inbound
-    this.inbound = inbound.aggregateFrames().receiveFrames().map(this::toMessage).log(">> RECEIVE");
-    
-    // prepare outbound
+    this.inbound = inbound;
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
   }
 
@@ -78,32 +51,20 @@ public final class WebSocketSession {
     return id;
   }
 
-  public String uri() {
-    return uri;
-  }
-
-  public Map<String, String> headers() {
-    return headers;
-  }
-
-  public InetSocketAddress remoteAddress() {
-    return remoteAddress;
-  }
-
   public String contentType() {
     return contentType;
   }
 
-  public Optional<String> auth() {
-    return Optional.ofNullable(auth);
+  public Flux<WebSocketFrame> receive() {
+    return inbound.aggregateFrames()
+        .receiveFrames()
+        .map(WebSocketFrame::retain)
+        .log(">> RECEIVE");
   }
 
-  public Flux<ServiceMessage> receive() {
-    return inbound;
-  }
-
-  public Mono<Void> send(Publisher<ServiceMessage> messages) {
-    return outbound.sendObject(Flux.from(messages).map(this::toFrame).log("<< SEND")).then();
+  public Mono<Void> send(Publisher<ByteBuf> publisher) {
+    return outbound.sendObject(
+        Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND")).then();
   }
 
   /**
@@ -112,19 +73,11 @@ public final class WebSocketSession {
    * closure, meaning that the purpose for which the connection was established has been fulfilled.</i>
    */
   public Mono<Void> close() {
-    return outbound.sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close")).then();
+    return outbound.sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close")).then().log("<< CLOSE");
   }
 
-  private ServiceMessage toMessage(WebSocketFrame frame) {
-    return ServiceMessage.builder()
-        .qualifier(uri)
-        .dataFormat(contentType)
-        .data(frame.content().retain())
-        .build();
-  }
-
-  private WebSocketFrame toFrame(ServiceMessage message) {
-    return new TextWebSocketFrame(((ByteBuf) message.data()));
+  public void onClose(Runnable runnable) {
+    inbound.context().onClose(runnable);
   }
 
   @Override
@@ -133,11 +86,7 @@ public final class WebSocketSession {
     sb.append("inbound=").append(inbound);
     sb.append(", outbound=").append(outbound);
     sb.append(", id='").append(id).append('\'');
-    sb.append(", uri='").append(uri).append('\'');
-    sb.append(", headers=").append(headers);
-    sb.append(", remoteAddress=").append(remoteAddress);
     sb.append(", contentType='").append(contentType).append('\'');
-    sb.append(", auth='").append(auth).append('\'');
     sb.append('}');
     return sb.toString();
   }
