@@ -16,8 +16,15 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-websocket</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
     </dependency>
+    
     <dependency>
       <groupId>io.gatling.highcharts</groupId>
       <artifactId>gatling-charts-highcharts</artifactId>
