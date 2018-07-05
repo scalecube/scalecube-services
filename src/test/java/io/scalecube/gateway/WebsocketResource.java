@@ -7,7 +7,7 @@ import static io.scalecube.gateway.core.GatewayMessage.SIGNAL_FIELD;
 import static io.scalecube.gateway.core.GatewayMessage.STREAM_ID_FIELD;
 
 import io.scalecube.gateway.core.GatewayMessage;
-import io.scalecube.gateway.websocket.WebSocketServer;
+import io.scalecube.gateway.websocket.WebsocketServer;
 import io.scalecube.services.Microservices;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
@@ -55,11 +54,11 @@ public class WebsocketResource extends ExternalResource {
     objectMapper = initMapper();
   }
 
-  private WebSocketServer websocketServer;
+  private WebsocketServer websocketServer;
   private InetSocketAddress websocketServerAddress;
   private URI websocketServerUri;
 
-  public WebSocketServer getWebsocketServer() {
+  public WebsocketServer getWebsocketServer() {
     return websocketServer;
   }
 
@@ -71,8 +70,8 @@ public class WebsocketResource extends ExternalResource {
     return websocketServerUri;
   }
 
-  public WebsocketResource startWebSocketServer(Microservices gateway) {
-    websocketServer = new WebSocketServer(gateway);
+  public WebsocketResource startWebsocketServer(Microservices gateway) {
+    websocketServer = new WebsocketServer(gateway);
     websocketServerAddress = websocketServer.start();
 
     String hostAddress = websocketServerAddress.getAddress().getHostAddress();
@@ -86,7 +85,7 @@ public class WebsocketResource extends ExternalResource {
     return this;
   }
 
-  public WebsocketResource stopWebSocketServer() {
+  public WebsocketResource stopWebsocketServer() {
     if (websocketServer != null) {
       try {
         websocketServer.stop();
@@ -115,15 +114,15 @@ public class WebsocketResource extends ExternalResource {
     ReactorNettyWebSocketClient client = new ReactorNettyWebSocketClient();
     LOGGER.info("Created websocket client: {} for uri: {}", client, websocketServerUri);
 
-    return Flux.create((FluxSink<GatewayMessage> emitter) -> client
+    return Flux.create(emitter -> client
         .execute(websocketServerUri, session -> {
           LOGGER.info("{} started sending messages to: {}", client, websocketServerUri);
           return session.send(messages)
-              .thenMany(
-                  session.receive().map(message -> decode(message.getPayloadAsText(), dataClasses))
-                      .doOnNext(emitter::next)
-                      .doOnComplete(emitter::complete)
-                      .doOnError(emitter::error))
+              .thenMany(session.receive()
+                  .map(message -> decode(message.getPayloadAsText(), dataClasses))
+                  .doOnNext(emitter::next)
+                  .doOnComplete(emitter::complete)
+                  .doOnError(emitter::error))
               .then();
         }).block(timeout));
   }
@@ -177,7 +176,7 @@ public class WebsocketResource extends ExternalResource {
 
   @Override
   protected void after() {
-    stopWebSocketServer();
+    stopWebsocketServer();
   }
 
   private static ObjectMapper initMapper() {
