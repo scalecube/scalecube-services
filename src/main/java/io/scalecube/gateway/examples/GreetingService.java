@@ -35,4 +35,13 @@ public interface GreetingService {
 
   @ServiceMethod("empty/many")
   Flux<String> emptyMany(String name);
+
+  @ServiceMethod("never/one")
+  Mono<String> neverOne(String name);
+
+  @ServiceMethod("delay/one")
+  Mono<String> delayOne(String name);
+
+  @ServiceMethod("delay/many")
+  Flux<String> delayMany(String name);
 }

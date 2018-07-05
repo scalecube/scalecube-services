@@ -56,4 +56,19 @@ public class GreetingServiceImpl implements GreetingService {
   public Flux<String> emptyMany(String name) {
     return Flux.empty();
   }
+
+  @Override
+  public Mono<String> neverOne(String name) {
+    return Mono.never();
+  }
+
+  @Override
+  public Mono<String> delayOne(String name) {
+    return Mono.delay(Duration.ofSeconds(1)).then(Mono.just(name));
+  }
+
+  @Override
+  public Flux<String> delayMany(String name) {
+    return Flux.interval(Duration.ofMillis(500), Duration.ofSeconds(2)).map(i -> name);
+  }
 }
