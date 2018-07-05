@@ -1,5 +1,6 @@
 package io.scalecube.gateway;
 
+import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
 import io.scalecube.transport.Address;
@@ -41,9 +42,13 @@ public class MicroservicesResource extends ExternalResource {
   }
 
   public MicroservicesResource startServices(Address gatewayAddress) {
+    return startServices(gatewayAddress, new GreetingServiceImpl());
+  }
+
+  public MicroservicesResource startServices(Address gatewayAddress, GreetingService service) {
     services = Microservices.builder()
         .seeds(gatewayAddress)
-        .services(new GreetingServiceImpl())
+        .services(service)
         .startAwait();
     serviceAddress = services.serviceAddress();
     LOGGER.info("Started services {} on {}", services, serviceAddress);
