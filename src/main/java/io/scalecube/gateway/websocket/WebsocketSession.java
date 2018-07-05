@@ -2,6 +2,7 @@ package io.scalecube.gateway.websocket;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.NettyPipeline;
@@ -16,13 +17,21 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 
 import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
-public final class WebSocketSession {
+public final class WebsocketSession {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
   public static final String DEFAULT_CONTENT_TYPE = "application/json";
   public static final int STATUS_CODE_NORMAL_CLOSE = 1000;
+
+  private final Map<Long, Disposable> subscriptions = new ConcurrentHashMap<>();
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
@@ -32,12 +41,12 @@ public final class WebSocketSession {
 
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
-   * 
+   *
    * @param httpRequest - Init session HTTP request
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
    */
-  public WebSocketSession(HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
+  public WebsocketSession(HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
     this.id = Integer.toHexString(System.identityHashCode(this));
 
     HttpHeaders httpHeaders = httpRequest.requestHeaders();
@@ -45,6 +54,8 @@ public final class WebSocketSession {
 
     this.inbound = inbound;
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
+
+    inbound.context().onClose(this::clearSubscriptions);
   }
 
   public String id() {
@@ -80,11 +91,42 @@ public final class WebSocketSession {
     inbound.context().onClose(runnable);
   }
 
+  public boolean dispose(Long streamId) {
+    boolean result = false;
+    if (streamId != null) {
+      Disposable disposable = subscriptions.remove(streamId);
+      result = disposable != null;
+      if (result) {
+        LOGGER.debug("Dispose subscription by streamId: {} on session: {}", streamId, this);
+        disposable.dispose();
+      }
+    }
+    return result;
+  }
+
+  public boolean containsSid(Long streamId) {
+    return streamId != null && subscriptions.containsKey(streamId);
+  }
+
+  public boolean register(Long streamId, Disposable serviceSubscription) {
+    boolean result = subscriptions.putIfAbsent(streamId, serviceSubscription) == null;
+    if (result) {
+      LOGGER.debug("Registered subscrption with streamId: {} on session: {}", streamId, this);
+    }
+    return result;
+  }
+
+  private void clearSubscriptions() {
+    if (!subscriptions.isEmpty()) {
+      LOGGER.info("Clear all {} subscriptions on session: {}", subscriptions.size(), this);
+    }
+    subscriptions.forEach(($, disposable) -> disposable.dispose());
+    subscriptions.clear();
+  }
+
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("WebSocketSession{");
-    sb.append("inbound=").append(inbound);
-    sb.append(", outbound=").append(outbound);
+    final StringBuilder sb = new StringBuilder("WebsocketSession{");
     sb.append(", id='").append(id).append('\'');
     sb.append(", contentType='").append(contentType).append('\'');
     sb.append('}');

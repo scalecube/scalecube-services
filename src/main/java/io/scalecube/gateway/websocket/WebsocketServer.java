@@ -16,13 +16,13 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.function.BiFunction;
 
-public final class WebSocketServer {
+public final class WebsocketServer {
 
-  private final WebSocketAcceptor acceptor;
+  private final WebsocketAcceptor acceptor;
   private BlockingNettyContext server;
 
-  public WebSocketServer(Microservices microservices) {
-    this.acceptor = new WebSocketAcceptor(microservices.call().create());
+  public WebsocketServer(Microservices microservices) {
+    this.acceptor = new WebsocketAcceptor(microservices.call().create());
   }
 
   public synchronized InetSocketAddress start() {
@@ -54,7 +54,7 @@ public final class WebSocketServer {
     @Override
     public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
       return httpResponse.sendWebsocket((WebsocketInbound inbound, WebsocketOutbound outbound) -> {
-        WebSocketSession session = new WebSocketSession(httpRequest, inbound, outbound);
+        WebsocketSession session = new WebsocketSession(httpRequest, inbound, outbound);
         Mono<Void> voidMono = acceptor.onConnect(session);
         session.onClose(() -> acceptor.onDisconnect(session));
         return voidMono;
