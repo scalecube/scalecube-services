@@ -1,0 +1,49 @@
+<html>
+<head>
+  <script type="text/javascript" src='https://bundle.run/rsocket-core@0.0.7'></script>
+  <script type="text/javascript" src='https://bundle.run/rsocket-websocket-client@0.0.7'></script>
+  <script type="text/javascript">
+    // Create an instance of a client
+    const client = new rsocketCore.RSocketClient({
+      // send/receive objects instead of strings/buffers
+      serializers: rsocketCore.JsonSerializers,
+      setup: {
+        // ms btw sending keepalive to server
+        keepAlive: 60000,
+        // ms timeout if no keepalive response
+        lifetime: 180000,
+        // format of `data`
+        dataMimeType: 'application/json',
+        // format of `metadata`
+        metadataMimeType: 'application/json',
+      },
+      transport: new rsocketWebsocketClient.default({url: 'ws://localhost:8080'}),
+    });
+
+    console.log(client);
+
+    // Open the connection
+    client.connect().subscribe({
+      onComplete: socket => {
+        // socket provides the rsocket interactions fire/forget, request/response,
+        // request/stream, etc as well as methods to close the socket.
+
+        console.log("IT WORKS!!!");
+        socket.requestResponse({
+          data: "hello",
+          metadata: {q: "/greeting/one"},
+        }).subscribe({
+          onComplete: resp => console.log(resp),
+          onError: error => console.log(error)
+        });
+      },
+      onError: error => console.error(error),
+      onSubscribe: cancel => {/* call cancel() to abort */
+      }
+    });
+  </script>
+</head>
+<body>
+Hello!
+</body>
+</html>
