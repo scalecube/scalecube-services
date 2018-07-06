@@ -99,7 +99,10 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, String.class));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .dataClasses(String.class)
+            .invoke());
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier
@@ -122,7 +125,10 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_FAILING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .dataClasses(ErrorData.class)
+            .invoke());
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier.assertNext(msg -> assertErrorMessage(GatewayMessage.from(error).streamId((long) i).build(), msg));
@@ -143,7 +149,10 @@ public class WebsocketServerTest {
         .collect(Collectors.toList());
 
     List<String> actual =
-        websocketResource.sendMessages(Mono.just(GREETING_MANY), TIMEOUT, String.class)
+        websocketResource
+            .newInvocationForMessages(Mono.just(GREETING_MANY))
+            .dataClasses(String.class)
+            .invoke()
             .take(expectedResponseNum)
             .map(GatewayMessage::data)
             .cast(String.class)
@@ -162,7 +171,10 @@ public class WebsocketServerTest {
     GatewayMessage error = errorServiceMessage(500, content);
 
     StepVerifier.create(
-        websocketResource.sendMessages(Mono.just(GREETING_FAILING_MANY), TIMEOUT, String.class, ErrorData.class))
+        websocketResource
+            .newInvocationForMessages(Mono.just(GREETING_FAILING_MANY))
+            .dataClasses(String.class, ErrorData.class)
+            .invoke())
         .assertNext(msg -> assertMessage(content, msg))
         .assertNext(msg -> assertMessage(content, msg))
         .assertNext(msg -> assertErrorMessage(error, msg))
@@ -181,7 +193,10 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .dataClasses(ErrorData.class)
+            .invoke());
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier.assertNext(msg -> assertErrorMessage(GatewayMessage.from(error).streamId((long) i).build(), msg));
@@ -202,7 +217,10 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .dataClasses(ErrorData.class)
+            .invoke());
 
     IntStream.range(0, REQUEST_NUM).forEach(i -> {
       stepVerifier.assertNext(msg -> assertErrorMessage(GatewayMessage.from(error).streamId((long) i).build(), msg));
@@ -216,7 +234,10 @@ public class WebsocketServerTest {
     String expectedData = "Echo:hello";
 
     StepVerifier
-        .create(websocketResource.sendMessages(Mono.just(GREETING_ONE), TIMEOUT, String.class))
+        .create(websocketResource
+            .newInvocationForMessages(Mono.just(GREETING_ONE))
+            .dataClasses(String.class)
+            .invoke())
         .assertNext(msg -> assertMessage(expectedData, msg))
         .assertNext(this::assertCompleteMessage)
         .expectComplete()
@@ -232,7 +253,10 @@ public class WebsocketServerTest {
     GreetingResponse expectedData = new GreetingResponse("Echo:hello");
 
     StepVerifier
-        .create(websocketResource.sendMessages(Mono.just(GREETING_POJO_ONE), TIMEOUT, GreetingResponse.class))
+        .create(websocketResource
+            .newInvocationForMessages(Mono.just(GREETING_POJO_ONE))
+            .dataClasses(GreetingResponse.class)
+            .invoke())
         .assertNext(msg -> assertMessage(expectedData, msg))
         .assertNext(this::assertCompleteMessage)
         .expectComplete()
@@ -253,7 +277,9 @@ public class WebsocketServerTest {
 
     List<GreetingResponse> actual =
         websocketResource
-            .sendMessages(Mono.just(GREETING_POJO_MANY), TIMEOUT, GreetingResponse.class)
+            .newInvocationForMessages(Mono.just(GREETING_POJO_MANY))
+            .dataClasses(GreetingResponse.class)
+            .invoke()
             .take(n)
             .map(GatewayMessage::data)
             .cast(GreetingResponse.class)
@@ -278,8 +304,11 @@ public class WebsocketServerTest {
         .data(new ErrorData(400, "Failed to decode message"))
         .build();
 
-    StepVerifier.FirstStep<GatewayMessage> stepVerifier =
-        StepVerifier.create(websocketResource.sendPayloads(requests, TIMEOUT, ErrorData.class));
+    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
+        .create(websocketResource
+            .newInvocationForStrings(requests)
+            .dataClasses(ErrorData.class)
+            .invoke());
 
     for (int i = 0; i < REQUEST_NUM; i++) {
       stepVerifier.assertNext(msg -> assertErrorMessage(error, msg));
@@ -298,7 +327,9 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_EMPTY_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .invoke());
 
     IntStream.range(0, REQUEST_NUM)
         .forEach(i -> {
@@ -318,9 +349,11 @@ public class WebsocketServerTest {
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
         .map(i -> GatewayMessage.from(GREETING_EMPTY_MANY).streamId(i.longValue()).build());
 
-
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, NullData.class));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .dataClasses(NullData.class)
+            .invoke());
 
     IntStream.range(0, REQUEST_NUM)
         .forEach(i -> {
@@ -349,15 +382,18 @@ public class WebsocketServerTest {
           }).subscribe();
     });
 
-    StepVerifier.create(websocketResource.sendMessages(requests, TIMEOUT, String.class))
-        .thenConsumeWhile(gw -> {
-          if (!gw.hasSignal(Signal.CANCEL)) {
-            assertNotNull(gw.data());
-            assertThat(gw.data(), startsWith("Greeting ("));
-            assertThat(gw.data(), endsWith(") to: hello"));
-            return true;
+    StepVerifier.create(websocketResource
+        .newInvocationForMessages(requests)
+        .dataClasses(String.class)
+        .invoke())
+        .thenConsumeWhile(gatewayMessage -> {
+          boolean noCancelSignalYet = !gatewayMessage.hasSignal(Signal.CANCEL);
+          if (noCancelSignalYet) {
+            assertNotNull(gatewayMessage.data());
+            assertThat(gatewayMessage.data(), startsWith("Greeting ("));
+            assertThat(gatewayMessage.data(), endsWith(") to: hello"));
           }
-          return false;
+          return noCancelSignalYet;
         })
         .assertNext(this::assertCancelMessage)
         .expectComplete()
@@ -383,7 +419,10 @@ public class WebsocketServerTest {
 
     Flux<GatewayMessage> requests = Flux.just(request, /* with the same streamId */request);
 
-    StepVerifier.create(websocketResource.sendMessages(requests, TIMEOUT, String.class, ErrorData.class))
+    StepVerifier.create(websocketResource
+        .newInvocationForMessages(requests)
+        .dataClasses(String.class, ErrorData.class)
+        .invoke())
         .assertNext(msg -> assertErrorMessage(error, msg))
         .assertNext(msg -> assertMessage("hello", msg))
         .assertNext(this::assertCompleteMessage)
@@ -408,7 +447,11 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(null).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .dataClasses(ErrorData.class)
+            .invoke());
+
     IntStream.range(0, REQUEST_NUM).forEach(i -> stepVerifier.assertNext(msg -> assertErrorMessage(error, msg)));
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
@@ -432,7 +475,11 @@ public class WebsocketServerTest {
             .streamId(nonExistenceStreamId).build()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource.sendMessages(requests, TIMEOUT, ErrorData.class));
+        .create(websocketResource
+            .newInvocationForMessages(requests)
+            .dataClasses(ErrorData.class)
+            .invoke());
+
     IntStream.range(0, REQUEST_NUM).forEach(i -> stepVerifier.assertNext(msg -> assertErrorMessage(error, msg)));
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
@@ -451,16 +498,89 @@ public class WebsocketServerTest {
 
     GatewayMessage request = GatewayMessage.from(GREETING_DELAY_MANY).inactivity(1000).build();
 
-    StepVerifier.create(websocketResource.sendMessages(Mono.just(request), TIMEOUT, String.class, ErrorData.class))
-        .thenConsumeWhile(gw -> {
-          if (!gw.hasSignal(Signal.ERROR)) {
-            assertNotNull(gw.data());
-            assertThat(gw.data(), hasToString("hello"));
-            return true;
+    StepVerifier.create(websocketResource
+        .newInvocationForMessages(Mono.just(request))
+        .dataClasses(String.class, ErrorData.class)
+        .invoke())
+        .thenConsumeWhile(gatewayMessage -> {
+          boolean noErrorYet = !gatewayMessage.hasSignal(Signal.ERROR);
+          if (noErrorYet) {
+            assertNotNull(gatewayMessage.data());
+            assertThat(gatewayMessage.data(), hasToString("hello"));
           }
-          return false;
+          return noErrorYet;
         })
         .assertNext(msg -> assertErrorMessage(error, msg))
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    assertTrue(serviceCancelLatch.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void testClientShutdownConnection() throws InterruptedException {
+    CountDownLatch serviceCancelLatch = new CountDownLatch(1);
+    GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
+
+    microservicesResource.startGateway();
+    microservicesResource.startServices(microservicesResource.getGatewayAddress(), service);
+    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+
+    GatewayMessage request = GatewayMessage.from(GREETING_MANY).build();
+
+    StepVerifier.create(
+        websocketResource
+            .newInvocationForMessages(Mono.just(request))
+            .dataClasses(String.class)
+            .sessionConsumer(session -> {
+              // client shutdown its connection after 2 seconds
+              Mono.delay(Duration.ofSeconds(2))
+                  .doOnSuccess($ -> session.close().block(TIMEOUT))
+                  .subscribe();
+            })
+            .invoke())
+        .thenConsumeWhile(gatewayMessage -> {
+          boolean noSignalYet = gatewayMessage.signal() == null;
+          if (noSignalYet) {
+            assertNotNull(gatewayMessage.data());
+            assertThat(gatewayMessage.data(), startsWith("Greeting ("));
+            assertThat(gatewayMessage.data(), endsWith(") to: hello"));
+          }
+          return noSignalYet;
+        })
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    assertTrue(serviceCancelLatch.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
+  }
+
+  @Test
+  public void testGatewayLostConnectionWithService() throws InterruptedException {
+    CountDownLatch serviceCancelLatch = new CountDownLatch(1);
+    GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
+
+    microservicesResource.startGateway();
+    microservicesResource.startServices(microservicesResource.getGatewayAddress(), service);
+    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+
+    GatewayMessage request = GatewayMessage.from(GREETING_MANY).build();
+
+    // client shutdown its connection after 2 seconds
+    Mono.delay(Duration.ofSeconds(2))
+        .doOnSuccess($ -> microservicesResource.getServices().shutdown().block())
+        .subscribe();
+
+    StepVerifier.create(
+        websocketResource.newInvocationForMessages(Mono.just(request)).dataClasses(String.class).invoke())
+        .thenConsumeWhile(gatewayMessage -> {
+          boolean noSignalYet = gatewayMessage.signal() == null;
+          if (noSignalYet) {
+            assertNotNull(gatewayMessage.data());
+            assertThat(gatewayMessage.data(), startsWith("Greeting ("));
+            assertThat(gatewayMessage.data(), endsWith(") to: hello"));
+          }
+          return noSignalYet;
+        })
         .expectComplete()
         .verify(TIMEOUT);
 
