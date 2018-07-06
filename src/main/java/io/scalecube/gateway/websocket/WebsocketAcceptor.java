@@ -76,6 +76,11 @@ public final class WebsocketAcceptor {
               throw new BadRequestException("sid=" + streamId + " is already registered on session");
             }
 
+            if (gatewayRequest.qualifier() == null) {
+              LOGGER.error("Failed gateway request: {}, q is missing for session: {}", gatewayRequest, session);
+              throw new BadRequestException("q is missing");
+            }
+
             AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
 
             ServiceMessage serviceRequest = GatewayMessage.toServiceMessage(gatewayRequest);
