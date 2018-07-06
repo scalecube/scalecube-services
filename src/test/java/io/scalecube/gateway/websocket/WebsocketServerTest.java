@@ -482,7 +482,8 @@ public class WebsocketServerTest {
             .dataClasses(ErrorData.class)
             .invoke());
 
-    IntStream.range(0, REQUEST_NUM).forEach(i -> stepVerifier.assertNext(msg -> assertErrorMessage(error, msg)));
+    IntStream.range(0, REQUEST_NUM).forEach(i -> stepVerifier
+        .assertNext(msg -> assertErrorMessage(error, msg)));
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
 
