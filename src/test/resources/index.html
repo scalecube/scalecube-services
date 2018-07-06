@@ -1,49 +1,214 @@
 <html>
 <head>
+  <style>
+    html {
+      font-family: sans-serif;
+    }
+
+    #container {
+      display: flex;
+    }
+
+    #client {
+      width: 30%;
+    }
+
+    #logs {
+      font-size: 14px;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .response {
+      color: green;
+    }
+  </style>
   <script type="text/javascript" src='https://bundle.run/rsocket-core@0.0.7'></script>
   <script type="text/javascript" src='https://bundle.run/rsocket-websocket-client@0.0.7'></script>
   <script type="text/javascript">
-    // Create an instance of a client
-    const client = new rsocketCore.RSocketClient({
-      // send/receive objects instead of strings/buffers
-      serializers: rsocketCore.JsonSerializers,
-      setup: {
-        // ms btw sending keepalive to server
-        keepAlive: 60000,
-        // ms timeout if no keepalive response
-        lifetime: 180000,
-        // format of `data`
-        dataMimeType: 'application/json',
-        // format of `metadata`
-        metadataMimeType: 'application/json',
-      },
-      transport: new rsocketWebsocketClient.default({url: 'ws://localhost:8080'}),
-    });
+    const DEFAULT_URL = "ws://localhost:8080";
+    const DEFAULT_METADATA = '{"q": "/greeting/one"}';
+    const DEFAULT_DATA = "hello";
 
-    console.log(client);
+    let client;
+    let rSocket;
 
-    // Open the connection
-    client.connect().subscribe({
-      onComplete: socket => {
-        // socket provides the rsocket interactions fire/forget, request/response,
-        // request/stream, etc as well as methods to close the socket.
+    let urlInput;
+    let requestForm;
 
-        console.log("IT WORKS!!!");
-        socket.requestResponse({
-          data: "hello",
-          metadata: {q: "/greeting/one"},
-        }).subscribe({
-          onComplete: resp => console.log(resp),
-          onError: error => console.log(error)
-        });
-      },
-      onError: error => console.error(error),
-      onSubscribe: cancel => {/* call cancel() to abort */
+    let submitButton;
+    let connectButton;
+
+    window.onload = () => {
+      urlInput = document.getElementById("url");
+      urlInput.value = DEFAULT_URL;
+
+      requestForm = document.getElementById("request");
+      requestForm["metadata"].value = DEFAULT_METADATA;
+      requestForm["data"].value = DEFAULT_DATA;
+
+      submitButton = document.getElementById("submitButton");
+      connectButton = document.getElementById("connectButton");
+    };
+
+    function connect() {
+      let ulrValue = urlInput.value;
+      let url = ulrValue !== "" ? ulrValue : DEFAULT_URL;
+
+      console.log("Connecting to " + url);
+
+      // Create an instance of a client
+      client = new rsocketCore.RSocketClient({
+        // send/receive objects instead of strings/buffers
+        serializers: rsocketCore.JsonSerializers,
+        setup: {
+          // ms btw sending keepalive to server
+          keepAlive: 60000,
+          // ms timeout if no keepalive response
+          lifetime: 180000,
+          // format of `data`
+          dataMimeType: 'application/json',
+          // format of `metadata`
+          metadataMimeType: 'application/json',
+        },
+        transport: new rsocketWebsocketClient.default({url: url})
+      });
+
+      client.connect().subscribe({
+        onComplete: socket => {
+          // socket provides the rsocket interactions fire/forget, request/response,
+          // request/stream, etc as well as methods to close the socket.
+
+          console.log("Connected!");
+
+          rSocket = socket;
+
+          submitButton.disabled = false;
+          connectButton.innerText = "Disconnect";
+          connectButton.onclick = () => disconnect();
+        },
+        onError: error => console.error(error)
+      });
+    }
+
+    function disconnect() {
+      client.close();
+
+      submitButton.disabled = true;
+      connectButton.innerText = "Connect";
+      connectButton.onclick = () => connect();
+
+      console.log("Disconnected!");
+    }
+
+    function submit() {
+      let metadataValue = requestForm["metadata"].value;
+      let metadata = JSON.parse(metadataValue !== "" ? metadataValue : DEFAULT_METADATA);
+
+      let dataValue = requestForm["data"].value;
+      let data = dataValue !== "" ? dataValue : DEFAULT_DATA;
+
+      let requestType = requestForm["requestType"].value;
+
+      console.log("metadata:", metadata);
+      console.log("data:", data);
+      console.log("requestType:", requestType);
+
+      let request = {
+        data: data,
+        metadata: metadata,
+      };
+
+      logRequest(request);
+
+      let complete = () => logResponse("Completed!");
+      let next = resp => logResponse(resp);
+      let error = error => logError(error);
+
+      switch (requestType) {
+        case "fireAndForget":
+          rSocket.fireAndForget(request);
+          break;
+        case "requestResponse":
+          rSocket.requestResponse(request).subscribe({
+            onComplete: next,
+            onError: error
+          });
+          break;
+        case "requestStream":
+          rSocket.requestStream(request).subscribe({
+            onSubscribe: subscription => subscription.request(2147483647),
+            onNext: next,
+            onComplete: complete,
+            onError: error
+          });
+          break;
+        case "requestChannel":
+          console.error("TODO: implement");
+          break;
       }
-    });
+    }
+
+    function logRequest(request) {
+      log(request, false, false);
+    }
+
+    function logError(error) {
+      console.error(error);
+      log(error.message, false, true);
+    }
+
+    function logResponse(response) {
+      log(response, true, false);
+    }
+
+    function log(message, isResponse, isError) {
+      let p = document.createElement("p");
+      if (isResponse) {
+        p.className = "response";
+      } else if (isError) {
+        p.className = "error";
+      }
+      p.innerHTML = JSON.stringify(message);
+      document.getElementById("logs").appendChild(p);
+    }
   </script>
 </head>
 <body>
-Hello!
+<div id="container">
+  <div id="client">
+    <p><label for="url">URL</label>
+      <input id="url" type="text">
+      <button id="connectButton" type="button" onclick="connect()">Connect</button>
+    </p>
+
+    <form id="request">
+      <p><label for="metadata">Metadata</label></p>
+      <p>
+        <textarea id="metadata" rows="10" cols="50" name="metadata"></textarea>
+      </p>
+      <p><label for="data">Data</label></p>
+      <p><textarea id="data" rows="10" cols="50" name="data"></textarea></p>
+      <p>
+        <label for="requestType">Request Type</label>
+        <select id="requestType">
+          <option value="fireAndForget">fireAndForget</option>
+          <option value="requestResponse" selected>requestResponse</option>
+          <option value="requestStream">requestStream</option>
+          <option value="requestChannel" disabled>requestChannel</option>
+        </select>
+      </p>
+    </form>
+    <p>
+      <button id="submitButton" type="button" onclick="submit()" disabled>Submit</button>
+    </p>
+  </div>
+  <div id="logs">
+    <p><strong>Message Log</strong></p>
+    <p></p>
+  </div>
+</div>
 </body>
 </html>
