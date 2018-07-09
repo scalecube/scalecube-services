@@ -103,12 +103,11 @@ public final class WebsocketAcceptor {
                     ? Mono.empty()
                     : Mono.just(GatewayMessage.builder().streamId(streamId).signal(Signal.COMPLETE).build())))
                 .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
-                .doOnTerminate(() -> session.dispose(streamId))
+                .doFinally($ -> session.dispose(streamId))
                 .subscribe(sink::next, sink::error, sink::complete);
 
             session.register(sid, disposable);
           } catch (Throwable ex) {
-            ReferenceCountUtil.safeRelease(frame);
             sink.next(toErrorMessage(ex, sid));
             sink.complete();
           }
