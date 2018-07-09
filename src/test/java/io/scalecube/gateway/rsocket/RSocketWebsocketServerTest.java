@@ -12,7 +12,7 @@ import reactor.test.StepVerifier;
 import org.junit.Before;
 import org.junit.Rule;
 
-public class RSocketGatewayTest {
+public class RSocketWebsocketServerTest {
 
   private static final ServiceMessage GREETING_ONE =
       ServiceMessage.builder().qualifier("/greeting/one").data("hello").build();
@@ -20,18 +20,18 @@ public class RSocketGatewayTest {
   @Rule
   public MicroservicesResource microservicesResource = new MicroservicesResource();
   @Rule
-  public RSocketGatewayResource gatewayResource = new RSocketGatewayResource();
+  public RSocketWebsocketResource rSocketWebsocketResource = new RSocketWebsocketResource();
 
-  private RSocketGatewayClient client;
+  private RSocketWebsocketClient client;
 
   @Before
   public void setUp() {
     final Microservices gatewayMicroservice = microservicesResource.startGateway().getGateway();
 
-    gatewayResource.startGateway(gatewayMicroservice);
+    rSocketWebsocketResource.startGateway(gatewayMicroservice);
     microservicesResource.startServices(gatewayMicroservice.cluster().address());
 
-    client = gatewayResource.client();
+    client = rSocketWebsocketResource.client();
   }
 
   // TODO: implement later

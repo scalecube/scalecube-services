@@ -1,8 +1,8 @@
 package io.scalecube.gateway.rsocket;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.codec.jackson.JacksonCodec;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,12 +17,16 @@ import org.reactivestreams.Publisher;
 
 import java.net.InetSocketAddress;
 
-public class RSocketGatewayClient {
+public class RSocketWebsocketClient {
 
-  private static final ServiceMessageCodec CODEC = new ServiceMessageCodec(new JacksonCodec());
+  private static final String DEFAULT_CONTENT_TYPE = "application/json";
+
+  private static final ServiceMessageCodec CODEC =
+      new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_CONTENT_TYPE));
+
   private RSocket client;
 
-  public RSocketGatewayClient(InetSocketAddress gatewayAddress) {
+  public RSocketWebsocketClient(InetSocketAddress gatewayAddress) {
     WebsocketClientTransport transport = WebsocketClientTransport.create(gatewayAddress);
     client = RSocketFactory.connect().keepAlive().transport(transport).start().block();
   }

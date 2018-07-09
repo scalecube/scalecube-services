@@ -9,18 +9,17 @@ import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-public class RSocketGatewayResource extends ExternalResource {
+public class RSocketWebsocketResource extends ExternalResource {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayResource.class);
-
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketResource.class);
 
   private RSocketWebsocketServer gateway;
-  private RSocketGatewayClient client;
+  private RSocketWebsocketClient client;
 
   public RSocketWebsocketServer startGateway(Microservices microservices) {
     gateway = new RSocketWebsocketServer(microservices);
     InetSocketAddress address = gateway.start();
-    client = new RSocketGatewayClient(address);
+    client = new RSocketWebsocketClient(address);
     return gateway;
   }
 
@@ -38,7 +37,7 @@ public class RSocketGatewayResource extends ExternalResource {
     return gateway;
   }
 
-  public RSocketGatewayClient client() {
+  public RSocketWebsocketClient client() {
     return client;
   }
 

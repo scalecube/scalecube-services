@@ -12,7 +12,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import io.scalecube.gateway.MicroservicesResource;
-import io.scalecube.gateway.WebsocketResource;
 import io.scalecube.gateway.core.GatewayMessage;
 import io.scalecube.gateway.core.Signal;
 import io.scalecube.gateway.examples.GreetingRequest;
