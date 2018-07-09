@@ -1,5 +1,6 @@
 package io.scalecube.gateway.websocket;
 
+import static io.scalecube.services.exceptions.BadRequestException.ERROR_TYPE;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.Matchers.instanceOf;
@@ -119,7 +120,7 @@ public class WebsocketServerTest {
     microservicesResource.startServices(microservicesResource.getGatewayAddress());
     websocketResource.startWebsocketServer(microservicesResource.getGateway());
 
-    GatewayMessage error = errorServiceMessage(500, "hello");
+    GatewayMessage error = errorServiceMessage(STREAM_ID, 500, "hello");
 
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
         .map(i -> GatewayMessage.from(GREETING_FAILING_ONE).streamId(i.longValue()).build());
@@ -168,7 +169,7 @@ public class WebsocketServerTest {
     websocketResource.startWebsocketServer(microservicesResource.getGateway());
 
     String content = "Echo:hello";
-    GatewayMessage error = errorServiceMessage(500, content);
+    GatewayMessage error = errorServiceMessage(STREAM_ID, 500, content);
 
     StepVerifier.create(
         websocketResource
@@ -297,12 +298,7 @@ public class WebsocketServerTest {
     Publisher<String> requests =
         Flux.range(0, REQUEST_NUM).map(i -> "q=/invalid/qualifier;data=invalid_message");
 
-    GatewayMessage error = GatewayMessage.builder()
-        .qualifier(Qualifier.asError(400))
-        .streamId(null)
-        .signal(Signal.ERROR)
-        .data(new ErrorData(400, "Failed to decode message"))
-        .build();
+    GatewayMessage error = errorServiceMessage("Failed to decode message");
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
         .create(websocketResource
@@ -403,6 +399,25 @@ public class WebsocketServerTest {
   }
 
   @Test
+  public void testUnsubscribeRequestWihtUnknownStreamId() {
+    microservicesResource.startGateway();
+    microservicesResource.startServices(microservicesResource.getGatewayAddress());
+    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    Long unknownStreamId = -12343L;
+
+    GatewayMessage error = errorServiceMessage(unknownStreamId, ERROR_TYPE,
+        String.format("sid=%s is not contained in session", unknownStreamId));
+
+    StepVerifier.create(websocketResource
+        .newInvocationForMessages(Mono.just(GatewayMessage.from(CANCEL_REQUEST).streamId(unknownStreamId).build()))
+        .dataClasses(ErrorData.class)
+        .invoke())
+        .assertNext(msg -> assertErrorMessage(error, msg))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
   public void testSendRequestsWithTheSameStreamId() {
     microservicesResource.startGateway();
     microservicesResource.startServices(microservicesResource.getGatewayAddress());
@@ -410,12 +425,8 @@ public class WebsocketServerTest {
     Long streamId = 12343L;
     GatewayMessage request = GatewayMessage.from(GREETING_DELAY_ONE).streamId(streamId).build();
 
-    GatewayMessage error = GatewayMessage.builder()
-        .qualifier(Qualifier.asError(400))
-        .streamId(streamId)
-        .signal(Signal.ERROR)
-        .data(new ErrorData(400, String.format("sid=%s is already registered on session", streamId)))
-        .build();
+    GatewayMessage error = errorServiceMessage(streamId, ERROR_TYPE,
+        String.format("sid=%s is already registered on session", streamId));
 
     Flux<GatewayMessage> requests = Flux.just(request, /* with the same streamId */request);
 
@@ -436,12 +447,7 @@ public class WebsocketServerTest {
     microservicesResource.startServices(microservicesResource.getGatewayAddress());
     websocketResource.startWebsocketServer(microservicesResource.getGateway());
 
-    GatewayMessage error = GatewayMessage.builder()
-        .qualifier(Qualifier.asError(400))
-        .streamId(null)
-        .signal(Signal.ERROR)
-        .data(new ErrorData(400, "sid is missing"))
-        .build();
+    GatewayMessage error = errorServiceMessage("sid is missing");
 
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(null).build());
@@ -463,12 +469,8 @@ public class WebsocketServerTest {
     websocketResource.startWebsocketServer(microservicesResource.getGateway());
     Long nonExistenceStreamId = -12345L;
 
-    GatewayMessage error = GatewayMessage.builder()
-        .qualifier(Qualifier.asError(400))
-        .streamId(nonExistenceStreamId)
-        .signal(Signal.ERROR)
-        .data(new ErrorData(400, String.format("sid=%s is not contained in session", nonExistenceStreamId)))
-        .build();
+    GatewayMessage error = errorServiceMessage(nonExistenceStreamId, ERROR_TYPE,
+        String.format("sid=%s is not contained in session", nonExistenceStreamId));
 
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
         .map(i -> GatewayMessage.from(GatewayMessage.from(CANCEL_REQUEST)
@@ -480,7 +482,8 @@ public class WebsocketServerTest {
             .dataClasses(ErrorData.class)
             .invoke());
 
-    IntStream.range(0, REQUEST_NUM).forEach(i -> stepVerifier.assertNext(msg -> assertErrorMessage(error, msg)));
+    IntStream.range(0, REQUEST_NUM).forEach(i -> stepVerifier
+        .assertNext(msg -> assertErrorMessage(error, msg)));
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
 
@@ -493,7 +496,7 @@ public class WebsocketServerTest {
     microservicesResource.startServices(microservicesResource.getGatewayAddress(), service);
     websocketResource.startWebsocketServer(microservicesResource.getGateway());
 
-    GatewayMessage error = errorServiceMessage(500,
+    GatewayMessage error = errorServiceMessage(STREAM_ID, 500,
         "Did not observe any item or terminal signal within 1000ms (and no fallback has been configured)");
 
     GatewayMessage request = GatewayMessage.from(GREETING_DELAY_MANY).inactivity(1000).build();
@@ -587,6 +590,25 @@ public class WebsocketServerTest {
     assertTrue(serviceCancelLatch.await(TIMEOUT.toMillis(), TimeUnit.MILLISECONDS));
   }
 
+  @Test
+  public void testRequestWihtoutQualifier() {
+    microservicesResource.startGateway();
+    microservicesResource.startServices(microservicesResource.getGatewayAddress());
+    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+
+    Mono<GatewayMessage> request = Mono.just(GatewayMessage.from(GREETING_ONE).qualifier(null).build());
+
+    GatewayMessage error = errorServiceMessage(STREAM_ID, ERROR_TYPE, "q is missing");
+
+    StepVerifier.create(websocketResource
+        .newInvocationForMessages(request)
+        .dataClasses(ErrorData.class)
+        .invoke())
+        .assertNext(msg -> assertErrorMessage(error, msg))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
   private GatewayMessage unreachableServiceMessage(String qualifier) {
     int errorCode = 503;
     String errorMessage = "No reachable member with such service: " + qualifier;
@@ -598,10 +620,14 @@ public class WebsocketServerTest {
         .build();
   }
 
-  private GatewayMessage errorServiceMessage(int errorCode, String errorMessage) {
+  private GatewayMessage errorServiceMessage(String errorMessage) {
+    return errorServiceMessage(null, ERROR_TYPE, errorMessage);
+  }
+
+  private GatewayMessage errorServiceMessage(Long streamId, int errorCode, String errorMessage) {
     return GatewayMessage.builder()
         .qualifier(Qualifier.asError(errorCode))
-        .streamId(STREAM_ID)
+        .streamId(streamId)
         .signal(Signal.ERROR)
         .data(new ErrorData(errorCode, errorMessage))
         .build();
