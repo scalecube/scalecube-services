@@ -29,6 +29,10 @@ public final class WebsocketServer {
     return start(new InetSocketAddress("localhost", 0));
   }
 
+  public synchronized InetSocketAddress start(int port) {
+    return start(new InetSocketAddress("localhost", port));
+  }
+  
   public synchronized InetSocketAddress start(InetSocketAddress listenAddress) {
     server = HttpServer.builder().listenAddress(listenAddress).build().start(new WebSocketServerBiFunction());
     server.installShutdownHook();
