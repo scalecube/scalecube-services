@@ -18,9 +18,9 @@ import java.net.InetSocketAddress;
  *
  * @see io.rsocket.RSocket
  */
-public class RSocketWebsocketGateway {
+public class RSocketWebsocketServer {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketGateway.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketServer.class);
 
   private static final int DEFAULT_PORT = 8080;
 
@@ -33,7 +33,7 @@ public class RSocketWebsocketGateway {
    *
    * @param microservices instance of {@link Microservices}
    */
-  public RSocketWebsocketGateway(Microservices microservices) {
+  public RSocketWebsocketServer(Microservices microservices) {
     this(microservices, DEFAULT_PORT);
   }
 
@@ -43,7 +43,7 @@ public class RSocketWebsocketGateway {
    * @param microservices instance of {@link Microservices}
    * @param port gateway port
    */
-  public RSocketWebsocketGateway(Microservices microservices, int port) {
+  public RSocketWebsocketServer(Microservices microservices, int port) {
     this(microservices, new InetSocketAddress(port));
   }
 
@@ -53,9 +53,9 @@ public class RSocketWebsocketGateway {
    * @param microservices instance of {@link Microservices}
    * @param inetSocketAddress gateway IP socket address
    */
-  public RSocketWebsocketGateway(Microservices microservices, InetSocketAddress inetSocketAddress) {
+  public RSocketWebsocketServer(Microservices microservices, InetSocketAddress inetSocketAddress) {
     address = inetSocketAddress;
-    socketAcceptor = new RSocketGatewayAcceptor(microservices.call().create());
+    socketAcceptor = new RSocketWebsocketAcceptor(microservices.call().create());
   }
 
   /**
