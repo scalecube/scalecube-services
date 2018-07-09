@@ -76,6 +76,7 @@ public final class WebsocketAcceptor {
               throw new BadRequestException("sid=" + streamId + " is already registered on session");
             }
 
+            // check message contains quailifier
             if (gatewayRequest.qualifier() == null) {
               LOGGER.error("Failed gateway request: {}, q is missing for session: {}", gatewayRequest, session);
               throw new BadRequestException("q is missing");
