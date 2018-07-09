@@ -108,6 +108,7 @@ public final class WebsocketAcceptor {
 
             session.register(sid, disposable);
           } catch (Throwable ex) {
+            ReferenceCountUtil.safeRelease(frame);
             sink.next(toErrorMessage(ex, sid));
             sink.complete();
           }
@@ -144,7 +145,7 @@ public final class WebsocketAcceptor {
     try {
       return gatewayMessageCodec.decode(frame.content());
     } catch (Throwable ex) {
-      ReferenceCountUtil.safeRelease(frame);
+      // we will release it in catch block of the onConnect
       throw new BadRequestException(ex.getMessage());
     }
   }
