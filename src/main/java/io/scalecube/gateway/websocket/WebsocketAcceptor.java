@@ -108,6 +108,7 @@ public final class WebsocketAcceptor {
 
             session.register(sid, disposable);
           } catch (Throwable ex) {
+            ReferenceCountUtil.safeRelease(frame);
             sink.next(toErrorMessage(ex, sid));
             sink.complete();
           }
