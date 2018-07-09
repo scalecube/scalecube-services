@@ -1,6 +1,6 @@
 package io.scalecube.gateway.rsocket;
 
-import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
+import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketServer;
 import io.scalecube.services.Microservices;
 
 import org.junit.rules.ExternalResource;
@@ -14,11 +14,11 @@ public class RSocketGatewayResource extends ExternalResource {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayResource.class);
 
 
-  private RSocketWebsocketGateway gateway;
+  private RSocketWebsocketServer gateway;
   private RSocketGatewayClient client;
 
-  public RSocketWebsocketGateway startGateway(Microservices microservices) {
-    gateway = new RSocketWebsocketGateway(microservices);
+  public RSocketWebsocketServer startGateway(Microservices microservices) {
+    gateway = new RSocketWebsocketServer(microservices);
     InetSocketAddress address = gateway.start();
     client = new RSocketGatewayClient(address);
     return gateway;
@@ -34,7 +34,7 @@ public class RSocketGatewayResource extends ExternalResource {
     }
   }
 
-  public RSocketWebsocketGateway gateway() {
+  public RSocketWebsocketServer gateway() {
     return gateway;
   }
 
