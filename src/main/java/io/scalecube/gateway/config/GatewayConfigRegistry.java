@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 public class GatewayConfigRegistry {
 
   public static final String JMX_MBEAN_NAME = "io.scalecube.gateway.config:name=ConfigRegistry";
-  public static final Pattern CONFIG_PATTERN = Pattern.compile(".*(/)?config/(.*)config(.*)?\\.properties");
+  public static final Pattern CONFIG_PATTERN = Pattern.compile(".*[\\\\|/]?config[\\\\|/](.*)config(.*)?\\.properties");
   public static final Predicate<Path> PATH_PREDICATE = path -> CONFIG_PATTERN.matcher(path.toString()).matches();
   public static final int RELOAD_INTERVAL_SEC = 1;
 
