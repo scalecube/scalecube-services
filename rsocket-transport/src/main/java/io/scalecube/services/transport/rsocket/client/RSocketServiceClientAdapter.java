@@ -11,6 +11,7 @@ import io.rsocket.util.ByteBufPayload;
 
 import org.reactivestreams.Publisher;
 
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -33,18 +34,28 @@ public class RSocketServiceClientAdapter implements ClientChannel {
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
-    return rSocket
-        .flatMapMany(rSocket -> rSocket.requestStream(toPayload(message)).or(listenConnectionClose(rSocket)))
-        .map(this::toMessage);
+    return rSocket.flatMapMany(rSocket -> Flux.<Payload>create(sink -> {
+      Flux<Payload> source = rSocket.requestStream(toPayload(message));
+      Disposable disposable = source.subscribe(sink::next, sink::error, sink::complete);
+      listenConnectionClose(rSocket)
+          .doOnError(t -> {
+            sink.error(t);
+            disposable.dispose();
+          }).subscribe();
+    })).map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
-    return rSocket
-        .flatMapMany(rSocket -> rSocket
-            .requestChannel(Flux.from(publisher).map(this::toPayload))
-            .or(listenConnectionClose(rSocket)))
-        .map(this::toMessage);
+    return rSocket.flatMapMany(rSocket -> Flux.<Payload>create(sink -> {
+      Flux<Payload> source = rSocket.requestChannel(Flux.from(publisher).map(this::toPayload));
+      Disposable disposable = source.subscribe(sink::next, sink::error, sink::complete);
+      listenConnectionClose(rSocket)
+          .doOnError(t -> {
+            sink.error(t);
+            disposable.dispose();
+          }).subscribe();
+    })).map(this::toMessage);
   }
 
   private Payload toPayload(ServiceMessage request) {
