@@ -11,6 +11,16 @@
 
   <dependencies>
     <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-config</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-logger</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.projectreactor.ipc</groupId>
       <artifactId>reactor-netty</artifactId>
     </dependency>
