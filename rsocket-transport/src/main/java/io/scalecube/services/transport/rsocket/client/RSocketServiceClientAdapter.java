@@ -27,7 +27,8 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
     return rSocket
-        .flatMap(rSocket -> rSocket.requestResponse(toPayload(message)).or(listenConnectionClose(rSocket)))
+        .flatMap(rSocket -> rSocket.requestResponse(toPayload(message))
+            .takeUntilOther(listenConnectionClose(rSocket)))
         .map(this::toMessage);
   }
 
