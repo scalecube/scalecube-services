@@ -9,6 +9,11 @@
 
   <artifactId>scalecube-gateway-tests</artifactId>
 
+  <properties>
+    <gatling-maven-plugin.version>2.2.4</gatling-maven-plugin.version>
+    <gatling-charts-highcharts.version>2.3.1</gatling-charts-highcharts.version>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
@@ -24,6 +29,12 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-gateway-rsocket-websocket</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.gatling.highcharts</groupId>
+      <artifactId>gatling-charts-highcharts</artifactId>
+      <version>${gatling-charts-highcharts.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
