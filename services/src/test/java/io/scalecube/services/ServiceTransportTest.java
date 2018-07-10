@@ -13,13 +13,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import reactor.core.Disposable;
-
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import reactor.core.Disposable;
 
 public class ServiceTransportTest {
 
@@ -27,8 +27,8 @@ public class ServiceTransportTest {
 
   private static final ServiceMessage JUST_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justNever").build();
-  private static final ServiceMessage JUST_MANY_NEVER =
-      ServiceMessage.builder().qualifier(QuoteService.NAME, "justManyNever").build();
+  private static final ServiceMessage ONLY_ONE_AND_THEN_NEVER =
+      ServiceMessage.builder().qualifier(QuoteService.NAME, "onlyOneAndThenNever").build();
 
   private Microservices gateway;
   private Microservices serviceNode;
@@ -100,7 +100,7 @@ public class ServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call().create();
-    sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).log("test_remote_node_died_flux")
+    sub1.set(serviceCall.requestMany(ONLY_ONE_AND_THEN_NEVER).log("test_remote_node_died_flux")
         .doOnError(exceptionHolder::set)
         .subscribe());
 
