@@ -65,7 +65,7 @@ public class ServiceTransportTest {
   }
 
   @Test
-  public void test_remote_node_died_mono() throws Exception {
+  public void test_remote_node_died_mono_never() throws Exception {
     int batchSize = 1;
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
@@ -123,7 +123,7 @@ public class ServiceTransportTest {
   }
 
   @Test
-  public void test_remote_node_died_many_only_one_and_then_never() throws Exception {
+  public void test_remote_node_died_many_then_never() throws Exception {
     int batchSize = 1;
 
     final CountDownLatch latch1 = new CountDownLatch(batchSize);
