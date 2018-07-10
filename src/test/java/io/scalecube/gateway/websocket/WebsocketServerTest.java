@@ -1,10 +1,10 @@
 package io.scalecube.gateway.websocket;
 
 import static io.scalecube.services.exceptions.BadRequestException.ERROR_TYPE;
-import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.hasToString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.startsWith;
+import static org.hamcrest.core.StringEndsWith.endsWith;
+import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
@@ -572,8 +572,11 @@ public class WebsocketServerTest {
         .doOnSuccess($ -> microservicesResource.getServices().shutdown().block())
         .subscribe();
 
+    GatewayMessage error = errorServiceMessage(STREAM_ID, 500, "Connection closed");
+
     StepVerifier.create(
-        websocketResource.newInvocationForMessages(Mono.just(request)).dataClasses(String.class).invoke())
+        websocketResource.newInvocationForMessages(Mono.just(request))
+            .dataClasses(String.class, ErrorData.class).invoke())
         .thenConsumeWhile(gatewayMessage -> {
           boolean noSignalYet = gatewayMessage.signal() == null;
           if (noSignalYet) {
@@ -583,6 +586,7 @@ public class WebsocketServerTest {
           }
           return noSignalYet;
         })
+        .assertNext(msg -> assertErrorMessage(error, msg))
         .expectComplete()
         .verify(TIMEOUT);
 
