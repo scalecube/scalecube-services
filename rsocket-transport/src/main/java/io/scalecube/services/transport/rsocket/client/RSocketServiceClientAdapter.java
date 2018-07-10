@@ -27,14 +27,16 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
     return rSocket
-        .flatMap(rSocket -> rSocket.requestResponse(toPayload(message)).or(listenConnectionClose(rSocket)))
+        .flatMap(rSocket -> rSocket.requestResponse(toPayload(message))
+            .takeUntilOther(listenConnectionClose(rSocket)))
         .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
     return rSocket
-        .flatMapMany(rSocket -> rSocket.requestStream(toPayload(message)).or(listenConnectionClose(rSocket)))
+        .flatMapMany(rSocket -> rSocket.requestStream(toPayload(message))
+            .takeUntilOther(listenConnectionClose(rSocket)))
         .map(this::toMessage);
   }
 
@@ -43,7 +45,7 @@ public class RSocketServiceClientAdapter implements ClientChannel {
     return rSocket
         .flatMapMany(rSocket -> rSocket
             .requestChannel(Flux.from(publisher).map(this::toPayload))
-            .or(listenConnectionClose(rSocket)))
+            .takeUntilOther(listenConnectionClose(rSocket)))
         .map(this::toMessage);
   }
 

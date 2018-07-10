@@ -42,4 +42,9 @@ public class SimpleQuoteService implements QuoteService {
   public Flux<String> justManyNever() {
     return Flux.never();
   }
+
+  @Override
+  public Flux<String> onlyOneAndThenNever() {
+    return Flux.merge(Mono.just("only first"), Mono.never());
+  }
 }

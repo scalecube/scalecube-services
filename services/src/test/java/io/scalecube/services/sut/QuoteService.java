@@ -28,4 +28,7 @@ public interface QuoteService {
 
   @ServiceMethod
   Flux<String> justManyNever();
+
+  @ServiceMethod
+  Flux<String> onlyOneAndThenNever();
 }
