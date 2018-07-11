@@ -1,29 +1,35 @@
 package io.scalecube.gateway.http;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.ALLOW;
-import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaderValues.TEXT_PLAIN;
 import static io.netty.handler.codec.http.HttpMethod.POST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
+import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.NullData;
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.server.HttpServerResponse;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.ReferenceCountUtil;
 
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.function.BiFunction;
 
@@ -46,31 +52,34 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
       return methodNotAllowed(httpServerResponse);
     }
 
-    final Flux<ByteBuf> dataStream = httpServerRequest.receiveContent()
-        .flatMap(httpContent -> callService(httpServerRequest.uri(), httpContent));
-
-    return dataStream
+    return httpServerRequest.receiveContent()
+        .flatMap(httpContent -> callService(httpServerRequest.uri(), httpContent))
         .timeout(DEFAULT_TIMEOUT)
-        .flatMap(byteBuf -> ok(httpServerResponse, byteBuf))
-        .onErrorResume(throwable -> internalServerError(httpServerResponse, throwable.getMessage()));
+        .flatMap(serviceMessage -> toHttpResponse(httpServerResponse, serviceMessage))
+        .onErrorResume(throwable -> error(httpServerResponse, throwable));
   }
 
-  private Mono<ByteBuf> callService(String qualifier, HttpContent httpContent) {
+  private Mono<ServiceMessage> callService(String qualifier, HttpContent httpContent) {
     final ServiceMessage.Builder serviceMessage = ServiceMessage.builder().qualifier(qualifier);
-
-    if (httpContent != null) {
+    try {
       serviceMessage.data(httpContent.content().slice().retain());
+      return serviceCall.requestOne(serviceMessage.build());
+    } catch (Exception e) {
+      ReferenceCountUtil.safeRelease(httpContent);
+      return Mono.error(e);
+    }
+  }
+
+  private Publisher<Void> toHttpResponse(HttpServerResponse response, ServiceMessage serviceMessage) {
+    if (ExceptionProcessor.isError(serviceMessage)) {
+      return error(response, serviceMessage);
     }
 
-    final Mono<ServiceMessage> requestOneResult = serviceCall.requestOne(serviceMessage.build());
+    if (!serviceMessage.hasData()) {
+      return noContent(response);
+    }
 
-    return requestOneResult.flatMap(message -> {
-      if (message.data().equals(NullData.NULL_DATA)) {
-        return Mono.empty();
-      }
-
-      return message.data();
-    });
+    return ok(response, serviceMessage.data());
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse response) {
@@ -80,17 +89,48 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
         .send();
   }
 
-  private Publisher<Void> ok(HttpServerResponse httpServerResponse, ByteBuf byteBuf) {
-    return httpServerResponse
-        .status(OK)
-        .sendObject(byteBuf);
+  private Publisher<Void> error(HttpServerResponse response, Throwable throwable) {
+    return error(response, ExceptionProcessor.toMessage(throwable));
   }
 
-  private Publisher<Void> internalServerError(HttpServerResponse response, String message) {
+  private Publisher<Void> error(HttpServerResponse response, ServiceMessage serviceMessage) {
+    int code = Integer.parseInt(Qualifier.getQualifierAction(serviceMessage.qualifier()));
+
+    ByteBuf body;
+    if (serviceMessage.hasData(ErrorData.class)) {
+      body = encodeErrorData(serviceMessage.data());
+    } else {
+      body = serviceMessage.data();
+    }
+
     return response
-        .addHeader(CONTENT_TYPE, TEXT_PLAIN)
-        .status(INTERNAL_SERVER_ERROR)
-        .sendString(Mono.just(message));
+        .status(HttpResponseStatus.valueOf(code))
+        .sendObject(body);
+  }
+
+  private ByteBuf encodeErrorData(ErrorData errorData) {
+    ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
+    try {
+      DataCodec.getInstance("application/json").encode(new ByteBufOutputStream(byteBuf), errorData);
+    } catch (IOException e) {
+      ReferenceCountUtil.safeRelease(byteBuf);
+      LOGGER.error("Failed to encode data: {}", errorData, e);
+      return Unpooled.EMPTY_BUFFER;
+    }
+
+    return byteBuf;
+  }
+
+  private Publisher<Void> noContent(HttpServerResponse response) {
+    return response
+        .status(NO_CONTENT)
+        .send();
+  }
+
+  private Publisher<Void> ok(HttpServerResponse response, ByteBuf body) {
+    return response
+        .status(OK)
+        .sendObject(body);
   }
 
 }
