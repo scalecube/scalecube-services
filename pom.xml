@@ -9,6 +9,10 @@
 
   <artifactId>scalecube-gateway-examples</artifactId>
 
+  <properties>
+    <mainClass>io.scalecube.gateway.examples.ExamplesRunner</mainClass>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
