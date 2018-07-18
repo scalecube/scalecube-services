@@ -1,6 +1,7 @@
 package io.scalecube.services.routings;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.routings.sut.CanaryService;
 import io.scalecube.services.routings.sut.GreetingServiceImplA;
 import io.scalecube.services.routings.sut.GreetingServiceImplB;
@@ -17,12 +18,21 @@ public class ServiceTagsExample {
 
     Microservices services1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
+        .serviceBinder((call, binder) -> binder.bind(
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImplA())
+                .tag("Weight", "0.3")
+                .build()))
         .startAwait();
 
     Microservices services2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
+        .serviceBinder((call, binder) -> binder.bind(
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImplB())
+                .tag("Weight", "0.7")
+                .build()))
+
         .startAwait();
 
     CanaryService service = gateway.call()

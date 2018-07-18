@@ -19,15 +19,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 public class ServiceRemoteTest extends BaseTest {
 
@@ -53,16 +53,18 @@ public class ServiceRemoteTest extends BaseTest {
       provider.shutdown().block();
     } catch (Exception ex) {
     }
-   
+
   }
+
   private static Microservices gateway() {
     return Microservices.builder()
         .startAwait();
   }
+
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(new GreetingServiceImpl())
+        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
         .startAwait();
   }
 
@@ -194,7 +196,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(new CoarseGrainedServiceImpl()) // add service a and b
+        .serviceBinder((call, binder) -> binder.bind(new CoarseGrainedServiceImpl())) // add service a and b
         .startAwait();
 
     // Get a proxy to the service api.
@@ -215,7 +217,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(another) // add service a and b
+        .serviceBinder((call, binder) -> binder.bind(another))
         .startAwait();
 
     // Get a proxy to the service api.
@@ -233,7 +235,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(another) // add service a and b
+        .serviceBinder((call, binder) -> binder.bind(another)) // add service a and b
         .startAwait();
 
     // Get a proxy to the service api.
@@ -254,7 +256,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(another) // add service a and b
+        .serviceBinder((call, binder) -> binder.bind(another)) // add service a and b
         .startAwait();
 
     // Get a proxy to the service api.
@@ -337,7 +339,7 @@ public class ServiceRemoteTest extends BaseTest {
     Builder clusterConfig = ClusterConfig.builder().metadata(metadata);
     Microservices ms = Microservices.builder()
         .clusterConfig(clusterConfig)
-        .services(new GreetingServiceImpl())
+        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
         .startAwait();
 
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));

@@ -24,6 +24,7 @@ import com.codahale.metrics.MetricRegistry;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.BiConsumer;
@@ -106,41 +107,28 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
   private final ClientTransport client;
   private final Metrics metrics;
-  private final Address serviceAddress;
   private final ServiceDiscovery discovery;
   private final ServerTransport server;
   private final ServiceMethodRegistry methodRegistry;
   private final List<ServiceInfo> services;
   private final ClusterConfig.Builder clusterConfig;
   private final String id;
+  private final int servicePort;
 
-  private Cluster cluster; // calculated field
+  private Address serviceAddress; // calculated
+  private Cluster cluster; // calculated
 
   private Microservices(Builder builder) {
     this.id = IdGenerator.generateId();
-
+    this.servicePort = builder.servicePort;
     this.metrics = builder.metrics;
     this.client = builder.client;
     this.server = builder.server;
     this.clusterConfig = builder.clusterConfig;
     this.serviceRegistry = builder.serviceRegistry;
-    this.services = new ArrayList<>(builder.services);
+    this.services = Collections.unmodifiableList(new ArrayList<>(builder.services));
     this.methodRegistry = builder.methodRegistry;
     this.discovery = new ServiceDiscovery(serviceRegistry);
-
-    InetSocketAddress address = new InetSocketAddress(Addressing.getLocalIpAddress(), builder.servicePort);
-    InetSocketAddress boundAddress = server.bindAwait(address, methodRegistry);
-    serviceAddress = Address.create(boundAddress.getHostString(), boundAddress.getPort());
-
-    if (services.size() > 0) {
-      // TODO: pass tags as well [sergeyr]
-      serviceRegistry.registerService(ServiceScanner.scan(
-          this.services,
-          this.id,
-          serviceAddress.host(),
-          serviceAddress.port(),
-          new HashMap<>()));
-    }
   }
 
   public String id() {
@@ -148,8 +136,26 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
+    // register service in method registry
+    services.stream().map(ServiceInfo::serviceInstance).forEach(methodRegistry::registerService);
+
+    // bind service server transport
+    InetSocketAddress address =
+        InetSocketAddress.createUnresolved(Addressing.getLocalIpAddress().getHostAddress(), servicePort);
+    InetSocketAddress boundAddress = server.bindAwait(address, methodRegistry);
+    serviceAddress = Address.create(boundAddress.getHostString(), boundAddress.getPort());
+
+    // register services in service registry
+    if (!services.isEmpty()) {
+      // TODO: pass tags as well [sergeyr]
+      serviceRegistry.registerService(
+          ServiceScanner.scan(services, id, serviceAddress.host(), serviceAddress.port(), new HashMap<>()));
+    }
+
+    // setup cluster metadata
     clusterConfig.addMetadata(serviceRegistry.listServiceEndpoints().stream()
         .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
+
     return Mono.fromFuture(Cluster.join(clusterConfig.build())).map(this::init);
   }
 
@@ -170,7 +176,7 @@ public class Microservices {
 
   public static final class Builder {
 
-    public int servicePort = 0;
+    private int servicePort = 0;
     private List<ServiceInfo> services = new ArrayList<>();
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
@@ -178,21 +184,21 @@ public class Microservices {
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServerTransport server = ServiceTransport.getTransport().getServerTransport();
     private ClientTransport client = ServiceTransport.getTransport().getClientTransport();
-    private BiConsumer<Call, ServiceInstanceBinder> binder;
+    private BiConsumer<Call, ServiceInstanceBinder> serviceBinder = (call, binder) -> {
+    };
 
     public Mono<Microservices> start() {
       Call call = new Call(client, methodRegistry, serviceRegistry).metrics(this.metrics);
 
-      binder.accept(call, new ServiceInstanceBinder() {
+      serviceBinder.accept(call, new ServiceInstanceBinder() {
         @Override
         public void bind(Object serviceInstance) {
-          bind(ServiceInfo.fromServiceInstance(serviceInstance).build());
+          services.add(ServiceInfo.fromServiceInstance(serviceInstance).build());
         }
 
         @Override
         public void bind(ServiceInfo serviceInfo) {
           services.add(serviceInfo);
-          methodRegistry.registerService(serviceInfo.serviceInstance());
         }
       });
 
@@ -203,8 +209,8 @@ public class Microservices {
       return start().block();
     }
 
-    public Builder binder(BiConsumer<Call, ServiceInstanceBinder> binder) {
-      this.binder = binder;
+    public Builder serviceBinder(BiConsumer<Call, ServiceInstanceBinder> serviceBinder) {
+      this.serviceBinder = serviceBinder;
       return this;
     }
 
