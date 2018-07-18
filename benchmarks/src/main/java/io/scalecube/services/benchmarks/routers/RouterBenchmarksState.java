@@ -2,8 +2,8 @@ package io.scalecube.services.benchmarks.routers;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
-import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.benchmarks.jmh.RouterBenchmarks;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.registry.ServiceRegistryImpl;
@@ -28,8 +28,8 @@ public class RouterBenchmarksState extends BenchmarksState<RouterBenchmarksState
     String value = settings.find("identicalReferenceCount", IDENTICAL_REFERENCE_COUNT);
     int identicalReferenceCount = Integer.parseInt(value);
 
-    List<Microservices.ServiceInfo> services =
-        Collections.singletonList(new Microservices.ServiceInfo(new RouterBenchmarks.RouterBenchmarksServiceImpl()));
+    List<ServiceInfo> services =
+        Collections.singletonList(new ServiceInfo(new RouterBenchmarks.RouterBenchmarksServiceImpl()));
     IntStream.rangeClosed(0, identicalReferenceCount).forEach(i -> {
       Map<String, String> tags = new HashMap<>();
       tags.put("k1-" + i, "v1-" + i);

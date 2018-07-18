@@ -1,8 +1,8 @@
 package io.scalecube.services.benchmarks.jmh;
 
 import io.scalecube.cluster.membership.IdGenerator;
-import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.Qualifier;
@@ -76,8 +76,8 @@ public class RouterBenchmarks {
 
     @Setup
     public void setUp() {
-      List<Microservices.ServiceInfo> services =
-          Collections.singletonList(new Microservices.ServiceInfo(new RouterBenchmarksServiceImpl()));
+      List<ServiceInfo> services =
+          Collections.singletonList(new ServiceInfo(new RouterBenchmarksServiceImpl()));
       IntStream.rangeClosed(0, count).forEach(i -> {
         Map<String, String> tags = new HashMap<>();
         tags.put("k1-" + i, "v1-" + i);
