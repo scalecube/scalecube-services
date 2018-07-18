@@ -29,7 +29,7 @@ public class ErrorFlowTest {
   public static void initNodes() {
     provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
+        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
         .startAwait();
     consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
@@ -66,7 +66,7 @@ public class ErrorFlowTest {
 
   @Test
   public void testServiceUnavailable() {
-    assertThrows(ServiceUnavailableException.class, () ->
-            consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ));
+    assertThrows(ServiceUnavailableException.class,
+        () -> consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ));
   }
 }

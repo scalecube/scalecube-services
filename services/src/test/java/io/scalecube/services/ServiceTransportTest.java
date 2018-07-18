@@ -44,7 +44,7 @@ public class ServiceTransportTest {
     serviceNode = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .seeds(gateway.cluster().address())
-        .binder((call, serviceInstanceBinder) -> serviceInstanceBinder.bind(new SimpleQuoteService()))
+        .serviceBinder((call, binder) -> binder.bind(new SimpleQuoteService()))
         .startAwait();
   }
 

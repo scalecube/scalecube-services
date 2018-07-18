@@ -5,23 +5,19 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 
-import com.codahale.metrics.MetricRegistry;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import reactor.core.Disposable;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+
+import reactor.core.Disposable;
 
 public class StreamingServiceTest extends BaseTest {
 
@@ -35,7 +31,7 @@ public class StreamingServiceTest extends BaseTest {
 
     node = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(new SimpleQuoteService())
+        .serviceBinder((call, binder) -> binder.bind(new SimpleQuoteService()))
         .startAwait();
   }
 
