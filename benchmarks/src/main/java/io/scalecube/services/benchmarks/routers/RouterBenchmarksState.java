@@ -29,7 +29,8 @@ public class RouterBenchmarksState extends BenchmarksState<RouterBenchmarksState
     int identicalReferenceCount = Integer.parseInt(value);
 
     List<ServiceInfo> services =
-        Collections.singletonList(new ServiceInfo(new RouterBenchmarks.RouterBenchmarksServiceImpl()));
+        Collections.singletonList(
+            ServiceInfo.fromServiceInstance(new RouterBenchmarks.RouterBenchmarksServiceImpl()).build());
     IntStream.rangeClosed(0, identicalReferenceCount).forEach(i -> {
       Map<String, String> tags = new HashMap<>();
       tags.put("k1-" + i, "v1-" + i);

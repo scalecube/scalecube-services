@@ -21,7 +21,7 @@ public class Example1 {
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices = Microservices.builder()
         .seeds(seed.cluster().address())
-        .services(new GreetingServiceImpl())
+        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
         .startAwait();
 
     // Create service proxy

@@ -77,12 +77,13 @@ public class RouterBenchmarks {
     @Setup
     public void setUp() {
       List<ServiceInfo> services =
-          Collections.singletonList(new ServiceInfo(new RouterBenchmarksServiceImpl()));
+          Collections.singletonList(ServiceInfo.fromServiceInstance(new RouterBenchmarksServiceImpl()).build());
       IntStream.rangeClosed(0, count).forEach(i -> {
         Map<String, String> tags = new HashMap<>();
         tags.put("k1-" + i, "v1-" + i);
         tags.put("k2-" + i, "v2-" + i);
-        ServiceEndpoint serviceEndpoint = ServiceScanner.scan(services, IdGenerator.generateId(), "localhost" + i, i, tags);
+        ServiceEndpoint serviceEndpoint =
+            ServiceScanner.scan(services, IdGenerator.generateId(), "localhost" + i, i, tags);
         serviceRegistry.registerService(serviceEndpoint);
       });
     }
