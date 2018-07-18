@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.Arrays;
 
 public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksState> {
 
@@ -35,7 +36,7 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
     node = Microservices.builder()
         .metrics(settings.registry())
         .seeds(seed.cluster().address())
-        .services(services)
+        .serviceBinder((call, binder) -> Arrays.stream(services).forEach(binder::bind))
         .startAwait();
 
     LOGGER.info("Seed address: " + seed.cluster().address() +
