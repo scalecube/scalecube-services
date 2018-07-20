@@ -45,6 +45,9 @@ public class BootstrapExample {
 
     String helloWorld = helloWorldService.helloWorld().block(Duration.ofSeconds(6));
     System.out.println("Result of calling hello world business logic is ... => " + helloWorld);
+
+    node2.shutdown().block(Duration.ofSeconds(3));
+    node3.shutdown().block(Duration.ofSeconds(3));
   }
 
   /**
