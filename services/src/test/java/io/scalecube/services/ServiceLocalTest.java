@@ -34,7 +34,7 @@ public class ServiceLocalTest extends BaseTest {
   public void setUp() {
     microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
+        .services(new GreetingServiceImpl())
         .startAwait();
   }
 

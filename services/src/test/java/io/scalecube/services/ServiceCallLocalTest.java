@@ -68,7 +68,7 @@ public class ServiceCallLocalTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
+        .services(new GreetingServiceImpl())
         .startAwait();
   }
 

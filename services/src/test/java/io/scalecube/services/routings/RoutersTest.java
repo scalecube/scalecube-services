@@ -49,35 +49,29 @@ public class RoutersTest extends BaseTest {
     // Create microservices instance cluster.
     provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> {
-          binder.bind(
-              ServiceInfo
-                  .fromServiceInstance(new GreetingServiceImpl(1))
-                  .tag("ONLYFOR", "joe").tag("SENDER", "1")
-                  .build());
-          binder.bind(
-              ServiceInfo
-                  .fromServiceInstance(new GreetingServiceImplA())
-                  .tag("Weight", "0.3")
-                  .build());
-        })
+        .services(
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImpl(1))
+                .tag("ONLYFOR", "joe").tag("SENDER", "1")
+                .build(),
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImplA())
+                .tag("Weight", "0.3")
+                .build())
         .startAwait();
 
     // Create microservices instance cluster.
     provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> {
-          binder.bind(
-              ServiceInfo
-                  .fromServiceInstance(new GreetingServiceImpl(2))
-                  .tag("ONLYFOR", "fransin").tag("SENDER", "2")
-                  .build());
-          binder.bind(
-              ServiceInfo
-                  .fromServiceInstance(new GreetingServiceImplB())
-                  .tag("Weight", "0.7")
-                  .build());
-        })
+        .services(
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImpl(2))
+                .tag("ONLYFOR", "fransin").tag("SENDER", "2")
+                .build(),
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImplB())
+                .tag("Weight", "0.7")
+                .build())
         .startAwait();
   }
 

@@ -29,7 +29,7 @@ public class ErrorFlowTest {
   public static void initNodes() {
     provider = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
+        .services(new GreetingServiceImpl())
         .startAwait();
     consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())

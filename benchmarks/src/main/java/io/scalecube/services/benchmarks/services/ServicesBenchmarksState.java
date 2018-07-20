@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.Arrays;
 
 public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksState> {
 
@@ -17,7 +16,7 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
 
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(6);
 
-  private final Object[] services;
+  private final Object services;
 
   private Microservices seed;
   private Microservices node;
@@ -36,7 +35,7 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
     node = Microservices.builder()
         .metrics(settings.registry())
         .seeds(seed.cluster().address())
-        .serviceBinder((call, binder) -> Arrays.stream(services).forEach(binder::bind))
+        .services(services)
         .startAwait();
 
     LOGGER.info("Seed address: " + seed.cluster().address() +

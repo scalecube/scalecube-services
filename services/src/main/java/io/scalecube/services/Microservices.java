@@ -23,11 +23,12 @@ import com.codahale.metrics.MetricRegistry;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import reactor.core.publisher.Mono;
@@ -167,40 +168,27 @@ public class Microservices {
     return services.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
   }
 
-  public interface ServiceInstanceBinder {
-
-    void bind(Object serviceInstance);
-
-    void bind(ServiceInfo serviceInfo);
-  }
-
   public static final class Builder {
 
     private int servicePort = 0;
     private List<ServiceInfo> services = new ArrayList<>();
+    private List<Function<Call, Collection<Object>>> serviceProviders = new ArrayList<>();
     private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServerTransport server = ServiceTransport.getTransport().getServerTransport();
     private ClientTransport client = ServiceTransport.getTransport().getClientTransport();
-    private BiConsumer<Call, ServiceInstanceBinder> serviceBinder = (call, binder) -> {
-    };
 
     public Mono<Microservices> start() {
       Call call = new Call(client, methodRegistry, serviceRegistry).metrics(this.metrics);
 
-      serviceBinder.accept(call, new ServiceInstanceBinder() {
-        @Override
-        public void bind(Object serviceInstance) {
-          services.add(ServiceInfo.fromServiceInstance(serviceInstance).build());
-        }
-
-        @Override
-        public void bind(ServiceInfo serviceInfo) {
-          services.add(serviceInfo);
-        }
-      });
+      serviceProviders.stream()
+          .flatMap(provider -> provider.apply(call).stream())
+          .forEach(service -> services.add(
+              service instanceof ServiceInfo ? //
+                  ((ServiceInfo) service)
+                  : ServiceInfo.fromServiceInstance(service).build()));
 
       return new Microservices(this).start();
     }
@@ -209,8 +197,13 @@ public class Microservices {
       return start().block();
     }
 
-    public Builder serviceBinder(BiConsumer<Call, ServiceInstanceBinder> serviceBinder) {
-      this.serviceBinder = serviceBinder;
+    public Builder services(Object... services) {
+      serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
+      return this;
+    }
+
+    public Builder services(Function<Call, Collection<Object>> serviceProvider) {
+      serviceProviders.add(serviceProvider);
       return this;
     }
 
