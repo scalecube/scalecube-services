@@ -66,7 +66,7 @@ public class ErrorFlowTest {
 
   @Test
   public void testServiceUnavailable() {
-    assertThrows(ServiceUnavailableException.class, () ->
-            consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ));
+    assertThrows(ServiceUnavailableException.class,
+        () -> consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ));
   }
 }

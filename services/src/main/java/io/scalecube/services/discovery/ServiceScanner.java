@@ -1,10 +1,9 @@
 package io.scalecube.services.discovery;
 
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.CommunicationMode;
-import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.ContentType;
@@ -18,11 +17,11 @@ import java.util.stream.Collectors;
 
 public class ServiceScanner {
 
-  public static ServiceEndpoint scan(List<Microservices.ServiceInfo> serviceInstances, String endpointId, String host, int port,
+  public static ServiceEndpoint scan(List<ServiceInfo> serviceInstances, String endpointId, String host, int port,
       Map<String, String> endpointTags) {
    
     List<ServiceRegistration> serviceRegistrations = serviceInstances.stream()
-        .flatMap(inst -> Arrays.stream(inst.service().getClass().getInterfaces())
+        .flatMap(inst -> Arrays.stream(inst.serviceInstance().getClass().getInterfaces())
             .map(serviceInterface -> new InterfaceInfo(serviceInterface, inst.tags())))
         .filter(iAndTags -> iAndTags.serviceInterface.isAnnotationPresent(Service.class))
         .map(iAndTags -> {
