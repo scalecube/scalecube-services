@@ -66,6 +66,12 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
       private Payload toPayload(ServiceMessage serviceMessage) {
         return codec.encodeAndTransform(serviceMessage, ByteBufPayload::create);
       }
+
+      @Override
+      public Mono<Void> onClose() {
+        LOGGER.error("------------------> onClose");
+        return super.onClose();
+      }
     });
   }
 }
