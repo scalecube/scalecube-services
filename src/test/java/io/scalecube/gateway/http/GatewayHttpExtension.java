@@ -4,15 +4,16 @@ import io.scalecube.services.Microservices;
 
 import reactor.ipc.netty.http.client.HttpClient;
 
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-public class GatewayHttpResource extends ExternalResource {
+public class GatewayHttpExtension implements AfterAllCallback {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayHttpResource.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayHttpExtension.class);
 
   private GatewayHttpServer gateway;
   private HttpClient client;
@@ -43,9 +44,7 @@ public class GatewayHttpResource extends ExternalResource {
   }
 
   @Override
-  protected void after() {
+  public void afterAll(ExtensionContext context) throws Exception {
     stopGateway();
   }
-
-
 }

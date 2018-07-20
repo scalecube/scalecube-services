@@ -23,7 +23,8 @@ import reactor.core.publisher.Flux;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,9 +44,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class WebsocketResource extends ExternalResource {
+public class WebsocketExtension implements AfterAllCallback {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketResource.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketExtension.class);
 
   private static final NettyDataBufferFactory BUFFER_FACTORY =
       new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
@@ -71,7 +72,7 @@ public class WebsocketResource extends ExternalResource {
     return websocketServerUri;
   }
 
-  public WebsocketResource startWebsocketServer(Microservices gateway) {
+  public WebsocketExtension startWebsocketServer(Microservices gateway) {
     websocketServer = new WebsocketServer(gateway);
     websocketServerAddress = websocketServer.start();
 
@@ -84,7 +85,7 @@ public class WebsocketResource extends ExternalResource {
     return this;
   }
 
-  public WebsocketResource stopWebsocketServer() {
+  public WebsocketExtension stopWebsocketServer() {
     if (websocketServer != null) {
       try {
         websocketServer.stop();
@@ -99,7 +100,7 @@ public class WebsocketResource extends ExternalResource {
     return new WebsocketInvocation.Builder()
         .websocketServerUri(websocketServerUri)
         .publisher(Flux.from(publisher)
-            .map(WebsocketResource::encode)
+            .map(WebsocketExtension::encode)
             .map(str -> new WebSocketMessage(WebSocketMessage.Type.BINARY,
                 BUFFER_FACTORY.wrap(Unpooled.copiedBuffer(str, Charset.defaultCharset())))));
   }
@@ -246,7 +247,7 @@ public class WebsocketResource extends ExternalResource {
   }
 
   @Override
-  protected void after() {
+  public void afterAll(ExtensionContext context) {
     stopWebsocketServer();
   }
 

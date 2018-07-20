@@ -28,7 +28,11 @@ public class RSocketWebsocketClient {
 
   public RSocketWebsocketClient(InetSocketAddress gatewayAddress) {
     WebsocketClientTransport transport = WebsocketClientTransport.create(gatewayAddress);
-    client = RSocketFactory.connect().keepAlive().transport(transport).start().block();
+    client = RSocketFactory.connect()
+        .metadataMimeType("application/json")
+        .transport(transport)
+        .start().block();
+
   }
 
   public Mono<Void> fireAndForget(ServiceMessage message) {

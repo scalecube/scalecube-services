@@ -5,13 +5,14 @@ import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
 import io.scalecube.transport.Address;
 
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MicroservicesResource extends ExternalResource {
+public class MicroservicesExtension implements AfterAllCallback {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MicroservicesResource.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MicroservicesExtension.class);
 
   private Microservices gateway;
   private Address gatewayAddress;
@@ -34,18 +35,18 @@ public class MicroservicesResource extends ExternalResource {
     return serviceAddress;
   }
 
-  public MicroservicesResource startGateway() {
+  public MicroservicesExtension startGateway() {
     gateway = Microservices.builder().startAwait();
     gatewayAddress = gateway.cluster().address();
     LOGGER.info("Started gateway {} on {}", gateway, gatewayAddress);
     return this;
   }
 
-  public MicroservicesResource startServices(Address gatewayAddress) {
+  public MicroservicesExtension startServices(Address gatewayAddress) {
     return startServices(gatewayAddress, new GreetingServiceImpl());
   }
 
-  public MicroservicesResource startServices(Address gatewayAddress, GreetingService service) {
+  public MicroservicesExtension startServices(Address gatewayAddress, GreetingService service) {
     services = Microservices.builder()
         .seeds(gatewayAddress)
         .services(service)
@@ -55,7 +56,7 @@ public class MicroservicesResource extends ExternalResource {
     return this;
   }
 
-  public MicroservicesResource shutdownGateway() {
+  public MicroservicesExtension shutdownGateway() {
     if (gateway != null) {
       try {
         gateway.shutdown();
@@ -66,7 +67,7 @@ public class MicroservicesResource extends ExternalResource {
     return this;
   }
 
-  public MicroservicesResource shutdownServices() {
+  public MicroservicesExtension shutdownServices() {
     if (services != null) {
       try {
         services.shutdown();
@@ -78,7 +79,7 @@ public class MicroservicesResource extends ExternalResource {
   }
 
   @Override
-  protected void after() {
+  public void afterAll(ExtensionContext context) {
     shutdownGateway();
     shutdownServices();
   }

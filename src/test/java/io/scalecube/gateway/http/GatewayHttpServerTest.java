@@ -6,7 +6,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.SERVICE_UNAVAILABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.scalecube.gateway.MicroservicesResource;
+import io.scalecube.gateway.MicroservicesExtension;
 import io.scalecube.services.Microservices;
 
 import reactor.core.publisher.Mono;
@@ -15,22 +15,22 @@ import reactor.ipc.netty.http.client.HttpClientException;
 import reactor.ipc.netty.http.client.HttpClientResponse;
 import reactor.test.StepVerifier;
 
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.net.InetSocketAddress;
 
 public class GatewayHttpServerTest {
 
-  @ClassRule
-  public static MicroservicesResource microservicesResource = new MicroservicesResource();
-  @ClassRule
-  public static GatewayHttpResource gatewayHttpResource = new GatewayHttpResource();
+  @RegisterExtension
+  public static MicroservicesExtension microservicesResource = new MicroservicesExtension();
+  @RegisterExtension
+  public static GatewayHttpExtension gatewayHttpResource = new GatewayHttpExtension();
 
   private static HttpClient client;
 
-  @BeforeClass
+  @BeforeAll
   public static void setUp() {
     final Microservices gatewayMicroservice = microservicesResource.startGateway().getGateway();
 

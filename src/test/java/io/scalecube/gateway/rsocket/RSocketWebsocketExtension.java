@@ -3,15 +3,16 @@ package io.scalecube.gateway.rsocket;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketServer;
 import io.scalecube.services.Microservices;
 
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 
-public class RSocketWebsocketResource extends ExternalResource {
+public class RSocketWebsocketExtension implements AfterEachCallback {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketResource.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketExtension.class);
 
   private RSocketWebsocketServer gateway;
   private RSocketWebsocketClient client;
@@ -42,7 +43,7 @@ public class RSocketWebsocketResource extends ExternalResource {
   }
 
   @Override
-  protected void after() {
+  public void afterEach(ExtensionContext context) {
     stopGateway();
   }
 

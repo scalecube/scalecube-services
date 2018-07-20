@@ -2,16 +2,16 @@ package io.scalecube.gateway.websocket;
 
 import static io.scalecube.services.exceptions.BadRequestException.ERROR_TYPE;
 import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasToString;
 import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.gateway.MicroservicesResource;
+import io.scalecube.gateway.MicroservicesExtension;
 import io.scalecube.gateway.core.GatewayMessage;
 import io.scalecube.gateway.core.Signal;
 import io.scalecube.gateway.examples.GreetingRequest;
@@ -26,8 +26,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.reactivestreams.Publisher;
 
 import java.time.Duration;
@@ -83,23 +83,23 @@ public class WebsocketServerTest {
   private static final GatewayMessage CANCEL_REQUEST =
       GatewayMessage.builder().streamId(STREAM_ID).signal(Signal.CANCEL).build();
 
-  @Rule
-  public MicroservicesResource microservicesResource = new MicroservicesResource();
+  @RegisterExtension
+  public MicroservicesExtension microservicesExtension = new MicroservicesExtension();
 
-  @Rule
-  public WebsocketResource websocketResource = new WebsocketResource();
+  @RegisterExtension
+  public WebsocketExtension websocketExtension = new WebsocketExtension();
 
   @Test
   public void testGreetingOne() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .dataClasses(String.class)
             .invoke());
@@ -115,9 +115,9 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingFailingOne() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage error = errorServiceMessage(STREAM_ID, 500, "hello");
 
@@ -125,7 +125,7 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_FAILING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .dataClasses(ErrorData.class)
             .invoke());
@@ -139,9 +139,9 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingMany() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     int expectedResponseNum = 10;
     List<String> expected = IntStream.range(0, expectedResponseNum)
@@ -149,7 +149,7 @@ public class WebsocketServerTest {
         .collect(Collectors.toList());
 
     List<String> actual =
-        websocketResource
+        websocketExtension
             .newInvocationForMessages(Mono.just(GREETING_MANY))
             .dataClasses(String.class)
             .invoke()
@@ -163,15 +163,15 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingFailingMany() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     String content = "Echo:hello";
     GatewayMessage error = errorServiceMessage(STREAM_ID, 500, content);
 
     StepVerifier.create(
-        websocketResource
+        websocketExtension
             .newInvocationForMessages(Mono.just(GREETING_FAILING_MANY))
             .dataClasses(String.class, ErrorData.class)
             .invoke())
@@ -184,8 +184,8 @@ public class WebsocketServerTest {
 
   @Test
   public void testServicesNotStartedYet() {
-    microservicesResource.startGateway();
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
 
@@ -193,7 +193,7 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .dataClasses(ErrorData.class)
             .invoke());
@@ -207,8 +207,8 @@ public class WebsocketServerTest {
 
   @Test
   public void testServicesNotStartedThenStarted() {
-    microservicesResource.startGateway();
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
 
@@ -217,7 +217,7 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .dataClasses(ErrorData.class)
             .invoke());
@@ -229,12 +229,12 @@ public class WebsocketServerTest {
     stepVerifier.expectComplete().verify(TIMEOUT);
 
     // start services node
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
 
     String expectedData = "Echo:hello";
 
     StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(Mono.just(GREETING_ONE))
             .dataClasses(String.class)
             .invoke())
@@ -246,14 +246,14 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingPojoOne() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GreetingResponse expectedData = new GreetingResponse("Echo:hello");
 
     StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(Mono.just(GREETING_POJO_ONE))
             .dataClasses(GreetingResponse.class)
             .invoke())
@@ -265,9 +265,9 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingPojoMany() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     int n = 10;
     List<GreetingResponse> expected = IntStream.range(0, n)
@@ -276,7 +276,7 @@ public class WebsocketServerTest {
         .collect(Collectors.toList());
 
     List<GreetingResponse> actual =
-        websocketResource
+        websocketExtension
             .newInvocationForMessages(Mono.just(GREETING_POJO_MANY))
             .dataClasses(GreetingResponse.class)
             .invoke()
@@ -290,9 +290,9 @@ public class WebsocketServerTest {
 
   @Test
   public void testInvalidRequest() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     Publisher<String> requests =
         Flux.range(0, REQUEST_NUM).map(i -> "q=/invalid/qualifier;data=invalid_message");
@@ -300,7 +300,7 @@ public class WebsocketServerTest {
     GatewayMessage error = errorServiceMessage("Failed to decode message");
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForStrings(requests)
             .dataClasses(ErrorData.class)
             .invoke());
@@ -314,15 +314,15 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingEmptyOne() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
         .map(i -> GatewayMessage.from(GREETING_EMPTY_ONE).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .invoke());
 
@@ -337,15 +337,15 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingEmptyMany() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
         .map(i -> GatewayMessage.from(GREETING_EMPTY_MANY).streamId(i.longValue()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .dataClasses(NullData.class)
             .invoke());
@@ -363,9 +363,9 @@ public class WebsocketServerTest {
   public void testUnsubscribeRequest() throws InterruptedException {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress(), service);
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     Flux<GatewayMessage> requests = Flux.create(sink -> {
       sink.next(GREETING_MANY);
@@ -377,7 +377,7 @@ public class WebsocketServerTest {
           }).subscribe();
     });
 
-    StepVerifier.create(websocketResource
+    StepVerifier.create(websocketExtension
         .newInvocationForMessages(requests)
         .dataClasses(String.class)
         .invoke())
@@ -399,15 +399,15 @@ public class WebsocketServerTest {
 
   @Test
   public void testUnsubscribeRequestWihtUnknownStreamId() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
     Long unknownStreamId = -12343L;
 
     GatewayMessage error = errorServiceMessage(unknownStreamId, ERROR_TYPE,
         String.format("sid=%s is not contained in session", unknownStreamId));
 
-    StepVerifier.create(websocketResource
+    StepVerifier.create(websocketExtension
         .newInvocationForMessages(Mono.just(GatewayMessage.from(CANCEL_REQUEST).streamId(unknownStreamId).build()))
         .dataClasses(ErrorData.class)
         .invoke())
@@ -418,9 +418,9 @@ public class WebsocketServerTest {
 
   @Test
   public void testSendRequestsWithTheSameStreamId() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
     Long streamId = 12343L;
     GatewayMessage request = GatewayMessage.from(GREETING_DELAY_ONE).streamId(streamId).build();
 
@@ -429,7 +429,7 @@ public class WebsocketServerTest {
 
     Flux<GatewayMessage> requests = Flux.just(request, /* with the same streamId */request);
 
-    StepVerifier.create(websocketResource
+    StepVerifier.create(websocketExtension
         .newInvocationForMessages(requests)
         .dataClasses(String.class, ErrorData.class)
         .invoke())
@@ -442,9 +442,9 @@ public class WebsocketServerTest {
 
   @Test
   public void testSendRequestsWithoutStreamId() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage error = errorServiceMessage("sid is missing");
 
@@ -452,7 +452,7 @@ public class WebsocketServerTest {
         .map(i -> GatewayMessage.from(GREETING_ONE).streamId(null).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .dataClasses(ErrorData.class)
             .invoke());
@@ -463,9 +463,9 @@ public class WebsocketServerTest {
 
   @Test
   public void testUnsubscribeRequestWithNonExistenceStreamId() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
     Long nonExistenceStreamId = -12345L;
 
     GatewayMessage error = errorServiceMessage(nonExistenceStreamId, ERROR_TYPE,
@@ -476,7 +476,7 @@ public class WebsocketServerTest {
             .streamId(nonExistenceStreamId).build()).build());
 
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketResource
+        .create(websocketExtension
             .newInvocationForMessages(requests)
             .dataClasses(ErrorData.class)
             .invoke());
@@ -491,16 +491,16 @@ public class WebsocketServerTest {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
 
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress(), service);
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage error = errorServiceMessage(STREAM_ID, 500,
         "Did not observe any item or terminal signal within 1000ms (and no fallback has been configured)");
 
     GatewayMessage request = GatewayMessage.from(GREETING_DELAY_MANY).inactivity(1000).build();
 
-    StepVerifier.create(websocketResource
+    StepVerifier.create(websocketExtension
         .newInvocationForMessages(Mono.just(request))
         .dataClasses(String.class, ErrorData.class)
         .invoke())
@@ -524,14 +524,14 @@ public class WebsocketServerTest {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
 
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress(), service);
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage request = GatewayMessage.from(GREETING_MANY).build();
 
     StepVerifier.create(
-        websocketResource
+        websocketExtension
             .newInvocationForMessages(Mono.just(request))
             .dataClasses(String.class)
             .sessionConsumer(session -> {
@@ -561,21 +561,21 @@ public class WebsocketServerTest {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
 
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress(), service);
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage request = GatewayMessage.from(GREETING_MANY).build();
 
     // client shutdown its connection after 2 seconds
     Mono.delay(Duration.ofSeconds(2))
-        .doOnSuccess($ -> microservicesResource.getServices().shutdown().block())
+        .doOnSuccess($ -> microservicesExtension.getServices().shutdown().block())
         .subscribe();
 
     GatewayMessage error = errorServiceMessage(STREAM_ID, 500, "Connection closed");
 
     StepVerifier.create(
-        websocketResource.newInvocationForMessages(Mono.just(request))
+        websocketExtension.newInvocationForMessages(Mono.just(request))
             .dataClasses(String.class, ErrorData.class).invoke())
         .thenConsumeWhile(gatewayMessage -> {
           boolean noSignalYet = gatewayMessage.signal() == null;
@@ -594,16 +594,16 @@ public class WebsocketServerTest {
   }
 
   @Test
-  public void testRequestWihtoutQualifier() {
-    microservicesResource.startGateway();
-    microservicesResource.startServices(microservicesResource.getGatewayAddress());
-    websocketResource.startWebsocketServer(microservicesResource.getGateway());
+  public void testRequestWithoutQualifier() {
+    microservicesExtension.startGateway();
+    microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
+    websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     Mono<GatewayMessage> request = Mono.just(GatewayMessage.from(GREETING_ONE).qualifier(null).build());
 
     GatewayMessage error = errorServiceMessage(STREAM_ID, ERROR_TYPE, "q is missing");
 
-    StepVerifier.create(websocketResource
+    StepVerifier.create(websocketExtension
         .newInvocationForMessages(request)
         .dataClasses(ErrorData.class)
         .invoke())
