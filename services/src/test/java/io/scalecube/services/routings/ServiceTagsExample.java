@@ -18,21 +18,18 @@ public class ServiceTagsExample {
 
     Microservices services1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(
-            ServiceInfo
-                .fromServiceInstance(new GreetingServiceImplA())
-                .tag("Weight", "0.3")
-                .build()))
+        .services(ServiceInfo
+            .fromServiceInstance(new GreetingServiceImplA())
+            .tag("Weight", "0.3")
+            .build())
         .startAwait();
 
     Microservices services2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(
-            ServiceInfo
-                .fromServiceInstance(new GreetingServiceImplB())
-                .tag("Weight", "0.7")
-                .build()))
-
+        .services(ServiceInfo
+            .fromServiceInstance(new GreetingServiceImplB())
+            .tag("Weight", "0.7")
+            .build())
         .startAwait();
 
     CanaryService service = gateway.call()

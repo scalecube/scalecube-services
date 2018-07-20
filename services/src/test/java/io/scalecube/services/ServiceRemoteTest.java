@@ -64,7 +64,7 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
+        .services(new GreetingServiceImpl())
         .startAwait();
   }
 
@@ -196,7 +196,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(new CoarseGrainedServiceImpl())) // add service a and b
+        .services(new CoarseGrainedServiceImpl()) // add service a and b
         .startAwait();
 
     // Get a proxy to the service api.
@@ -217,7 +217,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(another))
+        .services(another)
         .startAwait();
 
     // Get a proxy to the service api.
@@ -235,7 +235,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(another)) // add service a and b
+        .services(another) // add service a and b
         .startAwait();
 
     // Get a proxy to the service api.
@@ -256,7 +256,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(another)) // add service a and b
+        .services(another) // add service a and b
         .startAwait();
 
     // Get a proxy to the service api.
@@ -339,7 +339,7 @@ public class ServiceRemoteTest extends BaseTest {
     Builder clusterConfig = ClusterConfig.builder().metadata(metadata);
     Microservices ms = Microservices.builder()
         .clusterConfig(clusterConfig)
-        .serviceBinder((call, binder) -> binder.bind(new GreetingServiceImpl()))
+        .services(new GreetingServiceImpl())
         .startAwait();
 
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));

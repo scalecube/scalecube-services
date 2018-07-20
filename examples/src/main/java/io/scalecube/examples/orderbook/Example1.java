@@ -29,7 +29,7 @@ public class Example1 {
 
     Microservices ms = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .serviceBinder((call, binder) -> binder.bind(new DefaultMarketDataService()))
+        .services(new DefaultMarketDataService())
         .startAwait();
 
     MarketDataService marketService = ms.call().create().api(MarketDataService.class);
