@@ -42,17 +42,59 @@ User Guide:
 
 Basic Usage:
 
-```java
-Microservices ms = Microservices.builder()
-        .services(new GreetingServiceImpl())
-        .build();
-        
-GreetingService service = ms.call().api(GreetingService.class);
+The example provisions 2 cluster nodes and making a remote interaction. 
+1. seed is a member node and provision no services of its own. 
+2. then microservices variable is a member that joins seed member and provision GreetingService instance.
+3. finally from seed node - create a proxy by the GreetingService api and send a greeting request. 
 
-service.sayHello("joe").subscribe(response->{
-  System.out.println(response);
-});
+```java
+    //1. ScaleCube Node node with no members
+    Microservices seed = Microservices.builder().startAwait();
+
+    //2. Construct a ScaleCube node which joins the cluster hosting the Greeting Service
+    Microservices microservices = Microservices.builder()
+        .seeds(seed.cluster().address()) // some address so its possible to join the cluster.
+        .services(new GreetingServiceImpl())
+        .startAwait();
+
+
+    //3. Create service proxy
+    GreetingsService service = seed.call().create().api(GreetingsService.class);
+
+    // Execute the services and subscribe to service events
+    service.sayHello("joe").subscribe(consumer -> {
+      System.out.println(consumer.message());
+    });
 ```
+
+Basic Service Example:
+
+
+* RequestOne: Send single request and expect single reply
+* RequestStream: Send single request and expect stream of responses. 
+* RequestBidirectional: send stream of requests and expect stream of responses.
+
+A service is nothing but an interface declaring what methods we wish to provision at our cluster.
+
+```java
+
+@Service("io.scalecube.examples.ExampleService")
+public interface ExampleService {
+
+  @ServiceMethod("request-replay")
+  Mono<MyResponse> requestOne(MyRequest request);
+
+  @ServiceMethod("request-stream")
+  Flux<MyResponse> requestStream();
+  
+  @ServiceMethod("request-bidirectional")
+  Flux<MyResponse> requestBidirectional(Flux<MyRequest> requests);
+}
+
+```
+
+
+
 
 ### Maven
 
