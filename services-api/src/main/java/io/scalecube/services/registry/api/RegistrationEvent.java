@@ -4,14 +4,14 @@ import io.scalecube.services.ServiceEndpoint;
 
 public class RegistrationEvent {
 
-  public enum Type {
-    ADDED, REMOVED
+  public enum RegistrationEventType {
+    REGISTERED, UNREGISTERED
   }
 
   private ServiceEndpoint serviceEndpoint;
-  private Type type;
+  private RegistrationEventType type;
 
-  public RegistrationEvent(Type type, ServiceEndpoint serviceEndpoint) {
+  public RegistrationEvent(RegistrationEventType type, ServiceEndpoint serviceEndpoint) {
     this.serviceEndpoint = serviceEndpoint;
     this.type = type;
   }
@@ -20,7 +20,7 @@ public class RegistrationEvent {
     return this.serviceEndpoint;
   }
 
-  public Type type() {
+  public RegistrationEventType type() {
     return this.type;
   }
 

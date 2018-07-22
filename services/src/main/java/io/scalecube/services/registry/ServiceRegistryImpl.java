@@ -3,7 +3,7 @@ package io.scalecube.services.registry;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.registry.api.RegistrationEvent;
-import io.scalecube.services.registry.api.RegistrationEvent.Type;
+import io.scalecube.services.registry.api.RegistrationEvent.RegistrationEventType;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
 import org.jctools.maps.NonBlockingHashMap;
@@ -75,7 +75,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                   .computeIfAbsent(reference.qualifier(), k -> new CopyOnWriteArrayList<>())
                   .add(reference));
 
-      subject.onNext(new RegistrationEvent(Type.ADDED, serviceEndpoint));
+      subject.onNext(new RegistrationEvent(RegistrationEventType.REGISTERED, serviceEndpoint));
     }
     return success;
   }
@@ -85,7 +85,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
       referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
-      subject.onNext(new RegistrationEvent(Type.REMOVED, serviceEndpoint));
+      subject.onNext(new RegistrationEvent(RegistrationEventType.UNREGISTERED, serviceEndpoint));
     }
     return serviceEndpoint;
   }
@@ -93,7 +93,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public Flux<RegistrationEvent> listen() {
     return Flux.fromStream(serviceEndpoints.values().stream())
-        .map(serviceEndpoint->new RegistrationEvent(Type.ADDED, serviceEndpoint))
+        .map(serviceEndpoint->new RegistrationEvent(RegistrationEventType.REGISTERED, serviceEndpoint))
         .concatWith(subject)
         .publishOn(Schedulers.single());
   }
