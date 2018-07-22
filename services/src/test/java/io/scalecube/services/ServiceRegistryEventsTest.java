@@ -1,7 +1,7 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.registry.api.RegistrationEvent.Type.ADDED;
-import static io.scalecube.services.registry.api.RegistrationEvent.Type.REMOVED;
+import static io.scalecube.services.registry.api.RegistrationEvent.RegistrationEventType.REGISTERED;
+import static io.scalecube.services.registry.api.RegistrationEvent.RegistrationEventType.UNREGISTERED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.registry.api.RegistrationEvent;
@@ -37,10 +37,10 @@ public class ServiceRegistryEventsTest {
 
     Thread.sleep(100);
     assertEquals(4, events.size());
-    assertEquals(ADDED, events.get(0).type());
-    assertEquals(ADDED, events.get(1).type());
-    assertEquals(REMOVED, events.get(2).type());
-    assertEquals(REMOVED, events.get(3).type());
+    assertEquals(REGISTERED, events.get(0).type());
+    assertEquals(REGISTERED, events.get(1).type());
+    assertEquals(UNREGISTERED, events.get(2).type());
+    assertEquals(UNREGISTERED, events.get(3).type());
 
   }
 }
