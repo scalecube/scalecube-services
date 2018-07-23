@@ -1,8 +1,8 @@
 package io.scalecube.gateway.websocket;
 
-import io.scalecube.gateway.core.GatewayMessage;
-import io.scalecube.gateway.core.GatewayMessageCodec;
-import io.scalecube.gateway.core.Signal;
+import io.scalecube.gateway.websocket.message.GatewayMessage;
+import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
+import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
