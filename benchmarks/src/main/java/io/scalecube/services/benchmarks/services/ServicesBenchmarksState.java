@@ -10,13 +10,15 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
+import reactor.core.publisher.Mono;
+
 public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksState> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServicesBenchmarksState.class);
 
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(6);
 
-  private final Object services;
+  private final Object[] services;
 
   private Microservices seed;
   private Microservices node;
@@ -45,18 +47,9 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
 
   @Override
   public void afterAll() {
-    if (node != null) {
-      try {
-        node.shutdown().block(SHUTDOWN_TIMEOUT);
-      } catch (Throwable ignore) {
-      }
-    }
-
-    if (seed != null) {
-      try {
-        seed.shutdown().block(SHUTDOWN_TIMEOUT);
-      } catch (Throwable ignore) {
-      }
+    try {
+      Mono.when(node.shutdown(), seed.shutdown()).block(SHUTDOWN_TIMEOUT);
+    } catch (Throwable ignore) {
     }
   }
 
