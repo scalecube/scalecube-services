@@ -1,12 +1,12 @@
 package io.scalecube.gateway.websocket;
 
-import static io.scalecube.gateway.core.GatewayMessage.DATA_FIELD;
-import static io.scalecube.gateway.core.GatewayMessage.INACTIVITY_FIELD;
-import static io.scalecube.gateway.core.GatewayMessage.QUALIFIER_FIELD;
-import static io.scalecube.gateway.core.GatewayMessage.SIGNAL_FIELD;
-import static io.scalecube.gateway.core.GatewayMessage.STREAM_ID_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.DATA_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.INACTIVITY_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.QUALIFIER_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.SIGNAL_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.STREAM_ID_FIELD;
 
-import io.scalecube.gateway.core.GatewayMessage;
+import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.services.Microservices;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;

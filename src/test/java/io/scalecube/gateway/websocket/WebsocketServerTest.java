@@ -12,12 +12,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.gateway.MicroservicesExtension;
-import io.scalecube.gateway.core.GatewayMessage;
-import io.scalecube.gateway.core.Signal;
 import io.scalecube.gateway.examples.GreetingRequest;
 import io.scalecube.gateway.examples.GreetingResponse;
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceCancelCallback;
+import io.scalecube.gateway.websocket.message.GatewayMessage;
+import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.Qualifier;
