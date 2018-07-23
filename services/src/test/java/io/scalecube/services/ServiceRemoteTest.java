@@ -19,15 +19,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 public class ServiceRemoteTest extends BaseTest {
 
@@ -53,12 +53,14 @@ public class ServiceRemoteTest extends BaseTest {
       provider.shutdown().block();
     } catch (Exception ex) {
     }
-   
+
   }
+
   private static Microservices gateway() {
     return Microservices.builder()
         .startAwait();
   }
+
   private static Microservices serviceProvider() {
     return Microservices.builder()
         .seeds(gateway.cluster().address())
@@ -215,7 +217,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .services(another) // add service a and b
+        .services(another)
         .startAwait();
 
     // Get a proxy to the service api.

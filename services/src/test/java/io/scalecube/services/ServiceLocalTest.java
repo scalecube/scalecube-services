@@ -9,36 +9,45 @@ import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
 public class ServiceLocalTest extends BaseTest {
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocalTest.class);
 
   private static final Duration timeout = Duration.ofSeconds(3);
 
   private static AtomicInteger port = new AtomicInteger(7000);
 
-  @Test
-  public void test_local_greeting_request_completes_before_timeout() throws Exception {
-    // Create microservices instance.
-    Microservices node1 = Microservices.builder()
+  private Microservices microservices;
+
+  @BeforeEach
+  public void setUp() {
+    microservices = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
         .services(new GreetingServiceImpl())
         .startAwait();
+  }
 
-    GreetingService service = node1.call().create().api(GreetingService.class);
+  @AfterEach
+  public void cleanUp() {
+    if (microservices != null) {
+      microservices.shutdown().block(timeout);
+    }
+  }
+
+  @Test
+  public void test_local_greeting_request_completes_before_timeout() throws Exception {
+    GreetingService service = microservices.call().create().api(GreetingService.class);
 
     // call the service.
     GreetingResponse result =
@@ -47,18 +56,10 @@ public class ServiceLocalTest extends BaseTest {
     // print the greeting.
     System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
     assertTrue(result.getResult().equals(" hello to: joe"));
-
-    node1.shutdown();
   }
 
   @Test
   public void test_local_async_greeting() {
-    // Create microservices cluster.
-    Microservices microservices = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
@@ -69,17 +70,10 @@ public class ServiceLocalTest extends BaseTest {
       // print the greeting.
       System.out.println("3. local_async_greeting :" + onNext);
     }).block(Duration.ofSeconds(1000));
-    microservices.shutdown().block();
   }
 
   @Test
   public void test_local_no_params() {
-    // Create microservices cluster.
-    Microservices microservices = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
@@ -92,35 +86,21 @@ public class ServiceLocalTest extends BaseTest {
       greetingResponse.set(onNext);
     }).block(Duration.ofSeconds(1));
     assertEquals("hello unknown", greetingResponse.get());
-    microservices.shutdown().block();
   }
 
   @Test
   public void test_local_void_greeting() throws Exception {
-    // Create microservices instance.
-    Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
-    GreetingService service = node1.call().create().api(GreetingService.class);
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe")).block(timeout);
 
     System.out.println("test_local_void_greeting done.");
-    node1.shutdown();
   }
 
   @Test
   public void test_local_failing_void_greeting() {
-    // Create microservices instance.
-    Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
-    GreetingService service = node1.call().create().api(GreetingService.class);
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -129,18 +109,11 @@ public class ServiceLocalTest extends BaseTest {
         .verify(Duration.ofSeconds(3));
 
     System.out.println("test_local_failing_void_greeting done.");
-    node1.shutdown();
   }
 
   @Test
   public void test_local_throwing_void_greeting() {
-    // Create microservices instance.
-    Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
-    GreetingService service = node1.call().create().api(GreetingService.class);
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -149,17 +122,10 @@ public class ServiceLocalTest extends BaseTest {
         .verify(Duration.ofSeconds(3));
 
     System.out.println("test_local_throwing_void_greeting done.");
-    node1.shutdown();
   }
 
   @Test
   public void test_local_async_greeting_return_GreetingResponse() {
-    // Create microservices cluster.
-    Microservices microservices = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
@@ -173,18 +139,12 @@ public class ServiceLocalTest extends BaseTest {
     }).block(Duration.ofSeconds(1));
 
     assertTrue(result.get().getResult().equals(" hello to: joe"));
-    microservices.shutdown().block();
   }
 
 
   @Test
   public void test_local_greeting_request_timeout_expires() {
-    // Create microservices instance.
-    Microservices node1 = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-    GreetingService service = node1.call().create().api(GreetingService.class);
+    GreetingService service = createProxy(microservices);
 
     // call the service.
     Throwable exception = assertThrows(RuntimeException.class,
@@ -192,18 +152,11 @@ public class ServiceLocalTest extends BaseTest {
             .timeout(Duration.ofSeconds(1))
             .block());
     assertTrue(exception.getCause().getMessage().contains("Did not observe any item or terminal signal"));
-    node1.shutdown().block();
   }
 
 
   @Test
   public void test_local_async_greeting_return_Message() {
-    // Create microservices cluster.
-    Microservices microservices = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
     // get a proxy to the service api.
     GreetingService service = createProxy(microservices);
 
@@ -218,19 +171,12 @@ public class ServiceLocalTest extends BaseTest {
         })
         .doOnError(System.out::println)
         .block(Duration.ofSeconds(1));
-
-    microservices.shutdown().block();
   }
 
   @Test
   public void test_local_bidi_greeting_expect_IllegalArgumentException() {
-    // Create microservices cluster.
-    Microservices provider = Microservices.builder()
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
     // get a proxy to the service api.
-    GreetingService service = createProxy(provider);
+    GreetingService service = createProxy(microservices);
 
     // call the service. bidiThrowingGreeting
     Flux<GreetingResponse> responses = service.bidiGreetingIllegalArgumentException(
@@ -240,19 +186,12 @@ public class ServiceLocalTest extends BaseTest {
     StepVerifier.create(responses)
         .expectErrorMessage("IllegalArgumentException")
         .verify(Duration.ofSeconds(3));
-
-    provider.shutdown().block();
   }
 
   @Test
   public void test_local_bidi_greeting_expect_NotAuthorized() {
-    // Create microservices cluster.
-    Microservices provider = Microservices.builder()
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
     // get a proxy to the service api.
-    GreetingService service = createProxy(provider);
+    GreetingService service = createProxy(microservices);
 
     EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
     // call the service.
@@ -266,19 +205,12 @@ public class ServiceLocalTest extends BaseTest {
     StepVerifier.create(responses)
         .expectErrorMessage("Not authorized")
         .verify(Duration.ofSeconds(3));
-
-    provider.shutdown().block();
   }
 
   @Test
   public void test_local_bidi_greeting_expect_GreetingResponse() {
-    // Create microservices cluster.
-    Microservices provider = Microservices.builder()
-        .services(new GreetingServiceImpl())
-        .startAwait();
-
     // get a proxy to the service api.
-    GreetingService service = createProxy(provider);
+    GreetingService service = createProxy(microservices);
 
     EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
     // call the service.
@@ -297,12 +229,9 @@ public class ServiceLocalTest extends BaseTest {
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
         .expectComplete()
         .verify(Duration.ofSeconds(3));
-
-    provider.shutdown().block();
   }
 
   private GreetingService createProxy(Microservices gateway) {
     return gateway.call().create().api(GreetingService.class); // create proxy for GreetingService API
   }
-
 }

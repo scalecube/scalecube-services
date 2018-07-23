@@ -12,6 +12,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceCall.Call;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.routing.RandomServiceRouter;
 import io.scalecube.services.routing.Routers;
@@ -28,11 +29,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import reactor.core.publisher.Mono;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 10;
@@ -45,20 +46,33 @@ public class RoutersTest extends BaseTest {
   @BeforeAll
   public static void setup() {
     gateway = Microservices.builder().startAwait();
- // Create microservices instance cluster.
+    // Create microservices instance cluster.
     provider1 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .service(new GreetingServiceImpl(1)).tag("ONLYFOR", "joe").tag("SENDER", "1").register()
-        .service(new GreetingServiceImplA()).tag("Weight", "0.3").register()
+        .services(
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImpl(1))
+                .tag("ONLYFOR", "joe").tag("SENDER", "1")
+                .build(),
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImplA())
+                .tag("Weight", "0.3")
+                .build())
         .startAwait();
 
     // Create microservices instance cluster.
     provider2 = Microservices.builder()
         .seeds(gateway.cluster().address())
-        .service(new GreetingServiceImpl(2)).tag("ONLYFOR", "fransin").tag("SENDER", "2").register()
-        .service(new GreetingServiceImplB()).tag("Weight", "0.7").register()
+        .services(
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImpl(2))
+                .tag("ONLYFOR", "fransin").tag("SENDER", "2")
+                .build(),
+            ServiceInfo
+                .fromServiceInstance(new GreetingServiceImplB())
+                .tag("Weight", "0.7")
+                .build())
         .startAwait();
-    
   }
 
   @AfterAll
@@ -78,7 +92,7 @@ public class RoutersTest extends BaseTest {
 
   @Test
   public void test__round_robin() {
-    
+
     ServiceCall service = gateway.call().create();
 
     // call the service.
@@ -91,7 +105,7 @@ public class RoutersTest extends BaseTest {
 
     assertTrue(!result1.sender().equals(result2.sender()));
   }
-    
+
   @Test
   public void test_remote_service_tags() {
 
@@ -115,10 +129,10 @@ public class RoutersTest extends BaseTest {
     assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.2d);
 
   }
-  
+
   @Test
   public void test_tag_selection_logic() {
-    
+
     Call service = gateway.call().router((reg, msg) -> reg.listServiceReferences().stream().filter(ref -> "2".equals(
         ref.tags().get("SENDER"))).findFirst());
 
@@ -129,7 +143,7 @@ public class RoutersTest extends BaseTest {
               .data();
       assertEquals("2", result.sender());
     }
-    
+
   }
 
   @Test
@@ -150,11 +164,11 @@ public class RoutersTest extends BaseTest {
       assertEquals("1", resultForJoe.sender());
       assertEquals("2", resultForFransin.sender());
     }
-    
+
   }
 
- 
-  
+
+
   @Test
   public void test_service_tags() throws Exception {
 

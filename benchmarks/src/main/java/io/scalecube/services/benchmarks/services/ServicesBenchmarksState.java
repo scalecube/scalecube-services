@@ -16,7 +16,7 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
 
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(6);
 
-  private final Object[] services;
+  private final Object services;
 
   private Microservices seed;
   private Microservices node;
