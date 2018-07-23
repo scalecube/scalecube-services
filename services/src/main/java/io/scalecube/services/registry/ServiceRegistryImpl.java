@@ -10,7 +10,7 @@ import org.jctools.maps.NonBlockingHashMap;
 
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -29,7 +29,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
   private final Map<String, List<ServiceReference>> referencesByQualifier = new NonBlockingHashMap<>();
-
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
@@ -92,12 +91,19 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   @Override
   public Flux<RegistrationEvent> listen() {
     return Flux.fromStream(serviceEndpoints.values().stream())
-        .map(serviceEndpoint->new RegistrationEvent(RegistrationEventType.REGISTERED, serviceEndpoint))
-        .concatWith(subject)
-        .publishOn(Schedulers.single());
+        .map(serviceEndpoint -> new RegistrationEvent(RegistrationEventType.REGISTERED, serviceEndpoint))
+        .concatWith(subject);
   }
 
   Stream<ServiceReference> serviceReferenceStream() {
     return referencesByQualifier.values().stream().flatMap(Collection::stream);
+  }
+
+  @Override
+  public Mono<Void> shutdown() {
+    return Mono.create(e -> {
+      subject.dispose();
+      e.success();
+    });
   }
 }

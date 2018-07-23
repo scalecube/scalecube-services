@@ -18,7 +18,7 @@ public class ServiceRegistryEventsTest {
   public void test_added_removed_registration_events() throws InterruptedException {
 
     List<RegistrationEvent> events = new ArrayList<>();
-    
+
     Microservices seed = Microservices.builder()
         .startAwait();
 
@@ -35,7 +35,6 @@ public class ServiceRegistryEventsTest {
     ms1.shutdown().block();
     ms2.shutdown().block();
 
-    Thread.sleep(100);
     assertEquals(4, events.size());
     assertEquals(REGISTERED, events.get(0).type());
     assertEquals(REGISTERED, events.get(1).type());
