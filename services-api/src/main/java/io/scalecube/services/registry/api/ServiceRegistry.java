@@ -3,11 +3,11 @@ package io.scalecube.services.registry.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.util.List;
 import java.util.function.Predicate;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Service registry interface provides API to register/unregister services in the system and make services lookup by
@@ -29,5 +29,5 @@ public interface ServiceRegistry {
 
   Flux<RegistrationEvent> listen();
 
-  public Mono<Void> shutdown();
+  Mono<Void> shutdown();
 }
