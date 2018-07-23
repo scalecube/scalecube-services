@@ -5,9 +5,20 @@
 
 ## MICROSERVICES 2.0
 
+<table text-align="top">
+ <tr>
+   <td>
+    An open-source project that is focused on streamlining reactive-programming of Microservices Reactive-systems that scale, built by developers for developers.<br><br>
 ScaleCube Services provides a low latency Reactive Microservices library for peer-to-peer service registry and discovery 
-based on gossip protocol ad without single point-of-failure or bottlenecks.
-
+based on gossip protocol, without single point-of-failure or bottlenecks.<br><br>
+    Scalecube more gracefully address the cross cutting concernes of distributed microservices architecture.
+    <br><br>
+  </td>
+  <td>
+  <img src="https://user-images.githubusercontent.com/1706296/43058327-b4a0147e-8e4f-11e8-9999-68c4ec99632e.gif">
+  </td>
+</tr>
+</table>
 ScaleCube Services Features:
 
 * Provision and interconnect microservices as a service-mesh (cluster)</li>
