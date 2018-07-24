@@ -308,16 +308,12 @@ public class ServiceCall {
 
   private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
       boolean isRequestTypeServiceMessage) {
-    return flux -> isRequestTypeServiceMessage
-        ? flux
-        : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
+    return flux -> isRequestTypeServiceMessage ? flux : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
   }
 
   private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
       boolean isRequestTypeServiceMessage) {
-    return mono -> isRequestTypeServiceMessage
-        ? mono
-        : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
+    return mono -> isRequestTypeServiceMessage ? mono : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
   }
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {

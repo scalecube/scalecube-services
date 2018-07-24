@@ -31,33 +31,28 @@ public final class ServiceMethodInvoker {
 
   public Mono<ServiceMessage> invokeOne(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Mono.from(invoke(toRequest(message, dataDecoder)))
-        .map(this::toResponse)
-        .switchIfEmpty(Mono.just(toEmptyResponse()));
+    return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
   }
 
   public Flux<ServiceMessage> invokeMany(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.from(invoke(toRequest(message, dataDecoder)))
-        .map(this::toResponse)
-        .switchIfEmpty(Flux.just(toEmptyResponse()));
+    return Flux.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
   }
 
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder))))
-        .map(this::toResponse)
-        .switchIfEmpty(Flux.just(toEmptyResponse()));
+        .map(this::toResponse);
   }
 
-  private Publisher<?> invoke(Object args) {
+  private Publisher<?> invoke(Object arguments) {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
       if (method.getParameterCount() == 0) {
         result = (Publisher<?>) method.invoke(service);
       } else {
-        result = (Publisher<?>) method.invoke(service, args);
+        result = (Publisher<?>) method.invoke(service, arguments);
       }
       if (result == null) {
         result = Mono.empty();
