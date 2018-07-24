@@ -353,7 +353,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     StepVerifier.create(service.greetingMonoEmpty(new GreetingRequest("empty")))
         .expectComplete()
-        .verify(Duration.ofSeconds(3));
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -364,7 +364,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     StepVerifier.create(service.greetingFluxEmpty(new GreetingRequest("empty")))
         .expectComplete()
-        .verify(Duration.ofSeconds(3));
+        .verify(TIMEOUT);
   }
 
   private GreetingService createProxy() {
