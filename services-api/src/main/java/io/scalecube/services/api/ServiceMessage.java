@@ -28,7 +28,7 @@ public final class ServiceMessage {
   static final String HEADER_DATA_FORMAT = "_data_format";
 
   private Map<String, String> headers = Collections.emptyMap();
-  private Object data = NullData.NULL_DATA;
+  private Object data;
 
   /**
    * Instantiates empty message for deserialization purpose.
@@ -67,7 +67,7 @@ public final class ServiceMessage {
    * @param data data to set
    */
   void setData(Object data) {
-    this.data = data != null ? data : NullData.NULL_DATA;
+    this.data = data;
   }
 
   /**
@@ -137,7 +137,7 @@ public final class ServiceMessage {
   }
 
   public boolean hasData() {
-    return data != null && data != NullData.NULL_DATA;
+    return data != null;
   }
 
   public boolean hasData(Class<?> dataClass) {
@@ -159,7 +159,7 @@ public final class ServiceMessage {
   public static class Builder {
 
     private Map<String, String> headers = new HashMap<>();
-    private Object data = NullData.NULL_DATA;
+    private Object data;
 
     private Builder() {}
 
@@ -172,7 +172,7 @@ public final class ServiceMessage {
     }
 
     public Builder data(Object data) {
-      this.data = data != null ? data : NullData.NULL_DATA;
+      this.data = data;
       return this;
     }
 
