@@ -2,8 +2,8 @@ package io.scalecube.gateway.benchmarks;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
-import io.scalecube.gateway.core.GatewayMessage;
-import io.scalecube.gateway.core.GatewayMessageCodec;
+import io.scalecube.gateway.websocket.message.GatewayMessage;
+import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
