@@ -46,9 +46,7 @@ class ServiceMethodInvokerTest {
         .streamId("1")
         .build();
 
-    final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message, dataDecoder);
-
-    StepVerifier.create(invokeOne)
+    StepVerifier.create(serviceMethodInvoker.invokeOne(message, dataDecoder))
         .assertNext(serviceMessage -> assertFalse(serviceMessage.hasData()))
         .verifyComplete();
   }
@@ -75,10 +73,7 @@ class ServiceMethodInvokerTest {
         .streamId("1")
         .build();
 
-    final Flux<ServiceMessage> invokeMany = serviceMethodInvoker.invokeMany(message, dataDecoder);
-
-    StepVerifier.create(invokeMany)
-        .assertNext(serviceMessage -> assertFalse(serviceMessage.hasData()))
+    StepVerifier.create(serviceMethodInvoker.invokeMany(message, dataDecoder))
         .verifyComplete();
   }
 
@@ -104,11 +99,7 @@ class ServiceMethodInvokerTest {
         .streamId("1")
         .build();
 
-    final Flux<ServiceMessage> invokeBidirectional =
-        serviceMethodInvoker.invokeBidirectional(Flux.just(message), dataDecoder);
-
-    StepVerifier.create(invokeBidirectional)
-        .assertNext(serviceMessage -> assertFalse(serviceMessage.hasData()))
+    StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message), dataDecoder))
         .verifyComplete();
   }
 
