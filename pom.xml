@@ -19,11 +19,6 @@
       <artifactId>scalecube-gateway-websocket</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-examples</artifactId>
-      <version>${project.version}</version>
-    </dependency>
   </dependencies>
 
 </project>
