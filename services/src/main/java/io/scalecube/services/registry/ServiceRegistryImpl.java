@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
@@ -28,6 +29,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
 
   private final DirectProcessor<RegistrationEvent> subject = DirectProcessor.create();
+  private final FluxSink<RegistrationEvent> sink = subject.serialize().sink();
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
@@ -79,7 +81,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
       RegistrationEvent registrationEvent = RegistrationEvent.registered(serviceEndpoint);
       LOGGER.debug("Publish registered: " + registrationEvent);
-      subject.onNext(registrationEvent);
+      sink.next(registrationEvent);
     }
     return success;
   }
@@ -91,7 +93,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
       RegistrationEvent registrationEvent = RegistrationEvent.unregistered(serviceEndpoint);
       LOGGER.debug("Publish unregistered: " + registrationEvent);
-      subject.onNext(registrationEvent);
+      sink.next(registrationEvent);
     }
     return serviceEndpoint;
   }
@@ -109,15 +111,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public Mono<Void> shutdown() {
-    return Mono.create(sink -> {
-      try {
-        if (!subject.isDisposed()) {
-          subject.dispose();
-        }
-      } catch (Throwable ex) {
-        LOGGER.warn("Exception occured at disposing registration event subject: " + ex);
-      }
-      sink.success();
+    return Mono.create(monoSink -> {
+      sink.complete();
+      monoSink.success();
     });
   }
 }
