@@ -2,7 +2,6 @@ package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
 
-import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
@@ -303,7 +302,7 @@ public class ServiceCall {
   private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
     return ServiceMessage.builder()
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-        .data(methodInfo.parameterCount() != 0 ? params[0] : NullData.NULL_DATA)
+        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
         .build();
   }
 
@@ -311,14 +310,14 @@ public class ServiceCall {
       boolean isRequestTypeServiceMessage) {
     return flux -> isRequestTypeServiceMessage
         ? flux
-        : flux.map(ServiceMessage::data);
+        : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
   }
 
   private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
       boolean isRequestTypeServiceMessage) {
     return mono -> isRequestTypeServiceMessage
         ? mono
-        : mono.map(ServiceMessage::data);
+        : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
   }
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
