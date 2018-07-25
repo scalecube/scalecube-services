@@ -116,7 +116,7 @@ public class WebsocketExtension implements AfterAllCallback {
   public static class WebsocketInvocation {
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(6);
 
-    private final Publisher<?> publisher;
+    private final Publisher<WebSocketMessage> publisher;
     private final Duration timeout;
     private final Consumer<WebSocketSession> sessionConsumer;
     private final Class<?>[] dataClasses;
@@ -148,7 +148,7 @@ public class WebsocketExtension implements AfterAllCallback {
         LOGGER.info("{} started sending messages to: {}", client, websocketServerUri);
 
         // noinspection unchecked
-        return session.send((Publisher<WebSocketMessage>) publisher)
+        return session.send(publisher)
             .thenMany(session.receive()
                 .map(message -> decode(message.getPayloadAsText(), dataClasses))
                 .doOnNext(emitter::next)
@@ -160,7 +160,7 @@ public class WebsocketExtension implements AfterAllCallback {
 
     public static class Builder {
       private URI websocketServerUri;
-      private Publisher<?> publisher;
+      private Publisher<WebSocketMessage> publisher;
       private Duration timeout = DEFAULT_TIMEOUT;
       private Consumer<WebSocketSession> sessionConsumer = session -> {
       };
@@ -173,7 +173,7 @@ public class WebsocketExtension implements AfterAllCallback {
         return this;
       }
 
-      private Builder publisher(Publisher<?> publisher) {
+      private Builder publisher(Publisher<WebSocketMessage> publisher) {
         this.publisher = publisher;
         return this;
       }

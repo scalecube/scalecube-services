@@ -19,7 +19,6 @@ import io.scalecube.gateway.examples.GreetingServiceCancelCallback;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.NullData;
 import io.scalecube.services.api.Qualifier;
 
 import reactor.core.publisher.Flux;
@@ -327,10 +326,7 @@ public class WebsocketServerTest {
             .invoke());
 
     IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> {
-          stepVerifier.assertNext(msg -> assertMessage(null, msg));
-          stepVerifier.assertNext(this::assertCompleteMessage);
-        });
+        .forEach(i -> stepVerifier.assertNext(this::assertCompleteMessage));
 
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
@@ -347,14 +343,10 @@ public class WebsocketServerTest {
     StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
         .create(websocketExtension
             .newInvocationForMessages(requests)
-            .dataClasses(NullData.class)
             .invoke());
 
     IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> {
-          stepVerifier.assertNext(msg -> assertMessage(null, msg));
-          stepVerifier.assertNext(this::assertCompleteMessage);
-        });
+        .forEach(i -> stepVerifier.assertNext(this::assertCompleteMessage));
 
     stepVerifier.expectComplete().verify(TIMEOUT);
   }
