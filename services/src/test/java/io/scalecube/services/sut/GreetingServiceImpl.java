@@ -81,6 +81,16 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
+  public Mono<GreetingResponse> greetingMonoEmpty(GreetingRequest request) {
+    return Mono.empty();
+  }
+
+  @Override
+  public Flux<GreetingResponse> greetingFluxEmpty(GreetingRequest request) {
+    return Flux.empty();
+  }
+
+  @Override
   public Mono<ServiceMessage> greetingMessage(ServiceMessage request) {
     print("[greetingMessage] Hello... i am a service an just recived a message:" + request);
     GreetingResponse resp = new GreetingResponse(" hello to: " + request.data(), "1");

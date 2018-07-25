@@ -345,6 +345,28 @@ public class ServiceRemoteTest extends BaseTest {
     assertTrue(ms.cluster().member().metadata().containsKey("HOSTNAME"));
   }
 
+  @Test
+  public void test_remote_mono_empty_greeting() {
+    GreetingService service = gateway.call().create()
+        .api(GreetingService.class);
+
+    // call the service.
+    StepVerifier.create(service.greetingMonoEmpty(new GreetingRequest("empty")))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
+  public void test_remote_flux_empty_greeting() {
+    GreetingService service = gateway.call().create()
+        .api(GreetingService.class);
+
+    // call the service.
+    StepVerifier.create(service.greetingFluxEmpty(new GreetingRequest("empty")))
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
   private GreetingService createProxy() {
     return gateway.call().create().api(GreetingService.class); // create proxy for GreetingService API
   }

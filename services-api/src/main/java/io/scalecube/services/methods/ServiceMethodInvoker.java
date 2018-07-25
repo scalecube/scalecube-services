@@ -31,33 +31,29 @@ public final class ServiceMethodInvoker {
 
   public Mono<ServiceMessage> invokeOne(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Mono.from(invoke(toRequest(message, dataDecoder)))
-        .map(this::toResponse)
-        .switchIfEmpty(Mono.just(toEmptyResponse()));
+    return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse)
+        .switchIfEmpty(Mono.just(toEmptyResponse())); // todo: it seems like a bug in rsocket
   }
 
   public Flux<ServiceMessage> invokeMany(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.from(invoke(toRequest(message, dataDecoder)))
-        .map(this::toResponse)
-        .switchIfEmpty(Flux.just(toEmptyResponse()));
+    return Flux.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
   }
 
   public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder))))
-        .map(this::toResponse)
-        .switchIfEmpty(Flux.just(toEmptyResponse()));
+        .map(this::toResponse);
   }
 
-  private Publisher<?> invoke(Object args) {
+  private Publisher<?> invoke(Object arguments) {
     Publisher<?> result = null;
     Throwable throwable = null;
     try {
       if (method.getParameterCount() == 0) {
         result = (Publisher<?>) method.invoke(service);
       } else {
-        result = (Publisher<?>) method.invoke(service, args);
+        result = (Publisher<?>) method.invoke(service, arguments);
       }
       if (result == null) {
         result = Mono.empty();
@@ -78,7 +74,7 @@ public final class ServiceMethodInvoker {
         !methodInfo.isRequestTypeServiceMessage() &&
         !request.hasData(methodInfo.requestType())) {
 
-      Class<?> aClass = Optional.ofNullable(request.data()).map(Object::getClass).orElseGet(null);
+      Class<?> aClass = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
       LOGGER.error("Invalid service request data type: " + aClass);
       throw new BadRequestException(String.format("Expected service request data of type: %s, but received: %s",
           methodInfo.requestType(), aClass));
