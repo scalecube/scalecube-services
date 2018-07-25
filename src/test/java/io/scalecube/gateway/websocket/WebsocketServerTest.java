@@ -26,7 +26,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.reactivestreams.Publisher;
@@ -314,27 +313,17 @@ public class WebsocketServerTest {
   }
 
   @Test
-  @Disabled
   public void testGreetingEmptyOne() {
     microservicesExtension.startGateway();
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
-    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
-        .map(i -> GatewayMessage.from(GREETING_EMPTY_ONE).streamId(i.longValue()).build());
+    Publisher<GatewayMessage> requests = Mono.just(GatewayMessage.from(GREETING_EMPTY_ONE).streamId(STREAM_ID).build());
 
-    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketExtension
-            .newInvocationForMessages(requests)
-            .invoke());
-
-    IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> {
-          stepVerifier.assertNext(msg -> assertMessage(null, msg));
-          stepVerifier.assertNext(this::assertCompleteMessage);
-        });
-
-    stepVerifier.expectComplete().verify(TIMEOUT);
+    StepVerifier.create(websocketExtension.newInvocationForMessages(requests).invoke())
+        .assertNext(msg -> assertMessage(null, msg))
+        .assertNext(this::assertCompleteMessage)
+        .expectComplete().verify(TIMEOUT);
   }
 
   @Test
