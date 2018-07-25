@@ -26,6 +26,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.reactivestreams.Publisher;
@@ -313,6 +314,7 @@ public class WebsocketServerTest {
   }
 
   @Test
+  @Disabled
   public void testGreetingEmptyOne() {
     microservicesExtension.startGateway();
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
