@@ -61,4 +61,10 @@ public interface GreetingService {
 
   @ServiceMethod
   Flux<GreetingResponse> bidiGreetingIllegalArgumentException(Publisher<GreetingRequest> request);
+
+  @ServiceMethod
+  Mono<GreetingResponse> greetingMonoEmpty(GreetingRequest request);
+
+  @ServiceMethod
+  Flux<GreetingResponse> greetingFluxEmpty(GreetingRequest request);
 }
