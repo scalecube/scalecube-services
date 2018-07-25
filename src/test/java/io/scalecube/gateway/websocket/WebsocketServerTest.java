@@ -317,18 +317,12 @@ public class WebsocketServerTest {
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
-    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
-        .map(i -> GatewayMessage.from(GREETING_EMPTY_ONE).streamId(i.longValue()).build());
+    Publisher<GatewayMessage> requests = Mono.just(GatewayMessage.from(GREETING_EMPTY_ONE).streamId(STREAM_ID).build());
 
-    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketExtension
-            .newInvocationForMessages(requests)
-            .invoke());
-
-    IntStream.range(0, REQUEST_NUM)
-        .forEach(i -> stepVerifier.assertNext(this::assertCompleteMessage));
-
-    stepVerifier.expectComplete().verify(TIMEOUT);
+    StepVerifier.create(websocketExtension.newInvocationForMessages(requests).invoke())
+        .assertNext(this::assertCompleteMessage)
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 
   @Test
