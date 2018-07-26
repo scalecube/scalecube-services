@@ -246,7 +246,7 @@ public class Reflect {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     if (serviceAnnotation == null) {
-      throw new NullPointerException(String.format("Not a service interface: %s", serviceInterface));
+      throw new IllegalArgumentException(String.format("Not a service interface: %s", serviceInterface));
     }
     return serviceAnnotation.value().length() > 0 ? serviceAnnotation.value() : serviceInterface.getName();
   }
