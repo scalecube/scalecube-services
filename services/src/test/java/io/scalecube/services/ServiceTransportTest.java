@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.streaming.QuoteService;
-import io.scalecube.services.streaming.SimpleQuoteService;
+import io.scalecube.services.sut.QuoteService;
+import io.scalecube.services.sut.SimpleQuoteService;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
