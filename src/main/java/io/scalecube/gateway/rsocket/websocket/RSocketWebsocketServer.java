@@ -2,6 +2,9 @@ package io.scalecube.gateway.rsocket.websocket;
 
 import io.scalecube.services.Microservices;
 
+import reactor.ipc.netty.http.server.HttpServer;
+import reactor.ipc.netty.resources.LoopResources;
+
 import io.rsocket.RSocketFactory;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
@@ -27,6 +30,7 @@ public class RSocketWebsocketServer {
   private InetSocketAddress address;
   private SocketAcceptor socketAcceptor;
   private NettyContextCloseable server;
+  private LoopResources loopResources;
 
   /**
    * Creates instance of gateway is listening on {@value DEFAULT_PORT} port.
@@ -66,7 +70,16 @@ public class RSocketWebsocketServer {
   public InetSocketAddress start() {
     LOGGER.info("Starting gateway on {}", address);
 
-    WebsocketServerTransport transport = WebsocketServerTransport.create(address.getHostName(), address.getPort());
+    InetSocketAddress address =
+        InetSocketAddress.createUnresolved(this.address.getHostName(), this.address.getPort());
+
+    loopResources = LoopResources.create("rsocket-websocket");
+
+    HttpServer httpServer = HttpServer.create(options -> options
+        .listenAddress(address)
+        .loopResources(loopResources));
+
+    WebsocketServerTransport transport = WebsocketServerTransport.create(httpServer);
 
     server = RSocketFactory.receive()
         .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
@@ -88,6 +101,9 @@ public class RSocketWebsocketServer {
 
     if (server != null) {
       server.dispose();
+    }
+    if (loopResources != null) {
+      loopResources.disposeLater().block();
     }
 
     LOGGER.info("Gateway has been stopped successfully");
