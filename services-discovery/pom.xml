@@ -1,0 +1,37 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-services-parent</artifactId>
+        <version>2.1.10-SNAPSHOT</version>
+    </parent>
+    <artifactId>scalecube-services-discovery</artifactId>
+    <name>ScaleCube/Discovery</name>
+
+    <dependencies>
+        <!-- Scalecube deps -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>scalecube-cluster</artifactId>
+            <version>${scalecube.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>scalecube-services-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>scalecube-services-jackson</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>scalecube-services-jackson</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+</project>

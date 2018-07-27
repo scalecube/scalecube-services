@@ -306,20 +306,24 @@ public class Reflect {
 
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
-    if (returnType.isAssignableFrom(Void.TYPE)) {
-      return FIRE_AND_FORGET;
+    if(isRequestChannel(method)) {
+      return REQUEST_CHANNEL ;
+    } else if (returnType.isAssignableFrom(Flux.class)) {
+      return REQUEST_STREAM;
     } else if (returnType.isAssignableFrom(Mono.class)) {
       return REQUEST_RESPONSE;
-    } else if (returnType.isAssignableFrom(Flux.class)) {
-      Class<?>[] reqTypes = method.getParameterTypes();
-      boolean hasFluxAsReqParam = reqTypes.length > 0
-          && (Flux.class.isAssignableFrom(reqTypes[0])
-              || Publisher.class.isAssignableFrom(reqTypes[0]));
-
-      return hasFluxAsReqParam ? REQUEST_CHANNEL : REQUEST_STREAM;
+    } else if (returnType.isAssignableFrom(Void.TYPE)) {
+      return FIRE_AND_FORGET;
     } else {
       throw new IllegalArgumentException(
           "Service method is not supported (check return type or parameter type): " + method);
     }
+  }
+
+  private static boolean isRequestChannel(Method method) {
+    Class<?>[] reqTypes = method.getParameterTypes();
+    return reqTypes.length > 0
+        && (Flux.class.isAssignableFrom(reqTypes[0])
+            || Publisher.class.isAssignableFrom(reqTypes[0]));
   }
 }

@@ -17,7 +17,7 @@ public class ServiceTagsExample {
     Microservices gateway = Microservices.builder().startAwait();
 
     Microservices services1 = Microservices.builder()
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(ServiceInfo
             .fromServiceInstance(new GreetingServiceImplA())
             .tag("Weight", "0.3")
@@ -25,7 +25,7 @@ public class ServiceTagsExample {
         .startAwait();
 
     Microservices services2 = Microservices.builder()
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(ServiceInfo
             .fromServiceInstance(new GreetingServiceImplB())
             .tag("Weight", "0.7")

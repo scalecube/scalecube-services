@@ -13,6 +13,13 @@
   <packaging>jar</packaging>
 
   <dependencies>
+  
+  <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>rsocket-services-transport</artifactId>
@@ -34,10 +41,6 @@
       <version>${project.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-cluster</artifactId>
-    </dependency>
     <dependency>
       <groupId>io.reactivex</groupId>
       <artifactId>rxjava</artifactId>

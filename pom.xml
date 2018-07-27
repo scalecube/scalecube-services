@@ -97,16 +97,11 @@
     <module>services</module>
     <module>benchmarks</module>
     <module>examples</module>
+    <module>services-discovery</module>
   </modules>
 
   <dependencyManagement>
     <dependencies>
-      <!-- Scalecube deps -->
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>scalecube-cluster</artifactId>
-        <version>${scalecube.version}</version>
-      </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>scalecube-utils</artifactId>

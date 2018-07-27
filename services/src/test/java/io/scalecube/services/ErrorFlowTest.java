@@ -16,9 +16,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import reactor.test.StepVerifier;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ErrorFlowTest {
 
@@ -35,7 +35,7 @@ public class ErrorFlowTest {
         .startAwait();
     consumer = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .seeds(provider.cluster().address())
+        .seeds(provider.discovery().address())
         .startAwait();
   }
 

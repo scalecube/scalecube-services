@@ -48,7 +48,7 @@ public class RoutersTest extends BaseTest {
     gateway = Microservices.builder().startAwait();
     // Create microservices instance cluster.
     provider1 = Microservices.builder()
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(
             ServiceInfo
                 .fromServiceInstance(new GreetingServiceImpl(1))
@@ -62,7 +62,7 @@ public class RoutersTest extends BaseTest {
 
     // Create microservices instance cluster.
     provider2 = Microservices.builder()
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(
             ServiceInfo
                 .fromServiceInstance(new GreetingServiceImpl(2))
