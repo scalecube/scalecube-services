@@ -1,6 +1,5 @@
 package io.scalecube.services.discovery;
 
-import io.scalecube.Throwables;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;

@@ -5,7 +5,6 @@ import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
-import io.scalecube.Strings;
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.annotations.RequestType;
