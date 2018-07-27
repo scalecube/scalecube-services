@@ -18,6 +18,8 @@ import org.reactivestreams.Publisher;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import reactor.test.StepVerifier;
+
 public class ErrorFlowTest {
 
   private static AtomicInteger port = new AtomicInteger(4000);
@@ -66,7 +68,8 @@ public class ErrorFlowTest {
 
   @Test
   public void testServiceUnavailable() {
-    assertThrows(ServiceUnavailableException.class,
-        () -> consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ));
+    StepVerifier.create(consumer.call().create().requestOne(TestRequests.NOT_FOUND_REQ))
+        .expectError(ServiceUnavailableException.class)
+        .verify();
   }
 }

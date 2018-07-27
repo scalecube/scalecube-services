@@ -129,7 +129,8 @@ public class ServiceCall {
           .invokeOne(request, ServiceMessageCodec::decodeData)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
-      return requestOne(request, responseType, addressLookup(request));
+      return addressLookup(request)
+          .flatMap(address -> requestOne(request, responseType, address));
     }
   }
 
@@ -172,7 +173,8 @@ public class ServiceCall {
           .invokeMany(request, ServiceMessageCodec::decodeData)
           .onErrorMap(ExceptionProcessor::mapException);
     } else { // remote service.
-      return requestMany(request, responseType, addressLookup(request));
+      return addressLookup(request)
+          .flatMapMany(address -> requestMany(request, responseType, address));
     }
   }
 
@@ -219,7 +221,8 @@ public class ServiceCall {
             .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
             .onErrorMap(ExceptionProcessor::mapException);
       } else { // remote service.
-        return requestBidirectional(messages, responseType, addressLookup(request));
+        return addressLookup(request)
+            .flatMapMany(address -> requestBidirectional(messages, responseType, address));
       }
     });
   }
@@ -291,12 +294,10 @@ public class ServiceCall {
         });
   }
 
-  private Address addressLookup(ServiceMessage request) {
-    ServiceReference serviceReference =
-        router.route(serviceRegistry, request)
-            .orElseThrow(() -> noReachableMemberException(request));
-
-    return Address.create(serviceReference.host(), serviceReference.port());
+  private Mono<Address> addressLookup(ServiceMessage request) {
+    return router.route(serviceRegistry, request)
+        .map(serviceReference -> Mono.just(Address.create(serviceReference.host(), serviceReference.port())))
+        .orElseGet(() -> Mono.error(noReachableMemberException(request)));
   }
 
   private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
