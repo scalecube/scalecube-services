@@ -13,7 +13,7 @@ public class DummyRouter implements Router {
   private Object empty;
 
   public DummyRouter() {
-    Objects.requireNonNull(this.empty != null);
+    Objects.requireNonNull(this.empty);
   }
 
   @Override
