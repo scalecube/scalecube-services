@@ -1,6 +1,5 @@
 package io.scalecube.services.routings.sut;
 
-
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;

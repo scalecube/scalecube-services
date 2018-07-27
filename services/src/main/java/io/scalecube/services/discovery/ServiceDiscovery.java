@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+import reactor.core.Exceptions;
+
 public class ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
@@ -103,7 +105,7 @@ public class ServiceDiscovery {
       return objectMapper.writeValueAsString(serviceEndpoint);
     } catch (IOException e) {
       LOGGER.error("Can write metadata: " + e, e);
-      throw Throwables.propagate(e);
+      throw Exceptions.propagate(e);
     }
   }
 }
