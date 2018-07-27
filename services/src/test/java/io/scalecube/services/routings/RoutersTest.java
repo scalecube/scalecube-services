@@ -29,11 +29,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import reactor.core.publisher.Mono;
+
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 10;
@@ -87,7 +87,7 @@ public class RoutersTest extends BaseTest {
     assertNotNull(Routers.getRouter(RandomServiceRouter.class));
 
     // dummy router will always throw exception thus cannot be created.
-    assertThrows(IllegalArgumentException.class, () -> Routers.getRouter(DummyRouter.class));
+    assertThrows(NullPointerException.class, () -> Routers.getRouter(DummyRouter.class));
   }
 
   @Test

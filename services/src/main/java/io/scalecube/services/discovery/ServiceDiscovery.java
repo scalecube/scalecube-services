@@ -1,5 +1,6 @@
 package io.scalecube.services.discovery;
 
+import io.scalecube.Throwables;
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;
@@ -8,7 +9,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.base.Throwables;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
