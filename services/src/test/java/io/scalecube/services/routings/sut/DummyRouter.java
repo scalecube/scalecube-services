@@ -1,7 +1,5 @@
 package io.scalecube.services.routings.sut;
 
-import static com.google.common.base.Preconditions.checkArgument;
-
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
@@ -13,7 +11,9 @@ public class DummyRouter implements Router {
   private Object empty;
 
   public DummyRouter() {
-    checkArgument(this.empty != null);
+    if (this.empty == null) {
+      throw new IllegalArgumentException();
+    }
   }
 
   @Override

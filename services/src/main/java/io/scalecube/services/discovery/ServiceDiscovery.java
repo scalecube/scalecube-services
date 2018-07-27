@@ -8,12 +8,13 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.google.common.base.Throwables;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+
+import reactor.core.Exceptions;
 
 public class ServiceDiscovery {
 
@@ -103,7 +104,7 @@ public class ServiceDiscovery {
       return objectMapper.writeValueAsString(serviceEndpoint);
     } catch (IOException e) {
       LOGGER.error("Can write metadata: " + e, e);
-      throw Throwables.propagate(e);
+      throw Exceptions.propagate(e);
     }
   }
 }
