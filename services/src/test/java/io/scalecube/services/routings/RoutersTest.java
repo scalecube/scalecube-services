@@ -87,7 +87,7 @@ public class RoutersTest extends BaseTest {
     assertNotNull(Routers.getRouter(RandomServiceRouter.class));
 
     // dummy router will always throw exception thus cannot be created.
-    assertThrows(IllegalArgumentException.class, () -> Routers.getRouter(DummyRouter.class));
+    assertThrows(NullPointerException.class, () -> Routers.getRouter(DummyRouter.class));
   }
 
   @Test

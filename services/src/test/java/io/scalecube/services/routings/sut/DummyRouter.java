@@ -5,15 +5,14 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class DummyRouter implements Router {
   private Object empty;
 
   public DummyRouter() {
-    if (this.empty == null) {
-      throw new IllegalArgumentException();
-    }
+    Objects.requireNonNull(this.empty);
   }
 
   @Override
