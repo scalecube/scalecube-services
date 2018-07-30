@@ -1,29 +1,27 @@
 package io.scalecube.services.discovery;
 
+import static io.scalecube.services.discovery.ClusterMetadataDecoder.decodeMetadata;
+
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
-
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import reactor.core.Exceptions;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -33,8 +31,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  private static final ObjectMapper objectMapper = newObjectMapper();
-
   private ServiceRegistry serviceRegistry;
 
   private Cluster cluster;
@@ -43,17 +39,27 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private final DirectProcessor<DiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<DiscoveryEvent> sink = subject.serialize().sink();
-  
+
   private enum DiscoveryType {
     ADDED, REMOVED, DISCOVERED;
   }
 
   @Override
+  public Address address() {
+    return cluster.address();
+  }
+
+  @Override
+  public ServiceEndpoint endpoint() {
+    return this.endpoint;
+  }
+
+  @Override
   public Mono<ServiceDiscovery> start(DiscoveryConfig config) {
     configure(config);
-    
+
     clusterConfig.addMetadata(this.serviceRegistry.listServiceEndpoints().stream()
-        .collect(Collectors.toMap(ScalecubeServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
+        .collect(Collectors.toMap(ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)));
     CompletableFuture<Cluster> promise = Cluster.join(clusterConfig.build())
         .whenComplete((success, error) -> {
           if (error == null) {
@@ -65,19 +71,49 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.fromFuture(promise).map(mapper -> this);
   }
 
+  @Override
+  public Flux<DiscoveryEvent> listen() {
+    return Flux.fromIterable(serviceRegistry.listServiceEndpoints())
+        .map(DiscoveryEvent::registered)
+        .concatWith(subject);
+  }
+
+  @Override
+  public Flux<ServiceMessage> listenGossip() {
+
+    return cluster.listen()
+        .map(message -> ServiceMessage.builder()
+            .headers(message.headers())
+            .data(message.data()).build());
+  }
+
+  @Override
+  public Mono<String> spreadGossip(ServiceMessage gossip) {
+    return Mono.fromFuture(cluster.spreadGossip(Message.builder()
+        .headers(gossip.headers())
+        .data(gossip.data())
+        .build()));
+  }
+
+  @Override
+  public Mono<Void> shutdown() {
+    sink.complete();
+    return Mono.fromFuture(cluster.shutdown());
+  }
+
   private void configure(DiscoveryConfig config) {
     this.serviceRegistry = config.serviceRegistry();
     this.endpoint = config.endpoint();
-    
-    if(config.seeds() !=null) {
+
+    if (config.seeds() != null) {
       clusterConfig.seedMembers(config.seeds());
     }
-    
-    if(config.port() !=null) {
+
+    if (config.port() != null) {
       clusterConfig.port(config.port());
     }
-    
-    if(config.tags() !=null) {
+
+    if (config.tags() != null) {
       clusterConfig.metadata(config.tags());
     }
   }
@@ -118,74 +154,21 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
             LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
                 member, serviceEndpoint);
-            
+
             DiscoveryEvent registrationEvent = DiscoveryEvent.registered(serviceEndpoint);
             LOGGER.debug("Publish registered: " + registrationEvent);
             sink.next(registrationEvent);
-            
+
           } else if (type.equals(DiscoveryType.REMOVED)
               && (this.serviceRegistry.unregisterService(serviceEndpoint.id()) != null)) {
 
             LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
                 member, serviceEndpoint);
-            
+
             DiscoveryEvent registrationEvent = DiscoveryEvent.unregistered(serviceEndpoint);
             LOGGER.debug("Publish unregistered: " + registrationEvent);
             sink.next(registrationEvent);
           }
         });
-  }
-
-  private static ObjectMapper newObjectMapper() {
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.setVisibility(objectMapper.getSerializationConfig().getDefaultVisibilityChecker()
-        .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-        .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
-        .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
-        .withCreatorVisibility(JsonAutoDetect.Visibility.NONE));
-    objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-    return objectMapper;
-  }
-
-  private static ServiceEndpoint decodeMetadata(String metadata) {
-    try {
-      return objectMapper.readValue(metadata, ServiceEndpoint.class);
-    } catch (IOException e) {
-      LOGGER.error("Can read metadata: " + e, e);
-      return null;
-    }
-  }
-
-  private static String encodeMetadata(ServiceEndpoint serviceEndpoint) {
-    try {
-      return objectMapper.writeValueAsString(serviceEndpoint);
-    } catch (IOException e) {
-      LOGGER.error("Can write metadata: " + e, e);
-      throw Exceptions.propagate(e);
-    }
-  }
-
-
-  @Override
-  public Mono<Void> shutdown() {
-    sink.complete();
-    return Mono.fromFuture(cluster.shutdown());
-  }
-
-  @Override
-  public Address address() {
-    return cluster.address();
-  }
-
-  @Override
-  public ServiceEndpoint endpoint() {
-    return this.endpoint;
-  }
-
-  @Override
-  public Flux<DiscoveryEvent> listen() {
-    return Flux.fromIterable(serviceRegistry.listServiceEndpoints())
-        .map(DiscoveryEvent::registered)
-        .concatWith(subject);
   }
 }
