@@ -82,9 +82,5 @@ public class DiscoveryConfig {
       this.endpoint = endpoint;
       return this;
     }
-
-    public void aliasName(String aliasName) {
-      tags.put("aliasName", aliasName);
-    }
   }
 }
