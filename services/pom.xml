@@ -12,14 +12,7 @@
   <name>ScaleCube/Services</name>
   <packaging>jar</packaging>
 
-  <dependencies>
-  
-  <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    
+  <dependencies>  
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>rsocket-services-transport</artifactId>

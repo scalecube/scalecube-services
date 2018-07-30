@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;

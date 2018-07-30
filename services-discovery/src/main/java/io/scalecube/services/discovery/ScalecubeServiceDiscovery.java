@@ -6,13 +6,11 @@ import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
-import io.scalecube.transport.Message;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +24,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 public class ScalecubeServiceDiscovery implements ServiceDiscovery {
+
+  public static final String SERVICE_METADATA = "service";
 
   private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
@@ -76,23 +76,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Flux.fromIterable(serviceRegistry.listServiceEndpoints())
         .map(DiscoveryEvent::registered)
         .concatWith(subject);
-  }
-
-  @Override
-  public Flux<ServiceMessage> listenGossip() {
-
-    return cluster.listen()
-        .map(message -> ServiceMessage.builder()
-            .headers(message.headers())
-            .data(message.data()).build());
-  }
-
-  @Override
-  public Mono<String> spreadGossip(ServiceMessage gossip) {
-    return Mono.fromFuture(cluster.spreadGossip(Message.builder()
-        .headers(gossip.headers())
-        .data(gossip.data())
-        .build()));
   }
 
   @Override
