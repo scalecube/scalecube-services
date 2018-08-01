@@ -56,7 +56,7 @@
   </distributionManagement>
 
   <properties>
-    <jackson.version>2.9.0</jackson.version>
+    <jackson.version>2.9.5</jackson.version>
     <scalecube.version>2.0.0</scalecube.version>
     <scalecube-benchmarks.version>1.1.10</scalecube-benchmarks.version>
     <reactor.version>3.1.8.RELEASE</reactor.version>
@@ -67,7 +67,7 @@
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.25.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
-    <log4j.version>2.6.2</log4j.version>
+    <log4j.version>2.8.2</log4j.version>
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
     <junit.jupiter.version>5.2.0</junit.jupiter.version>
@@ -356,7 +356,7 @@
                   <message>The reactor is not valid</message>
                   <ignoreModuleDependencies>true</ignoreModuleDependencies>
                 </reactorModuleConvergence>
-                <dependencyConvergence />
+                <dependencyConvergence/>
               </rules>
               <fail>true</fail>
             </configuration>
