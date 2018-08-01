@@ -4,7 +4,6 @@ import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
 import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
-import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.annotations.AfterConstruct;
 import io.scalecube.services.annotations.Inject;
@@ -15,8 +14,6 @@ import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.routing.Router;
-
-import com.google.common.base.Strings;
 
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -213,7 +210,7 @@ public class Reflect {
 
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(serviceMethods(serviceInterface).values().stream()
-        .collect(Collectors.toMap(method -> method,
+        .collect(Collectors.toMap(Function.identity(),
             method1 -> new MethodInfo(
                 serviceName(serviceInterface),
                 methodName(method1),
@@ -248,8 +245,10 @@ public class Reflect {
   public static String serviceName(Class<?> serviceInterface) {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
-    requireNonNull(serviceAnnotation != null, String.format("Not a service interface: %s", serviceInterface));
-    return Strings.isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
+    if (serviceAnnotation == null) {
+      throw new IllegalArgumentException(String.format("Not a service interface: %s", serviceInterface));
+    }
+    return serviceAnnotation.value().length() > 0 ? serviceAnnotation.value() : serviceInterface.getName();
   }
 
   /**
@@ -261,10 +260,7 @@ public class Reflect {
   public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
     Map<String, Method> methods = Arrays.stream(serviceInterface.getMethods())
         .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-        .collect(Collectors.toMap(method -> {
-          ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
-          return Strings.isNullOrEmpty(methodAnnotation.value()) ? method.getName() : methodAnnotation.value();
-        }, Function.identity()));
+        .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
 
     return Collections.unmodifiableMap(methods);
   }
@@ -283,8 +279,8 @@ public class Reflect {
   }
 
   public static String methodName(Method method) {
-    ServiceMethod annotation = method.getAnnotation(ServiceMethod.class);
-    return Strings.isNullOrEmpty(annotation.value()) ? method.getName() : annotation.value();
+    ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+    return methodAnnotation.value().length() > 0 ? methodAnnotation.value() : method.getName();
   }
 
   public static String qualifier(Class<?> serviceInterface, Method method) {
@@ -310,20 +306,24 @@ public class Reflect {
 
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
-    if (returnType.isAssignableFrom(Void.TYPE)) {
-      return FIRE_AND_FORGET;
+    if(isRequestChannel(method)) {
+      return REQUEST_CHANNEL ;
+    } else if (returnType.isAssignableFrom(Flux.class)) {
+      return REQUEST_STREAM;
     } else if (returnType.isAssignableFrom(Mono.class)) {
       return REQUEST_RESPONSE;
-    } else if (returnType.isAssignableFrom(Flux.class)) {
-      Class<?>[] reqTypes = method.getParameterTypes();
-      boolean hasFluxAsReqParam = reqTypes.length > 0
-          && (Flux.class.isAssignableFrom(reqTypes[0])
-              || Publisher.class.isAssignableFrom(reqTypes[0]));
-
-      return hasFluxAsReqParam ? REQUEST_CHANNEL : REQUEST_STREAM;
+    } else if (returnType.isAssignableFrom(Void.TYPE)) {
+      return FIRE_AND_FORGET;
     } else {
       throw new IllegalArgumentException(
           "Service method is not supported (check return type or parameter type): " + method);
     }
+  }
+
+  private static boolean isRequestChannel(Method method) {
+    Class<?>[] reqTypes = method.getParameterTypes();
+    return reqTypes.length > 0
+        && (Flux.class.isAssignableFrom(reqTypes[0])
+            || Publisher.class.isAssignableFrom(reqTypes[0]));
   }
 }

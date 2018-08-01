@@ -73,7 +73,7 @@ public class ServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call().create();
-    sub1.set(serviceCall.requestOne(JUST_NEVER).log("test_remote_node_died_mono")
+    sub1.set(serviceCall.requestOne(JUST_NEVER)
         .doOnError(exceptionHolder::set)
         .subscribe());
 
@@ -102,7 +102,7 @@ public class ServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call().create();
-    sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).log("test_remote_node_died_many_never")
+    sub1.set(serviceCall.requestMany(JUST_MANY_NEVER)
         .doOnError(exceptionHolder::set)
         .subscribe());
 
@@ -131,7 +131,7 @@ public class ServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call().create();
-    sub1.set(serviceCall.requestMany(ONLY_ONE_AND_THEN_NEVER).log("test_remote_node_died_many_only_one_and_then_never")
+    sub1.set(serviceCall.requestMany(ONLY_ONE_AND_THEN_NEVER)
         .doOnError(exceptionHolder::set)
         .subscribe());
 

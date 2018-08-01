@@ -32,6 +32,3 @@
 
 # JVM crash logs
 hs_err_pid*.log
-
-*.log
-*.csv
