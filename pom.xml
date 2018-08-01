@@ -4,7 +4,7 @@
 
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.1.10-SNAPSHOT</version>
+  <version>2.1.11-SNAPSHOT</version>
 
   <packaging>pom</packaging>
 
