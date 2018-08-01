@@ -2,6 +2,7 @@ package io.scalecube.gateway.rsocket.websocket;
 
 import io.scalecube.services.Microservices;
 
+import io.scalecube.services.metrics.Metrics;
 import reactor.ipc.netty.http.server.HttpServer;
 import reactor.ipc.netty.resources.LoopResources;
 
@@ -59,7 +60,7 @@ public class RSocketWebsocketServer {
    */
   public RSocketWebsocketServer(Microservices microservices, InetSocketAddress inetSocketAddress) {
     address = inetSocketAddress;
-    socketAcceptor = new RSocketWebsocketAcceptor(microservices.call().create());
+    socketAcceptor = new RSocketWebsocketAcceptor(microservices.call().create(), microservices.metrics());
   }
 
   /**
