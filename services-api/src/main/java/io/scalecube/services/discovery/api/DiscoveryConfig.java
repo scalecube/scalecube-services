@@ -4,6 +4,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,14 +20,14 @@ public class DiscoveryConfig {
     this.seeds = builder.seeds;
     this.serviceRegistry = builder.serviceRegistry;
     this.port = builder.port;
-    this.tags = builder.tags;
+    this.tags = new HashMap<>(builder.tags);
     this.endpoint = builder.endpoint;
   }
 
   public Integer port() {
     return port;
   }
-  
+
   public Address[] seeds() {
     return seeds;
   }
@@ -35,13 +36,14 @@ public class DiscoveryConfig {
     return serviceRegistry;
   }
 
-  public Map<String, String> tags(){
+  public Map<String, String> tags() {
     return this.tags;
   }
 
   public ServiceEndpoint endpoint() {
     return this.endpoint;
   }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -51,9 +53,9 @@ public class DiscoveryConfig {
     private Address[] seeds;
     private Integer port;
     private ServiceRegistry serviceRegistry;
-    private Map<String, String> tags = new HashMap<>();
+    private Map<String, String> tags = Collections.emptyMap();
     private ServiceEndpoint endpoint;
-    
+
     public Builder seeds(Address[] seeds) {
       this.seeds = seeds;
       return this;
