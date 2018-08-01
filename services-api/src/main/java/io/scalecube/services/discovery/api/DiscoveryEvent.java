@@ -1,12 +1,13 @@
-package io.scalecube.services.registry.api;
+package io.scalecube.services.discovery.api;
 
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.registry.api.ServiceRegistry;
 
 /**
  * Service registration event. This event is being fired when {@link ServiceEndpoint} is being added (or removed from)
  * to (from) {@link ServiceRegistry}.
  */
-public class RegistrationEvent {
+public class DiscoveryEvent {
 
   public enum Type {
     REGISTERED, // service endpoint added
@@ -16,17 +17,17 @@ public class RegistrationEvent {
   private final ServiceEndpoint serviceEndpoint;
   private final Type type;
 
-  private RegistrationEvent(Type type, ServiceEndpoint serviceEndpoint) {
+  private DiscoveryEvent(Type type, ServiceEndpoint serviceEndpoint) {
     this.serviceEndpoint = serviceEndpoint;
     this.type = type;
   }
 
-  public static RegistrationEvent registered(ServiceEndpoint serviceEndpoint) {
-    return new RegistrationEvent(Type.REGISTERED, serviceEndpoint);
+  public static DiscoveryEvent registered(ServiceEndpoint serviceEndpoint) {
+    return new DiscoveryEvent(Type.REGISTERED, serviceEndpoint);
   }
 
-  public static RegistrationEvent unregistered(ServiceEndpoint serviceEndpoint) {
-    return new RegistrationEvent(Type.UNREGISTERED, serviceEndpoint);
+  public static DiscoveryEvent unregistered(ServiceEndpoint serviceEndpoint) {
+    return new DiscoveryEvent(Type.UNREGISTERED, serviceEndpoint);
   }
 
   public ServiceEndpoint serviceEndpoint() {
@@ -41,4 +42,14 @@ public class RegistrationEvent {
   public String toString() {
     return "RegistrationEvent [serviceEndpoint=" + serviceEndpoint + ", type=" + type + "]";
   }
+
+  public boolean isRegistered() {
+    return Type.REGISTERED.equals(this.type);
+  }
+
+  public boolean isUnregistered() {
+    return Type.UNREGISTERED.equals(this.type);
+  }
+
+
 }

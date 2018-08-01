@@ -28,7 +28,7 @@ public class Example1 {
         .startAwait();
 
     Microservices ms = Microservices.builder()
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(new DefaultMarketDataService())
         .startAwait();
 

@@ -29,12 +29,12 @@ public class BootstrapExample {
 
     System.out.println("Start ServiceHello");
     Microservices node2 = Microservices.builder()
-        .seeds(node1.cluster().address())
+        .seeds(node1.discovery().address())
         .services(new ServiceHelloImpl()).startAwait();
 
     System.out.println("Start ServiceWorld");
     Microservices node3 = Microservices.builder()
-        .seeds(node1.cluster().address())
+        .seeds(node1.discovery().address())
         .services(new ServiceWorldImpl()).startAwait();
 
     System.out.println("Wait for some time so nodes could catch up with each other ...");

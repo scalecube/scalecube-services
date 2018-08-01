@@ -30,7 +30,7 @@ public class StreamingServiceTest extends BaseTest {
         .startAwait();
 
     node = Microservices.builder()
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(new SimpleQuoteService())
         .startAwait();
   }

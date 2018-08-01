@@ -2,7 +2,6 @@ package io.scalecube.services.registry;
 
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
-import io.scalecube.services.registry.api.RegistrationEvent;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
 import org.jctools.maps.NonBlockingHashMap;
@@ -19,17 +18,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import reactor.core.publisher.DirectProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
-import reactor.core.publisher.Mono;
-
 public class ServiceRegistryImpl implements ServiceRegistry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceRegistryImpl.class);
-
-  private final DirectProcessor<RegistrationEvent> subject = DirectProcessor.create();
-  private final FluxSink<RegistrationEvent> sink = subject.serialize().sink();
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
@@ -78,10 +69,6 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           .forEach(serviceReference -> referencesByQualifier
               .computeIfAbsent(serviceReference.qualifier(), key -> new CopyOnWriteArrayList<>())
               .add(serviceReference));
-
-      RegistrationEvent registrationEvent = RegistrationEvent.registered(serviceEndpoint);
-      LOGGER.debug("Publish registered: " + registrationEvent);
-      sink.next(registrationEvent);
     }
     return success;
   }
@@ -91,29 +78,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
       referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
-      RegistrationEvent registrationEvent = RegistrationEvent.unregistered(serviceEndpoint);
-      LOGGER.debug("Publish unregistered: " + registrationEvent);
-      sink.next(registrationEvent);
     }
     return serviceEndpoint;
   }
 
-  @Override
-  public Flux<RegistrationEvent> listen() {
-    return Flux.fromStream(serviceEndpoints.values().stream())
-        .map(RegistrationEvent::registered)
-        .concatWith(subject);
-  }
-
   Stream<ServiceReference> serviceReferenceStream() {
     return referencesByQualifier.values().stream().flatMap(Collection::stream);
-  }
-
-  @Override
-  public Mono<Void> shutdown() {
-    return Mono.create(monoSink -> {
-      sink.complete();
-      monoSink.success();
-    });
   }
 }

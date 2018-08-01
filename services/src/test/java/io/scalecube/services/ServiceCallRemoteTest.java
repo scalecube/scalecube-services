@@ -26,10 +26,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
-import java.time.Duration;
-
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
 
 public class ServiceCallRemoteTest extends BaseTest {
 
@@ -61,7 +61,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(new GreetingServiceImpl())
         .startAwait();
   }
