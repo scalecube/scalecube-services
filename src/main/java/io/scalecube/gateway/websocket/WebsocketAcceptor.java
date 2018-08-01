@@ -1,5 +1,6 @@
 package io.scalecube.gateway.websocket;
 
+import com.codahale.metrics.MetricRegistry;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import io.scalecube.gateway.websocket.message.Signal;
@@ -7,6 +8,9 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.metrics.Metrics;
+
+import com.codahale.metrics.Timer;
 
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
@@ -25,13 +29,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class WebsocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketAcceptor.class);
+  public static final String METRICS_PREFIX = "websocket";
+  public static final String CLIENT_CONNECTIONS_METRIC = "client.connections";
+  public static final String METRIC_CLIENT = "client";
+  public static final String METRIC_REQUESTS = "requests";
+  public static final String METRIC_RESPONSES = "responses";
+  public static final String METRIC_STREAM_DURATION = "streamDuration";
+
 
   private final ServiceCall serviceCall;
 
   private final GatewayMessageCodec gatewayMessageCodec = new GatewayMessageCodec();
 
-  public WebsocketAcceptor(ServiceCall serviceCall) {
+  private final Metrics metrics;
+
+  public WebsocketAcceptor(ServiceCall serviceCall, Metrics metrics) {
     this.serviceCall = serviceCall;
+    this.metrics = metrics != null ? metrics : new Metrics(new MetricRegistry());
   }
 
   /**
@@ -42,6 +56,7 @@ public final class WebsocketAcceptor {
    */
   public Mono<Void> onConnect(WebsocketSession session) {
     LOGGER.info("Session connected: " + session);
+    metrics.getCounter(METRICS_PREFIX, CLIENT_CONNECTIONS_METRIC).inc();
 
     Mono<Void> voidMono = session.send(session.receive()
         .flatMap(frame -> Flux.<GatewayMessage>create(sink -> {
@@ -85,7 +100,12 @@ public final class WebsocketAcceptor {
             AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
 
             ServiceMessage serviceRequest = GatewayMessage.toServiceMessage(gatewayRequest);
-            Flux<ServiceMessage> serviceStream = serviceCall.requestMany(serviceRequest);
+            Timer.Context streamDuration = metrics.getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION).time();
+            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
+            Flux<ServiceMessage> serviceStream = serviceCall
+              .requestMany(serviceRequest)
+              .doOnNext($ -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
+              .doFinally($ -> streamDuration.stop());
 
             if (gatewayRequest.inactivity() != null) {
               serviceStream = serviceStream.timeout(Duration.ofMillis(gatewayRequest.inactivity()));
@@ -106,7 +126,6 @@ public final class WebsocketAcceptor {
                 .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
                 .doFinally($ -> session.dispose(streamId))
                 .subscribe(sink::next, sink::error, sink::complete);
-
             session.register(sid, disposable);
           } catch (Throwable ex) {
             ReferenceCountUtil.safeRelease(frame);
@@ -118,7 +137,10 @@ public final class WebsocketAcceptor {
         .doOnError(ex -> LOGGER.error("Unhandled exception occured: {}, " +
             "session: {} will be closed", ex, session, ex)));
 
-    session.onClose(() -> LOGGER.info("Session disconnected: " + session));
+    session.onClose(() -> {
+      LOGGER.info("Session disconnected: " + session);
+      metrics.getCounter(METRICS_PREFIX, CLIENT_CONNECTIONS_METRIC).dec();
+    });
     return voidMono.then();
   }
 

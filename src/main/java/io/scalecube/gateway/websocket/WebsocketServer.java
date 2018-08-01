@@ -22,7 +22,7 @@ public final class WebsocketServer {
   private BlockingNettyContext server;
 
   public WebsocketServer(Microservices microservices) {
-    this.acceptor = new WebsocketAcceptor(microservices.call().create());
+    this.acceptor = new WebsocketAcceptor(microservices.call().create(), microservices.metrics());
   }
 
   public synchronized InetSocketAddress start() {
@@ -32,7 +32,7 @@ public final class WebsocketServer {
   public synchronized InetSocketAddress start(int port) {
     return start(new InetSocketAddress("localhost", port));
   }
-  
+
   public synchronized InetSocketAddress start(InetSocketAddress listenAddress) {
     server = HttpServer.builder().listenAddress(listenAddress).build().start(new WebSocketServerBiFunction());
     server.installShutdownHook();
