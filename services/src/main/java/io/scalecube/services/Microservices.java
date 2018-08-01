@@ -172,7 +172,6 @@ public class Microservices {
 
   public static final class Builder {
 
-    public String aliasName;
     private int servicePort = 0;
     private List<ServiceInfo> services = new ArrayList<>();
     private List<Function<Call, Collection<Object>>> serviceProviders = new ArrayList<>();
@@ -245,11 +244,6 @@ public class Microservices {
 
     public Builder servicePort(int port) {
       this.servicePort = port;
-      return this;
-    }
-
-    public Builder aliasName(String aliasName) {
-      this.aliasName = aliasName;
       return this;
     }
 
