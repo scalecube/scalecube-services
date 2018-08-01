@@ -21,6 +21,7 @@ import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 
+import org.junit.jupiter.api.Disabled;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -325,6 +326,8 @@ public class WebsocketServerTest {
         .verify(TIMEOUT);
   }
 
+  // FIXME: rarely, this test fails: https://github.com/scalecube/scalecube-gateway/issues/89
+  @Disabled
   @Test
   public void testGreetingEmptyMany() {
     microservicesExtension.startGateway();
