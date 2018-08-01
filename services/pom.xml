@@ -15,12 +15,12 @@
   <dependencies>  
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>rsocket-services-transport</artifactId>
+      <artifactId>scalecube-services-transport</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-transport</artifactId>
+      <artifactId>scalecube-services-codec</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -28,12 +28,6 @@
       <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
@@ -81,6 +75,18 @@
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>rsocket-services-transport</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services-jackson</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
