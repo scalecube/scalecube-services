@@ -128,40 +128,42 @@ Scalecube is using ServiceLoader to load providers from class path, currently su
 
 Binaries and dependency information for Maven can be found at http://search.maven.org.
 
+https://mvnrepository.com/artifact/io.scalecube
+
 To add a dependency on ScaleCube Services using Maven, use the following:
 
 ```xml
  <!- scalecube apis   -->
  <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-api</artifactId>
   <version>2.x.x</version>
  </dependency>
  
  <!- scalecube services module   -->
  <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services</artifactId>
   <version>2.x.x</version>
  </dependency>
  
  <!- scalecube transport provider   -->
  <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>io.scalecube</groupId>
   <artifactId>rsocket-services-transport</artifactId>
   <version>2.x.x</version>
  </dependency>
  
  <!- scalecube message serialization provider   -->
  <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-jackson</artifactId>
   <version>2.x.x</version>
  </dependency>
 
  <!- scalecube service discovery provider   -->
  <dependency>
-  <groupId>${project.groupId}</groupId>
+  <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-discovery</artifactId>
   <version>2.x.x</version>
  </dependency>
