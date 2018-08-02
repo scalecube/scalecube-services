@@ -89,17 +89,17 @@ A service is nothing but an interface declaring what methods we wish to provisio
 
 ```java
 
-@Service("io.scalecube.examples.ExampleService")
+@Service
 public interface ExampleService {
 
-  @ServiceMethod("request-replay")
-  Mono<MyResponse> requestOne(MyRequest request);
+  @ServiceMethod
+  Mono<String> sayHello(String request);
 
-  @ServiceMethod("request-stream")
-  Flux<MyResponse> requestStream();
+  @ServiceMethod
+  Flux<MyResponse> helloStream();
   
-  @ServiceMethod("request-bidirectional")
-  Flux<MyResponse> requestBidirectional(Flux<MyRequest> requests);
+  @ServiceMethod
+  Flux<MyResponse> helloBidirectional(Flux<MyRequest> requests);
 }
 
 ```
