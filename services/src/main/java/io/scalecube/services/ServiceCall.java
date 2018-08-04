@@ -296,7 +296,7 @@ public class ServiceCall {
 
   private Mono<Address> addressLookup(ServiceMessage request) {
     return router.route(serviceRegistry, request)
-        .map(serviceReference -> Mono.just(Address.create(serviceReference.host(), serviceReference.port())))
+        .map(serviceReference -> Mono.just(serviceReference.address()))
         .orElseGet(() -> Mono.error(noReachableMemberException(request)));
   }
 
