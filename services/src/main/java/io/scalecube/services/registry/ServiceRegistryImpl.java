@@ -3,8 +3,8 @@ package io.scalecube.services.registry;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.registry.api.RegistryEvent;
-import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.registry.api.RegistryEvent.Type;
+import io.scalecube.services.registry.api.ServiceRegistry;
 
 import org.jctools.maps.NonBlockingHashMap;
 import org.slf4j.Logger;
@@ -92,7 +92,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
-      referencesByQualifier.values().forEach(list -> list.removeIf(sr -> sr.endpointId().equals(endpointId)));
+      referencesByQualifier.values()
+          .forEach(list -> {
+            list.stream().filter(sr -> sr.endpointId().equals(endpointId)).collect(Collectors.toSet())
+                .forEach(sr -> {
+                  list.remove(sr);
+                  sink.next(new RegistryEvent(Type.REMOVED, sr));
+                });
+          });
     }
     return serviceEndpoint;
   }
@@ -102,6 +109,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   public Flux<RegistryEvent> listen() {
-    return events;
+    return Flux.fromIterable(referencesByQualifier.values()).flatMap(Flux::fromIterable)
+        .map(sr -> new RegistryEvent(Type.ADDED, sr))
+        .concatWith(events);
   }
 }
