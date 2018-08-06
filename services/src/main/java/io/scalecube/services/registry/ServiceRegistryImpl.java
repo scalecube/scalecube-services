@@ -101,6 +101,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                 });
           });
     }
+    
     return serviceEndpoint;
   }
 
