@@ -65,13 +65,13 @@ import java.util.stream.Collectors;
  *    &#64; Service
  *    public interface GreetingService {
  *         &#64; ServiceMethod
- *         Mono<String> asyncGreeting(String string);
+ *         Mono<String> sayHello(String string);
  *     }
  *
  *     public class GreetingServiceImpl implements GreetingService {
  *       &#64; Override
- *       public Mono<String> asyncGreeting(String name) {
- *         return CompletableFuture.completedFuture(" hello to: " + name);
+ *       public Mono<String> sayHello(String name) {
+ *         return Mono.just("hello to: " + name);
  *       }
  *     }
  *
@@ -79,25 +79,17 @@ import java.util.stream.Collectors;
  *     Microservices microservices = Microservices.builder()
  *          // Introduce GreetingServiceImpl pojo as a micro-service:
  *         .services(new GreetingServiceImpl())
- *         .build();
+ *         .startAwait();
  *
  *     // Create microservice proxy to GreetingService.class interface:
- *     GreetingService service = microservices.call()
+ *     GreetingService service = microservices.call().create()
  *         .api(GreetingService.class);
  *
  *     // Invoke the greeting service async:
- *     Mono<String> future = service.sayHello("joe");
- *
- *     // handle completable success or error:
- *     future.whenComplete((result, ex) -> {
- *      if (ex == null) {
- *        // print the greeting:
- *         System.out.println(result);
- *       } else {
- *         // print the greeting:
- *         System.out.println(ex);
- *       }
+ *     service.sayHello("joe").subscribe(resp->{
+ *       // handle response
  *     });
+ *
  * }
  * </pre>
  */
