@@ -23,7 +23,8 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final ThreadLocal<Map<Address, Mono<RSocket>>> rSockets = ThreadLocal.withInitial(ConcurrentHashMap::new);
+  private final ThreadLocal<Map<Address, Mono<RSocket>>> rSockets =
+      ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec codec;
 
@@ -34,7 +35,8 @@ public class RSocketClientTransport implements ClientTransport {
   @Override
   public ClientChannel create(Address address) {
     final Map<Address, Mono<RSocket>> monoMap = rSockets.get(); // keep reference for threadsafety
-    Mono<RSocket> rSocket = monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
+    Mono<RSocket> rSocket =
+        monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
     return new RSocketServiceClientAdapter(rSocket, codec);
   }
 
@@ -48,7 +50,8 @@ public class RSocketClientTransport implements ClientTransport {
         TcpClientTransport.create(tcpClient);
 
     Mono<RSocket> rSocketMono = RSocketFactory.connect()
-        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
+        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(),
+            frame.sliceMetadata().retain()))
         .transport(tcpClientTransport)
         .start();
 

@@ -13,7 +13,11 @@ import java.lang.annotation.Target;
 @Documented
 public @interface Inject {
 
+  /**
+   * Select a router.
+   * 
+   * @return Router class to use
+   */
   Class<? extends Router> router() default Router.class;
 
 }
-

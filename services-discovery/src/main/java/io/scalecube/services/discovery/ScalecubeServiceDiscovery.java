@@ -59,7 +59,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     configure(config);
 
     clusterConfig.addMetadata(this.serviceRegistry.listServiceEndpoints().stream()
-        .collect(Collectors.toMap(ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)));
+        .collect(
+            Collectors.toMap(ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)));
     CompletableFuture<Cluster> promise = Cluster.join(clusterConfig.build())
         .whenComplete((success, error) -> {
           if (error == null) {
@@ -135,7 +136,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
           if ((type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED))
               && (this.serviceRegistry.registerService(serviceEndpoint))) {
 
-            LOGGER.info("Service Reference was ADDED since new Member has joined the cluster {} : {}",
+            LOGGER.info(
+                "Service Reference was ADDED since new Member has joined the cluster {} : {}",
                 member, serviceEndpoint);
 
             DiscoveryEvent registrationEvent = DiscoveryEvent.registered(serviceEndpoint);

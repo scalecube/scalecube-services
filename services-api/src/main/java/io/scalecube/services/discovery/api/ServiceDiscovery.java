@@ -3,7 +3,7 @@ package io.scalecube.services.discovery.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceLoaderUtil;
 import io.scalecube.transport.Address;
-
+import java.util.ServiceLoader;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -13,11 +13,14 @@ public interface ServiceDiscovery {
 
   ServiceEndpoint endpoint();
 
+  /**
+   * Get the discovery. Uses the {@link ServiceLoader#load(Class)} in order to select the service
+   * 
+   * @return a Service Discovery implementation.
+   */
   static ServiceDiscovery getDiscovery() {
-    ServiceDiscovery discovery = ServiceLoaderUtil.findFirstMatched(ServiceDiscovery.class)
+    return ServiceLoaderUtil.findFirstMatched(ServiceDiscovery.class)
         .orElseThrow(() -> new IllegalStateException("ServiceDiscovery not configured"));
-
-    return discovery;
   }
 
   Mono<ServiceDiscovery> start(DiscoveryConfig discoveryConfig);

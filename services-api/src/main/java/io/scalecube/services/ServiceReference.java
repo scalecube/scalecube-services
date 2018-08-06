@@ -18,10 +18,20 @@ public class ServiceReference {
   private CommunicationMode mode;
 
   /**
-   * @deprecated exposed only for deserialization purpose.
+   * Constructor for SerDe.
+   * 
+   * @deprecated exposed only for de/serialization purpose.
    */
   public ServiceReference() {}
 
+  /**
+   * Create a new Service reference.
+   * 
+   * @param serviceMethodDefinition the method definition to build this reference from.
+   * @param serviceRegistration a registration for updating the {@link #namespace()} for this
+   *        reference
+   * @param serviceEndpoint the host and port this reference refers to
+   */
   public ServiceReference(ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
@@ -84,7 +94,8 @@ public class ServiceReference {
 
   private String mergeContentType(ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration) {
-    if (serviceMethodDefinition.getContentType() != null && !serviceMethodDefinition.getContentType().isEmpty()) {
+    if (serviceMethodDefinition.getContentType() != null
+        && !serviceMethodDefinition.getContentType().isEmpty()) {
       return serviceMethodDefinition.getContentType();
     }
     if (serviceRegistration.contentType() != null && !serviceRegistration.contentType().isEmpty()) {
@@ -95,16 +106,16 @@ public class ServiceReference {
 
   @Override
   public String toString() {
-    return "ServiceReference{" +
-        "qualifier='" + qualifier + '\'' +
-        ", endpointId='" + endpointId + '\'' +
-        ", host='" + host + '\'' +
-        ", port=" + port +
-        ", namespace='" + namespace + '\'' +
-        ", contentType='" + contentType + '\'' +
-        ", tags=" + tags +
-        ", action='" + action + '\'' +
-        ", mode=" + mode +
-        '}';
+    return "ServiceReference{"
+        + "qualifier='" + qualifier + '\''
+        + ", endpointId='" + endpointId + '\''
+        + ", host='" + host + '\''
+        + ", port=" + port
+        + ", namespace='" + namespace + '\''
+        + ", contentType='" + contentType + '\''
+        + ", tags=" + tags
+        + ", action='" + action + '\''
+        + ", mode=" + mode
+        + '}';
   }
 }

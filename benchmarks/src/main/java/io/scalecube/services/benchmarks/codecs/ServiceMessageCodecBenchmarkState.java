@@ -1,11 +1,5 @@
 package io.scalecube.services.benchmarks.codecs;
 
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.BenchmarksState;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.codec.jackson.JacksonCodec;
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -13,17 +7,21 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
-
+import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.BenchmarksState;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.codec.jackson.JacksonCodec;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class ServiceMessageCodecBenchmarkState extends BenchmarksState<ServiceMessageCodecBenchmarkState> {
+public class ServiceMessageCodecBenchmarkState
+    extends BenchmarksState<ServiceMessageCodecBenchmarkState> {
 
   private ServiceMessageCodec serviceMessageCodec;
 

@@ -12,13 +12,24 @@ public final class ServiceLoaderUtil {
     // Do not instantiate
   }
 
-  public static <T> Optional<T> findFirstMatched(Class<T> aClass) {
-    ServiceLoader<T> load = ServiceLoader.load(aClass);
-    return StreamSupport.stream(load.spliterator(), false).findFirst();
+  /**
+   * Find the first service loaded by a {@link ServiceLoader}.
+   * 
+   * @param clazz the service type
+   */
+  public static <T> Optional<T> findFirstMatched(Class<T> clazz) {
+    return findFirst(clazz, (x) -> true);
   }
 
-  public static <T> Optional<T> findFirst(Class<T> aClass, Predicate<? super T> predicate) {
-    ServiceLoader<T> load = ServiceLoader.load(aClass);
+  /**
+   * Find the first service loaded by a {@link ServiceLoader} that and match a predicate.
+   * 
+   * @param clazz the service type
+   * @param predicate a test on the service
+   * @return the first one that matches the predicate.
+   */
+  public static <T> Optional<T> findFirst(Class<T> clazz, Predicate<? super T> predicate) {
+    ServiceLoader<T> load = ServiceLoader.load(clazz);
     Stream<T> stream = StreamSupport.stream(load.spliterator(), false);
     return stream.filter(predicate).findFirst();
   }

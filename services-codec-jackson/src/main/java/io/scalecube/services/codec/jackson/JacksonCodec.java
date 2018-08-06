@@ -42,7 +42,8 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
 
   @Override
   public Map<String, String> decode(InputStream stream) throws IOException {
-    return stream.available() == 0 ? Collections.emptyMap() : mapper.readValue(stream, HashMap.class);
+    return stream.available() == 0 ? Collections.emptyMap()
+        : mapper.readValue(stream, HashMap.class);
   }
 
   @Override

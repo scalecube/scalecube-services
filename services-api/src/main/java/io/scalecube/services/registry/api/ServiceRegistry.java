@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.function.Predicate;
 
 /**
- * Service registry interface provides API to register/unregister services in the system and make services lookup by
- * service result.
+ * Service registry interface provides API to register/unregister services in the system and make
+ * services lookup by service result.
  */
 public interface ServiceRegistry {
 
@@ -23,5 +23,5 @@ public interface ServiceRegistry {
   boolean registerService(ServiceEndpoint serviceEndpoint);
 
   ServiceEndpoint unregisterService(String endpointId);
-  
+
 }

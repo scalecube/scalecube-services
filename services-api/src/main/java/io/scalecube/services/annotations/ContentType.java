@@ -9,7 +9,12 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 public @interface ContentType {
 
-    String DEFAULT = "application/json";
+  String DEFAULT = "application/json";
 
-    String value() default DEFAULT;
+  /**
+   * Content type as String.
+   * 
+   * @return the content type
+   */
+  String value() default DEFAULT;
 }

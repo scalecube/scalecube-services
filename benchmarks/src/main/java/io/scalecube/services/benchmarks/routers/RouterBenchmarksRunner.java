@@ -20,7 +20,8 @@ public class RouterBenchmarksRunner {
       .build();
 
   public static void main(String[] args) {
-    BenchmarksSettings settings = BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
+    BenchmarksSettings settings =
+        BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
     new RouterBenchmarksState(settings).runForSync(state -> {
 
       Timer timer = state.timer("timer");

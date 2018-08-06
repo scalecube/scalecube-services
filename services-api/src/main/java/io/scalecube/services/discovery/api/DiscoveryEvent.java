@@ -4,8 +4,8 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.registry.api.ServiceRegistry;
 
 /**
- * Service registration event. This event is being fired when {@link ServiceEndpoint} is being added (or removed from)
- * to (from) {@link ServiceRegistry}.
+ * Service registration event. This event is being fired when {@link ServiceEndpoint} is being added
+ * (or removed from) to (from) {@link ServiceRegistry}.
  */
 public class DiscoveryEvent {
 

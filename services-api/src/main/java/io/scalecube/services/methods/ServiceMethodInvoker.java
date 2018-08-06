@@ -2,16 +2,13 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.BiFunction;
-
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,6 +20,13 @@ public final class ServiceMethodInvoker {
   private final Object service;
   private final MethodInfo methodInfo;
 
+  /**
+   * Create a new Service method invoker.
+   * 
+   * @param method the method to invoke
+   * @param service the service to invoke the method on
+   * @param methodInfo a method info for the given method
+   */
   public ServiceMethodInvoker(Method method, Object service, MethodInfo methodInfo) {
     this.method = method;
     this.service = service;
@@ -70,14 +74,15 @@ public final class ServiceMethodInvoker {
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     ServiceMessage request = dataDecoder.apply(message, methodInfo.requestType());
 
-    if (!methodInfo.isRequestTypeVoid() &&
-        !methodInfo.isRequestTypeServiceMessage() &&
-        !request.hasData(methodInfo.requestType())) {
+    if (!methodInfo.isRequestTypeVoid()
+        && !methodInfo.isRequestTypeServiceMessage()
+        && !request.hasData(methodInfo.requestType())) {
 
-      Class<?> aClass = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
-      LOGGER.error("Invalid service request data type: " + aClass);
-      throw new BadRequestException(String.format("Expected service request data of type: %s, but received: %s",
-          methodInfo.requestType(), aClass));
+      Class<?> clazz = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
+      LOGGER.error("Invalid service request data type: " + clazz);
+      throw new BadRequestException(
+          String.format("Expected service request data of type: %s, but received: %s",
+              methodInfo.requestType(), clazz));
     }
 
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();

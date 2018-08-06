@@ -30,12 +30,14 @@ public class RouterBenchmarksState extends BenchmarksState<RouterBenchmarksState
 
     List<ServiceInfo> services =
         Collections.singletonList(
-            ServiceInfo.fromServiceInstance(new RouterBenchmarks.RouterBenchmarksServiceImpl()).build());
+            ServiceInfo.fromServiceInstance(new RouterBenchmarks.RouterBenchmarksServiceImpl())
+                .build());
     IntStream.rangeClosed(0, identicalReferenceCount).forEach(i -> {
       Map<String, String> tags = new HashMap<>();
       tags.put("k1-" + i, "v1-" + i);
       tags.put("k2-" + i, "v2-" + i);
-      ServiceEndpoint serviceEndpoint = ServiceScanner.scan(services, "localhost" + i, "localhost", i, tags);
+      ServiceEndpoint serviceEndpoint =
+          ServiceScanner.scan(services, "localhost" + i, "localhost", i, tags);
       serviceRegistry.registerService(serviceEndpoint);
     });
   }

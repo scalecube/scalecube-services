@@ -14,6 +14,12 @@ public class ExceptionProcessor {
     return message.qualifier().contains(Qualifier.ERROR_NAMESPACE);
   }
 
+  /**
+   * Wrap an exception with error {@link ServiceMessage}.
+   * 
+   * @param throwable the exception to wrap
+   * @return the Service Message wrapping the exception
+   */
   public static ServiceMessage toMessage(Throwable throwable) {
     int errorCode = DEFAULT_ERROR_CODE;
     int errorType = DEFAULT_ERROR_CODE;
@@ -31,7 +37,8 @@ public class ExceptionProcessor {
       }
     }
 
-    String errorMessage = Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
+    String errorMessage =
+        Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
     ErrorData errorData = new ErrorData(errorCode, errorMessage);
 
     return ServiceMessage.builder()
@@ -40,6 +47,13 @@ public class ExceptionProcessor {
         .build();
   }
 
+  /**
+   * Transform data to {@link ServiceException}.
+   * 
+   * @param qualifier the message qualifier
+   * @param data the error data
+   * @return a service exception according to the error type
+   */
   public static ServiceException toException(String qualifier, ErrorData data) {
     int errorType = Integer.parseInt(Qualifier.getQualifierAction(qualifier));
     int errorCode = data.getErrorCode();
@@ -60,12 +74,19 @@ public class ExceptionProcessor {
     }
   }
 
+  /**
+   * Transform an exception to a {@link ServiceException} or {@link InternalServiceException}.
+   * 
+   * @param throwable the source exception
+   * @return either {@link ServiceException} or {@link InternalServiceException}
+   */
   public static Throwable mapException(Throwable throwable) {
     if (ServiceException.class.isAssignableFrom(throwable.getClass())) {
       return throwable;
     }
     // Not a Service Exception
-    String errorMessage = Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
+    String errorMessage =
+        Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
     // Handle other mappings of Service Exceptions here
     return new InternalServiceException(DEFAULT_ERROR_CODE, errorMessage);
   }

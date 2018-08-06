@@ -8,11 +8,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * This annotation is used to mark the method which will be executed after constructing of service and dependency
- * injection is done.
- * <p>
- * Scalecube services doesn't support {@link javax.annotation.PostConstruct} since Java API Specification for it has
- * strict limitation for annotated method.
+ * This annotation is used to mark the method which will be executed after constructing of service
+ * and dependency injection is done.
+ * <br>Scalecube services doesn't support {@link javax.annotation.PostConstruct} since Java API
+ * Specification for it has strict limitation for annotated method.
  */
 @Documented
 @Retention(RUNTIME)

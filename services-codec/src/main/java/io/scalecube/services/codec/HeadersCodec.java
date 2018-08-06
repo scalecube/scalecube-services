@@ -17,10 +17,16 @@ public interface HeadersCodec {
     return INSTANCES.computeIfAbsent(contentType, HeadersCodec::loadInstance);
   }
 
+  /**
+   * Get a HeadersCodec for a content type.
+   * 
+   * @param contentType the content type.
+   * @return a Headers codec for the content type or IllegalArgumentException is thrown if non exist
+   */
   static HeadersCodec loadInstance(String contentType) {
-    Optional<HeadersCodec> result = ServiceLoaderUtil.findFirst(HeadersCodec.class,
-        codec -> codec.contentType().equalsIgnoreCase(contentType));
-    return result.orElseThrow(() -> new IllegalStateException("HeadersCodec not configured"));
+    return ServiceLoaderUtil.findFirst(HeadersCodec.class,
+        codec -> codec.contentType().equalsIgnoreCase(contentType))
+        .orElseThrow(() -> new IllegalArgumentException("HeadersCodec not configured"));
   }
 
   String contentType();

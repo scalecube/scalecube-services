@@ -20,6 +20,7 @@ public abstract class ServiceException extends RuntimeException {
 
   @Override
   public String toString() {
-    return getClass().getSimpleName() + "{errorCode=" + errorCode + ", errorMessage=" + getMessage() + '}';
+    return getClass().getSimpleName() + "{errorCode=" + errorCode + ", errorMessage=" + getMessage()
+        + '}';
   }
 }

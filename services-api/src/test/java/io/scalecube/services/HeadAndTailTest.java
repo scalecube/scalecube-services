@@ -43,11 +43,13 @@ public class HeadAndTailTest {
     int size = 10;
     AtomicLong counter = new AtomicLong(first);
     CountDownLatch latch = new CountDownLatch(1);
-    Long[] expectedTail = LongStream.rangeClosed(first, size + first - 1).boxed().skip(1).toArray(Long[]::new);
-    Flux<Long> requests = UnicastProcessor.from(Flux.interval(Duration.ofMillis(50), Schedulers.parallel())
-        .map(ignore -> counter.getAndIncrement())
-        .doOnCancel(latch::countDown)
-        .take(size));
+    Long[] expectedTail =
+        LongStream.rangeClosed(first, size + first - 1).boxed().skip(1).toArray(Long[]::new);
+    Flux<Long> requests =
+        UnicastProcessor.from(Flux.interval(Duration.ofMillis(50), Schedulers.parallel())
+            .map(ignore -> counter.getAndIncrement())
+            .doOnCancel(latch::countDown)
+            .take(size));
 
     Long[] actual = Flux.from(HeadAndTail.createFrom(requests))
         .flatMap(pair -> {

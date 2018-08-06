@@ -35,7 +35,8 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public InetSocketAddress bindAwait(InetSocketAddress address, ServiceMethodRegistry methodRegistry) {
+  public InetSocketAddress bindAwait(InetSocketAddress address,
+      ServiceMethodRegistry methodRegistry) {
     TcpServer tcpServer =
         TcpServer.create(options -> options
             .listenAddress(address)
@@ -49,7 +50,8 @@ public class RSocketServerTransport implements ServerTransport {
             }));
 
     this.server = RSocketFactory.receive()
-        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
+        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(),
+            frame.sliceMetadata().retain()))
         .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
         .transport(TcpServerTransport.create(tcpServer))
         .start()

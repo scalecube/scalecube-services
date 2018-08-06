@@ -3,6 +3,11 @@ package io.scalecube.services;
 import java.util.Collections;
 import java.util.Map;
 
+/**
+ * A Service Method Definition is a single method definition of a service inside service
+ * registration.
+ * 
+ */
 public class ServiceMethodDefinition {
 
   private String action;
@@ -11,14 +16,35 @@ public class ServiceMethodDefinition {
   private CommunicationMode communicationMode;
 
   /**
-   * @deprecated exposed only for deserialization purpose.
+   * Constructor for SerDe.
+   * 
+   * @deprecated exposed only for de/serialization purpose.
    */
   public ServiceMethodDefinition() {}
 
-  public ServiceMethodDefinition(String action, String contentType, CommunicationMode communicationMode) {
+  /**
+   * Create a new Service Method Definition.
+   * 
+   * @param action method name
+   * @param contentType the data format for payload.
+   * @param communicationMode the communication mode: e.g:
+   *        {@link CommunicationMode#REQUEST_RESPONSE}
+   */
+  public ServiceMethodDefinition(String action, String contentType,
+      CommunicationMode communicationMode) {
     this(action, contentType, Collections.emptyMap(), communicationMode);
   }
 
+
+  /**
+   * Create a new Service Method Definition.
+   * 
+   * @param action method name
+   * @param contentType the data format for payload.
+   * @param tags tags of this method
+   * @param communicationMode the communication mode: e.g:
+   *        {@link CommunicationMode#REQUEST_RESPONSE}
+   */
   public ServiceMethodDefinition(String action, String contentType, Map<String, String> tags,
       CommunicationMode communicationMode) {
     this.action = action;
@@ -27,6 +53,11 @@ public class ServiceMethodDefinition {
     this.communicationMode = communicationMode;
   }
 
+  /**
+   * a generic definition for method name.
+   * 
+   * @return the method name
+   */
   public String getAction() {
     return action;
   }
@@ -64,10 +95,10 @@ public class ServiceMethodDefinition {
 
   @Override
   public String toString() {
-    return "ServiceMethodDefinition{" +
-        "action='" + action + '\'' +
-        ", contentType='" + contentType + '\'' +
-        ", tags=" + tags +
-        '}';
+    return "ServiceMethodDefinition{"
+        + "action='" + action + '\''
+        + ", contentType='" + contentType + '\''
+        + ", tags=" + tags
+        + '}';
   }
 }

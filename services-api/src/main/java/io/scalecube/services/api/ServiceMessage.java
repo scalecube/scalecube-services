@@ -1,6 +1,5 @@
 package io.scalecube.services.api;
 
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -8,21 +7,22 @@ import java.util.Map;
 public final class ServiceMessage {
 
   /**
-   * This header is supposed to be used by application in case if same data type can be reused for several messages so
-   * it will allow to qualify the specific message type.
+   * This header is supposed to be used by application in case if same data type can be reused for
+   * several messages so it will allow to qualify the specific message type.
    */
   static final String HEADER_QUALIFIER = "q";
 
 
   /**
-   * This header stands for "Stream Id" and has to be used for Stream multiplexing. Messages within one logical stream
-   * have to be signed with equal sid-s.
+   * This header stands for "Stream Id" and has to be used for Stream multiplexing. Messages within
+   * one logical stream have to be signed with equal sid-s.
    */
   static final String HEADER_STREAM_ID = "sid";
 
   /**
-   * This is a system header which used by transport for serialization and deserialization purpose. It is not supposed
-   * to be used by application directly and it is subject to changes in future releases.
+   * This is a system header which used by transport for serialization and deserialization purpose.
+   * It is not supposed to be used by application directly and it is subject to changes in future
+   * releases.
    */
   static final String HEADER_DATA_TYPE = "_type";
   static final String HEADER_DATA_FORMAT = "_data_format";
@@ -140,6 +140,12 @@ public final class ServiceMessage {
     return data != null;
   }
 
+  /**
+   * Verify that this message contains data.
+   * 
+   * @param dataClass the expected class of the dara
+   * @return true if the data is instance of the dataClass
+   */
   public boolean hasData(Class<?> dataClass) {
     if (dataClass == null) {
       return false;
@@ -204,6 +210,10 @@ public final class ServiceMessage {
       return header(HEADER_QUALIFIER, qualifier);
     }
 
+    public Builder qualifier(String serviceName, String methodName) {
+      return qualifier(Qualifier.asString(serviceName, methodName));
+    }
+
     public Builder streamId(String streamId) {
       return header(HEADER_STREAM_ID, streamId);
     }
@@ -212,8 +222,5 @@ public final class ServiceMessage {
       return new ServiceMessage(this);
     }
 
-    public Builder qualifier(String serviceName, String methodName) {
-      return qualifier(Qualifier.asString(serviceName, methodName));
-    }
   }
 }

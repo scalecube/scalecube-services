@@ -14,6 +14,16 @@ public final class MethodInfo {
   private final int parameterCount;
   private final Class<?> requestType;
 
+  /**
+   * Create a new service info.
+   * 
+   * @param serviceName the name of the service
+   * @param methodName the name of the methof
+   * @param parameterizedReturnType the return type (with generics support)
+   * @param communicationMode the directions of the method
+   * @param parameterCount amount of parameters
+   * @param requestType the type of the request
+   */
   public MethodInfo(String serviceName,
       String methodName,
       Class<?> parameterizedReturnType,

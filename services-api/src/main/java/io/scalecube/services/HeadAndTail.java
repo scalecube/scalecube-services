@@ -1,9 +1,7 @@
 package io.scalecube.services;
 
-import org.reactivestreams.Publisher;
-
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.UnicastProcessor;
 
@@ -17,6 +15,12 @@ public final class HeadAndTail<T> {
     this.tail = tail;
   }
 
+  /**
+   * Create a publisher from another one, saving the head.
+   * 
+   * @param publisher the original publisher
+   * @return a new publisher that saves the head.
+   */
   public static <U> Publisher<HeadAndTail<U>> createFrom(Publisher<U> publisher) {
     AtomicBoolean first = new AtomicBoolean(true);
     UnicastProcessor<U> tail = UnicastProcessor.create();

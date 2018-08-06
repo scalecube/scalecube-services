@@ -19,7 +19,8 @@ class ServiceMethodInvokerTest {
 
   private static final String qualifierPrefix = "io.scalecube.services.methods.StubService/";
 
-  private final BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder = (message, type) -> message;
+  private final BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder =
+      (message, type) -> message;
   private final StubService stubService = new StubServiceImpl();
 
   private ServiceMethodInvoker serviceMethodInvoker;
@@ -181,7 +182,8 @@ class ServiceMethodInvokerTest {
         .build();
 
     // invokeOne
-    final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeBidirectional(Flux.just(message), dataDecoder);
+    final Flux<ServiceMessage> invokeOne =
+        serviceMethodInvoker.invokeBidirectional(Flux.just(message), dataDecoder);
 
     StepVerifier.create(invokeOne).verifyError(RuntimeException.class);
   }

@@ -84,10 +84,12 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
       private void checkMethodInvokerExist(ServiceMessage message) {
         if (!methodRegistry.containsInvoker(message.qualifier())) {
-          LOGGER.error("Failed to invoke service with args[{}], No service invoker found by qualifier: {}",
+          LOGGER.error(
+              "Failed to invoke service with args[{}], No service invoker found by qualifier: {}",
               message, message.qualifier());
           throw new ServiceUnavailableException(
-              "No service invoker registered at service method registry by qualifier: " + message.qualifier());
+              "No service invoker registered at service method registry by qualifier: "
+                  + message.qualifier());
         }
       }
     });
