@@ -2,11 +2,18 @@ package io.scalecube.services.registry;
 
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
+import io.scalecube.services.registry.api.RegistryEvent;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.registry.api.RegistryEvent.Type;
 
 import org.jctools.maps.NonBlockingHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import reactor.core.publisher.DirectProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.FluxSink;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,6 +32,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
   private final Map<String, List<ServiceReference>> referencesByQualifier = new NonBlockingHashMap<>();
+
+  private final FluxProcessor<RegistryEvent, RegistryEvent> events =
+      DirectProcessor.<RegistryEvent>create().serialize();
+
+  private final FluxSink<RegistryEvent> sink = events.sink();
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
@@ -66,9 +78,12 @@ public class ServiceRegistryImpl implements ServiceRegistry {
           .stream()
           .flatMap(serviceRegistration -> serviceRegistration.methods().stream()
               .map(sm -> new ServiceReference(sm, serviceRegistration, serviceEndpoint)))
-          .forEach(serviceReference -> referencesByQualifier
-              .computeIfAbsent(serviceReference.qualifier(), key -> new CopyOnWriteArrayList<>())
-              .add(serviceReference));
+          .forEach(serviceReference -> {
+            referencesByQualifier
+                .computeIfAbsent(serviceReference.qualifier(), key -> new CopyOnWriteArrayList<>())
+                .add(serviceReference);
+            sink.next(new RegistryEvent(Type.ADDED, serviceReference));
+          });
     }
     return success;
   }
@@ -84,5 +99,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   Stream<ServiceReference> serviceReferenceStream() {
     return referencesByQualifier.values().stream().flatMap(Collection::stream);
+  }
+
+  public Flux<RegistryEvent> listen() {
+    return events;
   }
 }

@@ -3,6 +3,8 @@ package io.scalecube.services.registry.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 
+import reactor.core.publisher.Flux;
+
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -23,5 +25,7 @@ public interface ServiceRegistry {
   boolean registerService(ServiceEndpoint serviceEndpoint);
 
   ServiceEndpoint unregisterService(String endpointId);
-  
+
+  Flux<RegistryEvent> listen();
+
 }
