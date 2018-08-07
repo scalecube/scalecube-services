@@ -8,6 +8,13 @@ public class Order {
 
   private long remainingQuantity;
 
+  /**
+   * Create a new order for the price level.
+   * 
+   * @param level the price level
+   * @param id the order id
+   * @param size the order size
+   */
   public Order(PriceLevel level, long id, long size) {
     this.level = level;
     this.id = id;

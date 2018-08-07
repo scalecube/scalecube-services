@@ -1,7 +1,6 @@
 package io.scalecube.examples.orderbook.service;
 
 import io.scalecube.examples.orderbook.service.engine.events.Side;
-
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 /**
@@ -68,12 +67,14 @@ public class Market {
    * @param size the size
    */
   public void add(long instrument, long orderId, Side side, long price, long size) {
-    if (orders.containsKey(orderId))
+    if (orders.containsKey(orderId)) {
       return;
+    }
 
     OrderBook book = books.get(instrument);
-    if (book == null)
+    if (book == null) {
       return;
+    }
 
     Order order = new Order(book, side, price, size);
 
@@ -85,8 +86,8 @@ public class Market {
   }
 
   /**
-   * Modify an order in an order book. The order will retain its time priority. If the new size is zero, the order is
-   * deleted from the order book.
+   * Modify an order in an order book. The order will retain its time priority. If the new size is
+   * zero, the order is deleted from the order book.
    *
    * <p>
    * An update event is triggered.
@@ -101,8 +102,9 @@ public class Market {
    */
   public void modify(long orderId, long size) {
     Order order = orders.get(orderId);
-    if (order == null)
+    if (order == null) {
       return;
+    }
 
     OrderBook book = order.getOrderBook();
 
@@ -120,8 +122,8 @@ public class Market {
   }
 
   /**
-   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the order is deleted from
-   * the order book.
+   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the
+   * order is deleted from the order book.
    *
    * <p>
    * A Trade event and an update event are triggered.
@@ -144,8 +146,8 @@ public class Market {
   }
 
   /**
-   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the order is deleted from
-   * the order book.
+   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the
+   * order is deleted from the order book.
    *
    * <p>
    * A Trade event and an update event are triggered.
@@ -192,8 +194,8 @@ public class Market {
   }
 
   /**
-   * Cancel a quantity of an order in an order book. If the remaining quantity reaches zero, the order is deleted from
-   * the order book.
+   * Cancel a quantity of an order in an order book. If the remaining quantity reaches zero, the
+   * order is deleted from the order book.
    *
    * <p>
    * An update event is triggered.

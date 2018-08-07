@@ -1,6 +1,5 @@
 package io.scalecube.examples.orderbook.service;
 
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +13,12 @@ public class OrderBookSnapshoot {
 
   Long currentPrice;
 
+  /**
+   * Create a new snapshot of the orderbook.
+   * 
+   * @param orderBook an order book to take snapshot from.
+   * @param currentPrice the current price.
+   */
   public OrderBookSnapshoot(OrderBook orderBook, Long currentPrice) {
     Set<Long> askPrices = Collections.unmodifiableSet(orderBook.getAskPrices());
     Set<Long> bidPrices = Collections.unmodifiableSet(orderBook.getBidPrices());

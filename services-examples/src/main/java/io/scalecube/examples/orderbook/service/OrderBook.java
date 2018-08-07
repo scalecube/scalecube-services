@@ -1,8 +1,6 @@
 package io.scalecube.examples.orderbook.service;
 
-
 import io.scalecube.examples.orderbook.service.engine.events.Side;
-
 import it.unimi.dsi.fastutil.longs.Long2LongRBTreeMap;
 import it.unimi.dsi.fastutil.longs.LongComparators;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
@@ -39,8 +37,9 @@ public class OrderBook {
    * @return the best bid price or zero if there are no bids
    */
   public long getBestBidPrice() {
-    if (bids.isEmpty())
+    if (bids.isEmpty()) {
       return 0;
+    }
 
     return bids.firstLongKey();
   }
@@ -70,8 +69,9 @@ public class OrderBook {
    * @return the best ask price or zero if there are no asks
    */
   public long getBestAskPrice() {
-    if (asks.isEmpty())
+    if (asks.isEmpty()) {
       return 0;
+    }
 
     return asks.firstLongKey();
   }
@@ -113,10 +113,11 @@ public class OrderBook {
 
     boolean onBestLevel = price == levels.firstLongKey();
 
-    if (newSize > 0)
+    if (newSize > 0) {
       levels.put(price, newSize);
-    else
+    } else {
       levels.remove(price);
+    }
 
     return onBestLevel;
   }

@@ -8,7 +8,6 @@ import io.scalecube.examples.orderbook.service.engine.Order;
 import io.scalecube.examples.orderbook.service.engine.PriceLevel;
 import io.scalecube.examples.orderbook.service.engine.events.Side;
 import io.scalecube.services.Microservices;
-
 import java.util.Collections;
 import java.util.Random;
 import java.util.SortedMap;

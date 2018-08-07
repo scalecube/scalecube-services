@@ -3,17 +3,15 @@ package io.scalecube.examples;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Basic getting started example
+ * Basic getting started example.
  */
 public class BootstrapExample {
 
@@ -59,7 +57,7 @@ public class BootstrapExample {
   }
 
   /**
-   * Just service
+   * Just service.
    */
   @Service
   public interface ServiceWorld {
@@ -68,7 +66,7 @@ public class BootstrapExample {
   }
 
   /**
-   * Facade service for calling another services
+   * Facade service for calling another services.
    */
   @Service
   public interface HelloWorldService {

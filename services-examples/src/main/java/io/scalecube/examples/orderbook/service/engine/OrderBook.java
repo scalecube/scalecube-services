@@ -5,11 +5,11 @@ import io.scalecube.examples.orderbook.service.engine.events.CancelOrder;
 import io.scalecube.examples.orderbook.service.engine.events.MatchOrder;
 import io.scalecube.examples.orderbook.service.engine.events.Side;
 
-import java.util.Set;
-
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectRBTreeMap;
 import it.unimi.dsi.fastutil.longs.LongComparators;
+
+import java.util.Set;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 
@@ -32,7 +32,6 @@ public class OrderBook {
   /**
    * Create an order book.
    *
-   * @param listener a listener for outbound events from the order book
    */
   public OrderBook() {
     this.bids = new Long2ObjectRBTreeMap<>(LongComparators.OPPOSITE_COMPARATOR);
@@ -44,13 +43,13 @@ public class OrderBook {
    * Enter an order to this order book.
    *
    * <p>
-   * The incoming order is first matched against resting orders in this order book. This operation results in zero or
-   * more Match events.
+   * The incoming order is first matched against resting orders in this order book. This operation
+   * results in zero or more Match events.
    * </p>
    *
    * <p>
-   * If the remaining quantity is not zero after the matching operation, the remaining quantity is added to this order
-   * book and an Add event is triggered.
+   * If the remaining quantity is not zero after the matching operation, the remaining quantity is
+   * added to this order book and an Add event is triggered.
    * </p>
    *
    * <p>
@@ -63,13 +62,15 @@ public class OrderBook {
    * @param size the size
    */
   public void enter(long orderId, Side side, long price, long size) {
-    if (orders.containsKey(orderId))
+    if (orders.containsKey(orderId)) {
       return;
+    }
 
-    if (side == Side.BUY)
+    if (side == Side.BUY) {
       buy(orderId, price, size);
-    else
+    } else {
       sell(orderId, price, size);
+    }
   }
 
   private void buy(long orderId, long price, long size) {
@@ -80,15 +81,15 @@ public class OrderBook {
     while (remainingQuantity > 0 && bestLevel != null && bestLevel.price() <= price) {
       remainingQuantity = bestLevel.match(orderId, Side.BUY, remainingQuantity, matchListener);
 
-      if (bestLevel.isEmpty())
+      if (bestLevel.isEmpty()) {
         asks.remove(bestLevel.price());
+      }
 
       bestLevel = getBestLevel(asks);
     }
 
     if (remainingQuantity > 0) {
       orders.put(orderId, add(bids, orderId, Side.BUY, price, remainingQuantity));
-
       addListener.onNext(new AddOrder(orderId, Side.BUY, price, remainingQuantity));
     }
   }
@@ -98,8 +99,9 @@ public class OrderBook {
     PriceLevel bestLevel = getBestLevel(bids);
     while (remainingQuantity > 0 && bestLevel != null && bestLevel.price() >= price) {
       remainingQuantity = bestLevel.match(orderId, Side.SELL, remainingQuantity, matchListener);
-      if (bestLevel.isEmpty())
+      if (bestLevel.isEmpty()) {
         bids.remove(bestLevel.price());
+      }
       bestLevel = getBestLevel(bids);
     }
 
@@ -110,8 +112,8 @@ public class OrderBook {
   }
 
   /**
-   * Cancel a quantity of an order in this order book. The size refers to the new order size. If the new order size is
-   * set to zero, the order is deleted from this order book.
+   * Cancel a quantity of an order in this order book. The size refers to the new order size. If the
+   * new order size is set to zero, the order is deleted from this order book.
    *
    * <p>
    * A Cancel event is triggered.
@@ -126,13 +128,15 @@ public class OrderBook {
    */
   public void cancel(long orderId, long size) {
     Order order = orders.get(orderId);
-    if (order == null)
+    if (order == null) {
       return;
+    }
 
     long remainingQuantity = order.size();
 
-    if (size >= remainingQuantity)
+    if (size >= remainingQuantity) {
       return;
+    }
 
     if (size > 0) {
       order.resize(size);
@@ -145,13 +149,15 @@ public class OrderBook {
   }
 
   private PriceLevel getBestLevel(Long2ObjectRBTreeMap<PriceLevel> levels) {
-    if (levels.isEmpty())
+    if (levels.isEmpty()) {
       return null;
+    }
 
     return levels.get(levels.firstLongKey());
   }
 
-  private Order add(Long2ObjectRBTreeMap<PriceLevel> levels, long orderId, Side side, long price, long size) {
+  private Order add(Long2ObjectRBTreeMap<PriceLevel> levels, long orderId, Side side, long price,
+      long size) {
     PriceLevel level = levels.get(price);
     if (level == null) {
       level = new PriceLevel(side, price);
@@ -166,8 +172,9 @@ public class OrderBook {
 
     level.delete(order);
 
-    if (level.isEmpty())
+    if (level.isEmpty()) {
       delete(level);
+    }
   }
 
   private void delete(PriceLevel level) {

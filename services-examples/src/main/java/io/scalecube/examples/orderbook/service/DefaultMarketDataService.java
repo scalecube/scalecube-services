@@ -3,14 +3,12 @@ package io.scalecube.examples.orderbook.service;
 import io.scalecube.examples.orderbook.service.api.MarketDataService;
 import io.scalecube.examples.orderbook.service.engine.OrderBooks;
 import io.scalecube.examples.orderbook.service.engine.events.Side;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -33,11 +31,14 @@ public class DefaultMarketDataService implements MarketDataService {
     }
   });
 
+  /**
+   * Create a new service.
+   */
   public DefaultMarketDataService() {
     instumentList.add("ORCL");
     books = new OrderBooks(instumentList);
-    OrderBook marketBook = market.open(1l);
-    view.put(1l, marketBook);
+    OrderBook marketBook = market.open(1L);
+    view.put(1L, marketBook);
     books.listenAdd("ORCL").subscribe(add -> {
       market.execute(add.orderId(), add.quantity(), add.price());
     });
@@ -56,7 +57,7 @@ public class DefaultMarketDataService implements MarketDataService {
   public Mono<String> processOrder(OrderRequest request) {
 
     books.enterOrder(request.order(), request.instrument());
-    market.add(1l,
+    market.add(1L,
         request.order().id(),
         request.order().level().side(),
         request.order().level().price(),
@@ -69,7 +70,7 @@ public class DefaultMarketDataService implements MarketDataService {
 
     return Flux.interval(Duration.ofSeconds(1))
         .map(mapper -> new OrderBookSnapshoot(
-            view.get(1l),
+            view.get(1L),
             lastTrade.get()));
   }
 
