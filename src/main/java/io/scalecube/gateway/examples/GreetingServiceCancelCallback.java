@@ -18,7 +18,7 @@ public class GreetingServiceCancelCallback implements GreetingService {
   }
 
   @Override
-  public Flux<Integer> manyStream(Integer cnt) {
+  public Flux<Long> manyStream(Long cnt) {
     return greetingService.manyStream(cnt).doOnCancel(onCancel);
   }
 

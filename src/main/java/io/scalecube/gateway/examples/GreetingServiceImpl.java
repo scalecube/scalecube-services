@@ -2,8 +2,10 @@ package io.scalecube.gateway.examples;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
+import java.util.stream.LongStream;
 
 public class GreetingServiceImpl implements GreetingService {
 
@@ -13,8 +15,8 @@ public class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Flux<Integer> manyStream(Integer cnt) {
-    return Flux.range(0, cnt);
+  public Flux<Long> manyStream(Long cnt) {
+    return Flux.fromStream(LongStream.range(0, cnt).boxed()).publishOn(Schedulers.parallel());
   }
 
   @Override
@@ -24,8 +26,7 @@ public class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Flux<String> many(String name) {
-    return Flux.interval(Duration.ofMillis(100))
-        .map(i -> "Greeting (" + i + ") to: " + name);
+    return Flux.interval(Duration.ofMillis(100)).map(i -> "Greeting (" + i + ") to: " + name);
   }
 
   @Override

@@ -16,7 +16,7 @@ public interface GreetingService {
   Flux<String> many(String name);
 
   @ServiceMethod("manyStream")
-  Flux<Integer> manyStream(Integer cnt);
+  Flux<Long> manyStream(Long cnt);
 
   @ServiceMethod("failing/one")
   Mono<String> failingOne(String name);
