@@ -1,7 +1,8 @@
-package io.scalecube.services.benchmarks.codecs;
+package io.scalecube.services.benchmarks.codec.jackson;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.benchmarks.codec.ServiceMessageCodecBenchmarksState;
 import io.scalecube.services.codec.ServiceMessageCodec;
 
 import com.codahale.metrics.Timer;
@@ -10,19 +11,20 @@ import io.netty.util.ReferenceCountUtil;
 
 import java.util.concurrent.TimeUnit;
 
-public class ServiceMessageWithByteBufDataEncodeBenchmarksRunner {
+public class ServiceMessageFullEncodeBenchmarks {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
-    new ServiceMessageCodecBenchmarkState(settings).runForSync(state -> {
+    new ServiceMessageCodecBenchmarksState(settings).runForSync(state -> {
 
       Timer timer = state.timer("timer");
-      ServiceMessageCodec codec = state.codec();
-      ServiceMessage message = state.messageWithByteBuf();
+      ServiceMessageCodec messageCodec = state.jacksonMessageCodec();
+      ServiceMessage message = state.message();
 
       return i -> {
         Timer.Context timeContext = timer.time();
-        Object result = codec.encodeAndTransform(message, (dataByteBuf, headersByteBuf) -> {
+        Object result = messageCodec.encodeAndTransform(message, (dataByteBuf, headersByteBuf) -> {
+          ReferenceCountUtil.release(dataByteBuf);
           ReferenceCountUtil.release(headersByteBuf);
           return dataByteBuf;
         });

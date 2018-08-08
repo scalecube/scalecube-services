@@ -31,8 +31,7 @@ public final class ServiceMethodInvoker {
 
   public Mono<ServiceMessage> invokeOne(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse)
-        .switchIfEmpty(Mono.just(toEmptyResponse())); // todo: it seems like a bug in rsocket
+    return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
   }
 
   public Flux<ServiceMessage> invokeMany(ServiceMessage message,
@@ -89,7 +88,4 @@ public final class ServiceMethodInvoker {
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
   }
 
-  private ServiceMessage toEmptyResponse() {
-    return ServiceMessage.builder().qualifier(methodInfo.qualifier()).build();
-  }
 }

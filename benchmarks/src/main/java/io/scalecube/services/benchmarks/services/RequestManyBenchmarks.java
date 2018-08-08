@@ -5,7 +5,7 @@ import io.scalecube.benchmarks.BenchmarksSettings;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 
-public class RequestManyBenchmarksRunner {
+public class RequestManyBenchmarks {
 
   private static final String RESPONSE_COUNT = "1000";
 

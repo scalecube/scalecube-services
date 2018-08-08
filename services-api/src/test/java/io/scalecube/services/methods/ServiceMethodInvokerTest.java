@@ -1,7 +1,5 @@
 package io.scalecube.services.methods;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
 
@@ -47,7 +45,6 @@ class ServiceMethodInvokerTest {
         .build();
 
     StepVerifier.create(serviceMethodInvoker.invokeOne(message, dataDecoder))
-        .assertNext(serviceMessage -> assertFalse(serviceMessage.hasData()))
         .verifyComplete();
   }
 
