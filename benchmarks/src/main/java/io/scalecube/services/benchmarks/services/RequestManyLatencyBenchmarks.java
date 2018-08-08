@@ -1,15 +1,12 @@
 package io.scalecube.services.benchmarks.services;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.ServiceMessage;
 
+import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 
-import io.netty.util.ReferenceCountUtil;
-
-public class RequestManyCallBenchmarksRunner {
+public class RequestManyLatencyBenchmarks {
 
   private static final String RESPONSE_COUNT = "1000";
 
@@ -17,21 +14,19 @@ public class RequestManyCallBenchmarksRunner {
     BenchmarksSettings settings = BenchmarksSettings.from(args).build();
     new ServicesBenchmarksState(settings, new BenchmarkServiceImpl()).runForAsync(state -> {
 
-      ServiceCall serviceCall = state.serviceCall();
+      BenchmarkService benchmarkService = state.service(BenchmarkService.class);
       int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
       Timer timer = state.timer("timer");
-      Meter meter = state.meter("responses");
-
-      ServiceMessage message = ServiceMessage.builder()
-          .qualifier(BenchmarkService.class.getName(), "requestMany")
-          .data(responseCount)
-          .build();
+      Meter responses = state.meter("responses");
+      Histogram latency = state.histogram("latency");
 
       return i -> {
         Timer.Context timeContext = timer.time();
-        return serviceCall.requestMany(message)
-            .doOnNext(onNext -> meter.mark())
-            .doOnNext(msg -> ReferenceCountUtil.safeRelease(msg.data()))
+        return benchmarkService.nanoTime(responseCount)
+            .doOnNext(onNext -> {
+              latency.update(System.nanoTime() - onNext);
+              responses.mark();
+            })
             .doFinally(next -> timeContext.stop());
       };
     });
