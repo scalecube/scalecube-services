@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmarks.routers;
+package io.scalecube.services.benchmarks.routing;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.services.ServiceReference;
@@ -11,7 +11,7 @@ import com.codahale.metrics.Timer;
 
 import java.util.concurrent.TimeUnit;
 
-public class RouterBenchmarksRunner {
+public class RouterBenchmarks {
 
   private static final String NAMESPACE = "benchmark";
   private static final String ACTION = "method1";

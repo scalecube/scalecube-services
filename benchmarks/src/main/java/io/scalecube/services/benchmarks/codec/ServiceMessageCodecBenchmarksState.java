@@ -1,4 +1,10 @@
-package io.scalecube.services.benchmarks.codecs;
+package io.scalecube.services.benchmarks.codec;
+
+import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.BenchmarksState;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.codec.jackson.JacksonCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -7,45 +13,46 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.BenchmarksState;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.codec.jackson.JacksonCodec;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class ServiceMessageCodecBenchmarkState
-    extends BenchmarksState<ServiceMessageCodecBenchmarkState> {
+public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceMessageCodecBenchmarksState> {
 
-  private ServiceMessageCodec serviceMessageCodec;
+  private ServiceMessageCodec jacksonServiceMessageCodec;
 
   private final ObjectMapper objectMapper = objectMapper();
+
   private ServiceMessage serviceMessage;
   private Payload payloadMessage;
 
-  public ServiceMessageCodecBenchmarkState(BenchmarksSettings settings) {
+  public ServiceMessageCodecBenchmarksState(BenchmarksSettings settings) {
     super(settings);
   }
 
   @Override
   protected void beforeAll() {
-    this.serviceMessageCodec = new ServiceMessageCodec(new JacksonCodec());
+    this.jacksonServiceMessageCodec = new ServiceMessageCodec(new JacksonCodec());
     this.serviceMessage = generateServiceMessage(generateData());
     this.payloadMessage = generatePayload(serviceMessage);
   }
 
-  public ServiceMessageCodec codec() {
-    return serviceMessageCodec;
+  public ServiceMessageCodec jacksonMessageCodec() {
+    return jacksonServiceMessageCodec;
   }
 
-  public Payload payload() {
-    return payloadMessage;
+  public ByteBuf dataBuffer() {
+    return payloadMessage.sliceData();
+  }
+
+  public ByteBuf headersBuffer() {
+    return payloadMessage.sliceMetadata();
   }
 
   public Class<?> dataType() {

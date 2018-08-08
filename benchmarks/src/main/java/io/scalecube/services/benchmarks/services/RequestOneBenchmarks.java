@@ -4,7 +4,7 @@ import io.scalecube.benchmarks.BenchmarksSettings;
 
 import com.codahale.metrics.Timer;
 
-public class OneWayBenchmarksRunner {
+public class RequestOneBenchmarks {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).build();
@@ -15,7 +15,7 @@ public class OneWayBenchmarksRunner {
 
       return i -> {
         Timer.Context timeContext = timer.time();
-        return benchmarkService.oneWay("hello").doOnTerminate(timeContext::stop);
+        return benchmarkService.requestOne("hello").doOnTerminate(timeContext::stop);
       };
     });
   }

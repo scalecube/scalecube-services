@@ -2,31 +2,23 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+
+import org.reactivestreams.Publisher;
+
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public final class ServiceMethodInvoker {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMethodInvoker.class);
-
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
 
-  /**
-   * Create a new Service method invoker.
-   * 
-   * @param method the method to invoke
-   * @param service the service to invoke the method on
-   * @param methodInfo a method info for the given method
-   */
   public ServiceMethodInvoker(Method method, Object service, MethodInfo methodInfo) {
     this.method = method;
     this.service = service;
@@ -35,8 +27,7 @@ public final class ServiceMethodInvoker {
 
   public Mono<ServiceMessage> invokeOne(ServiceMessage message,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse)
-        .switchIfEmpty(Mono.just(toEmptyResponse())); // todo: it seems like a bug in rsocket
+    return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
   }
 
   public Flux<ServiceMessage> invokeMany(ServiceMessage message,
@@ -74,15 +65,13 @@ public final class ServiceMethodInvoker {
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     ServiceMessage request = dataDecoder.apply(message, methodInfo.requestType());
 
-    if (!methodInfo.isRequestTypeVoid()
-        && !methodInfo.isRequestTypeServiceMessage()
-        && !request.hasData(methodInfo.requestType())) {
+    if (!methodInfo.isRequestTypeVoid() &&
+        !methodInfo.isRequestTypeServiceMessage() &&
+        !request.hasData(methodInfo.requestType())) {
 
-      Class<?> clazz = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
-      LOGGER.error("Invalid service request data type: " + clazz);
-      throw new BadRequestException(
-          String.format("Expected service request data of type: %s, but received: %s",
-              methodInfo.requestType(), clazz));
+      Class<?> aClass = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
+      throw new BadRequestException(String.format("Expected service request data of type: %s, but received: %s",
+          methodInfo.requestType(), aClass));
     }
 
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
@@ -94,7 +83,4 @@ public final class ServiceMethodInvoker {
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
   }
 
-  private ServiceMessage toEmptyResponse() {
-    return ServiceMessage.builder().qualifier(methodInfo.qualifier()).build();
-  }
 }
