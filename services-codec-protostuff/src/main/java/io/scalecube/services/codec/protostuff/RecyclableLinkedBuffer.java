@@ -7,7 +7,7 @@ import java.util.Objects;
 
 /**
  * Facility class for {@link LinkedBuffer}. Based on idea of object pooling (done vian {@link Recycler}).
- * <p/>
+ * </p>
  * Typical usage:
  *
  * <pre>
