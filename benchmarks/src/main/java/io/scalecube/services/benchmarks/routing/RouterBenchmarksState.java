@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmarks.routers;
+package io.scalecube.services.benchmarks.routing;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;

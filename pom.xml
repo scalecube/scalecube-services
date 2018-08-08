@@ -57,11 +57,11 @@
 
   <properties>
     <jackson.version>2.9.5</jackson.version>
-    <scalecube.version>2.0.0</scalecube.version>
-    <scalecube-benchmarks.version>1.1.10</scalecube-benchmarks.version>
+    <scalecube-cluster.version>2.0.0</scalecube-cluster.version>
+    <scalecube-benchmarks.version>1.1.12</scalecube-benchmarks.version>
     <reactor.version>3.1.8.RELEASE</reactor.version>
     <metrics.version>3.1.2</metrics.version>
-    <rsocket.version>0.11.3</rsocket.version>
+    <rsocket.version>0.11.5</rsocket.version>
     <reactor-netty.version>0.7.8.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.25.Final</netty.version>
@@ -104,7 +104,7 @@
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>scalecube-utils</artifactId>
-        <version>${scalecube.version}</version>
+        <version>${scalecube-cluster.version}</version>
       </dependency>
 
       <dependency>
@@ -214,6 +214,11 @@
         <version>${scalecube-benchmarks.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-benchmarks-log4j2</artifactId>
+        <version>${scalecube-benchmarks.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
         <version>${metrics.version}</version>
@@ -254,21 +259,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-    </dependency>
-  </dependencies>
 
   <build>
     <pluginManagement>
