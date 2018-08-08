@@ -94,6 +94,7 @@
     <module>services-discovery</module>
     <module>services-codec</module>
     <module>services-codec-jackson</module>
+    <module>services-codec-protostuff</module>
     <module>services</module>
     <module>benchmarks</module>
     <module>examples</module>
@@ -162,6 +163,23 @@
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${jackson.version}</version>
+      </dependency>
+
+      <!-- Protostuff/Protobuf -->
+      <dependency>
+        <groupId>io.protostuff</groupId>
+        <artifactId>protostuff-api</artifactId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.protostuff</groupId>
+        <artifactId>protostuff-core</artifactId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.protostuff</groupId>
+        <artifactId>protostuff-collectionschema</artifactId>
+        <version>${protostuff.version}</version>
       </dependency>
 
       <!-- Netty -->

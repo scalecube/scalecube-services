@@ -3,8 +3,10 @@ package io.scalecube.services.benchmarks.codec;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.codec.jackson.JacksonCodec;
+import io.scalecube.services.codec.protostuff.ProtostuffHeadersCodec;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -19,6 +21,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -31,14 +34,16 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
 
   private ServiceMessage serviceMessage;
   private Payload payloadMessage;
+  private HeadersCodec headersCodec;
 
-  public ServiceMessageCodecBenchmarksState(BenchmarksSettings settings) {
+  public ServiceMessageCodecBenchmarksState(BenchmarksSettings settings, HeadersCodec headersCodec) {
     super(settings);
+    this.headersCodec = headersCodec;
   }
 
   @Override
   protected void beforeAll() {
-    this.jacksonServiceMessageCodec = new ServiceMessageCodec(new JacksonCodec());
+    this.jacksonServiceMessageCodec = new ServiceMessageCodec(headersCodec);
     this.serviceMessage = generateServiceMessage(generateData());
     this.payloadMessage = generatePayload(serviceMessage);
   }
@@ -101,10 +106,12 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
       ByteBuf dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       dataBuffer.writeBytes(data.getBytes());
 
-      String headers = objectMapper.writeValueAsString(msg.headers());
-      System.out.println("generated headersBuffer: " + headers);
+
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      headersCodec.encode(baos, msg.headers());
+      System.out.println("generated headersBuffer: `" + baos.toString() + "`");
       ByteBuf headersBuffer = ByteBufAllocator.DEFAULT.buffer();
-      headersBuffer.writeBytes(headers.getBytes());
+      headersBuffer.writeBytes(baos.toByteArray());
 
       return ByteBufPayload.create(dataBuffer, headersBuffer);
     } catch (Throwable t) {
@@ -154,5 +161,17 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
           '}';
     }
 
+  }
+
+  public static class Jackson extends ServiceMessageCodecBenchmarksState {
+    public Jackson(BenchmarksSettings settings) {
+      super(settings, new JacksonCodec());
+    }
+  }
+
+  public static class Protostuff extends ServiceMessageCodecBenchmarksState {
+    public Protostuff(BenchmarksSettings settings) {
+      super(settings, new ProtostuffHeadersCodec());
+    }
   }
 }
