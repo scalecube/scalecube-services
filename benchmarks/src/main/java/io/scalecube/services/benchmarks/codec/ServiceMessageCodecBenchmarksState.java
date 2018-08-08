@@ -109,7 +109,7 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
 
       ByteArrayOutputStream baos = new ByteArrayOutputStream();
       headersCodec.encode(baos, msg.headers());
-      System.out.println("generated headersBuffer: `" + baos.toString() + "`");
+      System.out.println("generated headersBuffer: " + baos.toString());
       ByteBuf headersBuffer = ByteBufAllocator.DEFAULT.buffer();
       headersBuffer.writeBytes(baos.toByteArray());
 
