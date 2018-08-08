@@ -20,14 +20,14 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
@@ -296,7 +296,7 @@ public class ServiceCall {
 
   private Mono<Address> addressLookup(ServiceMessage request) {
     return router.route(serviceRegistry, request)
-        .map(serviceReference -> Mono.just(Address.create(serviceReference.host(), serviceReference.port())))
+        .map(serviceReference -> Mono.just(serviceReference.address()))
         .orElseGet(() -> Mono.error(noReachableMemberException(request)));
   }
 

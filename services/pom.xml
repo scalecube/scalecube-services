@@ -12,12 +12,7 @@
   <name>ScaleCube/Services</name>
   <packaging>jar</packaging>
 
-  <dependencies>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>rsocket-services-transport</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+  <dependencies>  
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>scalecube-services-transport</artifactId>
@@ -25,22 +20,13 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services-codec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
       <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-cluster</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.reactivex</groupId>
-      <artifactId>rxjava</artifactId>
     </dependency>
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
@@ -84,6 +70,34 @@
     <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>rsocket-services-transport</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services-jackson</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

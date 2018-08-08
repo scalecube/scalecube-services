@@ -3,8 +3,8 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
@@ -43,7 +43,7 @@ public class ServiceTransportTest {
 
     serviceNode = Microservices.builder()
         .discoveryPort(port.incrementAndGet())
-        .seeds(gateway.cluster().address())
+        .seeds(gateway.discovery().address())
         .services(new SimpleQuoteService())
         .startAwait();
   }
@@ -77,9 +77,9 @@ public class ServiceTransportTest {
         .doOnError(exceptionHolder::set)
         .subscribe());
 
-    gateway.cluster().listenMembership()
-        .filter(MembershipEvent::isRemoved)
-        .subscribe(onNext -> latch1.countDown());
+    gateway.discovery().listen()
+        .filter(DiscoveryEvent::isUnregistered)
+        .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
@@ -106,9 +106,10 @@ public class ServiceTransportTest {
         .doOnError(exceptionHolder::set)
         .subscribe());
 
-    gateway.cluster().listenMembership()
-        .filter(MembershipEvent::isRemoved)
+    gateway.discovery().listen()
+        .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
+
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
@@ -135,8 +136,8 @@ public class ServiceTransportTest {
         .doOnError(exceptionHolder::set)
         .subscribe());
 
-    gateway.cluster().listenMembership()
-        .filter(MembershipEvent::isRemoved)
+    gateway.discovery().listen()
+        .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down

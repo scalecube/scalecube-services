@@ -79,20 +79,4 @@ public class ServiceScanner {
       this.tags = tags;
     }
   }
-
-  // private static String merge(String lowPriority, String highPriority) {
-  // return highPriority == null ? lowPriority : highPriority;
-  // }
-
-  // private static Map<String, String> merge(Map<String, String> lowPriority, Map<String, String> highPriority) {
-  // Map<String, String> result = new HashMap<>();
-  // result.putAll(lowPriority);
-  // result.putAll(highPriority);
-  // return result;
-  // }
-
-  // private static Map<String, String> methodTags(Method method) {
-  // // TODO: tags are not yet implemented on API level
-  // return new HashMap<>();
-  // }
 }

@@ -56,18 +56,17 @@
   </distributionManagement>
 
   <properties>
-    <jackson.version>2.9.0</jackson.version>
-    <scalecube.version>2.0.0</scalecube.version>
-    <scalecube-benchmarks.version>1.1.10</scalecube-benchmarks.version>
+    <jackson.version>2.9.5</jackson.version>
+    <scalecube-cluster.version>2.0.0</scalecube-cluster.version>
+    <scalecube-benchmarks.version>1.1.12</scalecube-benchmarks.version>
     <reactor.version>3.1.8.RELEASE</reactor.version>
-    <rxjava.version>1.3.8</rxjava.version>
     <metrics.version>3.1.2</metrics.version>
-    <rsocket.version>0.11.3</rsocket.version>
+    <rsocket.version>0.11.5</rsocket.version>
     <reactor-netty.version>0.7.8.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.25.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
-    <log4j.version>2.6.2</log4j.version>
+    <log4j.version>2.8.2</log4j.version>
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
     <junit.jupiter.version>5.2.0</junit.jupiter.version>
@@ -92,6 +91,7 @@
     <module>services-api</module>
     <module>rsocket-transport</module>
     <module>services-transport</module>
+    <module>services-discovery</module>
     <module>services-codec</module>
     <module>services-codec-jackson</module>
     <module>services</module>
@@ -101,16 +101,10 @@
 
   <dependencyManagement>
     <dependencies>
-      <!-- Scalecube deps -->
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>scalecube-cluster</artifactId>
-        <version>${scalecube.version}</version>
-      </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
         <artifactId>scalecube-utils</artifactId>
-        <version>${scalecube.version}</version>
+        <version>${scalecube-cluster.version}</version>
       </dependency>
 
       <dependency>
@@ -220,14 +214,14 @@
         <version>${scalecube-benchmarks.version}</version>
       </dependency>
       <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>scalecube-benchmarks-log4j2</artifactId>
+        <version>${scalecube-benchmarks.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
         <version>${metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.reactivex</groupId>
-        <artifactId>rxjava</artifactId>
-        <version>${rxjava.version}</version>
       </dependency>
       <dependency>
         <groupId>org.jctools</groupId>
@@ -265,21 +259,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-    </dependency>
-  </dependencies>
 
   <build>
     <pluginManagement>
@@ -356,7 +335,7 @@
                   <message>The reactor is not valid</message>
                   <ignoreModuleDependencies>true</ignoreModuleDependencies>
                 </reactorModuleConvergence>
-                <dependencyConvergence />
+                <dependencyConvergence/>
               </rules>
               <fail>true</fail>
             </configuration>

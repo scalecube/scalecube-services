@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import io.scalecube.services.api.Qualifier;
+import io.scalecube.transport.Address;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +17,7 @@ public class ServiceReference {
   private Map<String, String> tags;
   private String action;
   private CommunicationMode mode;
+  private Address address;
 
   /**
    * @deprecated exposed only for deserialization purpose.
@@ -34,6 +36,7 @@ public class ServiceReference {
     this.action = serviceMethodDefinition.getAction();
     this.mode = serviceMethodDefinition.getCommunicationMode();
     this.qualifier = Qualifier.asString(namespace, action);
+    this.address = Address.create(this.host(), this.port());
   }
 
   public CommunicationMode mode() {
@@ -106,5 +109,9 @@ public class ServiceReference {
         ", action='" + action + '\'' +
         ", mode=" + mode +
         '}';
+  }
+
+  public Address address() {
+    return this.address;
   }
 }

@@ -89,17 +89,17 @@ A service is nothing but an interface declaring what methods we wish to provisio
 
 ```java
 
-@Service("io.scalecube.examples.ExampleService")
+@Service
 public interface ExampleService {
 
-  @ServiceMethod("request-replay")
-  Mono<MyResponse> requestOne(MyRequest request);
+  @ServiceMethod
+  Mono<String> sayHello(String request);
 
-  @ServiceMethod("request-stream")
-  Flux<MyResponse> requestStream();
+  @ServiceMethod
+  Flux<MyResponse> helloStream();
   
-  @ServiceMethod("request-bidirectional")
-  Flux<MyResponse> requestBidirectional(Flux<MyRequest> requests);
+  @ServiceMethod
+  Flux<MyResponse> helloBidirectional(Flux<MyRequest> requests);
 }
 
 ```
@@ -109,14 +109,62 @@ public interface ExampleService {
 
 ### Maven
 
+With scalecube-services you may plug-and-play alternative providers for Transport,Codecs and discovery. 
+Scalecube is using ServiceLoader to load providers from class path, currently supported providers: 
+
+**Transport providers:**
+
+* rsocket-services-transport: using rsocket to communicate with remote services.
+
+**Message codec providers:**
+
+* scalecube-services-jackson: using Jackson to encode / decode service messages.
+ 
+**Service discovery providers:**
+
+* scalecube-services-discovery: using scalecue-cluster do locate service Endpoint within the cluster
+   https://github.com/scalecube/scalecube-cluster
+    
+
 Binaries and dependency information for Maven can be found at http://search.maven.org.
+
+https://mvnrepository.com/artifact/io.scalecube
 
 To add a dependency on ScaleCube Services using Maven, use the following:
 
 ```xml
-<dependency>
+ <!- scalecube apis   -->
+ <dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-services-api</artifactId>
+  <version>2.x.x</version>
+ </dependency>
+ 
+ <!- scalecube services module   -->
+ <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services</artifactId>
-  <version>2.x.x</version> 
-</dependency>
+  <version>2.x.x</version>
+ </dependency>
+ 
+ <!- scalecube transport provider   -->
+ <dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>rsocket-services-transport</artifactId>
+  <version>2.x.x</version>
+ </dependency>
+ 
+ <!- scalecube message serialization provider   -->
+ <dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-services-jackson</artifactId>
+  <version>2.x.x</version>
+ </dependency>
+
+ <!- scalecube service discovery provider   -->
+ <dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-services-discovery</artifactId>
+  <version>2.x.x</version>
+ </dependency>
 ```

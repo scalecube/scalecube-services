@@ -1,13 +1,10 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.discovery.ServiceDiscovery.SERVICE_METADATA;
-
-import io.scalecube.cluster.Cluster;
-import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.discovery.ServiceDiscovery;
 import io.scalecube.services.discovery.ServiceScanner;
+import io.scalecube.services.discovery.api.DiscoveryConfig;
+import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
@@ -30,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -67,13 +65,13 @@ import java.util.stream.Collectors;
  *    &#64; Service
  *    public interface GreetingService {
  *         &#64; ServiceMethod
- *         Mono<String> asyncGreeting(String string);
+ *         Mono<String> sayHello(String string);
  *     }
  *
  *     public class GreetingServiceImpl implements GreetingService {
  *       &#64; Override
- *       public Mono<String> asyncGreeting(String name) {
- *         return CompletableFuture.completedFuture(" hello to: " + name);
+ *       public Mono<String> sayHello(String name) {
+ *         return Mono.just("hello to: " + name);
  *       }
  *     }
  *
@@ -81,25 +79,17 @@ import java.util.stream.Collectors;
  *     Microservices microservices = Microservices.builder()
  *          // Introduce GreetingServiceImpl pojo as a micro-service:
  *         .services(new GreetingServiceImpl())
- *         .build();
+ *         .startAwait();
  *
  *     // Create microservice proxy to GreetingService.class interface:
- *     GreetingService service = microservices.call()
+ *     GreetingService service = microservices.call().create()
  *         .api(GreetingService.class);
  *
  *     // Invoke the greeting service async:
- *     Mono<String> future = service.sayHello("joe");
- *
- *     // handle completable success or error:
- *     future.whenComplete((result, ex) -> {
- *      if (ex == null) {
- *        // print the greeting:
- *         System.out.println(result);
- *       } else {
- *         // print the greeting:
- *         System.out.println(ex);
- *       }
+ *     service.sayHello("joe").subscribe(resp->{
+ *       // handle response
  *     });
+ *
  * }
  * </pre>
  */
@@ -108,16 +98,17 @@ public class Microservices {
   private final ServiceRegistry serviceRegistry;
   private final ClientTransport client;
   private final Metrics metrics;
-  private final ServiceDiscovery discovery;
   private final ServerTransport server;
   private final ServiceMethodRegistry methodRegistry;
   private final List<ServiceInfo> services;
-  private final ClusterConfig.Builder clusterConfig;
   private final String id;
   private final int servicePort;
 
+  private DiscoveryConfig.Builder discoveryConfig; // calculated
+  private ServiceDiscovery discovery; // calculated
   private Address serviceAddress; // calculated
-  private Cluster cluster; // calculated
+  private Map<String, String> tags;
+  private ServiceEndpoint endpoint;
 
   private Microservices(Builder builder) {
     this.id = IdGenerator.generateId();
@@ -125,11 +116,12 @@ public class Microservices {
     this.metrics = builder.metrics;
     this.client = builder.client;
     this.server = builder.server;
-    this.clusterConfig = builder.clusterConfig;
     this.serviceRegistry = builder.serviceRegistry;
     this.services = Collections.unmodifiableList(new ArrayList<>(builder.services));
     this.methodRegistry = builder.methodRegistry;
-    this.discovery = new ServiceDiscovery(serviceRegistry);
+    this.discovery = builder.discovery;
+    this.discoveryConfig = builder.discoveryConfig;
+    this.tags = builder.tags;
   }
 
   public String id() {
@@ -148,16 +140,18 @@ public class Microservices {
 
     // register services in service registry
     if (!services.isEmpty()) {
-      // TODO: pass tags as well [sergeyr]
-      serviceRegistry.registerService(
-          ServiceScanner.scan(services, id, serviceAddress.host(), serviceAddress.port(), new HashMap<>()));
+      this.endpoint = ServiceScanner.scan(
+          services, id, serviceAddress.host(), serviceAddress.port(), tags);
+
+      serviceRegistry.registerService(endpoint);
+      discoveryConfig.endpoint(endpoint);
     }
 
-    // setup cluster metadata
-    clusterConfig.addMetadata(serviceRegistry.listServiceEndpoints().stream()
-        .collect(Collectors.toMap(ServiceDiscovery::encodeMetadata, service -> SERVICE_METADATA)));
-
-    return Mono.fromFuture(Cluster.join(clusterConfig.build())).map(this::init);
+    // configure discovery and publish to the cluster.
+    return discovery.start(discoveryConfig.serviceRegistry(serviceRegistry)
+        .build())
+        .map(discovery -> (this.discovery = discovery))
+        .then(Mono.just(Reflect.builder(this).inject()));
   }
 
   public Metrics metrics() {
@@ -173,12 +167,14 @@ public class Microservices {
     private int servicePort = 0;
     private List<ServiceInfo> services = new ArrayList<>();
     private List<Function<Call, Collection<Object>>> serviceProviders = new ArrayList<>();
-    private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
     private Metrics metrics;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServerTransport server = ServiceTransport.getTransport().getServerTransport();
     private ClientTransport client = ServiceTransport.getTransport().getClientTransport();
+    private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
+    private DiscoveryConfig.Builder discoveryConfig = DiscoveryConfig.builder();
+    private Map<String, String> tags = new HashMap<>();
 
     public Mono<Microservices> start() {
       Call call = new Call(client, methodRegistry, serviceRegistry).metrics(this.metrics);
@@ -190,7 +186,8 @@ public class Microservices {
                   ((ServiceInfo) service)
                   : ServiceInfo.fromServiceInstance(service).build()));
 
-      return new Microservices(this).start();
+      return new Microservices(this)
+          .start();
     }
 
     public Microservices startAwait() {
@@ -217,6 +214,11 @@ public class Microservices {
       return this;
     }
 
+    public Builder discovery(ServiceDiscovery discovery) {
+      this.discovery = discovery;
+      return this;
+    }
+
     public Builder server(ServerTransport server) {
       this.server = server;
       return this;
@@ -228,7 +230,7 @@ public class Microservices {
     }
 
     public Builder discoveryPort(int port) {
-      this.clusterConfig.port(port);
+      this.discoveryConfig.port(port);
       return this;
     }
 
@@ -238,12 +240,12 @@ public class Microservices {
     }
 
     public Builder seeds(Address... seeds) {
-      this.clusterConfig.seedMembers(seeds);
+      this.discoveryConfig.seeds(seeds);
       return this;
     }
 
-    public Builder clusterConfig(ClusterConfig.Builder clusterConfig) {
-      this.clusterConfig = clusterConfig;
+    public Builder discoveryConfig(DiscoveryConfig.Builder discoveryConfig) {
+      this.discoveryConfig = discoveryConfig;
       return this;
     }
 
@@ -251,12 +253,11 @@ public class Microservices {
       this.metrics = new Metrics(metrics);
       return this;
     }
-  }
 
-  private Microservices init(Cluster cluster) {
-    this.cluster = cluster;
-    discovery.init(cluster);
-    return Reflect.builder(this).inject();
+    public Builder tags(Map<String, String> tags) {
+      this.tags = tags;
+      return this;
+    }
   }
 
   public static Builder builder() {
@@ -276,11 +277,10 @@ public class Microservices {
   }
 
   public Mono<Void> shutdown() {
-    return Mono.when(Mono.fromFuture(cluster.shutdown()), server.stop(), serviceRegistry.shutdown());
+    return Mono.when(discovery.shutdown(), server.stop());
   }
 
-  public Cluster cluster() {
-    return cluster;
+  public ServiceDiscovery discovery() {
+    return this.discovery;
   }
-
 }
