@@ -121,20 +121,12 @@ public class WebsocketServerTest {
 
     GatewayMessage error = errorServiceMessage(STREAM_ID, 500, "hello");
 
-    Publisher<GatewayMessage> requests = Flux.range(0, REQUEST_NUM)
-        .map(i -> GatewayMessage.from(GREETING_FAILING_ONE).streamId(i.longValue()).build());
+    Mono<GatewayMessage> requests = Mono.just(GatewayMessage.from(GREETING_FAILING_ONE).streamId(STREAM_ID).build());
 
-    StepVerifier.FirstStep<GatewayMessage> stepVerifier = StepVerifier
-        .create(websocketExtension
-            .newInvocationForMessages(requests)
-            .dataClasses(ErrorData.class)
-            .invoke());
-
-    IntStream.range(0, REQUEST_NUM).forEach(i -> {
-      stepVerifier.assertNext(msg -> assertErrorMessage(GatewayMessage.from(error).streamId((long) i).build(), msg));
-    });
-
-    stepVerifier.expectComplete().verify(TIMEOUT);
+    StepVerifier.create(websocketExtension.newInvocationForMessages(requests).dataClasses(ErrorData.class).invoke())
+        .assertNext(msg -> assertErrorMessage(error, msg))
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 
   @Test
