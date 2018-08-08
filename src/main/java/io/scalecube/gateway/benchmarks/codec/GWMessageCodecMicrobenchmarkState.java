@@ -1,4 +1,4 @@
-package io.scalecube.gateway.benchmarks;
+package io.scalecube.gateway.benchmarks.codec;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
@@ -21,7 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class GatewayMessageCodecBenchmarkState extends BenchmarksState<GatewayMessageCodecBenchmarkState> {
+public class GWMessageCodecMicrobenchmarkState extends BenchmarksState<GWMessageCodecMicrobenchmarkState> {
 
   private final static String GW_MSG_PATTERN = "{" +
       "\"q\":\"%s\"," +
@@ -36,7 +36,7 @@ public class GatewayMessageCodecBenchmarkState extends BenchmarksState<GatewayMe
   private GatewayMessage gatewayMessage;
   private ByteBuf byteBufExample;
 
-  public GatewayMessageCodecBenchmarkState(BenchmarksSettings settings) {
+  public GWMessageCodecMicrobenchmarkState(BenchmarksSettings settings) {
     super(settings);
   }
 

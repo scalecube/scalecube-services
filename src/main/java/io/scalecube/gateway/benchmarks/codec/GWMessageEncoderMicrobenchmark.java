@@ -1,4 +1,4 @@
-package io.scalecube.gateway.benchmarks;
+package io.scalecube.gateway.benchmarks.codec;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
@@ -10,11 +10,11 @@ import io.netty.buffer.ByteBuf;
 
 import java.util.concurrent.TimeUnit;
 
-public class EncodeGatewayMessageBenchmarkRunner {
+public class GWMessageEncoderMicrobenchmark {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
-    new GatewayMessageCodecBenchmarkState(settings).runForSync(state -> {
+    new GWMessageCodecMicrobenchmarkState(settings).runForSync(state -> {
 
       GatewayMessageCodec codec = state.codec();
       GatewayMessage message = state.message();
