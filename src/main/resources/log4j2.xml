@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Configuration>
+<Configuration status="info">
 
   <Properties>
     <Property name="patternLayout">%level{length=1} %d{ISO8601} %c{1.} %m [%t]%n</Property>
   </Properties>
+
   <Appenders>
     <Console name="STDOUT" target="SYSTEM_OUT">
       <PatternLayout pattern="${patternLayout}"/>
@@ -11,10 +12,9 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="io.scalecube.config" level="error"/>
-    <Root level="info">
+    <AsyncRoot level="${env:logLevel:-info}">
       <AppenderRef ref="STDOUT"/>
-    </Root>
+    </AsyncRoot>
   </Loggers>
 
 </Configuration>
