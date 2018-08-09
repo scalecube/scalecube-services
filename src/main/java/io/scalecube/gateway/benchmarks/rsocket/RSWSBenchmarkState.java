@@ -7,6 +7,7 @@ import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
+import io.scalecube.gateway.examples.StreamRequest;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
 
@@ -59,5 +60,4 @@ public class RSWSBenchmarkState extends BenchmarksState<RSWSBenchmarkState> {
 
     return client.forService(ExampleService.class).one("hello").then(Mono.just(client));
   }
-
 }
