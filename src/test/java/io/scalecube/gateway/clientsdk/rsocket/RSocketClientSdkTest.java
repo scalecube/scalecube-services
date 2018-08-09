@@ -105,7 +105,7 @@ class RSocketClientSdkTest {
 
     Mono<GreetingResponse> johnnys = rsocketClient
         .forService(GreetingService.class)
-        .pojoOne(new GreetingRequest(JOHN));
+        .pojoOne(new GreetingRequest().setText(JOHN));
 
     StepVerifier.create(johnnys)
         .assertNext(n -> Assertions.assertEquals("Echo:" + JOHN, n.getText()))
@@ -119,7 +119,7 @@ class RSocketClientSdkTest {
 
     Flux<GreetingResponse> johnnys = rsocketClient
         .forService(GreetingService.class)
-        .pojoMany(new GreetingRequest(JOHN))
+        .pojoMany(new GreetingRequest().setText(JOHN))
         .take(cnt);
 
     StepVerifier.create(johnnys)
