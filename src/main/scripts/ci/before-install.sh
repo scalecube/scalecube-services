@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+
+echo       Running $0
+echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
+
 # get latest version of codacy reporter from sonatype
 latest=$(curl "https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/maven-metadata.xml" | xpath -e "/metadata/versioning/release/text()")
 
