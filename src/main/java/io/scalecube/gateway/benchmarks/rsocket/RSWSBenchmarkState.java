@@ -7,7 +7,6 @@ import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
-import io.scalecube.gateway.examples.StreamRequest;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
 
@@ -29,12 +28,12 @@ public class RSWSBenchmarkState extends BenchmarksState<RSWSBenchmarkState> {
 
   @Override
   protected void beforeAll() {
-    loopResources = LoopResources.create("rsws-loop");
     String address = settings.find("gw_address", null);
     if (address == null) {
       throw new IllegalArgumentException();
     }
-    String[] strings = address.split(":");
+    loopResources = LoopResources.create("rsws-loop");
+    String[] strings = address.split(":", 2);
     gwAddress = InetSocketAddress.createUnresolved(strings[0], Integer.parseInt(strings[1]));
   }
 
