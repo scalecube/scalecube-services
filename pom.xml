@@ -11,28 +11,23 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.projectreactor.ipc</groupId>
-      <artifactId>reactor-netty</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-core</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.reactivestreams</groupId>
-      <artifactId>reactive-streams</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-api</artifactId>
+      <artifactId>scalecube-services-discovery</artifactId>
+      <version>${scalecube-services.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
+      <groupId>io.scalecube</groupId>
+      <artifactId>rsocket-services-transport</artifactId>
+      <version>${scalecube-services.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-jackson</artifactId>
+      <version>${scalecube-services.version}</version>
     </dependency>
   </dependencies>
 
