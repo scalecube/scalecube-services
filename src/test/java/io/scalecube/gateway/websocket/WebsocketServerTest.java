@@ -58,11 +58,11 @@ public class WebsocketServerTest {
       GatewayMessage.builder().qualifier("/greeting/failing/many").data("hello").streamId(STREAM_ID).build();
 
   private static final GatewayMessage GREETING_POJO_ONE =
-      GatewayMessage.builder().qualifier("/greeting/pojo/one").data(new GreetingRequest("hello")).streamId(STREAM_ID)
+      GatewayMessage.builder().qualifier("/greeting/pojo/one").data(new GreetingRequest().setText("hello")).streamId(STREAM_ID)
           .build();
 
   private static final GatewayMessage GREETING_POJO_MANY =
-      GatewayMessage.builder().qualifier("/greeting/pojo/many").data(new GreetingRequest("hello")).streamId(STREAM_ID)
+      GatewayMessage.builder().qualifier("/greeting/pojo/many").data(new GreetingRequest().setText("hello")).streamId(STREAM_ID)
           .build();
 
   private static final GatewayMessage GREETING_EMPTY_ONE =
