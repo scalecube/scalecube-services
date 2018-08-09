@@ -12,6 +12,7 @@ import reactor.core.publisher.MonoProcessor;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.resources.LoopResources;
 
+import io.rsocket.Frame;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
@@ -33,16 +34,25 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private final ClientSettings settings;
   private final ClientMessageCodec messageCodec;
-  private final LoopResources loopResources;
+  private final WebsocketClientTransport clientTransport;
 
+  @SuppressWarnings("unused")
   private volatile Mono<RSocket> rSocketMono;
 
   public RSocketClientTransport(ClientSettings settings,
       ClientMessageCodec messageCodec,
       LoopResources loopResources) {
+
     this.settings = settings;
     this.messageCodec = messageCodec;
-    this.loopResources = loopResources;
+
+    // init rSocket's WebsocketClientTransport
+
+    HttpClient httpClient = HttpClient.create(options -> options.disablePool()
+        .connectAddress(() -> InetSocketAddress.createUnresolved(settings.host(), settings.port()))
+        .loopResources(loopResources));
+
+    clientTransport = WebsocketClientTransport.create(httpClient, "/");
   }
 
   @Override
@@ -87,34 +97,28 @@ public final class RSocketClientTransport implements ClientTransport {
       // noinspection unchecked
       return prev;
     }
-
-    InetSocketAddress address =
-        InetSocketAddress.createUnresolved(settings.host(), settings.port());
-
     return RSocketFactory.connect()
         .metadataMimeType(settings.contentType())
-        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
-        .transport(createRSocketTransport(address))
+        .frameDecoder(this::toPayload)
+        .transport(clientTransport)
         .start()
         .doOnSuccess(rSocket -> {
-          LOGGER.info("Connected successfully on {}", address);
+          LOGGER.info("Connected successfully: {}", settings);
           // setup shutdown hook
           rSocket.onClose().doOnTerminate(() -> {
             rSocketMonoUpdater.getAndSet(this, null); // clean reference
-            LOGGER.info("Connection closed on {}", address);
+            LOGGER.info("Connection closed: {}", settings);
           }).subscribe();
         })
         .doOnError(throwable -> {
-          LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+          LOGGER.warn("Connect failed: {}, cause: {}", settings, throwable);
           rSocketMonoUpdater.getAndSet(this, null); // clean reference
         })
         .cache();
   }
 
-  private WebsocketClientTransport createRSocketTransport(InetSocketAddress address) {
-    return WebsocketClientTransport.create(HttpClient.create(options -> options.disablePool()
-        .connectAddress(() -> address)
-        .loopResources(loopResources)), "/");
+  private Payload toPayload(Frame frame) {
+    return ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain());
   }
 
   private Payload toPayload(ClientMessage clientMessage) {
