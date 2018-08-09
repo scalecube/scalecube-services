@@ -63,7 +63,7 @@ public class RSocketWebsocketServerTest {
     final Microservices gatewayMicroservice = microservicesExtension.startGateway().getGateway();
 
     rSocketWebsocketExtension.startGateway(gatewayMicroservice);
-    microservicesExtension.startServices(gatewayMicroservice.cluster().address());
+    microservicesExtension.startServices(gatewayMicroservice.discovery().address());
     client = rSocketWebsocketExtension.client();
   }
 

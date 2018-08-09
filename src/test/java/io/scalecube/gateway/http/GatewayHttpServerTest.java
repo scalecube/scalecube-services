@@ -35,7 +35,7 @@ public class GatewayHttpServerTest {
     final Microservices gatewayMicroservice = microservicesResource.startGateway().getGateway();
 
     gatewayHttpResource.startGateway(gatewayMicroservice);
-    microservicesResource.startServices(gatewayMicroservice.cluster().address());
+    microservicesResource.startServices(gatewayMicroservice.discovery().address());
 
     client = gatewayHttpResource.client();
   }

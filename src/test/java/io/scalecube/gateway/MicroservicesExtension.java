@@ -1,7 +1,5 @@
 package io.scalecube.gateway;
 
-import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
@@ -11,9 +9,6 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.util.concurrent.TimeUnit;
 
 public class MicroservicesExtension implements AfterAllCallback {
 
@@ -43,7 +38,7 @@ public class MicroservicesExtension implements AfterAllCallback {
 
   public MicroservicesExtension startGateway() {
     gateway = Microservices.builder().startAwait();
-    gatewayAddress = gateway.cluster().address();
+    gatewayAddress = gateway.discovery().address();
     LOGGER.info("Started gateway {} on {}", gateway, gatewayAddress);
     return this;
   }
