@@ -4,7 +4,7 @@
 
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.1.11-SNAPSHOT</version>
+  <version>2.1.12-SNAPSHOT</version>
 
   <packaging>pom</packaging>
 
@@ -335,7 +335,7 @@
                   <message>The reactor is not valid</message>
                   <ignoreModuleDependencies>true</ignoreModuleDependencies>
                 </reactorModuleConvergence>
-                <dependencyConvergence/>
+                <dependencyConvergence />
               </rules>
               <fail>true</fail>
             </configuration>
