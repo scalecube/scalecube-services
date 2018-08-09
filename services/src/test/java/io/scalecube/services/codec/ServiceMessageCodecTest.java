@@ -1,5 +1,6 @@
 package io.scalecube.services.codec;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.BaseTest;
@@ -44,11 +45,12 @@ class ServiceMessageCodecTest extends BaseTest {
         codec.decode(payload.sliceData(), payload.sliceMetadata()),
         PlaceOrderRequest.class);
 
-    assertEquals(message.qualifier(), actual.qualifier());
-    assertEquals(message.streamId(), actual.streamId());
-    assertEquals(message.headers(), actual.headers());
-    assertEquals(message.dataFormat(), actual.dataFormat());
-    assertEquals(message.data(), actual.data());
+    assertAll(
+        () -> assertEquals(message.qualifier(), actual.qualifier()),
+        () -> assertEquals(message.streamId(), actual.streamId()),
+        () -> assertEquals(message.headers(), actual.headers()),
+        () -> assertEquals(message.dataFormat(), actual.dataFormat()),
+        () -> assertEquals(message.data(), actual.data()));
   }
 
   private String qualifier() {
