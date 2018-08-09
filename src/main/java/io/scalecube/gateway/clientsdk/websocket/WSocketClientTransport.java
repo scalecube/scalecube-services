@@ -16,14 +16,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 public final class WSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WSocketClientTransport.class);
 
+  private static final AtomicReferenceFieldUpdater<WSocketClientTransport, Mono> wSocketMonoUpdater =
+      AtomicReferenceFieldUpdater.newUpdater(WSocketClientTransport.class, Mono.class, "wSocketMono");
+
   private final ClientSettings settings;
   private final ClientMessageCodec messageCodec;
   private final HttpClient httpClient;
+
+  @SuppressWarnings("unused")
+  private volatile Mono<WebsocketDuplexConnection> wSocketMono;
 
   public WSocketClientTransport(ClientSettings settings,
       ClientMessageCodec messageCodec,
@@ -41,7 +48,6 @@ public final class WSocketClientTransport implements ClientTransport {
 
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
-    ClientMessageCodec cmc;
     return null;
   }
 
