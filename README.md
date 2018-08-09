@@ -154,10 +154,15 @@ To add a dependency on ScaleCube Services using Maven, use the following:
   <version>2.x.x</version>
  </dependency>
  
- <!- scalecube message serialization provider   -->
+ <!- jackson, protostuff or yours scalecube message serialization provider -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-jackson</artifactId>
+  <version>2.x.x</version>
+ </dependency>
+ <dependency>
+  <groupId>io.scalecube</groupId>
+  <artifactId>scalecube-services-protostuff</artifactId>
   <version>2.x.x</version>
  </dependency>
 
