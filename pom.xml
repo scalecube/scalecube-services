@@ -16,6 +16,10 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-benchmarks-log4j2</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-gateway-websocket</artifactId>
       <version>${project.version}</version>
     </dependency>
