@@ -1,9 +1,13 @@
 package io.scalecube.services.codec.protostuff;
 
+import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
 
+import io.protostuff.ProtobufIOUtil;
 import io.protostuff.ProtostuffIOUtil;
+import io.protostuff.Schema;
 import io.protostuff.StringMapSchema;
+import io.protostuff.runtime.RuntimeSchema;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,13 +15,32 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ProtostuffHeadersCodec implements HeadersCodec {
+public class ProtostuffCodec implements HeadersCodec, DataCodec {
 
   private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer();
 
   @Override
   public String contentType() {
     return "application/protostuff";
+  }
+
+  @Override
+  public void encode(OutputStream stream, Object value) throws IOException {
+    Schema schema = RuntimeSchema.getSchema(value.getClass());
+    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
+      ProtobufIOUtil.writeTo(stream, value, schema, rlb.buffer());
+    }
+  }
+
+  @Override
+  public Object decode(InputStream stream, Class<?> type) throws IOException {
+    Schema schema = RuntimeSchema.getSchema(type);
+    Object result = schema.newMessage();
+
+    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
+      ProtobufIOUtil.mergeFrom(stream, result, schema, rlb.buffer());
+    }
+    return result;
   }
 
   @Override
