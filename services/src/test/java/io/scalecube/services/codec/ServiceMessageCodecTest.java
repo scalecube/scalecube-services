@@ -38,6 +38,8 @@ class ServiceMessageCodecTest extends BaseTest {
 
     Payload payload = codec.encodeAndTransform(message, ByteBufPayload::create);
 
+    LOGGER.info("contentType={}, headers={}, data={}", contentType, payload.getMetadataUtf8(), payload.getDataUtf8());
+
     ServiceMessage actual = ServiceMessageCodec.decodeData(
         codec.decode(payload.sliceData(), payload.sliceMetadata()),
         PlaceOrderRequest.class);
