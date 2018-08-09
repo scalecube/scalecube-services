@@ -17,11 +17,13 @@ import java.util.Map;
 
 public class ProtostuffCodec implements HeadersCodec, DataCodec {
 
+  public static final String CONTENT_TYPE = "application/protostuff";
+
   private static final RecyclableLinkedBuffer recyclableLinkedBuffer = new RecyclableLinkedBuffer();
 
   @Override
   public String contentType() {
-    return "application/protostuff";
+    return CONTENT_TYPE;
   }
 
   @Override
