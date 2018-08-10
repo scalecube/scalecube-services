@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmarks.codec.jackson;
+package io.scalecube.services.benchmarks.codec.protostuff;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.services.api.ServiceMessage;
@@ -15,7 +15,7 @@ public class ServiceMessageFullDecodeBenchmarks {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
-    new ServiceMessageCodecBenchmarksState.Jackson(settings).runForSync(state -> {
+    new ServiceMessageCodecBenchmarksState.Protostuff(settings).runForSync(state -> {
 
       Timer timer = state.timer("timer");
       ServiceMessageCodec messageCodec = state.jacksonMessageCodec();
