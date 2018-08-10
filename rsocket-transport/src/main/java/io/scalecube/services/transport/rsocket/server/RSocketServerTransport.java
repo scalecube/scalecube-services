@@ -4,6 +4,7 @@ import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.server.api.ServerTransport;
 
+import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.transport.netty.server.TcpServerTransport;
@@ -26,18 +27,21 @@ public class RSocketServerTransport implements ServerTransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
   private final ServiceMessageCodec codec;
+  private final EventLoopGroup eventLoopGroup;
 
   private NettyContextCloseable server;
   private List<NettyContext> channels = new CopyOnWriteArrayList<>();
 
-  public RSocketServerTransport(ServiceMessageCodec codec) {
+  public RSocketServerTransport(ServiceMessageCodec codec, EventLoopGroup eventLoopGroup) {
     this.codec = codec;
+    this.eventLoopGroup = eventLoopGroup;
   }
 
   @Override
   public InetSocketAddress bindAwait(InetSocketAddress address, ServiceMethodRegistry methodRegistry) {
     TcpServer tcpServer =
         TcpServer.create(options -> options
+            .eventLoopGroup(eventLoopGroup)
             .listenAddress(address)
             .afterNettyContextInit(nettyContext -> {
               LOGGER.info("Accepted connection on {}", nettyContext.channel());
