@@ -3,48 +3,46 @@ package io.scalecube.services.benchmarks.codec;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.codec.jackson.JacksonCodec;
-
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.PropertyAccessor;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.scalecube.services.codec.protostuff.ProtostuffCodec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceMessageCodecBenchmarksState> {
 
-  private ServiceMessageCodec jacksonServiceMessageCodec;
-
-  private final ObjectMapper objectMapper = objectMapper();
-
+  private ServiceMessageCodec serviceMessageCodec;
+  private HeadersCodec headersCodec;
+  private DataCodec dataCodec;
   private ServiceMessage serviceMessage;
   private Payload payloadMessage;
 
-  public ServiceMessageCodecBenchmarksState(BenchmarksSettings settings) {
+  public ServiceMessageCodecBenchmarksState(BenchmarksSettings settings, DataCodec dataCodec,
+      HeadersCodec headersCodec) {
     super(settings);
+    this.dataCodec = dataCodec;
+    this.headersCodec = headersCodec;
   }
 
   @Override
   protected void beforeAll() {
-    this.jacksonServiceMessageCodec = new ServiceMessageCodec(new JacksonCodec());
+    this.serviceMessageCodec = new ServiceMessageCodec(headersCodec);
     this.serviceMessage = generateServiceMessage(generateData());
     this.payloadMessage = generatePayload(serviceMessage);
   }
 
   public ServiceMessageCodec jacksonMessageCodec() {
-    return jacksonServiceMessageCodec;
+    return serviceMessageCodec;
   }
 
   public ByteBuf dataBuffer() {
@@ -86,6 +84,7 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
 
   private ServiceMessage generateServiceMessage(Object data) {
     return ServiceMessage.builder()
+        .dataFormat(dataCodec.contentType())
         .qualifier("io.scalecube.services.benchmarks/SomeBenchmarkService/benchmark")
         .header("sid", String.valueOf(Integer.MAX_VALUE))
         .header("sig", String.valueOf(9))
@@ -96,33 +95,22 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
 
   private Payload generatePayload(ServiceMessage msg) {
     try {
-      String data = objectMapper.writeValueAsString(msg.data());
-      System.out.println("generated dataBuffer: " + data);
+      ByteArrayOutputStream dataStream = new ByteArrayOutputStream();
+      dataCodec.encode(dataStream, msg.data());
+      System.out.println("generated dataBuffer: " + dataStream.toString());
       ByteBuf dataBuffer = ByteBufAllocator.DEFAULT.buffer();
-      dataBuffer.writeBytes(data.getBytes());
+      dataBuffer.writeBytes(dataStream.toByteArray());
 
-      String headers = objectMapper.writeValueAsString(msg.headers());
-      System.out.println("generated headersBuffer: " + headers);
+      ByteArrayOutputStream headersStream = new ByteArrayOutputStream();
+      headersCodec.encode(headersStream, msg.headers());
+      System.out.println("generated headersBuffer: " + headersStream.toString());
       ByteBuf headersBuffer = ByteBufAllocator.DEFAULT.buffer();
-      headersBuffer.writeBytes(headers.getBytes());
+      headersBuffer.writeBytes(headersStream.toByteArray());
 
       return ByteBufPayload.create(dataBuffer, headersBuffer);
     } catch (Throwable t) {
       throw new RuntimeException(t.getMessage(), t);
     }
-  }
-
-  private ObjectMapper objectMapper() {
-    ObjectMapper mapper = new ObjectMapper();
-    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-    mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
-    mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-    mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
-    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-    mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
-    mapper.registerModule(new JavaTimeModule());
-    return mapper;
   }
 
   public static class PlaceOrderRequest {
@@ -154,5 +142,23 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
           '}';
     }
 
+  }
+
+  public static class Jackson extends ServiceMessageCodecBenchmarksState {
+
+    private static final JacksonCodec CODEC = new JacksonCodec();
+
+    public Jackson(BenchmarksSettings settings) {
+      super(settings, CODEC, CODEC);
+    }
+  }
+
+  public static class Protostuff extends ServiceMessageCodecBenchmarksState {
+
+    private static final ProtostuffCodec CODEC = new ProtostuffCodec();
+
+    public Protostuff(BenchmarksSettings settings) {
+      super(settings, CODEC, CODEC);
+    }
   }
 }

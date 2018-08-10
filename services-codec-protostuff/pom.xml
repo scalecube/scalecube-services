@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <artifactId>scalecube-services-parent</artifactId>
+    <groupId>io.scalecube</groupId>
+    <version>2.1.12-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>scalecube-services-protostuff</artifactId>
+  <name>ScaleCube/services-codec-protostuff</name>
+  <packaging>jar</packaging>
+
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>scalecube-services-codec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <!-- protostuff deps -->
+    <dependency>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-collectionschema</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.protostuff</groupId>
+      <artifactId>protostuff-runtime</artifactId>
+    </dependency>
+  </dependencies>
+
+</project>
