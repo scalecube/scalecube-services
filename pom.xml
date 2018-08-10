@@ -56,9 +56,9 @@
   </distributionManagement>
 
   <properties>
-    <jackson.version>2.9.5</jackson.version>
+    <jackson.version>2.9.6</jackson.version>
     <scalecube-cluster.version>2.0.0</scalecube-cluster.version>
-    <scalecube-benchmarks.version>1.1.12</scalecube-benchmarks.version>
+    <scalecube-benchmarks.version>1.1.13</scalecube-benchmarks.version>
     <reactor.version>3.1.8.RELEASE</reactor.version>
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.5</rsocket.version>
@@ -94,6 +94,7 @@
     <module>services-discovery</module>
     <module>services-codec</module>
     <module>services-codec-jackson</module>
+    <module>services-codec-protostuff</module>
     <module>services</module>
     <module>benchmarks</module>
     <module>examples</module>
@@ -162,6 +163,28 @@
         <groupId>com.fasterxml.jackson.datatype</groupId>
         <artifactId>jackson-datatype-jsr310</artifactId>
         <version>${jackson.version}</version>
+      </dependency>
+
+      <!-- Protostuff/Protobuf -->
+      <dependency>
+        <groupId>io.protostuff</groupId>
+        <artifactId>protostuff-api</artifactId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.protostuff</groupId>
+        <artifactId>protostuff-core</artifactId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.protostuff</groupId>
+        <artifactId>protostuff-collectionschema</artifactId>
+        <version>${protostuff.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.protostuff</groupId>
+        <artifactId>protostuff-runtime</artifactId>
+        <version>${protostuff.version}</version>
       </dependency>
 
       <!-- Netty -->
