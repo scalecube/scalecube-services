@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -285,7 +284,4 @@ public class Microservices {
     return this.discovery;
   }
 
-  public ExecutorService executorService() {
-    return ServiceTransport.getTransport().getExecutorService();
-  }
 }
