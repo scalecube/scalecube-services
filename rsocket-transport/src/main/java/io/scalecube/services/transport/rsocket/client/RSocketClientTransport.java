@@ -5,6 +5,7 @@ import io.scalecube.services.transport.client.api.ClientChannel;
 import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.transport.Address;
 
+import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -26,9 +27,11 @@ public class RSocketClientTransport implements ClientTransport {
   private final ThreadLocal<Map<Address, Mono<RSocket>>> rSockets = ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec codec;
+  private final EventLoopGroup eventLoopGroup;
 
-  public RSocketClientTransport(ServiceMessageCodec codec) {
+  public RSocketClientTransport(ServiceMessageCodec codec, EventLoopGroup eventLoopGroup) {
     this.codec = codec;
+    this.eventLoopGroup = eventLoopGroup;
   }
 
   @Override
@@ -38,9 +41,10 @@ public class RSocketClientTransport implements ClientTransport {
     return new RSocketServiceClientAdapter(rSocket, codec);
   }
 
-  private static Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
+  private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
     TcpClient tcpClient =
         TcpClient.create(options -> options.disablePool()
+            .eventLoopGroup(eventLoopGroup)
             .host(address.host())
             .port(address.port()));
 
