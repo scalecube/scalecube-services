@@ -14,12 +14,16 @@ import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.NettyRuntime;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ThreadFactory;
+
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.FutureMono;
 
 public class RSocketServiceTransport implements ServiceTransport {
 
@@ -71,4 +75,8 @@ public class RSocketServiceTransport implements ServiceTransport {
     return eventLoopGroup;
   }
 
+  @Override
+  public Mono<Void> shutdown() {
+    return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
+  }
 }

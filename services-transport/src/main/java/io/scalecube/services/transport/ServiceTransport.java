@@ -6,7 +6,14 @@ import io.scalecube.services.transport.server.api.ServerTransport;
 
 import java.util.concurrent.ExecutorService;
 
+import reactor.core.publisher.Mono;
+
 public interface ServiceTransport {
+
+  static ServiceTransport getTransport() {
+    return ServiceLoaderUtil.findFirstMatched(ServiceTransport.class)
+        .orElseThrow(() -> new IllegalStateException("ServiceTransport not configured"));
+  }
 
   ClientTransport getClientTransport();
 
@@ -14,9 +21,6 @@ public interface ServiceTransport {
 
   ExecutorService getExecutorService();
 
-  static ServiceTransport getTransport() {
-    return ServiceLoaderUtil.findFirstMatched(ServiceTransport.class)
-        .orElseThrow(() -> new IllegalStateException("ServiceTransport not configured"));
-  }
+  Mono<Void> shutdown();
 
 }

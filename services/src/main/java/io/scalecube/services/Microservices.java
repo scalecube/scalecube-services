@@ -277,11 +277,10 @@ public class Microservices {
   }
 
   public Mono<Void> shutdown() {
-    return Mono.when(discovery.shutdown(), server.stop());
+    return Mono.when(discovery.shutdown(), server.stop(), ServiceTransport.getTransport().shutdown());
   }
 
   public ServiceDiscovery discovery() {
     return this.discovery;
   }
-
 }
