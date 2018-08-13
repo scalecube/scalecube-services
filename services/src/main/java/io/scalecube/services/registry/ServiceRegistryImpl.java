@@ -38,9 +38,17 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   @Override
-  public List<ServiceReference> lookupService(String qualifier) {
+  public List<ServiceReference> lookupService(String qualifier, String contentType) {
     List<ServiceReference> result = referencesByQualifier.get(qualifier);
-    return result != null ? Collections.unmodifiableList(result) : Collections.emptyList();
+    if (result != null) {
+      if (contentType != null) {
+        result = result.stream().filter(ref -> contentType.equals(ref.contentType())).collect(Collectors.toList());
+      }
+      result = Collections.unmodifiableList(result);
+    } else {
+      result = Collections.emptyList();
+    }
+    return result;
   }
 
   @Override

@@ -3,6 +3,7 @@ package io.scalecube.services.routing;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
+
 import org.jctools.maps.NonBlockingHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,14 +22,7 @@ public class RoundRobinServiceRouter implements Router {
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
 
-    List<ServiceReference> serviceInstances;
-
-    if (request.dataFormat() == null) {
-      serviceInstances = serviceRegistry.lookupService(request.qualifier());
-    } else {
-      serviceInstances = serviceRegistry.lookupService(ref ->
-          ref.qualifier().equals(request.qualifier()) && request.dataFormat().equals(ref.contentType()));
-    }
+    List<ServiceReference> serviceInstances = serviceRegistry.lookupService(request.qualifier(), request.dataFormat());
 
     if (serviceInstances.size() > 1) {
       AtomicInteger counter = counterByServiceName.computeIfAbsent(request.qualifier(), or -> new AtomicInteger());

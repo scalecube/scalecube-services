@@ -16,7 +16,7 @@ public interface ServiceRegistry {
 
   List<ServiceReference> listServiceReferences();
 
-  List<ServiceReference> lookupService(String qualifier);
+  List<ServiceReference> lookupService(String qualifier, String contentType);
 
   List<ServiceReference> lookupService(Predicate<? super ServiceReference> filter);
 

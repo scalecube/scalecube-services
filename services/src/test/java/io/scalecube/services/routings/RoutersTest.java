@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class RoutersTest extends BaseTest {
@@ -119,12 +120,12 @@ public class RoutersTest extends BaseTest {
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
     int n = (int) 1e2;
-    for (int i = 0; i < n; i++) {
-      GreetingResponse success = service.greeting(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
-      if (success.getResult().contains("SERVICE_B_TALKING")) {
-        serviceBCount.incrementAndGet();
-      }
-    }
+
+    Flux.range(0, n)
+        .flatMap(i -> service.greeting(new GreetingRequest("joe")))
+        .filter(response -> response.getResult().contains("SERVICE_B_TALKING"))
+        .doOnNext(response -> serviceBCount.incrementAndGet())
+        .blockLast(Duration.ofSeconds(3));
 
     assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.2d);
 
