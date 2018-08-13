@@ -1,5 +1,6 @@
 package io.scalecube.gateway.benchmarks.example;
 
+import io.scalecube.gateway.examples.StreamRequest;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 
@@ -17,4 +18,7 @@ public interface ExampleService {
 
   @ServiceMethod("manyStreamWithBackpressureDrop")
   Flux<Long> manyStreamWithBackpressureDrop(Long cnt);
+
+  @ServiceMethod("requestInfiniteStream")
+  Flux<Long> requestInfiniteStream(StreamRequest request);
 }
