@@ -18,7 +18,7 @@ public class ExamplesRunner {
 
   /**
    * Main method of runner for example services.
-   * 
+   *
    * @param args - program arguments.
    * @throws InterruptedException - thrown if was interrupted.
    */
@@ -33,10 +33,12 @@ public class ExamplesRunner {
     LOGGER.info(DECORATOR);
 
     int servicePort = config.getServicePort();
-    Address seedAddress = Address.from(config.getSeedAddress());
+    Address[] seeds = config.getSeedAddress().stream()
+      .map(Address::from)
+      .toArray(Address[]::new);
 
     Microservices.builder()
-        .seeds(seedAddress)
+        .seeds(seeds)
         .servicePort(servicePort)
         .services(new GreetingServiceImpl())
         .startAwait();
