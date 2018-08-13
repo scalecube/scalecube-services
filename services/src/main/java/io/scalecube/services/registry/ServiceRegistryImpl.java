@@ -42,7 +42,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     List<ServiceReference> result = referencesByQualifier.get(qualifier);
     if (result != null) {
       if (contentType != null) {
-        result = result.stream().filter(ref -> contentType.equals(ref.contentType())).collect(Collectors.toList());
+        result = result.stream().filter(ref -> ref.contentTypes().contains(contentType)).collect(Collectors.toList());
       }
       result = Collections.unmodifiableList(result);
     } else {

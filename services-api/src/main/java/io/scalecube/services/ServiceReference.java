@@ -5,6 +5,7 @@ import io.scalecube.transport.Address;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class ServiceReference {
 
@@ -13,7 +14,7 @@ public class ServiceReference {
   private String host;
   private int port;
   private String namespace;
-  private String contentType;
+  private Set<String> contentTypes;
   private Map<String, String> tags;
   private String action;
   private CommunicationMode mode;
@@ -31,7 +32,7 @@ public class ServiceReference {
     this.host = serviceEndpoint.host();
     this.port = serviceEndpoint.port();
     this.namespace = serviceRegistration.namespace();
-    this.contentType = mergeContentType(serviceMethodDefinition, serviceRegistration);
+    this.contentTypes = serviceEndpoint.contentTypes();
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.getAction();
     this.mode = serviceMethodDefinition.getCommunicationMode();
@@ -63,8 +64,8 @@ public class ServiceReference {
     return namespace;
   }
 
-  public String contentType() {
-    return contentType;
+  public Set<String> contentTypes() {
+    return contentTypes;
   }
 
   public Map<String, String> tags() {
@@ -85,17 +86,6 @@ public class ServiceReference {
     return tags;
   }
 
-  private String mergeContentType(ServiceMethodDefinition serviceMethodDefinition,
-      ServiceRegistration serviceRegistration) {
-    if (serviceMethodDefinition.getContentType() != null && !serviceMethodDefinition.getContentType().isEmpty()) {
-      return serviceMethodDefinition.getContentType();
-    }
-    if (serviceRegistration.contentType() != null && !serviceRegistration.contentType().isEmpty()) {
-      return serviceRegistration.contentType();
-    }
-    throw new IllegalArgumentException();
-  }
-
   @Override
   public String toString() {
     return "ServiceReference{" +
@@ -104,7 +94,7 @@ public class ServiceReference {
         ", host='" + host + '\'' +
         ", port=" + port +
         ", namespace='" + namespace + '\'' +
-        ", contentType='" + contentType + '\'' +
+        ", contentTypes='" + contentTypes + '\'' +
         ", tags=" + tags +
         ", action='" + action + '\'' +
         ", mode=" + mode +

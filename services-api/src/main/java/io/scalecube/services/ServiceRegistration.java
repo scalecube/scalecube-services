@@ -6,7 +6,6 @@ import java.util.Map;
 public class ServiceRegistration {
 
   private String namespace;
-  private String contentType;
   private Map<String, String> tags;
   private Collection<ServiceMethodDefinition> methods;
 
@@ -16,11 +15,9 @@ public class ServiceRegistration {
   public ServiceRegistration() {}
 
   public ServiceRegistration(String namespace,
-      String contentType,
       Map<String, String> tags,
       Collection<ServiceMethodDefinition> methods) {
     this.namespace = namespace;
-    this.contentType = contentType;
     this.tags = tags;
     this.methods = methods;
   }
@@ -29,21 +26,12 @@ public class ServiceRegistration {
     return namespace;
   }
 
-  public String contentType() {
-    return contentType;
-  }
-
   public Map<String, String> tags() {
     return tags;
   }
 
   public Collection<ServiceMethodDefinition> methods() {
     return methods;
-  }
-
-  public ServiceRegistration setContentType(String contentType) {
-    this.contentType = contentType;
-    return this;
   }
 
   public ServiceRegistration setTags(Map<String, String> tags) {
@@ -55,7 +43,6 @@ public class ServiceRegistration {
   public String toString() {
     return "ServiceRegistration{" +
         "namespace='" + namespace + '\'' +
-        ", contentType='" + contentType + '\'' +
         ", tags=" + tags +
         ", methods=" + methods +
         '}';
