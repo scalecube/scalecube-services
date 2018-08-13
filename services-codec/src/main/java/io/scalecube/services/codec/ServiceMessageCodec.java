@@ -1,22 +1,19 @@
 package io.scalecube.services.codec;
 
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ExceptionProcessor;
-import io.scalecube.services.exceptions.MessageCodecException;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.netty.util.ReferenceCountUtil;
-
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.MessageCodecException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.function.BiFunction;
 
 public final class ServiceMessageCodec {
@@ -41,8 +38,7 @@ public final class ServiceMessageCodec {
     } else if (message.hasData()) {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
-        String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-        DataCodec dataCodec = DataCodec.getInstance(contentType);
+        DataCodec dataCodec = DataCodec.getInstance(message.dataFormat(), DEFAULT_DATA_FORMAT);
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.safeRelease(dataBuffer);
@@ -94,8 +90,7 @@ public final class ServiceMessageCodec {
 
     ByteBuf dataBuffer = message.data();
     try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice())) {
-      String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-      DataCodec dataCodec = DataCodec.getInstance(contentType);
+      DataCodec dataCodec = DataCodec.getInstance(message.dataFormat(), DEFAULT_DATA_FORMAT);
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
       LOGGER.error("Failed to decode data on: {}, cause: {}, data buffer: {}",
