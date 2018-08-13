@@ -58,7 +58,7 @@
   <properties>
     <jackson.version>2.9.6</jackson.version>
     <scalecube-cluster.version>2.0.0</scalecube-cluster.version>
-    <scalecube-benchmarks.version>1.1.13</scalecube-benchmarks.version>
+    <scalecube-benchmarks.version>1.1.14</scalecube-benchmarks.version>
     <reactor.version>3.1.8.RELEASE</reactor.version>
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.5</rsocket.version>
