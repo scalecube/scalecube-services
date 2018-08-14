@@ -132,7 +132,7 @@ public final class ServiceMessage {
 
   public String dataFormatOrDefault() {
     String dataFormat = dataFormat();
-    return dataFormat == null ? dataFormat : DEFAULT_DATA_FORMAT;
+    return dataFormat != null ? dataFormat : DEFAULT_DATA_FORMAT;
   }
 
   /**
