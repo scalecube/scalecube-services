@@ -8,7 +8,6 @@ import io.scalecube.gateway.clientsdk.exceptions.ConnectionClosedException;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoProcessor;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.resources.LoopResources;
 
@@ -68,13 +67,10 @@ public final class RSocketClientTransport implements ClientTransport {
     if (curr == null) {
       return Mono.empty();
     }
-
-    MonoProcessor<Void> sink = MonoProcessor.create();
-    curr.subscribe(rSocket -> {
-      rSocket.onClose().subscribe(sink::onNext, sink::onError, sink::onComplete);
+    return curr.flatMap(rSocket -> {
       rSocket.dispose();
+      return rSocket.onClose();
     });
-    return sink;
   }
 
   private Mono<RSocket> getOrConnect() {
