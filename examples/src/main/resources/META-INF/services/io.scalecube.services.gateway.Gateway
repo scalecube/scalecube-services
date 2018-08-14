@@ -1,0 +1,2 @@
+io.scalecube.examples.gateway.HttpStubGateway
+io.scalecube.examples.gateway.WebsocketStubGateway
