@@ -1,130 +1,84 @@
 package io.scalecube.gateway.rsocket;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.scalecube.gateway.MicroservicesExtension;
-import io.scalecube.services.Microservices;
-import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.gateway.examples.GreetingService;
+import io.scalecube.gateway.examples.GreetingServiceImpl;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 public class RSocketWebsocketServerTest {
 
-  private static final Duration VERIFY_DURATION = Duration.ofSeconds(3);
-
-  private static final ServiceMessage GREETING_ONE = ServiceMessage.builder()
-      .qualifier("/greeting/one")
-      .data("hello")
-      .build();
-
-  private static final ServiceMessage GREETING_MANY_STREAM = ServiceMessage.builder()
-    .qualifier("/greeting/manyStream")
-    .data(5)
-    .build();
-
-  private static final ServiceMessage WRONG_QUALIFIER = ServiceMessage.builder()
-      .qualifier("/zzz")
-      .data("hello")
-      .build();
-
-  private static final ServiceMessage GREETING_FAILING_ONE = ServiceMessage.builder()
-      .qualifier("/greeting/failing/one")
-      .data("hello")
-      .build();
-
-  private static final ServiceMessage EMPTY_DATA = ServiceMessage.builder()
-      .qualifier("/greeting/one")
-      .build();
+  private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @RegisterExtension
-  public MicroservicesExtension microservicesExtension = new MicroservicesExtension();
+  private static RsocketGatewayExtension extention = new RsocketGatewayExtension(new GreetingServiceImpl());
 
-  @RegisterExtension
-  public RSocketWebsocketExtension rSocketWebsocketExtension = new RSocketWebsocketExtension();
-
-  private RSocketWebsocketClient client;
+  private static GreetingService service;
 
   @BeforeEach
-  public void setUp() {
-    final Microservices gatewayMicroservice = microservicesExtension.startGateway().getGateway();
-
-    rSocketWebsocketExtension.startGateway(gatewayMicroservice);
-    microservicesExtension.startServices(gatewayMicroservice.discovery().address());
-    client = rSocketWebsocketExtension.client();
+  private void initService() {
+    service = extention.client().forService(GreetingService.class);
   }
 
   @Test
   public void shouldReturnSingleResponse() {
-    final Mono<ServiceMessage> result = client.requestResponse(GREETING_ONE);
+    String req = "hello";
+    String expected = "Echo:" + req;
+
+    Mono<String> result = service.one(req);
 
     StepVerifier.create(result)
-        .assertNext(serviceMessage -> assertEquals("\"Echo:hello\"", decodeData(serviceMessage.data())))
+        .assertNext(resp -> assertEquals(expected, resp))
         .expectComplete()
-        .verify(VERIFY_DURATION);
+        .verify(TIMEOUT);
   }
 
   @Test
   public void shouldReturnManyResponses() {
-    final Flux<ServiceMessage> result = client.requestStream(GREETING_MANY_STREAM);
+    Flux<Long> result = service.manyStream(5L);
 
     StepVerifier.create(result)
-      .assertNext(serviceMessage -> assertEquals("0", decodeData(serviceMessage.data())))
-      .expectNextCount(4)
-      .expectComplete()
-      .verify(VERIFY_DURATION);
+        .assertNext(next -> assertEquals(0, (long) next))
+        .expectNextCount(4)
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 
   @Test
   public void shouldReturnExceptionWhenQualifierIsWrong() {
-    final Mono<ServiceMessage> result = client.requestResponse(WRONG_QUALIFIER);
-
+    extention.shutdownServices();
+    Mono<String> result = service.one("hello");
     StepVerifier.create(result)
         .expectErrorMatches(throwable -> throwable.getMessage().startsWith("No reachable member with such service"))
-        .verify(VERIFY_DURATION);
+        .verify(TIMEOUT);
+    extention.startServices();
   }
 
   @Test
   public void shouldReturnErrorDataWhenServiceFails() {
-    final Mono<ServiceMessage> result = client.requestResponse(GREETING_FAILING_ONE);
+    String req = "hello";
+    Mono<String> result = service.failingOne(req);
 
     StepVerifier.create(result)
-        .assertNext(
-            serviceMessage -> assertThat(decodeData(serviceMessage.data()), containsString("\"errorCode\":500")))
-        .expectComplete()
-        .verify(VERIFY_DURATION);
+        .expectErrorMatches(t -> t.getMessage().equals(req))
+        .verify(TIMEOUT);
   }
 
   @Test
   public void shouldReturnErrorDataWhenRequestDataIsEmpty() {
-    final Mono<ServiceMessage> result = client.requestResponse(EMPTY_DATA);
-
+    Mono<String> result = service.one(null);
     StepVerifier.create(result)
-        .assertNext(
-            serviceMessage -> assertThat(decodeData(serviceMessage.data()), containsString("\"errorCode\":400")))
-        .expectComplete()
-        .verify(VERIFY_DURATION);
+        .expectErrorMatches(t -> "Expected service request data of type: class java.lang.String, but received: null"
+            .equals(t.getMessage()))
+        .verify(TIMEOUT);
   }
-
-  private String decodeData(ByteBuf data) {
-    try {
-      return data.toString(StandardCharsets.UTF_8);
-    } finally {
-      ReferenceCountUtil.safeRelease(data);
-    }
-  }
-
 }

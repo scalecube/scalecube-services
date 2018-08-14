@@ -60,7 +60,7 @@ public class MicroservicesExtension implements AfterAllCallback {
   public MicroservicesExtension shutdownGateway() {
     if (gateway != null) {
       try {
-        gateway.shutdown();
+        gateway.shutdown().block();
       } catch (Throwable ignore) {
       }
       LOGGER.info("Shutdown gateway {} on {}", gateway, gatewayAddress);
@@ -71,7 +71,7 @@ public class MicroservicesExtension implements AfterAllCallback {
   public MicroservicesExtension shutdownServices() {
     if (services != null) {
       try {
-        services.shutdown();
+        services.shutdown().block();
       } catch (Throwable ignore) {
       }
       LOGGER.info("Shutdown services {} on {}", services, serviceAddress);
