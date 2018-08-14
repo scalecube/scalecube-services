@@ -14,7 +14,7 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport</artifactId>
+      <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
