@@ -3,27 +3,23 @@ package io.scalecube.services;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.transport.Address;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class ServiceReference {
 
-  private String qualifier;
-  private String endpointId;
-  private String host;
-  private int port;
-  private String namespace;
-  private Set<String> contentTypes;
-  private Map<String, String> tags;
-  private String action;
-  private CommunicationMode mode;
-  private Address address;
-
-  /**
-   * @deprecated exposed only for deserialization purpose.
-   */
-  public ServiceReference() {}
+  private final String qualifier;
+  private final String endpointId;
+  private final String host;
+  private final int port;
+  private final String namespace;
+  private final Set<String> contentTypes;
+  private final Map<String, String> tags;
+  private final String action;
+  private final CommunicationMode mode;
+  private final Address address;
 
   public ServiceReference(ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
@@ -32,7 +28,7 @@ public class ServiceReference {
     this.host = serviceEndpoint.host();
     this.port = serviceEndpoint.port();
     this.namespace = serviceRegistration.namespace();
-    this.contentTypes = serviceEndpoint.contentTypes();
+    this.contentTypes = Collections.unmodifiableSet(serviceEndpoint.contentTypes());
     this.tags = mergeTags(serviceMethodDefinition, serviceRegistration, serviceEndpoint);
     this.action = serviceMethodDefinition.getAction();
     this.mode = serviceMethodDefinition.getCommunicationMode();
