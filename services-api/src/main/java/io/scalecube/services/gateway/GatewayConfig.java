@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -10,13 +9,25 @@ import java.util.Optional;
  */
 public final class GatewayConfig {
 
+  private final Class<? extends Gateway> gatewayClass;
+
   private final Map<String, String> options;
 
-  private Integer port;
+  private final int port;
 
   private GatewayConfig(Builder builder) {
+    gatewayClass = builder.gatewayClass;
     port = builder.port;
-    options = Collections.unmodifiableMap(builder.options);
+    options = new HashMap<>(builder.options);
+  }
+
+  /**
+   * Gateway class.
+   *
+   * @return gateway class.
+   */
+  public Class<? extends Gateway> gatewayClass() {
+    return gatewayClass;
   }
 
   /**
@@ -24,8 +35,8 @@ public final class GatewayConfig {
    * 
    * @return port number
    */
-  public Optional<Integer> port() {
-    return Optional.ofNullable(port);
+  public int port() {
+    return port;
   }
 
   /**
@@ -38,13 +49,18 @@ public final class GatewayConfig {
     return Optional.ofNullable(options.get(key));
   }
 
-  public static Builder builder() {
-    return new Builder();
+  public static Builder from(Builder other) {
+    return new Builder(other);
+  }
+
+  public static Builder builder(Class<? extends Gateway> gatewayClass) {
+    return new Builder(gatewayClass);
   }
 
   @Override
   public String toString() {
     return "GatewayConfig{" +
+        "gatewayClass=" + gatewayClass +
         "options=" + options +
         ", port=" + port +
         '}';
@@ -52,11 +68,21 @@ public final class GatewayConfig {
 
   public static class Builder {
 
-    private final Map<String, String> options = new HashMap<>();
+    private final Class<? extends Gateway> gatewayClass;
 
-    private Integer port;
+    private Map<String, String> options = new HashMap<>();
 
-    private Builder() {}
+    private int port;
+
+    private Builder(Builder other) {
+      this.gatewayClass = other.gatewayClass;
+      this.options = new HashMap<>(other.options);
+      this.port = other.port;
+    }
+
+    private Builder(Class<? extends Gateway> gatewayClass) {
+      this.gatewayClass = gatewayClass;
+    }
 
     public Builder port(int port) {
       this.port = port;

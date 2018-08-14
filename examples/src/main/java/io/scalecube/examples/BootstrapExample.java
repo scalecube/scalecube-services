@@ -23,8 +23,8 @@ public class BootstrapExample {
   public static void main(String[] args) throws Exception {
     System.out.println("Start gateway");
     Microservices gateway = Microservices.builder()
-        .gateway(HttpStubGateway.class, 8181) // override default port
-        .gateway(WebsocketStubGateway.class, GatewayConfig.builder()
+        .gateway(GatewayConfig.builder(HttpStubGateway.class).port(8181).build()) // override default port
+        .gateway(GatewayConfig.builder(WebsocketStubGateway.class).port(9191)
             .addOption(WebsocketStubGateway.WS_SPECIFIC_OPTION_NAME, "500") // override default value of specific option
             .build())
         .startAwait();
