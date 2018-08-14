@@ -12,7 +12,7 @@ public class WeightedRandomRouter implements Router {
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
     RandomCollection<ServiceReference> weightedRandom = new RandomCollection<>();
-    serviceRegistry.lookupService(request.qualifier())
+    serviceRegistry.lookupService(request)
         .forEach(sr -> weightedRandom.add(Double.valueOf(sr.tags().get("Weight")), sr));
     return Optional.of(weightedRandom.next());
   }
