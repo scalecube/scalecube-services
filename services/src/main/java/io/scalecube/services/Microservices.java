@@ -33,8 +33,6 @@ import java.util.stream.Collectors;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
-import reactor.util.function.Tuples;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -108,13 +106,12 @@ public class Microservices {
   private final List<ServiceInfo> services;
   private final String id;
   private final int servicePort;
-  private List<Tuple2<Gateway, GatewayConfig>> gatewayHolders;
+  private final GatewayBootstrap gatewayBootstrap;
 
   private DiscoveryConfig.Builder discoveryConfig; // calculated
   private ServiceDiscovery discovery; // calculated
   private Address serviceAddress; // calculated
   private Map<String, String> tags;
-  private ServiceEndpoint endpoint;
 
   private Microservices(Builder builder) {
     this.id = IdGenerator.generateId();
@@ -127,15 +124,8 @@ public class Microservices {
     this.methodRegistry = builder.methodRegistry;
     this.discovery = builder.discovery;
     this.discoveryConfig = builder.discoveryConfig;
-    this.tags = builder.tags;
-    this.gatewayHolders = builder.gatewayDefinitions
-        .stream()
-        .map(gatewayDefinition -> {
-          Gateway gateway = Gateway.getGateway(gatewayDefinition.getT1());
-          GatewayConfig config = gatewayDefinition.getT2();
-          return Tuples.of(gateway, config);
-        })
-        .collect(Collectors.toList());
+    this.tags = new HashMap<>(builder.tags);
+    this.gatewayBootstrap = new GatewayBootstrap(builder.gatewayDefinitions);
   }
 
   public String id() {
@@ -159,7 +149,7 @@ public class Microservices {
 
     // register services in service registry
     if (!services.isEmpty()) {
-      this.endpoint = ServiceScanner.scan(
+      ServiceEndpoint endpoint = ServiceScanner.scan(
           services, id, serviceAddress.host(), serviceAddress.port(), tags);
 
       serviceRegistry.registerService(endpoint);
@@ -167,17 +157,11 @@ public class Microservices {
     }
 
     // configure discovery and publish to the cluster.
-    return discovery.start(discoveryConfig.serviceRegistry(serviceRegistry)
-        .build())
+    return discovery
+        .start(discoveryConfig.serviceRegistry(serviceRegistry).build())
         .map(discovery -> (this.discovery = discovery))
         .then(Mono.just(Reflect.inject(this, serviceInstances)))
-        .then(Flux.fromIterable(gatewayHolders)
-            .flatMap(gatewayHolder -> {
-              Gateway gateway = gatewayHolder.getT1();
-              GatewayConfig config = gatewayHolder.getT2();
-              return gateway.start(config);
-            })
-            .then(Mono.just(this)));
+        .then(gatewayBootstrap.start().then(Mono.just(this)));
   }
 
   public Metrics metrics() {
@@ -197,7 +181,7 @@ public class Microservices {
     private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
     private DiscoveryConfig.Builder discoveryConfig = DiscoveryConfig.builder();
     private Map<String, String> tags = new HashMap<>();
-    private List<Tuple2<Class<? extends Gateway>, GatewayConfig>> gatewayDefinitions = new ArrayList<>();
+    private List<GatewayConfig> gatewayDefinitions = new ArrayList<>();
 
     public Mono<Microservices> start() {
       Call call = new Call(client, methodRegistry, serviceRegistry).metrics(this.metrics);
@@ -209,8 +193,7 @@ public class Microservices {
                   ((ServiceInfo) service)
                   : ServiceInfo.fromServiceInstance(service).build()));
 
-      return new Microservices(this)
-          .start();
+      return new Microservices(this).start();
     }
 
     public Microservices startAwait() {
@@ -282,13 +265,50 @@ public class Microservices {
       return this;
     }
 
-    public Builder gateway(Class<? extends Gateway> gatewayClass, GatewayConfig config) {
-      gatewayDefinitions.add(Tuples.of(gatewayClass, config));
+    public Builder gateway(GatewayConfig gatewayConfig) {
+      gatewayDefinitions.add(gatewayConfig);
       return this;
     }
+  }
 
-    public Builder gateway(Class<? extends Gateway> gatewayClass, int port) {
-      return gateway(gatewayClass, GatewayConfig.builder().port(port).build());
+  private static class GatewayBootstrap {
+
+    private final List<GatewayConfig> gatewayDefinitions;
+    private final List<Gateway> gatewayInstances = new ArrayList<>();
+    private final Map<Class<? extends Gateway>, Address> gatewayAddresses = new HashMap<>();
+
+    private GatewayBootstrap(List<GatewayConfig> gatewayDefinitions) {
+      this.gatewayDefinitions = new ArrayList<>(gatewayDefinitions);
+    }
+
+    private Mono<Void> start() {
+      return Flux.fromIterable(gatewayDefinitions)
+          .flatMap(
+              gatewayConfig -> {
+                Gateway gateway = Gateway.getGateway(gatewayConfig.gatewayClass());
+                gatewayInstances.add(gateway);
+                return gateway
+                    .start(gatewayConfig)
+                    .doOnSuccess(
+                        address -> {
+                          String host = address.getHostString();
+                          int port = address.getPort();
+                          gatewayAddresses.put(gatewayConfig.gatewayClass(), Address.create(host, port));
+                        });
+              })
+          .then();
+    }
+
+    private Mono<Void> shutdown() {
+      return Flux.fromIterable(gatewayInstances).flatMap(Gateway::stop).then();
+    }
+
+    private Address getAddress(Class<? extends Gateway> gatewayClass) {
+      return gatewayAddresses.get(gatewayClass);
+    }
+
+    private Map<Class<? extends Gateway>, Address> gatewayAddresses() {
+      return Collections.unmodifiableMap(gatewayAddresses);
     }
   }
 
@@ -308,10 +328,17 @@ public class Microservices {
     return new Call(client, methodRegistry, serviceRegistry).metrics(metrics);
   }
 
+  public Address gatewayAddress(Class<? extends Gateway> gatewayClass) {
+    return gatewayBootstrap.getAddress(gatewayClass);
+  }
+
+  public Map<Class<? extends Gateway>, Address> gatewayAddresses() {
+    return gatewayBootstrap.gatewayAddresses();
+  }
+
   public Mono<Void> shutdown() {
     return Mono.when(
-        Flux.fromIterable(gatewayHolders)
-            .flatMap(gatewayHolder -> gatewayHolder.getT1().stop()),
+        gatewayBootstrap.shutdown(),
         discovery.shutdown(),
         server.stop(),
         ServiceTransport.getTransport().shutdown());

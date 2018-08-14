@@ -11,7 +11,10 @@ import reactor.core.publisher.Mono;
 
 public class HttpStubGateway implements Gateway {
 
-  private static final GatewayConfig defaultConfig = GatewayConfig.builder().port(8080).build();
+  private static final GatewayConfig defaultConfig = GatewayConfig
+      .builder(HttpStubGateway.class)
+      .port(8080)
+      .build();
 
   @Override
   public Mono<InetSocketAddress> start() {
@@ -21,13 +24,11 @@ public class HttpStubGateway implements Gateway {
   @Override
   public Mono<InetSocketAddress> start(GatewayConfig config) {
     return Mono.defer(() -> {
-      final Integer port = config.port().orElseGet(() -> defaultConfig.port().get());
-
       System.out.println("Starting HTTP gateway...");
 
       return Mono
           .delay(Duration.ofMillis(ThreadLocalRandom.current().nextInt(100, 500)))
-          .map(aLong -> new InetSocketAddress(port))
+          .map(aLong -> new InetSocketAddress(config.port()))
           .doOnSuccess(inetSocketAddress -> System.out.println("HTTP gateway is started on " + inetSocketAddress));
     });
   }
