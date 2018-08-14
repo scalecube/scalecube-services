@@ -18,7 +18,7 @@ public final class ServiceLoaderUtil {
    * @param aClass service type
    * @return the first implementation of the given service type
    */
-  public static <T> Optional<T> findFirstMatched(Class<T> aClass) {
+  public static <T> Optional<T> findFirst(Class<T> aClass) {
     ServiceLoader<T> load = ServiceLoader.load(aClass);
     return StreamSupport.stream(load.spliterator(), false).findFirst();
   }

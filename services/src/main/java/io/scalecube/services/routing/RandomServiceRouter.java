@@ -13,7 +13,7 @@ public class RandomServiceRouter implements Router {
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
     List<ServiceReference> serviceInstances = serviceRegistry.lookupService(request);
-    if (serviceInstances == null || serviceInstances.isEmpty()) {
+    if (serviceInstances.isEmpty()) {
       return Optional.empty();
     } else if (serviceInstances.size() == 1) {
       return Optional.of(serviceInstances.get(0));
