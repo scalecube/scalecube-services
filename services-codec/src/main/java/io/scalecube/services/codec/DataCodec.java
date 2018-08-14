@@ -25,19 +25,9 @@ public interface DataCodec {
     }
     DataCodec dataCodec = INSTANCES.get(contentType);
     if (dataCodec == null) {
-      throw new IllegalStateException("DataCodec for '" + contentType + "' not configured");
+      throw new IllegalArgumentException("DataCodec for '" + contentType + "' not configured");
     }
     return dataCodec;
-  }
-
-  static DataCodec getInstance(String contentType, String defaultContentType) {
-    if (contentType != null) {
-      DataCodec dataCodec = INSTANCES.get(contentType);
-      if (dataCodec != null) {
-        return dataCodec;
-      }
-    }
-    return getInstance(defaultContentType);
   }
 
   String contentType();

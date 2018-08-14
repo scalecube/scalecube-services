@@ -58,7 +58,6 @@ public final class ServiceLoaderUtil {
    */
   public static <T> Stream<T> findAll(Class<T> aClass, Predicate<? super T> predicate) {
     ServiceLoader<T> load = ServiceLoader.load(aClass);
-    return StreamSupport.stream(load.spliterator(), false)
-        .filter(predicate);
+    return StreamSupport.stream(load.spliterator(), false).filter(predicate);
   }
 }
