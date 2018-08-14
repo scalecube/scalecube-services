@@ -16,14 +16,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.function.BiFunction;
 
 public final class ServiceMessageCodec {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceMessageCodec.class);
-
-  private static final String DEFAULT_DATA_FORMAT = "application/json";
 
   private final HeadersCodec headersCodec;
 
@@ -41,8 +38,7 @@ public final class ServiceMessageCodec {
     } else if (message.hasData()) {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
-        String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-        DataCodec dataCodec = DataCodec.getInstance(contentType);
+        DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
         ReferenceCountUtil.safeRelease(dataBuffer);
@@ -94,8 +90,7 @@ public final class ServiceMessageCodec {
 
     ByteBuf dataBuffer = message.data();
     try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice())) {
-      String contentType = Optional.ofNullable(message.dataFormat()).orElse(DEFAULT_DATA_FORMAT);
-      DataCodec dataCodec = DataCodec.getInstance(contentType);
+      DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
       LOGGER.error("Failed to decode data on: {}, cause: {}, data buffer: {}",

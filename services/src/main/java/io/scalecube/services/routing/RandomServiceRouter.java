@@ -12,12 +12,14 @@ public class RandomServiceRouter implements Router {
 
   @Override
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
-    List<ServiceReference> serviceInstances = serviceRegistry.lookupService(request.qualifier());
-    if (!serviceInstances.isEmpty()) {
+    List<ServiceReference> serviceInstances = serviceRegistry.lookupService(request);
+    if (serviceInstances.isEmpty()) {
+      return Optional.empty();
+    } else if (serviceInstances.size() == 1) {
+      return Optional.of(serviceInstances.get(0));
+    } else {
       int index = ThreadLocalRandom.current().nextInt((serviceInstances.size()));
       return Optional.of(serviceInstances.get(index));
-    } else {
-      return Optional.empty();
     }
   }
 

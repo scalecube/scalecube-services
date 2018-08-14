@@ -5,22 +5,29 @@ import io.scalecube.services.ServiceLoaderUtil;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public interface DataCodec {
 
-  Map<String, DataCodec> INSTANCES = new ConcurrentHashMap<>();
+  Map<String, DataCodec> INSTANCES = ServiceLoaderUtil.findAll(DataCodec.class)
+      .collect(Collectors.toMap(DataCodec::contentType, Function.identity()));
 
-  static DataCodec getInstance(String contentType) {
-    return INSTANCES.computeIfAbsent(contentType, DataCodec::loadInstance);
+  static Collection<DataCodec> getAllInstances() {
+    return INSTANCES.values();
   }
 
-  static DataCodec loadInstance(String contentType) {
-    Optional<DataCodec> result = ServiceLoaderUtil.findFirst(DataCodec.class,
-        codec -> codec.contentType().equalsIgnoreCase(contentType));
-    return result.orElseThrow(() -> new IllegalStateException("DataCodec not configured"));
+  static DataCodec getInstance(String contentType) {
+    if (contentType == null) {
+      throw new IllegalArgumentException("contentType not specified");
+    }
+    DataCodec dataCodec = INSTANCES.get(contentType);
+    if (dataCodec == null) {
+      throw new IllegalArgumentException("DataCodec for '" + contentType + "' not configured");
+    }
+    return dataCodec;
   }
 
   String contentType();

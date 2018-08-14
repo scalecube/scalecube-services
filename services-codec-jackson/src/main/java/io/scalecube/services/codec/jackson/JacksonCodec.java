@@ -20,6 +20,8 @@ import java.util.Map;
 
 public final class JacksonCodec implements DataCodec, HeadersCodec {
 
+  public static final String CONTENT_TYPE = "application/json";
+
   private final ObjectMapper mapper;
 
   public JacksonCodec() {
@@ -32,7 +34,7 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
 
   @Override
   public String contentType() {
-    return "application/json";
+    return CONTENT_TYPE;
   }
 
   @Override

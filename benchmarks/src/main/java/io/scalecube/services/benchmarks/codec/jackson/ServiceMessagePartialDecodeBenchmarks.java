@@ -16,7 +16,7 @@ public class ServiceMessagePartialDecodeBenchmarks {
 
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
-    new ServiceMessageCodecBenchmarksState(settings).runForSync(state -> {
+    new ServiceMessageCodecBenchmarksState.Jackson(settings).runForSync(state -> {
 
       Timer timer = state.timer("timer");
       ServiceMessageCodec messageCodec = state.jacksonMessageCodec();
