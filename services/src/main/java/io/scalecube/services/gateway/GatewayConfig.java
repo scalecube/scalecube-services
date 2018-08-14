@@ -76,16 +76,13 @@ public final class GatewayConfig {
 
   @Override
   public String toString() {
-    return "GatewayConfig{"
-        + "gatewayClass="
-        + gatewayClass
-        + ", port="
-        + port
-        + ", executorService="
-        + executorService
-        + ", options="
-        + options
-        + '}';
+    final StringBuilder sb = new StringBuilder("GatewayConfig{");
+    sb.append("gatewayClass=").append(gatewayClass);
+    sb.append(", options=").append(options);
+    sb.append(", port=").append(port);
+    sb.append(", executorService=").append(executorService);
+    sb.append('}');
+    return sb.toString();
   }
 
   public static class Builder {
