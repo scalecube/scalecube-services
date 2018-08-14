@@ -37,108 +37,28 @@ import reactor.core.publisher.Mono;
  * Service Injector scan and injects beans to a given Microservices instance.
  *
  */
-public class Reflect {
+public final class Reflect {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
+
+  private Reflect() {
+    // Do not instantiate
+  }
 
 
   /**
-   * Injector builder.
+   * Inject instances to the microservices instance. either Microservices or ServiceProxy. Scan all local service
+   * instances and inject a service proxy.
    *
-   * @param microservices instance to be injected.
-   * @return Builder for injection.
+   * @param microservices microservices instance
+   * @param services services set
+   * @return microservices instance
    */
-  public static Builder builder(Microservices microservices) {
-    return new Builder(microservices);
-  }
-
-  static class Builder {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
-
-    private Microservices microservices;
-
-    Builder(Microservices ms) {
-      this.microservices = ms;
-    }
-
-    /**
-     * inject instances to the microservices instance. either Microservices or ServiceProxy.
-     *
-     * @return injected microservices instance.
-     */
-    public Microservices inject() {
-      this.inject(this.microservices.services());
-      return this.microservices;
-    }
-
-    /**
-     * scan all local service instances and inject a service proxy.
-     */
-    private void inject(Collection<Object> collection) {
-      for (Object instance : collection) {
-        scanServiceFields(instance);
-        processAfterConstruct(instance);
-      }
-    }
-
-    private void processAfterConstruct(Object targetInstance) {
-      Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
-      Arrays.stream(declaredMethods)
-          .filter(method -> method.isAnnotationPresent(AfterConstruct.class))
-          .forEach(afterConstructMethod -> {
-            try {
-              afterConstructMethod.setAccessible(true);
-              Object[] parameters = Arrays.stream(afterConstructMethod.getParameters()).map(mapper -> {
-                if (mapper.getType().equals(Microservices.class)) {
-                  return this.microservices;
-                } else if (isService(mapper.getType())) {
-                  return this.microservices.call().create().api(mapper.getType());
-                } else {
-                  return null;
-                }
-              }).toArray();
-              afterConstructMethod.invoke(targetInstance, parameters);
-            } catch (Exception ex) {
-              throw new RuntimeException(ex);
-            }
-          });
-    }
-
-    private void scanServiceFields(Object service) {
-      for (Field field : service.getClass().getDeclaredFields()) {
-        injectField(field, service);
-      }
-    }
-
-    private void injectField(Field field, Object service) {
-      if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
-        setField(field, service, this.microservices);
-      } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
-        Inject injection = field.getAnnotation(Inject.class);
-        Class<? extends Router> routerClass = injection.router();
-
-        final ServiceCall.Call call = this.microservices.call();
-
-        if (!routerClass.isInterface()) {
-          call.router(routerClass);
-        }
-
-        final Object targetProxy = call.create().api(field.getType());
-
-        setField(field, service, targetProxy);
-      }
-    }
-
-    private static boolean isService(Class<?> type) {
-      return type.isAnnotationPresent(Service.class);
-    }
-
-    private static void setField(Field field, Object object, Object value) {
-      try {
-        field.setAccessible(true);
-        field.set(object, value);
-      } catch (Exception ex) {
-        LOGGER.error("failed to set service proxy of type: {} reason:{}", object.getClass().getName(), ex.getMessage());
-      }
-    }
+  public static Microservices inject(Microservices microservices, Collection<Object> services) {
+    services.forEach(service -> Arrays.stream(service.getClass().getDeclaredFields())
+        .forEach(field -> injectField(microservices, field, service)));
+    services.forEach(service -> processAfterConstruct(microservices, service));
+    return microservices;
   }
 
   /**
@@ -306,8 +226,8 @@ public class Reflect {
 
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
-    if(isRequestChannel(method)) {
-      return REQUEST_CHANNEL ;
+    if (isRequestChannel(method)) {
+      return REQUEST_CHANNEL;
     } else if (returnType.isAssignableFrom(Flux.class)) {
       return REQUEST_STREAM;
     } else if (returnType.isAssignableFrom(Mono.class)) {
@@ -325,5 +245,60 @@ public class Reflect {
     return reqTypes.length > 0
         && (Flux.class.isAssignableFrom(reqTypes[0])
             || Publisher.class.isAssignableFrom(reqTypes[0]));
+  }
+
+  private static void injectField(Microservices microservices, Field field, Object service) {
+    if (field.isAnnotationPresent(Inject.class) && field.getType().equals(Microservices.class)) {
+      setField(field, service, microservices);
+    } else if (field.isAnnotationPresent(Inject.class) && isService(field.getType())) {
+      Inject injection = field.getAnnotation(Inject.class);
+      Class<? extends Router> routerClass = injection.router();
+
+      final ServiceCall.Call call = microservices.call();
+
+      if (!routerClass.isInterface()) {
+        call.router(routerClass);
+      }
+
+      final Object targetProxy = call.create().api(field.getType());
+
+      setField(field, service, targetProxy);
+    }
+  }
+
+  private static void setField(Field field, Object object, Object value) {
+    try {
+      field.setAccessible(true);
+      field.set(object, value);
+    } catch (Exception ex) {
+      LOGGER.error("failed to set service proxy of type: {} reason:{}", object.getClass().getName(), ex.getMessage());
+    }
+  }
+
+  private static void processAfterConstruct(Microservices microservices, Object targetInstance) {
+    Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
+    Arrays.stream(declaredMethods)
+        .filter(method -> method.isAnnotationPresent(AfterConstruct.class))
+        .forEach(afterConstructMethod -> {
+          try {
+            afterConstructMethod.setAccessible(true);
+            Object[] parameters = Arrays.stream(afterConstructMethod.getParameters()).map(mapper -> {
+              if (mapper.getType().equals(Microservices.class)) {
+                return microservices;
+              } else if (isService(mapper.getType())) {
+                return microservices.call().create().api(mapper.getType());
+              } else {
+                return null;
+              }
+            }).toArray();
+            afterConstructMethod.invoke(targetInstance, parameters);
+          } catch (Exception ex) {
+            throw new RuntimeException(ex);
+          }
+        });
+  }
+
+  private static boolean isService(Class<?> type) {
+    return type.isAnnotationPresent(Service.class);
   }
 }
