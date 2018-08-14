@@ -1,13 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.scalecube.services.codec.HeadersCodec;
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.transport.ServiceTransport;
-import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.rsocket.client.RSocketClientTransport;
-import io.scalecube.services.transport.rsocket.server.RSocketServerTransport;
-import io.scalecube.services.transport.server.api.ServerTransport;
-
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -16,14 +8,17 @@ import io.netty.util.NettyRuntime;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
-
+import io.scalecube.services.codec.HeadersCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.api.ServiceTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ThreadFactory;
-
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.FutureMono;
+
+import java.util.concurrent.ThreadFactory;
 
 public class RSocketServiceTransport implements ServiceTransport {
 

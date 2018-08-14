@@ -15,17 +15,12 @@
   <dependencies>  
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-transport</artifactId>
+      <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>scalecube-services-codec</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

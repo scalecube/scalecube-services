@@ -1,26 +1,23 @@
-package io.scalecube.services.transport.rsocket.server;
-
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.methods.ServiceMethodRegistry;
-import io.scalecube.services.transport.server.api.ServerTransport;
+package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.ByteBufPayload;
-
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.methods.ServiceMethodRegistry;
+import io.scalecube.services.transport.api.ServerTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.NettyContext;
+import reactor.ipc.netty.tcp.TcpServer;
 
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
-
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.NettyContext;
-import reactor.ipc.netty.tcp.TcpServer;
 
 public class RSocketServerTransport implements ServerTransport {
 
