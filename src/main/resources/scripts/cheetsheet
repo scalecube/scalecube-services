@@ -9,7 +9,7 @@ sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/li
 ### Tests ###
 
 ## Request One ##
-sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.RSWSRequestOneBenchmark gw_address=$GATEWAY_IP:8080 injectors=1250 messageRate=12500 executionTaskDurationInSec=300 rampUpDurationInSec=150
+sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestOneBenchmark gw_address=$GATEWAY_IP:8080 injectors=1250 messageRate=12500 executionTaskDurationInSec=300 rampUpDurationInSec=150
 
 ## Request Stream ##
-sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.RSWSRequestStreamBenchmark gw_address=$GATEWAY_IP:8080 injectors=1250 messageRate=7500 executionTaskDurationInSec=300 rampUpDurationInSec=150
+sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestStreamBenchmark gw_address=$GATEWAY_IP:8080 injectors=1250 messageRate=7500 executionTaskDurationInSec=300 rampUpDurationInSec=150

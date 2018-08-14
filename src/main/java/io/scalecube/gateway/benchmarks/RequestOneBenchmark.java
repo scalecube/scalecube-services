@@ -1,4 +1,4 @@
-package io.scalecube.gateway.benchmarks.rsocket;
+package io.scalecube.gateway.benchmarks;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.example.ExampleService;
@@ -7,10 +7,17 @@ import com.codahale.metrics.Timer;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
-public class RSWSRequestOneMicrobenchmark {
+public final class RequestOneBenchmark {
 
-  public static void main(String[] args) {
+  private RequestOneBenchmark() {
+    // Do not instantiate
+  }
+
+  public static void runWith(String[] args,
+      Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
+
     BenchmarksSettings settings = BenchmarksSettings.from(args)
         .injectors(1000)
         .messageRate(100_000)
@@ -20,10 +27,12 @@ public class RSWSRequestOneMicrobenchmark {
         .durationUnit(TimeUnit.MILLISECONDS)
         .build();
 
-    new RSWSMicrobenchmarkState(settings).runWithRampUp(
+    AbstractBenchmarkState<?> benchmarkState = benchmarkStateFactory.apply(settings);
+
+    benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("timer");
+          Timer timer = state.timer("service-one-timer");
           return (executionTick, client) -> {
             Timer.Context timeContext = timer.time();
             ExampleService service = client.forService(ExampleService.class);

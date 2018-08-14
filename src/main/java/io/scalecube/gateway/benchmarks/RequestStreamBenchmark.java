@@ -1,4 +1,4 @@
-package io.scalecube.gateway.benchmarks.rsocket;
+package io.scalecube.gateway.benchmarks;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.example.ExampleService;
@@ -8,23 +8,32 @@ import com.codahale.metrics.Timer;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
-public class RSWSRequestStreamStandaloneMicrobenchmark {
+public final class RequestStreamBenchmark {
 
-  public static void main(String[] args) {
+  private RequestStreamBenchmark() {
+    // Do not instantiate
+  }
+
+  public static void runWith(String[] args,
+      Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
+
     BenchmarksSettings settings = BenchmarksSettings.from(args)
         .injectors(1000)
-        .rampUpDuration(Duration.ofSeconds(60))
         .messageRate(100_000)
+        .rampUpDuration(Duration.ofSeconds(60))
         .executionTaskDuration(Duration.ofSeconds(300))
         .consoleReporterEnabled(true)
         .durationUnit(TimeUnit.MILLISECONDS)
         .build();
 
-    new RSWSStandaloneMicrobenchmarkState(settings).runWithRampUp(
+    AbstractBenchmarkState<?> benchmarkState = benchmarkStateFactory.apply(settings);
+
+    benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("notification.latency");
+          Timer timer = state.timer("service-stream-timer");
           StreamRequest streamRequest = new StreamRequest()
               .setIntervalMillis(settings.executionTaskInterval().toMillis())
               .setMessagesPerInterval(settings.messagesPerExecutionInterval());
