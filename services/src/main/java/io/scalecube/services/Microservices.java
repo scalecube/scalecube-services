@@ -143,8 +143,13 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
+    List<Object> serviceInstances = services.stream()
+        .map(ServiceInfo::serviceInstance)
+        .collect(Collectors.toList());
+
     // register service in method registry
-    services.stream().map(ServiceInfo::serviceInstance).forEach(methodRegistry::registerService);
+    serviceInstances.forEach(methodRegistry::registerService);
+
 
     // bind service server transport
     InetSocketAddress address =
@@ -165,7 +170,7 @@ public class Microservices {
     return discovery.start(discoveryConfig.serviceRegistry(serviceRegistry)
         .build())
         .map(discovery -> (this.discovery = discovery))
-        .then(Mono.just(Reflect.builder(this).inject()))
+        .then(Mono.just(Reflect.builder(this).inject(serviceInstances)))
         .then(Flux.fromIterable(gatewayHolders)
             .flatMap(gatewayHolder -> {
               Gateway gateway = gatewayHolder.getT1();
@@ -177,10 +182,6 @@ public class Microservices {
 
   public Metrics metrics() {
     return this.metrics;
-  }
-
-  public Collection<Object> services() {
-    return services.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
   }
 
   public static final class Builder {

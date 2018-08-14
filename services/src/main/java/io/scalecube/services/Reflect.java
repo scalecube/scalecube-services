@@ -53,30 +53,24 @@ public class Reflect {
   static class Builder {
     private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
 
-    private Microservices microservices;
+    private final Microservices microservices;
 
     Builder(Microservices ms) {
       this.microservices = ms;
     }
 
     /**
-     * inject instances to the microservices instance. either Microservices or ServiceProxy.
+     * Inject instances to the microservices instance. either Microservices or ServiceProxy.
+     * Scan all local service instances and inject a service proxy.
      *
      * @return injected microservices instance.
      */
-    public Microservices inject() {
-      this.inject(this.microservices.services());
-      return this.microservices;
-    }
-
-    /**
-     * scan all local service instances and inject a service proxy.
-     */
-    private void inject(Collection<Object> collection) {
+    public Microservices inject(Collection<Object> collection) {
       for (Object instance : collection) {
         scanServiceFields(instance);
         processAfterConstruct(instance);
       }
+      return this.microservices;
     }
 
     private void processAfterConstruct(Object targetInstance) {
