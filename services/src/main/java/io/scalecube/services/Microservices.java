@@ -170,7 +170,7 @@ public class Microservices {
     return discovery.start(discoveryConfig.serviceRegistry(serviceRegistry)
         .build())
         .map(discovery -> (this.discovery = discovery))
-        .then(Mono.just(Reflect.builder(this).inject(serviceInstances)))
+        .then(Mono.just(Reflect.inject(this, serviceInstances)))
         .then(Flux.fromIterable(gatewayHolders)
             .flatMap(gatewayHolder -> {
               Gateway gateway = gatewayHolder.getT1();
