@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import com.codahale.metrics.MetricRegistry;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
@@ -17,9 +18,6 @@ import io.scalecube.services.transport.client.api.ClientTransport;
 import io.scalecube.services.transport.server.api.ServerTransport;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
-
-import com.codahale.metrics.MetricRegistry;
-
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,9 +26,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -266,6 +264,10 @@ public class Microservices {
     }
 
     public Builder gateway(GatewayConfig gatewayConfig) {
+      if (gatewayConfig.executorService() == null) {
+        ExecutorService executorService = ServiceTransport.getTransport().getExecutorService();
+        gatewayConfig = GatewayConfig.from(gatewayConfig).executorService(executorService).build();
+      }
       gatewayDefinitions.add(gatewayConfig);
       return this;
     }
