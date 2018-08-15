@@ -37,12 +37,14 @@ public class RSocketWebsocketGateway implements Gateway {
 
           InetSocketAddress listenAddress = new InetSocketAddress(config.port());
 
+          EventLoopGroup eventLoopGroup =
+              (config.executorService() != null)
+                  ? (EventLoopGroup) config.executorService()
+                  : (EventLoopGroup) executorService;
+
           HttpServer httpServer =
               HttpServer.create(
-                  options ->
-                      options
-                          .eventLoopGroup((EventLoopGroup) executorService)
-                          .listenAddress(listenAddress));
+                  options -> options.eventLoopGroup(eventLoopGroup).listenAddress(listenAddress));
 
           SocketAcceptor socketAcceptor = new RSocketWebsocketAcceptor(call.create(), metrics);
           WebsocketServerTransport transport = WebsocketServerTransport.create(httpServer);
