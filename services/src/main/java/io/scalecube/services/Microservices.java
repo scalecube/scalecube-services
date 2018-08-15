@@ -101,40 +101,52 @@ public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
   private final Metrics metrics;
-  private final ServiceTransport transport;
-  private final ClientTransport clientTransport;
-  private final ServerTransport serverTransport;
-  private final ExecutorService transportExecutorService;
   private final ServiceMethodRegistry methodRegistry;
   private final List<ServiceInfo> services;
   private final String id;
-  private final int servicePort;
+  private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
 
   private DiscoveryConfig.Builder discoveryConfig; // calculated
   private ServiceDiscovery discovery; // calculated
-  private Address serviceAddress; // calculated
   private Map<String, String> tags;
 
   private Microservices(Builder builder) {
     this.id = IdGenerator.generateId();
-    this.servicePort = builder.servicePort;
     this.metrics = builder.metrics;
 
-    this.transport = builder.transport;
-    this.clientTransport = builder.clientTransport;
-    this.serverTransport = builder.serverTransport;
-    this.transportExecutorService = builder.transportExecutorService;
-
     this.serviceRegistry = builder.serviceRegistry;
-    this.services = Collections.unmodifiableList(new ArrayList<>(builder.services));
+    this.services = new ArrayList<>(builder.services);
     this.methodRegistry = builder.methodRegistry;
     this.discovery = builder.discovery;
     this.discoveryConfig = builder.discoveryConfig;
     this.tags = new HashMap<>(builder.tags);
 
-    Call call = new Call(clientTransport, methodRegistry, serviceRegistry).metrics(this.metrics);
-    this.gatewayBootstrap = new GatewayBootstrap(builder.gatewayDefinitions, transportExecutorService, call, metrics);
+    this.transportBootstrap = builder.transportBootstrap;
+    this.gatewayBootstrap = builder.gatewayBootstrap;
+  }
+
+  private static class ServiceTransportBootstrap {
+
+    private int servicePort;
+    private Address listenAddress;
+    private ServiceMethodRegistry methodRegistry;
+    private ServiceTransport transport;
+    private ClientTransport clientTransport;
+    private ServerTransport serverTransport;
+    private ExecutorService executorService;
+
+    private void start() {
+      this.transportExecutorService = transport.getExecutorService();
+      this.clientTransport = transport.getClientTransport(transportExecutorService);
+      this.serverTransport = transport.getServerTransport(transportExecutorService);
+
+
+    }
+
+    private void shutdown() {
+
+    }
   }
 
   public String id() {
@@ -178,25 +190,16 @@ public class Microservices {
 
   public static final class Builder {
 
-    private int servicePort = 0;
     private List<ServiceInfo> services = new ArrayList<>();
     private List<Function<Call, Collection<Object>>> serviceProviders = new ArrayList<>();
     private Metrics metrics;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private ServiceTransport transport = ServiceTransport.getTransport();
-    private ClientTransport clientTransport; // calculated
-    private ServerTransport serverTransport; // calculated
-    private ExecutorService transportExecutorService; // calculated
     private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
     private DiscoveryConfig.Builder discoveryConfig = DiscoveryConfig.builder();
     private Map<String, String> tags = new HashMap<>();
-    private List<GatewayConfig> gatewayDefinitions = new ArrayList<>();
 
     public Mono<Microservices> start() {
-      this.transportExecutorService = transport.getExecutorService();
-      this.clientTransport = transport.getClientTransport(transportExecutorService);
-      this.serverTransport = transport.getServerTransport(transportExecutorService);
 
       Call call = new Call(clientTransport, methodRegistry, serviceRegistry).metrics(this.metrics);
 
