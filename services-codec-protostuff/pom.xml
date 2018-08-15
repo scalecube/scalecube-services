@@ -14,11 +14,11 @@
 
   <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-codec</artifactId>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <!-- protostuff deps -->
+
     <dependency>
       <groupId>io.protostuff</groupId>
       <artifactId>protostuff-core</artifactId>
