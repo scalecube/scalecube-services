@@ -5,15 +5,19 @@ import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.benchmarks.example.ExampleServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketServer;
+import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.services.Microservices;
-
+import io.scalecube.services.gateway.GatewayConfig;
+import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 
 public class DistributedMicrobenchmarkState extends AbstractBenchmarkState<DistributedMicrobenchmarkState> {
 
-  private RSocketWebsocketServer gateway;
+  private static final GatewayConfig gatewayConfig =
+      GatewayConfig.builder(RSocketWebsocketGateway.class).build();
+
   private Microservices services;
+  private Microservices gateway;
 
   public DistributedMicrobenchmarkState(BenchmarksSettings settings) {
     super(settings);
@@ -27,12 +31,11 @@ public class DistributedMicrobenchmarkState extends AbstractBenchmarkState<Distr
         .services(new ExampleServiceImpl())
         .startAwait();
 
-    Microservices microservices = Microservices.builder()
-        .seeds(services.discovery().address())
-        .startAwait();
-
-    gateway = new RSocketWebsocketServer(microservices);
-    gateway.start();
+    gateway =
+        Microservices.builder()
+            .seeds(services.discovery().address())
+            .gateway(gatewayConfig)
+            .startAwait();
   }
 
   @Override
@@ -42,15 +45,18 @@ public class DistributedMicrobenchmarkState extends AbstractBenchmarkState<Distr
       services.shutdown().block();
     }
     if (gateway != null) {
-      gateway.stop();
+      gateway.shutdown().block();
     }
   }
 
   @Override
   public Mono<Client> createClient() {
-    return createClient(ClientSettings.builder()
-        .host(gateway.address().getHostString())
-        .port(gateway.address().getPort())
-        .build());
+    InetSocketAddress gatewayAddress = gateway.gatewayAddress(gatewayConfig.gatewayClass());
+
+    return createClient(
+        ClientSettings.builder()
+            .host(gatewayAddress.getHostString())
+            .port(gatewayAddress.getPort())
+            .build());
   }
 }
