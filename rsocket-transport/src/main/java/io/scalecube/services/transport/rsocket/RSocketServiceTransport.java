@@ -47,8 +47,6 @@ public class RSocketServiceTransport implements ServiceTransport {
     LOGGER.debug("Epoll support: " + isEpollSupported);
   }
 
-  public RSocketServiceTransport() {}
-
   @Override
   public ClientTransport getClientTransport(ExecutorService executorService) {
     HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
