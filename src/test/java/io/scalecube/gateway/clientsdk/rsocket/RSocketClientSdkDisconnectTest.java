@@ -10,20 +10,18 @@ import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.gateway.clientsdk.exceptions.ConnectionClosedException;
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
-import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketServer;
+import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
-
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.resources.LoopResources;
-import reactor.test.StepVerifier;
-
+import io.scalecube.services.gateway.GatewayConfig;
+import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.time.Duration;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.resources.LoopResources;
+import reactor.test.StepVerifier;
 
 class RSocketClientSdkDisconnectTest {
 
@@ -32,7 +30,6 @@ class RSocketClientSdkDisconnectTest {
   private static final String JOHN = "John";
   private static final int RSOCKET_PORT = 8080;
 
-  private RSocketWebsocketServer rsocketServer;
   private LoopResources clientLoopResources;
   private Microservices seed;
 
@@ -40,13 +37,13 @@ class RSocketClientSdkDisconnectTest {
 
   @BeforeEach
   void startClient() {
-    seed = Microservices
-        .builder()
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    seed =
+        Microservices.builder()
+            .services(new GreetingServiceImpl())
+            .gateway(
+                GatewayConfig.builder(RSocketWebsocketGateway.class).port(RSOCKET_PORT).build())
+            .startAwait();
 
-    rsocketServer = new RSocketWebsocketServer(seed, RSOCKET_PORT);
-    rsocketServer.start();
     clientLoopResources = LoopResources.create("eventLoop");
 
     ClientSettings settings = ClientSettings.builder().port(RSOCKET_PORT).build();
@@ -66,9 +63,6 @@ class RSocketClientSdkDisconnectTest {
     if (rsocketClient != null) {
       rsocketClient.close().block(SHUTDOWN_TIMEOUT);
     }
-    if (rsocketServer != null) {
-      rsocketServer.stop();
-    }
     if (clientLoopResources != null) {
       clientLoopResources.disposeLater().block(SHUTDOWN_TIMEOUT);
     }
@@ -83,7 +77,7 @@ class RSocketClientSdkDisconnectTest {
 
     StepVerifier.create(rsocketClient.forService(GreetingService.class).many(JOHN)
         .doOnSubscribe(subscription -> Mono.delay(shutdownAt)
-            .doOnSuccess(aLong -> rsocketServer.stop())
+            .doOnSuccess(ignore -> seed.shutdown())
             .subscribe()))
         .thenConsumeWhile(response -> {
           assertThat(response, startsWith("Greeting ("));
