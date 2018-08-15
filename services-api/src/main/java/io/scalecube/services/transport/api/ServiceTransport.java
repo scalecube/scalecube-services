@@ -1,9 +1,10 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.ServiceLoaderUtil;
-import reactor.core.publisher.Mono;
 
 import java.util.concurrent.ExecutorService;
+
+import reactor.core.publisher.Mono;
 
 /** Service transport interface. */
 public interface ServiceTransport {
@@ -22,18 +23,20 @@ public interface ServiceTransport {
    * Getting client transport.
    *
    * @return client transport
+   * @param executorService transport executor service
    */
-  ClientTransport getClientTransport();
+  ClientTransport getClientTransport(ExecutorService executorService);
 
   /**
    * Getting server transport.
    *
    * @return server transport
+   * @param executorService transport executor service
    */
-  ServerTransport getServerTransport();
+  ServerTransport getServerTransport(ExecutorService executorService);
 
   /**
-   * Getting service transport executor service.
+   * Getting new service transport executor service.
    *
    * @return service transport executor service
    */
@@ -43,6 +46,7 @@ public interface ServiceTransport {
    * Shutdowns service transport.
    *
    * @return shutdown signal
+   * @param executorService transport executor service
    */
-  Mono<Void> shutdown();
+  Mono<Void> shutdown(ExecutorService executorService);
 }
