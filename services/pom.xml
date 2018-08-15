@@ -9,30 +9,26 @@
   </parent>
 
   <artifactId>scalecube-services</artifactId>
-  <name>ScaleCube/Services</name>
+  <name>ScaleCube/ServicesCore</name>
   <packaging>jar</packaging>
 
-  <dependencies>  
+  <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-codec</artifactId>
-      <version>${project.version}</version>
-    </dependency>
+
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.jctools</groupId>
       <artifactId>jctools-core</artifactId>
     </dependency>
 
-    <!-- Jackson deps -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
@@ -46,7 +42,6 @@
       <artifactId>jackson-datatype-jsr310</artifactId>
     </dependency>
 
-    <!-- Test deps -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
