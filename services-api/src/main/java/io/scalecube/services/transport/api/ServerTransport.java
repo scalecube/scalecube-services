@@ -1,0 +1,26 @@
+package io.scalecube.services.transport.api;
+
+import io.scalecube.services.methods.ServiceMethodRegistry;
+import reactor.core.publisher.Mono;
+
+import java.net.InetSocketAddress;
+
+/** Server service transport interface. */
+public interface ServerTransport {
+
+  /**
+   * Starts a server transport.
+   *
+   * @param address listen address where to bind
+   * @param methodRegistry service method registry
+   * @return bound socket address
+   */
+  InetSocketAddress bindAwait(InetSocketAddress address, ServiceMethodRegistry methodRegistry);
+
+  /**
+   * Stops server transport.
+   *
+   * @return srop signal
+   */
+  Mono<Void> stop();
+}

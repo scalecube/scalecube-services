@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import static java.util.Objects.requireNonNull;
-
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
@@ -13,13 +11,11 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.client.api.ClientTransport;
+import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.transport.Address;
-
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +24,8 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+
+import static java.util.Objects.requireNonNull;
 
 public class ServiceCall {
 

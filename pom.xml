@@ -90,9 +90,7 @@
   <modules>
     <module>services-api</module>
     <module>rsocket-transport</module>
-    <module>services-transport</module>
     <module>services-discovery</module>
-    <module>services-codec</module>
     <module>services-codec-jackson</module>
     <module>services-codec-protostuff</module>
     <module>services</module>
@@ -101,6 +99,7 @@
   </modules>
 
   <dependencyManagement>
+    <!-- Scalecube cluster utils -->
     <dependencies>
       <dependency>
         <groupId>${project.groupId}</groupId>
@@ -108,11 +107,14 @@
         <version>${scalecube-cluster.version}</version>
       </dependency>
 
+      <!-- Reactor -->
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-core</artifactId>
         <version>${reactor.version}</version>
       </dependency>
+
+      <!-- Logging -->
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
@@ -230,7 +232,7 @@
         <version>${netty.version}</version>
       </dependency>
 
-      <!-- Other libs -->
+      <!-- Scalecube benchmarks -->
       <dependency>
         <groupId>io.scalecube</groupId>
         <artifactId>scalecube-benchmarks-api</artifactId>
@@ -241,21 +243,22 @@
         <artifactId>scalecube-benchmarks-log4j2</artifactId>
         <version>${scalecube-benchmarks.version}</version>
       </dependency>
+
+      <!-- Codahale -->
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
         <version>${metrics.version}</version>
       </dependency>
+
+      <!-- JCTools -->
       <dependency>
         <groupId>org.jctools</groupId>
         <artifactId>jctools-core</artifactId>
         <version>${jctools.version}</version>
       </dependency>
-      <dependency>
-        <groupId>com.google.code.findbugs</groupId>
-        <artifactId>jsr305</artifactId>
-        <version>${jsr305.version}</version>
-      </dependency>
+
+      <!-- Test dependencies -->
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-test</artifactId>
