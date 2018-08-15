@@ -15,7 +15,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import java.time.Duration;
 
-public class RSocketWebsocketServerTest {
+public class RSocketWebsocketGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
