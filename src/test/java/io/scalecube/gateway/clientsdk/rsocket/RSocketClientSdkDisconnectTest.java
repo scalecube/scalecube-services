@@ -25,10 +25,11 @@ import reactor.test.StepVerifier;
 
 class RSocketClientSdkDisconnectTest {
 
+  private static final GatewayConfig gatewayConfig =
+      GatewayConfig.builder(RSocketWebsocketGateway.class).build();
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);
 
   private static final String JOHN = "John";
-  private static final int RSOCKET_PORT = 8080;
 
   private LoopResources clientLoopResources;
   private Microservices seed;
@@ -40,17 +41,18 @@ class RSocketClientSdkDisconnectTest {
     seed =
         Microservices.builder()
             .services(new GreetingServiceImpl())
-            .gateway(
-                GatewayConfig.builder(RSocketWebsocketGateway.class).port(RSOCKET_PORT).build())
+            .gateway(gatewayConfig)
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");
 
-    ClientSettings settings = ClientSettings.builder().port(RSOCKET_PORT).build();
+    int gatewayPort = seed.gatewayAddress(gatewayConfig.gatewayClass()).getPort();
+    ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
 
-    ClientMessageCodec codec = new ClientMessageCodec(
-        HeadersCodec.getInstance(settings.contentType()),
-        DataCodec.getInstance(settings.contentType()));
+    ClientMessageCodec codec =
+        new ClientMessageCodec(
+            HeadersCodec.getInstance(settings.contentType()),
+            DataCodec.getInstance(settings.contentType()));
 
     RSocketClientTransport clientTransport =
         new RSocketClientTransport(settings, codec, clientLoopResources);
@@ -67,7 +69,10 @@ class RSocketClientSdkDisconnectTest {
       clientLoopResources.disposeLater().block(SHUTDOWN_TIMEOUT);
     }
     if (seed != null) {
-      seed.shutdown().block(SHUTDOWN_TIMEOUT);
+      try {
+        seed.shutdown().block(SHUTDOWN_TIMEOUT);
+      } catch (Exception ignored) {
+      }
     }
   }
 
@@ -75,15 +80,21 @@ class RSocketClientSdkDisconnectTest {
   void testServerDisconnection() {
     Duration shutdownAt = Duration.ofSeconds(1);
 
-    StepVerifier.create(rsocketClient.forService(GreetingService.class).many(JOHN)
-        .doOnSubscribe(subscription -> Mono.delay(shutdownAt)
-            .doOnSuccess(ignore -> seed.shutdown())
-            .subscribe()))
-        .thenConsumeWhile(response -> {
-          assertThat(response, startsWith("Greeting ("));
-          assertThat(response, endsWith(") to: " + JOHN));
-          return true;
-        })
+    StepVerifier.create(
+            rsocketClient
+                .forService(GreetingService.class)
+                .many(JOHN)
+                .doOnSubscribe(
+                    subscription ->
+                        Mono.delay(shutdownAt)
+                            .doOnSuccess(ignore -> seed.shutdown().subscribe())
+                            .subscribe()))
+        .thenConsumeWhile(
+            response -> {
+              assertThat(response, startsWith("Greeting ("));
+              assertThat(response, endsWith(") to: " + JOHN));
+              return true;
+            })
         .expectError(ConnectionClosedException.class)
         .verify(shutdownAt.plus(SHUTDOWN_TIMEOUT));
   }

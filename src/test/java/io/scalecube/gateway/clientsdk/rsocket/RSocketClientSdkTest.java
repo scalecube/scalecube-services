@@ -26,10 +26,11 @@ import reactor.test.StepVerifier;
 
 class RSocketClientSdkTest {
 
+  private static final GatewayConfig gatewayConfig =
+      GatewayConfig.builder(RSocketWebsocketGateway.class).build();
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);
 
   private static final String JOHN = "John";
-  private static final int RSOCKET_PORT = 8080;
 
   private static LoopResources clientLoopResources;
   private static Microservices seed;
@@ -41,8 +42,7 @@ class RSocketClientSdkTest {
     seed =
         Microservices.builder()
             .services(new GreetingServiceImpl())
-            .gateway(
-                GatewayConfig.builder(RSocketWebsocketGateway.class).port(RSOCKET_PORT).build())
+            .gateway(gatewayConfig)
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");
@@ -56,7 +56,8 @@ class RSocketClientSdkTest {
 
   @BeforeEach
   void startClient() {
-    ClientSettings settings = ClientSettings.builder().port(RSOCKET_PORT).build();
+    int gatewayPort = seed.gatewayAddress(gatewayConfig.gatewayClass()).getPort();
+    ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
     ClientMessageCodec codec = new ClientMessageCodec(
         HeadersCodec.getInstance(settings.contentType()),
         DataCodec.getInstance(settings.contentType()));
