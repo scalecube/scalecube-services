@@ -4,29 +4,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-
-import java.time.Duration;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 public class RSocketWebsocketGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @RegisterExtension
-  private static RsocketGatewayExtension extention = new RsocketGatewayExtension(new GreetingServiceImpl());
+  static RsocketGatewayExtension extension = new RsocketGatewayExtension(new GreetingServiceImpl());
 
   private static GreetingService service;
 
   @BeforeEach
-  private void initService() {
-    service = extention.client().forService(GreetingService.class);
+  void initService() {
+    service = extension.client().forService(GreetingService.class);
   }
 
   @Test
@@ -55,12 +52,12 @@ public class RSocketWebsocketGatewayTest {
 
   @Test
   public void shouldReturnExceptionWhenQualifierIsWrong() {
-    extention.shutdownServices();
+    extension.shutdownServices();
     Mono<String> result = service.one("hello");
     StepVerifier.create(result)
         .expectErrorMatches(throwable -> throwable.getMessage().startsWith("No reachable member with such service"))
         .verify(TIMEOUT);
-    extention.startServices();
+    extension.startServices();
   }
 
   @Test

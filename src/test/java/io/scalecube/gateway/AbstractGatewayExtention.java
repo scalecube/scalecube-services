@@ -59,7 +59,7 @@ public abstract class AbstractGatewayExtention
 
   @Override
   public final void beforeEach(ExtensionContext context) {
-    initClient();
+    client = initClient();
   }
 
   public Client client() {
