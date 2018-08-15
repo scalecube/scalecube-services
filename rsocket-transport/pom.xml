@@ -17,13 +17,7 @@
       <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-codec</artifactId>
-      <version>${project.version}</version>
-    </dependency>
 
-    <!-- RSocket -->
     <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-core</artifactId>
@@ -37,7 +31,6 @@
       <artifactId>reactor-netty</artifactId>
     </dependency>
 
-    <!-- Jackson -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-core</artifactId>
