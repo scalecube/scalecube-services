@@ -1,6 +1,5 @@
 package io.scalecube.services;
 
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
@@ -18,8 +17,8 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import com.codahale.metrics.MetricRegistry;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -32,6 +31,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster. ScaleCube-Services
@@ -98,9 +100,11 @@ import java.util.stream.Collectors;
 public class Microservices {
 
   private final ServiceRegistry serviceRegistry;
-  private final ClientTransport client;
   private final Metrics metrics;
-  private final ServerTransport server;
+  private final ServiceTransport transport;
+  private final ClientTransport clientTransport;
+  private final ServerTransport serverTransport;
+  private final ExecutorService transportExecutorService;
   private final ServiceMethodRegistry methodRegistry;
   private final List<ServiceInfo> services;
   private final String id;
@@ -116,16 +120,21 @@ public class Microservices {
     this.id = IdGenerator.generateId();
     this.servicePort = builder.servicePort;
     this.metrics = builder.metrics;
-    this.client = builder.client;
-    this.server = builder.server;
+
+    this.transport = builder.transport;
+    this.clientTransport = builder.clientTransport;
+    this.serverTransport = builder.serverTransport;
+    this.transportExecutorService = builder.transportExecutorService;
+
     this.serviceRegistry = builder.serviceRegistry;
     this.services = Collections.unmodifiableList(new ArrayList<>(builder.services));
     this.methodRegistry = builder.methodRegistry;
     this.discovery = builder.discovery;
     this.discoveryConfig = builder.discoveryConfig;
     this.tags = new HashMap<>(builder.tags);
-    Call call = new Call(client, methodRegistry, serviceRegistry).metrics(this.metrics);
-    this.gatewayBootstrap = new GatewayBootstrap(builder.gatewayDefinitions, call, metrics);
+
+    Call call = new Call(clientTransport, methodRegistry, serviceRegistry).metrics(this.metrics);
+    this.gatewayBootstrap = new GatewayBootstrap(builder.gatewayDefinitions, transportExecutorService, call, metrics);
   }
 
   public String id() {
@@ -140,11 +149,10 @@ public class Microservices {
     // register service in method registry
     serviceInstances.forEach(methodRegistry::registerService);
 
-
-    // bind service server transport
+    // bind service serverTransport transport
     InetSocketAddress address =
         InetSocketAddress.createUnresolved(Addressing.getLocalIpAddress().getHostAddress(), servicePort);
-    InetSocketAddress boundAddress = server.bindAwait(address, methodRegistry);
+    InetSocketAddress boundAddress = serverTransport.bindAwait(address, methodRegistry);
     serviceAddress = Address.create(boundAddress.getHostString(), boundAddress.getPort());
 
     // register services in service registry
@@ -176,15 +184,21 @@ public class Microservices {
     private Metrics metrics;
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private ServerTransport server = ServiceTransport.getTransport().getServerTransport();
-    private ClientTransport client = ServiceTransport.getTransport().getClientTransport();
+    private ServiceTransport transport = ServiceTransport.getTransport();
+    private ClientTransport clientTransport; // calculated
+    private ServerTransport serverTransport; // calculated
+    private ExecutorService transportExecutorService; // calculated
     private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
     private DiscoveryConfig.Builder discoveryConfig = DiscoveryConfig.builder();
     private Map<String, String> tags = new HashMap<>();
     private List<GatewayConfig> gatewayDefinitions = new ArrayList<>();
 
     public Mono<Microservices> start() {
-      Call call = new Call(client, methodRegistry, serviceRegistry).metrics(this.metrics);
+      this.transportExecutorService = transport.getExecutorService();
+      this.clientTransport = transport.getClientTransport(transportExecutorService);
+      this.serverTransport = transport.getServerTransport(transportExecutorService);
+
+      Call call = new Call(clientTransport, methodRegistry, serviceRegistry).metrics(this.metrics);
 
       serviceProviders.stream()
           .flatMap(provider -> provider.apply(call).stream())
@@ -225,13 +239,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder server(ServerTransport server) {
-      this.server = server;
-      return this;
-    }
-
-    public Builder client(ClientTransport client) {
-      this.client = client;
+    public Builder transport(ServiceTransport transport) {
+      this.transport = transport;
       return this;
     }
 
@@ -280,15 +289,17 @@ public class Microservices {
     private final Call call;
     private final Metrics metrics;
 
-    private GatewayBootstrap(List<GatewayConfig> gatewayDefinitions, Call call, Metrics metrics) {
+    private GatewayBootstrap(List<GatewayConfig> gatewayDefinitions,
+        ExecutorService executorService,
+        Call call,
+        Metrics metrics) {
       this.gatewayDefinitions = new ArrayList<>(gatewayDefinitions);
-      this.executorService = ServiceTransport.getTransport().getExecutorService();
+      this.executorService = executorService;
       this.call = call;
       this.metrics = metrics;
     }
 
     private Mono<Void> start() {
-      ExecutorService executorService = ServiceTransport.getTransport().getExecutorService();
       return Flux.fromIterable(gatewayDefinitions)
           .flatMap(
               gatewayConfig -> {
@@ -328,7 +339,7 @@ public class Microservices {
   }
 
   public Call call() {
-    return new Call(client, methodRegistry, serviceRegistry).metrics(metrics);
+    return new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
   }
 
   public InetSocketAddress gatewayAddress(Class<? extends Gateway> gatewayClass) {
@@ -347,7 +358,7 @@ public class Microservices {
     return Mono.when(
         gatewayBootstrap.shutdown(),
         discovery.shutdown(),
-        server.stop(),
-        ServiceTransport.getTransport().shutdown());
+        serverTransport.stop(),
+        transport.shutdown(transportExecutorService));
   }
 }
