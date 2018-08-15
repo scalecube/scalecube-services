@@ -1,16 +1,13 @@
-package io.scalecube.services.transport.rsocket.client;
-
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.transport.client.api.ClientChannel;
+package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.util.ByteBufPayload;
-
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.exceptions.ConnectionClosedException;
+import io.scalecube.services.transport.api.ClientChannel;
 import org.reactivestreams.Publisher;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

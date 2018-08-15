@@ -4,7 +4,7 @@
 
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.1.12-SNAPSHOT</version>
+  <version>2.1.13-SNAPSHOT</version>
 
   <packaging>pom</packaging>
 
@@ -90,7 +90,6 @@
   <modules>
     <module>services-api</module>
     <module>rsocket-transport</module>
-    <module>services-transport</module>
     <module>services-discovery</module>
     <module>services-codec</module>
     <module>services-codec-jackson</module>
