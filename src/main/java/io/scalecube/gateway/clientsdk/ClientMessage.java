@@ -6,6 +6,7 @@ import java.util.Map;
 
 public final class ClientMessage {
 
+  public static final String QUALIFIER = "q";
   private Map<String, String> headers;
   private Object data;
 
@@ -23,7 +24,7 @@ public final class ClientMessage {
   }
 
   public String qualifier() {
-    return headers.get("q");
+    return headers.get(QUALIFIER);
   }
 
   public Map<String, String> headers() {

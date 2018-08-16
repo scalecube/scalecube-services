@@ -3,6 +3,7 @@ package io.scalecube.gateway.clientsdk;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.services.methods.MethodInfo;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
@@ -35,5 +36,13 @@ public final class Client {
         new Class[] {serviceClazz},
         new RemoteInvocationHandler(transport, methods, messageCodec));
     });
+  }
+
+  public Flux<ClientMessage> rawStream(ClientMessage clientMessage){
+      return transport.requestStream(clientMessage);
+  }
+
+  public Mono<ClientMessage> rawRequestResponse(ClientMessage clientMessage){
+    return transport.requestResponse(clientMessage);
   }
 }
