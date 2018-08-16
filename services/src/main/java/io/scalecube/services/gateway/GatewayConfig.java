@@ -2,6 +2,7 @@ package io.scalecube.services.gateway;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
@@ -92,6 +93,24 @@ public final class GatewayConfig {
     sb.append(", executorService=").append(executorService);
     sb.append('}');
     return sb.toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    GatewayConfig that = (GatewayConfig) o;
+    return Objects.equals(name, that.name) &&
+        Objects.equals(gatewayClass, that.gatewayClass);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(name, gatewayClass);
   }
 
   public static class Builder {

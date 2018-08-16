@@ -24,9 +24,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -285,13 +287,19 @@ public class Microservices {
 
   private static class GatewayBootstrap {
 
-    private List<GatewayConfig> gatewayConfigs = new ArrayList<>(); // config
-    private List<Gateway> gatewayInstances = new ArrayList<>(); // calculated
-    private Map<Class<? extends Gateway>, InetSocketAddress> gatewayAddresses =
-        new HashMap<>(); // calculated
+    private Set<GatewayConfig> gatewayConfigs = new HashSet<>(); // config
+    private Map<GatewayConfig, Gateway> gatewayInstances = new HashMap<>(); // calculated
+    private Map<GatewayConfig, InetSocketAddress> gatewayAddresses = new HashMap<>(); // calculated
 
     private GatewayBootstrap addConfig(GatewayConfig config) {
-      gatewayConfigs.add(config);
+      if (!gatewayConfigs.add(config)) {
+        throw new IllegalArgumentException(
+            "GatewayConfig with name: '"
+                + config.name()
+                + "' and gatewayClass: '"
+                + config.gatewayClass()
+                + "' was already defined");
+      }
       return this;
     }
 
@@ -302,23 +310,41 @@ public class Microservices {
               gatewayConfig -> {
                 Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
                 Gateway gateway = Gateway.getGateway(gatewayClass);
-                gatewayInstances.add(gateway);
                 return gateway
                     .start(gatewayConfig, executorService, call, metrics)
-                    .doOnSuccess(address -> gatewayAddresses.put(gatewayClass, address));
+                    .doOnSuccess(
+                        listenAddress -> {
+                          gatewayInstances.put(gatewayConfig, gateway);
+                          gatewayAddresses.put(gatewayConfig, listenAddress);
+                        });
               })
           .then(Mono.just(this));
     }
 
     private Mono<Void> shutdown() {
-      return Flux.fromIterable(gatewayInstances).flatMap(Gateway::stop).then();
+      return Flux.fromIterable(gatewayInstances.values()).flatMap(Gateway::stop).then();
     }
 
-    private InetSocketAddress gatewayAddress(Class<? extends Gateway> gatewayClass) {
-      return gatewayAddresses.get(gatewayClass);
+    private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
+      Optional<GatewayConfig> result =
+          gatewayAddresses
+              .keySet()
+              .stream()
+              .filter(config -> config.name().equals(name))
+              .filter(config -> config.gatewayClass() == gatewayClass)
+              .findFirst();
+      if (!result.isPresent()) {
+        throw new IllegalArgumentException(
+            "Didn't find gateway address under name: '"
+                + name
+                + "' and gateway class: '"
+                + gatewayClass
+                + "'");
+      }
+      return gatewayAddresses.get(result.get());
     }
 
-    private Map<Class<? extends Gateway>, InetSocketAddress> gatewayAddresses() {
+    private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
       return Collections.unmodifiableMap(gatewayAddresses);
     }
   }
@@ -340,11 +366,11 @@ public class Microservices {
     return new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
   }
 
-  public InetSocketAddress gatewayAddress(Class<? extends Gateway> gatewayClass) {
-    return gatewayBootstrap.gatewayAddress(gatewayClass);
+  public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
+    return gatewayBootstrap.gatewayAddress(name, gatewayClass);
   }
 
-  public Map<Class<? extends Gateway>, InetSocketAddress> gatewayAddresses() {
+  public Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
     return gatewayBootstrap.gatewayAddresses();
   }
 
