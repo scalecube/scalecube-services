@@ -148,7 +148,8 @@ class RSocketClientSdkTest {
     long currentTimestamp = System.currentTimeMillis();
 
     Flux<ClientMessage> rawStream = rsocketClient
-      .rawStream(ClientMessage.builder().qualifier("/" + GreetingService.QUALIFIER + "/rawStream").build())
+      .rawStream(
+        ClientMessage.builder().qualifier("/" + GreetingService.QUALIFIER + "/rawStream").build())
       .take(cnt);
 
     StepVerifier.create(rawStream)
@@ -156,6 +157,20 @@ class RSocketClientSdkTest {
         Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY)) >= currentTimestamp)
       )
       .expectNextCount(cnt - 1 /* minus previous check */)
+      .expectComplete()
+      .verify();
+  }
+
+  @Test
+  void testRawRequestResponse() {
+    long currentTimestamp = System.currentTimeMillis();
+    Mono<ClientMessage> rawStream = rsocketClient
+      .rawRequestResponse(
+        ClientMessage.builder().qualifier("/" + GreetingService.QUALIFIER + "/rawStream").build());
+    StepVerifier.create(rawStream)
+      .assertNext(msg -> assertTrue(
+        Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY)) >= currentTimestamp)
+      )
       .expectComplete()
       .verify();
   }
