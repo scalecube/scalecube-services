@@ -297,7 +297,7 @@ public class Microservices {
             "GatewayConfig with name: '"
                 + config.name()
                 + "' and gatewayClass: '"
-                + config.gatewayClass()
+                + config.gatewayClass().getName()
                 + "' was already defined");
       }
       return this;
@@ -333,14 +333,16 @@ public class Microservices {
               .filter(config -> config.name().equals(name))
               .filter(config -> config.gatewayClass() == gatewayClass)
               .findFirst();
+
       if (!result.isPresent()) {
         throw new IllegalArgumentException(
             "Didn't find gateway address under name: '"
                 + name
                 + "' and gateway class: '"
-                + gatewayClass
+                + gatewayClass.getName()
                 + "'");
       }
+
       return gatewayAddresses.get(result.get());
     }
 
