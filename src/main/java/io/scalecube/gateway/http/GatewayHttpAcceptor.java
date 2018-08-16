@@ -33,7 +33,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.function.BiFunction;
 
-public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
+public class GatewayHttpAcceptor
+    implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayHttpAcceptor.class);
 
@@ -46,50 +47,58 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
   }
 
   @Override
-  public Publisher<Void> apply(HttpServerRequest httpServerRequest, HttpServerResponse httpServerResponse) {
+  public Publisher<Void> apply(
+      HttpServerRequest httpServerRequest, HttpServerResponse httpServerResponse) {
     if (httpServerRequest.method() != POST) {
       LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpServerRequest.method());
       return methodNotAllowed(httpServerResponse);
     }
 
-    return httpServerRequest.receiveContent()
-        .flatMap(httpContent -> callService(httpServerRequest.uri(), httpContent, httpServerResponse))
-        .timeout(DEFAULT_TIMEOUT);
+    return httpServerRequest
+        .receiveContent()
+        .flatMap(
+            httpContent -> callService(httpServerRequest.uri(), httpContent, httpServerResponse))
+        .timeout(DEFAULT_TIMEOUT)
+        .onErrorResume(throwable -> error(httpServerResponse, throwable));
   }
 
-  private Mono<Void> callService(String qualifier, HttpContent httpContent, HttpServerResponse httpServerResponse) {
+  private Mono<Void> callService(
+      String qualifier, HttpContent httpContent, HttpServerResponse httpServerResponse) {
     final ServiceMessage.Builder serviceMessage = ServiceMessage.builder().qualifier(qualifier);
     try {
       serviceMessage.data(httpContent.content().slice().retain());
-      return serviceCall.requestOne(serviceMessage.build())
-          .flatMap(msg -> toHttpResponse(httpServerResponse, msg))
-          .switchIfEmpty(Mono.defer(() -> noContent(httpServerResponse)))
-          .onErrorResume(throwable -> error(httpServerResponse, throwable));
+      return serviceCall
+          .requestOne(serviceMessage.build())
+          .switchIfEmpty(Mono.defer(() -> Mono.just(serviceMessage.data(null).build())))
+          .flatMap(message -> Mono.from(toHttpResponse(httpServerResponse, message)));
     } catch (Exception e) {
       ReferenceCountUtil.safeRelease(httpContent);
       return Mono.error(e);
     }
   }
 
-  private Mono<Void> toHttpResponse(HttpServerResponse response, ServiceMessage serviceMessage) {
+  private Publisher<Void> toHttpResponse(
+      HttpServerResponse response, ServiceMessage serviceMessage) {
     if (ExceptionProcessor.isError(serviceMessage)) {
       return error(response, serviceMessage);
     }
+
+    if (!serviceMessage.hasData()) {
+      return noContent(response);
+    }
+
     return ok(response, serviceMessage.data());
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse response) {
-    return response
-        .addHeader(ALLOW, POST.name())
-        .status(METHOD_NOT_ALLOWED)
-        .send();
+    return response.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
   }
 
-  private Mono<Void> error(HttpServerResponse response, Throwable throwable) {
+  private Publisher<Void> error(HttpServerResponse response, Throwable throwable) {
     return error(response, ExceptionProcessor.toMessage(throwable));
   }
 
-  private Mono<Void> error(HttpServerResponse response, ServiceMessage serviceMessage) {
+  private Publisher<Void> error(HttpServerResponse response, ServiceMessage serviceMessage) {
     int code = Integer.parseInt(Qualifier.getQualifierAction(serviceMessage.qualifier()));
 
     ByteBuf body;
@@ -99,9 +108,7 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
       body = serviceMessage.data();
     }
 
-    return response
-        .status(HttpResponseStatus.valueOf(code))
-        .sendObject(body).then();
+    return response.status(HttpResponseStatus.valueOf(code)).sendObject(body);
   }
 
   private ByteBuf encodeErrorData(ErrorData errorData) {
@@ -117,16 +124,11 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
     return byteBuf;
   }
 
-  private Mono<Void> noContent(HttpServerResponse response) {
-    return response
-        .status(NO_CONTENT)
-        .send();
+  private Publisher<Void> noContent(HttpServerResponse response) {
+    return response.status(NO_CONTENT).send();
   }
 
-  private Mono<Void> ok(HttpServerResponse response, ByteBuf body) {
-    return response
-        .status(OK)
-        .sendObject(body).then();
+  private Publisher<Void> ok(HttpServerResponse response, ByteBuf body) {
+    return response.status(OK).sendObject(body);
   }
-
 }
