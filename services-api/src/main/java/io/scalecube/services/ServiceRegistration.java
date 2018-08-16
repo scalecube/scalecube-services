@@ -6,41 +6,33 @@ import java.util.Map;
 public class ServiceRegistration {
 
   private String namespace;
-  private String contentType;
   private Map<String, String> tags;
   private Collection<ServiceMethodDefinition> methods;
 
   /**
    * Constructor for SerDe.
-   * 
+   *
    * @deprecated exposed only for de/serialization purpose.
    */
   public ServiceRegistration() {}
 
   /**
    * Create a new service registration.
-   * 
+   *
    * @param namespace the namespace to use
-   * @param contentType the content type
    * @param tags tags
    * @param methods a collection of service method definitions
    */
   public ServiceRegistration(String namespace,
-      String contentType,
       Map<String, String> tags,
       Collection<ServiceMethodDefinition> methods) {
     this.namespace = namespace;
-    this.contentType = contentType;
     this.tags = tags;
     this.methods = methods;
   }
 
   public String namespace() {
     return namespace;
-  }
-
-  public String contentType() {
-    return contentType;
   }
 
   public Map<String, String> tags() {
@@ -51,11 +43,6 @@ public class ServiceRegistration {
     return methods;
   }
 
-  public ServiceRegistration setContentType(String contentType) {
-    this.contentType = contentType;
-    return this;
-  }
-
   public ServiceRegistration setTags(Map<String, String> tags) {
     this.tags = tags;
     return this;
@@ -63,11 +50,10 @@ public class ServiceRegistration {
 
   @Override
   public String toString() {
-    return "ServiceRegistration{"
-        + "namespace='" + namespace + '\''
-        + ", contentType='" + contentType + '\''
-        + ", tags=" + tags
-        + ", methods=" + methods
-        + '}';
+    return "ServiceRegistration{" +
+        "namespace='" + namespace + '\'' +
+        ", tags=" + tags +
+        ", methods=" + methods +
+        '}';
   }
 }

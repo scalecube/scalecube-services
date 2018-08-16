@@ -15,11 +15,11 @@ public interface ServiceDiscovery {
 
   /**
    * Get the discovery. Uses the {@link ServiceLoader#load(Class)} in order to select the service
-   * 
+   *
    * @return a Service Discovery implementation.
    */
   static ServiceDiscovery getDiscovery() {
-    return ServiceLoaderUtil.findFirstMatched(ServiceDiscovery.class)
+    return ServiceLoaderUtil.findFirst(ServiceDiscovery.class)
         .orElseThrow(() -> new IllegalStateException("ServiceDiscovery not configured"));
   }
 

@@ -1,11 +1,4 @@
-package io.scalecube.services.transport.rsocket.server;
-
-import io.scalecube.services.HeadAndTail;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.exceptions.ExceptionProcessor;
-import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.methods.ServiceMethodRegistry;
+package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.AbstractRSocket;
 import io.rsocket.ConnectionSetupPayload;
@@ -13,11 +6,15 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
-
+import io.scalecube.services.HeadAndTail;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.methods.ServiceMethodRegistry;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

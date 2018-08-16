@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-services-parent</artifactId>
-    <version>2.1.12-SNAPSHOT</version>
+    <version>2.1.17-SNAPSHOT</version>
   </parent>
 
   <artifactId>scalecube-services-examples</artifactId>
@@ -13,28 +13,25 @@
 
   <dependencies>
     <dependency>
-      <groupId>${project.groupId}</groupId>
-      <artifactId>scalecube-services-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>${project.groupId}</groupId>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
-      <groupId>${project.groupId}</groupId>
+      <groupId>io.scalecube</groupId>
       <artifactId>rsocket-services-transport</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
-      <groupId>${project.groupId}</groupId>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-jackson</artifactId>
       <version>${project.version}</version>
     </dependency>
     
     <dependency>
-      <groupId>${project.groupId}</groupId>
+      <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
       <version>${project.version}</version>
     </dependency>

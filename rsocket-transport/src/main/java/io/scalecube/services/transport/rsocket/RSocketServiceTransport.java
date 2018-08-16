@@ -2,11 +2,9 @@ package io.scalecube.services.transport.rsocket;
 
 import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.transport.ServiceTransport;
-import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.services.transport.rsocket.client.RSocketClientTransport;
-import io.scalecube.services.transport.rsocket.server.RSocketServerTransport;
-import io.scalecube.services.transport.server.api.ServerTransport;
+import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.api.ServiceTransport;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
@@ -20,6 +18,7 @@ import io.netty.util.internal.PlatformDependent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 import reactor.core.publisher.Mono;
@@ -48,35 +47,32 @@ public class RSocketServiceTransport implements ServiceTransport {
     LOGGER.debug("Epoll support: " + isEpollSupported);
   }
 
-  private EventLoopGroup eventLoopGroup;
-
-  public RSocketServiceTransport() {
-    int nThreads = NettyRuntime.availableProcessors();
-    ThreadFactory threadFactory = new DefaultThreadFactory(THREAD_FACTORY_POOL_NAME, true);
-
-    eventLoopGroup = isEpollSupported ? new EpollEventLoopGroup(nThreads, threadFactory)
-        : new NioEventLoopGroup(nThreads, threadFactory);
-  }
-
   @Override
-  public ClientTransport getClientTransport() {
+  public ClientTransport getClientTransport(ExecutorService executorService) {
     HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
+    EventLoopGroup eventLoopGroup = (EventLoopGroup) executorService;
     return new RSocketClientTransport(new ServiceMessageCodec(headersCodec), eventLoopGroup);
   }
 
   @Override
-  public ServerTransport getServerTransport() {
+  public ServerTransport getServerTransport(ExecutorService executorService) {
     HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
+    EventLoopGroup eventLoopGroup = (EventLoopGroup) executorService;
     return new RSocketServerTransport(new ServiceMessageCodec(headersCodec), eventLoopGroup);
   }
 
   @Override
   public EventLoopGroup getExecutorService() {
-    return eventLoopGroup;
+    int nThreads = NettyRuntime.availableProcessors();
+    ThreadFactory threadFactory = new DefaultThreadFactory(THREAD_FACTORY_POOL_NAME, true);
+    return isEpollSupported
+        ? new EpollEventLoopGroup(nThreads, threadFactory)
+        : new NioEventLoopGroup(nThreads, threadFactory);
   }
 
   @Override
-  public Mono<Void> shutdown() {
-    return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
+  public Mono<Void> shutdown(ExecutorService executorService) {
+    return Mono.defer(() -> FutureMono.from(
+        (Future) ((EventLoopGroup) executorService).shutdownGracefully()));
   }
 }

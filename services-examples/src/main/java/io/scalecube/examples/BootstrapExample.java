@@ -1,8 +1,11 @@
 package io.scalecube.examples;
 
+import io.scalecube.examples.gateway.HttpStubGateway;
+import io.scalecube.examples.gateway.WebsocketStubGateway;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
+import io.scalecube.services.gateway.GatewayConfig;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
@@ -11,13 +14,24 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Basic getting started example.
+ * Basic getting started example
  */
 public class BootstrapExample {
 
   public static void main(String[] args) throws Exception {
+    System.out.println("Start gateway");
+    Microservices gateway = Microservices.builder()
+        .gateway(GatewayConfig.builder("http", HttpStubGateway.class).port(8181).build()) // override default port
+        .gateway(GatewayConfig.builder("ws", WebsocketStubGateway.class).port(9191)
+            .addOption(WebsocketStubGateway.WS_SPECIFIC_OPTION_NAME, "500") // override default value of specific option
+            .build())
+        .startAwait();
+
+    System.out.println("Started gateway layer: " + gateway.gatewayAddresses());
+
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     Microservices node1 = Microservices.builder()
+        .seeds(gateway.discovery().address())
         .services(call -> Collections.singletonList(
             new HelloWorldServiceImpl(
                 new BusinessLogicFacade(
@@ -27,12 +41,12 @@ public class BootstrapExample {
 
     System.out.println("Start ServiceHello");
     Microservices node2 = Microservices.builder()
-        .seeds(node1.discovery().address())
+        .seeds(gateway.discovery().address())
         .services(new ServiceHelloImpl()).startAwait();
 
     System.out.println("Start ServiceWorld");
     Microservices node3 = Microservices.builder()
-        .seeds(node1.discovery().address())
+        .seeds(gateway.discovery().address())
         .services(new ServiceWorldImpl()).startAwait();
 
     System.out.println("Wait for some time so nodes could catch up with each other ...");
@@ -44,7 +58,7 @@ public class BootstrapExample {
     String helloWorld = helloWorldService.helloWorld().block(Duration.ofSeconds(6));
     System.out.println("Result of calling hello world business logic is ... => " + helloWorld);
 
-    Mono.when(node1.shutdown(), node2.shutdown(), node3.shutdown()).block(Duration.ofSeconds(3));
+    Mono.when(gateway.shutdown(), node1.shutdown(), node2.shutdown(), node3.shutdown()).block(Duration.ofSeconds(5));
   }
 
   /**
@@ -57,7 +71,7 @@ public class BootstrapExample {
   }
 
   /**
-   * Just service.
+   * Just service
    */
   @Service
   public interface ServiceWorld {
@@ -66,7 +80,7 @@ public class BootstrapExample {
   }
 
   /**
-   * Facade service for calling another services.
+   * Facade service for calling another services
    */
   @Service
   public interface HelloWorldService {

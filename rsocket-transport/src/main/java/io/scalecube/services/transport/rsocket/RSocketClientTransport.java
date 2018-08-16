@@ -1,24 +1,21 @@
-package io.scalecube.services.transport.rsocket.client;
-
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.transport.client.api.ClientChannel;
-import io.scalecube.services.transport.client.api.ClientTransport;
-import io.scalecube.transport.Address;
+package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.ByteBufPayload;
-
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.transport.api.ClientChannel;
+import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.transport.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.tcp.TcpClient;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.tcp.TcpClient;
 
 public class RSocketClientTransport implements ClientTransport {
 

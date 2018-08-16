@@ -7,6 +7,11 @@ import java.util.Map;
 public final class ServiceMessage {
 
   /**
+   * Default message data content type.
+   */
+  static final String DEFAULT_DATA_FORMAT = "application/json";
+
+  /**
    * This header is supposed to be used by application in case if same data type can be reused for
    * several messages so it will allow to qualify the specific message type.
    */
@@ -125,6 +130,11 @@ public final class ServiceMessage {
     return header(HEADER_DATA_FORMAT);
   }
 
+  public String dataFormatOrDefault() {
+    String dataFormat = dataFormat();
+    return dataFormat != null ? dataFormat : DEFAULT_DATA_FORMAT;
+  }
+
   /**
    * Return the message data, which can be byte array, string or any type.
    *
@@ -142,7 +152,7 @@ public final class ServiceMessage {
 
   /**
    * Verify that this message contains data.
-   * 
+   *
    * @param dataClass the expected class of the dara
    * @return true if the data is instance of the dataClass
    */
