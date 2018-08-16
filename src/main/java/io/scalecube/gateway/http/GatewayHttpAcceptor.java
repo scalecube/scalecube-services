@@ -6,17 +6,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
-import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.DataCodec;
-import io.scalecube.services.exceptions.ExceptionProcessor;
-
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.server.HttpServerRequest;
-import reactor.ipc.netty.http.server.HttpServerResponse;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
@@ -24,16 +13,24 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCountUtil;
-
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.function.BiFunction;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.http.server.HttpServerRequest;
+import reactor.ipc.netty.http.server.HttpServerResponse;
 
-public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
+public class GatewayHttpAcceptor
+    implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayHttpAcceptor.class);
 
@@ -46,31 +43,38 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
   }
 
   @Override
-  public Publisher<Void> apply(HttpServerRequest httpServerRequest, HttpServerResponse httpServerResponse) {
+  public Publisher<Void> apply(
+      HttpServerRequest httpServerRequest, HttpServerResponse httpServerResponse) {
     if (httpServerRequest.method() != POST) {
       LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpServerRequest.method());
       return methodNotAllowed(httpServerResponse);
     }
 
-    return httpServerRequest.receiveContent()
-        .flatMap(httpContent -> callService(httpServerRequest.uri(), httpContent))
+    return httpServerRequest
+        .receiveContent()
+        .flatMap(
+            httpContent -> callService(httpServerRequest.uri(), httpContent, httpServerResponse))
         .timeout(DEFAULT_TIMEOUT)
-        .flatMap(serviceMessage -> toHttpResponse(httpServerResponse, serviceMessage))
         .onErrorResume(throwable -> error(httpServerResponse, throwable));
   }
 
-  private Mono<ServiceMessage> callService(String qualifier, HttpContent httpContent) {
+  private Mono<Void> callService(
+      String qualifier, HttpContent httpContent, HttpServerResponse httpServerResponse) {
     final ServiceMessage.Builder serviceMessage = ServiceMessage.builder().qualifier(qualifier);
     try {
       serviceMessage.data(httpContent.content().slice().retain());
-      return serviceCall.requestOne(serviceMessage.build());
+      return serviceCall
+          .requestOne(serviceMessage.build())
+          .switchIfEmpty(Mono.defer(() -> Mono.just(serviceMessage.data(null).build())))
+          .flatMap(message -> Mono.from(toHttpResponse(httpServerResponse, message)));
     } catch (Exception e) {
       ReferenceCountUtil.safeRelease(httpContent);
       return Mono.error(e);
     }
   }
 
-  private Publisher<Void> toHttpResponse(HttpServerResponse response, ServiceMessage serviceMessage) {
+  private Publisher<Void> toHttpResponse(
+      HttpServerResponse response, ServiceMessage serviceMessage) {
     if (ExceptionProcessor.isError(serviceMessage)) {
       return error(response, serviceMessage);
     }
@@ -83,10 +87,7 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse response) {
-    return response
-        .addHeader(ALLOW, POST.name())
-        .status(METHOD_NOT_ALLOWED)
-        .send();
+    return response.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
   }
 
   private Publisher<Void> error(HttpServerResponse response, Throwable throwable) {
@@ -103,9 +104,7 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
       body = serviceMessage.data();
     }
 
-    return response
-        .status(HttpResponseStatus.valueOf(code))
-        .sendObject(body);
+    return response.status(HttpResponseStatus.valueOf(code)).sendObject(body);
   }
 
   private ByteBuf encodeErrorData(ErrorData errorData) {
@@ -122,15 +121,10 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
   }
 
   private Publisher<Void> noContent(HttpServerResponse response) {
-    return response
-        .status(NO_CONTENT)
-        .send();
+    return response.status(NO_CONTENT).send();
   }
 
   private Publisher<Void> ok(HttpServerResponse response, ByteBuf body) {
-    return response
-        .status(OK)
-        .sendObject(body);
+    return response.status(OK).sendObject(body);
   }
-
 }
