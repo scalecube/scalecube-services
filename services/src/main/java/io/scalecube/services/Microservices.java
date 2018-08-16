@@ -101,7 +101,8 @@ public class Microservices {
   private final String id;
   private final Metrics metrics;
   private final Map<String, String> tags;
-  private final List<ServiceInfo> services;
+  private final List<ServiceInfo> serviceInfos = new ArrayList<>();
+  private final List<Function<Call, Collection<Object>>> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceTransportBootstrap transportBootstrap;
@@ -113,7 +114,8 @@ public class Microservices {
     this.id = IdGenerator.generateId();
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
-    this.services = new ArrayList<>(builder.services);
+
+    this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
 
@@ -128,31 +130,66 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
+    return transportBootstrap
+        .start(methodRegistry)
+        .flatMap(
+            input -> {
+              ClientTransport clientTransport = transportBootstrap.clientTransport();
+              InetSocketAddress serviceAddress = transportBootstrap.listenAddress();
+
+              Call call =
+                  new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
+
+              // invoke service providers and register services
+              serviceProviders
+                  .stream()
+                  .flatMap(serviceProvider -> serviceProvider.apply(call).stream())
+                  .forEach(this::registerServiceInstance);
+
+              // register services in service registry
+              if (!serviceInfos.isEmpty()) {
+                String serviceHost = serviceAddress.getHostString();
+                int servicePort = serviceAddress.getPort();
+
+                ServiceEndpoint endpoint =
+                    ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
+
+                serviceRegistry.registerService(endpoint);
+                discoveryConfig.endpoint(endpoint);
+              }
+
+              return Mono.just(call);
+            })
+        .flatMap(
+            call -> {
+              // configure discovery and publish to the cluster
+              return discovery
+                  .start(discoveryConfig.serviceRegistry(serviceRegistry).build())
+                  .then(Mono.defer(this::doInjection))
+                  .then(Mono.defer(() -> startGateway(call)))
+                  .then(Mono.just(this));
+            });
+  }
+
+  private Mono<GatewayBootstrap> startGateway(Call call) {
+    ExecutorService executorService = transportBootstrap.executorService();
+    return gatewayBootstrap.start(executorService, call, metrics);
+  }
+
+  private Mono<Microservices> doInjection() {
     List<Object> serviceInstances =
-        services.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
+        serviceInfos.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
+    return Mono.just(Reflect.inject(this, serviceInstances));
+  }
 
-    // register service in method registry
-    serviceInstances.forEach(methodRegistry::registerService);
-
-    // register services in service registry
-    if (!services.isEmpty()) {
-      InetSocketAddress serviceAddress = transportBootstrap.listenAddress();
-      String serviceHost = serviceAddress.getHostString();
-      int servicePort = serviceAddress.getPort();
-
-      ServiceEndpoint endpoint =
-          ServiceScanner.scan(services, id, serviceHost, servicePort, tags);
-
-      serviceRegistry.registerService(endpoint);
-      discoveryConfig.endpoint(endpoint);
-    }
-
-    // configure discovery and publish to the cluster.
-    return discovery
-        .start(discoveryConfig.serviceRegistry(serviceRegistry).build())
-        .map(discovery -> (this.discovery = discovery))
-        .then(Mono.just(Reflect.inject(this, serviceInstances)))
-        .then(gatewayBootstrap.start().then(Mono.just(this)));
+  private void registerServiceInstance(Object serviceInstance) {
+    // collect
+    serviceInfos.add(
+        serviceInstance instanceof ServiceInfo
+            ? ((ServiceInfo) serviceInstance)
+            : ServiceInfo.fromServiceInstance(serviceInstance).build());
+    // register
+    methodRegistry.registerService(serviceInstance);
   }
 
   public Metrics metrics() {
@@ -163,7 +200,6 @@ public class Microservices {
 
     private Metrics metrics;
     private Map<String, String> tags = new HashMap<>();
-    private List<ServiceInfo> services = new ArrayList<>();
     private List<Function<Call, Collection<Object>>> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
@@ -173,26 +209,7 @@ public class Microservices {
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
 
     public Mono<Microservices> start() {
-      return Mono.defer(() -> transportBootstrap.start(methodRegistry))
-          .map(ServiceTransportBootstrap::clientTransport)
-          .flatMap(
-              clientTransport -> {
-                Call call =
-                    new Call(clientTransport, methodRegistry, serviceRegistry)
-                        .metrics(this.metrics);
-
-                serviceProviders
-                    .stream()
-                    .flatMap(provider -> provider.apply(call).stream())
-                    .forEach(
-                        service ->
-                            services.add(
-                                service instanceof ServiceInfo
-                                    ? ((ServiceInfo) service)
-                                    : ServiceInfo.fromServiceInstance(service).build()));
-
-                return new Microservices(this).start();
-              });
+      return Mono.defer(() -> new Microservices(this).start());
     }
 
     public Microservices startAwait() {
@@ -313,14 +330,13 @@ public class Microservices {
     return serviceRegistry;
   }
 
-  public Address serviceAddress() {
-    InetSocketAddress listenAddress = transportBootstrap.listenAddress();
-    return Address.create(listenAddress.getHostString(), listenAddress.getPort());
+  public InetSocketAddress serviceAddress() {
+    return transportBootstrap.listenAddress();
   }
 
   public Call call() {
-    return new Call(transportBootstrap.clientTransport(), methodRegistry, serviceRegistry)
-        .metrics(metrics);
+    ClientTransport clientTransport = transportBootstrap.clientTransport();
+    return new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
   }
 
   public InetSocketAddress gatewayAddress(Class<? extends Gateway> gatewayClass) {
@@ -337,7 +353,7 @@ public class Microservices {
 
   public Mono<Void> shutdown() {
     return Mono.when(
-        gatewayBootstrap.shutdown(), discovery.shutdown(), transportBootstrap.shutdown());
+        discovery.shutdown(), gatewayBootstrap.shutdown(), transportBootstrap.shutdown());
   }
 
   private static class ServiceTransportBootstrap {
