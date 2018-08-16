@@ -21,10 +21,10 @@ public class HttpGateway implements Gateway {
   @Override
   public Mono<InetSocketAddress> start(GatewayConfig config, ExecutorService executorService, ServiceCall.Call call,
       Metrics metrics) {
+
     return Mono.defer(() -> {
       InetSocketAddress listenAddress = new InetSocketAddress(config.port());
       GatewayHttpAcceptor acceptor = new GatewayHttpAcceptor(call.create());
-
 
       server = HttpServer.builder()
           .options(opts -> {

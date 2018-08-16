@@ -3,6 +3,7 @@ package io.scalecube.gateway.http;
 import io.scalecube.config.ConfigRegistry;
 import io.scalecube.gateway.config.GatewayConfigRegistry;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.transport.Address;
 
 import java.util.Collections;
@@ -20,14 +21,12 @@ public class GatewayHttpRunner {
         .stream().map(Address::from).toArray(Address[]::new);
 
     Microservices seed = Microservices.builder()
+        .gateway(GatewayConfig.builder(HttpGateway.class).build())
         .seeds(seeds)
         .startAwait();
 
-    GatewayHttpServer gateway = new GatewayHttpServer(seed);
 
-    gateway.start();
-
-    Runtime.getRuntime().addShutdownHook(new Thread(gateway::stop));
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> seed.shutdown().block()));
 
     Thread.currentThread().join();
   }

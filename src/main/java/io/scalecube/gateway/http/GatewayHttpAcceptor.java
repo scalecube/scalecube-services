@@ -53,32 +53,28 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
     }
 
     return httpServerRequest.receiveContent()
-        .flatMap(httpContent -> callService(httpServerRequest.uri(), httpContent))
-        .timeout(DEFAULT_TIMEOUT)
-        .flatMap(serviceMessage -> toHttpResponse(httpServerResponse, serviceMessage))
-        .onErrorResume(throwable -> error(httpServerResponse, throwable));
+        .flatMap(httpContent -> callService(httpServerRequest.uri(), httpContent, httpServerResponse))
+        .timeout(DEFAULT_TIMEOUT);
   }
 
-  private Mono<ServiceMessage> callService(String qualifier, HttpContent httpContent) {
+  private Mono<Void> callService(String qualifier, HttpContent httpContent, HttpServerResponse httpServerResponse) {
     final ServiceMessage.Builder serviceMessage = ServiceMessage.builder().qualifier(qualifier);
     try {
       serviceMessage.data(httpContent.content().slice().retain());
-      return serviceCall.requestOne(serviceMessage.build());
+      return serviceCall.requestOne(serviceMessage.build())
+          .flatMap(msg -> toHttpResponse(httpServerResponse, msg))
+          .switchIfEmpty(Mono.defer(() -> noContent(httpServerResponse)))
+          .onErrorResume(throwable -> error(httpServerResponse, throwable));
     } catch (Exception e) {
       ReferenceCountUtil.safeRelease(httpContent);
       return Mono.error(e);
     }
   }
 
-  private Publisher<Void> toHttpResponse(HttpServerResponse response, ServiceMessage serviceMessage) {
+  private Mono<Void> toHttpResponse(HttpServerResponse response, ServiceMessage serviceMessage) {
     if (ExceptionProcessor.isError(serviceMessage)) {
       return error(response, serviceMessage);
     }
-
-    if (!serviceMessage.hasData()) {
-      return noContent(response);
-    }
-
     return ok(response, serviceMessage.data());
   }
 
@@ -89,11 +85,11 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
         .send();
   }
 
-  private Publisher<Void> error(HttpServerResponse response, Throwable throwable) {
+  private Mono<Void> error(HttpServerResponse response, Throwable throwable) {
     return error(response, ExceptionProcessor.toMessage(throwable));
   }
 
-  private Publisher<Void> error(HttpServerResponse response, ServiceMessage serviceMessage) {
+  private Mono<Void> error(HttpServerResponse response, ServiceMessage serviceMessage) {
     int code = Integer.parseInt(Qualifier.getQualifierAction(serviceMessage.qualifier()));
 
     ByteBuf body;
@@ -105,7 +101,7 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
 
     return response
         .status(HttpResponseStatus.valueOf(code))
-        .sendObject(body);
+        .sendObject(body).then();
   }
 
   private ByteBuf encodeErrorData(ErrorData errorData) {
@@ -121,16 +117,16 @@ public class GatewayHttpAcceptor implements BiFunction<HttpServerRequest, HttpSe
     return byteBuf;
   }
 
-  private Publisher<Void> noContent(HttpServerResponse response) {
+  private Mono<Void> noContent(HttpServerResponse response) {
     return response
         .status(NO_CONTENT)
         .send();
   }
 
-  private Publisher<Void> ok(HttpServerResponse response, ByteBuf body) {
+  private Mono<Void> ok(HttpServerResponse response, ByteBuf body) {
     return response
         .status(OK)
-        .sendObject(body);
+        .sendObject(body).then();
   }
 
 }
