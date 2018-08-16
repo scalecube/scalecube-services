@@ -6,20 +6,49 @@ import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
 
 import reactor.core.publisher.Mono;
+import reactor.ipc.netty.http.server.HttpServer;
+import reactor.ipc.netty.tcp.BlockingNettyContext;
+
+import io.netty.channel.EventLoopGroup;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 
 public class HttpGateway implements Gateway {
 
+  private BlockingNettyContext server;
+
   @Override
   public Mono<InetSocketAddress> start(GatewayConfig config, ExecutorService executorService, ServiceCall.Call call,
       Metrics metrics) {
-    return null;
+    return Mono.defer(() -> {
+      InetSocketAddress listenAddress = new InetSocketAddress(config.port());
+      GatewayHttpAcceptor acceptor = new GatewayHttpAcceptor(call.create());
+
+
+      server = HttpServer.builder()
+          .options(opts -> {
+            opts.listenAddress(listenAddress);
+            if (config.executorService() != null) {
+              opts.eventLoopGroup((EventLoopGroup) config.executorService());
+            } else if (executorService != null) {
+              opts.eventLoopGroup((EventLoopGroup) executorService);
+            }
+          })
+          .build()
+          .start(acceptor);
+      server.installShutdownHook();
+      InetSocketAddress address = server.getContext().address();
+      return Mono.just(address);
+    });
   }
 
   @Override
   public Mono<Void> stop() {
-    return null;
+    return Mono.fromRunnable(() -> {
+      if (server != null) {
+        server.shutdown();
+      }
+    });
   }
 }
