@@ -6,12 +6,10 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.gateway.GatewayConfig;
-
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -28,6 +26,8 @@ public class BootstrapExample {
             .addOption(WebsocketStubGateway.WS_SPECIFIC_OPTION_NAME, "500") // override default value of specific option
             .build())
         .startAwait();
+
+    System.out.println("Started gateway layer: " + gateway.gatewayAddresses());
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     Microservices node1 = Microservices.builder()

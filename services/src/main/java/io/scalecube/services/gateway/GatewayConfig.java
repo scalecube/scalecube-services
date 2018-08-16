@@ -86,8 +86,8 @@ public final class GatewayConfig {
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("GatewayConfig{");
-    sb.append("name=").append(name);
-    sb.append(", gatewayClass=").append(gatewayClass);
+    sb.append("name='").append(name).append("'");
+    sb.append(", gatewayClass=").append(gatewayClass.getName());
     sb.append(", options=").append(options);
     sb.append(", port=").append(port);
     sb.append(", executorService=").append(executorService);
@@ -104,8 +104,7 @@ public final class GatewayConfig {
       return false;
     }
     GatewayConfig that = (GatewayConfig) o;
-    return Objects.equals(name, that.name) &&
-        Objects.equals(gatewayClass, that.gatewayClass);
+    return Objects.equals(name, that.name) && Objects.equals(gatewayClass, that.gatewayClass);
   }
 
   @Override

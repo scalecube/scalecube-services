@@ -1,8 +1,6 @@
 package io.scalecube.services.methods;
 
 import io.scalecube.services.Reflect;
-
-import io.scalecube.services.ServiceInfo;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -12,13 +10,6 @@ public final class ServiceMethodRegistryImpl implements ServiceMethodRegistry {
 
   @Override
   public void registerService(Object serviceInstance) {
-    if (serviceInstance == null) {
-      throw new IllegalArgumentException("serviceInstance is required");
-    }
-    if (serviceInstance instanceof ServiceInfo) {
-      throw new IllegalArgumentException("serviceInstance is of wrong type");
-    }
-
     Reflect.serviceInterfaces(serviceInstance).forEach(serviceInterface -> {
       Reflect.serviceMethods(serviceInterface).forEach((key, method) -> {
 
