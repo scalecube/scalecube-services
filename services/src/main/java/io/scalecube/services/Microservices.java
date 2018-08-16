@@ -144,7 +144,7 @@ public class Microservices {
               serviceProviders
                   .stream()
                   .flatMap(serviceProvider -> serviceProvider.apply(call).stream())
-                  .forEach(this::registerServiceInstance);
+                  .forEach(this::collectAndRegisterService);
 
               // register services in service registry
               if (!serviceInfos.isEmpty()) {
@@ -182,14 +182,15 @@ public class Microservices {
     return Mono.just(Reflect.inject(this, serviceInstances));
   }
 
-  private void registerServiceInstance(Object serviceInstance) {
+  private void collectAndRegisterService(Object serviceInstance) {
     // collect
-    serviceInfos.add(
+    ServiceInfo serviceInfo =
         serviceInstance instanceof ServiceInfo
             ? ((ServiceInfo) serviceInstance)
-            : ServiceInfo.fromServiceInstance(serviceInstance).build());
+            : ServiceInfo.fromServiceInstance(serviceInstance).build();
+    serviceInfos.add(serviceInfo);
     // register
-    methodRegistry.registerService(serviceInstance);
+    methodRegistry.registerService(serviceInfo.serviceInstance());
   }
 
   public Metrics metrics() {
