@@ -30,9 +30,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final Map<String, List<ServiceReference>> referencesByQualifier = new NonBlockingHashMap<>();
 
   private final FluxProcessor<RegistryEvent, RegistryEvent> events =
-      DirectProcessor.<RegistryEvent>create().serialize();
+      DirectProcessor.<RegistryEvent>create();
 
-  private final FluxSink<RegistryEvent> sink = events.sink();
+  private final FluxSink<RegistryEvent> sink = events.serialize().sink();
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
@@ -82,7 +82,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     if (serviceEndpoint != null) {
       referencesByQualifier.values()
           .forEach(list -> {
-            list.stream().filter(sr -> sr.endpointId().equals(endpointId)).collect(Collectors.toSet())
+            list.stream().filter(sr -> sr.endpointId().equals(endpointId))
                 .forEach(sr -> {
                   list.remove(sr);
                   sink.next(new RegistryEvent(Type.REMOVED, sr));
