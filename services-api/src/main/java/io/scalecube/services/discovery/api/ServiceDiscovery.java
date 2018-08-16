@@ -13,10 +13,8 @@ public interface ServiceDiscovery {
   ServiceEndpoint endpoint();
 
   static ServiceDiscovery getDiscovery() {
-    ServiceDiscovery discovery = ServiceLoaderUtil.findFirst(ServiceDiscovery.class)
+    return ServiceLoaderUtil.findFirst(ServiceDiscovery.class)
         .orElseThrow(() -> new IllegalStateException("ServiceDiscovery not configured"));
-
-    return discovery;
   }
 
   Mono<ServiceDiscovery> start(DiscoveryConfig discoveryConfig);

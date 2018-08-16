@@ -90,7 +90,7 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test__round_robin() {
+  public void test_round_robin() {
 
     ServiceCall service = gateway.call().create();
 
