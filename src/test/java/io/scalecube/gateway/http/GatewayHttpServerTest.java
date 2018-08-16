@@ -32,7 +32,7 @@ public class GatewayHttpServerTest {
 
   @BeforeAll
   public static void setUp() {
-    final Microservices gatewayMicroservice = microservicesResource.startGateway().getGateway();
+    final Microservices gatewayMicroservice = microservicesResource.startGateway(HttpGateway.class).getGateway();
 
     gatewayHttpResource.startGateway(gatewayMicroservice);
     microservicesResource.startServices(gatewayMicroservice.discovery().address());
@@ -133,7 +133,8 @@ public class GatewayHttpServerTest {
   }
 
   private String generateURL(String qualifier) {
-    final InetSocketAddress address = gatewayHttpResource.gateway().address();
+    // workaround for getting ipv4
+    InetSocketAddress address = new InetSocketAddress(gatewayHttpResource.httpAddress().getPort());
     return "http://" + address.getHostName() + ":" + address.getPort() + qualifier;
   }
 
