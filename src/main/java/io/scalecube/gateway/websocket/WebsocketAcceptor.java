@@ -1,6 +1,5 @@
 package io.scalecube.gateway.websocket;
 
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import io.scalecube.gateway.websocket.message.Signal;
@@ -10,6 +9,7 @@ import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.metrics.Metrics;
 
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 
 import reactor.core.Disposable;
@@ -29,12 +29,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class WebsocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketAcceptor.class);
-  public static final String METRICS_PREFIX = "websocket";
-  public static final String CLIENT_CONNECTIONS_METRIC = "client.connections";
-  public static final String METRIC_CLIENT = "client";
-  public static final String METRIC_REQUESTS = "requests";
-  public static final String METRIC_RESPONSES = "responses";
-  public static final String METRIC_STREAM_DURATION = "streamDuration";
+  private static final String METRICS_PREFIX = "websocket";
+  private static final String CLIENT_CONNECTIONS_METRIC = "client.connections";
+  private static final String METRIC_CLIENT = "client";
+  private static final String METRIC_REQUESTS = "requests";
+  private static final String METRIC_RESPONSES = "responses";
+  private static final String METRIC_STREAM_DURATION = "streamDuration";
 
 
   private final ServiceCall serviceCall;
