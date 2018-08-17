@@ -13,8 +13,10 @@ import reactor.core.publisher.Mono;
 
 public class DistributedMicrobenchmarkState extends AbstractBenchmarkState<DistributedMicrobenchmarkState> {
 
+  private static final String GATEWAY_ALIAS_NAME = "rsws";
+
   private static final GatewayConfig gatewayConfig =
-      GatewayConfig.builder(RSocketWebsocketGateway.class).build();
+      GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build();
 
   private Microservices services;
   private Microservices gateway;
@@ -51,7 +53,8 @@ public class DistributedMicrobenchmarkState extends AbstractBenchmarkState<Distr
 
   @Override
   public Mono<Client> createClient() {
-    InetSocketAddress gatewayAddress = gateway.gatewayAddress(gatewayConfig.gatewayClass());
+    InetSocketAddress gatewayAddress =
+        gateway.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass());
 
     return createClient(
         ClientSettings.builder()
