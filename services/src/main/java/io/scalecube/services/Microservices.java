@@ -322,7 +322,10 @@ public class Microservices {
     }
 
     private Mono<Void> shutdown() {
-      return Flux.fromIterable(gatewayInstances.values()).flatMap(Gateway::stop).then();
+      return Mono.defer(() -> gatewayInstances != null ?
+          Flux.fromIterable(gatewayInstances.values()).flatMap(Gateway::stop).then()
+          : Mono.empty()
+      );
     }
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
@@ -382,7 +385,10 @@ public class Microservices {
 
   public Mono<Void> shutdown() {
     return Mono.when(
-        discovery.shutdown(), gatewayBootstrap.shutdown(), transportBootstrap.shutdown());
+        Mono.defer(() -> discovery != null ? discovery.shutdown() : Mono.empty()),
+        Mono.defer(() -> gatewayBootstrap != null ? gatewayBootstrap.shutdown() : Mono.empty()),
+        Mono.defer(() -> transportBootstrap != null ? transportBootstrap.shutdown() : Mono.empty())
+    );
   }
 
   private static class ServiceTransportBootstrap {
@@ -425,7 +431,16 @@ public class Microservices {
     }
 
     private Mono<Void> shutdown() {
-      return Mono.when(serverTransport.stop(), transport.shutdown(executorService));
+      return Mono.defer(() -> {
+        Mono<Void> result = Mono.empty();
+        if (serverTransport != null) {
+          result = result.then(serverTransport.stop());
+        }
+        if (transport != null && executorService != null) {
+          result = result.then(transport.shutdown(executorService));
+        }
+        return result;
+      });
     }
 
     private ClientTransport clientTransport() {
