@@ -2,17 +2,10 @@ package io.scalecube.services.registry;
 
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.RegistryEvent;
 import io.scalecube.services.registry.api.RegistryEvent.Type;
-import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import org.jctools.maps.NonBlockingHashMap;
-
-import reactor.core.publisher.DirectProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxProcessor;
-import reactor.core.publisher.FluxSink;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,6 +15,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.jctools.maps.NonBlockingHashMap;
+import reactor.core.publisher.DirectProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.FluxSink;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
@@ -99,6 +96,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return referencesByQualifier.values().stream().flatMap(Collection::stream);
   }
 
+  /**
+   * listen on service registry events.
+   */
   public Flux<RegistryEvent> listen() {
     return Flux.fromIterable(referencesByQualifier.values()).flatMap(Flux::fromIterable)
         .map(sr -> new RegistryEvent(Type.ADDED, sr))
