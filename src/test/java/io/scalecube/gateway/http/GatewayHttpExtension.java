@@ -15,7 +15,7 @@ public class GatewayHttpExtension implements AfterAllCallback {
   private InetSocketAddress address;
 
   public GatewayHttpExtension startGateway(Microservices gateway) {
-    address = gateway.gatewayAddress(HttpGateway.class);
+    address = gateway.gatewayAddress("HttpGateway", HttpGateway.class);
     client = HttpClient.create(address.getPort());
     return this;
   }
