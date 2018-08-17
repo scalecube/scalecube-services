@@ -25,8 +25,9 @@ import reactor.test.StepVerifier;
 
 class RSocketClientSdkDisconnectTest {
 
+  private static final String GATEWAY_ALIAS_NAME = "rsws";
   private static final GatewayConfig gatewayConfig =
-      GatewayConfig.builder(RSocketWebsocketGateway.class).build();
+      GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build();
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);
 
   private static final String JOHN = "John";
@@ -46,7 +47,8 @@ class RSocketClientSdkDisconnectTest {
 
     clientLoopResources = LoopResources.create("eventLoop");
 
-    int gatewayPort = seed.gatewayAddress(gatewayConfig.gatewayClass()).getPort();
+    int gatewayPort =
+        seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
 
     ClientMessageCodec codec =
