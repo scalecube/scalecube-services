@@ -16,7 +16,6 @@
 
   <properties>
     <uberjar.name>scalecube-services-benchmarks</uberjar.name>
-    <jmh.version>1.21</jmh.version>
   </properties>
 
   <dependencies>
@@ -61,18 +60,6 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-core</artifactId>
-      <version>${jmh.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.openjdk.jmh</groupId>
-      <artifactId>jmh-generator-annprocess</artifactId>
-      <version>${jmh.version}</version>
-      <scope>provided</scope>
     </dependency>
   </dependencies>
 
