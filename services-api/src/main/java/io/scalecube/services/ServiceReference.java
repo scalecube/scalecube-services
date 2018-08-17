@@ -7,6 +7,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Service reference. This is merge of service method information together with service registration
+ * and with service endpoint.
+ */
 public class ServiceReference {
 
   private final String qualifier;
@@ -20,6 +24,13 @@ public class ServiceReference {
   private final CommunicationMode mode;
   private final Address address;
 
+  /**
+   * Constructor for service reference.
+   *
+   * @param serviceMethodDefinition service method info
+   * @param serviceRegistration service registration
+   * @param serviceEndpoint service node info
+   */
   public ServiceReference(
       ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
