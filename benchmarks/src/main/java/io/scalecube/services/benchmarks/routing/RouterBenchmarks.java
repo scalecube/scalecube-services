@@ -16,6 +16,11 @@ public class RouterBenchmarks {
   private static final ServiceMessage MESSAGE =
       ServiceMessage.builder().qualifier(Qualifier.asString(NAMESPACE, ACTION)).build();
 
+  /**
+   * Main method.
+   *
+   * @param args - params of main method.
+   */
   public static void main(String[] args) {
     BenchmarksSettings settings =
         BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();

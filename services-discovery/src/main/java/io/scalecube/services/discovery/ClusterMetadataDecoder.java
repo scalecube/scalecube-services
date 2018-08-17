@@ -29,6 +29,12 @@ public class ClusterMetadataDecoder {
     return objectMapper;
   }
 
+  /**
+   * Decodes metadata into {@link ServiceEndpoint}.
+   *
+   * @param metadata - raw metadata to decode from.
+   * @return decoded {@link ServiceEndpoint}. In case of deserialization error returns {@code null}
+   */
   public static ServiceEndpoint decodeMetadata(String metadata) {
     try {
       return objectMapper.readValue(metadata, ServiceEndpoint.class);
@@ -38,6 +44,13 @@ public class ClusterMetadataDecoder {
     }
   }
 
+  /**
+   * Encodes {@link ServiceEndpoint} into raw String.
+   *
+   * @param serviceEndpoint - service endpoint to encode.
+   * @return encoded {@link ServiceEndpoint}. In case of deserialization error throws {@link
+   *     IOException}
+   */
   public static String encodeMetadata(ServiceEndpoint serviceEndpoint) {
     try {
       return objectMapper.writeValueAsString(serviceEndpoint);

@@ -33,6 +33,13 @@ public class ProtostuffCodec implements HeadersCodec, DataCodec {
   }
 
   @Override
+  public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
+    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
+      ProtostuffIOUtil.writeTo(stream, headers, StringMapSchema.VALUE_STRING, rlb.buffer());
+    }
+  }
+
+  @Override
   public Object decode(InputStream stream, Class<?> type) throws IOException {
     Schema schema = RuntimeSchema.getSchema(type);
     Object result = schema.newMessage();
@@ -41,13 +48,6 @@ public class ProtostuffCodec implements HeadersCodec, DataCodec {
       ProtobufIOUtil.mergeFrom(stream, result, schema, rlb.buffer());
     }
     return result;
-  }
-
-  @Override
-  public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
-    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-      ProtostuffIOUtil.writeTo(stream, headers, StringMapSchema.VALUE_STRING, rlb.buffer());
-    }
   }
 
   @Override

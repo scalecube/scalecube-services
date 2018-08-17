@@ -41,15 +41,15 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
   }
 
   @Override
+  public void encode(OutputStream stream, Object value) throws IOException {
+    mapper.writeValue(stream, value);
+  }
+
+  @Override
   public Map<String, String> decode(InputStream stream) throws IOException {
     return stream.available() == 0
         ? Collections.emptyMap()
         : mapper.readValue(stream, HashMap.class);
-  }
-
-  @Override
-  public void encode(OutputStream stream, Object value) throws IOException {
-    mapper.writeValue(stream, value);
   }
 
   @Override

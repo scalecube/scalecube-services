@@ -36,7 +36,7 @@ public class ServiceCall {
   private final Router router;
   private final Metrics metrics;
 
-  ServiceCall(Call call) {
+  private ServiceCall(Call call) {
     this.transport = call.transport;
     this.methodRegistry = call.methodRegistry;
     this.serviceRegistry = call.serviceRegistry;
@@ -44,6 +44,10 @@ public class ServiceCall {
     this.metrics = call.metrics;
   }
 
+  /**
+   * This class represents {@link ServiceCall}'s definition. All {@link ServiceCall} must be created
+   * out of this definition.
+   */
   public static class Call {
 
     private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
@@ -53,6 +57,16 @@ public class ServiceCall {
     private final ServiceMethodRegistry methodRegistry;
     private final ServiceRegistry serviceRegistry;
 
+    /**
+     * Creates new {@link ServiceCall}'s definition.
+     *
+     * @param transport - transport to be used by {@link ServiceCall} that is created form this
+     *     {@link Call}
+     * @param methodRegistry - methodRegistry to be used by {@link ServiceCall} that is created form
+     *     this {@link Call}
+     * @param serviceRegistry - serviceRegistry to be used by {@link ServiceCall} that is created
+     *     form this {@link Call}
+     */
     public Call(
         ClientTransport transport,
         ServiceMethodRegistry methodRegistry,
@@ -270,7 +284,7 @@ public class ServiceCall {
     return (T)
         Proxy.newProxyInstance(
             getClass().getClassLoader(),
-            new Class[]{serviceInterface},
+            new Class[] {serviceInterface},
             (proxy, method, params) -> {
               final MethodInfo methodInfo = genericReturnTypes.get(method);
               final Class<?> returnType = methodInfo.parameterizedReturnType();
@@ -347,7 +361,8 @@ public class ServiceCall {
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
     LOGGER.error(
-        "Failed  to invoke service, No reachable member with such service definition [{}], args [{}]",
+        "Failed  to invoke service, "
+            + "No reachable member with such service definition [{}], args [{}]",
         request.qualifier(),
         request);
     return new ServiceUnavailableException(

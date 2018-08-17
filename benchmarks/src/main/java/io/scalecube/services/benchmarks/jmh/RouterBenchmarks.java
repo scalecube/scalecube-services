@@ -70,6 +70,7 @@ public class RouterBenchmarks {
     @Param({"1", "10", "100"})
     public int count;
 
+    /** Initialize benchmark test. */
     @Setup
     public void setUp() {
       List<ServiceInfo> services =

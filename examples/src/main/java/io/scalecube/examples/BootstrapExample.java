@@ -13,11 +13,14 @@ import java.util.function.BiFunction;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Basic getting started example
- */
+/** Basic getting started example. */
 public class BootstrapExample {
 
+  /**
+   * Main method.
+   * @param args - arguments.
+   * @throws Exception - exception.
+   */
   public static void main(String[] args) throws Exception {
     System.out.println("Start gateway");
     Microservices gateway =
@@ -38,7 +41,7 @@ public class BootstrapExample {
     System.out.println("Started gateway layer: " + gateway.gatewayAddresses());
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
-    Microservices node1 =
+    final Microservices node1 =
         Microservices.builder()
             .seeds(gateway.discovery().address())
             .services(
@@ -51,14 +54,14 @@ public class BootstrapExample {
             .startAwait();
 
     System.out.println("Start ServiceHello");
-    Microservices node2 =
+    final Microservices node2 =
         Microservices.builder()
             .seeds(gateway.discovery().address())
             .services(new ServiceHelloImpl())
             .startAwait();
 
     System.out.println("Start ServiceWorld");
-    Microservices node3 =
+    final Microservices node3 =
         Microservices.builder()
             .seeds(gateway.discovery().address())
             .services(new ServiceWorldImpl())
@@ -77,21 +80,21 @@ public class BootstrapExample {
         .block(Duration.ofSeconds(5));
   }
 
-  /** Just service */
+  /** Just a service. */
   @Service
   public interface ServiceHello {
     @ServiceMethod
     Mono<String> hello();
   }
 
-  /** Just service */
+  /** Just a service. */
   @Service
   public interface ServiceWorld {
     @ServiceMethod
     Mono<String> world();
   }
 
-  /** Facade service for calling another services */
+  /** Facade service for calling another services. */
   @Service
   public interface HelloWorldService {
     @ServiceMethod

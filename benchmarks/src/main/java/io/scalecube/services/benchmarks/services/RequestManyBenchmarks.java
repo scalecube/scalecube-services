@@ -8,6 +8,11 @@ public class RequestManyBenchmarks {
 
   private static final String RESPONSE_COUNT = "1000";
 
+  /**
+   * Main method.
+   *
+   * @param args - params of main method.
+   */
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).build();
     new ServicesBenchmarksState(settings, new BenchmarkServiceImpl())

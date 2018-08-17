@@ -110,22 +110,51 @@ public class Metrics {
     }
   }
 
+  /**
+   * Reports an event to given <code>meter</code>.
+   *
+   * @param meter - meter that consumes na event.
+   */
   public static void mark(Meter meter) {
     if (meter != null) {
       meter.mark();
     }
   }
 
+  /**
+   * Reports an event to <code>meter</code> described by given parameters.
+   *
+   * @param metrics - {@link Metrics} instance with {@link MetricRegistry} initialized.
+   * @param component - part of metric description (calss name is used).
+   * @param methodName - part of metric description.
+   * @param eventType - part of metric description.
+   */
   public static void mark(Metrics metrics, Class component, String methodName, String eventType) {
     mark(metrics, component.getName(), methodName, eventType);
   }
 
+  /**
+   * Reports an event to <code>meter</code> described by given parameters.
+   *
+   * @param metrics - {@link Metrics} instance with {@link MetricRegistry} initialized.
+   * @param component - part of metric description.
+   * @param methodName - part of metric description.
+   * @param eventType - part of metric description.
+   */
   public static void mark(Metrics metrics, String component, String methodName, String eventType) {
     if (metrics != null) {
       mark(metrics.getMeter(component, methodName, eventType));
     }
   }
 
+  /**
+   * Reports an event to <code>meter</code> described by given parameters.
+   *
+   * @param serviceInterface - part of metric description (class name is used).
+   * @param metrics - {@link Metrics} instance with {@link MetricRegistry} initialized.
+   * @param method - part of metric description (method name is used).
+   * @param eventType - part of metric description.
+   */
   public static void mark(
       Class<?> serviceInterface, Metrics metrics, Method method, String eventType) {
     if (metrics != null) {
@@ -134,6 +163,12 @@ public class Metrics {
     }
   }
 
+  /**
+   * Start measuring time to be later reported to metrics.
+   *
+   * @param timer - instance of timer
+   * @return timer context that might be stopped and therefore reported to metrics.
+   */
   public static Context time(Timer timer) {
     if (timer != null) {
       return timer.time();
@@ -141,18 +176,33 @@ public class Metrics {
     return null;
   }
 
+  /**
+   * Stop time measurement and report the interval to metrics.
+   *
+   * @param ctx - timer context to be stopped.
+   */
   public static void stop(Context ctx) {
     if (ctx != null) {
       ctx.stop();
     }
   }
 
+  /**
+   * Increase counter.
+   *
+   * @param counter - counter to increase.
+   */
   public static void inc(Counter counter) {
     if (counter != null) {
       counter.inc();
     }
   }
 
+  /**
+   * Decrease counter.
+   *
+   * @param counter - counter to decrease.
+   */
   public static void dec(Counter counter) {
     if (counter != null) {
       counter.dec();

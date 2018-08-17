@@ -10,6 +10,11 @@ import java.util.concurrent.TimeUnit;
 
 public class ServiceMessageFullEncodeBenchmarks {
 
+  /**
+   * Main method.
+   *
+   * @param args - params of main method.
+   */
   public static void main(String[] args) {
     BenchmarksSettings settings =
         BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();

@@ -30,9 +30,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Service Injector scan and injects beans to a given Microservices instance.
- */
+/** Service Injector scan and injects beans to a given Microservices instance. */
 public final class Reflect {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
@@ -81,9 +79,9 @@ public final class Reflect {
   /**
    * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
    * in case the method is annotated with @RequestType this type will always be chosen. if the
-   * parameter is generic eg. <String> the actual type will be used. in case there is no annotation
-   * and the type is not generic then return the actual type. in case method accepts service message
-   * and no RequestType annotation is present then return Object.class
+   * parameter is generic eg. &lt;String&gt; the actual type will be used. in case there is no
+   * annotation and the type is not generic then return the actual type. in case method accepts
+   * service message and no RequestType annotation is present then return Object.class
    *
    * @param method in inspection.
    * @return type of parameter [0] or void
@@ -126,6 +124,14 @@ public final class Reflect {
     return Object.class;
   }
 
+  /**
+   * Parse <code>serviceInterface</code> class and puts available methods annotated by {@link
+   * ServiceMethod} annotation to {@link Method} -> {@link MethodInfo} mapping.
+   *
+   * @param serviceInterface - service interface to be parsed.
+   * @return - mapping form available service methods of the <code>serviceInterface</code> to their
+   *     descriptions
+   */
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
         serviceMethods(serviceInterface)
@@ -232,6 +238,24 @@ public final class Reflect {
     }
   }
 
+  /**
+   * This method is used to get catual {@link CommunicationMode} os service method.
+   *
+   * <p>The following modes are supported:
+   *
+   * <ul>
+   *   <li>{@link CommunicationMode#REQUEST_CHANNEL} - service has at least one parameter,and the
+   *       first parameter is either of type return type {@link Flux} or {@link Publisher};
+   *   <li>{@link CommunicationMode#REQUEST_STREAM} - service's return type is {@link Flux}, and
+   *       parameter is not {@link Flux};
+   *   <li>{@link CommunicationMode#REQUEST_RESPONSE} - service's return type is Mono;
+   *   <li>{@link CommunicationMode#FIRE_AND_FORGET} - service returns void;
+   * </ul>
+   *
+   * @param method - Service method to be analyzed.
+   * @return - {@link CommunicationMode} of service method. If method does not correspond to any of
+   *     supported modes, throws {@link IllegalArgumentException}
+   */
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
     if (isRequestChannel(method)) {

@@ -21,6 +21,12 @@ public class Example1 {
 
   private static final Random RANDOM = new Random(5);
 
+  /**
+   * Main method.
+   *
+   * @param args - program arguments
+   * @throws InterruptedException - exception.
+   */
   public static void main(String[] args) throws InterruptedException {
 
     Microservices gateway = Microservices.builder().startAwait();

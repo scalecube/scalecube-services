@@ -11,6 +11,11 @@ import java.util.concurrent.TimeUnit;
 
 public class ServiceMessagePartialDecodeBenchmarks {
 
+  /**
+   * Main method.
+   *
+   * @param args - params of main method.
+   */
   public static void main(String[] args) {
     BenchmarksSettings settings =
         BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();

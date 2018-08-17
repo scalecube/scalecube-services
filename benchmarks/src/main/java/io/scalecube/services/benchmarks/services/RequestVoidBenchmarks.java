@@ -5,6 +5,11 @@ import io.scalecube.benchmarks.BenchmarksSettings;
 
 public class RequestVoidBenchmarks {
 
+  /**
+   * Main method.
+   *
+   * @param args - params of main method.
+   */
   public static void main(String[] args) {
     BenchmarksSettings settings = BenchmarksSettings.from(args).build();
     new ServicesBenchmarksState(settings, new BenchmarkServiceImpl())

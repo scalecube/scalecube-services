@@ -28,6 +28,8 @@ final class RecyclableLinkedBuffer implements AutoCloseable {
   }
 
   /**
+   * Creates new {@link RecyclableLinkedBuffer}.
+   *
    * @param bufferSize {@link LinkedBuffer}'s buffer size.
    * @param maxCapacity {@link Recycler}'s.
    */

@@ -20,7 +20,7 @@ public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private final ThreadLocal<Map<Address, Mono<RSocket>>> rSockets =
+  private final ThreadLocal<Map<Address, Mono<RSocket>>> rsockets =
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec codec;
@@ -33,10 +33,10 @@ public class RSocketClientTransport implements ClientTransport {
 
   @Override
   public ClientChannel create(Address address) {
-    final Map<Address, Mono<RSocket>> monoMap = rSockets.get(); // keep reference for threadsafety
-    Mono<RSocket> rSocket =
+    final Map<Address, Mono<RSocket>> monoMap = rsockets.get(); // keep reference for threadsafety
+    Mono<RSocket> rsocket =
         monoMap.computeIfAbsent(address, address1 -> connect(address1, monoMap));
-    return new RSocketServiceClientAdapter(rSocket, codec);
+    return new RSocketServiceClientAdapter(rsocket, codec);
   }
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
@@ -51,7 +51,7 @@ public class RSocketClientTransport implements ClientTransport {
 
     TcpClientTransport tcpClientTransport = TcpClientTransport.create(tcpClient);
 
-    Mono<RSocket> rSocketMono =
+    Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
             .frameDecoder(
                 frame ->
@@ -60,12 +60,12 @@ public class RSocketClientTransport implements ClientTransport {
             .transport(tcpClientTransport)
             .start();
 
-    return rSocketMono
+    return rsocketMono
         .doOnSuccess(
-            rSocket -> {
+            rsocket -> {
               LOGGER.info("Connected successfully on {}", address);
               // setup shutdown hook
-              rSocket
+              rsocket
                   .onClose()
                   .doOnTerminate(
                       () -> {

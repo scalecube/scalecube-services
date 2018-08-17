@@ -59,11 +59,11 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public EventLoopGroup getExecutorService() {
-    int nThreads = NettyRuntime.availableProcessors();
+    int numberThreads = NettyRuntime.availableProcessors();
     ThreadFactory threadFactory = new DefaultThreadFactory(THREAD_FACTORY_POOL_NAME, true);
     return isEpollSupported
-        ? new EpollEventLoopGroup(nThreads, threadFactory)
-        : new NioEventLoopGroup(nThreads, threadFactory);
+        ? new EpollEventLoopGroup(numberThreads, threadFactory)
+        : new NioEventLoopGroup(numberThreads, threadFactory);
   }
 
   @Override

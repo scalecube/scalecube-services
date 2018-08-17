@@ -22,6 +22,12 @@ public class RouterBenchmarksState extends BenchmarksState<RouterBenchmarksState
   private final ServiceRegistryImpl serviceRegistry = new ServiceRegistryImpl();
   private final Router router = new RoundRobinServiceRouter();
 
+  /**
+   * State for {@link io.scalecube.services.benchmarks.routing.RouterBenchmarks}.
+   *
+   * @param settings - settings for {@link
+   *     io.scalecube.services.benchmarks.routing.RouterBenchmarks}
+   */
   public RouterBenchmarksState(BenchmarksSettings settings) {
     super(settings);
     String value = settings.find("identicalReferenceCount", IDENTICAL_REFERENCE_COUNT);

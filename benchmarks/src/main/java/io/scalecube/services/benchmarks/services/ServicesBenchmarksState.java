@@ -50,6 +50,7 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
     try {
       Mono.when(node.shutdown(), seed.shutdown()).block(SHUTDOWN_TIMEOUT);
     } catch (Throwable ignore) {
+      // ignore
     }
   }
 

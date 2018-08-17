@@ -26,7 +26,7 @@ public class WebsocketStubGateway implements Gateway {
           System.out.println("Starting WS gateway...");
 
           return Mono.delay(Duration.ofMillis(ThreadLocalRandom.current().nextInt(100, 500)))
-              .map(aLong -> new InetSocketAddress(config.port()))
+              .map(tick -> new InetSocketAddress(config.port()))
               .doOnSuccess(address -> System.out.println("WS gateway is started on " + address));
         });
   }

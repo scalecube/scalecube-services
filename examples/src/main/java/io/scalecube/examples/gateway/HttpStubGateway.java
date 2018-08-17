@@ -24,7 +24,7 @@ public class HttpStubGateway implements Gateway {
           System.out.println("Starting HTTP gateway...");
 
           return Mono.delay(Duration.ofMillis(ThreadLocalRandom.current().nextInt(100, 500)))
-              .map(aLong -> new InetSocketAddress(config.port()))
+              .map(tick -> new InetSocketAddress(config.port()))
               .doOnSuccess(address -> System.out.println("HTTP gateway is started on " + address));
         });
   }

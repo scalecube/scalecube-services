@@ -13,44 +13,44 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServiceClientAdapter implements ClientChannel {
 
-  private Mono<RSocket> rSocket;
+  private Mono<RSocket> rsocket;
   private ServiceMessageCodec messageCodec;
 
-  public RSocketServiceClientAdapter(Mono<RSocket> rSocket, ServiceMessageCodec codec) {
-    this.rSocket = rSocket;
+  public RSocketServiceClientAdapter(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
+    this.rsocket = rsocket;
     this.messageCodec = codec;
   }
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
-    return rSocket
+    return rsocket
         .flatMap(
-            rSocket ->
-                rSocket
+            rsocket ->
+                rsocket
                     .requestResponse(toPayload(message))
-                    .takeUntilOther(listenConnectionClose(rSocket)))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
-    return rSocket
+    return rsocket
         .flatMapMany(
-            rSocket ->
-                rSocket
+            rsocket ->
+                rsocket
                     .requestStream(toPayload(message))
-                    .takeUntilOther(listenConnectionClose(rSocket)))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
-    return rSocket
+    return rsocket
         .flatMapMany(
-            rSocket ->
-                rSocket
+            rsocket ->
+                rsocket
                     .requestChannel(Flux.from(publisher).map(this::toPayload))
-                    .takeUntilOther(listenConnectionClose(rSocket)))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .map(this::toMessage);
   }
 
@@ -63,10 +63,10 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   }
 
   @SuppressWarnings("unchecked")
-  private <T> Mono<T> listenConnectionClose(RSocket rSocket) {
-    return rSocket
+  private <T> Mono<T> listenConnectionClose(RSocket rsocket) {
+    return rsocket
         .onClose()
-        .map(aVoid -> (T) aVoid)
+        .map(empty -> (T) empty)
         .switchIfEmpty(Mono.defer(this::toConnectionClosedException));
   }
 

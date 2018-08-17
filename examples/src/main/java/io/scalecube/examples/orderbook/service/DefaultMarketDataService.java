@@ -14,38 +14,21 @@ import reactor.core.publisher.Mono;
 
 public class DefaultMarketDataService implements MarketDataService {
 
-  OrderBooks books;
-  List<String> instumentList = new ArrayList<>();
-  AtomicLong lastTrade = new AtomicLong();
-  Map<Long, OrderBook> view = new ConcurrentHashMap<>();
-  Market market =
-      new Market(
-          new MarketListener() {
-            @Override
-            public void update(OrderBook book, boolean bbo) {
-              System.out.println(book);
-            }
+  private OrderBooks books;
+  private AtomicLong lastTrade = new AtomicLong();
+  private Map<Long, OrderBook> view = new ConcurrentHashMap<>();
+  private Market market = new Market(new MyMarketListener());
 
-            @Override
-            public void trade(OrderBook book, Side side, long price, long size) {
-              System.out.println(book);
-            }
-          });
-
-  /**
-   * Create a new service.
-   */
+  /** Create a new service. */
   public DefaultMarketDataService() {
+    List<String> instumentList = new ArrayList<>();
     instumentList.add("ORCL");
     books = new OrderBooks(instumentList);
     OrderBook marketBook = market.open(1L);
     view.put(1L, marketBook);
     books
         .listenAdd("ORCL")
-        .subscribe(
-            add -> {
-              market.execute(add.orderId(), add.quantity(), add.price());
-            });
+        .subscribe(add -> market.execute(add.orderId(), add.quantity(), add.price()));
 
     books
         .listenMatch("ORCL")
@@ -77,5 +60,18 @@ public class DefaultMarketDataService implements MarketDataService {
 
     return Flux.interval(Duration.ofSeconds(1))
         .map(mapper -> new OrderBookSnapshoot(view.get(1L), lastTrade.get()));
+  }
+
+  private static class MyMarketListener implements MarketListener {
+
+    @Override
+    public void update(OrderBook book, boolean bbo) {
+      System.out.println(book);
+    }
+
+    @Override
+    public void trade(OrderBook book, Side side, long price, long size) {
+      System.out.println(book);
+    }
   }
 }
