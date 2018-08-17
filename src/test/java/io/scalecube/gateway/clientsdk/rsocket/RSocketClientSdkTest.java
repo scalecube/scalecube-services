@@ -31,7 +31,7 @@ class RSocketClientSdkTest {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
   private static final GatewayConfig gatewayConfig =
-      GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build();
+    GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build();
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);
 
   private static final String JOHN = "John";
@@ -44,10 +44,10 @@ class RSocketClientSdkTest {
   @BeforeAll
   static void startServer() {
     seed =
-        Microservices.builder()
-            .services(new GreetingServiceImpl())
-            .gateway(gatewayConfig)
-            .startAwait();
+      Microservices.builder()
+        .services(new GreetingServiceImpl())
+        .gateway(gatewayConfig)
+        .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");
   }
@@ -61,7 +61,7 @@ class RSocketClientSdkTest {
   @BeforeEach
   void startClient() {
     int gatewayPort =
-        seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
+      seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
     ClientMessageCodec codec = new ClientMessageCodec(
       HeadersCodec.getInstance(settings.contentType()),
