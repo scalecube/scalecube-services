@@ -21,7 +21,7 @@ public class GatewayHttpRunner {
         .stream().map(Address::from).toArray(Address[]::new);
 
     Microservices seed = Microservices.builder()
-        .gateway(GatewayConfig.builder(HttpGateway.class).build())
+        .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
         .seeds(seeds)
         .startAwait();
 
