@@ -56,25 +56,14 @@ public class WebsocketExtension implements AfterAllCallback {
     objectMapper = initMapper();
   }
 
-  private WebsocketServer websocketServer;
-  private InetSocketAddress websocketServerAddress;
   private URI websocketServerUri;
-
-  public WebsocketServer getWebsocketServer() {
-    return websocketServer;
-  }
-
-  public InetSocketAddress getWebsocketServerAddress() {
-    return websocketServerAddress;
-  }
 
   public URI getWebsocketServerUri() {
     return websocketServerUri;
   }
 
   public WebsocketExtension startWebsocketServer(Microservices gateway) {
-    websocketServer = new WebsocketServer(gateway);
-    websocketServerAddress = websocketServer.start();
+    InetSocketAddress websocketServerAddress = gateway.gatewayAddress("WebsocketGateway", WebsocketGateway.class);
 
     websocketServerUri = //
         UriComponentsBuilder.newInstance().scheme("ws")
@@ -82,17 +71,6 @@ public class WebsocketExtension implements AfterAllCallback {
             .port(websocketServerAddress.getPort())
             .build().toUri();
 
-    return this;
-  }
-
-  public WebsocketExtension stopWebsocketServer() {
-    if (websocketServer != null) {
-      try {
-        websocketServer.stop();
-      } catch (Throwable ignore) {
-      }
-      LOGGER.info("Stopped websocket server {} on {}", websocketServer, websocketServerAddress);
-    }
     return this;
   }
 
@@ -248,7 +226,7 @@ public class WebsocketExtension implements AfterAllCallback {
 
   @Override
   public void afterAll(ExtensionContext context) {
-    stopWebsocketServer();
+    // noop;
   }
 
   private static ObjectMapper initMapper() {

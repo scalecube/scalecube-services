@@ -3,13 +3,16 @@ package io.scalecube.gateway;
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.gateway.Gateway;
+import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.transport.Address;
 
-import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.net.InetSocketAddress;
 
 public class MicroservicesExtension implements AfterAllCallback {
 
@@ -37,8 +40,13 @@ public class MicroservicesExtension implements AfterAllCallback {
     return serviceAddress;
   }
 
-  public MicroservicesExtension startGateway() {
-    gateway = Microservices.builder().startAwait();
+  @SafeVarargs
+  public final MicroservicesExtension startGateway(Class<? extends Gateway>... gateways) {
+    Microservices.Builder builder = Microservices.builder();
+    for (Class<? extends Gateway> gateway : gateways) {
+      builder.gateway(GatewayConfig.builder(gateway.getSimpleName(), gateway).build());
+    }
+    gateway = builder.startAwait();
     gatewayAddress = gateway.discovery().address();
     LOGGER.info("Started gateway {} on {}", gateway, gatewayAddress);
     return this;
