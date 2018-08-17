@@ -1,11 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.scalecube.services.codec.HeadersCodec;
-import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.transport.api.ClientTransport;
-import io.scalecube.services.transport.api.ServerTransport;
-import io.scalecube.services.transport.api.ServiceTransport;
-
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -14,13 +8,15 @@ import io.netty.util.NettyRuntime;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.scalecube.services.codec.HeadersCodec;
+import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ServerTransport;
+import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.FutureMono;
 
@@ -63,16 +59,16 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public EventLoopGroup getExecutorService() {
-    int nThreads = NettyRuntime.availableProcessors();
+    int numberThreads = NettyRuntime.availableProcessors();
     ThreadFactory threadFactory = new DefaultThreadFactory(THREAD_FACTORY_POOL_NAME, true);
     return isEpollSupported
-        ? new EpollEventLoopGroup(nThreads, threadFactory)
-        : new NioEventLoopGroup(nThreads, threadFactory);
+        ? new EpollEventLoopGroup(numberThreads, threadFactory)
+        : new NioEventLoopGroup(numberThreads, threadFactory);
   }
 
   @Override
   public Mono<Void> shutdown(ExecutorService executorService) {
-    return Mono.defer(() -> FutureMono.from(
-        (Future) ((EventLoopGroup) executorService).shutdownGracefully()));
+    return Mono.defer(
+        () -> FutureMono.from((Future) ((EventLoopGroup) executorService).shutdownGracefully()));
   }
 }

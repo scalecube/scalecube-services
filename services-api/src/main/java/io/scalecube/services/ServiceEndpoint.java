@@ -14,11 +14,23 @@ public class ServiceEndpoint {
   private Collection<ServiceRegistration> serviceRegistrations;
 
   /**
-   * @deprecated exposed only for deserialization purpose.
+   * Constructor for SerDe.
+   *
+   * @deprecated exposed only for de/serialization purpose.
    */
   public ServiceEndpoint() {}
 
-  public ServiceEndpoint(String id,
+  /**
+   * Create a service endpoint.
+   *
+   * @param id the endpoint's id.
+   * @param host the endpoint's host.
+   * @param port the endpoint's port.
+   * @param tags the endpoint's tags (if any).
+   * @param serviceRegistrations registration for this endpoint.
+   */
+  public ServiceEndpoint(
+      String id,
       String host,
       int port,
       Set<String> contentTypes,
@@ -58,12 +70,19 @@ public class ServiceEndpoint {
 
   @Override
   public String toString() {
-    return "ServiceEndpoint{" +
-        "id='" + id + '\'' +
-        ", host='" + host + '\'' +
-        ", port=" + port +
-        ", tags=" + tags +
-        ", serviceRegistrations=" + serviceRegistrations +
-        '}';
+    return "ServiceEndpoint{"
+        + "id='"
+        + id
+        + '\''
+        + ", host='"
+        + host
+        + '\''
+        + ", port="
+        + port
+        + ", tags="
+        + tags
+        + ", serviceRegistrations="
+        + serviceRegistrations
+        + '}';
   }
 }

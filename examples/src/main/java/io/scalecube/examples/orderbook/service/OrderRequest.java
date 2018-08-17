@@ -21,5 +21,4 @@ public class OrderRequest {
   public String instrument() {
     return instrument;
   }
-
 }

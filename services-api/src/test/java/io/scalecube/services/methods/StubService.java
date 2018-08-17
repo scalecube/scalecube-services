@@ -2,7 +2,6 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -26,5 +25,4 @@ public interface StubService {
 
   @ServiceMethod
   Flux<String> throwException3(Flux<String> request);
-
 }

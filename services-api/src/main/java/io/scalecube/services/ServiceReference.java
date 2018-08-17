@@ -2,12 +2,15 @@ package io.scalecube.services;
 
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.transport.Address;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Service reference. This is merge of service method information together with service registration
+ * and with service endpoint.
+ */
 public class ServiceReference {
 
   private final String qualifier;
@@ -21,7 +24,15 @@ public class ServiceReference {
   private final CommunicationMode mode;
   private final Address address;
 
-  public ServiceReference(ServiceMethodDefinition serviceMethodDefinition,
+  /**
+   * Constructor for service reference.
+   *
+   * @param serviceMethodDefinition service method info
+   * @param serviceRegistration service registration
+   * @param serviceEndpoint service node info
+   */
+  public ServiceReference(
+      ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
     this.endpointId = serviceEndpoint.id();
@@ -72,7 +83,8 @@ public class ServiceReference {
     return action;
   }
 
-  private Map<String, String> mergeTags(ServiceMethodDefinition serviceMethodDefinition,
+  private Map<String, String> mergeTags(
+      ServiceMethodDefinition serviceMethodDefinition,
       ServiceRegistration serviceRegistration,
       ServiceEndpoint serviceEndpoint) {
     Map<String, String> tags = new HashMap<>();
@@ -84,17 +96,32 @@ public class ServiceReference {
 
   @Override
   public String toString() {
-    return "ServiceReference{" +
-        "qualifier='" + qualifier + '\'' +
-        ", endpointId='" + endpointId + '\'' +
-        ", host='" + host + '\'' +
-        ", port=" + port +
-        ", namespace='" + namespace + '\'' +
-        ", contentTypes='" + contentTypes + '\'' +
-        ", tags=" + tags +
-        ", action='" + action + '\'' +
-        ", mode=" + mode +
-        '}';
+    return "ServiceReference{"
+        + "qualifier='"
+        + qualifier
+        + '\''
+        + ", endpointId='"
+        + endpointId
+        + '\''
+        + ", host='"
+        + host
+        + '\''
+        + ", port="
+        + port
+        + ", namespace='"
+        + namespace
+        + '\''
+        + ", contentTypes='"
+        + contentTypes
+        + '\''
+        + ", tags="
+        + tags
+        + ", action='"
+        + action
+        + '\''
+        + ", mode="
+        + mode
+        + '}';
   }
 
   public Address address() {

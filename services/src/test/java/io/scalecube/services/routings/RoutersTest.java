@@ -1,5 +1,12 @@
 package io.scalecube.services.routings;
 
+import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
+import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.Reflect;
@@ -17,22 +24,14 @@ import io.scalecube.services.routings.sut.WeightedRandomRouter;
 import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
-import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ2;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RoutersTest extends BaseTest {
   public static final int TIMEOUT = 10;
@@ -46,32 +45,32 @@ public class RoutersTest extends BaseTest {
   public static void setup() {
     gateway = Microservices.builder().startAwait();
     // Create microservices instance cluster.
-    provider1 = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(
-            ServiceInfo
-                .fromServiceInstance(new GreetingServiceImpl(1))
-                .tag("ONLYFOR", "joe").tag("SENDER", "1")
-                .build(),
-            ServiceInfo
-                .fromServiceInstance(new GreetingServiceImplA())
-                .tag("Weight", "0.3")
-                .build())
-        .startAwait();
+    provider1 =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(
+                ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
+                    .tag("ONLYFOR", "joe")
+                    .tag("SENDER", "1")
+                    .build(),
+                ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
+                    .tag("Weight", "0.3")
+                    .build())
+            .startAwait();
 
     // Create microservices instance cluster.
-    provider2 = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(
-            ServiceInfo
-                .fromServiceInstance(new GreetingServiceImpl(2))
-                .tag("ONLYFOR", "fransin").tag("SENDER", "2")
-                .build(),
-            ServiceInfo
-                .fromServiceInstance(new GreetingServiceImplB())
-                .tag("Weight", "0.7")
-                .build())
-        .startAwait();
+    provider2 =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(
+                ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
+                    .tag("ONLYFOR", "fransin")
+                    .tag("SENDER", "2")
+                    .build(),
+                ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
+                    .tag("Weight", "0.7")
+                    .build())
+            .startAwait();
   }
 
   @AfterAll
@@ -96,10 +95,14 @@ public class RoutersTest extends BaseTest {
 
     // call the service.
     GreetingResponse result1 =
-        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
+            .timeout(timeout)
+            .block()
             .data();
     GreetingResponse result2 =
-        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+        Mono.from(service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
+            .timeout(timeout)
+            .block()
             .data();
 
     assertTrue(!result1.sender().equals(result2.sender()));
@@ -108,10 +111,12 @@ public class RoutersTest extends BaseTest {
   @Test
   public void test_remote_service_tags() {
 
-    CanaryService service = gateway.call()
-        .router(Routers.getRouter(WeightedRandomRouter.class))
-        .create()
-        .api(CanaryService.class);
+    CanaryService service =
+        gateway
+            .call()
+            .router(Routers.getRouter(WeightedRandomRouter.class))
+            .create()
+            .api(CanaryService.class);
 
     Util.sleep(1000);
 
@@ -128,33 +133,49 @@ public class RoutersTest extends BaseTest {
     System.out.println("Service B was called: " + serviceBCount.get() + " times.");
 
     assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.25d);
-
   }
 
   @Test
   public void test_tag_selection_logic() {
 
-    Call service = gateway.call().router((reg, msg) -> reg.listServiceReferences().stream().filter(ref -> "2".equals(
-        ref.tags().get("SENDER"))).findFirst());
+    Call service =
+        gateway
+            .call()
+            .router(
+                (reg, msg) ->
+                    reg.listServiceReferences()
+                        .stream()
+                        .filter(ref -> "2".equals(ref.tags().get("SENDER")))
+                        .findFirst());
 
     // call the service.
     for (int i = 0; i < 1e3; i++) {
       GreetingResponse result =
-          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class)).timeout(timeout).block()
+          Mono.from(service.create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class))
+              .timeout(timeout)
+              .block()
               .data();
       assertEquals("2", result.sender());
     }
-
   }
 
   @Test
   public void test_tag_request_selection_logic() {
 
-
-    ServiceCall service = gateway.call().router(
-        (reg, msg) -> reg.listServiceReferences().stream().filter(ref -> ((GreetingRequest) msg.data()).getName()
-            .equals(ref.tags().get("ONLYFOR"))).findFirst())
-        .create();
+    ServiceCall service =
+        gateway
+            .call()
+            .router(
+                (reg, msg) ->
+                    reg.listServiceReferences()
+                        .stream()
+                        .filter(
+                            ref ->
+                                ((GreetingRequest) msg.data())
+                                    .getName()
+                                    .equals(ref.tags().get("ONLYFOR")))
+                        .findFirst())
+            .create();
 
     // call the service.
     for (int i = 0; i < 1e2; i++) {
@@ -165,10 +186,7 @@ public class RoutersTest extends BaseTest {
       assertEquals("1", resultForJoe.sender());
       assertEquals("2", resultForFransin.sender());
     }
-
   }
-
-
 
   @Test
   public void test_service_tags() throws Exception {
@@ -176,10 +194,11 @@ public class RoutersTest extends BaseTest {
     TimeUnit.SECONDS.sleep(3);
     ServiceCall service = gateway.call().router(WeightedRandomRouter.class).create();
 
-    ServiceMessage req = ServiceMessage.builder()
-        .qualifier(Reflect.serviceName(CanaryService.class), "greeting")
-        .data(new GreetingRequest("joe"))
-        .build();
+    ServiceMessage req =
+        ServiceMessage.builder()
+            .qualifier(Reflect.serviceName(CanaryService.class), "greeting")
+            .data(new GreetingRequest("joe"))
+            .build();
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 
@@ -194,7 +213,5 @@ public class RoutersTest extends BaseTest {
     System.out.println("Service B was called: " + serviceBCount.get() + " times.");
 
     assertEquals(0.6d, serviceBCount.doubleValue() / n, 0.25d);
-
   }
-
 }

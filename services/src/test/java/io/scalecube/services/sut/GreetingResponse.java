@@ -8,7 +8,7 @@ public final class GreetingResponse {
   public GreetingResponse() {
   }
 
-  public GreetingResponse(String result){
+  public GreetingResponse(String result) {
     this.result = result;
     this.sender = null;
   }
@@ -24,10 +24,7 @@ public final class GreetingResponse {
 
   @Override
   public String toString() {
-    return "GreetingResponse{" +
-        "result='" + result + '\'' +
-        ", sender='" + sender + '\'' +
-        '}';
+    return "GreetingResponse{" + "result='" + result + '\'' + ", sender='" + sender + '\'' + '}';
   }
 
   public String sender() {

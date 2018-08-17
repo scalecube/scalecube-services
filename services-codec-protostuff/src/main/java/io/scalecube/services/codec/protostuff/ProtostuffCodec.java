@@ -1,14 +1,12 @@
 package io.scalecube.services.codec.protostuff;
 
-import io.scalecube.services.codec.DataCodec;
-import io.scalecube.services.codec.HeadersCodec;
-
 import io.protostuff.ProtobufIOUtil;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.StringMapSchema;
 import io.protostuff.runtime.RuntimeSchema;
-
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.codec.HeadersCodec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,6 +33,13 @@ public class ProtostuffCodec implements HeadersCodec, DataCodec {
   }
 
   @Override
+  public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
+    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
+      ProtostuffIOUtil.writeTo(stream, headers, StringMapSchema.VALUE_STRING, rlb.buffer());
+    }
+  }
+
+  @Override
   public Object decode(InputStream stream, Class<?> type) throws IOException {
     Schema schema = RuntimeSchema.getSchema(type);
     Object result = schema.newMessage();
@@ -43,13 +48,6 @@ public class ProtostuffCodec implements HeadersCodec, DataCodec {
       ProtobufIOUtil.mergeFrom(stream, result, schema, rlb.buffer());
     }
     return result;
-  }
-
-  @Override
-  public void encode(OutputStream stream, Map<String, String> headers) throws IOException {
-    try (RecyclableLinkedBuffer rlb = recyclableLinkedBuffer.get()) {
-      ProtostuffIOUtil.writeTo(stream, headers, StringMapSchema.VALUE_STRING, rlb.buffer());
-    }
   }
 
   @Override

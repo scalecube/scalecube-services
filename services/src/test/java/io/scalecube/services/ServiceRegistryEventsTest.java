@@ -6,14 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.sut.GreetingServiceImpl;
-
-import org.junit.jupiter.api.Test;
-
-import reactor.core.publisher.Mono;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 public class ServiceRegistryEventsTest {
 
@@ -22,18 +19,21 @@ public class ServiceRegistryEventsTest {
 
     List<DiscoveryEvent> events = new ArrayList<>();
 
-    Microservices seed = Microservices.builder()
-        .startAwait();
+    Microservices seed = Microservices.builder().startAwait();
 
     seed.discovery().listen().subscribe(events::add);
 
-    Microservices ms1 = Microservices.builder().seeds(seed.discovery().address())
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    Microservices ms1 =
+        Microservices.builder()
+            .seeds(seed.discovery().address())
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
-    Microservices ms2 = Microservices.builder().seeds(seed.discovery().address())
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    Microservices ms2 =
+        Microservices.builder()
+            .seeds(seed.discovery().address())
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     Mono.when(ms1.shutdown(), ms2.shutdown()).block(Duration.ofSeconds(6));
 

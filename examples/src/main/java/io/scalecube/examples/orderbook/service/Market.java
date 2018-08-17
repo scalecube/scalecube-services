@@ -1,7 +1,6 @@
 package io.scalecube.examples.orderbook.service;
 
 import io.scalecube.examples.orderbook.service.engine.events.Side;
-
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
 /**
@@ -29,9 +28,7 @@ public class Market {
   /**
    * Open an order book.
    *
-   * <p>
-   * If the order book for the instrument is already open, do nothing.
-   * </p>
+   * <p>If the order book for the instrument is already open, do nothing.
    *
    * @param instrument an instrument
    * @return the order book
@@ -53,13 +50,9 @@ public class Market {
   /**
    * Add an order to an order book.
    *
-   * <p>
-   * An update event is triggered.
-   * </p>
+   * <p>An update event is triggered.
    *
-   * <p>
-   * If the order book for the instrument is closed or the order identifier is known, do nothing.
-   * </p>
+   * <p>If the order book for the instrument is closed or the order identifier is known, do nothing.
    *
    * @param instrument the instrument
    * @param orderId the order identifier
@@ -68,12 +61,14 @@ public class Market {
    * @param size the size
    */
   public void add(long instrument, long orderId, Side side, long price, long size) {
-    if (orders.containsKey(orderId))
+    if (orders.containsKey(orderId)) {
       return;
+    }
 
     OrderBook book = books.get(instrument);
-    if (book == null)
+    if (book == null) {
       return;
+    }
 
     Order order = new Order(book, side, price, size);
 
@@ -85,51 +80,45 @@ public class Market {
   }
 
   /**
-   * Modify an order in an order book. The order will retain its time priority. If the new size is zero, the order is
-   * deleted from the order book.
+   * Modify an order in an order book. The order will retain its time priority. If the new size is
+   * zero, the order is deleted from the order book.
    *
-   * <p>
-   * An update event is triggered.
-   * </p>
+   * <p>An update event is triggered.
    *
-   * <p>
-   * If the order identifier is unknown, do nothing.
-   * </p>
+   * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
    * @param size the new size
    */
   public void modify(long orderId, long size) {
     Order order = orders.get(orderId);
-    if (order == null)
+    if (order == null) {
       return;
+    }
 
     OrderBook book = order.getOrderBook();
 
     long newSize = Math.max(0, size);
 
-    boolean bbo = book.update(order.getSide(), order.getPrice(),
-        newSize - order.getRemainingQuantity());
+    boolean bbo =
+        book.update(order.getSide(), order.getPrice(), newSize - order.getRemainingQuantity());
 
-    if (newSize == 0)
+    if (newSize == 0) {
       orders.remove(orderId);
-    else
+    } else {
       order.setRemainingQuantity(newSize);
+    }
 
     listener.update(book, bbo);
   }
 
   /**
-   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the order is deleted from
-   * the order book.
+   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the
+   * order is deleted from the order book.
    *
-   * <p>
-   * A Trade event and an update event are triggered.
-   * </p>
+   * <p>A Trade event and an update event are triggered.
    *
-   * <p>
-   * If the order identifier is unknown, do nothing.
-   * </p>
+   * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
    * @param quantity the executed quantity
@@ -137,23 +126,20 @@ public class Market {
    */
   public long execute(long orderId, long quantity) {
     Order order = orders.get(orderId);
-    if (order == null)
+    if (order == null) {
       return 0;
+    }
 
     return execute(orderId, order, quantity, order.getPrice());
   }
 
   /**
-   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the order is deleted from
-   * the order book.
+   * Execute a quantity of an order in an order book. If the remaining quantity reaches zero, the
+   * order is deleted from the order book.
    *
-   * <p>
-   * A Trade event and an update event are triggered.
-   * </p>
+   * <p>A Trade event and an update event are triggered.
    *
-   * <p>
-   * If the order identifier is unknown, do nothing.
-   * </p>
+   * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
    * @param quantity the executed quantity
@@ -162,8 +148,9 @@ public class Market {
    */
   public long execute(long orderId, long quantity, long price) {
     Order order = orders.get(orderId);
-    if (order == null)
+    if (order == null) {
       return 0;
+    }
 
     return execute(orderId, order, quantity, price);
   }
@@ -181,10 +168,11 @@ public class Market {
 
     book.update(side, order.getPrice(), -executedQuantity);
 
-    if (executedQuantity == remainingQuantity)
+    if (executedQuantity == remainingQuantity) {
       orders.remove(orderId);
-    else
+    } else {
       order.reduce(executedQuantity);
+    }
 
     listener.update(book, true);
 
@@ -192,16 +180,12 @@ public class Market {
   }
 
   /**
-   * Cancel a quantity of an order in an order book. If the remaining quantity reaches zero, the order is deleted from
-   * the order book.
+   * Cancel a quantity of an order in an order book. If the remaining quantity reaches zero, the
+   * order is deleted from the order book.
    *
-   * <p>
-   * An update event is triggered.
-   * </p>
+   * <p>An update event is triggered.
    *
-   * <p>
-   * If the order identifier is unknown, do nothing.
-   * </p>
+   * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
    * @param quantity the canceled quantity
@@ -209,8 +193,9 @@ public class Market {
    */
   public long cancel(long orderId, long quantity) {
     Order order = orders.get(orderId);
-    if (order == null)
+    if (order == null) {
       return 0;
+    }
 
     OrderBook book = order.getOrderBook();
 
@@ -220,10 +205,11 @@ public class Market {
 
     boolean bbo = book.update(order.getSide(), order.getPrice(), -canceledQuantity);
 
-    if (canceledQuantity == remainingQuantity)
+    if (canceledQuantity == remainingQuantity) {
       orders.remove(orderId);
-    else
+    } else {
       order.reduce(canceledQuantity);
+    }
 
     listener.update(book, bbo);
 
@@ -233,20 +219,17 @@ public class Market {
   /**
    * Delete an order from an order book.
    *
-   * <p>
-   * An update event is triggered.
-   * </p>
+   * <p>An update event is triggered.
    *
-   * <p>
-   * If the order identifier is unknown, do nothing.
-   * </p>
+   * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
    */
   public void delete(long orderId) {
     Order order = orders.get(orderId);
-    if (order == null)
+    if (order == null) {
       return;
+    }
 
     OrderBook book = order.getOrderBook();
 
@@ -256,5 +239,4 @@ public class Market {
 
     listener.update(book, bbo);
   }
-
 }
