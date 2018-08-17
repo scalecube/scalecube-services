@@ -67,11 +67,11 @@ public final class ServiceMethodInvoker {
         && !methodInfo.isRequestTypeServiceMessage()
         && !request.hasData(methodInfo.requestType())) {
 
-      Class<?> aClass = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
+      Class<?> clazz = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
       throw new BadRequestException(
           String.format(
               "Expected service request data of type: %s, but received: %s",
-              methodInfo.requestType(), aClass));
+              methodInfo.requestType(), clazz));
     }
 
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();

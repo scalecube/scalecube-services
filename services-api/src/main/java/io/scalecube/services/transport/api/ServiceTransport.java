@@ -20,16 +20,16 @@ public interface ServiceTransport {
   /**
    * Getting client transport.
    *
-   * @return client transport
    * @param executorService transport executor service
+   * @return client transport
    */
   ClientTransport getClientTransport(ExecutorService executorService);
 
   /**
    * Getting server transport.
    *
-   * @return server transport
    * @param executorService transport executor service
+   * @return server transport
    */
   ServerTransport getServerTransport(ExecutorService executorService);
 
@@ -43,8 +43,8 @@ public interface ServiceTransport {
   /**
    * Shutdowns service transport.
    *
-   * @return shutdown signal
    * @param executorService transport executor service
+   * @return shutdown signal
    */
   Mono<Void> shutdown(ExecutorService executorService);
 }
