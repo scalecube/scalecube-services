@@ -10,7 +10,7 @@ public class Order {
 
   /**
    * Create a new order for the price level.
-   * 
+   *
    * @param level the price level
    * @param id the order id
    * @param size the order size
@@ -40,5 +40,4 @@ public class Order {
   public void resize(long size) {
     remainingQuantity = size;
   }
-
 }

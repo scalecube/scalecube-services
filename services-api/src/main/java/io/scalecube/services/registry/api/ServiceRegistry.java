@@ -3,7 +3,6 @@ package io.scalecube.services.registry.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
-
 import java.util.List;
 
 /**
@@ -21,5 +20,4 @@ public interface ServiceRegistry {
   boolean registerService(ServiceEndpoint serviceEndpoint);
 
   ServiceEndpoint unregisterService(String endpointId);
-
 }

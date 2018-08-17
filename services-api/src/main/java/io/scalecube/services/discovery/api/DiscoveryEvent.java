@@ -50,6 +50,4 @@ public class DiscoveryEvent {
   public boolean isUnregistered() {
     return Type.UNREGISTERED.equals(this.type);
   }
-
-
 }

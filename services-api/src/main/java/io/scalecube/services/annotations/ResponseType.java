@@ -11,9 +11,8 @@ public @interface ResponseType {
 
   /**
    * The class for the response.
-   * 
+   *
    * @return the response type
    */
   Class<?> value();
-
 }

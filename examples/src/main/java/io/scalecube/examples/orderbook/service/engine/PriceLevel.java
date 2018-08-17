@@ -16,7 +16,7 @@ public class PriceLevel {
 
   /**
    * Create a new price level.
-   * 
+   *
    * @param side the side of this level (either {@link Side#BUY} or {@link Side#SELL})
    * @param price the price this level should hold.
    */
@@ -40,7 +40,7 @@ public class PriceLevel {
 
   /**
    * Add a new order.
-   * 
+   *
    * @param orderId the order id
    * @param size the size
    * @return the order added to this price level
@@ -53,7 +53,7 @@ public class PriceLevel {
 
   /**
    * Match order if possible.
-   * 
+   *
    * @param orderId the incoming order id
    * @param side the incoming order side
    * @param size incoming order quantity
@@ -67,8 +67,8 @@ public class PriceLevel {
       long orderQuantity = order.size();
       if (orderQuantity > quantity) {
         order.reduce(quantity);
-        matchEmmiter
-            .onNext(new MatchOrder(order.id(), orderId, side, price, quantity, order.size()));
+        matchEmmiter.onNext(
+            new MatchOrder(order.id(), orderId, side, price, quantity, order.size()));
         quantity = 0;
       } else {
         orders.remove(0);
@@ -82,5 +82,4 @@ public class PriceLevel {
   public void delete(Order order) {
     orders.remove(order);
   }
-
 }

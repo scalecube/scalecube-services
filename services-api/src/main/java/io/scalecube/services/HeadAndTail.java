@@ -17,7 +17,7 @@ public final class HeadAndTail<T> {
 
   /**
    * Create a publisher from another one, saving the head.
-   * 
+   *
    * @param publisher the original publisher
    * @return a new publisher that saves the head.
    */
@@ -29,16 +29,17 @@ public final class HeadAndTail<T> {
     return Flux.from(publisher)
         .doOnComplete(tail::onComplete)
         .doOnError(tail::onError)
-        .flatMap(message -> {
-          if (first.compareAndSet(true, false)) {
-            firstResult.onNext(new HeadAndTail<>(message, tail));
-            firstResult.onComplete();
-            return firstResult;
-          } else {
-            tail.onNext(message);
-            return Flux.empty();
-          }
-        });
+        .flatMap(
+            message -> {
+              if (first.compareAndSet(true, false)) {
+                firstResult.onNext(new HeadAndTail<>(message, tail));
+                firstResult.onComplete();
+                return firstResult;
+              } else {
+                tail.onNext(message);
+                return Flux.empty();
+              }
+            });
   }
 
   public T head() {

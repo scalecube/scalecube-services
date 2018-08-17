@@ -15,7 +15,7 @@ public class OrderBooks {
 
   /**
    * Create order books from instruments.
-   * 
+   *
    * @param instruments the list of instruments (IDs)
    */
   public OrderBooks(List<String> instruments) {
@@ -40,14 +40,12 @@ public class OrderBooks {
   }
 
   public void enterOrder(Order order, String instrument) {
-    books.get(instrument).enter(order.id(), order.level().side(), order.level().price(),
-        order.size());
+    books
+        .get(instrument)
+        .enter(order.id(), order.level().side(), order.level().price(), order.size());
   }
 
   public void cancel(Order order) {
     orders.remove(order.id());
   }
-
-
-
 }

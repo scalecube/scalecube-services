@@ -18,5 +18,4 @@ public @interface ServiceMethod {
    * the code.
    */
   String value() default "";
-
 }

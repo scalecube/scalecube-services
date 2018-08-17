@@ -19,7 +19,7 @@ public class Util {
       e.printStackTrace();
     }
   }
-  
+
   public static void drainLatch(int count, CountDownLatch countLatch) {
     for (int j = 0; j < count; j++) {
       countLatch.countDown();

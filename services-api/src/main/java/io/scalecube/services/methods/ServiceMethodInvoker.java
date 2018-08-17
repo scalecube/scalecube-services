@@ -2,14 +2,11 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-
-import org.reactivestreams.Publisher;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.BiFunction;
-
+import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -25,17 +22,18 @@ public final class ServiceMethodInvoker {
     this.methodInfo = methodInfo;
   }
 
-  public Mono<ServiceMessage> invokeOne(ServiceMessage message,
-      BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
+  public Mono<ServiceMessage> invokeOne(
+      ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
   }
 
-  public Flux<ServiceMessage> invokeMany(ServiceMessage message,
-      BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
+  public Flux<ServiceMessage> invokeMany(
+      ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Flux.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
   }
 
-  public Flux<ServiceMessage> invokeBidirectional(Publisher<ServiceMessage> publisher,
+  public Flux<ServiceMessage> invokeBidirectional(
+      Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder))))
         .map(this::toResponse);
@@ -61,17 +59,19 @@ public final class ServiceMethodInvoker {
     return throwable != null ? Mono.error(throwable) : result;
   }
 
-  private Object toRequest(ServiceMessage message,
-      BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
+  private Object toRequest(
+      ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     ServiceMessage request = dataDecoder.apply(message, methodInfo.requestType());
 
-    if (!methodInfo.isRequestTypeVoid() &&
-        !methodInfo.isRequestTypeServiceMessage() &&
-        !request.hasData(methodInfo.requestType())) {
+    if (!methodInfo.isRequestTypeVoid()
+        && !methodInfo.isRequestTypeServiceMessage()
+        && !request.hasData(methodInfo.requestType())) {
 
       Class<?> aClass = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
-      throw new BadRequestException(String.format("Expected service request data of type: %s, but received: %s",
-          methodInfo.requestType(), aClass));
+      throw new BadRequestException(
+          String.format(
+              "Expected service request data of type: %s, but received: %s",
+              methodInfo.requestType(), aClass));
     }
 
     return methodInfo.isRequestTypeServiceMessage() ? request : request.data();
@@ -82,5 +82,4 @@ public final class ServiceMethodInvoker {
         ? (ServiceMessage) response
         : ServiceMessage.builder().qualifier(methodInfo.qualifier()).data(response).build();
   }
-
 }

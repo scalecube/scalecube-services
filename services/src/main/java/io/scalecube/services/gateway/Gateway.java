@@ -3,10 +3,9 @@ package io.scalecube.services.gateway;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceLoaderUtil;
 import io.scalecube.services.metrics.Metrics;
-import reactor.core.publisher.Mono;
-
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
+import reactor.core.publisher.Mono;
 
 public interface Gateway {
 

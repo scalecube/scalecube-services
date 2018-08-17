@@ -2,13 +2,11 @@ package io.scalecube.services.codec.protostuff;
 
 import io.netty.util.Recycler;
 import io.protostuff.LinkedBuffer;
-
 import java.util.Objects;
 
 /**
- * Facility class for {@link LinkedBuffer}. Based on idea of object pooling (done vian {@link Recycler}).
- * </p>
- * Typical usage:
+ * Facility class for {@link LinkedBuffer}. Based on idea of object pooling (done vian {@link
+ * Recycler}). Typical usage:
  *
  * <pre>
  *     RecycleableLinkedBuffer rlb = new RecycleableLinkedBuffer(bufferSize, maxCapacity)
@@ -34,15 +32,16 @@ final class RecyclableLinkedBuffer implements AutoCloseable {
    * @param maxCapacity {@link Recycler}'s.
    */
   public RecyclableLinkedBuffer(final int bufferSize, int maxCapacity) {
-    this.recycler = new Recycler<RecyclableLinkedBuffer>(maxCapacity) {
-      @Override
-      protected RecyclableLinkedBuffer newObject(Handle handle) {
-        RecyclableLinkedBuffer wrapper = new RecyclableLinkedBuffer();
-        wrapper.buffer = LinkedBuffer.allocate(bufferSize);
-        wrapper.handle = handle;
-        return wrapper;
-      }
-    };
+    this.recycler =
+        new Recycler<RecyclableLinkedBuffer>(maxCapacity) {
+          @Override
+          protected RecyclableLinkedBuffer newObject(Handle handle) {
+            RecyclableLinkedBuffer wrapper = new RecyclableLinkedBuffer();
+            wrapper.buffer = LinkedBuffer.allocate(bufferSize);
+            wrapper.handle = handle;
+            return wrapper;
+          }
+        };
   }
 
   public LinkedBuffer buffer() {

@@ -12,7 +12,12 @@ import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -26,14 +31,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -44,9 +41,8 @@ import reactor.core.publisher.Mono;
 public class RouterBenchmarks {
   private static final String NAMESPACE = "benchmark";
   private static final String ACTION = "method1";
-  private static final ServiceMessage MESSAGE = ServiceMessage.builder()
-      .qualifier(Qualifier.asString(NAMESPACE, ACTION))
-      .build();
+  private static final ServiceMessage MESSAGE =
+      ServiceMessage.builder().qualifier(Qualifier.asString(NAMESPACE, ACTION)).build();
 
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)
@@ -79,14 +75,17 @@ public class RouterBenchmarks {
       List<ServiceInfo> services =
           Collections.singletonList(
               ServiceInfo.fromServiceInstance(new RouterBenchmarksServiceImpl()).build());
-      IntStream.rangeClosed(0, count).forEach(i -> {
-        Map<String, String> tags = new HashMap<>();
-        tags.put("k1-" + i, "v1-" + i);
-        tags.put("k2-" + i, "v2-" + i);
-        ServiceEndpoint serviceEndpoint =
-            ServiceScanner.scan(services, IdGenerator.generateId(), "localhost" + i, i, tags);
-        serviceRegistry.registerService(serviceEndpoint);
-      });
+      IntStream.rangeClosed(0, count)
+          .forEach(
+              i -> {
+                Map<String, String> tags = new HashMap<>();
+                tags.put("k1-" + i, "v1-" + i);
+                tags.put("k2-" + i, "v2-" + i);
+                ServiceEndpoint serviceEndpoint =
+                    ServiceScanner.scan(
+                        services, IdGenerator.generateId(), "localhost" + i, i, tags);
+                serviceRegistry.registerService(serviceEndpoint);
+              });
     }
   }
 

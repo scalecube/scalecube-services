@@ -7,14 +7,14 @@ public final class ErrorData {
 
   /**
    * Constructor for SerDe.
-   * 
+   *
    * @deprecated exposed only for de/serialization purpose.
    */
   public ErrorData() {}
 
   /**
    * Create an error data.
-   * 
+   *
    * @param errorCode the business error code
    * @param errorMessage the error message
    */
@@ -33,9 +33,6 @@ public final class ErrorData {
 
   @Override
   public String toString() {
-    return "ErrorData{"
-        + "errorCode=" + errorCode
-        + ", errorMessage='" + errorMessage + '\''
-        + '}';
+    return "ErrorData{" + "errorCode=" + errorCode + ", errorMessage='" + errorMessage + '\'' + '}';
   }
 }

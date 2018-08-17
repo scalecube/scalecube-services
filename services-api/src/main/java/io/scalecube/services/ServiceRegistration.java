@@ -23,9 +23,8 @@ public class ServiceRegistration {
    * @param tags tags
    * @param methods a collection of service method definitions
    */
-  public ServiceRegistration(String namespace,
-      Map<String, String> tags,
-      Collection<ServiceMethodDefinition> methods) {
+  public ServiceRegistration(
+      String namespace, Map<String, String> tags, Collection<ServiceMethodDefinition> methods) {
     this.namespace = namespace;
     this.tags = tags;
     this.methods = methods;
@@ -50,10 +49,14 @@ public class ServiceRegistration {
 
   @Override
   public String toString() {
-    return "ServiceRegistration{" +
-        "namespace='" + namespace + '\'' +
-        ", tags=" + tags +
-        ", methods=" + methods +
-        '}';
+    return "ServiceRegistration{"
+        + "namespace='"
+        + namespace
+        + '\''
+        + ", tags="
+        + tags
+        + ", methods="
+        + methods
+        + '}';
   }
 }

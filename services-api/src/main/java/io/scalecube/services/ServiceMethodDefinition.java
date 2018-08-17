@@ -6,7 +6,6 @@ import java.util.Map;
 /**
  * A Service Method Definition is a single method definition of a service inside service
  * registration.
- *
  */
 public class ServiceMethodDefinition {
 
@@ -25,23 +24,23 @@ public class ServiceMethodDefinition {
    * Create a new Service Method Definition.
    *
    * @param action method name
-   * @param communicationMode the communication mode: e.g:
-   *        {@link CommunicationMode#REQUEST_RESPONSE}
+   * @param communicationMode the communication mode: e.g: {@link
+   *     CommunicationMode#REQUEST_RESPONSE}
    */
   public ServiceMethodDefinition(String action, CommunicationMode communicationMode) {
     this(action, Collections.emptyMap(), communicationMode);
   }
-
 
   /**
    * Create a new Service Method Definition.
    *
    * @param action method name
    * @param tags tags of this method
-   * @param communicationMode the communication mode: e.g:
-   *        {@link CommunicationMode#REQUEST_RESPONSE}
+   * @param communicationMode the communication mode: e.g: {@link
+   *     CommunicationMode#REQUEST_RESPONSE}
    */
-  public ServiceMethodDefinition(String action, Map<String, String> tags, CommunicationMode communicationMode) {
+  public ServiceMethodDefinition(
+      String action, Map<String, String> tags, CommunicationMode communicationMode) {
     this.action = action;
     this.tags = tags;
     this.communicationMode = communicationMode;
@@ -80,9 +79,6 @@ public class ServiceMethodDefinition {
 
   @Override
   public String toString() {
-    return "ServiceMethodDefinition{" +
-        "action='" + action + '\'' +
-        ", tags=" + tags +
-        '}';
+    return "ServiceMethodDefinition{" + "action='" + action + '\'' + ", tags=" + tags + '}';
   }
 }

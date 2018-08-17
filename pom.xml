@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -9,7 +10,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.0.11-SNAPSHOT</version>
+    <version>0.0.10</version>
   </parent>
   <packaging>pom</packaging>
 
@@ -17,7 +18,8 @@
   <scm>
     <url>https://github.com/scalecube/scalecube</url>
     <connection>scm:git:git@github.com:scalecube/scalecube-services.git</connection>
-    <developerConnection>scm:git:git@github.com:scalecube/scalecube-services.git</developerConnection>
+    <developerConnection>scm:git:git@github.com:scalecube/scalecube-services.git
+    </developerConnection>
     <tag>HEAD</tag>
   </scm>
 
@@ -40,10 +42,8 @@
     <argLine>-Xms1024m -Xmx2048m</argLine>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-
-    <checkstyle.skip>true</checkstyle.skip>
-
   </properties>
+
   <modules>
     <module>services-api</module>
     <module>rsocket-transport</module>
@@ -52,7 +52,7 @@
     <module>services-codec-protostuff</module>
     <module>services</module>
     <module>benchmarks</module>
-    <module>services-examples</module>
+    <module>examples</module>
   </modules>
 
   <dependencyManagement>
@@ -217,18 +217,6 @@
 
       <!-- Test dependencies -->
       <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-test</artifactId>
-        <version>${reactor.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
-        <groupId>org.junit.jupiter</groupId>
-        <artifactId>junit-jupiter-params</artifactId>
-        <version>${junit-jupiter.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
         <groupId>org.hamcrest</groupId>
         <artifactId>hamcrest-all</artifactId>
         <version>${hamcrest-all.version}</version>
@@ -236,26 +224,6 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter-engine</artifactId>
-      <version>${junit-jupiter.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-    </dependency>
-  </dependencies>
 
   <repositories>
     <repository>
@@ -302,4 +270,5 @@
       <url>http://jcenter.bintray.com</url>
     </pluginRepository>
   </pluginRepositories>
+
 </project>

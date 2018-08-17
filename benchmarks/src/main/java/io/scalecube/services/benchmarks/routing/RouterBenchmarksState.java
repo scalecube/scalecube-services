@@ -9,7 +9,6 @@ import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,14 +31,16 @@ public class RouterBenchmarksState extends BenchmarksState<RouterBenchmarksState
         Collections.singletonList(
             ServiceInfo.fromServiceInstance(new RouterBenchmarks.RouterBenchmarksServiceImpl())
                 .build());
-    IntStream.rangeClosed(0, identicalReferenceCount).forEach(i -> {
-      Map<String, String> tags = new HashMap<>();
-      tags.put("k1-" + i, "v1-" + i);
-      tags.put("k2-" + i, "v2-" + i);
-      ServiceEndpoint serviceEndpoint =
-          ServiceScanner.scan(services, "localhost" + i, "localhost", i, tags);
-      serviceRegistry.registerService(serviceEndpoint);
-    });
+    IntStream.rangeClosed(0, identicalReferenceCount)
+        .forEach(
+            i -> {
+              Map<String, String> tags = new HashMap<>();
+              tags.put("k1-" + i, "v1-" + i);
+              tags.put("k2-" + i, "v2-" + i);
+              ServiceEndpoint serviceEndpoint =
+                  ServiceScanner.scan(services, "localhost" + i, "localhost", i, tags);
+              serviceRegistry.registerService(serviceEndpoint);
+            });
   }
 
   public Router getRouter() {

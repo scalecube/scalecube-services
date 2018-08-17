@@ -2,7 +2,7 @@ package io.scalecube.services.benchmarks.jmh;
 
 import io.scalecube.services.HeadAndTail;
 import io.scalecube.services.api.ServiceMessage;
-
+import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -13,9 +13,6 @@ import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-
-import java.util.concurrent.TimeUnit;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -26,13 +23,14 @@ import reactor.core.publisher.Mono;
 @State(Scope.Benchmark)
 public class HeadAndTailBenchmarks {
 
-  private static final ServiceMessage MESSAGE = ServiceMessage.builder()
-      .qualifier("benchmark/test")
-      .data("{\"greeting\":\"hello\"}")
-      .dataFormat("application/json")
-      .header("key1", "value1")
-      .header("key2", "value2")
-      .build();
+  private static final ServiceMessage MESSAGE =
+      ServiceMessage.builder()
+          .qualifier("benchmark/test")
+          .data("{\"greeting\":\"hello\"}")
+          .dataFormat("application/json")
+          .header("key1", "value1")
+          .header("key2", "value2")
+          .build();
 
   @BenchmarkMode(Mode.AverageTime)
   @OutputTimeUnit(TimeUnit.NANOSECONDS)

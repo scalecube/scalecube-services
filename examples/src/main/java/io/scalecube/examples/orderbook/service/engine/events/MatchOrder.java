@@ -12,7 +12,7 @@ public class MatchOrder {
 
   /**
    * Create a new Match Order.
-   * 
+   *
    * @param restingOrderId the id of the resting order
    * @param incomingOrderId the id of the incoming order
    * @param incomingSide the side of the incoming id (implies the side of the resting... )
@@ -20,7 +20,8 @@ public class MatchOrder {
    * @param executedQuantity the quantity matched.
    * @param remainingQuantity the remaining quantity of the incoming order
    */
-  public MatchOrder(long restingOrderId,
+  public MatchOrder(
+      long restingOrderId,
       long incomingOrderId,
       Side incomingSide,
       long price,
@@ -61,11 +62,18 @@ public class MatchOrder {
 
   @Override
   public String toString() {
-    return "Match [restingOrderId=" + restingOrderId + ", incomingOrderId=" + incomingOrderId
+    return "Match [restingOrderId="
+        + restingOrderId
+        + ", incomingOrderId="
+        + incomingOrderId
         + ", incomingSide="
-        + incomingSide + ", price=" + price + ", executedQuantity=" + executedQuantity
+        + incomingSide
+        + ", price="
+        + price
+        + ", executedQuantity="
+        + executedQuantity
         + ", remainingQuantity="
-        + remainingQuantity + "]";
+        + remainingQuantity
+        + "]";
   }
-
 }

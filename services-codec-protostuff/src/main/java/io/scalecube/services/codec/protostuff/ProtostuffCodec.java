@@ -1,14 +1,12 @@
 package io.scalecube.services.codec.protostuff;
 
-import io.scalecube.services.codec.DataCodec;
-import io.scalecube.services.codec.HeadersCodec;
-
 import io.protostuff.ProtobufIOUtil;
 import io.protostuff.ProtostuffIOUtil;
 import io.protostuff.Schema;
 import io.protostuff.StringMapSchema;
 import io.protostuff.runtime.RuntimeSchema;
-
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.codec.HeadersCodec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

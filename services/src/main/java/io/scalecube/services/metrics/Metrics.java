@@ -7,7 +7,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-
 import java.lang.reflect.Method;
 
 public class Metrics {
@@ -18,7 +17,8 @@ public class Metrics {
     return registry.meter(MetricRegistry.name(component, methodName, eventType));
   }
 
-  public <T> Meter getMeter(final Class<T> component, final String methodName, final String eventType) {
+  public <T> Meter getMeter(
+      final Class<T> component, final String methodName, final String eventType) {
     return getMeter(component.getName(), methodName, eventType);
   }
 
@@ -40,19 +40,22 @@ public class Metrics {
 
   /**
    * Register a Gauge and service registry.
-   * 
+   *
    * @param component name for the requested timer.
    * @param methodName for the requested timer.
    * @param gauge instance.
    * @return registered gauge in the service registry.
    */
-  public <T> Gauge<T> register(final String component, final String methodName, final Gauge<T> gauge) {
-    registry.register(MetricRegistry.name(component, methodName), new Gauge<T>() {
-      @Override
-      public T getValue() {
-        return gauge.getValue();
-      }
-    });
+  public <T> Gauge<T> register(
+      final String component, final String methodName, final Gauge<T> gauge) {
+    registry.register(
+        MetricRegistry.name(component, methodName),
+        new Gauge<T>() {
+          @Override
+          public T getValue() {
+            return gauge.getValue();
+          }
+        });
 
     return gauge;
   }
@@ -61,11 +64,13 @@ public class Metrics {
     return register(component.getName(), methodName, gauge);
   }
 
-  public Histogram getHistogram(final String component, final String methodName, final boolean biased) {
+  public Histogram getHistogram(
+      final String component, final String methodName, final boolean biased) {
     return registry.histogram(MetricRegistry.name(component, methodName));
   }
 
-  public <T> Histogram getHistogram(final Class<T> component, final String methodName, final boolean biased) {
+  public <T> Histogram getHistogram(
+      final Class<T> component, final String methodName, final boolean biased) {
     return getHistogram(component.getName(), methodName, biased);
   }
 
@@ -75,7 +80,7 @@ public class Metrics {
 
   /**
    * if metrics is not null returns a Timer instance for a given component and method name.
-   * 
+   *
    * @param metrics factory instance to get timer.
    * @param component name for the requested timer.
    * @param methodName for the requested timer.
@@ -91,7 +96,7 @@ public class Metrics {
 
   /**
    * if metrics is not null returns a Counter instance for a given component and method name.
-   * 
+   *
    * @param metrics factory instance to get timer.
    * @param component name for the requested timer.
    * @param methodName for the requested timer.
@@ -104,7 +109,6 @@ public class Metrics {
       return null;
     }
   }
-
 
   public static void mark(Meter meter) {
     if (meter != null) {
@@ -122,7 +126,8 @@ public class Metrics {
     }
   }
 
-  public static void mark(Class<?> serviceInterface, Metrics metrics, Method method, String eventType) {
+  public static void mark(
+      Class<?> serviceInterface, Metrics metrics, Method method, String eventType) {
     if (metrics != null) {
       Meter meter = metrics.getMeter(serviceInterface, method.getName(), eventType);
       Metrics.mark(meter);

@@ -8,16 +8,15 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ServerTransport;
+import java.net.InetSocketAddress;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.NettyContext;
 import reactor.ipc.netty.tcp.TcpServer;
-
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 public class RSocketServerTransport implements ServerTransport {
 
@@ -35,28 +34,35 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public InetSocketAddress bindAwait(InetSocketAddress address,
-      ServiceMethodRegistry methodRegistry) {
+  public InetSocketAddress bindAwait(
+      InetSocketAddress address, ServiceMethodRegistry methodRegistry) {
     TcpServer tcpServer =
-        TcpServer.create(options -> options
-            .eventLoopGroup(eventLoopGroup)
-            .listenAddress(address)
-            .afterNettyContextInit(nettyContext -> {
-              LOGGER.info("Accepted connection on {}", nettyContext.channel());
-              nettyContext.onClose(() -> {
-                LOGGER.info("Connection closed on {}", nettyContext.channel());
-                channels.remove(nettyContext);
-              });
-              channels.add(nettyContext);
-            }));
+        TcpServer.create(
+            options ->
+                options
+                    .eventLoopGroup(eventLoopGroup)
+                    .listenAddress(address)
+                    .afterNettyContextInit(
+                        nettyContext -> {
+                          LOGGER.info("Accepted connection on {}", nettyContext.channel());
+                          nettyContext.onClose(
+                              () -> {
+                                LOGGER.info("Connection closed on {}", nettyContext.channel());
+                                channels.remove(nettyContext);
+                              });
+                          channels.add(nettyContext);
+                        }));
 
-    this.server = RSocketFactory.receive()
-        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(),
-            frame.sliceMetadata().retain()))
-        .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-        .transport(TcpServerTransport.create(tcpServer))
-        .start()
-        .block();
+    this.server =
+        RSocketFactory.receive()
+            .frameDecoder(
+                frame ->
+                    ByteBufPayload.create(
+                        frame.sliceData().retain(), frame.sliceMetadata().retain()))
+            .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
+            .transport(TcpServerTransport.create(tcpServer))
+            .start()
+            .block();
 
     return server.address();
   }
@@ -66,10 +72,15 @@ public class RSocketServerTransport implements ServerTransport {
     if (server != null) {
       server.dispose();
 
-      List<Mono<Void>> onCloseList = channels.stream().map(nettyContext -> {
-        nettyContext.dispose();
-        return nettyContext.onClose();
-      }).collect(Collectors.toList());
+      List<Mono<Void>> onCloseList =
+          channels
+              .stream()
+              .map(
+                  nettyContext -> {
+                    nettyContext.dispose();
+                    return nettyContext.onClose();
+                  })
+              .collect(Collectors.toList());
 
       return server.onClose().then(Mono.when(onCloseList));
     } else {

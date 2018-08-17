@@ -1,5 +1,9 @@
 package io.scalecube.services.benchmarks.codec;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
+import io.rsocket.Payload;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
 import io.scalecube.services.api.ServiceMessage;
@@ -8,18 +12,13 @@ import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.codec.jackson.JacksonCodec;
 import io.scalecube.services.codec.protostuff.ProtostuffCodec;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
-import io.rsocket.Payload;
-import io.rsocket.util.ByteBufPayload;
-
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceMessageCodecBenchmarksState> {
+public class ServiceMessageCodecBenchmarksState
+    extends BenchmarksState<ServiceMessageCodecBenchmarksState> {
 
   private ServiceMessageCodec serviceMessageCodec;
   private HeadersCodec headersCodec;
@@ -27,8 +26,8 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
   private ServiceMessage serviceMessage;
   private Payload payloadMessage;
 
-  public ServiceMessageCodecBenchmarksState(BenchmarksSettings settings, DataCodec dataCodec,
-      HeadersCodec headersCodec) {
+  public ServiceMessageCodecBenchmarksState(
+      BenchmarksSettings settings, DataCodec dataCodec, HeadersCodec headersCodec) {
     super(settings);
     this.dataCodec = dataCodec;
     this.headersCodec = headersCodec;
@@ -62,9 +61,7 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
   }
 
   public ServiceMessage messageWithByteBuf() {
-    return ServiceMessage.from(serviceMessage)
-        .data(payloadMessage.sliceData())
-        .build();
+    return ServiceMessage.from(serviceMessage).data(payloadMessage.sliceData()).build();
   }
 
   private PlaceOrderRequest generateData() {
@@ -128,20 +125,35 @@ public class ServiceMessageCodecBenchmarksState extends BenchmarksState<ServiceM
 
     @Override
     public String toString() {
-      return "PlaceOrderRequest{" +
-          "token='" + token + '\'' +
-          ", sourceIpAddress='" + sourceIpAddress + '\'' +
-          ", orderType='" + orderType + '\'' +
-          ", side='" + side + '\'' +
-          ", side='" + side + '\'' +
-          ", instanceId='" + instanceId + '\'' +
-          ", quantity=" + quantity +
-          ", price=" + price +
-          ", isClosePositionOrder=" + isClosePositionOrder +
-          ", requestTimestamp=" + requestTimestamp +
-          '}';
+      return "PlaceOrderRequest{"
+          + "token='"
+          + token
+          + '\''
+          + ", sourceIpAddress='"
+          + sourceIpAddress
+          + '\''
+          + ", orderType='"
+          + orderType
+          + '\''
+          + ", side='"
+          + side
+          + '\''
+          + ", side='"
+          + side
+          + '\''
+          + ", instanceId='"
+          + instanceId
+          + '\''
+          + ", quantity="
+          + quantity
+          + ", price="
+          + price
+          + ", isClosePositionOrder="
+          + isClosePositionOrder
+          + ", requestTimestamp="
+          + requestTimestamp
+          + '}';
     }
-
   }
 
   public static class Jackson extends ServiceMessageCodecBenchmarksState {

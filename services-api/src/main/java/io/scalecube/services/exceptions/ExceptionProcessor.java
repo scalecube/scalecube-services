@@ -3,7 +3,6 @@ package io.scalecube.services.exceptions;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-
 import java.util.Optional;
 
 public class ExceptionProcessor {
@@ -16,7 +15,7 @@ public class ExceptionProcessor {
 
   /**
    * Wrap an exception with error {@link ServiceMessage}.
-   * 
+   *
    * @param throwable the exception to wrap
    * @return the Service Message wrapping the exception
    */
@@ -41,15 +40,12 @@ public class ExceptionProcessor {
         Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
     ErrorData errorData = new ErrorData(errorCode, errorMessage);
 
-    return ServiceMessage.builder()
-        .qualifier(Qualifier.asError(errorType))
-        .data(errorData)
-        .build();
+    return ServiceMessage.builder().qualifier(Qualifier.asError(errorType)).data(errorData).build();
   }
 
   /**
    * Transform data to {@link ServiceException}.
-   * 
+   *
    * @param qualifier the message qualifier
    * @param data the error data
    * @return a service exception according to the error type
@@ -76,7 +72,7 @@ public class ExceptionProcessor {
 
   /**
    * Transform an exception to a {@link ServiceException} or {@link InternalServiceException}.
-   * 
+   *
    * @param throwable the source exception
    * @return either {@link ServiceException} or {@link InternalServiceException}
    */

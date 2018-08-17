@@ -24,5 +24,4 @@ public interface MarketListener {
    * @param size the trade size
    */
   void trade(OrderBook book, Side side, long price, long size);
-
 }

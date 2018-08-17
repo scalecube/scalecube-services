@@ -9,13 +9,12 @@ import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.transport.Address;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.tcp.TcpClient;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class RSocketClientTransport implements ClientTransport {
 
@@ -42,33 +41,44 @@ public class RSocketClientTransport implements ClientTransport {
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
     TcpClient tcpClient =
-        TcpClient.create(options -> options.disablePool()
-            .eventLoopGroup(eventLoopGroup)
-            .host(address.host())
-            .port(address.port()));
+        TcpClient.create(
+            options ->
+                options
+                    .disablePool()
+                    .eventLoopGroup(eventLoopGroup)
+                    .host(address.host())
+                    .port(address.port()));
 
-    TcpClientTransport tcpClientTransport =
-        TcpClientTransport.create(tcpClient);
+    TcpClientTransport tcpClientTransport = TcpClientTransport.create(tcpClient);
 
-    Mono<RSocket> rSocketMono = RSocketFactory.connect()
-        .frameDecoder(frame -> ByteBufPayload.create(frame.sliceData().retain(),
-            frame.sliceMetadata().retain()))
-        .transport(tcpClientTransport)
-        .start();
+    Mono<RSocket> rSocketMono =
+        RSocketFactory.connect()
+            .frameDecoder(
+                frame ->
+                    ByteBufPayload.create(
+                        frame.sliceData().retain(), frame.sliceMetadata().retain()))
+            .transport(tcpClientTransport)
+            .start();
 
     return rSocketMono
-        .doOnSuccess(rSocket -> {
-          LOGGER.info("Connected successfully on {}", address);
-          // setup shutdown hook
-          rSocket.onClose().doOnTerminate(() -> {
-            monoMap.remove(address);
-            LOGGER.info("Connection closed on {} and removed from the pool", address);
-          }).subscribe();
-        })
-        .doOnError(throwable -> {
-          LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
-          monoMap.remove(address);
-        })
+        .doOnSuccess(
+            rSocket -> {
+              LOGGER.info("Connected successfully on {}", address);
+              // setup shutdown hook
+              rSocket
+                  .onClose()
+                  .doOnTerminate(
+                      () -> {
+                        monoMap.remove(address);
+                        LOGGER.info("Connection closed on {} and removed from the pool", address);
+                      })
+                  .subscribe();
+            })
+        .doOnError(
+            throwable -> {
+              LOGGER.warn("Connect failed on {}, cause: {}", address, throwable);
+              monoMap.remove(address);
+            })
         .cache();
   }
 }

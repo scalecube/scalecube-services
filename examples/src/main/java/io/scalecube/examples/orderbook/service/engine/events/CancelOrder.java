@@ -10,7 +10,7 @@ public class CancelOrder {
 
   /**
    * Create a new cancel order.
-   * 
+   *
    * @param orderId the resting order id
    * @param remainingQuantity the remaining quantity of the resting order
    * @param size the size
@@ -32,5 +32,4 @@ public class CancelOrder {
   public Long size() {
     return size;
   }
-
 }

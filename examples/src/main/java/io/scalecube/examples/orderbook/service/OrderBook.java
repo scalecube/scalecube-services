@@ -125,5 +125,4 @@ public class OrderBook {
   private Long2LongRBTreeMap getLevels(Side side) {
     return side == Side.BUY ? bids : asks;
   }
-
 }

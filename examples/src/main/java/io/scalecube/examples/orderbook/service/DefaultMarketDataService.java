@@ -12,24 +12,25 @@ import java.util.concurrent.atomic.AtomicLong;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-
 public class DefaultMarketDataService implements MarketDataService {
 
   OrderBooks books;
   List<String> instumentList = new ArrayList<>();
   AtomicLong lastTrade = new AtomicLong();
   Map<Long, OrderBook> view = new ConcurrentHashMap<>();
-  Market market = new Market(new MarketListener() {
-    @Override
-    public void update(OrderBook book, boolean bbo) {
-      System.out.println(book);
-    }
+  Market market =
+      new Market(
+          new MarketListener() {
+            @Override
+            public void update(OrderBook book, boolean bbo) {
+              System.out.println(book);
+            }
 
-    @Override
-    public void trade(OrderBook book, Side side, long price, long size) {
-      System.out.println(book);
-    }
-  });
+            @Override
+            public void trade(OrderBook book, Side side, long price, long size) {
+              System.out.println(book);
+            }
+          });
 
   /**
    * Create a new service.
@@ -39,25 +40,31 @@ public class DefaultMarketDataService implements MarketDataService {
     books = new OrderBooks(instumentList);
     OrderBook marketBook = market.open(1L);
     view.put(1L, marketBook);
-    books.listenAdd("ORCL").subscribe(add -> {
-      market.execute(add.orderId(), add.quantity(), add.price());
-    });
+    books
+        .listenAdd("ORCL")
+        .subscribe(
+            add -> {
+              market.execute(add.orderId(), add.quantity(), add.price());
+            });
 
-    books.listenMatch("ORCL").subscribe(match -> {
-      if (match.remainingQuantity() == 0) {
-        market.delete(match.incomingOrderId());
-      } else {
-        market.execute(match.incomingOrderId(), match.executedQuantity(), match.price());
-      }
-    });
+    books
+        .listenMatch("ORCL")
+        .subscribe(
+            match -> {
+              if (match.remainingQuantity() == 0) {
+                market.delete(match.incomingOrderId());
+              } else {
+                market.execute(match.incomingOrderId(), match.executedQuantity(), match.price());
+              }
+            });
   }
-
 
   @Override
   public Mono<String> processOrder(OrderRequest request) {
 
     books.enterOrder(request.order(), request.instrument());
-    market.add(1L,
+    market.add(
+        1L,
         request.order().id(),
         request.order().level().side(),
         request.order().level().price(),
@@ -69,9 +76,6 @@ public class DefaultMarketDataService implements MarketDataService {
   public Flux<OrderBookSnapshoot> orderBook() {
 
     return Flux.interval(Duration.ofSeconds(1))
-        .map(mapper -> new OrderBookSnapshoot(
-            view.get(1L),
-            lastTrade.get()));
+        .map(mapper -> new OrderBookSnapshoot(view.get(1L), lastTrade.get()));
   }
-
 }

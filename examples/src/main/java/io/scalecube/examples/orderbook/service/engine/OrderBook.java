@@ -4,11 +4,9 @@ import io.scalecube.examples.orderbook.service.engine.events.AddOrder;
 import io.scalecube.examples.orderbook.service.engine.events.CancelOrder;
 import io.scalecube.examples.orderbook.service.engine.events.MatchOrder;
 import io.scalecube.examples.orderbook.service.engine.events.Side;
-
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectRBTreeMap;
 import it.unimi.dsi.fastutil.longs.LongComparators;
-
 import java.util.Set;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
@@ -29,10 +27,7 @@ public class OrderBook {
   EmitterProcessor<AddOrder> addListener = EmitterProcessor.<AddOrder>create();
   EmitterProcessor<CancelOrder> cancelListener = EmitterProcessor.<CancelOrder>create();
 
-  /**
-   * Create an order book.
-   *
-   */
+  /** Create an order book. */
   public OrderBook() {
     this.bids = new Long2ObjectRBTreeMap<>(LongComparators.OPPOSITE_COMPARATOR);
     this.asks = new Long2ObjectRBTreeMap<>(LongComparators.NATURAL_COMPARATOR);
@@ -42,19 +37,13 @@ public class OrderBook {
   /**
    * Enter an order to this order book.
    *
-   * <p>
-   * The incoming order is first matched against resting orders in this order book. This operation
-   * results in zero or more Match events.
-   * </p>
+   * <p>The incoming order is first matched against resting orders in this order book. This
+   * operation results in zero or more Match events.
    *
-   * <p>
-   * If the remaining quantity is not zero after the matching operation, the remaining quantity is
-   * added to this order book and an Add event is triggered.
-   * </p>
+   * <p>If the remaining quantity is not zero after the matching operation, the remaining quantity
+   * is added to this order book and an Add event is triggered.
    *
-   * <p>
-   * If the order identifier is known, do nothing.
-   * </p>
+   * <p>If the order identifier is known, do nothing.
    *
    * @param orderId an order identifier
    * @param side the side
@@ -115,13 +104,9 @@ public class OrderBook {
    * Cancel a quantity of an order in this order book. The size refers to the new order size. If the
    * new order size is set to zero, the order is deleted from this order book.
    *
-   * <p>
-   * A Cancel event is triggered.
-   * </p>
+   * <p>A Cancel event is triggered.
    *
-   * <p>
-   * If the order identifier is unknown, do nothing.
-   * </p>
+   * <p>If the order identifier is unknown, do nothing.
    *
    * @param orderId the order identifier
    * @param size the new size
@@ -156,8 +141,8 @@ public class OrderBook {
     return levels.get(levels.firstLongKey());
   }
 
-  private Order add(Long2ObjectRBTreeMap<PriceLevel> levels, long orderId, Side side, long price,
-      long size) {
+  private Order add(
+      Long2ObjectRBTreeMap<PriceLevel> levels, long orderId, Side side, long price, long size) {
     PriceLevel level = levels.get(price);
     if (level == null) {
       level = new PriceLevel(side, price);
@@ -210,5 +195,4 @@ public class OrderBook {
   public Set getBidPrices() {
     return this.bids.keySet();
   }
-
 }

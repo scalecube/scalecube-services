@@ -24,10 +24,10 @@ public final class ServiceLoaderUtil {
   }
 
   /**
-   * Finds the first implementation of the given service type using the given predicate to filter out found service
-   * types and creates its instance.
+   * Finds the first implementation of the given service type using the given predicate to filter
+   * out found service types and creates its instance.
    *
-   * @param aClass    service type
+   * @param aClass service type
    * @param predicate service type predicate
    * @return the first implementation of the given service type
    */
@@ -49,10 +49,10 @@ public final class ServiceLoaderUtil {
   }
 
   /**
-   * Finds all implementations of the given service type using the given predicate to filter out found service types and
-   * creates their instances.
+   * Finds all implementations of the given service type using the given predicate to filter out
+   * found service types and creates their instances.
    *
-   * @param aClass    service type
+   * @param aClass service type
    * @param predicate service type predicate
    * @return implementations' stream of the given service type
    */

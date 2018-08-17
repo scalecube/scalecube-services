@@ -8,17 +8,14 @@ import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 
 public class ServiceTransportTest {
@@ -37,15 +34,14 @@ public class ServiceTransportTest {
 
   @BeforeEach
   public void setUp() {
-    gateway = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .startAwait();
+    gateway = Microservices.builder().discoveryPort(port.incrementAndGet()).startAwait();
 
-    serviceNode = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .seeds(gateway.discovery().address())
-        .services(new SimpleQuoteService())
-        .startAwait();
+    serviceNode =
+        Microservices.builder()
+            .discoveryPort(port.incrementAndGet())
+            .seeds(gateway.discovery().address())
+            .services(new SimpleQuoteService())
+            .startAwait();
   }
 
   @AfterEach
@@ -73,11 +69,11 @@ public class ServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call().create();
-    sub1.set(serviceCall.requestOne(JUST_NEVER)
-        .doOnError(exceptionHolder::set)
-        .subscribe());
+    sub1.set(serviceCall.requestOne(JUST_NEVER).doOnError(exceptionHolder::set).subscribe());
 
-    gateway.discovery().listen()
+    gateway
+        .discovery()
+        .listen()
         .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
@@ -102,14 +98,13 @@ public class ServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call().create();
-    sub1.set(serviceCall.requestMany(JUST_MANY_NEVER)
-        .doOnError(exceptionHolder::set)
-        .subscribe());
+    sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).doOnError(exceptionHolder::set).subscribe());
 
-    gateway.discovery().listen()
+    gateway
+        .discovery()
+        .listen()
         .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
-
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
@@ -132,11 +127,15 @@ public class ServiceTransportTest {
     AtomicReference<Throwable> exceptionHolder = new AtomicReference<>(null);
 
     ServiceCall serviceCall = gateway.call().create();
-    sub1.set(serviceCall.requestMany(ONLY_ONE_AND_THEN_NEVER)
-        .doOnError(exceptionHolder::set)
-        .subscribe());
+    sub1.set(
+        serviceCall
+            .requestMany(ONLY_ONE_AND_THEN_NEVER)
+            .doOnError(exceptionHolder::set)
+            .subscribe());
 
-    gateway.discovery().listen()
+    gateway
+        .discovery()
+        .listen()
         .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 

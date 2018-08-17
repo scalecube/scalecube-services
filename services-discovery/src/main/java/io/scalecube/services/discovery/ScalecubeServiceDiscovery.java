@@ -11,17 +11,14 @@ import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
-
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
-
-import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
@@ -41,7 +38,9 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private final FluxSink<DiscoveryEvent> sink = subject.serialize().sink();
 
   private enum DiscoveryType {
-    ADDED, REMOVED, DISCOVERED;
+    ADDED,
+    REMOVED,
+    DISCOVERED;
   }
 
   @Override
@@ -58,16 +57,22 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   public Mono<ServiceDiscovery> start(DiscoveryConfig config) {
     configure(config);
 
-    clusterConfig.addMetadata(this.serviceRegistry.listServiceEndpoints().stream()
-        .collect(
-            Collectors.toMap(ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)));
-    CompletableFuture<Cluster> promise = Cluster.join(clusterConfig.build())
-        .whenComplete((success, error) -> {
-          if (error == null) {
-            this.cluster = success;
-            this.init(this.cluster);
-          }
-        });
+    clusterConfig.addMetadata(
+        this.serviceRegistry
+            .listServiceEndpoints()
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)));
+    CompletableFuture<Cluster> promise =
+        Cluster.join(clusterConfig.build())
+            .whenComplete(
+                (success, error) -> {
+                  if (error == null) {
+                    this.cluster = success;
+                    this.init(this.cluster);
+                  }
+                });
 
     return Mono.fromFuture(promise).map(mapper -> this);
   }
@@ -108,52 +113,65 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private void listenCluster(Cluster cluster) {
-    cluster.listenMembership().subscribe(event -> {
-      if (event.isAdded()) {
-        loadMemberServices(DiscoveryType.ADDED, event.member());
-      } else if (event.isRemoved()) {
-        loadMemberServices(DiscoveryType.REMOVED, event.member());
-      }
-    });
+    cluster
+        .listenMembership()
+        .subscribe(
+            event -> {
+              if (event.isAdded()) {
+                loadMemberServices(DiscoveryType.ADDED, event.member());
+              } else if (event.isRemoved()) {
+                loadMemberServices(DiscoveryType.REMOVED, event.member());
+              }
+            });
   }
 
   private void loadClusterServices(Cluster cluster) {
-    cluster.otherMembers().forEach(member -> {
-      loadMemberServices(DiscoveryType.DISCOVERED, member);
-    });
+    cluster
+        .otherMembers()
+        .forEach(
+            member -> {
+              loadMemberServices(DiscoveryType.DISCOVERED, member);
+            });
   }
 
   private void loadMemberServices(DiscoveryType type, Member member) {
-    member.metadata().entrySet().stream()
+    member
+        .metadata()
+        .entrySet()
+        .stream()
         .filter(entry -> SERVICE_METADATA.equals(entry.getValue()))
-        .forEach(entry -> {
-          ServiceEndpoint serviceEndpoint = decodeMetadata(entry.getKey());
-          if (serviceEndpoint == null) {
-            return;
-          }
+        .forEach(
+            entry -> {
+              ServiceEndpoint serviceEndpoint = decodeMetadata(entry.getKey());
+              if (serviceEndpoint == null) {
+                return;
+              }
 
-          LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
-          if ((type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED))
-              && (this.serviceRegistry.registerService(serviceEndpoint))) {
+              LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
+              if ((type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED))
+                  && (this.serviceRegistry.registerService(serviceEndpoint))) {
 
-            LOGGER.info(
-                "Service Reference was ADDED since new Member has joined the cluster {} : {}",
-                member, serviceEndpoint);
+                LOGGER.info(
+                    "Service Reference was ADDED since new Member has joined the cluster {} : {}",
+                    member,
+                    serviceEndpoint);
 
-            DiscoveryEvent registrationEvent = DiscoveryEvent.registered(serviceEndpoint);
-            LOGGER.debug("Publish registered: " + registrationEvent);
-            sink.next(registrationEvent);
+                DiscoveryEvent registrationEvent = DiscoveryEvent.registered(serviceEndpoint);
+                LOGGER.debug("Publish registered: " + registrationEvent);
+                sink.next(registrationEvent);
 
-          } else if (type.equals(DiscoveryType.REMOVED)
-              && (this.serviceRegistry.unregisterService(serviceEndpoint.id()) != null)) {
+              } else if (type.equals(DiscoveryType.REMOVED)
+                  && (this.serviceRegistry.unregisterService(serviceEndpoint.id()) != null)) {
 
-            LOGGER.info("Service Reference was REMOVED since Member have left the cluster {} : {}",
-                member, serviceEndpoint);
+                LOGGER.info(
+                    "Service Reference was REMOVED since Member have left the cluster {} : {}",
+                    member,
+                    serviceEndpoint);
 
-            DiscoveryEvent registrationEvent = DiscoveryEvent.unregistered(serviceEndpoint);
-            LOGGER.debug("Publish unregistered: " + registrationEvent);
-            sink.next(registrationEvent);
-          }
-        });
+                DiscoveryEvent registrationEvent = DiscoveryEvent.unregistered(serviceEndpoint);
+                LOGGER.debug("Publish unregistered: " + registrationEvent);
+                sink.next(registrationEvent);
+              }
+            });
   }
 }
