@@ -7,8 +7,8 @@ import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
-import io.scalecube.transport.Address;
-
+import io.scalecube.services.gateway.GatewayConfig;
+import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
@@ -17,8 +17,6 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
-
 public abstract class AbstractGatewayExtention
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
 
@@ -26,19 +24,22 @@ public abstract class AbstractGatewayExtention
 
   protected final Microservices seed;
 
+  private final Object serviceInstance;
+  private final GatewayConfig gatewayConfig;
+
   private Client client;
   private InetSocketAddress gatewayAddress;
-  private final Object serviceInstance;
   private Microservices services;
 
-  public AbstractGatewayExtention(Object serviceInstance) {
-    this.seed = Microservices.builder().startAwait();
+  public AbstractGatewayExtention(Object serviceInstance, GatewayConfig gatewayConfig) {
+    this.gatewayConfig = gatewayConfig;
     this.serviceInstance = serviceInstance;
+    this.seed = Microservices.builder().gateway(gatewayConfig).startAwait();
   }
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = startGateway();
+    gatewayAddress = seed.gatewayAddress(gatewayAliasName(), gatewayConfig.gatewayClass());
     startServices();
   }
 
@@ -57,7 +58,7 @@ public abstract class AbstractGatewayExtention
 
   @Override
   public final void beforeEach(ExtensionContext context) {
-    initClient();
+    client = initClient();
   }
 
   public Client client() {
@@ -69,8 +70,7 @@ public abstract class AbstractGatewayExtention
         .seeds(seed.discovery().address())
         .services(serviceInstance)
         .startAwait();
-    Address serviceAddress = services.serviceAddress();
-    LOGGER.info("Started services {} on {}", services, serviceAddress);
+    LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }
 
   public void shutdownServices() {
@@ -83,11 +83,19 @@ public abstract class AbstractGatewayExtention
     }
   }
 
-  public abstract InetSocketAddress startGateway();
-
-  public abstract void shutdownGateway();
+  public void shutdownGateway() {
+    if (seed != null) {
+      try {
+        seed.shutdown().block();
+      } catch (Throwable ignore) {
+      }
+      LOGGER.info("Shutdown gateway {}", seed);
+    }
+  }
 
   protected abstract RSocketClientTransport transport(ClientSettings settings, ClientMessageCodec codec);
+
+  protected abstract String gatewayAliasName();
 
   private Client initClient() {
     ClientSettings settings = ClientSettings.builder()
