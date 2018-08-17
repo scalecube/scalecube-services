@@ -4,7 +4,6 @@ import io.scalecube.examples.orderbook.service.OrderBookSnapshoot;
 import io.scalecube.examples.orderbook.service.OrderRequest;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

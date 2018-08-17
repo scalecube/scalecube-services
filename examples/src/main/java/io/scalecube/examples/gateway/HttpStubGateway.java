@@ -4,12 +4,11 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
-import reactor.core.publisher.Mono;
-
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
+import reactor.core.publisher.Mono;
 
 public class HttpStubGateway implements Gateway {
 
@@ -25,7 +24,7 @@ public class HttpStubGateway implements Gateway {
           System.out.println("Starting HTTP gateway...");
 
           return Mono.delay(Duration.ofMillis(ThreadLocalRandom.current().nextInt(100, 500)))
-              .map(aLong -> new InetSocketAddress(config.port()))
+              .map(tick -> new InetSocketAddress(config.port()))
               .doOnSuccess(address -> System.out.println("HTTP gateway is started on " + address));
         });
   }

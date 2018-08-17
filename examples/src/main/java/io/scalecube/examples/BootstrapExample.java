@@ -13,41 +13,59 @@ import java.util.function.BiFunction;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Basic getting started example
- */
+/** Basic getting started example. */
 public class BootstrapExample {
 
+  /**
+   * Main method.
+   * @param args - arguments.
+   * @throws Exception - exception.
+   */
   public static void main(String[] args) throws Exception {
     System.out.println("Start gateway");
-    Microservices gateway = Microservices.builder()
-        .gateway(GatewayConfig.builder("http", HttpStubGateway.class).port(8181).build()) // override default port
-        .gateway(GatewayConfig.builder("ws", WebsocketStubGateway.class).port(9191)
-            .addOption(WebsocketStubGateway.WS_SPECIFIC_OPTION_NAME, "500") // override default value of specific option
-            .build())
-        .startAwait();
+    Microservices gateway =
+        Microservices.builder()
+            .gateway(
+                GatewayConfig.builder("http", HttpStubGateway.class)
+                    .port(8181)
+                    .build()) // override default port
+            .gateway(
+                GatewayConfig.builder("ws", WebsocketStubGateway.class)
+                    .port(9191)
+                    .addOption(
+                        WebsocketStubGateway.WS_SPECIFIC_OPTION_NAME,
+                        "500") // override default value of specific option
+                    .build())
+            .startAwait();
 
     System.out.println("Started gateway layer: " + gateway.gatewayAddresses());
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
-    Microservices node1 = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(call -> Collections.singletonList(
-            new HelloWorldServiceImpl(
-                new BusinessLogicFacade(
-                    call.create().api(ServiceHello.class),
-                    call.create().api(ServiceWorld.class)))))
-        .startAwait();
+    final Microservices node1 =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(
+                call ->
+                    Collections.singletonList(
+                        new HelloWorldServiceImpl(
+                            new BusinessLogicFacade(
+                                call.create().api(ServiceHello.class),
+                                call.create().api(ServiceWorld.class)))))
+            .startAwait();
 
     System.out.println("Start ServiceHello");
-    Microservices node2 = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(new ServiceHelloImpl()).startAwait();
+    final Microservices node2 =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(new ServiceHelloImpl())
+            .startAwait();
 
     System.out.println("Start ServiceWorld");
-    Microservices node3 = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(new ServiceWorldImpl()).startAwait();
+    final Microservices node3 =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(new ServiceWorldImpl())
+            .startAwait();
 
     System.out.println("Wait for some time so nodes could catch up with each other ...");
     TimeUnit.SECONDS.sleep(3);
@@ -58,30 +76,25 @@ public class BootstrapExample {
     String helloWorld = helloWorldService.helloWorld().block(Duration.ofSeconds(6));
     System.out.println("Result of calling hello world business logic is ... => " + helloWorld);
 
-    Mono.when(gateway.shutdown(), node1.shutdown(), node2.shutdown(), node3.shutdown()).block(Duration.ofSeconds(5));
+    Mono.when(gateway.shutdown(), node1.shutdown(), node2.shutdown(), node3.shutdown())
+        .block(Duration.ofSeconds(5));
   }
 
-  /**
-   * Just service
-   */
+  /** Just a service. */
   @Service
   public interface ServiceHello {
     @ServiceMethod
     Mono<String> hello();
   }
 
-  /**
-   * Just service
-   */
+  /** Just a service. */
   @Service
   public interface ServiceWorld {
     @ServiceMethod
     Mono<String> world();
   }
 
-  /**
-   * Facade service for calling another services
-   */
+  /** Facade service for calling another services. */
   @Service
   public interface HelloWorldService {
     @ServiceMethod

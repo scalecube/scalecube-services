@@ -10,13 +10,21 @@ public class ServiceRegistration {
   private Collection<ServiceMethodDefinition> methods;
 
   /**
-   * @deprecated exposed only for deserialization purpose.
+   * Constructor for SerDe.
+   *
+   * @deprecated exposed only for de/serialization purpose.
    */
   public ServiceRegistration() {}
 
-  public ServiceRegistration(String namespace,
-      Map<String, String> tags,
-      Collection<ServiceMethodDefinition> methods) {
+  /**
+   * Create a new service registration.
+   *
+   * @param namespace the namespace to use
+   * @param tags tags
+   * @param methods a collection of service method definitions
+   */
+  public ServiceRegistration(
+      String namespace, Map<String, String> tags, Collection<ServiceMethodDefinition> methods) {
     this.namespace = namespace;
     this.tags = tags;
     this.methods = methods;
@@ -41,10 +49,14 @@ public class ServiceRegistration {
 
   @Override
   public String toString() {
-    return "ServiceRegistration{" +
-        "namespace='" + namespace + '\'' +
-        ", tags=" + tags +
-        ", methods=" + methods +
-        '}';
+    return "ServiceRegistration{"
+        + "namespace='"
+        + namespace
+        + '\''
+        + ", tags="
+        + tags
+        + ", methods="
+        + methods
+        + '}';
   }
 }

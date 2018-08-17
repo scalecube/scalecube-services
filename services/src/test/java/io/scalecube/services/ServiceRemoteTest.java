@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.sut.CoarseGrainedService;
 import io.scalecube.services.sut.CoarseGrainedServiceImpl;
@@ -12,21 +11,18 @@ import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
-
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.reactivestreams.Publisher;
-
-import reactor.core.publisher.EmitterProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 public class ServiceRemoteTest extends BaseTest {
 
@@ -52,12 +48,10 @@ public class ServiceRemoteTest extends BaseTest {
       provider.shutdown().block();
     } catch (Exception ex) {
     }
-
   }
 
   private static Microservices gateway() {
-    return Microservices.builder()
-        .startAwait();
+    return Microservices.builder().startAwait();
   }
 
   private static Microservices serviceProvider() {
@@ -71,20 +65,18 @@ public class ServiceRemoteTest extends BaseTest {
   public void test_remote_greeting_request_completes_before_timeout() {
     Duration duration = Duration.ofSeconds(1);
 
-    GreetingService service = gateway.call().create()
-        .api(GreetingService.class);
+    GreetingService service = gateway.call().create().api(GreetingService.class);
 
     // call the service.
-    Mono<GreetingResponse> result = Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
+    Mono<GreetingResponse> result =
+        Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
     assertTrue(" hello to: joe".equals(result.block(Duration.ofSeconds(10)).getResult()));
-
   }
 
   @Test
   public void test_remote_void_greeting() throws Exception {
 
-    GreetingService service = gateway.call().create()
-        .api(GreetingService.class);
+    GreetingService service = gateway.call().create().api(GreetingService.class);
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
@@ -92,7 +84,6 @@ public class ServiceRemoteTest extends BaseTest {
     System.out.println("test_remote_void_greeting done.");
 
     Thread.sleep(1000);
-
   }
 
   @Test
@@ -146,7 +137,6 @@ public class ServiceRemoteTest extends BaseTest {
 
     // call the service.
     service.notifyGreeting();
-
   }
 
   @Test
@@ -157,7 +147,8 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(10000)).getResult()));
+    assertTrue(
+        " hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(10000)).getResult()));
   }
 
   @Test
@@ -169,11 +160,13 @@ public class ServiceRemoteTest extends BaseTest {
     Publisher<GreetingResponse> result =
         service.greetingRequestTimeout(new GreetingRequest("joe", Duration.ofSeconds(4)));
 
-    Mono.from(result).doOnError(success -> {
-      // print the greeting.
-      System.out.println("remote_greeting_request_timeout_expires : " + success);
-      assertTrue(success instanceof TimeoutException);
-    });
+    Mono.from(result)
+        .doOnError(
+            success -> {
+              // print the greeting.
+              System.out.println("remote_greeting_request_timeout_expires : " + success);
+              assertTrue(success instanceof TimeoutException);
+            });
   }
 
   @Test
@@ -185,7 +178,6 @@ public class ServiceRemoteTest extends BaseTest {
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
     assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1)).getResult()));
-
   }
 
   @Test
@@ -193,10 +185,11 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     // noinspection unused
-    Microservices provider = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(new CoarseGrainedServiceImpl()) // add service a and b
-        .startAwait();
+    Microservices provider =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(new CoarseGrainedServiceImpl()) // add service a and b
+            .startAwait();
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
@@ -214,10 +207,8 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     // noinspection unused
-    Microservices provider = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(another)
-        .startAwait();
+    Microservices provider =
+        Microservices.builder().seeds(gateway.discovery().address()).services(another).startAwait();
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
@@ -232,15 +223,18 @@ public class ServiceRemoteTest extends BaseTest {
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
     // Create microservices instance cluster.
-    Microservices ms = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(another) // add service a and b
-        .startAwait();
+    Microservices ms =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(another) // add service a and b
+            .startAwait();
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
     InternalServiceException exception =
-        assertThrows(InternalServiceException.class, () -> Mono.from(service.callGreetingTimeout("joe")).block());
+        assertThrows(
+            InternalServiceException.class,
+            () -> Mono.from(service.callGreetingTimeout("joe")).block());
     assertTrue(exception.getMessage().contains("Did not observe any item or terminal signal"));
     System.out.println("done");
     ms.shutdown();
@@ -253,10 +247,11 @@ public class ServiceRemoteTest extends BaseTest {
     CoarseGrainedServiceImpl another = new CoarseGrainedServiceImpl();
 
     // Create microservices instance cluster.
-    Microservices provider = Microservices.builder()
-        .seeds(gateway.discovery().address())
-        .services(another) // add service a and b
-        .startAwait();
+    Microservices provider =
+        Microservices.builder()
+            .seeds(gateway.discovery().address())
+            .services(another) // add service a and b
+            .startAwait();
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
@@ -274,14 +269,14 @@ public class ServiceRemoteTest extends BaseTest {
     GreetingService service = createProxy();
 
     // call the service. bidiThrowingGreeting
-    Flux<GreetingResponse> responses = service.bidiGreetingIllegalArgumentException(
-        Mono.just(new GreetingRequest("IllegalArgumentException")));
+    Flux<GreetingResponse> responses =
+        service.bidiGreetingIllegalArgumentException(
+            Mono.just(new GreetingRequest("IllegalArgumentException")));
 
     // call the service.
     StepVerifier.create(responses)
         .expectErrorMessage("IllegalArgumentException")
         .verify(Duration.ofSeconds(3));
-
   }
 
   @Test
@@ -302,7 +297,6 @@ public class ServiceRemoteTest extends BaseTest {
     StepVerifier.create(responses)
         .expectErrorMessage("Not authorized")
         .verify(Duration.ofSeconds(3));
-
   }
 
   @Test
@@ -328,7 +322,6 @@ public class ServiceRemoteTest extends BaseTest {
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
         .expectComplete()
         .verify(Duration.ofSeconds(3));
-
   }
 
   @Test
@@ -336,18 +329,15 @@ public class ServiceRemoteTest extends BaseTest {
     Map<String, String> tags = new HashMap<>();
     tags.put("HOSTNAME", "host1");
 
-    Microservices ms = Microservices.builder()
-        .tags(tags)
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    Microservices ms =
+        Microservices.builder().tags(tags).services(new GreetingServiceImpl()).startAwait();
 
     assertTrue(ms.discovery().endpoint().tags().containsKey("HOSTNAME"));
   }
 
   @Test
   public void test_remote_mono_empty_greeting() {
-    GreetingService service = gateway.call().create()
-        .api(GreetingService.class);
+    GreetingService service = gateway.call().create().api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.greetingMonoEmpty(new GreetingRequest("empty")))
@@ -357,8 +347,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   @Test
   public void test_remote_flux_empty_greeting() {
-    GreetingService service = gateway.call().create()
-        .api(GreetingService.class);
+    GreetingService service = gateway.call().create().api(GreetingService.class);
 
     // call the service.
     StepVerifier.create(service.greetingFluxEmpty(new GreetingRequest("empty")))
@@ -367,6 +356,9 @@ public class ServiceRemoteTest extends BaseTest {
   }
 
   private GreetingService createProxy() {
-    return gateway.call().create().api(GreetingService.class); // create proxy for GreetingService API
+    return gateway
+        .call()
+        .create()
+        .api(GreetingService.class); // create proxy for GreetingService API
   }
 }

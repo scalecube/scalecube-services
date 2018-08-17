@@ -34,5 +34,4 @@ public class StubServiceImpl implements StubService {
   public Flux<String> throwException3(Flux<String> request) {
     throw new RuntimeException();
   }
-
 }

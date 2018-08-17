@@ -9,6 +9,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 public @interface ResponseType {
 
+  /**
+   * The class for the response.
+   *
+   * @return the response type
+   */
   Class<?> value();
-
 }

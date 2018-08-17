@@ -2,7 +2,6 @@ package io.scalecube.examples.helloworld.service;
 
 import io.scalecube.examples.helloworld.service.api.Greeting;
 import io.scalecube.examples.helloworld.service.api.GreetingsService;
-
 import reactor.core.publisher.Mono;
 
 public class GreetingServiceImpl implements GreetingsService {

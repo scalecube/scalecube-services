@@ -9,8 +9,8 @@ import static io.scalecube.services.TestRequests.GREETING_REQUEST_REQ;
 import static io.scalecube.services.TestRequests.GREETING_REQUEST_TIMEOUT_REQ;
 import static io.scalecube.services.TestRequests.GREETING_THROWING_VOID_REQ;
 import static io.scalecube.services.TestRequests.GREETING_VOID_REQ;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -20,16 +20,13 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
-
+import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
-
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import java.time.Duration;
 
 public class ServiceCallRemoteTest extends BaseTest {
 
@@ -56,7 +53,6 @@ public class ServiceCallRemoteTest extends BaseTest {
       provider.shutdown().block();
     } catch (Exception ex) {
     }
-
   }
 
   private static Microservices serviceProvider() {
@@ -77,9 +73,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
     ServiceMessage message = Mono.from(future).block(timeout);
 
-    assertThat(message.data(), instanceOf(GreetingResponse.class));
     assertTrue(((GreetingResponse) message.data()).getResult().equals("hello unknown"));
-
   }
 
   @Test
@@ -97,7 +91,6 @@ public class ServiceCallRemoteTest extends BaseTest {
     StepVerifier.create(gateway.call().create().requestOne(GREETING_FAILING_VOID_REQ, Void.class))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
         .verify(Duration.ofSeconds(TIMEOUT));
-
   }
 
   @Test
@@ -111,38 +104,51 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_remote_fail_greeting() {
     // When
-    Throwable exception = assertThrows(ServiceException.class,
-        () -> Mono.from(gateway.call().create().requestOne(GREETING_FAIL_REQ, GreetingResponse.class)).block(timeout));
+    Throwable exception =
+        assertThrows(
+            ServiceException.class,
+            () ->
+                Mono.from(
+                    gateway
+                        .call()
+                        .create()
+                        .requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
+                    .block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
-
   }
 
   @Test
   public void test_remote_exception_void() {
 
     // When
-    Throwable exception = assertThrows(ServiceException.class,
-        () -> Mono.from(gateway.call().create().requestOne(GREETING_ERROR_REQ, GreetingResponse.class)).block(timeout));
+    Throwable exception =
+        assertThrows(
+            ServiceException.class,
+            () ->
+                Mono.from(
+                    gateway
+                        .call()
+                        .create()
+                        .requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
+                    .block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
-
   }
 
   @Test
   public void test_remote_async_greeting_return_string() {
 
-    Publisher<ServiceMessage> resultFuture = gateway.call().create().requestOne(GREETING_REQ, String.class);
+    Publisher<ServiceMessage> resultFuture =
+        gateway.call().create().requestOne(GREETING_REQ, String.class);
 
     // Then
     ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
     assertNotNull(result);
     assertEquals(GREETING_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", result.data());
-
   }
 
   @Test
   public void test_remote_async_greeting_return_GreetingResponse() {
-
 
     // When
     Publisher<ServiceMessage> result =
@@ -151,7 +157,6 @@ public class ServiceCallRemoteTest extends BaseTest {
     // Then
     GreetingResponse greeting = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
     assertEquals(" hello to: joe", greeting.getResult());
-
   }
 
   @Test
@@ -160,11 +165,10 @@ public class ServiceCallRemoteTest extends BaseTest {
     ServiceCall service = gateway.call().create();
 
     // call the service.
-    Publisher<ServiceMessage> future =
-        service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
-    Throwable exception = assertThrows(RuntimeException.class, () -> Mono.from(future).block(Duration.ofSeconds(1)));
+    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
+    Throwable exception =
+        assertThrows(RuntimeException.class, () -> Mono.from(future).block(Duration.ofSeconds(1)));
     assertTrue(exception.getMessage().contains("Timeout on blocking read"));
-
   }
 
   // Since here and below tests were not reviewed [sergeyr]
@@ -173,32 +177,31 @@ public class ServiceCallRemoteTest extends BaseTest {
     ServiceCall service = gateway.call().create();
 
     // call the service.
-    Publisher<ServiceMessage> future =
-        service.requestOne(GREETING_REQUEST_REQ);
+    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_REQ);
 
-    Mono.from(future).doOnNext(result -> {
-      // print the greeting.
-      System.out.println("10. remote_async_greeting_return_Message :" + result.data());
-      // print the greeting.
-      assertThat(result.data(), instanceOf(GreetingResponse.class));
-      assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
-    });
-
+    Mono.from(future)
+        .doOnNext(
+            result -> {
+              // print the greeting.
+              System.out.println("10. remote_async_greeting_return_Message :" + result.data());
+              // print the greeting.
+              assertThat(result.data(), instanceOf(GreetingResponse.class));
+              assertTrue(((GreetingResponse) result.data()).getResult().equals(" hello to: joe"));
+            });
   }
 
   @Test
   public void test_remote_dispatcher_remote_greeting_request_completes_before_timeout() {
 
-    Publisher<ServiceMessage> result = gateway.call().create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
+    Publisher<ServiceMessage> result =
+        gateway.call().create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     GreetingResponse greetings = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
     System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
     assertTrue(greetings.getResult().equals(" hello to: joe"));
-
   }
 
   private static Microservices gateway() {
-    return Microservices.builder()
-        .startAwait();
+    return Microservices.builder().startAwait();
   }
 }

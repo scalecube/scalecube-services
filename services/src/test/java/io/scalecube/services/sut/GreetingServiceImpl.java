@@ -4,9 +4,7 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Inject;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.UnauthorizedException;
-
 import org.reactivestreams.Publisher;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -48,19 +46,27 @@ public final class GreetingServiceImpl implements GreetingService {
   @Override
   public Mono<GreetingResponse> greetingRequestTimeout(GreetingRequest request) {
     print("[greetingRequestTimeout] Hello... i am a service an just recived a message:" + request);
-    return Mono.delay(request.getDuration()).flatMap(
-        i -> Mono.just(new GreetingResponse(" hello to: " + request.getName(), String.valueOf(this.hashCode()))));
+    return Mono.delay(request.getDuration())
+        .flatMap(
+            i ->
+                Mono.just(
+                    new GreetingResponse(
+                        " hello to: " + request.getName(), String.valueOf(this.hashCode()))));
   }
 
   @Override
   public Mono<String> greetingNoParams() {
-    print("[greetingNoParams] Hello... i am a service an just recived a call bu i dont know from who.");
+    print(
+        "[greetingNoParams] Hello... i am a service an just recived a call bu i dont know from who.");
     return Mono.just("hello unknown");
   }
 
   @Override
   public Mono<GreetingResponse> greetingRequest(GreetingRequest request) {
-    print(instanceId + ":[greetingRequest] Hello... i am a service an just recived a message:" + request);
+    print(
+        instanceId
+            + ":[greetingRequest] Hello... i am a service an just recived a message:"
+            + request);
     return Mono.just(new GreetingResponse(" hello to: " + request.getName(), "" + instanceId));
   }
 
@@ -76,7 +82,8 @@ public final class GreetingServiceImpl implements GreetingService {
   }
 
   @Override
-  public Flux<GreetingResponse> bidiGreetingIllegalArgumentException(Publisher<GreetingRequest> request) {
+  public Flux<GreetingResponse> bidiGreetingIllegalArgumentException(
+      Publisher<GreetingRequest> request) {
     throw new IllegalArgumentException("IllegalArgumentException");
   }
 

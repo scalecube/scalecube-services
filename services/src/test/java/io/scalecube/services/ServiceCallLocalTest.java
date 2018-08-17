@@ -20,14 +20,11 @@ import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
-
+import java.time.Duration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
-
-import java.time.Duration;
-
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -49,7 +46,6 @@ public class ServiceCallLocalTest extends BaseTest {
       provider.shutdown().block();
     } catch (Exception ex) {
     }
-   
   }
 
   @Test
@@ -58,18 +54,16 @@ public class ServiceCallLocalTest extends BaseTest {
     ServiceCall serviceCall = this.provider.call().router(RoundRobinServiceRouter.class).create();
 
     // call the service.
-    Publisher<ServiceMessage> future =
-        serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST);
+    Publisher<ServiceMessage> future = serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST);
 
     ServiceMessage message = Mono.from(future).block(Duration.ofSeconds(TIMEOUT));
 
-    assertEquals(GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier(), "Didn't get desired response");
+    assertEquals(
+        GREETING_NO_PARAMS_REQUEST.qualifier(), message.qualifier(), "Didn't get desired response");
   }
 
   private static Microservices serviceProvider() {
-    return Microservices.builder()
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    return Microservices.builder().services(new GreetingServiceImpl()).startAwait();
   }
 
   @Test
@@ -97,7 +91,8 @@ public class ServiceCallLocalTest extends BaseTest {
   public void test_local_fail_greeting() {
     // call the service.
     Throwable exception =
-        assertThrows(ServiceException.class,
+        assertThrows(
+            ServiceException.class,
             () -> Mono.from(provider.call().create().requestOne(GREETING_FAIL_REQ)).block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
@@ -106,9 +101,11 @@ public class ServiceCallLocalTest extends BaseTest {
   public void test_local_exception_greeting() {
 
     // call the service.
-    Throwable exception = assertThrows(ServiceException.class,
-        () -> Mono.from(provider.call().create().requestOne(GREETING_ERROR_REQ)).block(timeout));
-
+    Throwable exception =
+        assertThrows(
+            ServiceException.class,
+            () ->
+                Mono.from(provider.call().create().requestOne(GREETING_ERROR_REQ)).block(timeout));
   }
 
   @Test
@@ -123,7 +120,6 @@ public class ServiceCallLocalTest extends BaseTest {
     assertNotNull(result);
     assertEquals(GREETING_REQUEST_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", ((GreetingResponse) result.data()).getResult());
-
   }
 
   @Test
@@ -132,14 +128,14 @@ public class ServiceCallLocalTest extends BaseTest {
     ServiceCall service = provider.call().create();
 
     // call the service.
-    Publisher<ServiceMessage> future =
-        service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
+    Publisher<ServiceMessage> future = service.requestOne(GREETING_REQUEST_TIMEOUT_REQ);
 
-    Throwable exception = assertThrows(RuntimeException.class, () -> {
-
-      Mono.from(future).block(Duration.ofSeconds(1));
-
-    });
+    Throwable exception =
+        assertThrows(
+            RuntimeException.class,
+            () -> {
+              Mono.from(future).block(Duration.ofSeconds(1));
+            });
     assertTrue(exception.getMessage().contains("Timeout on blocking read"));
   }
 
@@ -154,7 +150,6 @@ public class ServiceCallLocalTest extends BaseTest {
     System.out.println("local_async_greeting_return_Message :" + responseData);
 
     assertEquals(" hello to: joe", responseData.getResult());
-
   }
 
   @Test
@@ -167,7 +162,9 @@ public class ServiceCallLocalTest extends BaseTest {
       Mono.from(service.requestOne(NOT_FOUND_REQ)).block(timeout);
       fail("Expected no-service-found exception");
     } catch (Exception ex) {
-      assertTrue(ex.getMessage().equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
+      assertTrue(
+          ex.getMessage()
+              .equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
     }
   }
 }

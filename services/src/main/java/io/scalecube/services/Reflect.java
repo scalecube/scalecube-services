@@ -14,11 +14,6 @@ import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.routing.Router;
-
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -29,14 +24,13 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-/**
- * Service Injector scan and injects beans to a given Microservices instance.
- *
- */
+/** Service Injector scan and injects beans to a given Microservices instance. */
 public final class Reflect {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Reflect.class);
@@ -45,25 +39,26 @@ public final class Reflect {
     // Do not instantiate
   }
 
-
   /**
-   * Inject instances to the microservices instance. either Microservices or ServiceProxy. Scan all local service
-   * instances and inject a service proxy.
+   * Inject instances to the microservices instance. either Microservices or ServiceProxy. Scan all
+   * local service instances and inject a service proxy.
    *
    * @param microservices microservices instance
    * @param services services set
    * @return microservices instance
    */
   public static Microservices inject(Microservices microservices, Collection<Object> services) {
-    services.forEach(service -> Arrays.stream(service.getClass().getDeclaredFields())
-        .forEach(field -> injectField(microservices, field, service)));
+    services.forEach(
+        service ->
+            Arrays.stream(service.getClass().getDeclaredFields())
+                .forEach(field -> injectField(microservices, field, service)));
     services.forEach(service -> processAfterConstruct(microservices, service));
     return microservices;
   }
 
   /**
    * extract parameterized return value of a method.
-   * 
+   *
    * @param method to extract type from.
    * @return the generic type of the return value or object.
    */
@@ -71,7 +66,8 @@ public final class Reflect {
     Type type = method.getGenericReturnType();
     if (type instanceof ParameterizedType) {
       try {
-        return Class.forName((((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
+        return Class.forName(
+            (((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
       } catch (ClassNotFoundException e) {
         return Object.class;
       }
@@ -81,10 +77,11 @@ public final class Reflect {
   }
 
   /**
-   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters. in case the method is
-   * annotated with @RequestType this type will always be chosen. if the parameter is generic eg. <String> the actual
-   * type will be used. in case there is no annotation and the type is not generic then return the actual type. in case
-   * method accepts service message and no RequestType annotation is present then return Object.class
+   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
+   * in case the method is annotated with @RequestType this type will always be chosen. if the
+   * parameter is generic eg. &lt;String&gt; the actual type will be used. in case there is no
+   * annotation and the type is not generic then return the actual type. in case method accepts
+   * service message and no RequestType annotation is present then return Object.class
    *
    * @param method in inspection.
    * @return type of parameter [0] or void
@@ -105,7 +102,6 @@ public final class Reflect {
         } else {
           return method.getParameterTypes()[0];
         }
-
       }
     } else {
       return Void.TYPE;
@@ -114,7 +110,7 @@ public final class Reflect {
 
   /**
    * Util function that returns the parameterizedType of a given object.
-   * 
+   *
    * @param object to inspect
    * @return the parameterized Type of a given object or Object class if unknown.
    */
@@ -128,21 +124,35 @@ public final class Reflect {
     return Object.class;
   }
 
+  /**
+   * Parse <code>serviceInterface</code> class and puts available methods annotated by {@link
+   * ServiceMethod} annotation to {@link Method} -> {@link MethodInfo} mapping.
+   *
+   * @param serviceInterface - service interface to be parsed.
+   * @return - mapping form available service methods of the <code>serviceInterface</code> to their
+   *     descriptions
+   */
   public static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
-    return Collections.unmodifiableMap(serviceMethods(serviceInterface).values().stream()
-        .collect(Collectors.toMap(Function.identity(),
-            method1 -> new MethodInfo(
-                serviceName(serviceInterface),
-                methodName(method1),
-                parameterizedReturnType(method1),
-                communicationMode(method1),
-                method1.getParameterCount(),
-                requestType(method1)))));
+    return Collections.unmodifiableMap(
+        serviceMethods(serviceInterface)
+            .values()
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    Function.identity(),
+                    method1 ->
+                        new MethodInfo(
+                            serviceName(serviceInterface),
+                            methodName(method1),
+                            parameterizedReturnType(method1),
+                            communicationMode(method1),
+                            method1.getParameterCount(),
+                            requestType(method1)))));
   }
 
   /**
    * Util function that returns the parameterized of the request Type of a given object.
-   * 
+   *
    * @return the parameterized Type of a given object or Object class if unknown.
    */
   public static Type parameterizedRequestType(Method method) {
@@ -158,7 +168,7 @@ public final class Reflect {
 
   /**
    * Util function to extract service name from service api.
-   * 
+   *
    * @param serviceInterface with @Service annotation.
    * @return service name.
    */
@@ -166,28 +176,32 @@ public final class Reflect {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     if (serviceAnnotation == null) {
-      throw new IllegalArgumentException(String.format("Not a service interface: %s", serviceInterface));
+      throw new IllegalArgumentException(
+          String.format("Not a service interface: %s", serviceInterface));
     }
-    return serviceAnnotation.value().length() > 0 ? serviceAnnotation.value() : serviceInterface.getName();
+    return serviceAnnotation.value().length() > 0
+        ? serviceAnnotation.value()
+        : serviceInterface.getName();
   }
 
   /**
    * Util function to get service Method map from service api.
-   * 
+   *
    * @param serviceInterface with @Service annotation.
    * @return service name.
    */
   public static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
-    Map<String, Method> methods = Arrays.stream(serviceInterface.getMethods())
-        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-        .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
+    Map<String, Method> methods =
+        Arrays.stream(serviceInterface.getMethods())
+            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+            .collect(Collectors.toMap(Reflect::methodName, Function.identity()));
 
     return Collections.unmodifiableMap(methods);
   }
 
   /**
    * Util function to get service interfaces collections from service instance.
-   * 
+   *
    * @param serviceObject with extends service interface with @Service annotation.
    * @return service interface class.
    */
@@ -224,6 +238,24 @@ public final class Reflect {
     }
   }
 
+  /**
+   * This method is used to get catual {@link CommunicationMode} os service method.
+   *
+   * <p>The following modes are supported:
+   *
+   * <ul>
+   *   <li>{@link CommunicationMode#REQUEST_CHANNEL} - service has at least one parameter,and the
+   *       first parameter is either of type return type {@link Flux} or {@link Publisher};
+   *   <li>{@link CommunicationMode#REQUEST_STREAM} - service's return type is {@link Flux}, and
+   *       parameter is not {@link Flux};
+   *   <li>{@link CommunicationMode#REQUEST_RESPONSE} - service's return type is Mono;
+   *   <li>{@link CommunicationMode#FIRE_AND_FORGET} - service returns void;
+   * </ul>
+   *
+   * @param method - Service method to be analyzed.
+   * @return - {@link CommunicationMode} of service method. If method does not correspond to any of
+   *     supported modes, throws {@link IllegalArgumentException}
+   */
   public static CommunicationMode communicationMode(Method method) {
     Class<?> returnType = method.getReturnType();
     if (isRequestChannel(method)) {
@@ -271,7 +303,10 @@ public final class Reflect {
       field.setAccessible(true);
       field.set(object, value);
     } catch (Exception ex) {
-      LOGGER.error("failed to set service proxy of type: {} reason:{}", object.getClass().getName(), ex.getMessage());
+      LOGGER.error(
+          "failed to set service proxy of type: {} reason:{}",
+          object.getClass().getName(),
+          ex.getMessage());
     }
   }
 
@@ -279,23 +314,28 @@ public final class Reflect {
     Method[] declaredMethods = targetInstance.getClass().getDeclaredMethods();
     Arrays.stream(declaredMethods)
         .filter(method -> method.isAnnotationPresent(AfterConstruct.class))
-        .forEach(afterConstructMethod -> {
-          try {
-            afterConstructMethod.setAccessible(true);
-            Object[] parameters = Arrays.stream(afterConstructMethod.getParameters()).map(mapper -> {
-              if (mapper.getType().equals(Microservices.class)) {
-                return microservices;
-              } else if (isService(mapper.getType())) {
-                return microservices.call().create().api(mapper.getType());
-              } else {
-                return null;
+        .forEach(
+            afterConstructMethod -> {
+              try {
+                afterConstructMethod.setAccessible(true);
+                Object[] parameters =
+                    Arrays.stream(afterConstructMethod.getParameters())
+                        .map(
+                            mapper -> {
+                              if (mapper.getType().equals(Microservices.class)) {
+                                return microservices;
+                              } else if (isService(mapper.getType())) {
+                                return microservices.call().create().api(mapper.getType());
+                              } else {
+                                return null;
+                              }
+                            })
+                        .toArray();
+                afterConstructMethod.invoke(targetInstance, parameters);
+              } catch (Exception ex) {
+                throw new RuntimeException(ex);
               }
-            }).toArray();
-            afterConstructMethod.invoke(targetInstance, parameters);
-          } catch (Exception ex) {
-            throw new RuntimeException(ex);
-          }
-        });
+            });
   }
 
   private static boolean isService(Class<?> type) {

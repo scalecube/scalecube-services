@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-services-parent</artifactId>
-    <version>2.1.17-SNAPSHOT</version>
+    <version>2.1.18-SNAPSHOT</version>
   </parent>
 
   <artifactId>rsocket-services-transport</artifactId>
@@ -16,6 +16,16 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-api</artifactId>
       <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-utils</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
 
     <dependency>

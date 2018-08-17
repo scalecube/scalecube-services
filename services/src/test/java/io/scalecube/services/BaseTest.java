@@ -12,12 +12,21 @@ public abstract class BaseTest {
 
   @BeforeEach
   public final void baseSetUp(TestInfo testInfo) {
-    LOGGER.info("***** Test started  : " + getClass().getSimpleName() + "." + testInfo.getDisplayName() + " *****");
+    LOGGER.info(
+        "***** Test started  : "
+            + getClass().getSimpleName()
+            + "."
+            + testInfo.getDisplayName()
+            + " *****");
   }
 
   @AfterEach
   public final void baseTearDown(TestInfo testInfo) {
-    LOGGER.info("***** Test finished : " + getClass().getSimpleName() + "." + testInfo.getDisplayName() + " *****");
+    LOGGER.info(
+        "***** Test finished : "
+            + getClass().getSimpleName()
+            + "."
+            + testInfo.getDisplayName()
+            + " *****");
   }
-
 }

@@ -13,36 +13,44 @@ import reactor.core.publisher.Mono;
 
 public class RSocketServiceClientAdapter implements ClientChannel {
 
-  private Mono<RSocket> rSocket;
+  private Mono<RSocket> rsocket;
   private ServiceMessageCodec messageCodec;
 
-  public RSocketServiceClientAdapter(Mono<RSocket> rSocket, ServiceMessageCodec codec) {
-    this.rSocket = rSocket;
+  public RSocketServiceClientAdapter(Mono<RSocket> rsocket, ServiceMessageCodec codec) {
+    this.rsocket = rsocket;
     this.messageCodec = codec;
   }
 
   @Override
   public Mono<ServiceMessage> requestResponse(ServiceMessage message) {
-    return rSocket
-        .flatMap(rSocket -> rSocket.requestResponse(toPayload(message))
-            .takeUntilOther(listenConnectionClose(rSocket)))
+    return rsocket
+        .flatMap(
+            rsocket ->
+                rsocket
+                    .requestResponse(toPayload(message))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestStream(ServiceMessage message) {
-    return rSocket
-        .flatMapMany(rSocket -> rSocket.requestStream(toPayload(message))
-            .takeUntilOther(listenConnectionClose(rSocket)))
+    return rsocket
+        .flatMapMany(
+            rsocket ->
+                rsocket
+                    .requestStream(toPayload(message))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .map(this::toMessage);
   }
 
   @Override
   public Flux<ServiceMessage> requestChannel(Publisher<ServiceMessage> publisher) {
-    return rSocket
-        .flatMapMany(rSocket -> rSocket
-            .requestChannel(Flux.from(publisher).map(this::toPayload))
-            .takeUntilOther(listenConnectionClose(rSocket)))
+    return rsocket
+        .flatMapMany(
+            rsocket ->
+                rsocket
+                    .requestChannel(Flux.from(publisher).map(this::toPayload))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .map(this::toMessage);
   }
 
@@ -55,9 +63,10 @@ public class RSocketServiceClientAdapter implements ClientChannel {
   }
 
   @SuppressWarnings("unchecked")
-  private <T> Mono<T> listenConnectionClose(RSocket rSocket) {
-    return rSocket.onClose()
-        .map(aVoid -> (T) aVoid)
+  private <T> Mono<T> listenConnectionClose(RSocket rsocket) {
+    return rsocket
+        .onClose()
+        .map(empty -> (T) empty)
         .switchIfEmpty(Mono.defer(this::toConnectionClosedException));
   }
 

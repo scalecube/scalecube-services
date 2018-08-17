@@ -5,15 +5,13 @@ import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
 import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
 import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.stream.Stream;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,8 +21,11 @@ public class ReflectTest {
   @MethodSource("argsProvider")
   public void testCommunicationMode(String methodName, CommunicationMode expectedMode) {
     // Given:
-    Method m = Arrays.stream(TestService.class.getMethods()).filter(meth -> meth.getName().equals(methodName))
-        .findFirst().get();
+    Method m =
+        Arrays.stream(TestService.class.getMethods())
+            .filter(meth -> meth.getName().equals(methodName))
+            .findFirst()
+            .get();
     // When:
     CommunicationMode communicationMode = Reflect.communicationMode(m);
     // Then:

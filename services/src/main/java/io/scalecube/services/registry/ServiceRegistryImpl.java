@@ -6,7 +6,6 @@ import io.scalecube.services.registry.api.RegistryEvent;
 import io.scalecube.services.registry.api.RegistryEvent.Type;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
-
 import org.jctools.maps.NonBlockingHashMap;
 
 import reactor.core.publisher.DirectProcessor;
@@ -22,12 +21,14 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.jctools.maps.NonBlockingHashMap;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
   // todo how to remove it (tags problem)?
   private final Map<String, ServiceEndpoint> serviceEndpoints = new NonBlockingHashMap<>();
-  private final Map<String, List<ServiceReference>> referencesByQualifier = new NonBlockingHashMap<>();
+  private final Map<String, List<ServiceReference>> referencesByQualifier =
+      new NonBlockingHashMap<>();
 
   private final FluxProcessor<RegistryEvent, RegistryEvent> events =
       DirectProcessor.<RegistryEvent>create();
@@ -52,7 +53,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       return Collections.emptyList();
     }
     String contentType = request.dataFormatOrDefault();
-    return result.stream()
+    return result
+        .stream()
         .filter(ref -> ref.contentTypes().contains(contentType))
         .collect(Collectors.toList());
   }

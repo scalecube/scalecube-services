@@ -1,7 +1,6 @@
 package io.scalecube.services.annotations;
 
 import io.scalecube.services.routing.Router;
-
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -13,7 +12,10 @@ import java.lang.annotation.Target;
 @Documented
 public @interface Inject {
 
+  /**
+   * Select a router.
+   *
+   * @return Router class to use
+   */
   Class<? extends Router> router() default Router.class;
-
 }
-
