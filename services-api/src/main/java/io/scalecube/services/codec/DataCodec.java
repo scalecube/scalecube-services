@@ -22,6 +22,12 @@ public interface DataCodec {
     return INSTANCES.values();
   }
 
+  /**
+   * Get a DataCodec for a content type.
+   *
+   * @param contentType the content type.
+   * @return a DataCodec for the content type or IllegalArgumentException is thrown if non exist
+   */
   static DataCodec getInstance(String contentType) {
     if (contentType == null) {
       throw new IllegalArgumentException("contentType not specified");

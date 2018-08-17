@@ -7,6 +7,9 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Headers code service provider interface.
+ */
 public interface HeadersCodec {
 
   Map<String, HeadersCodec> INSTANCES = new ConcurrentHashMap<>();
