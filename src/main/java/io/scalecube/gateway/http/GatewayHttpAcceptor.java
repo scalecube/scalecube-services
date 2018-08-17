@@ -6,17 +6,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 
-import io.scalecube.services.ServiceCall;
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.DataCodec;
-import io.scalecube.services.exceptions.ExceptionProcessor;
-
-import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.server.HttpServerRequest;
-import reactor.ipc.netty.http.server.HttpServerResponse;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
@@ -24,14 +13,21 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCountUtil;
-
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.scalecube.services.ServiceCall;
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
+import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.function.BiFunction;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
+import reactor.ipc.netty.http.server.HttpServerRequest;
+import reactor.ipc.netty.http.server.HttpServerResponse;
 
 public class GatewayHttpAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
