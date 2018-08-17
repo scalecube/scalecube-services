@@ -5,6 +5,8 @@ import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.server.HttpServer;
 import reactor.ipc.netty.http.server.HttpServerRequest;
@@ -23,6 +25,8 @@ import java.util.function.BiFunction;
 
 public class WebsocketGateway implements Gateway {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGateway.class);
+
   private BlockingNettyContext server;
 
   @Override
@@ -32,6 +36,8 @@ public class WebsocketGateway implements Gateway {
       Metrics metrics) {
 
     return Mono.defer(() -> {
+      LOGGER.info("Starting gateway with {}", config);
+
       InetSocketAddress listenAddress = new InetSocketAddress(config.port());
       WebsocketAcceptor acceptor = new WebsocketAcceptor(call.create(), metrics);
       server = HttpServer.builder()
@@ -47,6 +53,9 @@ public class WebsocketGateway implements Gateway {
           .start(new WebSocketServerBiFunction(acceptor));
       server.installShutdownHook();
       InetSocketAddress address = server.getContext().address();
+
+      LOGGER.info("Gateway has been started successfully on {}", address);
+
       return Mono.just(address);
     });
   }
