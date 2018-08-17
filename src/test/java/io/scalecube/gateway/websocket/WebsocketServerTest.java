@@ -21,11 +21,11 @@ import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 
-import org.junit.jupiter.api.Disabled;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.reactivestreams.Publisher;
@@ -91,7 +91,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingOne() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -115,7 +115,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingFailingOne() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -131,7 +131,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingMany() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -155,7 +155,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingFailingMany() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -176,7 +176,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testServicesNotStartedYet() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
@@ -199,7 +199,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testServicesNotStartedThenStarted() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
     GatewayMessage error = unreachableServiceMessage(GREETING_ONE.qualifier());
@@ -238,7 +238,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingPojoOne() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -257,7 +257,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingPojoMany() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -282,7 +282,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testInvalidRequest() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -306,7 +306,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testGreetingEmptyOne() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -322,7 +322,7 @@ public class WebsocketServerTest {
   @Disabled
   @Test
   public void testGreetingEmptyMany() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -344,7 +344,7 @@ public class WebsocketServerTest {
   public void testUnsubscribeRequest() throws InterruptedException {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -380,7 +380,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testUnsubscribeRequestWihtUnknownStreamId() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
     Long unknownStreamId = -12343L;
@@ -399,7 +399,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testSendRequestsWithTheSameStreamId() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
     Long streamId = 12343L;
@@ -423,7 +423,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testSendRequestsWithoutStreamId() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -444,7 +444,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testUnsubscribeRequestWithNonExistenceStreamId() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
     Long nonExistenceStreamId = -12345L;
@@ -472,7 +472,7 @@ public class WebsocketServerTest {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
 
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -505,7 +505,7 @@ public class WebsocketServerTest {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
 
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -542,7 +542,7 @@ public class WebsocketServerTest {
     CountDownLatch serviceCancelLatch = new CountDownLatch(1);
     GreetingService service = new GreetingServiceCancelCallback(serviceCancelLatch::countDown);
 
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress(), service);
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
@@ -576,7 +576,7 @@ public class WebsocketServerTest {
 
   @Test
   public void testRequestWithoutQualifier() {
-    microservicesExtension.startGateway();
+    microservicesExtension.startGateway(WebsocketGateway.class);
     microservicesExtension.startServices(microservicesExtension.getGatewayAddress());
     websocketExtension.startWebsocketServer(microservicesExtension.getGateway());
 
