@@ -8,7 +8,6 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.gateway.GatewayConfig;
-import io.scalecube.transport.Address;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.AfterEachCallback;
@@ -40,7 +39,7 @@ public abstract class AbstractGatewayExtention
 
   @Override
   public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = seed.gatewayAddress(gatewayConfig.gatewayClass());
+    gatewayAddress = seed.gatewayAddress(gatewayAliasName(), gatewayConfig.gatewayClass());
     startServices();
   }
 
@@ -71,8 +70,7 @@ public abstract class AbstractGatewayExtention
         .seeds(seed.discovery().address())
         .services(serviceInstance)
         .startAwait();
-    Address serviceAddress = services.serviceAddress();
-    LOGGER.info("Started services {} on {}", services, serviceAddress);
+    LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }
 
   public void shutdownServices() {
@@ -96,6 +94,8 @@ public abstract class AbstractGatewayExtention
   }
 
   protected abstract RSocketClientTransport transport(ClientSettings settings, ClientMessageCodec codec);
+
+  protected abstract String gatewayAliasName();
 
   private Client initClient() {
     ClientSettings settings = ClientSettings.builder()

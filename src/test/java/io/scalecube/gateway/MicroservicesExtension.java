@@ -5,6 +5,7 @@ import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
 import io.scalecube.transport.Address;
 
+import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
@@ -18,7 +19,7 @@ public class MicroservicesExtension implements AfterAllCallback {
   private Microservices gateway;
   private Address gatewayAddress;
   private Microservices services;
-  private Address serviceAddress;
+  private InetSocketAddress serviceAddress;
 
   public Microservices getGateway() {
     return gateway;
@@ -32,7 +33,7 @@ public class MicroservicesExtension implements AfterAllCallback {
     return services;
   }
 
-  public Address getServiceAddress() {
+  public InetSocketAddress getServiceAddress() {
     return serviceAddress;
   }
 

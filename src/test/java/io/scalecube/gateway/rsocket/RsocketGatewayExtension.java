@@ -10,12 +10,21 @@ import reactor.ipc.netty.resources.LoopResources;
 
 public class RsocketGatewayExtension extends AbstractGatewayExtention {
 
+  private static final String GATEWAY_ALIAS_NAME = "rsws";
+
   public RsocketGatewayExtension(Object serviceInstance) {
-    super(serviceInstance, GatewayConfig.builder(RSocketWebsocketGateway.class).build());
+    super(
+        serviceInstance,
+        GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build());
   }
 
   @Override
   protected RSocketClientTransport transport(ClientSettings settings, ClientMessageCodec codec) {
     return new RSocketClientTransport(settings, codec, LoopResources.create("eventLoop"));
+  }
+
+  @Override
+  protected String gatewayAliasName() {
+    return GATEWAY_ALIAS_NAME;
   }
 }
