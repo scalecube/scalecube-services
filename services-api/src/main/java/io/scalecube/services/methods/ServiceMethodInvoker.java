@@ -10,12 +10,23 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * Invoker of service method. Prepares service message request before call as well as doing some
+ * handling of a product of the service call.
+ */
 public final class ServiceMethodInvoker {
 
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
 
+  /**
+   * Constructs a service method invoker out of real service object instance and method info.
+   *
+   * @param method service method
+   * @param service service instance
+   * @param methodInfo method information
+   */
   public ServiceMethodInvoker(Method method, Object service, MethodInfo methodInfo) {
     this.method = method;
     this.service = service;
