@@ -1,8 +1,5 @@
 package io.scalecube.services.codec.jackson;
 
-import io.scalecube.services.codec.DataCodec;
-import io.scalecube.services.codec.HeadersCodec;
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -10,7 +7,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.codec.HeadersCodec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,13 +41,15 @@ public final class JacksonCodec implements DataCodec, HeadersCodec {
   }
 
   @Override
-  public Map<String, String> decode(InputStream stream) throws IOException {
-    return stream.available() == 0 ? Collections.emptyMap() : mapper.readValue(stream, HashMap.class);
+  public void encode(OutputStream stream, Object value) throws IOException {
+    mapper.writeValue(stream, value);
   }
 
   @Override
-  public void encode(OutputStream stream, Object value) throws IOException {
-    mapper.writeValue(stream, value);
+  public Map<String, String> decode(InputStream stream) throws IOException {
+    return stream.available() == 0
+        ? Collections.emptyMap()
+        : mapper.readValue(stream, HashMap.class);
   }
 
   @Override

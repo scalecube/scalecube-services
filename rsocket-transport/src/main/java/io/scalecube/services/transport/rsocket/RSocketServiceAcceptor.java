@@ -34,59 +34,72 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
     LOGGER.info("Accepted rSocket: {}, connectionSetup: {}", socket, setup);
 
-    return Mono.just(new AbstractRSocket() {
-      @Override
-      public Mono<Payload> requestResponse(Payload payload) {
-        return Mono.just(payload)
-            .map(this::toMessage)
-            .doOnNext(this::checkMethodInvokerExist)
-            .flatMap(message -> methodRegistry.getInvoker(message.qualifier())
-                .invokeOne(message, ServiceMessageCodec::decodeData))
-            .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
-            .map(this::toPayload);
-      }
+    return Mono.just(
+        new AbstractRSocket() {
+          @Override
+          public Mono<Payload> requestResponse(Payload payload) {
+            return Mono.just(payload)
+                .map(this::toMessage)
+                .doOnNext(this::checkMethodInvokerExist)
+                .flatMap(
+                    message ->
+                        methodRegistry
+                            .getInvoker(message.qualifier())
+                            .invokeOne(message, ServiceMessageCodec::decodeData))
+                .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
+                .map(this::toPayload);
+          }
 
-      @Override
-      public Flux<Payload> requestStream(Payload payload) {
-        return Flux.just(payload)
-            .map(this::toMessage)
-            .doOnNext(this::checkMethodInvokerExist)
-            .flatMap(message -> methodRegistry.getInvoker(message.qualifier())
-                .invokeMany(message, ServiceMessageCodec::decodeData))
-            .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
-            .map(this::toPayload);
-      }
+          @Override
+          public Flux<Payload> requestStream(Payload payload) {
+            return Flux.just(payload)
+                .map(this::toMessage)
+                .doOnNext(this::checkMethodInvokerExist)
+                .flatMap(
+                    message ->
+                        methodRegistry
+                            .getInvoker(message.qualifier())
+                            .invokeMany(message, ServiceMessageCodec::decodeData))
+                .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
+                .map(this::toPayload);
+          }
 
-      @Override
-      public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-        return Flux.from(HeadAndTail.createFrom(Flux.from(payloads).map(this::toMessage)))
-            .flatMap(pair -> {
-              ServiceMessage message = pair.head();
-              checkMethodInvokerExist(message);
-              Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(message);
-              return methodRegistry.getInvoker(message.qualifier())
-                  .invokeBidirectional(messages, ServiceMessageCodec::decodeData);
-            })
-            .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
-            .map(this::toPayload);
-      }
+          @Override
+          public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
+            return Flux.from(HeadAndTail.createFrom(Flux.from(payloads).map(this::toMessage)))
+                .flatMap(
+                    pair -> {
+                      ServiceMessage message = pair.head();
+                      checkMethodInvokerExist(message);
+                      Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(message);
+                      return methodRegistry
+                          .getInvoker(message.qualifier())
+                          .invokeBidirectional(messages, ServiceMessageCodec::decodeData);
+                    })
+                .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
+                .map(this::toPayload);
+          }
 
-      private Payload toPayload(ServiceMessage response) {
-        return messageCodec.encodeAndTransform(response, ByteBufPayload::create);
-      }
+          private Payload toPayload(ServiceMessage response) {
+            return messageCodec.encodeAndTransform(response, ByteBufPayload::create);
+          }
 
-      private ServiceMessage toMessage(Payload payload) {
-        return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
-      }
+          private ServiceMessage toMessage(Payload payload) {
+            return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+          }
 
-      private void checkMethodInvokerExist(ServiceMessage message) {
-        if (!methodRegistry.containsInvoker(message.qualifier())) {
-          LOGGER.error("Failed to invoke service with args[{}], No service invoker found by qualifier: {}",
-              message, message.qualifier());
-          throw new ServiceUnavailableException(
-              "No service invoker registered at service method registry by qualifier: " + message.qualifier());
-        }
-      }
-    });
+          private void checkMethodInvokerExist(ServiceMessage message) {
+            if (!methodRegistry.containsInvoker(message.qualifier())) {
+              LOGGER.error(
+                  "Failed to invoke service with args[{}], "
+                      + "No service invoker found by qualifier: {}",
+                  message,
+                  message.qualifier());
+              throw new ServiceUnavailableException(
+                  "No service invoker registered at service method registry by qualifier: "
+                      + message.qualifier());
+            }
+          }
+        });
   }
 }

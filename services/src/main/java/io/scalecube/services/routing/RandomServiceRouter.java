@@ -3,7 +3,6 @@ package io.scalecube.services.routing;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -22,5 +21,4 @@ public class RandomServiceRouter implements Router {
       return Optional.of(serviceInstances.get(index));
     }
   }
-
 }

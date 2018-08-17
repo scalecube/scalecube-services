@@ -2,9 +2,7 @@ package io.scalecube.examples.orderbook.service;
 
 import io.scalecube.examples.orderbook.service.engine.events.Side;
 
-/**
- * The interface for outbound events from a market.
- */
+/** The interface for outbound events from a market. */
 public interface MarketListener {
 
   /**
@@ -24,5 +22,4 @@ public interface MarketListener {
    * @param size the trade size
    */
   void trade(OrderBook book, Side side, long price, long size);
-
 }

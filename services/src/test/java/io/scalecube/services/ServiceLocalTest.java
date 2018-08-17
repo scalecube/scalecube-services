@@ -8,15 +8,12 @@ import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -32,10 +29,11 @@ public class ServiceLocalTest extends BaseTest {
 
   @BeforeEach
   public void setUp() {
-    microservices = Microservices.builder()
-        .discoveryPort(port.incrementAndGet())
-        .services(new GreetingServiceImpl())
-        .startAwait();
+    microservices =
+        Microservices.builder()
+            .discoveryPort(port.incrementAndGet())
+            .services(new GreetingServiceImpl())
+            .startAwait();
   }
 
   @AfterEach
@@ -51,7 +49,9 @@ public class ServiceLocalTest extends BaseTest {
 
     // call the service.
     GreetingResponse result =
-        service.greetingRequestTimeout(new GreetingRequest("joe", timeout)).block(timeout.plusSeconds(1));
+        service
+            .greetingRequestTimeout(new GreetingRequest("joe", timeout))
+            .block(timeout.plusSeconds(1));
 
     // print the greeting.
     System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
@@ -65,11 +65,14 @@ public class ServiceLocalTest extends BaseTest {
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
-    future.doOnNext(onNext -> {
-      assertTrue(onNext.equals(" hello to: joe"));
-      // print the greeting.
-      System.out.println("3. local_async_greeting :" + onNext);
-    }).block(Duration.ofSeconds(1000));
+    future
+        .doOnNext(
+            onNext -> {
+              assertTrue(onNext.equals(" hello to: joe"));
+              // print the greeting.
+              System.out.println("3. local_async_greeting :" + onNext);
+            })
+        .block(Duration.ofSeconds(1000));
   }
 
   @Test
@@ -80,11 +83,14 @@ public class ServiceLocalTest extends BaseTest {
     // call the service.
     Mono<String> future = Mono.from(service.greetingNoParams());
     AtomicReference<String> greetingResponse = new AtomicReference<>();
-    future.doOnNext((onNext) -> {
-      // print the greeting.
-      System.out.println("test_local_async_no_params :" + onNext);
-      greetingResponse.set(onNext);
-    }).block(Duration.ofSeconds(1));
+    future
+        .doOnNext(
+            (onNext) -> {
+              // print the greeting.
+              System.out.println("test_local_async_no_params :" + onNext);
+              greetingResponse.set(onNext);
+            })
+        .block(Duration.ofSeconds(1));
     assertEquals("hello unknown", greetingResponse.get());
   }
 
@@ -133,27 +139,32 @@ public class ServiceLocalTest extends BaseTest {
     Mono<GreetingResponse> future = Mono.from(service.greetingRequest(new GreetingRequest("joe")));
 
     AtomicReference<GreetingResponse> result = new AtomicReference<>();
-    future.doOnNext(onNext -> {
-      result.set(onNext);
-      System.out.println("remote_async_greeting_return_GreetingResponse :" + onNext);
-    }).block(Duration.ofSeconds(1));
+    future
+        .doOnNext(
+            onNext -> {
+              result.set(onNext);
+              System.out.println("remote_async_greeting_return_GreetingResponse :" + onNext);
+            })
+        .block(Duration.ofSeconds(1));
 
     assertTrue(result.get().getResult().equals(" hello to: joe"));
   }
-
 
   @Test
   public void test_local_greeting_request_timeout_expires() {
     GreetingService service = createProxy(microservices);
 
     // call the service.
-    Throwable exception = assertThrows(RuntimeException.class,
-        () -> Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)))
-            .timeout(Duration.ofSeconds(1))
-            .block());
-    assertTrue(exception.getCause().getMessage().contains("Did not observe any item or terminal signal"));
+    Throwable exception =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", timeout)))
+                    .timeout(Duration.ofSeconds(1))
+                    .block());
+    assertTrue(
+        exception.getCause().getMessage().contains("Did not observe any item or terminal signal"));
   }
-
 
   @Test
   public void test_local_async_greeting_return_Message() {
@@ -164,11 +175,12 @@ public class ServiceLocalTest extends BaseTest {
     Mono<GreetingResponse> future = Mono.from(service.greetingRequest(new GreetingRequest("joe")));
 
     future
-        .doOnNext(result -> {
-          assertTrue(result.getResult().equals(" hello to: joe"));
-          // print the greeting.
-          System.out.println("9. local_async_greeting_return_Message :" + result);
-        })
+        .doOnNext(
+            result -> {
+              assertTrue(result.getResult().equals(" hello to: joe"));
+              // print the greeting.
+              System.out.println("9. local_async_greeting_return_Message :" + result);
+            })
         .doOnError(System.out::println)
         .block(Duration.ofSeconds(1));
   }
@@ -179,8 +191,9 @@ public class ServiceLocalTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     // call the service. bidiThrowingGreeting
-    Flux<GreetingResponse> responses = service.bidiGreetingIllegalArgumentException(
-        Mono.just(new GreetingRequest("IllegalArgumentException")));
+    Flux<GreetingResponse> responses =
+        service.bidiGreetingIllegalArgumentException(
+            Mono.just(new GreetingRequest("IllegalArgumentException")));
     // call the service.
 
     StepVerifier.create(responses)
@@ -232,6 +245,9 @@ public class ServiceLocalTest extends BaseTest {
   }
 
   private GreetingService createProxy(Microservices gateway) {
-    return gateway.call().create().api(GreetingService.class); // create proxy for GreetingService API
+    return gateway
+        .call()
+        .create()
+        .api(GreetingService.class); // create proxy for GreetingService API
   }
 }

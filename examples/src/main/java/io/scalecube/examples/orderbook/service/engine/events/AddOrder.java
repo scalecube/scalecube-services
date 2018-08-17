@@ -9,6 +9,14 @@ public class AddOrder {
 
   public AddOrder() {}
 
+  /**
+   * Create a new Add order.
+   *
+   * @param orderId the Id of the incoming order
+   * @param side the side of this level (either {@link Side#BUY} or {@link Side#SELL})
+   * @param price the price of the order
+   * @param remainingQuantity the quantity
+   */
   public AddOrder(long orderId, Side side, long price, long remainingQuantity) {
     this.orderId = orderId;
     this.side = side;
@@ -31,5 +39,4 @@ public class AddOrder {
   public long quantity() {
     return remainingQuantity;
   }
-
 }

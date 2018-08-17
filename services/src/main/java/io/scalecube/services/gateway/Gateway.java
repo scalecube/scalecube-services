@@ -3,13 +3,18 @@ package io.scalecube.services.gateway;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.ServiceLoaderUtil;
 import io.scalecube.services.metrics.Metrics;
-import reactor.core.publisher.Mono;
-
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
+import reactor.core.publisher.Mono;
 
 public interface Gateway {
 
+  /**
+   * Get {@link Gateway} instance by type.
+   *
+   * @param gatewayClass - type of {@link Gateway} to be returned.
+   * @return - instance of {@link Gateway} of given <code>gatewayClass</code>.
+   */
   static Gateway getGateway(Class<? extends Gateway> gatewayClass) {
     return ServiceLoaderUtil.findFirst(
             Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
@@ -22,7 +27,7 @@ public interface Gateway {
    *
    * @param config gateway configuration
    * @param executorService service transport executor service
-   * @param call servica call definition
+   * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
   Mono<InetSocketAddress> start(

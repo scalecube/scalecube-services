@@ -4,12 +4,9 @@ import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
-
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.time.Duration;
-
 import reactor.core.publisher.Mono;
 
 public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksState> {
@@ -30,19 +27,22 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
 
   @Override
   public void beforeAll() {
-    seed = Microservices.builder()
-        .metrics(settings.registry())
-        .startAwait();
+    seed = Microservices.builder().metrics(settings.registry()).startAwait();
 
-    node = Microservices.builder()
-        .metrics(settings.registry())
-        .seeds(seed.discovery().address())
-        .services(services)
-        .startAwait();
+    node =
+        Microservices.builder()
+            .metrics(settings.registry())
+            .seeds(seed.discovery().address())
+            .services(services)
+            .startAwait();
 
-    LOGGER.info("Seed address: " + seed.discovery().address() +
-        ", services address: " + node.serviceAddress() +
-        ", seed serviceRegistry: " + seed.serviceRegistry().listServiceReferences());
+    LOGGER.info(
+        "Seed address: "
+            + seed.discovery().address()
+            + ", services address: "
+            + node.serviceAddress()
+            + ", seed serviceRegistry: "
+            + seed.serviceRegistry().listServiceReferences());
   }
 
   @Override
@@ -50,6 +50,7 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
     try {
       Mono.when(node.shutdown(), seed.shutdown()).block(SHUTDOWN_TIMEOUT);
     } catch (Throwable ignore) {
+      // ignore
     }
   }
 

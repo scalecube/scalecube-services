@@ -9,6 +9,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.ANNOTATION_TYPE})
 public @interface RequestType {
 
+  /**
+   * The class for the request.
+   *
+   * @return the request type
+   */
   Class<?> value();
-
 }

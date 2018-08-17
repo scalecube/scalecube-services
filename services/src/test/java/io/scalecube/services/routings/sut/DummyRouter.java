@@ -4,7 +4,6 @@ import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.Router;
-
 import java.util.Objects;
 import java.util.Optional;
 
@@ -19,5 +18,4 @@ public class DummyRouter implements Router {
   public Optional<ServiceReference> route(ServiceRegistry serviceRegistry, ServiceMessage request) {
     return Optional.empty();
   }
-
 }

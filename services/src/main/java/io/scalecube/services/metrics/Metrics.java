@@ -7,7 +7,6 @@ import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.Timer.Context;
-
 import java.lang.reflect.Method;
 
 public class Metrics {
@@ -18,7 +17,8 @@ public class Metrics {
     return registry.meter(MetricRegistry.name(component, methodName, eventType));
   }
 
-  public <T> Meter getMeter(final Class<T> component, final String methodName, final String eventType) {
+  public <T> Meter getMeter(
+      final Class<T> component, final String methodName, final String eventType) {
     return getMeter(component.getName(), methodName, eventType);
   }
 
@@ -40,19 +40,22 @@ public class Metrics {
 
   /**
    * Register a Gauge and service registry.
-   * 
+   *
    * @param component name for the requested timer.
    * @param methodName for the requested timer.
    * @param gauge instance.
    * @return registered gauge in the service registry.
    */
-  public <T> Gauge<T> register(final String component, final String methodName, final Gauge<T> gauge) {
-    registry.register(MetricRegistry.name(component, methodName), new Gauge<T>() {
-      @Override
-      public T getValue() {
-        return gauge.getValue();
-      }
-    });
+  public <T> Gauge<T> register(
+      final String component, final String methodName, final Gauge<T> gauge) {
+    registry.register(
+        MetricRegistry.name(component, methodName),
+        new Gauge<T>() {
+          @Override
+          public T getValue() {
+            return gauge.getValue();
+          }
+        });
 
     return gauge;
   }
@@ -61,11 +64,13 @@ public class Metrics {
     return register(component.getName(), methodName, gauge);
   }
 
-  public Histogram getHistogram(final String component, final String methodName, final boolean biased) {
+  public Histogram getHistogram(
+      final String component, final String methodName, final boolean biased) {
     return registry.histogram(MetricRegistry.name(component, methodName));
   }
 
-  public <T> Histogram getHistogram(final Class<T> component, final String methodName, final boolean biased) {
+  public <T> Histogram getHistogram(
+      final Class<T> component, final String methodName, final boolean biased) {
     return getHistogram(component.getName(), methodName, biased);
   }
 
@@ -75,7 +80,7 @@ public class Metrics {
 
   /**
    * if metrics is not null returns a Timer instance for a given component and method name.
-   * 
+   *
    * @param metrics factory instance to get timer.
    * @param component name for the requested timer.
    * @param methodName for the requested timer.
@@ -91,7 +96,7 @@ public class Metrics {
 
   /**
    * if metrics is not null returns a Counter instance for a given component and method name.
-   * 
+   *
    * @param metrics factory instance to get timer.
    * @param component name for the requested timer.
    * @param methodName for the requested timer.
@@ -105,30 +110,65 @@ public class Metrics {
     }
   }
 
-
+  /**
+   * Reports an event to given <code>meter</code>.
+   *
+   * @param meter - meter that consumes na event.
+   */
   public static void mark(Meter meter) {
     if (meter != null) {
       meter.mark();
     }
   }
 
+  /**
+   * Reports an event to <code>meter</code> described by given parameters.
+   *
+   * @param metrics - {@link Metrics} instance with {@link MetricRegistry} initialized.
+   * @param component - part of metric description (calss name is used).
+   * @param methodName - part of metric description.
+   * @param eventType - part of metric description.
+   */
   public static void mark(Metrics metrics, Class component, String methodName, String eventType) {
     mark(metrics, component.getName(), methodName, eventType);
   }
 
+  /**
+   * Reports an event to <code>meter</code> described by given parameters.
+   *
+   * @param metrics - {@link Metrics} instance with {@link MetricRegistry} initialized.
+   * @param component - part of metric description.
+   * @param methodName - part of metric description.
+   * @param eventType - part of metric description.
+   */
   public static void mark(Metrics metrics, String component, String methodName, String eventType) {
     if (metrics != null) {
       mark(metrics.getMeter(component, methodName, eventType));
     }
   }
 
-  public static void mark(Class<?> serviceInterface, Metrics metrics, Method method, String eventType) {
+  /**
+   * Reports an event to <code>meter</code> described by given parameters.
+   *
+   * @param serviceInterface - part of metric description (class name is used).
+   * @param metrics - {@link Metrics} instance with {@link MetricRegistry} initialized.
+   * @param method - part of metric description (method name is used).
+   * @param eventType - part of metric description.
+   */
+  public static void mark(
+      Class<?> serviceInterface, Metrics metrics, Method method, String eventType) {
     if (metrics != null) {
       Meter meter = metrics.getMeter(serviceInterface, method.getName(), eventType);
       Metrics.mark(meter);
     }
   }
 
+  /**
+   * Start measuring time to be later reported to metrics.
+   *
+   * @param timer - instance of timer
+   * @return timer context that might be stopped and therefore reported to metrics.
+   */
   public static Context time(Timer timer) {
     if (timer != null) {
       return timer.time();
@@ -136,18 +176,33 @@ public class Metrics {
     return null;
   }
 
+  /**
+   * Stop time measurement and report the interval to metrics.
+   *
+   * @param ctx - timer context to be stopped.
+   */
   public static void stop(Context ctx) {
     if (ctx != null) {
       ctx.stop();
     }
   }
 
+  /**
+   * Increase counter.
+   *
+   * @param counter - counter to increase.
+   */
   public static void inc(Counter counter) {
     if (counter != null) {
       counter.inc();
     }
   }
 
+  /**
+   * Decrease counter.
+   *
+   * @param counter - counter to decrease.
+   */
   public static void dec(Counter counter) {
     if (counter != null) {
       counter.dec();

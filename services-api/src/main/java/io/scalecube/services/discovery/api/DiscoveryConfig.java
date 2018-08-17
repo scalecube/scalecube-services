@@ -3,7 +3,6 @@ package io.scalecube.services.discovery.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;

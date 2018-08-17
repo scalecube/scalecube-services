@@ -3,20 +3,12 @@ package io.scalecube.services.codec;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import io.rsocket.Payload;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.BaseTest;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.jackson.JacksonCodec;
 import io.scalecube.services.codec.protostuff.ProtostuffCodec;
-
-import io.rsocket.Payload;
-import io.rsocket.util.ByteBufPayload;
-
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.provider.ArgumentsSource;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -24,26 +16,36 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 class ServiceMessageCodecTest extends BaseTest {
 
   @ParameterizedTest(name = "{0}")
   @ArgumentsSource(MessageCodecProvider.class)
   void encodeAndDecode(String contentType, ServiceMessageCodec codec) {
-    ServiceMessage message = ServiceMessage.builder()
-        .qualifier(qualifier())
-        .dataFormat(contentType)
-        .data(data())
-        .headers(headers())
-        .build();
+    ServiceMessage message =
+        ServiceMessage.builder()
+            .qualifier(qualifier())
+            .dataFormat(contentType)
+            .data(data())
+            .headers(headers())
+            .build();
 
     Payload payload = codec.encodeAndTransform(message, ByteBufPayload::create);
 
-    LOGGER.info("contentType={}, headers={}, data={}", contentType, payload.getMetadataUtf8(), payload.getDataUtf8());
+    LOGGER.info(
+        "contentType={}, headers={}, data={}",
+        contentType,
+        payload.getMetadataUtf8(),
+        payload.getDataUtf8());
 
-    ServiceMessage actual = ServiceMessageCodec.decodeData(
-        codec.decode(payload.sliceData(), payload.sliceMetadata()),
-        PlaceOrderRequest.class);
+    ServiceMessage actual =
+        ServiceMessageCodec.decodeData(
+            codec.decode(payload.sliceData(), payload.sliceMetadata()), PlaceOrderRequest.class);
 
     assertAll(
         () -> assertEquals(message.qualifier(), actual.qualifier()),
@@ -85,8 +87,10 @@ class ServiceMessageCodecTest extends BaseTest {
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
       return Stream.of(JacksonCodec.CONTENT_TYPE, ProtostuffCodec.CONTENT_TYPE)
-          .map(contentType -> Arguments.of(contentType,
-              new ServiceMessageCodec(HeadersCodec.getInstance(contentType))));
+          .map(
+              contentType ->
+                  Arguments.of(
+                      contentType, new ServiceMessageCodec(HeadersCodec.getInstance(contentType))));
     }
   }
 
@@ -112,39 +116,62 @@ class ServiceMessageCodecTest extends BaseTest {
         return false;
       }
       PlaceOrderRequest that = (PlaceOrderRequest) o;
-      return isClosePositionOrder == that.isClosePositionOrder &&
-          Objects.equals(orderType, that.orderType) &&
-          Objects.equals(side, that.side) &&
-          Objects.equals(instanceId, that.instanceId) &&
-          Objects.equals(quantity, that.quantity) &&
-          Objects.equals(price, that.price) &&
-          Objects.equals(requestTimestamp, that.requestTimestamp) &&
-          Objects.equals(token, that.token) &&
-          Objects.equals(sourceIpAddress, that.sourceIpAddress);
+      return isClosePositionOrder == that.isClosePositionOrder
+          && Objects.equals(orderType, that.orderType)
+          && Objects.equals(side, that.side)
+          && Objects.equals(instanceId, that.instanceId)
+          && Objects.equals(quantity, that.quantity)
+          && Objects.equals(price, that.price)
+          && Objects.equals(requestTimestamp, that.requestTimestamp)
+          && Objects.equals(token, that.token)
+          && Objects.equals(sourceIpAddress, that.sourceIpAddress);
     }
 
     @Override
     public int hashCode() {
 
-      return Objects.hash(orderType, side, instanceId, quantity, price, isClosePositionOrder, requestTimestamp, token,
+      return Objects.hash(
+          orderType,
+          side,
+          instanceId,
+          quantity,
+          price,
+          isClosePositionOrder,
+          requestTimestamp,
+          token,
           sourceIpAddress);
     }
 
     @Override
     public String toString() {
-      return "PlaceOrderRequest{" +
-          "token='" + token + '\'' +
-          ", sourceIpAddress='" + sourceIpAddress + '\'' +
-          ", orderType='" + orderType + '\'' +
-          ", side='" + side + '\'' +
-          ", side='" + side + '\'' +
-          ", instanceId='" + instanceId + '\'' +
-          ", quantity=" + quantity +
-          ", price=" + price +
-          ", isClosePositionOrder=" + isClosePositionOrder +
-          ", requestTimestamp=" + requestTimestamp +
-          '}';
+      return "PlaceOrderRequest{"
+          + "token='"
+          + token
+          + '\''
+          + ", sourceIpAddress='"
+          + sourceIpAddress
+          + '\''
+          + ", orderType='"
+          + orderType
+          + '\''
+          + ", side='"
+          + side
+          + '\''
+          + ", side='"
+          + side
+          + '\''
+          + ", instanceId='"
+          + instanceId
+          + '\''
+          + ", quantity="
+          + quantity
+          + ", price="
+          + price
+          + ", isClosePositionOrder="
+          + isClosePositionOrder
+          + ", requestTimestamp="
+          + requestTimestamp
+          + '}';
     }
-
   }
 }
