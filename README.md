@@ -130,9 +130,13 @@ Binaries and dependency information for Maven can be found at http://search.mave
 
 https://mvnrepository.com/artifact/io.scalecube
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
+
 To add a dependency on ScaleCube Services using Maven, use the following:
 
 ```xml
+
+
  <!- scalecube apis   -->
  <dependency>
   <groupId>io.scalecube</groupId>
@@ -147,29 +151,48 @@ To add a dependency on ScaleCube Services using Maven, use the following:
   <version>2.x.x</version>
  </dependency>
  
- <!- scalecube transport provider   -->
+
+ <!--
+  
+     Plugins: bellow a list of providers you may choose from to constract your own configuration:
+
+ -->
+
+ <!- 
+   scalecube transport provider:   
+ -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>rsocket-services-transport</artifactId>
   <version>2.x.x</version>
  </dependency>
  
- <!- jackson, protostuff or yours scalecube message serialization provider -->
+ <!-- -------------------------------------------
+   scalecube message serialization providers:
+   ------------------------------------------- -->
+
+ <!-- jackson scalecube messages codec -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-jackson</artifactId>
   <version>2.x.x</version>
  </dependency>
+
+<!-- protostuff scalecube messages codec -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-protostuff</artifactId>
   <version>2.x.x</version>
  </dependency>
 
- <!- scalecube service discovery provider   -->
+ <!-- -------------------------------------------
+    scalecube service discovery provider   
+   ------------------------------------------- -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-discovery</artifactId>
   <version>2.x.x</version>
  </dependency>
+
+
 ```
