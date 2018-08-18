@@ -136,15 +136,18 @@ To add a dependency on ScaleCube Services using Maven, use the following:
 
 ```xml
 
+ <!-- -------------------------------------------
+   scalecube core and api:   
+ ------------------------------------------- -->
 
- <!- scalecube apis   -->
+ <!-- scalecube apis   -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services-api</artifactId>
   <version>2.x.x</version>
  </dependency>
  
- <!- scalecube services module   -->
+ <!-- scalecube services module   -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>scalecube-services</artifactId>
@@ -154,13 +157,16 @@ To add a dependency on ScaleCube Services using Maven, use the following:
 
  <!--
   
-     Plugins: bellow a list of providers you may choose from to constract your own configuration:
+     Think about scalecube as slf4j for microservices:
 
- -->
+     Plugins / SPIs: bellow a list of providers you may choose from. to constract your own configuration:
+     you are welcome to build/contribute your own plugins please consider the existing ones as example.
 
- <!- 
-   scalecube transport provider:   
- -->
+  -->
+
+ <!-- -------------------------------------------
+   scalecube transport providers:   
+ ------------------------------------------- -->
  <dependency>
   <groupId>io.scalecube</groupId>
   <artifactId>rsocket-services-transport</artifactId>
