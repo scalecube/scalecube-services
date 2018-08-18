@@ -110,7 +110,9 @@ public interface ExampleService {
 ### Maven
 
 With scalecube-services you may plug-and-play alternative providers for Transport,Codecs and discovery. 
-Scalecube is using ServiceLoader to load providers from class path, currently supported providers: 
+Scalecube is using ServiceLoader to load providers from class path, 
+  
+You can think about scalecube as slf4j for microservices - Currently supported SPIs: 
 
 **Transport providers:**
 
@@ -118,7 +120,8 @@ Scalecube is using ServiceLoader to load providers from class path, currently su
 
 **Message codec providers:**
 
-* scalecube-services-jackson: using Jackson to encode / decode service messages.
+* scalecube-services-jackson: using Jackson to encode / decode service messages. https://github.com/FasterXML
+* scalecube-services-protostuff: using protostuff to encode / decode service messages. https://github.com/protostuff
  
 **Service discovery providers:**
 
@@ -156,8 +159,6 @@ To add a dependency on ScaleCube Services using Maven, use the following:
  
 
  <!--
-  
-     Think about scalecube as slf4j for microservices:
 
      Plugins / SPIs: bellow a list of providers you may choose from. to constract your own configuration:
      you are welcome to build/contribute your own plugins please consider the existing ones as example.
