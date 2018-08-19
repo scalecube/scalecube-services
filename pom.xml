@@ -12,6 +12,7 @@
   </parent>
   <packaging>pom</packaging>
 
+
   <name>ScaleCube</name>
   <scm>
     <url>https://github.com/scalecube/scalecube</url>
