@@ -16,9 +16,9 @@
 
   <name>ScaleCube</name>
   <scm>
-    <url>https://github.com/scalecube/scalecube</url>
-    <connection>scm:git:git@github.com:scalecube/scalecube.git</connection>
-    <developerConnection>scm:git:git@github.com:scalecube/scalecube.git</developerConnection>
+    <url>https://github.com/scalecube/scalecube-services</url>
+    <connection>scm:git:git@github.com:scalecube/scalecube-services.git</connection>
+    <developerConnection>scm:git:git@github.com:scalecube/scalecube-services.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
