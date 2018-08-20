@@ -171,7 +171,10 @@ public class Microservices {
                   .then(Mono.defer(() -> startGateway(call)))
                   .then(Mono.just(this));
             })
-        .onErrorResume(t -> shutdown().then(Mono.error(t)));
+        .onErrorResume(ex -> {
+          // return original error then shutdown
+          return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
+        });
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
@@ -395,9 +398,13 @@ public class Microservices {
     return Mono.defer(
         () ->
             Mono.when(
-                discovery != null ? discovery.shutdown() : Mono.empty(),
-                gatewayBootstrap != null ? gatewayBootstrap.shutdown() : Mono.empty(),
-                transportBootstrap != null ? transportBootstrap.shutdown() : Mono.empty()));
+                Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
+                Optional.ofNullable(gatewayBootstrap)
+                    .map(GatewayBootstrap::shutdown)
+                    .orElse(Mono.empty()),
+                Optional.ofNullable(transportBootstrap)
+                    .map(ServiceTransportBootstrap::shutdown)
+                    .orElse(Mono.empty())));
   }
 
   private static class ServiceTransportBootstrap {
@@ -443,10 +450,12 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.when(
-                  serverTransport != null ? serverTransport.stop() : Mono.empty(),
-                  transport != null && executorService != null
-                      ? transport.shutdown(executorService)
-                      : Mono.empty()));
+                  Optional.ofNullable(serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty()),
+                  Optional.ofNullable(transport)
+                      .map(transport -> transport.shutdown(executorService))
+                      .orElse(Mono.empty())));
     }
 
     private ClientTransport clientTransport() {
