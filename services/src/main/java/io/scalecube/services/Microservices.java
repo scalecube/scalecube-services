@@ -170,7 +170,11 @@ public class Microservices {
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
                   .then(Mono.just(this));
-            });
+            })
+        .onErrorResume(ex -> {
+          // return original error then shutdown
+          return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
+        });
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
@@ -322,7 +326,12 @@ public class Microservices {
     }
 
     private Mono<Void> shutdown() {
-      return Flux.fromIterable(gatewayInstances.values()).flatMap(Gateway::stop).then();
+      return Mono.defer(
+          () ->
+              gatewayInstances != null && !gatewayInstances.isEmpty()
+                  ? Mono.when(
+                      gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
+                  : Mono.empty());
     }
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
@@ -380,9 +389,22 @@ public class Microservices {
     return this.discovery;
   }
 
+  /**
+   * Shutdown instance and clear resources.
+   *
+   * @return result of shutdown
+   */
   public Mono<Void> shutdown() {
-    return Mono.when(
-        discovery.shutdown(), gatewayBootstrap.shutdown(), transportBootstrap.shutdown());
+    return Mono.defer(
+        () ->
+            Mono.when(
+                Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
+                Optional.ofNullable(gatewayBootstrap)
+                    .map(GatewayBootstrap::shutdown)
+                    .orElse(Mono.empty()),
+                Optional.ofNullable(transportBootstrap)
+                    .map(ServiceTransportBootstrap::shutdown)
+                    .orElse(Mono.empty())));
   }
 
   private static class ServiceTransportBootstrap {
@@ -425,7 +447,15 @@ public class Microservices {
     }
 
     private Mono<Void> shutdown() {
-      return Mono.when(serverTransport.stop(), transport.shutdown(executorService));
+      return Mono.defer(
+          () ->
+              Mono.when(
+                  Optional.ofNullable(serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty()),
+                  Optional.ofNullable(transport)
+                      .map(transport -> transport.shutdown(executorService))
+                      .orElse(Mono.empty())));
     }
 
     private ClientTransport clientTransport() {
