@@ -67,8 +67,12 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public Mono<Void> shutdown(ExecutorService executorService) {
-    return Mono.defer(
-        () -> FutureMono.from((Future) ((EventLoopGroup) executorService).shutdownGracefully()));
+  public Mono shutdown(ExecutorService executorService) {
+    if (executorService == null) {
+      return Mono.empty();
+    }
+    EventLoopGroup eventLoopGroup = (EventLoopGroup) executorService;
+    //noinspection unchecked
+    return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
   }
 }
