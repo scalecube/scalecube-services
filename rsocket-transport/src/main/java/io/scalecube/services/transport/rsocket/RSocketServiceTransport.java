@@ -67,7 +67,7 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public Mono shutdown(ExecutorService executorService) {
+  public Mono<Void> shutdown(ExecutorService executorService) {
     if (executorService == null) {
       return Mono.empty();
     }

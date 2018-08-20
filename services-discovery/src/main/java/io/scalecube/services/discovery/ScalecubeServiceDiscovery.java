@@ -11,6 +11,7 @@ import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -86,10 +87,13 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Mono<Void> shutdown() {
-    return Mono.defer(() -> {
-      sink.complete();
-      return cluster != null ? Mono.fromFuture(cluster.shutdown()) : Mono.empty();
-    });
+    return Mono.defer(
+        () -> {
+          sink.complete();
+          return Optional.ofNullable(cluster)
+              .map(cluster1 -> Mono.fromFuture(cluster1.shutdown()))
+              .orElse(Mono.empty());
+        });
   }
 
   private void configure(DiscoveryConfig config) {

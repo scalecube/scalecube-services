@@ -46,5 +46,5 @@ public interface ServiceTransport {
    * @param executorService transport executor service
    * @return shutdown signal
    */
-  Mono shutdown(ExecutorService executorService);
+  Mono<Void> shutdown(ExecutorService executorService);
 }
