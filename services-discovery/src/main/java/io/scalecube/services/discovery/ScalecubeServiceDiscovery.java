@@ -86,8 +86,10 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Mono<Void> shutdown() {
-    sink.complete();
-    return Mono.fromFuture(cluster.shutdown());
+    return Mono.defer(() -> {
+      sink.complete();
+      return cluster != null ? Mono.fromFuture(cluster.shutdown()) : Mono.empty();
+    });
   }
 
   private void configure(DiscoveryConfig config) {

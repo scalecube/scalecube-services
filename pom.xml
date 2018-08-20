@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.1.18-SNAPSHOT</version>
+  <version>2.1.20-SNAPSHOT</version>
 
   <parent>
     <groupId>io.scalecube</groupId>
@@ -12,9 +12,11 @@
   </parent>
   <packaging>pom</packaging>
 
+
+
   <name>ScaleCube</name>
   <scm>
-    <url>https://github.com/scalecube/scalecube</url>
+    <url>https://github.com/scalecube/scalecube-services</url>
     <connection>scm:git:git@github.com:scalecube/scalecube-services.git</connection>
     <developerConnection>scm:git:git@github.com:scalecube/scalecube-services.git</developerConnection>
     <tag>HEAD</tag>
