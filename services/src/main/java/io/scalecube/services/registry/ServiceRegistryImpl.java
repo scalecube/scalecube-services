@@ -116,6 +116,10 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
   @Override
   public Mono<Void> close() {
-    return Mono.create(sink -> events.dispose()).then();
+    return Mono.create(
+        sink -> {
+          events.dispose();
+          sink.success();
+        });
   }
 }
