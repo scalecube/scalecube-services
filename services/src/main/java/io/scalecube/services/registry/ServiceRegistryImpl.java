@@ -4,7 +4,6 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.registry.api.RegistryEvent;
-import io.scalecube.services.registry.api.RegistryEvent.Type;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -19,6 +18,7 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxProcessor;
 import reactor.core.publisher.FluxSink;
+import reactor.core.publisher.Mono;
 
 public class ServiceRegistryImpl implements ServiceRegistry {
 
@@ -63,14 +63,20 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       serviceEndpoint
           .serviceRegistrations()
           .stream()
-          .flatMap(serviceRegistration -> serviceRegistration.methods().stream()
-              .map(sm -> new ServiceReference(sm, serviceRegistration, serviceEndpoint)))
-          .forEach(serviceReference -> {
-            referencesByQualifier
-                .computeIfAbsent(serviceReference.qualifier(), key -> new CopyOnWriteArrayList<>())
-                .add(serviceReference);
-            sink.next(new RegistryEvent(Type.ADDED, serviceReference));
-          });
+          .flatMap(
+              serviceRegistration ->
+                  serviceRegistration
+                      .methods()
+                      .stream()
+                      .map(sm -> new ServiceReference(sm, serviceRegistration, serviceEndpoint)))
+          .forEach(
+              serviceReference -> {
+                referencesByQualifier
+                    .computeIfAbsent(
+                        serviceReference.qualifier(), key -> new CopyOnWriteArrayList<>())
+                    .add(serviceReference);
+                sink.next(RegistryEvent.createAdded(serviceReference));
+              });
     }
     return success;
   }
@@ -79,16 +85,20 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public ServiceEndpoint unregisterService(String endpointId) {
     ServiceEndpoint serviceEndpoint = serviceEndpoints.remove(endpointId);
     if (serviceEndpoint != null) {
-      referencesByQualifier.values()
-          .forEach(list -> {
-            list.stream().filter(sr -> sr.endpointId().equals(endpointId))
-                .forEach(sr -> {
-                  list.remove(sr);
-                  sink.next(new RegistryEvent(Type.REMOVED, sr));
-                });
-          });
+      referencesByQualifier
+          .values()
+          .forEach(
+              list -> {
+                list.stream()
+                    .filter(sr -> sr.endpointId().equals(endpointId))
+                    .forEach(
+                        sr -> {
+                          list.remove(sr);
+                          sink.next(RegistryEvent.createRemoved(sr));
+                        });
+              });
     }
-    
+
     return serviceEndpoint;
   }
 
@@ -96,12 +106,16 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return referencesByQualifier.values().stream().flatMap(Collection::stream);
   }
 
-  /**
-   * listen on service registry events.
-   */
+  /** listen on service registry events. */
   public Flux<RegistryEvent> listen() {
-    return Flux.fromIterable(referencesByQualifier.values()).flatMap(Flux::fromIterable)
-        .map(sr -> new RegistryEvent(Type.ADDED, sr))
+    return Flux.fromIterable(referencesByQualifier.values())
+        .flatMap(Flux::fromIterable)
+        .map(sr -> RegistryEvent.createAdded(sr))
         .concatWith(events);
+  }
+
+  @Override
+  public Mono<Void> close() {
+    return Mono.create(sink -> events.dispose()).then();
   }
 }

@@ -5,6 +5,7 @@ import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import java.util.List;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Service registry interface provides API to register/unregister services in the system and make
@@ -23,4 +24,6 @@ public interface ServiceRegistry {
   ServiceEndpoint unregisterService(String endpointId);
 
   Flux<RegistryEvent> listen();
+  
+  public Mono<Void> close();
 }

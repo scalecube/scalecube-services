@@ -381,6 +381,8 @@ public class Microservices {
   }
 
   public Mono<Void> shutdown() {
+
+    serviceRegistry.close().subscribe();
     return Mono.when(
         discovery.shutdown(), gatewayBootstrap.shutdown(), transportBootstrap.shutdown());
   }

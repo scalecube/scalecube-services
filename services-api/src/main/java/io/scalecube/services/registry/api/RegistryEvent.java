@@ -6,13 +6,22 @@ import io.scalecube.transport.Address;
 public class RegistryEvent {
 
   public enum Type {
-    ADDED, REMOVED;
+    ADDED,
+    REMOVED;
   }
 
   private ServiceReference serviceReference;
   private Type type;
 
-  public RegistryEvent(Type type, ServiceReference serviceReference) {
+  public static RegistryEvent createAdded(ServiceReference serviceReference) {
+    return new RegistryEvent(Type.ADDED, serviceReference);
+  }
+
+  public static RegistryEvent createRemoved(ServiceReference serviceReference) {
+    return new RegistryEvent(Type.REMOVED, serviceReference);
+  }
+
+  private RegistryEvent(Type type, ServiceReference serviceReference) {
     this.serviceReference = serviceReference;
     this.type = type;
   }
