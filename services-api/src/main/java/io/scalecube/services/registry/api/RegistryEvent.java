@@ -26,7 +26,7 @@ public class RegistryEvent {
     this.type = type;
   }
 
-  public RegistryEvent(RegistryEvent e) {
+  private RegistryEvent(RegistryEvent e) {
     this.serviceReference = e.serviceReference;
     this.type = e.type;
   }
