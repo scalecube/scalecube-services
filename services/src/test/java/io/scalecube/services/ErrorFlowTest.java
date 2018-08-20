@@ -11,7 +11,6 @@ import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
