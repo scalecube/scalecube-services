@@ -1,6 +1,6 @@
 package io.scalecube.gateway.benchmarks.rsocket.remote;
 
-import io.scalecube.gateway.benchmarks.rsocket.RequestMaxStreamBenchmark;
+import io.scalecube.gateway.benchmarks.RequestMaxStreamBenchmark;
 
 public class RemoteRequestMaxStreamBenchmark {
 

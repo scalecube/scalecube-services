@@ -3,7 +3,6 @@ package io.scalecube.gateway.benchmarks.example;
 import io.scalecube.gateway.examples.StreamRequest;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
