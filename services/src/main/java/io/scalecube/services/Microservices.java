@@ -53,15 +53,15 @@ import reactor.core.publisher.Mono;
  * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  *
  * <ul>
- *   <li>location transparency and discovery of service instances.
- *   <li>fault tolerance using gossip and failure detection.
- *   <li>share nothing - fully distributed and decentralized architecture.
- *   <li>Provides fluent, java 8 lambda apis.
- *   <li>Embeddable and lightweight.
- *   <li>utilizes completable futures but primitives and messages can be used as well completable
- *       futures gives the advantage of composing and chaining service calls and service results.
- *   <li>low latency
- *   <li>supports routing extensible strategies when selecting service end-points
+ * <li>location transparency and discovery of service instances.
+ * <li>fault tolerance using gossip and failure detection.
+ * <li>share nothing - fully distributed and decentralized architecture.
+ * <li>Provides fluent, java 8 lambda apis.
+ * <li>Embeddable and lightweight.
+ * <li>utilizes completable futures but primitives and messages can be used as well completable
+ * futures gives the advantage of composing and chaining service calls and service results.
+ * <li>low latency
+ * <li>supports routing extensible strategies when selecting service end-points
  * </ul>
  *
  * <b>basic usage example:</b>
@@ -178,8 +178,9 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    ExecutorService executorService = transportBootstrap.executorService();
-    return gatewayBootstrap.start(executorService, call, metrics);
+    ExecutorService selectorExecutor = transportBootstrap.selectorExecutor();
+    ExecutorService workerExecutor = transportBootstrap.workerExecutor();
+    return gatewayBootstrap.start(selectorExecutor, workerExecutor, call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -308,14 +309,15 @@ public class Microservices {
     }
 
     private Mono<GatewayBootstrap> start(
-        ExecutorService executorService, Call call, Metrics metrics) {
+        ExecutorService selectorExecutor, ExecutorService workerExecutor, Call call,
+        Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig -> {
                 Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
                 Gateway gateway = Gateway.getGateway(gatewayClass);
                 return gateway
-                    .start(gatewayConfig, executorService, call, metrics)
+                    .start(gatewayConfig, selectorExecutor, workerExecutor, call, metrics)
                     .doOnSuccess(
                         listenAddress -> {
                           gatewayInstances.put(gatewayConfig, gateway);
@@ -330,7 +332,7 @@ public class Microservices {
           () ->
               gatewayInstances != null && !gatewayInstances.isEmpty()
                   ? Mono.when(
-                      gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
+                  gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
                   : Mono.empty());
     }
 
@@ -413,7 +415,8 @@ public class Microservices {
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
-    private ExecutorService executorService; // calculated
+    private ExecutorService selectorExecutor; // calculated
+    private ExecutorService workerExecutor; // calculated
     private InetSocketAddress listenAddress; // calculated
 
     private ServiceTransportBootstrap listenPort(int listenPort) {
@@ -432,9 +435,10 @@ public class Microservices {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.executorService = transport.getExecutorService();
-            this.clientTransport = transport.getClientTransport(executorService);
-            this.serverTransport = transport.getServerTransport(executorService);
+            this.selectorExecutor = transport.getSelectorExecutor();
+            this.workerExecutor = transport.getWorkerExecutor();
+            this.clientTransport = transport.getClientTransport(selectorExecutor, workerExecutor);
+            this.serverTransport = transport.getServerTransport(selectorExecutor, workerExecutor);
 
             // bind service serverTransport transport
             String hostAddress = Addressing.getLocalIpAddress().getHostAddress();
@@ -454,7 +458,7 @@ public class Microservices {
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
                   Optional.ofNullable(transport)
-                      .map(transport -> transport.shutdown(executorService))
+                      .map(transport -> transport.shutdown(selectorExecutor, workerExecutor))
                       .orElse(Mono.empty())));
     }
 
@@ -462,8 +466,12 @@ public class Microservices {
       return clientTransport;
     }
 
-    private ExecutorService executorService() {
-      return executorService;
+    private ExecutorService selectorExecutor() {
+      return selectorExecutor;
+    }
+
+    private ExecutorService workerExecutor() {
+      return workerExecutor;
     }
 
     private InetSocketAddress listenAddress() {

@@ -30,13 +30,16 @@ public class MicroservicesTest {
   @Mock
   private ClientTransport clientTransport;
   @Mock
-  private ExecutorService executorService;
+  private ExecutorService selectorExecutor;
+  @Mock
+  private ExecutorService workerExecutor;
 
   @BeforeEach
   public void setUp() {
-    Mockito.when(serviceTransport.getExecutorService()).thenReturn(executorService);
-    Mockito.when(serviceTransport.getClientTransport(any())).thenReturn(clientTransport);
-    Mockito.when(serviceTransport.getServerTransport(any())).thenReturn(serverTransport);
+    Mockito.when(serviceTransport.getSelectorExecutor()).thenReturn(selectorExecutor);
+    Mockito.when(serviceTransport.getWorkerExecutor()).thenReturn(workerExecutor);
+    Mockito.when(serviceTransport.getClientTransport(any(), any())).thenReturn(clientTransport);
+    Mockito.when(serviceTransport.getServerTransport(any(), any())).thenReturn(serverTransport);
   }
 
   @Test
@@ -63,6 +66,7 @@ public class MicroservicesTest {
 
     Mockito.verify(serverTransport, Mockito.atLeastOnce()).stop();
     Mockito.verify(serviceDiscovery, Mockito.atLeastOnce()).shutdown();
-    Mockito.verify(serviceTransport, Mockito.atLeastOnce()).shutdown(Mockito.eq(executorService));
+    Mockito.verify(serviceTransport, Mockito.atLeastOnce())
+        .shutdown(Mockito.eq(selectorExecutor), Mockito.eq(workerExecutor));
   }
 }

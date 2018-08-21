@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.TcpClient;
 
 public class RSocketClientTransport implements ClientTransport {
@@ -24,11 +25,12 @@ public class RSocketClientTransport implements ClientTransport {
       ThreadLocal.withInitial(ConcurrentHashMap::new);
 
   private final ServiceMessageCodec codec;
-  private final EventLoopGroup eventLoopGroup;
+  private final LoopResources loopResources;
 
-  public RSocketClientTransport(ServiceMessageCodec codec, EventLoopGroup eventLoopGroup) {
+  public RSocketClientTransport(ServiceMessageCodec codec, EventLoopGroup bossEventLoopGroup,
+      EventLoopGroup workerEventLoopGroup) {
     this.codec = codec;
-    this.eventLoopGroup = eventLoopGroup;
+    this.loopResources = new RSocketLoopResources(bossEventLoopGroup, workerEventLoopGroup);
   }
 
   @Override
@@ -45,7 +47,7 @@ public class RSocketClientTransport implements ClientTransport {
             options ->
                 options
                     .disablePool()
-                    .eventLoopGroup(eventLoopGroup)
+                    .loopResources(loopResources)
                     .host(address.host())
                     .port(address.port()));
 

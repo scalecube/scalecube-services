@@ -4,7 +4,9 @@ import io.scalecube.services.ServiceLoaderUtil;
 import java.util.concurrent.ExecutorService;
 import reactor.core.publisher.Mono;
 
-/** Service transport interface. */
+/**
+ * Service transport interface.
+ */
 public interface ServiceTransport {
 
   /**
@@ -20,31 +22,43 @@ public interface ServiceTransport {
   /**
    * Getting client transport.
    *
-   * @param executorService transport executor service
+   * @param selectorExecutor transport executor service
+   * @param workerExecutor transport executor service
    * @return client transport
    */
-  ClientTransport getClientTransport(ExecutorService executorService);
+  ClientTransport getClientTransport(ExecutorService selectorExecutor,
+      ExecutorService workerExecutor);
 
   /**
    * Getting server transport.
    *
-   * @param executorService transport executor service
+   * @param selectorExecutor transport executor service
+   * @param workerExecutor transport executor service
    * @return server transport
    */
-  ServerTransport getServerTransport(ExecutorService executorService);
+  ServerTransport getServerTransport(ExecutorService selectorExecutor,
+      ExecutorService workerExecutor);
 
   /**
-   * Getting new service transport executor service.
+   * Getting new selector service transport executor service.
    *
    * @return service transport executor service
    */
-  ExecutorService getExecutorService();
+  ExecutorService getSelectorExecutor();
+
+  /**
+   * Getting new worker service transport executor service.
+   *
+   * @return service transport executor service
+   */
+  ExecutorService getWorkerExecutor();
 
   /**
    * Shutdowns service transport.
    *
-   * @param executorService transport executor service
+   * @param selectorExecutor transport executor service
+   * @param workerExecutor transport executor service
    * @return shutdown signal
    */
-  Mono<Void> shutdown(ExecutorService executorService);
+  Mono<Void> shutdown(ExecutorService selectorExecutor, ExecutorService workerExecutor);
 }

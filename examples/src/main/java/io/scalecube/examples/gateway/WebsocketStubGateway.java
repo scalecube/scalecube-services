@@ -17,7 +17,8 @@ public class WebsocketStubGateway implements Gateway {
   @Override
   public Mono<InetSocketAddress> start(
       GatewayConfig config,
-      ExecutorService executorService,
+      ExecutorService selectorExecutor,
+      ExecutorService workerExecutor,
       ServiceCall.Call call,
       Metrics metrics) {
 

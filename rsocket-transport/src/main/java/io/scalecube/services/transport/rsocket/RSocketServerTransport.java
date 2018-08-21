@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.NettyContext;
+import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.TcpServer;
 
 public class RSocketServerTransport implements ServerTransport {
@@ -23,14 +24,15 @@ public class RSocketServerTransport implements ServerTransport {
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
   private final ServiceMessageCodec codec;
-  private final EventLoopGroup eventLoopGroup;
+  private final LoopResources loopResources;
 
   private NettyContextCloseable server;
   private List<NettyContext> channels = new CopyOnWriteArrayList<>();
 
-  public RSocketServerTransport(ServiceMessageCodec codec, EventLoopGroup eventLoopGroup) {
+  public RSocketServerTransport(ServiceMessageCodec codec, EventLoopGroup bossEventLoopGroup,
+      EventLoopGroup workerEventLoopGroup) {
     this.codec = codec;
-    this.eventLoopGroup = eventLoopGroup;
+    this.loopResources = new RSocketLoopResources(bossEventLoopGroup, workerEventLoopGroup);
   }
 
   @Override
@@ -40,7 +42,7 @@ public class RSocketServerTransport implements ServerTransport {
         TcpServer.create(
             options ->
                 options
-                    .eventLoopGroup(eventLoopGroup)
+                    .loopResources(loopResources)
                     .listenAddress(address)
                     .afterNettyContextInit(
                         nettyContext -> {

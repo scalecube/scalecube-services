@@ -17,7 +17,7 @@ public interface Gateway {
    */
   static Gateway getGateway(Class<? extends Gateway> gatewayClass) {
     return ServiceLoaderUtil.findFirst(
-            Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
+        Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
         .orElseThrow(() -> new IllegalStateException("Gateway is not found in classpath"));
   }
 
@@ -26,13 +26,15 @@ public interface Gateway {
    * values will be used.
    *
    * @param config gateway configuration
-   * @param executorService service transport executor service
+   * @param selectorExecutor selector service transport executor service
+   * @param workerExecutor worker service transport executor service
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
   Mono<InetSocketAddress> start(
       GatewayConfig config,
-      ExecutorService executorService,
+      ExecutorService selectorExecutor,
+      ExecutorService workerExecutor,
       ServiceCall.Call call,
       Metrics metrics);
 
