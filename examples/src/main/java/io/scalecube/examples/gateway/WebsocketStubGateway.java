@@ -1,12 +1,12 @@
 package io.scalecube.examples.gateway;
 
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import reactor.core.publisher.Mono;
 
@@ -17,9 +17,9 @@ public class WebsocketStubGateway implements Gateway {
   @Override
   public Mono<InetSocketAddress> start(
       GatewayConfig config,
-      ExecutorService selectorExecutor,
-      ExecutorService workerExecutor,
-      ServiceCall.Call call,
+      Executor selectorThreadPool,
+      Executor workerThreadPool,
+      Call call,
       Metrics metrics) {
 
     return Mono.defer(

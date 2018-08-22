@@ -27,10 +27,10 @@ public class RSocketClientTransport implements ClientTransport {
   private final ServiceMessageCodec codec;
   private final LoopResources loopResources;
 
-  public RSocketClientTransport(ServiceMessageCodec codec, EventLoopGroup bossEventLoopGroup,
-      EventLoopGroup workerEventLoopGroup) {
+  public RSocketClientTransport(
+      ServiceMessageCodec codec, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
     this.codec = codec;
-    this.loopResources = new RSocketLoopResources(bossEventLoopGroup, workerEventLoopGroup);
+    this.loopResources = new RSocketLoopResources(bossGroup, workerGroup);
   }
 
   @Override

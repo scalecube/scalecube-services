@@ -1,10 +1,10 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.ServiceLoaderUtil;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 
 public interface Gateway {
@@ -26,16 +26,16 @@ public interface Gateway {
    * values will be used.
    *
    * @param config gateway configuration
-   * @param selectorExecutor selector service transport executor service
-   * @param workerExecutor worker service transport executor service
+   * @param selectorThreadPool selector service transport executor service
+   * @param workerThreadPool worker service transport executor service
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
   Mono<InetSocketAddress> start(
       GatewayConfig config,
-      ExecutorService selectorExecutor,
-      ExecutorService workerExecutor,
-      ServiceCall.Call call,
+      Executor selectorThreadPool,
+      Executor workerThreadPool,
+      Call call,
       Metrics metrics);
 
   /**

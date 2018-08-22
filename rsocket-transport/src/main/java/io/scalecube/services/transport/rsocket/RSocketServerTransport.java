@@ -29,10 +29,10 @@ public class RSocketServerTransport implements ServerTransport {
   private NettyContextCloseable server;
   private List<NettyContext> channels = new CopyOnWriteArrayList<>();
 
-  public RSocketServerTransport(ServiceMessageCodec codec, EventLoopGroup bossEventLoopGroup,
-      EventLoopGroup workerEventLoopGroup) {
+  public RSocketServerTransport(
+      ServiceMessageCodec codec, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
     this.codec = codec;
-    this.loopResources = new RSocketLoopResources(bossEventLoopGroup, workerEventLoopGroup);
+    this.loopResources = new RSocketLoopResources(bossGroup, workerGroup);
   }
 
   @Override

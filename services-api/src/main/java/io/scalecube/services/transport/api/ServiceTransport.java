@@ -1,7 +1,7 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.ServiceLoaderUtil;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 
 /**
@@ -22,43 +22,41 @@ public interface ServiceTransport {
   /**
    * Getting client transport.
    *
-   * @param selectorExecutor transport executor service
-   * @param workerExecutor transport executor service
+   * @param selectorThreadPool service transport selector thread pool
+   * @param workerThreadPool service transport worker thread pool
    * @return client transport
    */
-  ClientTransport getClientTransport(ExecutorService selectorExecutor,
-      ExecutorService workerExecutor);
+  ClientTransport getClientTransport(Executor selectorThreadPool, Executor workerThreadPool);
 
   /**
    * Getting server transport.
    *
-   * @param selectorExecutor transport executor service
-   * @param workerExecutor transport executor service
+   * @param selectorThreadPool service transport selector thread pool
+   * @param workerThreadPool service transport worker thread pool
    * @return server transport
    */
-  ServerTransport getServerTransport(ExecutorService selectorExecutor,
-      ExecutorService workerExecutor);
+  ServerTransport getServerTransport(Executor selectorThreadPool, Executor workerThreadPool);
 
   /**
-   * Getting new selector service transport executor service.
+   * Getting new service transport selector thread pool.
    *
-   * @return service transport executor service
+   * @return executor
    */
-  ExecutorService getSelectorExecutor();
+  Executor getSelectorThreadPool();
 
   /**
-   * Getting new worker service transport executor service.
+   * Getting new service transport worker thread pool.
    *
-   * @return service transport executor service
+   * @return executor
    */
-  ExecutorService getWorkerExecutor();
+  Executor getWorkerThreadPool(WorkerThreadChooser workerThreadChooser);
 
   /**
    * Shutdowns service transport.
    *
-   * @param selectorExecutor transport executor service
-   * @param workerExecutor transport executor service
+   * @param selectorThreadPool service transport selector thread pool
+   * @param workerThreadPool service transport worker thread pool
    * @return shutdown signal
    */
-  Mono<Void> shutdown(ExecutorService selectorExecutor, ExecutorService workerExecutor);
+  Mono<Void> shutdown(Executor selectorThreadPool, Executor workerThreadPool);
 }

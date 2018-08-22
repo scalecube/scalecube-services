@@ -16,6 +16,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
+import io.scalecube.services.transport.api.WorkerThreadChooser;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 import java.net.InetSocketAddress;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Flux;
@@ -53,15 +54,15 @@ import reactor.core.publisher.Mono;
  * ScaleCube-Services is not yet-anther RPC system in the sense its is cluster aware to provide:
  *
  * <ul>
- * <li>location transparency and discovery of service instances.
- * <li>fault tolerance using gossip and failure detection.
- * <li>share nothing - fully distributed and decentralized architecture.
- * <li>Provides fluent, java 8 lambda apis.
- * <li>Embeddable and lightweight.
- * <li>utilizes completable futures but primitives and messages can be used as well completable
- * futures gives the advantage of composing and chaining service calls and service results.
- * <li>low latency
- * <li>supports routing extensible strategies when selecting service end-points
+ *   <li>location transparency and discovery of service instances.
+ *   <li>fault tolerance using gossip and failure detection.
+ *   <li>share nothing - fully distributed and decentralized architecture.
+ *   <li>Provides fluent, java 8 lambda apis.
+ *   <li>Embeddable and lightweight.
+ *   <li>utilizes completable futures but primitives and messages can be used as well completable
+ *       futures gives the advantage of composing and chaining service calls and service results.
+ *   <li>low latency
+ *   <li>supports routing extensible strategies when selecting service end-points
  * </ul>
  *
  * <b>basic usage example:</b>
@@ -171,16 +172,19 @@ public class Microservices {
                   .then(Mono.defer(() -> startGateway(call)))
                   .then(Mono.just(this));
             })
-        .onErrorResume(ex -> {
-          // return original error then shutdown
-          return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
-        });
+        .onErrorResume(
+            ex -> {
+              // return original error then shutdown
+              return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
+            });
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    ExecutorService selectorExecutor = transportBootstrap.selectorExecutor();
-    ExecutorService workerExecutor = transportBootstrap.workerExecutor();
-    return gatewayBootstrap.start(selectorExecutor, workerExecutor, call, metrics);
+    return gatewayBootstrap.start(
+        transportBootstrap.selectorThreadPool(),
+        transportBootstrap.workerThreadPool(),
+        call,
+        metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -264,6 +268,11 @@ public class Microservices {
       return this;
     }
 
+    public Builder workerThreadChooser(WorkerThreadChooser threadChooser) {
+      this.transportBootstrap.workerThreadChooser(threadChooser);
+      return this;
+    }
+
     public Builder seeds(Address... seeds) {
       this.discoveryConfig.seeds(seeds);
       return this;
@@ -309,15 +318,14 @@ public class Microservices {
     }
 
     private Mono<GatewayBootstrap> start(
-        ExecutorService selectorExecutor, ExecutorService workerExecutor, Call call,
-        Metrics metrics) {
+        Executor selectorThreadPool, Executor workerThreadPool, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig -> {
                 Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
                 Gateway gateway = Gateway.getGateway(gatewayClass);
                 return gateway
-                    .start(gatewayConfig, selectorExecutor, workerExecutor, call, metrics)
+                    .start(gatewayConfig, selectorThreadPool, workerThreadPool, call, metrics)
                     .doOnSuccess(
                         listenAddress -> {
                           gatewayInstances.put(gatewayConfig, gateway);
@@ -412,15 +420,21 @@ public class Microservices {
   private static class ServiceTransportBootstrap {
 
     private int listenPort; // config
+    private WorkerThreadChooser workerThreadChooser; // config
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
-    private ExecutorService selectorExecutor; // calculated
-    private ExecutorService workerExecutor; // calculated
+    private Executor selectorThreadPool; // calculated
+    private Executor workerThreadPool; // calculated
     private InetSocketAddress listenAddress; // calculated
 
     private ServiceTransportBootstrap listenPort(int listenPort) {
       this.listenPort = listenPort;
+      return this;
+    }
+
+    private ServiceTransportBootstrap workerThreadChooser(WorkerThreadChooser threadChooser) {
+      this.workerThreadChooser = threadChooser;
       return this;
     }
 
@@ -435,10 +449,13 @@ public class Microservices {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.selectorExecutor = transport.getSelectorExecutor();
-            this.workerExecutor = transport.getWorkerExecutor();
-            this.clientTransport = transport.getClientTransport(selectorExecutor, workerExecutor);
-            this.serverTransport = transport.getServerTransport(selectorExecutor, workerExecutor);
+            this.selectorThreadPool = transport.getSelectorThreadPool();
+            this.workerThreadPool = transport.getWorkerThreadPool(workerThreadChooser);
+
+            this.clientTransport =
+                transport.getClientTransport(selectorThreadPool, workerThreadPool);
+            this.serverTransport =
+                transport.getServerTransport(selectorThreadPool, workerThreadPool);
 
             // bind service serverTransport transport
             String hostAddress = Addressing.getLocalIpAddress().getHostAddress();
@@ -458,7 +475,7 @@ public class Microservices {
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
                   Optional.ofNullable(transport)
-                      .map(transport -> transport.shutdown(selectorExecutor, workerExecutor))
+                      .map(transport -> transport.shutdown(selectorThreadPool, workerThreadPool))
                       .orElse(Mono.empty())));
     }
 
@@ -466,12 +483,12 @@ public class Microservices {
       return clientTransport;
     }
 
-    private ExecutorService selectorExecutor() {
-      return selectorExecutor;
+    private Executor selectorThreadPool() {
+      return selectorThreadPool;
     }
 
-    private ExecutorService workerExecutor() {
-      return workerExecutor;
+    private Executor workerThreadPool() {
+      return workerThreadPool;
     }
 
     private InetSocketAddress listenAddress() {
