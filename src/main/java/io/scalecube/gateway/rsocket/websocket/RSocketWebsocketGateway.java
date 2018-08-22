@@ -11,7 +11,7 @@ import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -30,7 +30,11 @@ public class RSocketWebsocketGateway implements Gateway {
 
   @Override
   public Mono<InetSocketAddress> start(
-      GatewayConfig config, ExecutorService executorService, Call call, Metrics metrics) {
+    GatewayConfig config,
+    Executor selectorThreadPool,
+    Executor workerThreadPool,
+    Call call,
+    Metrics metrics) {
     return Mono.defer(
         () -> {
           LOGGER.info("Starting gateway with {}", config);
@@ -39,13 +43,13 @@ public class RSocketWebsocketGateway implements Gateway {
 
           HttpServer httpServer =
               HttpServer.create(
-                  options -> {
-                    options.listenAddress(listenAddress);
-
-                    if (config.executorService() != null) {
-                      options.eventLoopGroup((EventLoopGroup) config.executorService());
-                    } else if (executorService != null) {
-                      options.eventLoopGroup((EventLoopGroup) executorService);
+                opts -> {
+                  opts.listenAddress(listenAddress);
+                  if (selectorThreadPool != null && workerThreadPool != null) {
+                    opts.loopResources(
+                      new RSocketWebsocketLoopResources(
+                        (EventLoopGroup) selectorThreadPool,
+                        (EventLoopGroup) workerThreadPool));
                     }
                   });
 
