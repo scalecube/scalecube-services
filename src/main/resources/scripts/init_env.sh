@@ -1,18 +1,17 @@
 #!/bin/bash
-declare -a gws=("localhost")
-declare -a services=("localhost")
-declare -a clients=("localhost")
+declare -a gws=("35.180.50.17" "52.47.115.55")
+declare -a services=("35.180.125.22" "35.180.73.238")
+declare -a clients=("35.180.28.35" "35.180.37.182" "52.47.110.72" "35.180.26.168")
 
-
-CERT_PATH=/home/sergiiripa/certs/cloud_cert
-GATEWAY_PATH=/home/sergiiripa/work/code/scalecube-gateway
+CERT_PATH=/home/serhiihabryiel/Downloads/cloud_cert
+GATEWAY_PATH=/home/serhiihabryiel/work/scalecube-gateway
 
 for addr in ${gws[@]}
 do
     echo "####### Setting up gateway: #######"
     echo "$addr"
     ssh -oStrictHostKeyChecking=no -i $CERT_PATH ubuntu@$addr 'sudo rm -rf /tmp/*'
-    scp -i $CERT_PATH $GATEWAY_PATH/RSocketWebsocketRunner/target/scalecube-gateway-rsocket-websocket-runner-*-shaded.jar ubuntu@$addr:/tmp/gw.jar
+    scp -i $CERT_PATH $GATEWAY_PATH/GatewayRunner/target/scalecube-gateway-runner-*-SNAPSHOT-shaded.jar ubuntu@$addr:/tmp/gw.jar
     ssh -oStrictHostKeyChecking=no -i $CERT_PATH ubuntu@$addr 'bash -s' < init_java.sh
 done
 

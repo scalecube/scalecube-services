@@ -1,5 +1,5 @@
-export GATEWAY_IP_1=127.0.0.1
-export GATEWAY_IP_2=127.0.0.1
+export GATEWAY_IP_1=10.200.11.200
+export GATEWAY_IP_2=10.200.11.208
 
 ### Gateway ###
 sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -Dlog4j.configurationFile=log4j2.xml -jar gw.jar
@@ -10,8 +10,8 @@ sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/li
 ### Tests ###
 
 ## Request One ##
-sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestOneBenchmark gw_address=$GATEWAY_IP:8080 injectors=1250 messageRate=12500 executionTaskDurationInSec=300 rampUpDurationInSec=150
+sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestOneBenchmark gatewayAddress=$GATEWAY_IP:9090 injectors=1250 messageRate=12500 executionTaskDurationInSec=300 rampUpDurationInSec=150
 
 ## Request Stream ##
-sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestStreamBenchmark gw_address=$GATEWAY_IP_1:8080 injectors=25 messageRate=25000 executionTaskDurationInSec=900 rampUpDurationInSec=250
-sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestStreamBenchmark gw_address=$GATEWAY_IP_2:8080 injectors=25 messageRate=25000 executionTaskDurationInSec=900 rampUpDurationInSec=250
+sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestStreamBenchmark gatewayAddress=$GATEWAY_IP_1:9090 injectors=25 messageRate=25000 executionTaskDurationInSec=900 rampUpDurationInSec=250
+sudo java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so -cp scenarios.jar  io.scalecube.gateway.benchmarks.rsocket.remote.RemoteRequestStreamBenchmark gatewayAddress=$GATEWAY_IP_2:9090 injectors=25 messageRate=25000 executionTaskDurationInSec=900 rampUpDurationInSec=250
