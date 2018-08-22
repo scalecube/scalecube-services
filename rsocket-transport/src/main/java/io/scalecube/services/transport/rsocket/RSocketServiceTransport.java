@@ -7,12 +7,15 @@ import io.netty.channel.DefaultSelectStrategyFactory;
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultithreadEventLoopGroup;
+import io.netty.channel.SelectStrategy;
+import io.netty.channel.SelectStrategyFactory;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.NettyRuntime;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.RejectedExecutionHandler;
 import io.netty.util.concurrent.RejectedExecutionHandlers;
 import io.netty.util.internal.PlatformDependent;
 import io.scalecube.services.codec.HeadersCodec;
@@ -21,7 +24,7 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.WorkerThreadChooser;
-import java.lang.reflect.Method;
+import java.lang.reflect.Constructor;
 import java.net.SocketAddress;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.Objects;
@@ -88,7 +91,12 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public Executor getSelectorThreadPool() {
-    return createEventLoopGroup(2, new DefaultThreadFactory("rsocket-boss", true));
+    int bossThreads = 1;
+    DefaultThreadFactory threadFactory = new DefaultThreadFactory("rsocket-boss", true);
+
+    return isEpollSupported()
+        ? new EpollEventLoopGroup(bossThreads, threadFactory)
+        : new NioEventLoopGroup(bossThreads, threadFactory);
   }
 
   @Override
@@ -96,44 +104,69 @@ public class RSocketServiceTransport implements ServiceTransport {
     int workerThreads = NettyRuntime.availableProcessors();
     ThreadFactory threadFactory = new DefaultThreadFactory("rsocket-worker", true);
 
-    MultithreadEventLoopGroup eventLoopGroupTemplate =
-        createEventLoopGroup(workerThreads, threadFactory);
+    Object[] args =
+        new Object[]{
+            isEpollSupported() ? 0 : SelectorProvider.provider(),
+            DefaultSelectStrategyFactory.INSTANCE,
+            RejectedExecutionHandlers.reject()
+        };
 
-    try {
-      Object[] args =
-          new Object[]{
-              isEpollSupported() ? 0 : SelectorProvider.provider(),
-              DefaultSelectStrategyFactory.INSTANCE,
-              RejectedExecutionHandlers.reject()
-          };
-
-      return new MultithreadEventLoopGroup(workerThreads, threadFactory, args) {
-        @Override
-        protected EventLoop newChild(Executor executor, Object... args) throws Exception {
-          return invokerNewChild(eventLoopGroupTemplate, executor, args);
-        }
-
-        @Override
-        public ChannelFuture register(Channel channel) {
-          if (workerThreadChooser == null) {
-            return super.register(channel);
+    MultithreadEventLoopGroup eventLoopGroup =
+        new MultithreadEventLoopGroup(workerThreads, threadFactory, args) {
+          @Override
+          protected EventLoop newChild(Executor executor, Object... args) throws Exception {
+            if (isEpollSupported()) {
+              Class<?> eventLoopClass = Class.forName("io.netty.channel.epoll.EpollEventLoop");
+              Constructor<?> constructor =
+                  eventLoopClass.getDeclaredConstructor(
+                      EventLoopGroup.class,
+                      Executor.class,
+                      int.class,
+                      SelectStrategy.class,
+                      RejectedExecutionHandler.class);
+              constructor.setAccessible(true);
+              return (EventLoop)
+                  constructor.newInstance(
+                      this,
+                      executor,
+                      (Integer) args[0],
+                      ((SelectStrategyFactory) args[1]).newSelectStrategy(),
+                      (RejectedExecutionHandler) args[2]);
+            } else {
+              // return new NioEventLoop(this, executor, (SelectorProvider) args[0],
+              // ((SelectStrategyFactory) args[1]).newSelectStrategy(),
+              // (RejectedExecutionHandler) args[2]);
+              return null;
+            }
           }
 
-          Executor[] executors =
-              StreamSupport.stream(spliterator(), false).toArray(Executor[]::new);
-          EventLoop eventLoop = chooseEventLoop(channel, workerThreadChooser, executors);
+          @Override
+          public ChannelFuture register(Channel channel) {
+            if (workerThreadChooser == null) {
+              return super.register(channel);
+            }
 
-          return eventLoop != null ? eventLoop.register(channel) : super.register(channel);
-        }
+            Executor[] executors =
+                StreamSupport.stream(spliterator(), false).toArray(Executor[]::new);
+            EventLoop eventLoop = chooseEventLoop(channel, workerThreadChooser, executors);
 
-        @Override
-        public ChannelFuture register(ChannelPromise promise) {
-          return register(promise.channel());
-        }
-      };
-    } finally {
-      eventLoopGroupTemplate.shutdownGracefully(); // no need in this thread pool anymore
+            return eventLoop != null ? eventLoop.register(channel) : super.register(channel);
+          }
+
+          @Override
+          public ChannelFuture register(ChannelPromise promise) {
+            return register(promise.channel());
+          }
+        };
+
+    for (Executor executor : eventLoopGroup) {
+      executor.execute(
+          () -> {
+            // no-op
+          });
     }
+
+    return eventLoopGroup;
   }
 
   private EventLoop chooseEventLoop(
@@ -145,24 +178,6 @@ public class RSocketServiceTransport implements ServiceTransport {
 
     return (EventLoop)
         workerThreadChooser.getWorker(channelId, localAddress, remoteAddress, executors);
-  }
-
-  private EventLoop invokerNewChild(
-      MultithreadEventLoopGroup eventLoopGroupInstance, Executor executor, Object[] args)
-      throws ReflectiveOperationException {
-    Method newChild =
-        eventLoopGroupInstance
-            .getClass()
-            .getDeclaredMethod("newChild", Executor.class, Object[].class);
-    newChild.setAccessible(true);
-    return (EventLoop) newChild.invoke(eventLoopGroupInstance, executor, args);
-  }
-
-  private MultithreadEventLoopGroup createEventLoopGroup(
-      int numOfThreads, ThreadFactory threadFactory) {
-    return isEpollSupported()
-        ? new EpollEventLoopGroup(numOfThreads, threadFactory)
-        : new NioEventLoopGroup(numOfThreads, threadFactory);
   }
 
   @Override
