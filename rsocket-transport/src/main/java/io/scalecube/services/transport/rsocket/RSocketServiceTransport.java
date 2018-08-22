@@ -103,81 +103,15 @@ public class RSocketServiceTransport implements ServiceTransport {
   public Executor getWorkerThreadPool(WorkerThreadChooser workerThreadChooser) {
     int workerThreads = NettyRuntime.availableProcessors();
     ThreadFactory threadFactory = new DefaultThreadFactory("rsocket-worker", true);
-
-    Object[] args =
-        new Object[]{
-            isEpollSupported() ? 0 : SelectorProvider.provider(),
+    return isEpollSupported()
+        ? new CustomEpollEventLoopGroup(
+        workerThreads,
+        threadFactory,
+        workerThreadChooser,
+        0,
             DefaultSelectStrategyFactory.INSTANCE,
-            RejectedExecutionHandlers.reject()
-        };
-
-    MultithreadEventLoopGroup eventLoopGroup =
-        new MultithreadEventLoopGroup(workerThreads, threadFactory, args) {
-          @Override
-          protected EventLoop newChild(Executor executor, Object... args) throws Exception {
-            if (isEpollSupported()) {
-              Class<?> eventLoopClass = Class.forName("io.netty.channel.epoll.EpollEventLoop");
-              Constructor<?> constructor =
-                  eventLoopClass.getDeclaredConstructor(
-                      EventLoopGroup.class,
-                      Executor.class,
-                      int.class,
-                      SelectStrategy.class,
-                      RejectedExecutionHandler.class);
-              constructor.setAccessible(true);
-              return (EventLoop)
-                  constructor.newInstance(
-                      this,
-                      executor,
-                      (Integer) args[0],
-                      ((SelectStrategyFactory) args[1]).newSelectStrategy(),
-                      (RejectedExecutionHandler) args[2]);
-            } else {
-              // return new NioEventLoop(this, executor, (SelectorProvider) args[0],
-              // ((SelectStrategyFactory) args[1]).newSelectStrategy(),
-              // (RejectedExecutionHandler) args[2]);
-              return null;
-            }
-          }
-
-          @Override
-          public ChannelFuture register(Channel channel) {
-            if (workerThreadChooser == null) {
-              return super.register(channel);
-            }
-
-            Executor[] executors =
-                StreamSupport.stream(spliterator(), false).toArray(Executor[]::new);
-            EventLoop eventLoop = chooseEventLoop(channel, workerThreadChooser, executors);
-
-            return eventLoop != null ? eventLoop.register(channel) : super.register(channel);
-          }
-
-          @Override
-          public ChannelFuture register(ChannelPromise promise) {
-            return register(promise.channel());
-          }
-        };
-
-    for (Executor executor : eventLoopGroup) {
-      executor.execute(
-          () -> {
-            // no-op
-          });
-    }
-
-    return eventLoopGroup;
-  }
-
-  private EventLoop chooseEventLoop(
-      Channel channel, WorkerThreadChooser workerThreadChooser, Executor[] executors) {
-
-    String channelId = channel.id().asLongText();
-    SocketAddress localAddress = channel.localAddress();
-    SocketAddress remoteAddress = channel.remoteAddress();
-
-    return (EventLoop)
-        workerThreadChooser.getWorker(channelId, localAddress, remoteAddress, executors);
+        RejectedExecutionHandlers.reject())
+        : new CustomNioEventLoopGroup(workerThreads, threadFactory, workerThreadChooser);
   }
 
   @Override
@@ -194,5 +128,114 @@ public class RSocketServiceTransport implements ServiceTransport {
                             FutureMono.deferFuture(
                                 () -> (Future<Void>) loopGroup.shutdownGracefully()))
                     .toArray(Mono[]::new)));
+  }
+
+  private static class CustomEpollEventLoopGroup extends MultithreadEventLoopGroup {
+
+    private final WorkerThreadChooser workerThreadChooser;
+
+    public CustomEpollEventLoopGroup(
+        int workerThreads,
+        ThreadFactory threadFactory,
+        WorkerThreadChooser workerThreadChooser,
+        Object... args) {
+      super(workerThreads, threadFactory, args);
+      this.workerThreadChooser = workerThreadChooser;
+    }
+
+    @Override
+    protected EventLoop newChild(Executor executor, Object... args) throws Exception {
+      Class<?> eventLoopClass = Class.forName("io.netty.channel.epoll.EpollEventLoop");
+      Constructor<?> constructor =
+          eventLoopClass.getDeclaredConstructor(
+              EventLoopGroup.class,
+              Executor.class,
+              int.class,
+              SelectStrategy.class,
+              RejectedExecutionHandler.class);
+      constructor.setAccessible(true);
+      return (EventLoop)
+          constructor.newInstance(
+              this,
+              executor,
+              (Integer) args[0],
+              ((SelectStrategyFactory) args[1]).newSelectStrategy(),
+              (RejectedExecutionHandler) args[2]);
+    }
+
+    @Override
+    public ChannelFuture register(Channel channel) {
+      if (workerThreadChooser == null) {
+        return super.register(channel);
+      }
+
+      Executor[] executors = StreamSupport.stream(spliterator(), false).toArray(Executor[]::new);
+      String channelId = channel.id().asLongText();
+      SocketAddress localAddress = channel.localAddress();
+      SocketAddress remoteAddress = channel.remoteAddress();
+      EventLoop eventLoop =
+          (EventLoop)
+              workerThreadChooser.getWorker(channelId, localAddress, remoteAddress, executors);
+
+      return eventLoop != null ? eventLoop.register(channel) : super.register(channel);
+    }
+
+    @Override
+    public ChannelFuture register(ChannelPromise promise) {
+      return register(promise.channel());
+    }
+  }
+
+  private static class CustomNioEventLoopGroup extends NioEventLoopGroup {
+
+    private final WorkerThreadChooser workerThreadChooser;
+
+    public CustomNioEventLoopGroup(
+        int workerThreads, ThreadFactory threadFactory, WorkerThreadChooser workerThreadChooser) {
+      super(workerThreads, threadFactory);
+      this.workerThreadChooser = workerThreadChooser;
+    }
+
+    @Override
+    protected EventLoop newChild(Executor executor, Object... args) throws Exception {
+      Class<?> eventLoopClass = Class.forName("io.netty.channel.nio.NioEventLoop");
+      Constructor<?> constructor =
+          eventLoopClass.getDeclaredConstructor(
+              NioEventLoopGroup.class,
+              Executor.class,
+              SelectorProvider.class,
+              SelectStrategy.class,
+              RejectedExecutionHandler.class);
+      constructor.setAccessible(true);
+      return (EventLoop)
+          constructor.newInstance(
+              this,
+              executor,
+              (SelectorProvider) args[0],
+              ((SelectStrategyFactory) args[1]).newSelectStrategy(),
+              (RejectedExecutionHandler) args[2]);
+    }
+
+    @Override
+    public ChannelFuture register(Channel channel) {
+      if (workerThreadChooser == null) {
+        return super.register(channel);
+      }
+
+      Executor[] executors = StreamSupport.stream(spliterator(), false).toArray(Executor[]::new);
+      String channelId = channel.id().asLongText();
+      SocketAddress localAddress = channel.localAddress();
+      SocketAddress remoteAddress = channel.remoteAddress();
+      EventLoop eventLoop =
+          (EventLoop)
+              workerThreadChooser.getWorker(channelId, localAddress, remoteAddress, executors);
+
+      return eventLoop != null ? eventLoop.register(channel) : super.register(channel);
+    }
+
+    @Override
+    public ChannelFuture register(ChannelPromise promise) {
+      return register(promise.channel());
+    }
   }
 }
