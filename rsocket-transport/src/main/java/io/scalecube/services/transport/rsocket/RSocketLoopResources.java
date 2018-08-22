@@ -14,14 +14,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 
-public final class RSocketLoopResources implements LoopResources {
+public class RSocketLoopResources implements LoopResources {
 
   private final EventLoopGroup bossEventLoopGroup;
   private final EventLoopGroup workerEventLoopGroup;
   private final AtomicBoolean running = new AtomicBoolean(true);
 
-  public RSocketLoopResources(EventLoopGroup bossEventLoopGroup,
-      EventLoopGroup workerEventLoopGroup) {
+  public RSocketLoopResources(
+      EventLoopGroup bossEventLoopGroup, EventLoopGroup workerEventLoopGroup) {
     this.bossEventLoopGroup = bossEventLoopGroup;
     this.workerEventLoopGroup = workerEventLoopGroup;
   }
@@ -84,9 +84,10 @@ public final class RSocketLoopResources implements LoopResources {
 
   @Override
   public Mono<Void> disposeLater() {
-    return Mono.defer(() -> {
-      running.compareAndSet(true, false);
-      return Mono.empty();
-    });
+    return Mono.defer(
+        () -> {
+          running.compareAndSet(true, false);
+          return Mono.empty();
+        });
   }
 }

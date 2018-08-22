@@ -15,14 +15,12 @@ public final class GatewayConfig {
   private final Class<? extends Gateway> gatewayClass;
   private final Map<String, String> options;
   private final int port;
-  private final ExecutorService executorService;
 
   private GatewayConfig(Builder builder) {
     name = builder.name;
     gatewayClass = builder.gatewayClass;
     port = builder.port;
     options = new HashMap<>(builder.options);
-    executorService = builder.executorService;
   }
 
   /**
@@ -50,15 +48,6 @@ public final class GatewayConfig {
    */
   public int port() {
     return port;
-  }
-
-  /**
-   * Gateway executor service.
-   *
-   * @return executor service instance
-   */
-  public ExecutorService executorService() {
-    return executorService;
   }
 
   /**
@@ -90,7 +79,6 @@ public final class GatewayConfig {
     sb.append(", gatewayClass=").append(gatewayClass.getName());
     sb.append(", options=").append(options);
     sb.append(", port=").append(port);
-    sb.append(", executorService=").append(executorService);
     sb.append('}');
     return sb.toString();
   }
@@ -138,7 +126,6 @@ public final class GatewayConfig {
       this.gatewayClass = config.gatewayClass;
       this.options = new HashMap<>(config.options);
       this.port = config.port;
-      this.executorService = config.executorService;
     }
 
     public Builder port(int port) {
