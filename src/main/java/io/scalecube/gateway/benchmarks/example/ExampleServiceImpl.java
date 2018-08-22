@@ -4,7 +4,6 @@ import io.scalecube.gateway.examples.StreamRequest;
 import java.time.Duration;
 import java.util.stream.LongStream;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink.OverflowStrategy;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -46,23 +45,5 @@ public class ExampleServiceImpl implements ExampleService {
     return Flux.concat(fluxes)
       .publishOn(Schedulers.parallel(), Integer.MAX_VALUE)
       .onBackpressureDrop();
-  }
-
-  private Flux<Long> source =
-    Flux.<Long>create(
-      sink -> {
-        while (true) {
-          sink.next(1L);
-        }
-      },
-      OverflowStrategy.DROP)
-      .subscribeOn(Schedulers.newSingle("source"))
-      .publish()
-      .autoConnect()
-      .onBackpressureDrop();
-
-  @Override
-  public Flux<Long> broadcast() {
-    return source.map(i -> System.currentTimeMillis());
   }
 }
