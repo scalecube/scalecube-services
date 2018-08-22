@@ -407,7 +407,9 @@ public class Microservices {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () ->
-            Mono.when(
+            Mono.when(Optional.ofNullable(serviceRegistry)
+                    .map(ServiceRegistry::close)
+                    .orElse(Mono.empty()),
                 Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
                 Optional.ofNullable(gatewayBootstrap)
                     .map(GatewayBootstrap::shutdown)
