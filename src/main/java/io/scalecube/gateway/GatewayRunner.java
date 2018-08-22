@@ -45,6 +45,12 @@ public class GatewayRunner {
         .gateway(GatewayConfig.builder("http", HttpGateway.class).port(7070).build())
         .gateway(GatewayConfig.builder("rsws", RSocketWebsocketGateway.class).port(9090).build())
         .metrics(metrics)
+      .workerThreadChooser(
+        GatewayWorkerThreadChooser.builder()
+          .addCountingChooser(8080)
+          .addCountingChooser(7070)
+          .addCountingChooser(9090)
+          .build())
         .startAwait();
 
     Thread.currentThread().join();
