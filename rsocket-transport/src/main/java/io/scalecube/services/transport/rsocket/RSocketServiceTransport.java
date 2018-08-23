@@ -85,7 +85,7 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public Executor getWorkerThreadPool(WorkerThreadChooser threadChooser) {
-    int workerThreads = NettyRuntime.availableProcessors();
+    int workerThreads = NettyRuntime.availableProcessors() * 2;
     ThreadFactory threadFactory = new DefaultThreadFactory("rsocket-worker", true);
 
     EventExecutorChooser executorChooser =

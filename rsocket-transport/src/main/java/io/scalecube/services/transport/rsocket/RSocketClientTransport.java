@@ -1,8 +1,10 @@
 package io.scalecube.services.transport.rsocket;
 
+import io.rsocket.DuplexConnection;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
-import io.rsocket.transport.netty.client.TcpClientTransport;
+import io.rsocket.transport.netty.RSocketLengthCodec;
+import io.rsocket.transport.netty.TcpDuplexConnection;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
@@ -13,6 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.TcpClient;
 
@@ -49,15 +52,13 @@ public class RSocketClientTransport implements ClientTransport {
                     .host(address.host())
                     .port(address.port()));
 
-    TcpClientTransport tcpClientTransport = TcpClientTransport.create(tcpClient);
-
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
             .frameDecoder(
                 frame ->
                     ByteBufPayload.create(
                         frame.sliceData().retain(), frame.sliceMetadata().retain()))
-            .transport(tcpClientTransport)
+            .transport(new ExtendedTcpClientTransport(tcpClient))
             .start();
 
     return rsocketMono
@@ -80,5 +81,33 @@ public class RSocketClientTransport implements ClientTransport {
               monoMap.remove(address);
             })
         .cache();
+  }
+
+  private static class ExtendedTcpClientTransport implements io.rsocket.transport.ClientTransport {
+
+    private final TcpClient client;
+
+    private ExtendedTcpClientTransport(TcpClient client) {
+      this.client = client;
+    }
+
+    @Override
+    public Mono<DuplexConnection> connect() {
+      return Mono.create(
+          sink ->
+              client
+                  .newHandler(
+                      (in, out) -> {
+                        in.context().addHandler(new RSocketLengthCodec());
+                        out.options(SendOptions::flushOnEach);
+                        // out.options(SendOptions::flushOnBoundary);
+                        TcpDuplexConnection connection =
+                            new TcpDuplexConnection(in, out, in.context());
+                        sink.success(connection);
+                        return connection.onClose();
+                      })
+                  .doOnError(sink::error)
+                  .subscribe());
+    }
   }
 }
