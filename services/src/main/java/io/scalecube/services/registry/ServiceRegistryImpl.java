@@ -27,8 +27,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final Map<String, List<ServiceReference>> referencesByQualifier =
       new NonBlockingHashMap<>();
 
-  private final FluxProcessor<RegistryEvent, RegistryEvent> events =
-      DirectProcessor.<RegistryEvent>create();
+  private final FluxProcessor<RegistryEvent, RegistryEvent> events = DirectProcessor.create();
 
   private final FluxSink<RegistryEvent> sink = events.serialize().sink();
 
@@ -88,15 +87,14 @@ public class ServiceRegistryImpl implements ServiceRegistry {
       referencesByQualifier
           .values()
           .forEach(
-              list -> {
-                list.stream()
-                    .filter(sr -> sr.endpointId().equals(endpointId))
-                    .forEach(
-                        sr -> {
-                          list.remove(sr);
-                          sink.next(RegistryEvent.createRemoved(sr));
-                        });
-              });
+              list ->
+                  list.stream()
+                      .filter(sr -> sr.endpointId().equals(endpointId))
+                      .forEach(
+                          sr -> {
+                            list.remove(sr);
+                            sink.next(RegistryEvent.createRemoved(sr));
+                          }));
     }
 
     return serviceEndpoint;
@@ -110,7 +108,7 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public Flux<RegistryEvent> listen() {
     return Flux.fromIterable(referencesByQualifier.values())
         .flatMap(Flux::fromIterable)
-        .map(sr -> RegistryEvent.createAdded(sr))
+        .map(RegistryEvent::createAdded)
         .concatWith(events);
   }
 
