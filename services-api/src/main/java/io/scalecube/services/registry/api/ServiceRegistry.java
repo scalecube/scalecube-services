@@ -24,6 +24,6 @@ public interface ServiceRegistry {
   ServiceEndpoint unregisterService(String endpointId);
 
   Flux<RegistryEvent> listen();
-  
-  public Mono<Void> close();
+
+  Mono<Void> close();
 }
