@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway;
 
+import io.scalecube.services.transport.api.WorkerThreadChooser;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -15,12 +16,14 @@ public final class GatewayConfig {
   private final Class<? extends Gateway> gatewayClass;
   private final Map<String, String> options;
   private final int port;
+  private final WorkerThreadChooser workerChooser;
 
   private GatewayConfig(Builder builder) {
     name = builder.name;
     gatewayClass = builder.gatewayClass;
     port = builder.port;
     options = new HashMap<>(builder.options);
+    workerChooser = builder.workerChooser;
   }
 
   /**
@@ -58,6 +61,15 @@ public final class GatewayConfig {
    */
   public Optional<String> get(String key) {
     return Optional.ofNullable(options.get(key));
+  }
+
+  /**
+   * Returns worker thread chooser specified for this gateway config.
+   *
+   * @return worker thread chooser
+   */
+  public WorkerThreadChooser getWorkerChooser() {
+    return workerChooser;
   }
 
   public static Builder from(Builder other) {
@@ -107,6 +119,7 @@ public final class GatewayConfig {
     private Map<String, String> options = new HashMap<>();
     private int port = 0;
     private ExecutorService executorService;
+    private WorkerThreadChooser workerChooser;
 
     private Builder(String name, Class<? extends Gateway> gatewayClass) {
       this.name = name;
@@ -145,6 +158,11 @@ public final class GatewayConfig {
 
     public Builder addOptions(Map<String, String> options) {
       this.options.putAll(options);
+      return this;
+    }
+
+    public Builder workerChooser(WorkerThreadChooser workerChooser) {
+      this.workerChooser = workerChooser;
       return this;
     }
 
