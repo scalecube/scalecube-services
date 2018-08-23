@@ -1,22 +1,24 @@
 package io.scalecube.gateway.examples;
 
 import io.scalecube.services.transport.api.WorkerThreadChooser;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class ExamplesWorkerThreadChooser implements WorkerThreadChooser {
 
-  private final Map<String, AtomicInteger> counterByRemoteHostAndId = new ConcurrentHashMap<>();
+  private final Map<String, Integer> counterByRemoteHost = new ConcurrentHashMap<>();
 
   @Override
   public Executor getWorker(
     String id, SocketAddress localAddress, SocketAddress remoteAddress, Executor[] executors) {
-    AtomicInteger counter =
-      counterByRemoteHostAndId.computeIfAbsent(id, key -> new AtomicInteger());
-    int index = (counter.incrementAndGet() & Integer.MAX_VALUE) % executors.length;
-    return executors[index];
+    if (!(remoteAddress instanceof InetSocketAddress)) {
+      return null;
+    }
+    String hostString = ((InetSocketAddress) remoteAddress).getHostString();
+    int counter = counterByRemoteHost.compute(hostString, (key, i1) -> i1 != null ? i1 + 1 : 0);
+    return executors[counter % executors.length];
   }
 }
