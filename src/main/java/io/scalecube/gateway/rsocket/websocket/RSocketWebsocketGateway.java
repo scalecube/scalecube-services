@@ -1,10 +1,9 @@
 package io.scalecube.gateway.rsocket.websocket;
 
-import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
 import io.rsocket.SocketAcceptor;
+import io.rsocket.transport.netty.server.ExtendedWebsocketServerTransport;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
-import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.gateway.Gateway;
@@ -48,13 +47,11 @@ public class RSocketWebsocketGateway implements Gateway {
                   if (selectorThreadPool != null && workerThreadPool != null) {
                     opts.loopResources(
                       new RSocketWebsocketLoopResources(
-                        (EventLoopGroup) selectorThreadPool,
-                        (EventLoopGroup) workerThreadPool));
+                        true, selectorThreadPool, workerThreadPool));
                     }
                   });
 
           SocketAcceptor socketAcceptor = new RSocketWebsocketAcceptor(call.create(), metrics);
-          WebsocketServerTransport transport = WebsocketServerTransport.create(httpServer);
 
           server =
               RSocketFactory.receive()
@@ -63,7 +60,7 @@ public class RSocketWebsocketGateway implements Gateway {
                           ByteBufPayload.create(
                               frame.sliceData().retain(), frame.sliceMetadata().retain()))
                   .acceptor(socketAcceptor)
-                  .transport(transport)
+                .transport(new ExtendedWebsocketServerTransport(httpServer))
                   .start();
 
           return server
