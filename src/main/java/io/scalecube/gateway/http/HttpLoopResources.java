@@ -10,61 +10,64 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.scalecube.services.transport.rsocket.RSocketServiceTransport;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 
 public class HttpLoopResources implements LoopResources {
 
-  private final EventLoopGroup bossEventLoopGroup;
-  private final EventLoopGroup workerEventLoopGroup;
+  private final boolean preferEpoll;
+  private final EventLoopGroup bossGroup;
+  private final EventLoopGroup workerGroup;
   private final AtomicBoolean running = new AtomicBoolean(true);
 
-  public HttpLoopResources(EventLoopGroup bossEventLoopGroup, EventLoopGroup workerEventLoopGroup) {
-    this.bossEventLoopGroup = bossEventLoopGroup;
-    this.workerEventLoopGroup = workerEventLoopGroup;
-  }
-
-  @Override
-  public Class<? extends Channel> onChannel(EventLoopGroup group) {
-    return RSocketServiceTransport.isEpollSupported()
-      ? EpollSocketChannel.class
-      : NioSocketChannel.class;
+  /**
+   * Constructor for loop resources.
+   *
+   * @param preferEpoll should use epoll or nio
+   * @param bossGroup selector event loop group
+   * @param workerGroup worker event loop group
+   */
+  public HttpLoopResources(boolean preferEpoll, Executor bossGroup, Executor workerGroup) {
+    this.preferEpoll = preferEpoll;
+    this.bossGroup = (EventLoopGroup) bossGroup;
+    this.workerGroup = (EventLoopGroup) workerGroup;
   }
 
   @Override
   public EventLoopGroup onClient(boolean useNative) {
-    return workerEventLoopGroup;
-  }
-
-  @Override
-  public Class<? extends DatagramChannel> onDatagramChannel(EventLoopGroup group) {
-    return RSocketServiceTransport.isEpollSupported()
-      ? EpollDatagramChannel.class
-      : NioDatagramChannel.class;
+    return workerGroup;
   }
 
   @Override
   public EventLoopGroup onServer(boolean useNative) {
-    return workerEventLoopGroup;
-  }
-
-  @Override
-  public Class<? extends ServerChannel> onServerChannel(EventLoopGroup group) {
-    return RSocketServiceTransport.isEpollSupported()
-      ? EpollServerSocketChannel.class
-      : NioServerSocketChannel.class;
+    return workerGroup;
   }
 
   @Override
   public EventLoopGroup onServerSelect(boolean useNative) {
-    return bossEventLoopGroup;
+    return bossGroup;
+  }
+
+  @Override
+  public Class<? extends Channel> onChannel(EventLoopGroup group) {
+    return preferEpoll ? EpollSocketChannel.class : NioSocketChannel.class;
+  }
+
+  @Override
+  public Class<? extends DatagramChannel> onDatagramChannel(EventLoopGroup group) {
+    return preferEpoll ? EpollDatagramChannel.class : NioDatagramChannel.class;
+  }
+
+  @Override
+  public Class<? extends ServerChannel> onServerChannel(EventLoopGroup group) {
+    return preferEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
   }
 
   @Override
   public boolean preferNative() {
-    return RSocketServiceTransport.isEpollSupported();
+    return preferEpoll;
   }
 
   @Override

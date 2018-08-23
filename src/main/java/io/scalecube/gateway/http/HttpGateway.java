@@ -1,6 +1,5 @@
 package io.scalecube.gateway.http;
 
-import io.netty.channel.EventLoopGroup;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -41,9 +40,7 @@ public class HttpGateway implements Gateway {
                 opts.listenAddress(listenAddress);
                 if (selectorThreadPool != null && workerThreadPool != null) {
                   opts.loopResources(
-                    new HttpLoopResources(
-                      (EventLoopGroup) selectorThreadPool,
-                      (EventLoopGroup) workerThreadPool));
+                    new HttpLoopResources(true, selectorThreadPool, workerThreadPool));
                 }
               })
             .build()
