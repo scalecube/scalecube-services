@@ -1,6 +1,5 @@
 package io.scalecube.gateway.websocket;
 
-import io.netty.channel.EventLoopGroup;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -47,8 +46,7 @@ public class WebsocketGateway implements Gateway {
                 if (selectorThreadPool != null && workerThreadPool != null) {
                   opts.loopResources(
                     new WebsocketLoopResources(
-                      (EventLoopGroup) selectorThreadPool,
-                      (EventLoopGroup) workerThreadPool));
+                      true, selectorThreadPool, workerThreadPool));
                 }
               })
             .build()
