@@ -1,6 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.TcpClientTransport;
@@ -27,10 +26,9 @@ public class RSocketClientTransport implements ClientTransport {
   private final ServiceMessageCodec codec;
   private final LoopResources loopResources;
 
-  public RSocketClientTransport(
-      ServiceMessageCodec codec, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+  public RSocketClientTransport(ServiceMessageCodec codec, LoopResources loopResources) {
     this.codec = codec;
-    this.loopResources = new RSocketLoopResources(bossGroup, workerGroup);
+    this.loopResources = loopResources;
   }
 
   @Override

@@ -11,11 +11,11 @@ public interface WorkerThreadChooser {
   /**
    * Function to select a worker executor from executor pool by connection parameters.
    *
-   * @param id known identifier
+   * @param id an identifier of connection
    * @param localAddress local address of connection
    * @param remoteAddress remote address of connection
    * @param executors array of available executors
-   * @return chosen executor
+   * @return chosen executor from the available executors
    */
   Executor getWorker(
       String id, SocketAddress localAddress, SocketAddress remoteAddress, Executor[] executors);

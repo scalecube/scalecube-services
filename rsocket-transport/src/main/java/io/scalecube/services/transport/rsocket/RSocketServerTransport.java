@@ -1,6 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import io.netty.channel.EventLoopGroup;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.transport.netty.server.TcpServerTransport;
@@ -26,13 +25,12 @@ public class RSocketServerTransport implements ServerTransport {
   private final ServiceMessageCodec codec;
   private final LoopResources loopResources;
 
-  private NettyContextCloseable server;
-  private List<NettyContext> channels = new CopyOnWriteArrayList<>();
+  private NettyContextCloseable server; // calculated
+  private List<NettyContext> channels = new CopyOnWriteArrayList<>(); // calculated
 
-  public RSocketServerTransport(
-      ServiceMessageCodec codec, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+  public RSocketServerTransport(ServiceMessageCodec codec, LoopResources loopResources) {
     this.codec = codec;
-    this.loopResources = new RSocketLoopResources(bossGroup, workerGroup);
+    this.loopResources = loopResources;
   }
 
   @Override
