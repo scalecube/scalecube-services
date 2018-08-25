@@ -264,6 +264,11 @@ public class Microservices {
       return this;
     }
 
+    public Builder numOfThreads(int numOfThreads) {
+      this.transportBootstrap.numOfThreads(numOfThreads);
+      return this;
+    }
+
     public Builder seeds(Address... seeds) {
       this.discoveryConfig.seeds(seeds);
       return this;
@@ -419,6 +424,7 @@ public class Microservices {
     private ServerTransport serverTransport; // calculated
     private Executor workerThreadPool; // calculated
     private InetSocketAddress listenAddress; // calculated
+    private int numOfThreads = Runtime.getRuntime().availableProcessors();
 
     private ServiceTransportBootstrap listenPort(int listenPort) {
       this.listenPort = listenPort;
@@ -430,13 +436,19 @@ public class Microservices {
       return this;
     }
 
+    public ServiceTransportBootstrap numOfThreads(int numOfThreads) {
+      this.numOfThreads = numOfThreads;
+      return this;
+    }
+
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
       return Mono.defer(
           () -> {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.workerThreadPool = transport.getWorkerThreadPool(1, workerThreadChooser);
+            this.workerThreadPool =
+                transport.getWorkerThreadPool(numOfThreads, workerThreadChooser);
             this.clientTransport = transport.getClientTransport(workerThreadPool);
             this.serverTransport = transport.getServerTransport(workerThreadPool);
 
