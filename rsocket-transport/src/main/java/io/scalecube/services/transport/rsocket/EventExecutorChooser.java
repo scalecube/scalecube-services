@@ -1,14 +1,13 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
 import io.netty.util.concurrent.EventExecutor;
 import java.util.Iterator;
 
 /**
  * Netty event executor chooser interface. Takes channel which is about to register and gets an
  * event executor for it. Channel will be bound to this executor later at {@link
- * EventLoopGroup#register(Channel)}.
+ * io.netty.channel.EventLoopGroup#register(Channel)}.
  */
 public interface EventExecutorChooser {
 
