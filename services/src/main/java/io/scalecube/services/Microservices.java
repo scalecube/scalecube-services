@@ -180,7 +180,9 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    return gatewayBootstrap.start(transportBootstrap.workerThreadPool(), call, metrics);
+    Executor workerThreadPool = transportBootstrap.workerThreadPool();
+    boolean preferNative = transportBootstrap.transport().isNativeSupported();
+    return gatewayBootstrap.start(workerThreadPool, preferNative, call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -313,14 +315,15 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(Executor workerThreadPool, Call call, Metrics metrics) {
+    private Mono<GatewayBootstrap> start(
+        Executor workerThreadPool, boolean preferNative, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig -> {
                 Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
                 Gateway gateway = Gateway.getGateway(gatewayClass);
                 return gateway
-                    .start(gatewayConfig, workerThreadPool, call, metrics)
+                    .start(gatewayConfig, workerThreadPool, preferNative, call, metrics)
                     .doOnSuccess(
                         listenAddress -> {
                           gatewayInstances.put(gatewayConfig, gateway);
@@ -436,9 +439,25 @@ public class Microservices {
       return this;
     }
 
+    private ServiceTransport transport() {
+      return transport;
+    }
+
+    private ClientTransport clientTransport() {
+      return clientTransport;
+    }
+
     public ServiceTransportBootstrap numOfThreads(int numOfThreads) {
       this.numOfThreads = numOfThreads;
       return this;
+    }
+
+    private Executor workerThreadPool() {
+      return workerThreadPool;
+    }
+
+    private InetSocketAddress listenAddress() {
+      return listenAddress;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
@@ -472,18 +491,6 @@ public class Microservices {
                   Optional.ofNullable(transport)
                       .map(transport -> transport.shutdown(workerThreadPool))
                       .orElse(Mono.empty())));
-    }
-
-    private ClientTransport clientTransport() {
-      return clientTransport;
-    }
-
-    private Executor workerThreadPool() {
-      return workerThreadPool;
-    }
-
-    private InetSocketAddress listenAddress() {
-      return listenAddress;
     }
   }
 }
