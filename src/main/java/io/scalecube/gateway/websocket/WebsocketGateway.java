@@ -25,12 +25,9 @@ public class WebsocketGateway implements Gateway {
   private BlockingNettyContext server;
 
   @Override
-  public Mono<InetSocketAddress> start(
-    GatewayConfig config,
-    Executor selectorThreadPool,
-    Executor workerThreadPool,
-      ServiceCall.Call call,
-      Metrics metrics) {
+  public Mono<InetSocketAddress> start(GatewayConfig config, Executor workerThreadPool,
+    boolean preferNative,
+    ServiceCall.Call call, Metrics metrics) {
 
     return Mono.defer(
       () -> {
@@ -43,7 +40,9 @@ public class WebsocketGateway implements Gateway {
             .options(
               opts -> {
                 opts.listenAddress(listenAddress);
-                if (selectorThreadPool != null && workerThreadPool != null) {
+                if (config.workerThreadPool() != null) {
+                  opts.loopResources();
+                } else if (workerThreadPool != null) {
                   opts.loopResources(
                     new WebsocketLoopResources(
                       true, selectorThreadPool, workerThreadPool));
@@ -71,7 +70,7 @@ public class WebsocketGateway implements Gateway {
   }
 
   private static class WebSocketServerBiFunction
-      implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
+    implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
     private final WebsocketAcceptor acceptor;
 
