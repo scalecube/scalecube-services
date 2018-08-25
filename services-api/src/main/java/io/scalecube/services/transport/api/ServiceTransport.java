@@ -29,41 +29,33 @@ public interface ServiceTransport {
   /**
    * Getting client transport.
    *
-   * @param selectorThreadPool service transport selector thread pool
    * @param workerThreadPool service transport worker thread pool
    * @return client transport
    */
-  ClientTransport getClientTransport(Executor selectorThreadPool, Executor workerThreadPool);
+  ClientTransport getClientTransport(Executor workerThreadPool);
 
   /**
    * Getting server transport.
    *
-   * @param selectorThreadPool service transport selector thread pool
    * @param workerThreadPool service transport worker thread pool
    * @return server transport
    */
-  ServerTransport getServerTransport(Executor selectorThreadPool, Executor workerThreadPool);
-
-  /**
-   * Getting new service transport selector thread pool.
-   *
-   * @return executor
-   */
-  Executor getSelectorThreadPool();
+  ServerTransport getServerTransport(Executor workerThreadPool);
 
   /**
    * Getting new service transport worker thread pool.
    *
+   * @param numOfThreads number of threads for worker thread pool
+   * @param workerThreadChooser worker thread chooser function
    * @return executor
    */
-  Executor getWorkerThreadPool(WorkerThreadChooser workerThreadChooser);
+  Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser workerThreadChooser);
 
   /**
    * Shutdowns service transport.
    *
-   * @param selectorThreadPool service transport selector thread pool
    * @param workerThreadPool service transport worker thread pool
    * @return shutdown signal
    */
-  Mono<Void> shutdown(Executor selectorThreadPool, Executor workerThreadPool);
+  Mono shutdown(Executor workerThreadPool);
 }

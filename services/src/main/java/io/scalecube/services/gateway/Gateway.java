@@ -26,17 +26,12 @@ public interface Gateway {
    * values will be used.
    *
    * @param config gateway configuration
-   * @param selectorThreadPool selector service transport executor service
    * @param workerThreadPool worker service transport executor service
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
   Mono<InetSocketAddress> start(
-      GatewayConfig config,
-      Executor selectorThreadPool,
-      Executor workerThreadPool,
-      Call call,
-      Metrics metrics);
+      GatewayConfig config, Executor workerThreadPool, Call call, Metrics metrics);
 
   /**
    * Stops the gateway.

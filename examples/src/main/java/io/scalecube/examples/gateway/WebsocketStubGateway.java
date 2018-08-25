@@ -16,11 +16,7 @@ public class WebsocketStubGateway implements Gateway {
 
   @Override
   public Mono<InetSocketAddress> start(
-      GatewayConfig config,
-      Executor selectorThreadPool,
-      Executor workerThreadPool,
-      Call call,
-      Metrics metrics) {
+      GatewayConfig config, Executor workerThreadPool, Call call, Metrics metrics) {
 
     return Mono.defer(
         () -> {

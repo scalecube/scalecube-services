@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -30,16 +31,13 @@ public class MicroservicesTest {
   @Mock
   private ClientTransport clientTransport;
   @Mock
-  private ExecutorService selectorExecutor;
-  @Mock
   private ExecutorService workerExecutor;
 
   @BeforeEach
   public void setUp() {
-    Mockito.when(serviceTransport.getSelectorThreadPool()).thenReturn(selectorExecutor);
-    Mockito.when(serviceTransport.getWorkerThreadPool(any())).thenReturn(workerExecutor);
-    Mockito.when(serviceTransport.getClientTransport(any(), any())).thenReturn(clientTransport);
-    Mockito.when(serviceTransport.getServerTransport(any(), any())).thenReturn(serverTransport);
+    Mockito.when(serviceTransport.getWorkerThreadPool(anyInt(), any())).thenReturn(workerExecutor);
+    Mockito.when(serviceTransport.getClientTransport(any())).thenReturn(clientTransport);
+    Mockito.when(serviceTransport.getServerTransport(any())).thenReturn(serverTransport);
   }
 
   @Test
@@ -66,7 +64,6 @@ public class MicroservicesTest {
 
     Mockito.verify(serverTransport, Mockito.atLeastOnce()).stop();
     Mockito.verify(serviceDiscovery, Mockito.atLeastOnce()).shutdown();
-    Mockito.verify(serviceTransport, Mockito.atLeastOnce())
-        .shutdown(Mockito.eq(selectorExecutor), Mockito.eq(workerExecutor));
+    Mockito.verify(serviceTransport, Mockito.atLeastOnce()).shutdown(Mockito.eq(workerExecutor));
   }
 }

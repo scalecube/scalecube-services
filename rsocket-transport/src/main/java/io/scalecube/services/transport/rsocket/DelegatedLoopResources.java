@@ -10,14 +10,13 @@ import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 
 /**
  * Loop resources implementation based on already constructed boss event loop group and worker event
- * loop group.
+ * loop group. This loop resources instance doesn't allocate any resources by itself.
  */
 public class DelegatedLoopResources implements LoopResources {
 
@@ -27,16 +26,27 @@ public class DelegatedLoopResources implements LoopResources {
   private final AtomicBoolean running = new AtomicBoolean(true);
 
   /**
+   * Constructor for loop resources. Boss group will be null.
+   *
+   * @param preferEpoll should use epoll or nio
+   * @param workerGroup worker event loop group
+   */
+  public DelegatedLoopResources(boolean preferEpoll, EventLoopGroup workerGroup) {
+    this(preferEpoll, null, workerGroup);
+  }
+
+  /**
    * Constructor for loop resources.
    *
    * @param preferEpoll should use epoll or nio
    * @param bossGroup selector event loop group
    * @param workerGroup worker event loop group
    */
-  public DelegatedLoopResources(boolean preferEpoll, Executor bossGroup, Executor workerGroup) {
+  public DelegatedLoopResources(
+      boolean preferEpoll, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
     this.preferEpoll = preferEpoll;
-    this.bossGroup = (EventLoopGroup) bossGroup;
-    this.workerGroup = (EventLoopGroup) workerGroup;
+    this.bossGroup = bossGroup;
+    this.workerGroup = workerGroup;
   }
 
   @Override

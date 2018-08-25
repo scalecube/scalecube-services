@@ -2,8 +2,6 @@ package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
@@ -13,18 +11,23 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.WorkerThreadChooser;
-import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
-import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.FutureMono;
 
+/**
+ * RSocket service transport. Entry point for getting {@link RSocketClientTransport} and {@link
+ * RSocketServerTransport}.
+ */
 public class RSocketServiceTransport implements ServiceTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
+
+  private static final ThreadFactory WORKER_THREAD_FACTORY =
+      new DefaultThreadFactory("rsocket-worker", true);
 
   private static final String DEFAULT_HEADERS_FORMAT = "application/json";
 
@@ -52,68 +55,39 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public ClientTransport getClientTransport(
-      Executor selectorThreadPool, Executor workerThreadPool) {
-
-    HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
-    ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
-
-    DelegatedLoopResources loopResources =
-        new DelegatedLoopResources(preferEpoll, selectorThreadPool, workerThreadPool);
-
-    return new RSocketClientTransport(messageCodec, loopResources);
+  public ClientTransport getClientTransport(Executor workerThreadPool) {
+    return new RSocketClientTransport(
+        new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)),
+        new DelegatedLoopResources(preferEpoll, (EventLoopGroup) workerThreadPool));
   }
 
   @Override
-  public ServerTransport getServerTransport(
-      Executor selectorThreadPool, Executor workerThreadPool) {
-
-    HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
-    ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
-
-    DelegatedLoopResources loopResources =
-        new DelegatedLoopResources(preferEpoll, selectorThreadPool, workerThreadPool);
-
-    return new RSocketServerTransport(messageCodec, loopResources);
-  }
-
-  public Executor getSelectorThreadPool() {
-    int bossThreads = 1;
-    DefaultThreadFactory threadFactory = new DefaultThreadFactory("rsocket-boss", true);
-
-    return preferEpoll
-        ? new EpollEventLoopGroup(bossThreads, threadFactory)
-        : new NioEventLoopGroup(bossThreads, threadFactory);
+  public ServerTransport getServerTransport(Executor workerThreadPool) {
+    return new RSocketServerTransport(
+        new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)),
+        preferEpoll,
+        (EventLoopGroup) workerThreadPool);
   }
 
   @Override
-  public Executor getWorkerThreadPool(WorkerThreadChooser threadChooser) {
-    int workerThreads = 1;
-    ThreadFactory threadFactory = new DefaultThreadFactory("rsocket-worker", true);
-
+  public Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser threadChooser) {
     EventExecutorChooser executorChooser =
         threadChooser != null
             ? new DefaultEventExecutorChooser(threadChooser)
             : EventExecutorChooser.NULL_INSTANCE;
 
     return preferEpoll
-        ? new ExtendedEpollEventLoopGroup(workerThreads, threadFactory, executorChooser)
-        : new ExtendedNioEventLoopGroup(workerThreads, threadFactory, executorChooser);
+        ? new ExtendedEpollEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, executorChooser)
+        : new ExtendedNioEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, executorChooser);
   }
 
   @Override
-  public Mono<Void> shutdown(Executor selectorThreadPool, Executor workerThreadPool) {
+  public Mono<Void> shutdown(Executor workerThreadPool) {
     //noinspection unchecked
     return Mono.defer(
         () ->
-            Mono.when(
-                Stream.of(selectorThreadPool, workerThreadPool)
-                    .filter(Objects::nonNull)
-                    .map(executor -> (EventLoopGroup) executor)
-                    .map(
-                        loopGroup ->
-                            FutureMono.deferFuture(
-                                () -> (Future<Void>) loopGroup.shutdownGracefully()))
-                    .toArray(Mono[]::new)));
+            workerThreadPool != null
+                ? FutureMono.from((Future) ((EventLoopGroup) workerThreadPool).shutdownGracefully())
+                : Mono.empty());
   }
 }

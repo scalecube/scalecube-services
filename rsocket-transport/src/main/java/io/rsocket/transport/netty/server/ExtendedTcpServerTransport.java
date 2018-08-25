@@ -6,11 +6,20 @@ import reactor.core.publisher.Mono;
 import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.tcp.TcpServer;
 
+/**
+ * Extended class for RSocket's {@link TcpServerTransport}. The point of it is to control channel
+ * flushing behavior. See class {@link SendOptions} for more details.
+ */
 public class ExtendedTcpServerTransport
     implements io.rsocket.transport.ServerTransport<NettyContextCloseable> {
 
   private final TcpServer server;
 
+  /**
+   * Constructor for this tcp server transport.
+   *
+   * @param server tcp server
+   */
   public ExtendedTcpServerTransport(TcpServer server) {
     this.server = server;
   }

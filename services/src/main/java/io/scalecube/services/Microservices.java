@@ -180,11 +180,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    return gatewayBootstrap.start(
-        transportBootstrap.selectorThreadPool(),
-        transportBootstrap.workerThreadPool(),
-        call,
-        metrics);
+    return gatewayBootstrap.start(transportBootstrap.workerThreadPool(), call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -312,15 +308,14 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(
-        Executor selectorThreadPool, Executor workerThreadPool, Call call, Metrics metrics) {
+    private Mono<GatewayBootstrap> start(Executor workerThreadPool, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig -> {
                 Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
                 Gateway gateway = Gateway.getGateway(gatewayClass);
                 return gateway
-                    .start(gatewayConfig, selectorThreadPool, workerThreadPool, call, metrics)
+                    .start(gatewayConfig, workerThreadPool, call, metrics)
                     .doOnSuccess(
                         listenAddress -> {
                           gatewayInstances.put(gatewayConfig, gateway);
@@ -422,17 +417,11 @@ public class Microservices {
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
-    private Executor selectorThreadPool; // calculated
     private Executor workerThreadPool; // calculated
     private InetSocketAddress listenAddress; // calculated
 
     private ServiceTransportBootstrap listenPort(int listenPort) {
       this.listenPort = listenPort;
-      return this;
-    }
-
-    private ServiceTransportBootstrap workerThreadChooser(WorkerThreadChooser threadChooser) {
-      this.workerThreadChooser = threadChooser;
       return this;
     }
 
@@ -447,13 +436,9 @@ public class Microservices {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.selectorThreadPool = transport.getSelectorThreadPool();
-            this.workerThreadPool = transport.getWorkerThreadPool(workerThreadChooser);
-
-            this.clientTransport =
-                transport.getClientTransport(selectorThreadPool, workerThreadPool);
-            this.serverTransport =
-                transport.getServerTransport(selectorThreadPool, workerThreadPool);
+            this.workerThreadPool = transport.getWorkerThreadPool(1, workerThreadChooser);
+            this.clientTransport = transport.getClientTransport(workerThreadPool);
+            this.serverTransport = transport.getServerTransport(workerThreadPool);
 
             // bind service serverTransport transport
             String hostAddress = Addressing.getLocalIpAddress().getHostAddress();
@@ -473,16 +458,12 @@ public class Microservices {
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
                   Optional.ofNullable(transport)
-                      .map(transport -> transport.shutdown(selectorThreadPool, workerThreadPool))
+                      .map(transport -> transport.shutdown(workerThreadPool))
                       .orElse(Mono.empty())));
     }
 
     private ClientTransport clientTransport() {
       return clientTransport;
-    }
-
-    private Executor selectorThreadPool() {
-      return selectorThreadPool;
     }
 
     private Executor workerThreadPool() {
