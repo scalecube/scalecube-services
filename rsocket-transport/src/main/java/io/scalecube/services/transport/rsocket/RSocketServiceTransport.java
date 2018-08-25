@@ -4,7 +4,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.NettyRuntime;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
@@ -48,6 +47,11 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
+  public boolean isNativeSupported() {
+    return preferEpoll;
+  }
+
+  @Override
   public ClientTransport getClientTransport(
       Executor selectorThreadPool, Executor workerThreadPool) {
 
@@ -73,7 +77,6 @@ public class RSocketServiceTransport implements ServiceTransport {
     return new RSocketServerTransport(messageCodec, loopResources);
   }
 
-  @Override
   public Executor getSelectorThreadPool() {
     int bossThreads = 1;
     DefaultThreadFactory threadFactory = new DefaultThreadFactory("rsocket-boss", true);
@@ -85,7 +88,7 @@ public class RSocketServiceTransport implements ServiceTransport {
 
   @Override
   public Executor getWorkerThreadPool(WorkerThreadChooser threadChooser) {
-    int workerThreads = NettyRuntime.availableProcessors() * 2;
+    int workerThreads = 1;
     ThreadFactory threadFactory = new DefaultThreadFactory("rsocket-worker", true);
 
     EventExecutorChooser executorChooser =

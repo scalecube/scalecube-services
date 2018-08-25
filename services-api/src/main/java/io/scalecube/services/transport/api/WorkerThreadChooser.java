@@ -6,6 +6,7 @@ import java.util.concurrent.Executor;
 /**
  * Service transport worker thread chooser.
  */
+@FunctionalInterface
 public interface WorkerThreadChooser {
 
   /**

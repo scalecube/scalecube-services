@@ -268,11 +268,6 @@ public class Microservices {
       return this;
     }
 
-    public Builder workerThreadChooser(WorkerThreadChooser threadChooser) {
-      this.transportBootstrap.workerThreadChooser(threadChooser);
-      return this;
-    }
-
     public Builder seeds(Address... seeds) {
       this.discoveryConfig.seeds(seeds);
       return this;
@@ -407,7 +402,8 @@ public class Microservices {
   public Mono<Void> shutdown() {
     return Mono.defer(
         () ->
-            Mono.when(Optional.ofNullable(serviceRegistry)
+            Mono.when(
+                Optional.ofNullable(serviceRegistry)
                     .map(ServiceRegistry::close)
                     .orElse(Mono.empty()),
                 Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
