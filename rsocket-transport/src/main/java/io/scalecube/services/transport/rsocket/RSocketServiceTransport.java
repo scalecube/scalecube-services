@@ -74,7 +74,7 @@ public class RSocketServiceTransport implements ServiceTransport {
     EventExecutorChooser executorChooser =
         threadChooser != null
             ? new DefaultEventExecutorChooser(threadChooser)
-            : EventExecutorChooser.NULL_INSTANCE;
+            : EventExecutorChooser.DEFAULT_INSTANCE;
 
     return preferEpoll
         ? new ExtendedEpollEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, executorChooser)

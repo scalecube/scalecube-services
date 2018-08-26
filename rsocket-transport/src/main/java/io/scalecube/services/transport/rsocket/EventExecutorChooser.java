@@ -1,6 +1,7 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.Channel;
+import io.netty.channel.EventLoop;
 import io.netty.util.concurrent.EventExecutor;
 import java.util.Iterator;
 
@@ -11,7 +12,16 @@ import java.util.Iterator;
  */
 public interface EventExecutorChooser {
 
-  EventExecutorChooser NULL_INSTANCE = (channel, iterator) -> null;
+  EventExecutorChooser DEFAULT_INSTANCE =
+      (channel, iterator) -> {
+        while (iterator.hasNext()) {
+          EventLoop eventLoop = (EventLoop) iterator.next();
+          if (eventLoop.inEventLoop()) {
+            return eventLoop;
+          }
+        }
+        return null;
+      };
 
   /**
    * Gets an event executor for unregistered channel.
