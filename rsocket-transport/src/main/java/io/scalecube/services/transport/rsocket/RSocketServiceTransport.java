@@ -2,9 +2,6 @@ package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.NettyRuntime;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
@@ -13,66 +10,84 @@ import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
-import java.util.concurrent.ExecutorService;
+import io.scalecube.services.transport.api.WorkerThreadChooser;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.FutureMono;
 
+/**
+ * RSocket service transport. Entry point for getting {@link RSocketClientTransport} and {@link
+ * RSocketServerTransport}.
+ */
 public class RSocketServiceTransport implements ServiceTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceTransport.class);
 
-  private static final String DEFAULT_HEADERS_FORMAT = "application/json";
-  private static final String THREAD_FACTORY_POOL_NAME = "scalecube-rsocket";
+  private static final ThreadFactory WORKER_THREAD_FACTORY =
+      new DefaultThreadFactory("rsocket-worker", true);
 
-  private static boolean isEpollSupported = false;
+  private static final String DEFAULT_HEADERS_FORMAT = "application/json";
+
+  private static boolean preferEpoll = false;
+
+  private static final String EPOLL_CLASS_NAME = "io.netty.channel.epoll.Epoll";
 
   static {
     if (PlatformDependent.isWindows()) {
       LOGGER.warn("Epoll is not supported by this environment, NIO will be used");
     } else {
       try {
-        Class.forName("io.netty.channel.epoll.Epoll");
-        isEpollSupported = Epoll.isAvailable();
+        Class.forName(EPOLL_CLASS_NAME);
+        preferEpoll = Epoll.isAvailable();
       } catch (ClassNotFoundException e) {
         LOGGER.warn("Cannot load Epoll, NIO will be used", e);
       }
     }
-    LOGGER.debug("Epoll support: " + isEpollSupported);
+    LOGGER.debug("Epoll support: " + preferEpoll);
   }
 
   @Override
-  public ClientTransport getClientTransport(ExecutorService executorService) {
-    HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
-    EventLoopGroup eventLoopGroup = (EventLoopGroup) executorService;
-    return new RSocketClientTransport(new ServiceMessageCodec(headersCodec), eventLoopGroup);
+  public boolean isNativeSupported() {
+    return preferEpoll;
   }
 
   @Override
-  public ServerTransport getServerTransport(ExecutorService executorService) {
-    HeadersCodec headersCodec = HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT);
-    EventLoopGroup eventLoopGroup = (EventLoopGroup) executorService;
-    return new RSocketServerTransport(new ServiceMessageCodec(headersCodec), eventLoopGroup);
+  public ClientTransport getClientTransport(Executor workerThreadPool) {
+    return new RSocketClientTransport(
+        new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)),
+        new DelegatedLoopResources(preferEpoll, (EventLoopGroup) workerThreadPool));
   }
 
   @Override
-  public EventLoopGroup getExecutorService() {
-    int numberThreads = NettyRuntime.availableProcessors();
-    ThreadFactory threadFactory = new DefaultThreadFactory(THREAD_FACTORY_POOL_NAME, true);
-    return isEpollSupported
-        ? new EpollEventLoopGroup(numberThreads, threadFactory)
-        : new NioEventLoopGroup(numberThreads, threadFactory);
+  public ServerTransport getServerTransport(Executor workerThreadPool) {
+    return new RSocketServerTransport(
+        new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)),
+        preferEpoll,
+        (EventLoopGroup) workerThreadPool);
   }
 
   @Override
-  public Mono<Void> shutdown(ExecutorService executorService) {
-    if (executorService == null) {
-      return Mono.empty();
-    }
-    EventLoopGroup eventLoopGroup = (EventLoopGroup) executorService;
+  public Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser threadChooser) {
+    EventExecutorChooser executorChooser =
+        threadChooser != null
+            ? new DefaultEventExecutorChooser(threadChooser)
+            : EventExecutorChooser.NULL_INSTANCE;
+
+    return preferEpoll
+        ? new ExtendedEpollEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, executorChooser)
+        : new ExtendedNioEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, executorChooser);
+  }
+
+  @Override
+  public Mono<Void> shutdown(Executor workerThreadPool) {
     //noinspection unchecked
-    return Mono.defer(() -> FutureMono.from((Future) eventLoopGroup.shutdownGracefully()));
+    return Mono.defer(
+        () ->
+            workerThreadPool != null
+                ? FutureMono.from((Future) ((EventLoopGroup) workerThreadPool).shutdownGracefully())
+                : Mono.empty());
   }
 }

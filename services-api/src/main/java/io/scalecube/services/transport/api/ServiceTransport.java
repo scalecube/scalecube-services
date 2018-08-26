@@ -1,10 +1,12 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.ServiceLoaderUtil;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 
-/** Service transport interface. */
+/**
+ * Service transport interface.
+ */
 public interface ServiceTransport {
 
   /**
@@ -18,33 +20,42 @@ public interface ServiceTransport {
   }
 
   /**
+   * Boolean function telling is native mode (such as epoll) supported.
+   *
+   * @return is native mode supported for service transport
+   */
+  boolean isNativeSupported();
+
+  /**
    * Getting client transport.
    *
-   * @param executorService transport executor service
+   * @param workerThreadPool service transport worker thread pool
    * @return client transport
    */
-  ClientTransport getClientTransport(ExecutorService executorService);
+  ClientTransport getClientTransport(Executor workerThreadPool);
 
   /**
    * Getting server transport.
    *
-   * @param executorService transport executor service
+   * @param workerThreadPool service transport worker thread pool
    * @return server transport
    */
-  ServerTransport getServerTransport(ExecutorService executorService);
+  ServerTransport getServerTransport(Executor workerThreadPool);
 
   /**
-   * Getting new service transport executor service.
+   * Getting new service transport worker thread pool.
    *
-   * @return service transport executor service
+   * @param numOfThreads number of threads for worker thread pool
+   * @param workerThreadChooser worker thread chooser function
+   * @return executor
    */
-  ExecutorService getExecutorService();
+  Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser workerThreadChooser);
 
   /**
    * Shutdowns service transport.
    *
-   * @param executorService transport executor service
+   * @param workerThreadPool service transport worker thread pool
    * @return shutdown signal
    */
-  Mono<Void> shutdown(ExecutorService executorService);
+  Mono shutdown(Executor workerThreadPool);
 }
