@@ -1,92 +1,85 @@
 package io.scalecube.gateway.websocket;
 
+import io.netty.util.concurrent.DefaultThreadFactory;
+import io.scalecube.gateway.GatewayTemplate;
 import io.scalecube.services.ServiceCall;
-import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.server.HttpServer;
-import reactor.ipc.netty.http.server.HttpServerRequest;
-import reactor.ipc.netty.http.server.HttpServerResponse;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
+import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.BlockingNettyContext;
 
-public class WebsocketGateway implements Gateway {
+/**
+ * Gateway implementation on pure Websocket.
+ */
+public class WebsocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGateway.class);
+
+  private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
+    new DefaultThreadFactory("ws-boss", true);
+
+  private static final Duration START_TIMEOUT = Duration.ofSeconds(30);
 
   private BlockingNettyContext server;
 
   @Override
-  public Mono<InetSocketAddress> start(GatewayConfig config, Executor workerThreadPool,
+  public Mono<InetSocketAddress> start(
+    GatewayConfig config,
+    Executor workerThreadPool,
     boolean preferNative,
-    ServiceCall.Call call, Metrics metrics) {
+    ServiceCall.Call call,
+    Metrics metrics) {
 
     return Mono.defer(
       () -> {
         LOGGER.info("Starting gateway with {}", config);
 
         InetSocketAddress listenAddress = new InetSocketAddress(config.port());
-        WebsocketAcceptor acceptor = new WebsocketAcceptor(call.create(), metrics);
+
+        LoopResources loopResources =
+          prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
+
+        GatewayWebsocketAcceptor websocketAcceptor =
+          new GatewayWebsocketAcceptor(call.create(), metrics);
+
         server =
           HttpServer.builder()
             .options(
               opts -> {
                 opts.listenAddress(listenAddress);
-                if (config.workerThreadPool() != null) {
-                  opts.loopResources();
-                } else if (workerThreadPool != null) {
-                  opts.loopResources(
-                    new WebsocketLoopResources(
-                      true, selectorThreadPool, workerThreadPool));
+                if (loopResources != null) {
+                  opts.loopResources(loopResources);
                 }
               })
             .build()
-            .start(new WebSocketServerBiFunction(acceptor));
-        server.installShutdownHook();
+            .start(websocketAcceptor, START_TIMEOUT);
+
         InetSocketAddress address = server.getContext().address();
-
         LOGGER.info("Gateway has been started successfully on {}", address);
-
         return Mono.just(address);
       });
   }
 
   @Override
   public Mono<Void> stop() {
-    return Mono.fromRunnable(
+    return Mono.defer(
       () -> {
+        List<Mono<Void>> stopList = new ArrayList<>();
+        stopList.add(shutdownBossGroup());
         if (server != null) {
-          server.shutdown();
+          server.getContext().dispose();
+          stopList.add(server.getContext().onClose());
         }
-      });
-  }
-
-  private static class WebSocketServerBiFunction
-    implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
-
-    private final WebsocketAcceptor acceptor;
-
-    private WebSocketServerBiFunction(WebsocketAcceptor acceptor) {
-      this.acceptor = acceptor;
-    }
-
-    @Override
-    public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-      return httpResponse.sendWebsocket(
-        (WebsocketInbound inbound, WebsocketOutbound outbound) -> {
-          WebsocketSession session = new WebsocketSession(httpRequest, inbound, outbound);
-          Mono<Void> voidMono = acceptor.onConnect(session);
-          session.onClose(() -> acceptor.onDisconnect(session));
-          return voidMono;
+        return Mono.when(stopList);
         });
-    }
   }
 }

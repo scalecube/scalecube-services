@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-gateway-parent</artifactId>
@@ -17,17 +19,19 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>rsocket-services-transport</artifactId>
-      <version>${scalecube-services.version}</version>
+      <groupId>io.projectreactor.ipc</groupId>
+      <artifactId>reactor-netty</artifactId>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-jackson</artifactId>
-      <version>${scalecube-services.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-common</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
 
