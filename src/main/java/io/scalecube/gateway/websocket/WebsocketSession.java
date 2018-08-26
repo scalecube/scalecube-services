@@ -2,6 +2,17 @@ package io.scalecube.gateway.websocket;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -9,20 +20,6 @@ import reactor.ipc.netty.NettyPipeline;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
 import reactor.ipc.netty.http.websocket.WebsocketOutbound;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
-
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 public final class WebsocketSession {
 
@@ -46,11 +43,13 @@ public final class WebsocketSession {
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
    */
-  public WebsocketSession(HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
+  public WebsocketSession(
+    HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
     this.id = Integer.toHexString(System.identityHashCode(this));
 
     HttpHeaders httpHeaders = httpRequest.requestHeaders();
-    this.contentType = Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
+    this.contentType =
+      Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
 
     this.inbound = inbound;
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
@@ -67,24 +66,26 @@ public final class WebsocketSession {
   }
 
   public Flux<WebSocketFrame> receive() {
-    return inbound.aggregateFrames()
-        .receiveFrames()
-        .map(WebSocketFrame::retain)
-        .log(">> RECEIVE");
+    return inbound.aggregateFrames().receiveFrames().map(WebSocketFrame::retain).log(">> RECEIVE");
   }
 
   public Mono<Void> send(Publisher<ByteBuf> publisher) {
-    return outbound.sendObject(
-        Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND")).then();
+    return outbound
+      .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND"))
+      .then();
   }
 
   /**
-   * Close the websocket session with <i>normal</i> status.
-   * <a href="https://tools.ietf.org/html/rfc6455#section-7.4.1">Defined Status Codes:</a> <i>1000 indicates a normal
-   * closure, meaning that the purpose for which the connection was established has been fulfilled.</i>
+   * Close the websocket session with <i>normal</i> status. <a
+   * href="https://tools.ietf.org/html/rfc6455#section-7.4.1">Defined Status Codes:</a> <i>1000
+   * indicates a normal closure, meaning that the purpose for which the connection was established
+   * has been fulfilled.</i>
    */
   public Mono<Void> close() {
-    return outbound.sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close")).then().log("<< CLOSE");
+    return outbound
+      .sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close"))
+      .then()
+      .log("<< CLOSE");
   }
 
   public void onClose(Runnable runnable) {

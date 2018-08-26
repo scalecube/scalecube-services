@@ -7,8 +7,6 @@ import static io.scalecube.gateway.websocket.message.GatewayMessage.QUALIFIER_FI
 import static io.scalecube.gateway.websocket.message.GatewayMessage.SIGNAL_FIELD;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.STREAM_ID_FIELD;
 
-import io.scalecube.services.exceptions.MessageCodecException;
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -21,19 +19,17 @@ import com.fasterxml.jackson.databind.MappingJsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Encodes/decodes {@link GatewayMessage} to/from {@link ByteBuf}.
@@ -53,9 +49,9 @@ public class GatewayMessageCodec {
    */
   public ByteBuf encode(GatewayMessage message) throws MessageCodecException {
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
-    try (
-        JsonGenerator generator =
-            jsonFactory.createGenerator((OutputStream) new ByteBufOutputStream(byteBuf), JsonEncoding.UTF8)) {
+    try (JsonGenerator generator =
+      jsonFactory.createGenerator(
+        (OutputStream) new ByteBufOutputStream(byteBuf), JsonEncoding.UTF8)) {
       generator.writeStartObject();
 
       if (message.qualifier() != null) {
@@ -97,12 +93,10 @@ public class GatewayMessageCodec {
     return byteBuf;
   }
 
-
   /**
    * Decodes {@link GatewayMessage} from given {@code byteBuf}.
    *
    * @param byteBuf - contains raw {@link GatewayMessage} to be decoded.
-   *
    * @return Decoded {@link GatewayMessage}.
    * @throws MessageCodecException - in case of issues during deserialization.
    */

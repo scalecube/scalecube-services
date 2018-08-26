@@ -1,7 +1,6 @@
 package io.scalecube.gateway.websocket.message;
 
 import io.scalecube.services.api.ServiceMessage;
-
 import java.util.Objects;
 
 public class GatewayMessage {
@@ -59,9 +58,8 @@ public class GatewayMessage {
   }
 
   public static ServiceMessage toServiceMessage(GatewayMessage gatewayMessage) {
-    ServiceMessage.Builder builder = ServiceMessage.builder()
-        .qualifier(gatewayMessage.qualifier())
-        .data(gatewayMessage.data());
+    ServiceMessage.Builder builder =
+      ServiceMessage.builder().qualifier(gatewayMessage.qualifier()).data(gatewayMessage.data());
     if (gatewayMessage.streamId() != null) {
       builder.header(STREAM_ID_FIELD, String.valueOf(gatewayMessage.streamId()));
     }
@@ -80,7 +78,8 @@ public class GatewayMessage {
 
   GatewayMessage() {}
 
-  private GatewayMessage(String qualifier, Long streamId, Integer signal, Object data, Integer inactivity) {
+  private GatewayMessage(
+    String qualifier, Long streamId, Integer signal, Object data, Integer inactivity) {
     this.qualifier = qualifier;
     this.streamId = streamId;
     this.signal = signal;
