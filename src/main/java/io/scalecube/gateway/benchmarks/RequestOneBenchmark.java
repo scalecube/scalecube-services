@@ -1,10 +1,8 @@
 package io.scalecube.gateway.benchmarks;
 
+import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.example.ExampleService;
-
-import com.codahale.metrics.Timer;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -15,10 +13,12 @@ public final class RequestOneBenchmark {
     // Do not instantiate
   }
 
-  public static void runWith(String[] args,
+  public static void runWith(
+    String[] args,
       Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    BenchmarksSettings settings = BenchmarksSettings.from(args)
+    BenchmarksSettings settings =
+      BenchmarksSettings.from(args)
         .injectors(1000)
         .messageRate(100_000)
         .rampUpDuration(Duration.ofSeconds(60))

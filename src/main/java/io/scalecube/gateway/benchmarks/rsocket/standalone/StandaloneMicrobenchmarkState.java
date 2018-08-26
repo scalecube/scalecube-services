@@ -5,13 +5,15 @@ import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.benchmarks.example.ExampleServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
+import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.GatewayConfig;
 import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 
-public class StandaloneMicrobenchmarkState extends AbstractBenchmarkState<StandaloneMicrobenchmarkState> {
+public class StandaloneMicrobenchmarkState
+  extends AbstractBenchmarkState<StandaloneMicrobenchmarkState> {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
 
@@ -30,7 +32,7 @@ public class StandaloneMicrobenchmarkState extends AbstractBenchmarkState<Standa
 
     microservices =
         Microservices.builder()
-            .services(new ExampleServiceImpl())
+          .services(new GreetingServiceImpl(), new ExampleServiceImpl())
             .gateway(gatewayConfig)
             .startAwait();
   }

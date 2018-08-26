@@ -20,8 +20,8 @@ public final class RequestMaxStreamBenchmark {
     String[] args,
     Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    int injectors = Runtime.getRuntime().availableProcessors();
-    int messageRate = 100_000;
+    int injectors = Runtime.getRuntime().availableProcessors() * 2;
+    int messageRate = 1; // doesn't count in this test
 
     BenchmarksSettings settings =
       BenchmarksSettings.from(args)
