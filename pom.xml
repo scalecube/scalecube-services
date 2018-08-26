@@ -11,24 +11,12 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-core</artifactId>
     </dependency>
     <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-transport-netty</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
