@@ -1,10 +1,10 @@
 package io.scalecube.services.gateway;
 
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.ServiceLoaderUtil;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 
 public interface Gateway {
@@ -17,7 +17,7 @@ public interface Gateway {
    */
   static Gateway getGateway(Class<? extends Gateway> gatewayClass) {
     return ServiceLoaderUtil.findFirst(
-            Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
+        Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
         .orElseThrow(() -> new IllegalStateException("Gateway is not found in classpath"));
   }
 
@@ -26,14 +26,16 @@ public interface Gateway {
    * values will be used.
    *
    * @param config gateway configuration
-   * @param executorService service transport executor service
+   * @param workerThreadPool worker service transport executor service
+   * @param preferNative flag telling should native provider be preferred
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
   Mono<InetSocketAddress> start(
       GatewayConfig config,
-      ExecutorService executorService,
-      ServiceCall.Call call,
+      Executor workerThreadPool,
+      boolean preferNative,
+      Call call,
       Metrics metrics);
 
   /**

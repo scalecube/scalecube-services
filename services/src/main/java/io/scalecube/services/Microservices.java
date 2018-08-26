@@ -16,6 +16,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
+import io.scalecube.services.transport.api.WorkerThreadChooser;
 import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 import java.net.InetSocketAddress;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Flux;
@@ -171,15 +172,17 @@ public class Microservices {
                   .then(Mono.defer(() -> startGateway(call)))
                   .then(Mono.just(this));
             })
-        .onErrorResume(ex -> {
-          // return original error then shutdown
-          return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
-        });
+        .onErrorResume(
+            ex -> {
+              // return original error then shutdown
+              return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
+            });
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    ExecutorService executorService = transportBootstrap.executorService();
-    return gatewayBootstrap.start(executorService, call, metrics);
+    Executor workerThreadPool = transportBootstrap.workerThreadPool();
+    boolean preferNative = transportBootstrap.transport().isNativeSupported();
+    return gatewayBootstrap.start(workerThreadPool, preferNative, call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -263,6 +266,11 @@ public class Microservices {
       return this;
     }
 
+    public Builder numOfThreads(int numOfThreads) {
+      this.transportBootstrap.numOfThreads(numOfThreads);
+      return this;
+    }
+
     public Builder seeds(Address... seeds) {
       this.discoveryConfig.seeds(seeds);
       return this;
@@ -308,14 +316,14 @@ public class Microservices {
     }
 
     private Mono<GatewayBootstrap> start(
-        ExecutorService executorService, Call call, Metrics metrics) {
+        Executor workerThreadPool, boolean preferNative, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig -> {
                 Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
                 Gateway gateway = Gateway.getGateway(gatewayClass);
                 return gateway
-                    .start(gatewayConfig, executorService, call, metrics)
+                    .start(gatewayConfig, workerThreadPool, preferNative, call, metrics)
                     .doOnSuccess(
                         listenAddress -> {
                           gatewayInstances.put(gatewayConfig, gateway);
@@ -330,7 +338,7 @@ public class Microservices {
           () ->
               gatewayInstances != null && !gatewayInstances.isEmpty()
                   ? Mono.when(
-                      gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
+                  gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
                   : Mono.empty());
     }
 
@@ -398,6 +406,9 @@ public class Microservices {
     return Mono.defer(
         () ->
             Mono.when(
+                Optional.ofNullable(serviceRegistry)
+                    .map(ServiceRegistry::close)
+                    .orElse(Mono.empty()),
                 Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
                 Optional.ofNullable(gatewayBootstrap)
                     .map(GatewayBootstrap::shutdown)
@@ -410,11 +421,13 @@ public class Microservices {
   private static class ServiceTransportBootstrap {
 
     private int listenPort; // config
+    private WorkerThreadChooser workerThreadChooser; // config
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
-    private ExecutorService executorService; // calculated
+    private Executor workerThreadPool; // calculated
     private InetSocketAddress listenAddress; // calculated
+    private int numOfThreads = Runtime.getRuntime().availableProcessors();
 
     private ServiceTransportBootstrap listenPort(int listenPort) {
       this.listenPort = listenPort;
@@ -426,15 +439,37 @@ public class Microservices {
       return this;
     }
 
+    private ServiceTransport transport() {
+      return transport;
+    }
+
+    private ClientTransport clientTransport() {
+      return clientTransport;
+    }
+
+    public ServiceTransportBootstrap numOfThreads(int numOfThreads) {
+      this.numOfThreads = numOfThreads;
+      return this;
+    }
+
+    private Executor workerThreadPool() {
+      return workerThreadPool;
+    }
+
+    private InetSocketAddress listenAddress() {
+      return listenAddress;
+    }
+
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
       return Mono.defer(
           () -> {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.executorService = transport.getExecutorService();
-            this.clientTransport = transport.getClientTransport(executorService);
-            this.serverTransport = transport.getServerTransport(executorService);
+            this.workerThreadPool =
+                transport.getWorkerThreadPool(numOfThreads, workerThreadChooser);
+            this.clientTransport = transport.getClientTransport(workerThreadPool);
+            this.serverTransport = transport.getServerTransport(workerThreadPool);
 
             // bind service serverTransport transport
             String hostAddress = Addressing.getLocalIpAddress().getHostAddress();
@@ -454,20 +489,8 @@ public class Microservices {
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
                   Optional.ofNullable(transport)
-                      .map(transport -> transport.shutdown(executorService))
+                      .map(transport -> transport.shutdown(workerThreadPool))
                       .orElse(Mono.empty())));
-    }
-
-    private ClientTransport clientTransport() {
-      return clientTransport;
-    }
-
-    private ExecutorService executorService() {
-      return executorService;
-    }
-
-    private InetSocketAddress listenAddress() {
-      return listenAddress;
     }
   }
 }

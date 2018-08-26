@@ -1,6 +1,7 @@
 package io.scalecube.services;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -30,11 +31,11 @@ public class MicroservicesTest {
   @Mock
   private ClientTransport clientTransport;
   @Mock
-  private ExecutorService executorService;
+  private ExecutorService workerExecutor;
 
   @BeforeEach
   public void setUp() {
-    Mockito.when(serviceTransport.getExecutorService()).thenReturn(executorService);
+    Mockito.when(serviceTransport.getWorkerThreadPool(anyInt(), any())).thenReturn(workerExecutor);
     Mockito.when(serviceTransport.getClientTransport(any())).thenReturn(clientTransport);
     Mockito.when(serviceTransport.getServerTransport(any())).thenReturn(serverTransport);
   }
@@ -63,6 +64,6 @@ public class MicroservicesTest {
 
     Mockito.verify(serverTransport, Mockito.atLeastOnce()).stop();
     Mockito.verify(serviceDiscovery, Mockito.atLeastOnce()).shutdown();
-    Mockito.verify(serviceTransport, Mockito.atLeastOnce()).shutdown(Mockito.eq(executorService));
+    Mockito.verify(serviceTransport, Mockito.atLeastOnce()).shutdown(Mockito.eq(workerExecutor));
   }
 }

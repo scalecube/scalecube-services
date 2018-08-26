@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 /**
  * Represents gateway configuration.
@@ -15,14 +15,14 @@ public final class GatewayConfig {
   private final Class<? extends Gateway> gatewayClass;
   private final Map<String, String> options;
   private final int port;
-  private final ExecutorService executorService;
+  private final Executor workerThreadPool;
 
   private GatewayConfig(Builder builder) {
     name = builder.name;
     gatewayClass = builder.gatewayClass;
     port = builder.port;
     options = new HashMap<>(builder.options);
-    executorService = builder.executorService;
+    workerThreadPool = builder.workerThreadPool;
   }
 
   /**
@@ -53,12 +53,12 @@ public final class GatewayConfig {
   }
 
   /**
-   * Gateway executor service.
+   * Gateway worker thread pool.
    *
-   * @return executor service instance
+   * @return executor instance
    */
-  public ExecutorService executorService() {
-    return executorService;
+  public Executor workerThreadPool() {
+    return workerThreadPool;
   }
 
   /**
@@ -90,7 +90,7 @@ public final class GatewayConfig {
     sb.append(", gatewayClass=").append(gatewayClass.getName());
     sb.append(", options=").append(options);
     sb.append(", port=").append(port);
-    sb.append(", executorService=").append(executorService);
+    sb.append(", workerThreadPool=").append(workerThreadPool);
     sb.append('}');
     return sb.toString();
   }
@@ -118,7 +118,7 @@ public final class GatewayConfig {
     private final Class<? extends Gateway> gatewayClass;
     private Map<String, String> options = new HashMap<>();
     private int port = 0;
-    private ExecutorService executorService;
+    private Executor workerThreadPool;
 
     private Builder(String name, Class<? extends Gateway> gatewayClass) {
       this.name = name;
@@ -130,7 +130,7 @@ public final class GatewayConfig {
       this.gatewayClass = other.gatewayClass;
       this.options = new HashMap<>(other.options);
       this.port = other.port;
-      this.executorService = other.executorService;
+      this.workerThreadPool = other.workerThreadPool;
     }
 
     private Builder(GatewayConfig config) {
@@ -138,7 +138,7 @@ public final class GatewayConfig {
       this.gatewayClass = config.gatewayClass;
       this.options = new HashMap<>(config.options);
       this.port = config.port;
-      this.executorService = config.executorService;
+      this.workerThreadPool = config.workerThreadPool;
     }
 
     public Builder port(int port) {
@@ -146,8 +146,8 @@ public final class GatewayConfig {
       return this;
     }
 
-    public Builder executorService(ExecutorService executorService) {
-      this.executorService = executorService;
+    public Builder workerThreadPool(Executor workerThreadPool) {
+      this.workerThreadPool = workerThreadPool;
       return this;
     }
 
