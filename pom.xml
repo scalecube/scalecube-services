@@ -38,6 +38,18 @@
       <artifactId>scalecube-gateway-examples-api</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>rsocket-services-transport</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-jackson</artifactId>
+    </dependency>
   </dependencies>
 
   <build>
