@@ -19,7 +19,6 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>rsocket-services-transport</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
