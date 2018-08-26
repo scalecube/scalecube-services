@@ -9,7 +9,7 @@ public class ExampleGatewayRunner {
   public static void main(String[] args) throws InterruptedException {
 
     Microservices service = Microservices.builder()
-        .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(8080).build())
+      .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
         .services(new GreetingServiceImpl())
         .startAwait();
 
