@@ -17,17 +17,23 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
-      <version>${scalecube-services.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>rsocket-services-transport</artifactId>
-      <version>${scalecube-services.version}</version>
+      <groupId>io.rsocket</groupId>
+      <artifactId>rsocket-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.rsocket</groupId>
+      <artifactId>rsocket-transport-netty</artifactId>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-jackson</artifactId>
-      <version>${scalecube-services.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-common</artifactId>
+      <version>${project.version}</version>
     </dependency>
   </dependencies>
 

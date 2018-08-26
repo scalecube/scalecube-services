@@ -10,6 +10,10 @@ import reactor.core.publisher.Mono;
 import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.http.server.HttpServer;
 
+/**
+ * Extended class for RSocket's {@link WebsocketServerTransport}. The point of it is to control
+ * channel flushing behavior. See class {@link SendOptions} for more details.
+ */
 public class ExtendedWebsocketServerTransport
   implements ServerTransport<NettyContextCloseable>, TransportHeaderAware {
 
@@ -17,6 +21,11 @@ public class ExtendedWebsocketServerTransport
 
   private Supplier<Map<String, String>> transportHeaders = Collections::emptyMap;
 
+  /**
+   * Constructor for this websocket server transport.
+   *
+   * @param server http server
+   */
   public ExtendedWebsocketServerTransport(HttpServer server) {
     this.server = server;
   }

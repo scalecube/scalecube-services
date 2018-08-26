@@ -1,57 +1,67 @@
 package io.scalecube.gateway.rsocket.websocket;
 
+import io.netty.util.concurrent.DefaultThreadFactory;
 import io.rsocket.RSocketFactory;
-import io.rsocket.SocketAcceptor;
 import io.rsocket.transport.netty.server.ExtendedWebsocketServerTransport;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.services.ServiceCall.Call;
-import io.scalecube.services.gateway.Gateway;
+import io.scalecube.gateway.GatewayTemplate;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.server.HttpServer;
+import reactor.ipc.netty.resources.LoopResources;
 
 /**
- * Gateway implementation using RSocket protocol over WebSocket transport.
- *
- * @see io.rsocket.RSocket
+ * Gateway implementation on RSocket over WebSocket.
  */
-public class RSocketWebsocketGateway implements Gateway {
+public class RSocketWebsocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketGateway.class);
 
-  private Mono<NettyContextCloseable> server;
+  private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
+    new DefaultThreadFactory("rsws-boss", true);
+
+  private static final Duration START_TIMEOUT = Duration.ofSeconds(30);
+
+  private NettyContextCloseable server;
 
   @Override
   public Mono<InetSocketAddress> start(
     GatewayConfig config,
-    Executor selectorThreadPool,
     Executor workerThreadPool,
-    Call call,
+    boolean preferNative,
+    ServiceCall.Call call,
     Metrics metrics) {
+
     return Mono.defer(
         () -> {
           LOGGER.info("Starting gateway with {}", config);
 
           InetSocketAddress listenAddress = new InetSocketAddress(config.port());
 
+          LoopResources loopResources =
+            prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
+
           HttpServer httpServer =
               HttpServer.create(
                 opts -> {
                   opts.listenAddress(listenAddress);
-                  if (selectorThreadPool != null && workerThreadPool != null) {
-                    opts.loopResources(
-                      new RSocketWebsocketLoopResources(
-                        true, selectorThreadPool, workerThreadPool));
+                  if (loopResources != null) {
+                    opts.loopResources(loopResources);
                     }
                   });
 
-          SocketAcceptor socketAcceptor = new RSocketWebsocketAcceptor(call.create(), metrics);
+          RSocketWebsocketAcceptor rSocketWebsocketAcceptor =
+            new RSocketWebsocketAcceptor(call.create(), metrics);
 
           server =
               RSocketFactory.receive()
@@ -59,15 +69,14 @@ public class RSocketWebsocketGateway implements Gateway {
                       frame ->
                           ByteBufPayload.create(
                               frame.sliceData().retain(), frame.sliceMetadata().retain()))
-                  .acceptor(socketAcceptor)
+                .acceptor(rSocketWebsocketAcceptor)
                 .transport(new ExtendedWebsocketServerTransport(httpServer))
-                  .start();
+                .start()
+                .block(START_TIMEOUT);
 
-          return server
-              .map(NettyContextCloseable::address)
-              .doOnSuccess(
-                  address -> LOGGER.info("Gateway has been started successfully on {}", address))
-              .doOnError(throwable -> LOGGER.error("Gateway has NOT been started", throwable));
+          InetSocketAddress address = server.address();
+          LOGGER.info("Gateway has been started successfully on {}", address);
+          return Mono.just(address);
         });
   }
 
@@ -75,18 +84,13 @@ public class RSocketWebsocketGateway implements Gateway {
   public Mono<Void> stop() {
     return Mono.defer(
         () -> {
-          LOGGER.info("Stopping gateway...");
-
-          return server
-              .flatMap(
-                  nettyContextCloseable -> {
-                    nettyContextCloseable.dispose();
-                    return nettyContextCloseable.onClose();
-                  })
-              .doOnSuccess(ignore -> LOGGER.info("Gateway has been stopped successfully"))
-              .doOnError(
-                  throwable ->
-                      LOGGER.error("Exception occurred during gateway stopping", throwable));
+          List<Mono<Void>> stopList = new ArrayList<>();
+          stopList.add(shutdownBossGroup());
+          if (server != null) {
+            server.dispose();
+            stopList.add(server.onClose());
+          }
+          return Mono.when(stopList);
         });
   }
 }
