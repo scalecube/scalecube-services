@@ -7,7 +7,6 @@ import java.net.SocketAddress;
 import java.util.Iterator;
 import java.util.Spliterator;
 import java.util.Spliterators;
-import java.util.concurrent.Executor;
 import java.util.stream.StreamSupport;
 
 /**
@@ -24,14 +23,20 @@ public class DefaultEventExecutorChooser implements EventExecutorChooser {
 
   @Override
   public EventExecutor getEventExecutor(Channel channel, Iterator<EventExecutor> iterator) {
+    EventExecutor[] executors =
+        StreamSupport.stream(
+            Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
+            .toArray(EventExecutor[]::new);
+
+    for (EventExecutor executor : executors) {
+      if (executor.inEventLoop()) {
+        return executor;
+      }
+    }
+
     String channelId = channel.id().asLongText(); // globally unique id
     SocketAddress localAddress = channel.localAddress(); // bound address
     SocketAddress remoteAddress = channel.remoteAddress(); // remote ephemeral address
-
-    Executor[] executors =
-        StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
-            .toArray(Executor[]::new);
 
     try {
       return (EventExecutor)
