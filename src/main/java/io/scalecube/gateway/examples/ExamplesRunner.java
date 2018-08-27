@@ -39,6 +39,7 @@ public class ExamplesRunner {
         .seeds(seeds)
         .servicePort(servicePort)
         .services(new GreetingServiceImpl())
+      .numOfThreads(1)
         .startAwait();
 
     Thread.currentThread().join();
