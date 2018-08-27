@@ -6,7 +6,8 @@
   </Properties>
 
   <Appenders>
-    <RollingFile name="FILE" fileName="logs/server.log" filePattern="logs/server-%d{yyyy-MM-dd-HH}.log">
+    <RollingFile name="FILE" fileName="logs/server.log"
+      filePattern="logs/server-%d{yyyy-MM-dd-HH}.log">
       <PatternLayout pattern="${patternLayout}"/>
       <Policies>
         <OnStartupTriggeringPolicy/>
