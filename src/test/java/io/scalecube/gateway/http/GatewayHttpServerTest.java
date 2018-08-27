@@ -8,23 +8,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.gateway.MicroservicesExtension;
 import io.scalecube.services.Microservices;
-
+import java.net.InetSocketAddress;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.http.client.HttpClientException;
 import reactor.ipc.netty.http.client.HttpClientResponse;
 import reactor.test.StepVerifier;
 
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-
-import java.net.InetSocketAddress;
-
 public class GatewayHttpServerTest {
 
   @RegisterExtension
   public static MicroservicesExtension microservicesResource = new MicroservicesExtension();
+
   @RegisterExtension
   public static GatewayHttpExtension gatewayHttpResource = new GatewayHttpExtension();
 
@@ -32,7 +30,8 @@ public class GatewayHttpServerTest {
 
   @BeforeAll
   public static void setUp() {
-    final Microservices gatewayMicroservice = microservicesResource.startGateway(HttpGateway.class).getGateway();
+    final Microservices gatewayMicroservice =
+      microservicesResource.startGateway(HttpGateway.class).getGateway();
 
     gatewayHttpResource.startGateway(gatewayMicroservice);
     microservicesResource.startServices(gatewayMicroservice.discovery().address());
@@ -44,8 +43,9 @@ public class GatewayHttpServerTest {
   public void shouldReturnOKWhenRequestIsString() {
     final String message = "\"hello\"";
 
-    final Mono<HttpClientResponse> post = client
-        .post(generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
+    final Mono<HttpClientResponse> post =
+      client.post(
+        generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
         .assertNext(response -> assertEquals(OK, response.status()))
@@ -56,8 +56,9 @@ public class GatewayHttpServerTest {
   public void shouldReturnOKWhenRequestIsObject() {
     final String message = "{\"text\":\"hello\"}";
 
-    final Mono<HttpClientResponse> post = client
-        .post(generateURL("/greeting/pojo/one"), request -> request.sendString(Mono.just(message)));
+    final Mono<HttpClientResponse> post =
+      client.post(
+        generateURL("/greeting/pojo/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
         .assertNext(response -> assertEquals(OK, response.status()))
@@ -68,8 +69,9 @@ public class GatewayHttpServerTest {
   public void shouldReturnNoContentWhenResponseIsEmpty() {
     final String message = "\"hello\"";
 
-    final Mono<HttpClientResponse> post = client
-        .post(generateURL("/greeting/empty/one"), request -> request.sendString(Mono.just(message)));
+    final Mono<HttpClientResponse> post =
+      client.post(
+        generateURL("/greeting/empty/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
         .assertNext(response -> assertEquals(NO_CONTENT, response.status()))
@@ -80,11 +82,13 @@ public class GatewayHttpServerTest {
   public void shouldReturnServiceUnavailableWhenQualifierIsWrong() {
     final String message = "\"hello\"";
 
-    final Mono<HttpClientResponse> post = client
-        .post(generateURL("/greeting/zzz"), request -> request.sendString(Mono.just(message)));
+    final Mono<HttpClientResponse> post =
+      client.post(
+        generateURL("/greeting/zzz"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-        .verifyErrorSatisfies(throwable -> {
+      .verifyErrorSatisfies(
+        throwable -> {
           assertEquals(HttpClientException.class, throwable.getClass());
           assertEquals(SERVICE_UNAVAILABLE, ((HttpClientException) throwable).status());
         });
@@ -94,11 +98,13 @@ public class GatewayHttpServerTest {
   public void shouldReturnInternalServerErrorWhenRequestIsInvalid() {
     final String message = "@@@";
 
-    final Mono<HttpClientResponse> post = client
-        .post(generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
+    final Mono<HttpClientResponse> post =
+      client.post(
+        generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-        .verifyErrorSatisfies(throwable -> {
+      .verifyErrorSatisfies(
+        throwable -> {
           assertEquals(HttpClientException.class, throwable.getClass());
           assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
         });
@@ -108,11 +114,14 @@ public class GatewayHttpServerTest {
   public void shouldReturnInternalServerErrorWhenServiceFails() {
     final String message = "\"hello\"";
 
-    final Mono<HttpClientResponse> post = client
-        .post(generateURL("/greeting/failing/one"), request -> request.sendString(Mono.just(message)));
+    final Mono<HttpClientResponse> post =
+      client.post(
+        generateURL("/greeting/failing/one"),
+        request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-        .verifyErrorSatisfies(throwable -> {
+      .verifyErrorSatisfies(
+        throwable -> {
           assertEquals(HttpClientException.class, throwable.getClass());
           assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
         });
@@ -122,11 +131,13 @@ public class GatewayHttpServerTest {
   public void shouldReturnInternalServerErrorWhenTimeoutReached() {
     final String message = "\"hello\"";
 
-    final Mono<HttpClientResponse> post = client
-        .post(generateURL("/greeting/never/one"), request -> request.sendString(Mono.just(message)));
+    final Mono<HttpClientResponse> post =
+      client.post(
+        generateURL("/greeting/never/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-        .verifyErrorSatisfies(throwable -> {
+      .verifyErrorSatisfies(
+        throwable -> {
           assertEquals(HttpClientException.class, throwable.getClass());
           assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
         });
@@ -137,5 +148,4 @@ public class GatewayHttpServerTest {
     InetSocketAddress address = new InetSocketAddress(gatewayHttpResource.httpAddress().getPort());
     return "http://" + address.getHostName() + ":" + address.getPort() + qualifier;
   }
-
 }

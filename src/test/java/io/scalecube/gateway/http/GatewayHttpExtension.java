@@ -1,13 +1,10 @@
 package io.scalecube.gateway.http;
 
 import io.scalecube.services.Microservices;
-
-import reactor.ipc.netty.http.client.HttpClient;
-
+import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
-
-import java.net.InetSocketAddress;
+import reactor.ipc.netty.http.client.HttpClient;
 
 public class GatewayHttpExtension implements AfterAllCallback {
 

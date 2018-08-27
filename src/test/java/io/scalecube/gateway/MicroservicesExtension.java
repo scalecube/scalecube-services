@@ -6,13 +6,11 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.transport.Address;
-
+import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
 
 public class MicroservicesExtension implements AfterAllCallback {
 
@@ -57,10 +55,7 @@ public class MicroservicesExtension implements AfterAllCallback {
   }
 
   public MicroservicesExtension startServices(Address gatewayAddress, GreetingService service) {
-    services = Microservices.builder()
-        .seeds(gatewayAddress)
-        .services(service)
-        .startAwait();
+    services = Microservices.builder().seeds(gatewayAddress).services(service).startAwait();
     serviceAddress = services.serviceAddress();
     LOGGER.info("Started services {} on {}", services, serviceAddress);
     return this;
