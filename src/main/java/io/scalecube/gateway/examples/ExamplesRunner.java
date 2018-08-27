@@ -7,14 +7,12 @@ import io.scalecube.transport.Address;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Runner for example services.
- */
+/** Runner for example services. */
 public class ExamplesRunner {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExamplesRunner.class);
   private static final String DECORATOR =
-    "***********************************************************************";
+      "***********************************************************************";
 
   /**
    * Main method of runner for example services.
@@ -39,7 +37,6 @@ public class ExamplesRunner {
         .seeds(seeds)
         .servicePort(servicePort)
         .services(new GreetingServiceImpl())
-      .numOfThreads(1)
         .startAwait();
 
     Thread.currentThread().join();
