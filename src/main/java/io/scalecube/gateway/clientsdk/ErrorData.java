@@ -25,9 +25,6 @@ public final class ErrorData {
 
   @Override
   public String toString() {
-    return "ErrorData{" +
-        "errorCode=" + errorCode +
-        ", errorMessage='" + errorMessage + '\'' +
-        '}';
+    return "ErrorData{" + "errorCode=" + errorCode + ", errorMessage='" + errorMessage + '\'' + '}';
   }
 }

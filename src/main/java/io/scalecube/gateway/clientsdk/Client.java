@@ -2,14 +2,12 @@ package io.scalecube.gateway.clientsdk;
 
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.services.methods.MethodInfo;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public final class Client {
 
@@ -29,20 +27,23 @@ public final class Client {
 
   public <T> T forService(Class<T> serviceClazz) {
     // noinspection unchecked
-    return (T) proxyMap.computeIfAbsent(serviceClazz, (clazz) -> {
-      Map<Method, MethodInfo> methods = Reflect.methodsInfo(serviceClazz);
-      return Proxy.newProxyInstance(
-        serviceClazz.getClassLoader(),
-        new Class[] {serviceClazz},
-        new RemoteInvocationHandler(transport, methods, messageCodec));
-    });
+    return (T)
+      proxyMap.computeIfAbsent(
+        serviceClazz,
+        (clazz) -> {
+          Map<Method, MethodInfo> methods = Reflect.methodsInfo(serviceClazz);
+          return Proxy.newProxyInstance(
+            serviceClazz.getClassLoader(),
+            new Class[]{serviceClazz},
+            new RemoteInvocationHandler(transport, methods, messageCodec));
+        });
   }
 
-  public Flux<ClientMessage> rawStream(ClientMessage clientMessage){
-      return transport.requestStream(clientMessage);
+  public Flux<ClientMessage> rawStream(ClientMessage clientMessage) {
+    return transport.requestStream(clientMessage);
   }
 
-  public Mono<ClientMessage> rawRequestResponse(ClientMessage clientMessage){
+  public Mono<ClientMessage> rawRequestResponse(ClientMessage clientMessage) {
     return transport.requestResponse(clientMessage);
   }
 }

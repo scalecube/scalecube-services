@@ -1,6 +1,9 @@
 package io.scalecube.gateway.clientsdk;
 
-import static io.scalecube.services.CommunicationMode.*;
+import static io.scalecube.services.CommunicationMode.FIRE_AND_FORGET;
+import static io.scalecube.services.CommunicationMode.REQUEST_CHANNEL;
+import static io.scalecube.services.CommunicationMode.REQUEST_RESPONSE;
+import static io.scalecube.services.CommunicationMode.REQUEST_STREAM;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.CommunicationMode;
@@ -9,12 +12,6 @@ import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.methods.MethodInfo;
-
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import org.reactivestreams.Publisher;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -23,13 +20,22 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 class Reflect {
 
   static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
-    return Collections.unmodifiableMap(serviceMethods(serviceInterface).values().stream()
-        .collect(Collectors.toMap(method -> method,
-            method1 -> new MethodInfo(
+    return Collections.unmodifiableMap(
+      serviceMethods(serviceInterface)
+        .values()
+        .stream()
+        .collect(
+          Collectors.toMap(
+            method -> method,
+            method1 ->
+              new MethodInfo(
                 serviceName(serviceInterface),
                 methodName(method1),
                 parameterizedReturnType(method1),
@@ -39,10 +45,11 @@ class Reflect {
   }
 
   /**
-   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters. in case the method is
-   * annotated with @RequestType this type will always be chosen. if the parameter is generic eg. <String> the actual
-   * type will be used. in case there is no annotation and the type is not generic then return the actual type. in case
-   * method accepts service message and no RequestType annotation is present then return Object.class
+   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
+   * in case the method is annotated with @RequestType this type will always be chosen. if the
+   * parameter is generic eg. <String> the actual type will be used. in case there is no annotation
+   * and the type is not generic then return the actual type. in case method accepts service message
+   * and no RequestType annotation is present then return Object.class
    *
    * @param method in inspection.
    * @return type of parameter [0] or void
@@ -63,7 +70,6 @@ class Reflect {
         } else {
           return method.getParameterTypes()[0];
         }
-
       }
     } else {
       return Void.TYPE;
@@ -80,7 +86,8 @@ class Reflect {
     Type type = method.getGenericReturnType();
     if (type instanceof ParameterizedType) {
       try {
-        return Class.forName((((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
+        return Class.forName(
+          (((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
       } catch (ClassNotFoundException e) {
         return Object.class;
       }
@@ -114,8 +121,11 @@ class Reflect {
   private static String serviceName(Class<?> serviceInterface) {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
-    requireNonNull(serviceAnnotation != null, String.format("Not a service interface: %s", serviceInterface));
-    return isNullOrEmpty(serviceAnnotation.value()) ? serviceInterface.getName() : serviceAnnotation.value();
+    requireNonNull(
+      serviceAnnotation != null, String.format("Not a service interface: %s", serviceInterface));
+    return isNullOrEmpty(serviceAnnotation.value())
+      ? serviceInterface.getName()
+      : serviceAnnotation.value();
   }
 
   /**
@@ -125,12 +135,18 @@ class Reflect {
    * @return service name.
    */
   private static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
-    Map<String, Method> methods = Arrays.stream(serviceInterface.getMethods())
+    Map<String, Method> methods =
+      Arrays.stream(serviceInterface.getMethods())
         .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-        .collect(Collectors.toMap(method -> {
-          ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
-          return isNullOrEmpty(methodAnnotation.value()) ? method.getName() : methodAnnotation.value();
-        }, Function.identity()));
+        .collect(
+          Collectors.toMap(
+            method -> {
+              ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+              return isNullOrEmpty(methodAnnotation.value())
+                ? method.getName()
+                : methodAnnotation.value();
+            },
+            Function.identity()));
 
     return Collections.unmodifiableMap(methods);
   }
@@ -148,9 +164,10 @@ class Reflect {
       return REQUEST_RESPONSE;
     } else if (returnType.isAssignableFrom(Flux.class)) {
       Class<?>[] reqTypes = method.getParameterTypes();
-      boolean hasFluxAsReqParam = reqTypes.length > 0
+      boolean hasFluxAsReqParam =
+        reqTypes.length > 0
           && (Flux.class.isAssignableFrom(reqTypes[0])
-              || Publisher.class.isAssignableFrom(reqTypes[0]));
+          || Publisher.class.isAssignableFrom(reqTypes[0]));
 
       return hasFluxAsReqParam ? REQUEST_CHANNEL : REQUEST_STREAM;
     } else {

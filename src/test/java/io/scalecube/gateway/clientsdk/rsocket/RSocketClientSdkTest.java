@@ -63,11 +63,12 @@ class RSocketClientSdkTest {
     int gatewayPort =
       seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
-    ClientMessageCodec codec = new ClientMessageCodec(
-      HeadersCodec.getInstance(settings.contentType()),
-      DataCodec.getInstance(settings.contentType()));
-    rsocketClient = new Client(new RSocketClientTransport(settings, codec, clientLoopResources),
-      codec);
+    ClientMessageCodec codec =
+      new ClientMessageCodec(
+        HeadersCodec.getInstance(settings.contentType()),
+        DataCodec.getInstance(settings.contentType()));
+    rsocketClient =
+      new Client(new RSocketClientTransport(settings, codec, clientLoopResources), codec);
   }
 
   @AfterEach
@@ -79,9 +80,7 @@ class RSocketClientSdkTest {
 
   @Test
   void testOneScalar() {
-    Mono<String> john = rsocketClient
-      .forService(GreetingService.class)
-      .one(JOHN);
+    Mono<String> john = rsocketClient.forService(GreetingService.class).one(JOHN);
 
     StepVerifier.create(john)
       .assertNext(n -> assertTrue(n.contains(JOHN)))
@@ -92,23 +91,18 @@ class RSocketClientSdkTest {
   @Test
   void testStreamScalar() {
     int cnt = 5;
-    Flux<String> johnnys = rsocketClient
-      .forService(GreetingService.class)
-      .many(JOHN)
-      .take(cnt);
-    StepVerifier.create(johnnys)
-      .expectNextCount(cnt)
-      .expectComplete()
-      .verify();
+    Flux<String> johnnys = rsocketClient.forService(GreetingService.class).many(JOHN).take(cnt);
+    StepVerifier.create(johnnys).expectNextCount(cnt).expectComplete().verify();
   }
 
   @Test
   void testOnePojo() {
     int cnt = 5;
 
-    Mono<GreetingResponse> johnnys = rsocketClient
-      .forService(GreetingService.class)
-      .pojoOne(new GreetingRequest().setText(JOHN));
+    Mono<GreetingResponse> johnnys =
+      rsocketClient
+        .forService(GreetingService.class)
+        .pojoOne(new GreetingRequest().setText(JOHN));
 
     StepVerifier.create(johnnys)
       .assertNext(n -> assertEquals("Echo:" + JOHN, n.getText()))
@@ -120,10 +114,11 @@ class RSocketClientSdkTest {
   void testStreamPojo() {
     int cnt = 5;
 
-    Flux<GreetingResponse> johnnys = rsocketClient
-      .forService(GreetingService.class)
-      .pojoMany(new GreetingRequest().setText(JOHN))
-      .take(cnt);
+    Flux<GreetingResponse> johnnys =
+      rsocketClient
+        .forService(GreetingService.class)
+        .pojoMany(new GreetingRequest().setText(JOHN))
+        .take(cnt);
 
     StepVerifier.create(johnnys)
       .assertNext(n -> assertTrue(n.getText().contains(JOHN)))
@@ -134,13 +129,9 @@ class RSocketClientSdkTest {
 
   @Test
   void testFailingStream() {
-    Flux failing = rsocketClient.forService(GreetingService.class)
-      .failingMany(JOHN);
+    Flux failing = rsocketClient.forService(GreetingService.class).failingMany(JOHN);
 
-    StepVerifier.create(failing)
-      .expectNextCount(2)
-      .expectError()
-      .verify();
+    StepVerifier.create(failing).expectNextCount(2).expectError().verify();
   }
 
   @Test
@@ -149,15 +140,20 @@ class RSocketClientSdkTest {
 
     long currentTimestamp = System.currentTimeMillis();
 
-    Flux<ClientMessage> rawStream = rsocketClient
-      .rawStream(
-        ClientMessage.builder().qualifier("/" + GreetingService.QUALIFIER + "/rawStream").build())
-      .take(cnt);
+    Flux<ClientMessage> rawStream =
+      rsocketClient
+        .rawStream(
+          ClientMessage.builder()
+            .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
+            .build())
+        .take(cnt);
 
     StepVerifier.create(rawStream)
-      .assertNext(msg -> assertTrue(
-        Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY)) >= currentTimestamp)
-      )
+      .assertNext(
+        msg ->
+          assertTrue(
+            Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
+              >= currentTimestamp))
       .expectNextCount(cnt - 1 /* minus previous check */)
       .expectComplete()
       .verify();
@@ -166,13 +162,17 @@ class RSocketClientSdkTest {
   @Test
   void testRawRequestResponse() {
     long currentTimestamp = System.currentTimeMillis();
-    Mono<ClientMessage> rawStream = rsocketClient
-      .rawRequestResponse(
-        ClientMessage.builder().qualifier("/" + GreetingService.QUALIFIER + "/rawStream").build());
+    Mono<ClientMessage> rawStream =
+      rsocketClient.rawRequestResponse(
+        ClientMessage.builder()
+          .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
+          .build());
     StepVerifier.create(rawStream)
-      .assertNext(msg -> assertTrue(
-        Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY)) >= currentTimestamp)
-      )
+      .assertNext(
+        msg ->
+          assertTrue(
+            Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
+              >= currentTimestamp))
       .expectComplete()
       .verify();
   }
