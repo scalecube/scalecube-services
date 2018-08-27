@@ -6,8 +6,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.rsocket.RSocketFactory;
-import io.rsocket.transport.netty.server.ExtendedTcpServerTransport;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
+import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -89,7 +89,7 @@ public class RSocketServerTransport implements ServerTransport {
                     ByteBufPayload.create(
                         frame.sliceData().retain(), frame.sliceMetadata().retain()))
             .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-            .transport(new ExtendedTcpServerTransport(tcpServer))
+            .transport(TcpServerTransport.create(tcpServer))
             .start()
             .block();
 
