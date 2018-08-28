@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
-  extends BenchmarksState<T> {
+    extends BenchmarksState<T> {
 
   private LoopResources loopResources;
 

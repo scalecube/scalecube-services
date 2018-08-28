@@ -16,21 +16,21 @@ public class GWMessageEncoderMicrobenchmark {
    */
   public static void main(String[] args) {
     BenchmarksSettings settings =
-      BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
+        BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
     new GWMessageCodecMicrobenchmarkState(settings)
-      .runForSync(
-        state -> {
-          GatewayMessageCodec codec = state.codec();
-          GatewayMessage message = state.message();
-          Timer timer = state.timer("timer");
+        .runForSync(
+            state -> {
+              GatewayMessageCodec codec = state.codec();
+              GatewayMessage message = state.message();
+              Timer timer = state.timer("timer");
 
-          return i -> {
-            Timer.Context timerContext = timer.time();
-            ByteBuf bb = codec.encode(message);
-            timerContext.stop();
-            bb.release();
-            return bb;
-          };
-        });
+              return i -> {
+                Timer.Context timerContext = timer.time();
+                ByteBuf bb = codec.encode(message);
+                timerContext.stop();
+                bb.release();
+                return bb;
+              };
+            });
   }
 }

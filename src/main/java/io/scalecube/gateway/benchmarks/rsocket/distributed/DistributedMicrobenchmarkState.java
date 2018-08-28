@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 
 public class DistributedMicrobenchmarkState
-  extends AbstractBenchmarkState<DistributedMicrobenchmarkState> {
+    extends AbstractBenchmarkState<DistributedMicrobenchmarkState> {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
 
@@ -32,9 +32,9 @@ public class DistributedMicrobenchmarkState
     super.beforeAll();
 
     services =
-      Microservices.builder()
-        .services(new GreetingServiceImpl(), new ExampleServiceImpl())
-        .startAwait();
+        Microservices.builder()
+            .services(new GreetingServiceImpl(), new ExampleServiceImpl())
+            .startAwait();
 
     gateway =
         Microservices.builder()

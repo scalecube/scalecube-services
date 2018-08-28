@@ -27,9 +27,9 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
 
   public Mono<Client> createClient() {
     return createClient(
-      ClientSettings.builder()
-        .host(gatewayAddress.getHostString())
-        .port(gatewayAddress.getPort())
-        .build());
+        ClientSettings.builder()
+            .host(gatewayAddress.getHostString())
+            .port(gatewayAddress.getPort())
+            .build());
   }
 }

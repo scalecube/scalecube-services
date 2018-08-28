@@ -14,18 +14,18 @@ public final class RequestOneBenchmark {
   }
 
   public static void runWith(
-    String[] args,
+      String[] args,
       Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
     BenchmarksSettings settings =
-      BenchmarksSettings.from(args)
-        .injectors(1000)
-        .messageRate(100_000)
-        .rampUpDuration(Duration.ofSeconds(60))
-        .executionTaskDuration(Duration.ofSeconds(300))
-        .consoleReporterEnabled(true)
-        .durationUnit(TimeUnit.MILLISECONDS)
-        .build();
+        BenchmarksSettings.from(args)
+            .injectors(1000)
+            .messageRate(100_000)
+            .rampUpDuration(Duration.ofSeconds(60))
+            .executionTaskDuration(Duration.ofSeconds(300))
+            .consoleReporterEnabled(true)
+            .durationUnit(TimeUnit.MILLISECONDS)
+            .build();
 
     AbstractBenchmarkState<?> benchmarkState = benchmarkStateFactory.apply(settings);
 
