@@ -9,6 +9,11 @@ import java.util.concurrent.TimeUnit;
 
 public class GWMessageDecoderMicrobenchmark {
 
+  /**
+   * Main runner.
+   *
+   * @param args program arguments
+   */
   public static void main(String[] args) {
     BenchmarksSettings settings =
       BenchmarksSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();

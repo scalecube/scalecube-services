@@ -4,6 +4,11 @@ import io.scalecube.gateway.benchmarks.RequestOneBenchmark;
 
 public class StandaloneRequestOneMicrobenchmark {
 
+  /**
+   * Main runner.
+   *
+   * @param args program arguments
+   */
   public static void main(String[] args) {
     RequestOneBenchmark.runWith(args, StandaloneMicrobenchmarkState::new);
   }
