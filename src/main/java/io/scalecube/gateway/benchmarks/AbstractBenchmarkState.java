@@ -9,11 +9,11 @@ import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
-
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 
-public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>> extends BenchmarksState<T> {
+public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
+  extends BenchmarksState<T> {
 
   private LoopResources loopResources;
 
@@ -24,8 +24,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-    int workerCount = Runtime.getRuntime().availableProcessors();
-    loopResources = LoopResources.create("loopResources", workerCount, true);
+    loopResources = LoopResources.create("rsws-client");
   }
 
   @Override

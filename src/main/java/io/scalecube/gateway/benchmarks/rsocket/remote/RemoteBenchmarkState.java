@@ -4,10 +4,8 @@ import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-
-import reactor.core.publisher.Mono;
-
 import java.net.InetSocketAddress;
+import reactor.core.publisher.Mono;
 
 public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmarkState> {
 
@@ -28,7 +26,8 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
   }
 
   public Mono<Client> createClient() {
-    return createClient(ClientSettings.builder()
+    return createClient(
+      ClientSettings.builder()
         .host(gatewayAddress.getHostString())
         .port(gatewayAddress.getPort())
         .build());
