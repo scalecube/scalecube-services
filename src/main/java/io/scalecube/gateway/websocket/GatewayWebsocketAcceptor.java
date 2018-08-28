@@ -44,6 +44,12 @@ public class GatewayWebsocketAcceptor
 
   private final Metrics metrics;
 
+  /**
+   * Constructor for websocket acceptor.
+   *
+   * @param serviceCall service call
+   * @param metrics metrics instance
+   */
   public GatewayWebsocketAcceptor(ServiceCall serviceCall, Metrics metrics) {
     this.serviceCall = serviceCall;
     this.metrics = metrics != null ? metrics : new Metrics(new MetricRegistry());
