@@ -25,7 +25,7 @@ public class DefaultEventExecutorChooser implements EventExecutorChooser {
   public EventExecutor getEventExecutor(Channel channel, Iterator<EventExecutor> iterator) {
     EventExecutor[] executors =
         StreamSupport.stream(
-            Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
+          Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false)
             .toArray(EventExecutor[]::new);
 
     for (EventExecutor executor : executors) {

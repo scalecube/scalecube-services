@@ -26,7 +26,7 @@ public interface HeadersCodec {
    */
   static HeadersCodec loadInstance(String contentType) {
     return ServiceLoaderUtil.findFirst(
-        HeadersCodec.class, codec -> codec.contentType().equalsIgnoreCase(contentType))
+      HeadersCodec.class, codec -> codec.contentType().equalsIgnoreCase(contentType))
         .orElseThrow(() -> new IllegalArgumentException("HeadersCodec not configured"));
   }
 
