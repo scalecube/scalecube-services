@@ -17,7 +17,7 @@ public interface Gateway {
    */
   static Gateway getGateway(Class<? extends Gateway> gatewayClass) {
     return ServiceLoaderUtil.findFirst(
-        Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
+            Gateway.class, gateway -> gateway.getClass().isAssignableFrom(gatewayClass))
         .orElseThrow(() -> new IllegalStateException("Gateway is not found in classpath"));
   }
 

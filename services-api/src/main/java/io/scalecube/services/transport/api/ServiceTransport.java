@@ -4,9 +4,7 @@ import io.scalecube.services.ServiceLoaderUtil;
 import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 
-/**
- * Service transport interface.
- */
+/** Service transport interface. */
 public interface ServiceTransport {
 
   /**

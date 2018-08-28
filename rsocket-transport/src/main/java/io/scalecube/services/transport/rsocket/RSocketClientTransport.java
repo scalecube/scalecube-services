@@ -16,9 +16,7 @@ import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.TcpClient;
 
-/**
- * RSocket client transport implementation.
- */
+/** RSocket client transport implementation. */
 public class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);

@@ -109,10 +109,10 @@ public class ServiceCallRemoteTest extends BaseTest {
             ServiceException.class,
             () ->
                 Mono.from(
-                    gateway
-                        .call()
-                        .create()
-                        .requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
+                        gateway
+                            .call()
+                            .create()
+                            .requestOne(GREETING_FAIL_REQ, GreetingResponse.class))
                     .block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }
@@ -126,10 +126,10 @@ public class ServiceCallRemoteTest extends BaseTest {
             ServiceException.class,
             () ->
                 Mono.from(
-                    gateway
-                        .call()
-                        .create()
-                        .requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
+                        gateway
+                            .call()
+                            .create()
+                            .requestOne(GREETING_ERROR_REQ, GreetingResponse.class))
                     .block(timeout));
     assertEquals("GreetingRequest{name='joe'}", exception.getMessage());
   }

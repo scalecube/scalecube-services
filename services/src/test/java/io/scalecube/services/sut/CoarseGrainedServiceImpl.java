@@ -8,14 +8,11 @@ import reactor.core.publisher.Mono;
 
 public class CoarseGrainedServiceImpl implements CoarseGrainedService {
 
-  @Inject
-  public GreetingService greetingServiceTimeout;
+  @Inject public GreetingService greetingServiceTimeout;
 
-  @Inject
-  private GreetingService greetingService;
+  @Inject private GreetingService greetingService;
 
-  @Inject
-  private Microservices microservices;
+  @Inject private Microservices microservices;
 
   @Override
   public Mono<String> callGreeting(String name) {

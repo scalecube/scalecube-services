@@ -6,9 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 
-/**
- * Represents gateway configuration.
- */
+/** Represents gateway configuration. */
 public final class GatewayConfig {
 
   private final String name;

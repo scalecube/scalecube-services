@@ -3,9 +3,7 @@ package io.scalecube.services.transport.api;
 import java.net.SocketAddress;
 import java.util.concurrent.Executor;
 
-/**
- * Service transport worker thread chooser.
- */
+/** Service transport worker thread chooser. */
 @FunctionalInterface
 public interface WorkerThreadChooser {
 

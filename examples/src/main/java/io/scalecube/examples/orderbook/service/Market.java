@@ -3,9 +3,7 @@ package io.scalecube.examples.orderbook.service;
 import io.scalecube.examples.orderbook.service.engine.events.Side;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 
-/**
- * A market.
- */
+/** A market. */
 public class Market {
   private Long2ObjectOpenHashMap<OrderBook> books;
 

@@ -64,7 +64,7 @@ public class ExceptionProcessor {
         return new ServiceUnavailableException(errorCode, errorMessage);
       case InternalServiceException.ERROR_TYPE:
         return new InternalServiceException(errorCode, errorMessage);
-      // Handle other types of Service Exceptions here
+        // Handle other types of Service Exceptions here
       default:
         return new InternalServiceException(errorCode, errorMessage);
     }
