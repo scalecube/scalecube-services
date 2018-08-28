@@ -40,6 +40,12 @@ public final class ClientMessage {
     return data != null;
   }
 
+  /**
+   * Boolean method telling message contains data of given type or not.
+   *
+   * @param dataClass data class
+   * @return true if message has not null data of given type
+   */
   public boolean hasData(Class<?> dataClass) {
     if (dataClass == null) {
       return false;
