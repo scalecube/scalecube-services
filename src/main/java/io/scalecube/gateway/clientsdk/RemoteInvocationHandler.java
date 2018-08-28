@@ -12,6 +12,13 @@ public class RemoteInvocationHandler implements InvocationHandler {
   private final Map<Method, MethodInfo> methods;
   private final ClientMessageCodec messageCodec;
 
+  /**
+   * Constructor for remote invocation handler.
+   *
+   * @param transport client sdk transport implementation
+   * @param methods methods
+   * @param messageCodec client message codec
+   */
   public RemoteInvocationHandler(
       ClientTransport transport, Map<Method, MethodInfo> methods, ClientMessageCodec messageCodec) {
     this.transport = transport;

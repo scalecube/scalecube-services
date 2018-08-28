@@ -24,6 +24,12 @@ public final class ClientMessageCodec {
   private final HeadersCodec headersCodec;
   private final DataCodec dataCodec;
 
+  /**
+   * Constructor for client message codec.
+   *
+   * @param headersCodec headers message codec.
+   * @param dataCodec data message codec.
+   */
   public ClientMessageCodec(HeadersCodec headersCodec, DataCodec dataCodec) {
     this.headersCodec = headersCodec;
     this.dataCodec = dataCodec;

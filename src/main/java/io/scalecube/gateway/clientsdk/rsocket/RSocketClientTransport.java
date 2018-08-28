@@ -27,14 +27,21 @@ public final class RSocketClientTransport implements ClientTransport {
   private static final AtomicReferenceFieldUpdater<RSocketClientTransport, Mono>
       rSocketMonoUpdater =
           AtomicReferenceFieldUpdater.newUpdater(
-              RSocketClientTransport.class, Mono.class, "rSocketMono");
+              RSocketClientTransport.class, Mono.class, "rsocketMono");
 
   private final ClientSettings settings;
   private final ClientMessageCodec messageCodec;
   private final LoopResources loopResources;
 
-  private volatile Mono<RSocket> rSocketMono;
+  private volatile Mono<RSocket> rsocketMono;
 
+  /**
+   * Constructor for client sdk rsocket transport.
+   *
+   * @param settings client settings.
+   * @param messageCodec client message codec.
+   * @param loopResources loop resources.
+   */
   public RSocketClientTransport(
       ClientSettings settings, ClientMessageCodec messageCodec, LoopResources loopResources) {
     this.settings = settings;
@@ -46,10 +53,10 @@ public final class RSocketClientTransport implements ClientTransport {
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return getOrConnect()
         .flatMap(
-            rSocket ->
-                rSocket
+            rsocket ->
+                rsocket
                     .requestResponse(toPayload(request))
-                    .takeUntilOther(listenConnectionClose(rSocket)))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .publishOn(Schedulers.parallel())
         .map(this::toClientMessage);
   }
@@ -58,10 +65,10 @@ public final class RSocketClientTransport implements ClientTransport {
   public Flux<ClientMessage> requestStream(ClientMessage request) {
     return getOrConnect()
         .flatMapMany(
-            rSocket ->
-                rSocket
+            rsocket ->
+                rsocket
                     .requestStream(toPayload(request))
-                    .takeUntilOther(listenConnectionClose(rSocket)))
+                    .takeUntilOther(listenConnectionClose(rsocket)))
         .publishOn(Schedulers.parallel())
         .map(this::toClientMessage);
   }
@@ -74,9 +81,9 @@ public final class RSocketClientTransport implements ClientTransport {
       return Mono.empty();
     }
     return curr.flatMap(
-        rSocket -> {
-          rSocket.dispose();
-          return rSocket.onClose();
+        rsocket -> {
+          rsocket.dispose();
+          return rsocket.onClose();
         });
   }
 
@@ -102,10 +109,10 @@ public final class RSocketClientTransport implements ClientTransport {
         .transport(createRSocketTransport(address))
         .start()
         .doOnSuccess(
-            rSocket -> {
+            rsocket -> {
               LOGGER.info("Connected successfully on {}", address);
               // setup shutdown hook
-              rSocket
+              rsocket
                   .onClose()
                   .doOnTerminate(
                       () -> {
@@ -143,11 +150,11 @@ public final class RSocketClientTransport implements ClientTransport {
     return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
   }
 
-  private <T> Mono<T> listenConnectionClose(RSocket rSocket) {
+  private <T> Mono<T> listenConnectionClose(RSocket rsocket) {
     //noinspection unchecked
-    return rSocket
+    return rsocket
         .onClose()
-        .map(aVoid -> (T) aVoid)
+        .map(avoid -> (T) avoid)
         .switchIfEmpty(Mono.defer(this::toConnectionClosedException));
   }
 

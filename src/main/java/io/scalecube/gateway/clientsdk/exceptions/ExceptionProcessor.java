@@ -9,14 +9,30 @@ import io.scalecube.services.exceptions.UnauthorizedException;
 
 public final class ExceptionProcessor {
 
+  /** Default constructor. */
   private ExceptionProcessor() {
     // Do not instantiate
   }
 
+  /**
+   * Boolean function telling is given qualifier string an error qualifier. See {@link
+   * Qualifier#ERROR_NAMESPACE}.
+   *
+   * @param qualifier qualifier string.
+   * @return true if qualifier given is error qualifier
+   */
   public static boolean isError(String qualifier) {
     return qualifier.contains(Qualifier.ERROR_NAMESPACE);
   }
 
+  /**
+   * Exception converter to {@link ServiceException}.
+   *
+   * @param qualifier qualifier string.
+   * @param errorCode error code.
+   * @param errorMessage error message.
+   * @return service exception instance.
+   */
   public static ServiceException toException(String qualifier, int errorCode, String errorMessage) {
     int errorType = Integer.parseInt(Qualifier.getQualifierAction(qualifier));
 
