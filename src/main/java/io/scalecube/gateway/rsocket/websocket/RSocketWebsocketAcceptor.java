@@ -42,88 +42,88 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
     LOGGER.info("Accepted rsocket websocket: {}, connectionSetup: {}", rsocket, setup);
 
     rsocket
-      .onClose()
-      .doOnTerminate(
-        () -> {
-          LOGGER.info("Client disconnected: {}", rsocket);
-          metrics.getCounter(METRICS_PREFIX, METRIC_CLIENT_CONNECTIONS).dec();
-        })
-      .subscribe();
+        .onClose()
+        .doOnTerminate(
+            () -> {
+              LOGGER.info("Client disconnected: {}", rsocket);
+              metrics.getCounter(METRICS_PREFIX, METRIC_CLIENT_CONNECTIONS).dec();
+            })
+        .subscribe();
 
     HeadersCodec headersCodec = HeadersCodec.getInstance(setup.metadataMimeType());
 
     ServiceMessageCodec codec = new ServiceMessageCodec(headersCodec);
     metrics.getCounter(METRICS_PREFIX, METRIC_CLIENT_CONNECTIONS).inc();
     return Mono.just(
-      new AbstractRSocket() {
-        @Override
-        public Mono<Void> fireAndForget(Payload payload) {
-          metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
-          Timer.Context roundtripTime =
-            metrics.getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION).time();
-          return serviceCall.oneWay(toServiceMessage(payload)).doOnTerminate(roundtripTime::stop);
-        }
+        new AbstractRSocket() {
+          @Override
+          public Mono<Void> fireAndForget(Payload payload) {
+            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
+            Timer.Context roundtripTime =
+                metrics.getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION).time();
+            return serviceCall.oneWay(toServiceMessage(payload)).doOnTerminate(roundtripTime::stop);
+          }
 
-        @Override
-        public Mono<Payload> requestResponse(Payload payload) {
-          metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
-          Timer.Context streamDuration =
-            RSocketWebsocketAcceptor.this
-              .metrics
-              .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
-              .time();
-          return serviceCall
-            .requestOne(toServiceMessage(payload))
-            .map(this::toPayload)
-            .doOnNext(
-              n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
-            .doOnTerminate(streamDuration::stop);
-        }
+          @Override
+          public Mono<Payload> requestResponse(Payload payload) {
+            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
+            Timer.Context streamDuration =
+                RSocketWebsocketAcceptor.this
+                    .metrics
+                    .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
+                    .time();
+            return serviceCall
+                .requestOne(toServiceMessage(payload))
+                .map(this::toPayload)
+                .doOnNext(
+                    n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
+                .doOnTerminate(streamDuration::stop);
+          }
 
-        @Override
-        public Flux<Payload> requestStream(Payload payload) {
-          metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
-          Timer.Context streamDuration =
-            RSocketWebsocketAcceptor.this
-              .metrics
-              .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
-              .time();
-          return serviceCall
-            .requestMany(toServiceMessage(payload))
-            .map(this::toPayload)
-            .doOnNext(
-              n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
-            .doOnTerminate(streamDuration::stop);
-        }
+          @Override
+          public Flux<Payload> requestStream(Payload payload) {
+            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
+            Timer.Context streamDuration =
+                RSocketWebsocketAcceptor.this
+                    .metrics
+                    .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
+                    .time();
+            return serviceCall
+                .requestMany(toServiceMessage(payload))
+                .map(this::toPayload)
+                .doOnNext(
+                    n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
+                .doOnTerminate(streamDuration::stop);
+          }
 
-        @Override
-        public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-          Timer.Context streamDuration =
-            RSocketWebsocketAcceptor.this
-              .metrics
-              .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
-              .time();
-          final Publisher<ServiceMessage> publisher =
-            Flux.from(payloads)
-              .doOnNext(
-                n ->
-                  metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark())
-              .map(this::toServiceMessage);
-          return serviceCall
-            .requestBidirectional(publisher)
-            .map(this::toPayload)
-            .doOnNext(
-              n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
-            .doOnTerminate(streamDuration::stop);
-        }
+          @Override
+          public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
+            Timer.Context streamDuration =
+                RSocketWebsocketAcceptor.this
+                    .metrics
+                    .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
+                    .time();
+            final Publisher<ServiceMessage> publisher =
+                Flux.from(payloads)
+                    .doOnNext(
+                        n ->
+                            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark())
+                    .map(this::toServiceMessage);
+            return serviceCall
+                .requestBidirectional(publisher)
+                .map(this::toPayload)
+                .doOnNext(
+                    n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
+                .doOnTerminate(streamDuration::stop);
+          }
 
-        private ServiceMessage toServiceMessage(Payload payload) {
-          return codec.decode(payload.sliceData(), payload.sliceMetadata());
-        }
+          private ServiceMessage toServiceMessage(Payload payload) {
+            return codec.decode(payload.sliceData(), payload.sliceMetadata());
+          }
 
-        private Payload toPayload(ServiceMessage serviceMessage) {
-          return codec.encodeAndTransform(serviceMessage, ByteBufPayload::create);
-        }
-      });
+          private Payload toPayload(ServiceMessage serviceMessage) {
+            return codec.encodeAndTransform(serviceMessage, ByteBufPayload::create);
+          }
+        });
   }
 }
