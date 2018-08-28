@@ -75,18 +75,19 @@ public final class RSocketClientTransport implements ClientTransport {
 
   @Override
   public Mono<Void> close() {
-    return Mono.defer(() -> {
-      // noinspection unchecked
-      Mono<RSocket> curr = rSocketMonoUpdater.get(this);
-      if (curr == null) {
-        return Mono.empty();
-      }
-      return curr.flatMap(
-        rsocket -> {
-          rsocket.dispose();
-          return rsocket.onClose();
+    return Mono.defer(
+        () -> {
+          // noinspection unchecked
+          Mono<RSocket> curr = rSocketMonoUpdater.get(this);
+          if (curr == null) {
+            return Mono.empty();
+          }
+          return curr.flatMap(
+              rsocket -> {
+                rsocket.dispose();
+                return rsocket.onClose();
+              });
         });
-    });
   }
 
   private Mono<RSocket> getOrConnect() {
