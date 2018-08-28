@@ -16,6 +16,12 @@ public final class RequestMaxStreamBenchmark {
     // Do not instantiate
   }
 
+  /**
+   * Runner function for benchmarks.
+   *
+   * @param args program arguments
+   * @param benchmarkStateFactory producer function for {@link AbstractBenchmarkState}
+   */
   public static void runWith(
       String[] args,
       Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
@@ -41,7 +47,7 @@ public final class RequestMaxStreamBenchmark {
           Timer timer = state.timer("service-stream-timer");
           return (executionTick, client) ->
               client
-                  .rawStream(ClientMessage.builder().qualifier(QUALIFIER).build())
+                  .requestStream(ClientMessage.builder().qualifier(QUALIFIER).build())
                   .doOnNext(
                       msg -> {
                         long serverTimestamp =

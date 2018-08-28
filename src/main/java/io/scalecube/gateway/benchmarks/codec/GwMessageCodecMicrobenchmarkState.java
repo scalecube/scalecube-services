@@ -18,8 +18,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class GWMessageCodecMicrobenchmarkState
-    extends BenchmarksState<GWMessageCodecMicrobenchmarkState> {
+public class GwMessageCodecMicrobenchmarkState
+    extends BenchmarksState<GwMessageCodecMicrobenchmarkState> {
 
   private static final String GW_MSG_PATTERN =
       "{" + "\"q\":\"%s\"," + "\"sig\":%d," + "\"sid\":%d," + "\"d\":%s" + "}";
@@ -30,7 +30,7 @@ public class GWMessageCodecMicrobenchmarkState
   private GatewayMessage gatewayMessage;
   private ByteBuf byteBufExample;
 
-  public GWMessageCodecMicrobenchmarkState(BenchmarksSettings settings) {
+  public GwMessageCodecMicrobenchmarkState(BenchmarksSettings settings) {
     super(settings);
   }
 
@@ -64,7 +64,9 @@ public class GWMessageCodecMicrobenchmarkState
     result.requestTimestamp = LocalDateTime.now();
     result.sourceIpAddress = "255.255.255.255";
     result.token =
-        "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJUZW5hbnQxIiwic3ViIjoiMSIsIm5hbWUiOiJ0cmFkZXIxIn0.j9dCs63J4xtWfhctrXb5popLAl8ohSlMTJU3_vCrQHk";
+        "eyJhbGciOiJIUzI1NiJ9."
+            + "eyJhdWQiOiJUZW5hbnQxIiwic3ViIjoiMSIsIm5hbWUiOiJ0cmFkZXIxIn0."
+            + "j9dCs63J4xtWfhctrXb5popLAl8ohSlMTJU3_vCrQHk";
     return result;
   }
 

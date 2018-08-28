@@ -11,6 +11,11 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
 
   private InetSocketAddress gatewayAddress;
 
+  /**
+   * Constructor for benchmarks state.
+   *
+   * @param settings benchmarks settings.
+   */
   public RemoteBenchmarkState(BenchmarksSettings settings) {
     super(settings);
 
@@ -25,6 +30,11 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
     gatewayAddress = InetSocketAddress.createUnresolved(host, port);
   }
 
+  /**
+   * Factory function for {@link Client}.
+   *
+   * @return client
+   */
   public Mono<Client> createClient() {
     return createClient(
         ClientSettings.builder()

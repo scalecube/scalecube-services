@@ -45,6 +45,11 @@ public class StandaloneMicrobenchmarkState
     }
   }
 
+  /**
+   * Factory function for {@link Client}.
+   *
+   * @return client
+   */
   public Mono<Client> createClient() {
     InetSocketAddress gatewayAddress =
         microservices.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass());
