@@ -9,6 +9,13 @@ import reactor.core.scheduler.Schedulers;
 
 public class ExampleServiceImpl implements ExampleService {
 
+  private Flux<Integer> source =
+    Flux.just(1)
+      .repeat()
+      .publishOn(Schedulers.newSingle("service-source"))
+      .publish()
+      .autoConnect();
+
   @Override
   public Mono<String> one(String name) {
     return Mono.just("Echo:" + name);
@@ -45,5 +52,10 @@ public class ExampleServiceImpl implements ExampleService {
     return Flux.concat(fluxes)
       .publishOn(Schedulers.parallel(), Integer.MAX_VALUE)
       .onBackpressureDrop();
+  }
+
+  @Override
+  public Flux<Long> broadcastStream() {
+    return source.map(i -> System.currentTimeMillis());
   }
 }
