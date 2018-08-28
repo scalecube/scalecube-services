@@ -23,12 +23,12 @@ public class GatewayRunner {
   private static final List<String> DEFAULT_SEEDS = Collections.singletonList("localhost:4802");
 
   /**
-   * Main method of gateway runner.
+   * Main runner.
    *
    * @param args program arguments
-   * @throws InterruptedException interrupted exception
+   * @throws Exception exception thrown
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) throws Exception {
     ConfigRegistry configRegistry = GatewayConfigRegistry.configRegistry();
     MetricRegistry metrics = initMetricRegistry();
 
