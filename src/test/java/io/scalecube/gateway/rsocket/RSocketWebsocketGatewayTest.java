@@ -55,8 +55,8 @@ public class RSocketWebsocketGatewayTest {
     extension.shutdownServices();
     Mono<String> result = service.one("hello");
     StepVerifier.create(result)
-      .expectErrorMatches(
-        throwable -> throwable.getMessage().startsWith("No reachable member with such service"))
+        .expectErrorMatches(
+            throwable -> throwable.getMessage().startsWith("No reachable member with such service"))
         .verify(TIMEOUT);
     extension.startServices();
   }
@@ -73,10 +73,10 @@ public class RSocketWebsocketGatewayTest {
   public void shouldReturnErrorDataWhenRequestDataIsEmpty() {
     Mono<String> result = service.one(null);
     StepVerifier.create(result)
-      .expectErrorMatches(
-        t ->
-          "Expected service request data of type: class java.lang.String, but received: null"
-            .equals(t.getMessage()))
+        .expectErrorMatches(
+            t ->
+                "Expected service request data of type: class java.lang.String, but received: null"
+                    .equals(t.getMessage()))
         .verify(TIMEOUT);
   }
 }

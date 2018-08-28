@@ -60,15 +60,15 @@ public class WebsocketExtension implements AfterAllCallback {
 
   public WebsocketExtension startWebsocketServer(Microservices gateway) {
     InetSocketAddress websocketServerAddress =
-      gateway.gatewayAddress("WebsocketGateway", WebsocketGateway.class);
+        gateway.gatewayAddress("WebsocketGateway", WebsocketGateway.class);
 
     websocketServerUri = //
-      UriComponentsBuilder.newInstance()
-        .scheme("ws")
+        UriComponentsBuilder.newInstance()
+            .scheme("ws")
             .host(websocketServerAddress.getAddress().getHostAddress())
             .port(websocketServerAddress.getPort())
-        .build()
-        .toUri();
+            .build()
+            .toUri();
 
     return this;
   }
@@ -76,28 +76,28 @@ public class WebsocketExtension implements AfterAllCallback {
   public WebsocketInvocation.Builder newInvocationForMessages(Publisher<GatewayMessage> publisher) {
     return new WebsocketInvocation.Builder()
         .websocketServerUri(websocketServerUri)
-      .publisher(
-        Flux.from(publisher)
-          .map(WebsocketExtension::encode)
-          .map(
-            str ->
-              new WebSocketMessage(
-                WebSocketMessage.Type.BINARY,
-                BUFFER_FACTORY.wrap(
-                  Unpooled.copiedBuffer(str, Charset.defaultCharset())))));
+        .publisher(
+            Flux.from(publisher)
+                .map(WebsocketExtension::encode)
+                .map(
+                    str ->
+                        new WebSocketMessage(
+                            WebSocketMessage.Type.BINARY,
+                            BUFFER_FACTORY.wrap(
+                                Unpooled.copiedBuffer(str, Charset.defaultCharset())))));
   }
 
   public WebsocketInvocation.Builder newInvocationForStrings(Publisher<String> publisher) {
     return new WebsocketInvocation.Builder()
         .websocketServerUri(websocketServerUri)
-      .publisher(
-        Flux.from(publisher)
-          .map(
-            str ->
-              new WebSocketMessage(
-                WebSocketMessage.Type.BINARY,
-                BUFFER_FACTORY.wrap(
-                  Unpooled.copiedBuffer(str, Charset.defaultCharset())))));
+        .publisher(
+            Flux.from(publisher)
+                .map(
+                    str ->
+                        new WebSocketMessage(
+                            WebSocketMessage.Type.BINARY,
+                            BUFFER_FACTORY.wrap(
+                                Unpooled.copiedBuffer(str, Charset.defaultCharset())))));
   }
 
   public static class WebsocketInvocation {
@@ -123,48 +123,47 @@ public class WebsocketExtension implements AfterAllCallback {
       LOGGER.info("Created websocket client: {} for uri: {}", client, websocketServerUri);
 
       return Flux.create(
-        emitter ->
-          client
-            .execute(
-              websocketServerUri,
-              session -> {
-                try {
-                  if (sessionConsumer != null) {
-                    sessionConsumer.accept(session);
-                  }
-                } catch (Throwable ex) {
-                  LOGGER.error(
-                    "Exception occured at sessionConsumer on client: {}, cause: {}",
-                    client,
-                    ex,
-                    ex);
-                  throw Exceptions.propagate(ex);
-                }
+          emitter ->
+              client
+                  .execute(
+                      websocketServerUri,
+                      session -> {
+                        try {
+                          if (sessionConsumer != null) {
+                            sessionConsumer.accept(session);
+                          }
+                        } catch (Throwable ex) {
+                          LOGGER.error(
+                              "Exception occured at sessionConsumer on client: {}, cause: {}",
+                              client,
+                              ex,
+                              ex);
+                          throw Exceptions.propagate(ex);
+                        }
 
-                LOGGER.info(
-                  "{} started sending messages to: {}", client, websocketServerUri);
+                        LOGGER.info(
+                            "{} started sending messages to: {}", client, websocketServerUri);
 
-                // noinspection unchecked
-                return session
-                  .send(publisher)
-                  .thenMany(
-                    session
-                      .receive()
-                      .map(message -> decode(message.getPayloadAsText(), dataClasses))
-                      .doOnNext(emitter::next)
-                      .doOnComplete(emitter::complete)
-                      .doOnError(emitter::error))
-                  .then();
-              })
-            .block(timeout));
+                        // noinspection unchecked
+                        return session
+                            .send(publisher)
+                            .thenMany(
+                                session
+                                    .receive()
+                                    .map(message -> decode(message.getPayloadAsText(), dataClasses))
+                                    .doOnNext(emitter::next)
+                                    .doOnComplete(emitter::complete)
+                                    .doOnError(emitter::error))
+                            .then();
+                      })
+                  .block(timeout));
     }
 
     public static class Builder {
       private URI websocketServerUri;
       private Publisher<WebSocketMessage> publisher;
       private Duration timeout = DEFAULT_TIMEOUT;
-      private Consumer<WebSocketSession> sessionConsumer = session -> {
-      };
+      private Consumer<WebSocketSession> sessionConsumer = session -> {};
       private Class<?>[] dataClasses;
 
       private Builder() {}
@@ -206,14 +205,14 @@ public class WebsocketExtension implements AfterAllCallback {
       Map<String, Object> map = objectMapper.readValue(payload, HashMap.class);
       Object data = map.get(DATA_FIELD);
       GatewayMessage.Builder builder =
-        GatewayMessage.builder()
-          .qualifier((String) map.get(QUALIFIER_FIELD))
-          .streamId(
-            map.containsKey(STREAM_ID_FIELD)
-              ? Long.valueOf(String.valueOf(map.get(STREAM_ID_FIELD)))
-              : null)
-          .signal((Integer) map.get(SIGNAL_FIELD))
-          .inactivity((Integer) map.get(INACTIVITY_FIELD));
+          GatewayMessage.builder()
+              .qualifier((String) map.get(QUALIFIER_FIELD))
+              .streamId(
+                  map.containsKey(STREAM_ID_FIELD)
+                      ? Long.valueOf(String.valueOf(map.get(STREAM_ID_FIELD)))
+                      : null)
+              .signal((Integer) map.get(SIGNAL_FIELD))
+              .inactivity((Integer) map.get(INACTIVITY_FIELD));
       if (data != null) {
         Object content = data;
         for (Class<?> dataClass : dataClasses) {

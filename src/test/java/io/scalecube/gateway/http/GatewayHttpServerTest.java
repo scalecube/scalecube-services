@@ -31,7 +31,7 @@ public class GatewayHttpServerTest {
   @BeforeAll
   public static void setUp() {
     final Microservices gatewayMicroservice =
-      microservicesResource.startGateway(HttpGateway.class).getGateway();
+        microservicesResource.startGateway(HttpGateway.class).getGateway();
 
     gatewayHttpResource.startGateway(gatewayMicroservice);
     microservicesResource.startServices(gatewayMicroservice.discovery().address());
@@ -44,8 +44,8 @@ public class GatewayHttpServerTest {
     final String message = "\"hello\"";
 
     final Mono<HttpClientResponse> post =
-      client.post(
-        generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
+        client.post(
+            generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
         .assertNext(response -> assertEquals(OK, response.status()))
@@ -57,8 +57,8 @@ public class GatewayHttpServerTest {
     final String message = "{\"text\":\"hello\"}";
 
     final Mono<HttpClientResponse> post =
-      client.post(
-        generateURL("/greeting/pojo/one"), request -> request.sendString(Mono.just(message)));
+        client.post(
+            generateURL("/greeting/pojo/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
         .assertNext(response -> assertEquals(OK, response.status()))
@@ -70,8 +70,8 @@ public class GatewayHttpServerTest {
     final String message = "\"hello\"";
 
     final Mono<HttpClientResponse> post =
-      client.post(
-        generateURL("/greeting/empty/one"), request -> request.sendString(Mono.just(message)));
+        client.post(
+            generateURL("/greeting/empty/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
         .assertNext(response -> assertEquals(NO_CONTENT, response.status()))
@@ -83,15 +83,15 @@ public class GatewayHttpServerTest {
     final String message = "\"hello\"";
 
     final Mono<HttpClientResponse> post =
-      client.post(
-        generateURL("/greeting/zzz"), request -> request.sendString(Mono.just(message)));
+        client.post(
+            generateURL("/greeting/zzz"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-      .verifyErrorSatisfies(
-        throwable -> {
-          assertEquals(HttpClientException.class, throwable.getClass());
-          assertEquals(SERVICE_UNAVAILABLE, ((HttpClientException) throwable).status());
-        });
+        .verifyErrorSatisfies(
+            throwable -> {
+              assertEquals(HttpClientException.class, throwable.getClass());
+              assertEquals(SERVICE_UNAVAILABLE, ((HttpClientException) throwable).status());
+            });
   }
 
   @Test
@@ -99,15 +99,15 @@ public class GatewayHttpServerTest {
     final String message = "@@@";
 
     final Mono<HttpClientResponse> post =
-      client.post(
-        generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
+        client.post(
+            generateURL("/greeting/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-      .verifyErrorSatisfies(
-        throwable -> {
-          assertEquals(HttpClientException.class, throwable.getClass());
-          assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
-        });
+        .verifyErrorSatisfies(
+            throwable -> {
+              assertEquals(HttpClientException.class, throwable.getClass());
+              assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
+            });
   }
 
   @Test
@@ -115,16 +115,16 @@ public class GatewayHttpServerTest {
     final String message = "\"hello\"";
 
     final Mono<HttpClientResponse> post =
-      client.post(
-        generateURL("/greeting/failing/one"),
-        request -> request.sendString(Mono.just(message)));
+        client.post(
+            generateURL("/greeting/failing/one"),
+            request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-      .verifyErrorSatisfies(
-        throwable -> {
-          assertEquals(HttpClientException.class, throwable.getClass());
-          assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
-        });
+        .verifyErrorSatisfies(
+            throwable -> {
+              assertEquals(HttpClientException.class, throwable.getClass());
+              assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
+            });
   }
 
   @Test
@@ -132,15 +132,15 @@ public class GatewayHttpServerTest {
     final String message = "\"hello\"";
 
     final Mono<HttpClientResponse> post =
-      client.post(
-        generateURL("/greeting/never/one"), request -> request.sendString(Mono.just(message)));
+        client.post(
+            generateURL("/greeting/never/one"), request -> request.sendString(Mono.just(message)));
 
     StepVerifier.create(post)
-      .verifyErrorSatisfies(
-        throwable -> {
-          assertEquals(HttpClientException.class, throwable.getClass());
-          assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
-        });
+        .verifyErrorSatisfies(
+            throwable -> {
+              assertEquals(HttpClientException.class, throwable.getClass());
+              assertEquals(INTERNAL_SERVER_ERROR, ((HttpClientException) throwable).status());
+            });
   }
 
   private String generateURL(String qualifier) {

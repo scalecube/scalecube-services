@@ -67,10 +67,10 @@ public abstract class AbstractGatewayExtention
 
   public void startServices() {
     this.services =
-      Microservices.builder()
-        .seeds(seed.discovery().address())
-        .services(serviceInstance)
-        .startAwait();
+        Microservices.builder()
+            .seeds(seed.discovery().address())
+            .services(serviceInstance)
+            .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }
 
@@ -95,21 +95,21 @@ public abstract class AbstractGatewayExtention
   }
 
   protected abstract RSocketClientTransport transport(
-    ClientSettings settings, ClientMessageCodec codec);
+      ClientSettings settings, ClientMessageCodec codec);
 
   protected abstract String gatewayAliasName();
 
   private Client initClient() {
     ClientSettings settings =
-      ClientSettings.builder()
-        .host(gatewayAddress.getHostName())
-        .port(gatewayAddress.getPort())
-        .build();
+        ClientSettings.builder()
+            .host(gatewayAddress.getHostName())
+            .port(gatewayAddress.getPort())
+            .build();
 
     ClientMessageCodec codec =
-      new ClientMessageCodec(
-        HeadersCodec.getInstance(settings.contentType()),
-        DataCodec.getInstance(settings.contentType()));
+        new ClientMessageCodec(
+            HeadersCodec.getInstance(settings.contentType()),
+            DataCodec.getInstance(settings.contentType()));
 
     return new Client(transport(settings, codec), codec);
   }
