@@ -3,9 +3,7 @@ package io.scalecube.gateway.examples;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * Config properties for example services.
- */
+/** Config properties for example services. */
 public class ExamplesConfig {
 
   private int servicePort = 5801;
