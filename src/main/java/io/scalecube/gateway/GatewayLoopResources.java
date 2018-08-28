@@ -29,7 +29,7 @@ public class GatewayLoopResources implements LoopResources {
    * @param workerGroup worker event loop group
    */
   public GatewayLoopResources(
-    boolean preferEpoll, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+      boolean preferEpoll, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
     this.preferEpoll = preferEpoll;
     this.bossGroup = bossGroup;
     this.workerGroup = workerGroup;
@@ -88,9 +88,9 @@ public class GatewayLoopResources implements LoopResources {
   @Override
   public Mono<Void> disposeLater() {
     return Mono.defer(
-      () -> {
-        running.compareAndSet(true, false);
-        return Mono.empty();
-      });
+        () -> {
+          running.compareAndSet(true, false);
+          return Mono.empty();
+        });
   }
 }

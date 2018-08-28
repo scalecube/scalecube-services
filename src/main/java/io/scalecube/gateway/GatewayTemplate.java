@@ -20,34 +20,34 @@ public abstract class GatewayTemplate implements Gateway {
   private EventLoopGroup bossGroup; // calculated
 
   protected final LoopResources prepareLoopResources(
-    boolean preferNative,
-    ThreadFactory bossThreadFactory,
-    GatewayConfig config,
-    Executor workerThreadPool) {
+      boolean preferNative,
+      ThreadFactory bossThreadFactory,
+      GatewayConfig config,
+      Executor workerThreadPool) {
 
     EventLoopGroup workerGroup =
-      (EventLoopGroup) Optional.ofNullable(config.workerThreadPool()).orElse(workerThreadPool);
+        (EventLoopGroup) Optional.ofNullable(config.workerThreadPool()).orElse(workerThreadPool);
 
     if (workerGroup == null) {
       return null;
     }
 
     bossGroup =
-      preferNative
-        ? new EpollEventLoopGroup(BOSS_THREADS_NUM, bossThreadFactory)
-        : new NioEventLoopGroup(BOSS_THREADS_NUM, bossThreadFactory);
+        preferNative
+            ? new EpollEventLoopGroup(BOSS_THREADS_NUM, bossThreadFactory)
+            : new NioEventLoopGroup(BOSS_THREADS_NUM, bossThreadFactory);
 
     return new GatewayLoopResources(preferNative, bossGroup, workerGroup);
   }
 
   protected final Mono<Void> shutdownBossGroup() {
     return Mono.defer(
-      () -> {
-        if (bossGroup == null) {
-          return Mono.empty();
-        }
-        Future shutdownFuture = ((EventLoopGroup) bossGroup).shutdownGracefully();
-        return FutureMono.from(shutdownFuture);
-      });
+        () -> {
+          if (bossGroup == null) {
+            return Mono.empty();
+          }
+          Future shutdownFuture = ((EventLoopGroup) bossGroup).shutdownGracefully();
+          return FutureMono.from(shutdownFuture);
+        });
   }
 }
