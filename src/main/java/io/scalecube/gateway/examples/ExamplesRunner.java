@@ -15,12 +15,12 @@ public class ExamplesRunner {
       "***********************************************************************";
 
   /**
-   * Main method of runner for example services.
+   * Main method of gateway runner.
    *
-   * @param args - program arguments.
-   * @throws InterruptedException - thrown if was interrupted.
+   * @param args program arguments
+   * @throws Exception exception thrown
    */
-  public static void main(String[] args) throws InterruptedException {
+  public static void main(String[] args) throws Exception {
     ConfigRegistry configRegistry = GatewayConfigRegistry.configRegistry();
 
     ExamplesConfig config =
