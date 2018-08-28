@@ -44,16 +44,6 @@ class Reflect {
                             requestType(method1)))));
   }
 
-  /**
-   * Util function returns the the Type of method parameter [0] or Void.Type in case 0 parameters.
-   * in case the method is annotated with @RequestType this type will always be chosen. if the
-   * parameter is generic eg. <String> the actual type will be used. in case there is no annotation
-   * and the type is not generic then return the actual type. in case method accepts service message
-   * and no RequestType annotation is present then return Object.class
-   *
-   * @param method in inspection.
-   * @return type of parameter [0] or void
-   */
   private static Class<?> requestType(Method method) {
     if (method.getParameterTypes().length > 0) {
       if (method.isAnnotationPresent(RequestType.class)) {

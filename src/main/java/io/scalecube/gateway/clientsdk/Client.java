@@ -16,15 +16,33 @@ public final class Client {
 
   private final ConcurrentHashMap<Class<?>, ? super Object> proxyMap = new ConcurrentHashMap<>();
 
+  /**
+   * Constructor for client.
+   *
+   * @param transport client transport
+   * @param messageCodec client message codec
+   */
   public Client(ClientTransport transport, ClientMessageCodec messageCodec) {
     this.transport = transport;
     this.messageCodec = messageCodec;
   }
 
+  /**
+   * Close transport function.
+   *
+   * @return mono void
+   */
   public Mono<Void> close() {
-    return transport.close();
+    return Mono.defer(transport::close);
   }
 
+  /**
+   * Proxy creator function.
+   *
+   * @param serviceClazz service interface.
+   * @param <T> type of service interface.
+   * @return proxied service object.
+   */
   public <T> T forService(Class<T> serviceClazz) {
     // noinspection unchecked
     return (T)
@@ -39,11 +57,23 @@ public final class Client {
             });
   }
 
-  public Flux<ClientMessage> rawStream(ClientMessage clientMessage) {
-    return transport.requestStream(clientMessage);
+  /**
+   * Request with mono response as response.
+   *
+   * @param clientMessage client request message.
+   * @return mono response
+   */
+  public Mono<ClientMessage> requestResponse(ClientMessage clientMessage) {
+    return transport.requestResponse(clientMessage);
   }
 
-  public Mono<ClientMessage> rawRequestResponse(ClientMessage clientMessage) {
-    return transport.requestResponse(clientMessage);
+  /**
+   * Request with flux stream as response.
+   *
+   * @param clientMessage client request message.
+   * @return flux response
+   */
+  public Flux<ClientMessage> requestStream(ClientMessage clientMessage) {
+    return transport.requestStream(clientMessage);
   }
 }

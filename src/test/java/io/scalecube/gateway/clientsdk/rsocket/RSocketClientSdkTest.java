@@ -142,7 +142,7 @@ class RSocketClientSdkTest {
 
     Flux<ClientMessage> rawStream =
         rsocketClient
-            .rawStream(
+            .requestStream(
                 ClientMessage.builder()
                     .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
                     .build())
@@ -163,7 +163,7 @@ class RSocketClientSdkTest {
   void testRawRequestResponse() {
     long currentTimestamp = System.currentTimeMillis();
     Mono<ClientMessage> rawStream =
-        rsocketClient.rawRequestResponse(
+        rsocketClient.requestResponse(
             ClientMessage.builder()
                 .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
                 .build());

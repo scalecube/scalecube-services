@@ -35,6 +35,16 @@ public final class ClientMessageCodec {
     this.dataCodec = dataCodec;
   }
 
+  /**
+   * Encoder function.
+   *
+   * @param message client message.
+   * @param transformer bi function transformer from two headers and data bufs to client specified
+   *     object of type T
+   * @param <T> client specified type which could be constructed out of headers and data bufs.
+   * @return T object
+   * @throws MessageCodecException in case if encoding fails
+   */
   public <T> T encodeAndTransform(
       ClientMessage message, BiFunction<ByteBuf, ByteBuf, T> transformer)
       throws MessageCodecException {
@@ -70,6 +80,15 @@ public final class ClientMessageCodec {
     return transformer.apply(dataBuffer, headersBuffer);
   }
 
+  /**
+   * Decoder function. Keep data buffer untouched. See {@link #decodeData(ClientMessage, Class)} for
+   * decoding actually a data.
+   *
+   * @param dataBuffer data buffer.
+   * @param headersBuffer headers buffer.
+   * @return client message object.
+   * @throws MessageCodecException in case if decode fails.
+   */
   public ClientMessage decode(ByteBuf dataBuffer, ByteBuf headersBuffer)
       throws MessageCodecException {
     ClientMessage.Builder builder = ClientMessage.builder();
@@ -92,6 +111,14 @@ public final class ClientMessageCodec {
     return builder.build();
   }
 
+  /**
+   * Data decoder function.
+   *
+   * @param message client message.
+   * @param dataType data type class.
+   * @return client message object.
+   * @throws MessageCodecException in case if data decoding fails.
+   */
   public ClientMessage decodeData(ClientMessage message, Class<?> dataType)
       throws MessageCodecException {
     if (!message.hasData(ByteBuf.class) || dataType == null) {
