@@ -22,7 +22,7 @@ public class HttpGateway extends GatewayTemplate {
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGateway.class);
 
   private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
-    new DefaultThreadFactory("http-boss", true);
+      new DefaultThreadFactory("http-boss", true);
 
   private static final Duration START_TIMEOUT = Duration.ofSeconds(30);
 
@@ -30,52 +30,52 @@ public class HttpGateway extends GatewayTemplate {
 
   @Override
   public Mono<InetSocketAddress> start(
-    GatewayConfig config,
-    Executor workerThreadPool,
-    boolean preferNative,
-    ServiceCall.Call call,
+      GatewayConfig config,
+      Executor workerThreadPool,
+      boolean preferNative,
+      ServiceCall.Call call,
       Metrics metrics) {
 
     return Mono.defer(
-      () -> {
-        LOGGER.info("Starting gateway with {}", config);
+        () -> {
+          LOGGER.info("Starting gateway with {}", config);
 
-        InetSocketAddress listenAddress = new InetSocketAddress(config.port());
+          InetSocketAddress listenAddress = new InetSocketAddress(config.port());
 
-        LoopResources loopResources =
-          prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
+          LoopResources loopResources =
+              prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
 
-        GatewayHttpAcceptor httpAcceptor = new GatewayHttpAcceptor(call.create());
+          GatewayHttpAcceptor httpAcceptor = new GatewayHttpAcceptor(call.create());
 
-        server =
-          HttpServer.builder()
-            .options(
-              opts -> {
-                opts.listenAddress(listenAddress);
-                if (loopResources != null) {
-                  opts.loopResources(loopResources);
-                }
-              })
-            .build()
-            .start(httpAcceptor, START_TIMEOUT);
+          server =
+              HttpServer.builder()
+                  .options(
+                      opts -> {
+                        opts.listenAddress(listenAddress);
+                        if (loopResources != null) {
+                          opts.loopResources(loopResources);
+                        }
+                      })
+                  .build()
+                  .start(httpAcceptor, START_TIMEOUT);
 
-        InetSocketAddress address = server.getContext().address();
-        LOGGER.info("Gateway has been started successfully on {}", address);
-        return Mono.just(address);
-      });
+          InetSocketAddress address = server.getContext().address();
+          LOGGER.info("Gateway has been started successfully on {}", address);
+          return Mono.just(address);
+        });
   }
 
   @Override
   public Mono<Void> stop() {
     return Mono.defer(
-      () -> {
-        List<Mono<Void>> stopList = new ArrayList<>();
-        stopList.add(shutdownBossGroup());
-        if (server != null) {
-          server.getContext().dispose();
-          stopList.add(server.getContext().onClose());
-        }
-        return Mono.when(stopList);
-      });
+        () -> {
+          List<Mono<Void>> stopList = new ArrayList<>();
+          stopList.add(shutdownBossGroup());
+          if (server != null) {
+            server.getContext().dispose();
+            stopList.add(server.getContext().onClose());
+          }
+          return Mono.when(stopList);
+        });
   }
 }
