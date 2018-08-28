@@ -20,4 +20,7 @@ public interface ExampleService {
 
   @ServiceMethod("requestInfiniteStream")
   Flux<Long> requestInfiniteStream(StreamRequest request);
+
+  @ServiceMethod("broadcastStream")
+  Flux<Long> broadcastStream();
 }
