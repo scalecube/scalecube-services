@@ -23,9 +23,7 @@ import reactor.ipc.netty.FutureMono;
 import reactor.ipc.netty.NettyContext;
 import reactor.ipc.netty.tcp.TcpServer;
 
-/**
- * RSocket server transport implementation.
- */
+/** RSocket server transport implementation. */
 public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);

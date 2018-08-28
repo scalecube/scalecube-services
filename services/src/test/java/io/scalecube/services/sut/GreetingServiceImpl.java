@@ -10,8 +10,7 @@ import reactor.core.publisher.Mono;
 
 public final class GreetingServiceImpl implements GreetingService {
 
-  @Inject
-  Microservices ms;
+  @Inject Microservices ms;
 
   private int instanceId;
 

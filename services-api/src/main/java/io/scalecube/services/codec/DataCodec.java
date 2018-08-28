@@ -9,9 +9,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Data code service provider interface.
- */
+/** Data code service provider interface. */
 public interface DataCodec {
 
   Map<String, DataCodec> INSTANCES =

@@ -7,8 +7,7 @@ public final class GreetingRequest {
   private String name;
   private Duration duration;
 
-  public GreetingRequest() {
-  }
+  public GreetingRequest() {}
 
   public GreetingRequest(String name) {
     this.name = name;
