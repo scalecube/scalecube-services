@@ -60,7 +60,7 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
                     }
                   });
 
-          RSocketWebsocketAcceptor rSocketWebsocketAcceptor =
+          RSocketWebsocketAcceptor rsocketWebsocketAcceptor =
             new RSocketWebsocketAcceptor(call.create(), metrics);
 
           server =
@@ -69,7 +69,7 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
                       frame ->
                           ByteBufPayload.create(
                               frame.sliceData().retain(), frame.sliceMetadata().retain()))
-                .acceptor(rSocketWebsocketAcceptor)
+                .acceptor(rsocketWebsocketAcceptor)
                 .transport(WebsocketServerTransport.create(httpServer))
                 .start()
                 .block(START_TIMEOUT);

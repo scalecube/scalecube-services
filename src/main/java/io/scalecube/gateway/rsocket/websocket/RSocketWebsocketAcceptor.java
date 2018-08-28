@@ -1,6 +1,5 @@
 package io.scalecube.gateway.rsocket.websocket;
 
-import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import io.rsocket.AbstractRSocket;
 import io.rsocket.ConnectionSetupPayload;
@@ -22,6 +21,7 @@ import reactor.core.publisher.Mono;
 public class RSocketWebsocketAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketAcceptor.class);
+
   public static final String METRICS_PREFIX = "rsocket";
   public static final String METRIC_STREAM_DURATION = "streamDurationTimer";
   public static final String METRIC_CLIENT_CONNECTIONS = "client.connections";
@@ -34,18 +34,18 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
 
   public RSocketWebsocketAcceptor(ServiceCall serviceCall, Metrics metrics) {
     this.serviceCall = serviceCall;
-    this.metrics = metrics != null ? metrics : new Metrics(new MetricRegistry());
+    this.metrics = metrics;
   }
 
   @Override
-  public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rSocket) {
-    LOGGER.info("Accepted rSocket websocket: {}, connectionSetup: {}", rSocket, setup);
+  public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
+    LOGGER.info("Accepted rsocket websocket: {}, connectionSetup: {}", rsocket, setup);
 
-    rSocket
+    rsocket
       .onClose()
       .doOnTerminate(
         () -> {
-          LOGGER.info("Client disconnected: {}", rSocket);
+          LOGGER.info("Client disconnected: {}", rsocket);
           metrics.getCounter(METRICS_PREFIX, METRIC_CLIENT_CONNECTIONS).dec();
         })
       .subscribe();
