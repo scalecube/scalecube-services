@@ -31,9 +31,6 @@ import java.nio.charset.Charset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Encodes/decodes {@link GatewayMessage} to/from {@link ByteBuf}.
- */
 public class GatewayMessageCodec {
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayMessageCodec.class);
 
@@ -42,7 +39,7 @@ public class GatewayMessageCodec {
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper);
 
   /**
-   * Encode given {@code message} to given {@code byteBuf}
+   * Encode given {@code message} to given {@code byteBuf}.
    *
    * @param message - input message to be encoded.
    * @throws MessageCodecException in case of issues during encoding.

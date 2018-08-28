@@ -141,14 +141,14 @@ public class GatewayWebsocketAcceptor
                       serviceCall
                         .requestMany(serviceRequest)
                         .doOnNext(
-                          $ ->
+                          message ->
                             metrics
                               .getMeter(
                                 METRICS_PREFIX,
                                 METRIC_CLIENT,
                                 METRIC_RESPONSES)
                               .mark())
-                        .doFinally($ -> streamDuration.stop());
+                        .doFinally(signalType -> streamDuration.stop());
 
                     if (gatewayRequest.inactivity() != null) {
                       serviceStream =
@@ -180,7 +180,7 @@ public class GatewayWebsocketAcceptor
                                     .signal(Signal.COMPLETE)
                                     .build())))
                         .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
-                        .doFinally($ -> session.dispose(streamId))
+                        .doFinally(signalType -> session.dispose(streamId))
                         .subscribe(sink::next, sink::error, sink::complete);
                     session.register(sid, disposable);
                   } catch (Throwable ex) {
