@@ -45,11 +45,11 @@ public class GatewayMessageCodecTest {
   public void testDecodeNullData() {
     Object nullData = "null";
     String stringData =
-      String.format(
-        TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
-        TestInputs.Q,
-        TestInputs.SIG,
-        TestInputs.SID,
+        String.format(
+            TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
+            TestInputs.Q,
+            TestInputs.SIG,
+            TestInputs.SID,
             nullData);
 
     ByteBuf input = toByteBuf(stringData);
@@ -67,11 +67,11 @@ public class GatewayMessageCodecTest {
   public void testDecodeNumberData() {
     Integer expectedData = 123;
     String stringData =
-      String.format(
-        TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
-        TestInputs.Q,
-        TestInputs.SIG,
-        TestInputs.SID,
+        String.format(
+            TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
+            TestInputs.Q,
+            TestInputs.SIG,
+            TestInputs.SID,
             expectedData);
 
     ByteBuf input = toByteBuf(stringData);
@@ -84,18 +84,18 @@ public class GatewayMessageCodecTest {
     assertEquals(TestInputs.SID, result.streamId());
     assertTrue(result.data() instanceof ByteBuf);
     assertEquals(
-      expectedData, Integer.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
+        expectedData, Integer.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
   }
 
   @Test
   public void testDecodeNumberDataFirst() {
     Integer expectedData = 123;
     String stringData =
-      String.format(
-        TestInputs.STRING_DATA_PATTERN_D_SIG_SID_Q,
-        expectedData,
-        TestInputs.SIG,
-        TestInputs.SID,
+        String.format(
+            TestInputs.STRING_DATA_PATTERN_D_SIG_SID_Q,
+            expectedData,
+            TestInputs.SIG,
+            TestInputs.SID,
             TestInputs.Q);
 
     ByteBuf input = toByteBuf(stringData);
@@ -108,18 +108,18 @@ public class GatewayMessageCodecTest {
     assertEquals(TestInputs.SID, result.streamId());
     assertTrue(result.data() instanceof ByteBuf);
     assertEquals(
-      expectedData, Integer.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
+        expectedData, Integer.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
   }
 
   @Test
   public void testDecodeStringData() {
     String expectedData = "\"test\"";
     String stringData =
-      String.format(
-        TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
-        TestInputs.Q,
-        TestInputs.SIG,
-        TestInputs.SID,
+        String.format(
+            TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
+            TestInputs.Q,
+            TestInputs.SIG,
+            TestInputs.SID,
             expectedData);
 
     ByteBuf input = toByteBuf(stringData);
@@ -138,11 +138,11 @@ public class GatewayMessageCodecTest {
   public void testDecodeBooleanData() {
     Boolean expectedData = Boolean.FALSE;
     String stringData =
-      String.format(
-        TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
-        TestInputs.Q,
-        TestInputs.SIG,
-        TestInputs.SID,
+        String.format(
+            TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
+            TestInputs.Q,
+            TestInputs.SIG,
+            TestInputs.SID,
             expectedData);
 
     ByteBuf input = toByteBuf(stringData);
@@ -155,19 +155,19 @@ public class GatewayMessageCodecTest {
     assertEquals(TestInputs.SID, result.streamId());
     assertTrue(result.data() instanceof ByteBuf);
     assertEquals(
-      expectedData, Boolean.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
+        expectedData, Boolean.valueOf(((ByteBuf) result.data()).toString(StandardCharsets.UTF_8)));
   }
 
   @Test
   public void testDecodePojoData() {
     String expectedData =
-      "{\"text\":\"someValue\", \"id\":12345, \"empty\":null, \"embedded\":{\"id\":123}}";
+        "{\"text\":\"someValue\", \"id\":12345, \"empty\":null, \"embedded\":{\"id\":123}}";
     String stringData =
-      String.format(
-        TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
-        TestInputs.Q,
-        TestInputs.SIG,
-        TestInputs.SID,
+        String.format(
+            TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
+            TestInputs.Q,
+            TestInputs.SIG,
+            TestInputs.SID,
             expectedData);
 
     ByteBuf input = toByteBuf(stringData);
@@ -186,11 +186,11 @@ public class GatewayMessageCodecTest {
   public void testDecodeArrayData() {
     String expectedData = "[{\"id\":1}, {\"id\":2}, {\"id\":3}]";
     String stringData =
-      String.format(
-        TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
-        TestInputs.Q,
-        TestInputs.SIG,
-        TestInputs.SID,
+        String.format(
+            TestInputs.STRING_DATA_PATTERN_Q_SIG_SID_D,
+            TestInputs.Q,
+            TestInputs.SIG,
+            TestInputs.SID,
             expectedData);
 
     ByteBuf input = toByteBuf(stringData);
@@ -209,12 +209,12 @@ public class GatewayMessageCodecTest {
   public void testEncodePojoData() throws Exception {
     TestInputs.Entity data = new TestInputs.Entity("test", 123, true);
     GatewayMessage expected =
-      GatewayMessage.builder()
-        .qualifier(TestInputs.Q)
-        .streamId(TestInputs.SID)
-        .signal(TestInputs.SIG)
-        .data(toByteBuf(data))
-        .build();
+        GatewayMessage.builder()
+            .qualifier(TestInputs.Q)
+            .streamId(TestInputs.SID)
+            .signal(TestInputs.SIG)
+            .data(toByteBuf(data))
+            .build();
     ByteBuf bb = codec.encode(expected);
 
     GatewayMessage actual = fromByteBuf(bb, TestInputs.Entity.class);
@@ -230,12 +230,12 @@ public class GatewayMessageCodecTest {
   public void testEncodeNumberData() throws Exception {
     Integer data = -213;
     GatewayMessage expected =
-      GatewayMessage.builder()
-        .qualifier(TestInputs.Q)
-        .streamId(TestInputs.SID)
-        .signal(TestInputs.SIG)
-        .data(toByteBuf(data))
-        .build();
+        GatewayMessage.builder()
+            .qualifier(TestInputs.Q)
+            .streamId(TestInputs.SID)
+            .signal(TestInputs.SIG)
+            .data(toByteBuf(data))
+            .build();
     ByteBuf bb = codec.encode(expected);
     GatewayMessage actual = fromByteBuf(bb, Integer.class);
 
@@ -250,12 +250,12 @@ public class GatewayMessageCodecTest {
   public void testEncodeBooleanData() throws Exception {
     Boolean data = true;
     GatewayMessage expected =
-      GatewayMessage.builder()
-        .qualifier(TestInputs.Q)
-        .streamId(TestInputs.SID)
-        .signal(TestInputs.SIG)
-        .data(toByteBuf(data))
-        .build();
+        GatewayMessage.builder()
+            .qualifier(TestInputs.Q)
+            .streamId(TestInputs.SID)
+            .signal(TestInputs.SIG)
+            .data(toByteBuf(data))
+            .build();
     ByteBuf bb = codec.encode(expected);
 
     GatewayMessage actual = fromByteBuf(bb, Boolean.class);
@@ -283,13 +283,13 @@ public class GatewayMessageCodecTest {
     // noinspection unchecked
 
     Map<String, Object> map =
-      objectMapper.readValue((InputStream) new ByteBufInputStream(bb.slice()), HashMap.class);
+        objectMapper.readValue((InputStream) new ByteBufInputStream(bb.slice()), HashMap.class);
     return GatewayMessage.builder()
         .qualifier((String) map.get(GatewayMessage.QUALIFIER_FIELD))
-      .streamId(
-        map.containsKey(STREAM_ID_FIELD)
-          ? Long.valueOf(String.valueOf(map.get(STREAM_ID_FIELD)))
-          : null)
+        .streamId(
+            map.containsKey(STREAM_ID_FIELD)
+                ? Long.valueOf(String.valueOf(map.get(STREAM_ID_FIELD)))
+                : null)
         .signal((Integer) map.get(GatewayMessage.SIGNAL_FIELD))
         .inactivity((Integer) map.get(GatewayMessage.INACTIVITY_FIELD))
         .data(objectMapper.convertValue(map.get(GatewayMessage.DATA_FIELD), dataClass))

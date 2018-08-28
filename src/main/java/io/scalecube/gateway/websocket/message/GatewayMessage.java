@@ -57,11 +57,10 @@ public class GatewayMessage {
     return builder;
   }
 
-  GatewayMessage() {
-  }
+  GatewayMessage() {}
 
   private GatewayMessage(
-    String qualifier, Long streamId, Integer signal, Object data, Integer inactivity) {
+      String qualifier, Long streamId, Integer signal, Object data, Integer inactivity) {
     this.qualifier = qualifier;
     this.streamId = streamId;
     this.signal = signal;
@@ -85,7 +84,7 @@ public class GatewayMessage {
    */
   public static ServiceMessage toServiceMessage(GatewayMessage gatewayMessage) {
     ServiceMessage.Builder builder =
-      ServiceMessage.builder().qualifier(gatewayMessage.qualifier()).data(gatewayMessage.data());
+        ServiceMessage.builder().qualifier(gatewayMessage.qualifier()).data(gatewayMessage.data());
     if (gatewayMessage.streamId() != null) {
       builder.header(STREAM_ID_FIELD, String.valueOf(gatewayMessage.streamId()));
     }

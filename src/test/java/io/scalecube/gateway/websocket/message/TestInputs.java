@@ -7,25 +7,25 @@ public interface TestInputs {
   String Q = "/test/test";
 
   String NO_DATA =
-    "{"
-      + " \"q\":\""
-      + Q
-      + "\","
-      + " \"sid\":"
-      + SID
-      + ","
-      + " \"sig\":"
-      + SIG
-      + ","
-      + " \"i\":"
-      + I
-      + "}";
+      "{"
+          + " \"q\":\""
+          + Q
+          + "\","
+          + " \"sid\":"
+          + SID
+          + ","
+          + " \"sig\":"
+          + SIG
+          + ","
+          + " \"i\":"
+          + I
+          + "}";
 
   String STRING_DATA_PATTERN_Q_SIG_SID_D =
-    "{" + "\"q\":\"%s\"," + "\"sig\":%d," + "\"sid\":%d," + "\"d\":%s" + "}";
+      "{" + "\"q\":\"%s\"," + "\"sig\":%d," + "\"sid\":%d," + "\"d\":%s" + "}";
 
   String STRING_DATA_PATTERN_D_SIG_SID_Q =
-    "{" + "\"d\": %s," + "\"sig\":%d," + "\"sid\": %d," + "\"q\":\"%s\"" + "}";
+      "{" + "\"d\": %s," + "\"sig\":%d," + "\"sid\": %d," + "\"q\":\"%s\"" + "}";
 
   class Entity {
     private String text;

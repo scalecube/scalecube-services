@@ -44,12 +44,12 @@ public final class WebsocketSession {
    * @param outbound - Websocket outbound
    */
   public WebsocketSession(
-    HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
+      HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
     this.id = Integer.toHexString(System.identityHashCode(this));
 
     HttpHeaders httpHeaders = httpRequest.requestHeaders();
     this.contentType =
-      Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
+        Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
 
     this.inbound = inbound;
     this.outbound = (WebsocketOutbound) outbound.options(NettyPipeline.SendOptions::flushOnEach);
@@ -82,8 +82,8 @@ public final class WebsocketSession {
    */
   public Mono<Void> send(Publisher<ByteBuf> publisher) {
     return outbound
-      .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND"))
-      .then();
+        .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND"))
+        .then();
   }
 
   /**
@@ -96,9 +96,9 @@ public final class WebsocketSession {
    */
   public Mono<Void> close() {
     return outbound
-      .sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close"))
-      .then()
-      .log("<< CLOSE");
+        .sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close"))
+        .then()
+        .log("<< CLOSE");
   }
 
   /**
