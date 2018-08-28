@@ -58,7 +58,7 @@ public class MicroservicesTest {
         .thenThrow(new RuntimeException(expectedErrorMessage));
 
     StepVerifier.create(
-        Microservices.builder().discovery(serviceDiscovery).transport(serviceTransport).start())
+      Microservices.builder().discovery(serviceDiscovery).transport(serviceTransport).start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
 
