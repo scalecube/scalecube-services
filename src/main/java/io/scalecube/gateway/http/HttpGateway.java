@@ -17,9 +17,6 @@ import reactor.ipc.netty.http.server.HttpServer;
 import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.BlockingNettyContext;
 
-/**
- * Gateway implementation on Http.
- */
 public class HttpGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpGateway.class);
