@@ -1,7 +1,7 @@
 #!/bin/bash
-declare -a gws=("35.180.50.17" "52.47.115.55")
-declare -a services=("35.180.125.22" "35.180.73.238")
-declare -a clients=("35.180.28.35" "35.180.37.182" "52.47.110.72" "35.180.26.168")
+declare -a gws=("ip1" "ip2")
+declare -a services=("ip3" "ip4")
+declare -a clients=("ip5" "ip6" "ip7" "ip8")
 
 CERT_PATH=/home/serhiihabryiel/Downloads/cloud_cert
 GATEWAY_PATH=/home/serhiihabryiel/work/scalecube-gateway
