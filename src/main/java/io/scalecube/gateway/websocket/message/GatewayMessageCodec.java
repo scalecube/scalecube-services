@@ -47,8 +47,8 @@ public class GatewayMessageCodec {
   public ByteBuf encode(GatewayMessage message) throws MessageCodecException {
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
     try (JsonGenerator generator =
-      jsonFactory.createGenerator(
-        (OutputStream) new ByteBufOutputStream(byteBuf), JsonEncoding.UTF8)) {
+        jsonFactory.createGenerator(
+            (OutputStream) new ByteBufOutputStream(byteBuf), JsonEncoding.UTF8)) {
       generator.writeStartObject();
 
       if (message.qualifier() != null) {
