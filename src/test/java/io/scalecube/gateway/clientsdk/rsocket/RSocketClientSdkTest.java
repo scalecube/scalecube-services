@@ -31,7 +31,7 @@ class RSocketClientSdkTest {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
   private static final GatewayConfig gatewayConfig =
-    GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build();
+      GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build();
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(3);
 
   private static final String JOHN = "John";
@@ -44,10 +44,10 @@ class RSocketClientSdkTest {
   @BeforeAll
   static void startServer() {
     seed =
-      Microservices.builder()
-        .services(new GreetingServiceImpl())
-        .gateway(gatewayConfig)
-        .startAwait();
+        Microservices.builder()
+            .services(new GreetingServiceImpl())
+            .gateway(gatewayConfig)
+            .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");
   }
@@ -61,14 +61,14 @@ class RSocketClientSdkTest {
   @BeforeEach
   void startClient() {
     int gatewayPort =
-      seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
+        seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
     ClientMessageCodec codec =
-      new ClientMessageCodec(
-        HeadersCodec.getInstance(settings.contentType()),
-        DataCodec.getInstance(settings.contentType()));
+        new ClientMessageCodec(
+            HeadersCodec.getInstance(settings.contentType()),
+            DataCodec.getInstance(settings.contentType()));
     rsocketClient =
-      new Client(new RSocketClientTransport(settings, codec, clientLoopResources), codec);
+        new Client(new RSocketClientTransport(settings, codec, clientLoopResources), codec);
   }
 
   @AfterEach
@@ -83,9 +83,9 @@ class RSocketClientSdkTest {
     Mono<String> john = rsocketClient.forService(GreetingService.class).one(JOHN);
 
     StepVerifier.create(john)
-      .assertNext(n -> assertTrue(n.contains(JOHN)))
-      .expectComplete()
-      .verify();
+        .assertNext(n -> assertTrue(n.contains(JOHN)))
+        .expectComplete()
+        .verify();
   }
 
   @Test
@@ -100,14 +100,14 @@ class RSocketClientSdkTest {
     int cnt = 5;
 
     Mono<GreetingResponse> johnnys =
-      rsocketClient
-        .forService(GreetingService.class)
-        .pojoOne(new GreetingRequest().setText(JOHN));
+        rsocketClient
+            .forService(GreetingService.class)
+            .pojoOne(new GreetingRequest().setText(JOHN));
 
     StepVerifier.create(johnnys)
-      .assertNext(n -> assertEquals("Echo:" + JOHN, n.getText()))
-      .expectComplete()
-      .verify();
+        .assertNext(n -> assertEquals("Echo:" + JOHN, n.getText()))
+        .expectComplete()
+        .verify();
   }
 
   @Test
@@ -115,16 +115,16 @@ class RSocketClientSdkTest {
     int cnt = 5;
 
     Flux<GreetingResponse> johnnys =
-      rsocketClient
-        .forService(GreetingService.class)
-        .pojoMany(new GreetingRequest().setText(JOHN))
-        .take(cnt);
+        rsocketClient
+            .forService(GreetingService.class)
+            .pojoMany(new GreetingRequest().setText(JOHN))
+            .take(cnt);
 
     StepVerifier.create(johnnys)
-      .assertNext(n -> assertTrue(n.getText().contains(JOHN)))
-      .expectNextCount(cnt - 1 /* minus previous check */)
-      .expectComplete()
-      .verify();
+        .assertNext(n -> assertTrue(n.getText().contains(JOHN)))
+        .expectNextCount(cnt - 1 /* minus previous check */)
+        .expectComplete()
+        .verify();
   }
 
   @Test
@@ -141,39 +141,39 @@ class RSocketClientSdkTest {
     long currentTimestamp = System.currentTimeMillis();
 
     Flux<ClientMessage> rawStream =
-      rsocketClient
-        .rawStream(
-          ClientMessage.builder()
-            .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
-            .build())
-        .take(cnt);
+        rsocketClient
+            .rawStream(
+                ClientMessage.builder()
+                    .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
+                    .build())
+            .take(cnt);
 
     StepVerifier.create(rawStream)
-      .assertNext(
-        msg ->
-          assertTrue(
-            Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
-              >= currentTimestamp))
-      .expectNextCount(cnt - 1 /* minus previous check */)
-      .expectComplete()
-      .verify();
+        .assertNext(
+            msg ->
+                assertTrue(
+                    Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
+                        >= currentTimestamp))
+        .expectNextCount(cnt - 1 /* minus previous check */)
+        .expectComplete()
+        .verify();
   }
 
   @Test
   void testRawRequestResponse() {
     long currentTimestamp = System.currentTimeMillis();
     Mono<ClientMessage> rawStream =
-      rsocketClient.rawRequestResponse(
-        ClientMessage.builder()
-          .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
-          .build());
+        rsocketClient.rawRequestResponse(
+            ClientMessage.builder()
+                .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
+                .build());
     StepVerifier.create(rawStream)
-      .assertNext(
-        msg ->
-          assertTrue(
-            Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
-              >= currentTimestamp))
-      .expectComplete()
-      .verify();
+        .assertNext(
+            msg ->
+                assertTrue(
+                    Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
+                        >= currentTimestamp))
+        .expectComplete()
+        .verify();
   }
 }

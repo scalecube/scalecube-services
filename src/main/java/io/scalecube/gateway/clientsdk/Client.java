@@ -28,15 +28,15 @@ public final class Client {
   public <T> T forService(Class<T> serviceClazz) {
     // noinspection unchecked
     return (T)
-      proxyMap.computeIfAbsent(
-        serviceClazz,
-        (clazz) -> {
-          Map<Method, MethodInfo> methods = Reflect.methodsInfo(serviceClazz);
-          return Proxy.newProxyInstance(
-            serviceClazz.getClassLoader(),
-            new Class[]{serviceClazz},
-            new RemoteInvocationHandler(transport, methods, messageCodec));
-        });
+        proxyMap.computeIfAbsent(
+            serviceClazz,
+            (clazz) -> {
+              Map<Method, MethodInfo> methods = Reflect.methodsInfo(serviceClazz);
+              return Proxy.newProxyInstance(
+                  serviceClazz.getClassLoader(),
+                  new Class[] {serviceClazz},
+                  new RemoteInvocationHandler(transport, methods, messageCodec));
+            });
   }
 
   public Flux<ClientMessage> rawStream(ClientMessage clientMessage) {

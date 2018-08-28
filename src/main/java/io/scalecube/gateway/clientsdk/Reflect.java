@@ -28,20 +28,20 @@ class Reflect {
 
   static Map<Method, MethodInfo> methodsInfo(Class<?> serviceInterface) {
     return Collections.unmodifiableMap(
-      serviceMethods(serviceInterface)
-        .values()
-        .stream()
-        .collect(
-          Collectors.toMap(
-            method -> method,
-            method1 ->
-              new MethodInfo(
-                serviceName(serviceInterface),
-                methodName(method1),
-                parameterizedReturnType(method1),
-                communicationMode(method1),
-                method1.getParameterCount(),
-                requestType(method1)))));
+        serviceMethods(serviceInterface)
+            .values()
+            .stream()
+            .collect(
+                Collectors.toMap(
+                    method -> method,
+                    method1 ->
+                        new MethodInfo(
+                            serviceName(serviceInterface),
+                            methodName(method1),
+                            parameterizedReturnType(method1),
+                            communicationMode(method1),
+                            method1.getParameterCount(),
+                            requestType(method1)))));
   }
 
   /**
@@ -87,7 +87,7 @@ class Reflect {
     if (type instanceof ParameterizedType) {
       try {
         return Class.forName(
-          (((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
+            (((ParameterizedType) type).getActualTypeArguments()[0]).getTypeName());
       } catch (ClassNotFoundException e) {
         return Object.class;
       }
@@ -122,10 +122,10 @@ class Reflect {
     // Service name
     Service serviceAnnotation = serviceInterface.getAnnotation(Service.class);
     requireNonNull(
-      serviceAnnotation != null, String.format("Not a service interface: %s", serviceInterface));
+        serviceAnnotation != null, String.format("Not a service interface: %s", serviceInterface));
     return isNullOrEmpty(serviceAnnotation.value())
-      ? serviceInterface.getName()
-      : serviceAnnotation.value();
+        ? serviceInterface.getName()
+        : serviceAnnotation.value();
   }
 
   /**
@@ -136,17 +136,17 @@ class Reflect {
    */
   private static Map<String, Method> serviceMethods(Class<?> serviceInterface) {
     Map<String, Method> methods =
-      Arrays.stream(serviceInterface.getMethods())
-        .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
-        .collect(
-          Collectors.toMap(
-            method -> {
-              ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
-              return isNullOrEmpty(methodAnnotation.value())
-                ? method.getName()
-                : methodAnnotation.value();
-            },
-            Function.identity()));
+        Arrays.stream(serviceInterface.getMethods())
+            .filter(method -> method.isAnnotationPresent(ServiceMethod.class))
+            .collect(
+                Collectors.toMap(
+                    method -> {
+                      ServiceMethod methodAnnotation = method.getAnnotation(ServiceMethod.class);
+                      return isNullOrEmpty(methodAnnotation.value())
+                          ? method.getName()
+                          : methodAnnotation.value();
+                    },
+                    Function.identity()));
 
     return Collections.unmodifiableMap(methods);
   }
@@ -165,9 +165,9 @@ class Reflect {
     } else if (returnType.isAssignableFrom(Flux.class)) {
       Class<?>[] reqTypes = method.getParameterTypes();
       boolean hasFluxAsReqParam =
-        reqTypes.length > 0
-          && (Flux.class.isAssignableFrom(reqTypes[0])
-          || Publisher.class.isAssignableFrom(reqTypes[0]));
+          reqTypes.length > 0
+              && (Flux.class.isAssignableFrom(reqTypes[0])
+                  || Publisher.class.isAssignableFrom(reqTypes[0]));
 
       return hasFluxAsReqParam ? REQUEST_CHANNEL : REQUEST_STREAM;
     } else {

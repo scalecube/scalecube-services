@@ -34,15 +34,15 @@ public class ClientSettings {
   @Override
   public String toString() {
     return "ClientSettings{"
-      + "host='"
-      + host
-      + '\''
-      + ", port="
-      + port
-      + ", contentType='"
-      + contentType
-      + '\''
-      + '}';
+        + "host='"
+        + host
+        + '\''
+        + ", port="
+        + port
+        + ", contentType='"
+        + contentType
+        + '\''
+        + '}';
   }
 
   public static class Builder {

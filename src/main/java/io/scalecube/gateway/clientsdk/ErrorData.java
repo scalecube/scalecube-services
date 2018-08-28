@@ -5,9 +5,7 @@ public final class ErrorData {
   private int errorCode;
   private String errorMessage;
 
-  /**
-   * @deprecated exposed only for de/serialization purpose.
-   */
+  /** @deprecated exposed only for de/serialization purpose. */
   public ErrorData() {}
 
   public ErrorData(int errorCode, String errorMessage) {
