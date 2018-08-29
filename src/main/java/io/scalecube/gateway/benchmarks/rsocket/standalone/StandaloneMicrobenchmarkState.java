@@ -1,5 +1,6 @@
 package io.scalecube.gateway.benchmarks.rsocket.standalone;
 
+import com.codahale.metrics.MetricRegistry;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.benchmarks.example.ExampleServiceImpl;
@@ -33,6 +34,7 @@ public class StandaloneMicrobenchmarkState
     microservices =
         Microservices.builder()
             .services(new GreetingServiceImpl(), new ExampleServiceImpl())
+            .metrics(new MetricRegistry()) // todo workaround
             .gateway(gatewayConfig)
             .startAwait();
   }
