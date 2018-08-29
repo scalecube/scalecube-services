@@ -3,7 +3,6 @@ package io.scalecube.gateway.benchmarks.rsocket.distributed;
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
-import io.scalecube.gateway.benchmarks.example.ExampleServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
@@ -34,7 +33,7 @@ public class DistributedMicrobenchmarkState
 
     services =
         Microservices.builder()
-            .services(new GreetingServiceImpl(), new ExampleServiceImpl())
+            .services(new GreetingServiceImpl())
             .startAwait();
 
     gateway =
