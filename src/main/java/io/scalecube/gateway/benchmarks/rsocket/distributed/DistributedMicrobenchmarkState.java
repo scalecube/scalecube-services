@@ -35,7 +35,6 @@ public class DistributedMicrobenchmarkState
     services =
         Microservices.builder()
             .services(new GreetingServiceImpl(), new ExampleServiceImpl())
-//            .metrics(new MetricRegistry()) // todo workaround
             .startAwait();
 
     gateway =
