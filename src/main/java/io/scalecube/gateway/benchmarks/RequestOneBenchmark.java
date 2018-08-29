@@ -2,7 +2,7 @@ package io.scalecube.gateway.benchmarks;
 
 import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.gateway.benchmarks.example.ExampleService;
+import io.scalecube.gateway.examples.GreetingService;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -13,19 +13,25 @@ public final class RequestOneBenchmark {
     // Do not instantiate
   }
 
+  /**
+   * Runner function for benchmarks.
+   *
+   * @param args program arguments
+   * @param benchmarkStateFactory producer function for {@link AbstractBenchmarkState}
+   */
   public static void runWith(
-    String[] args,
+      String[] args,
       Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
     BenchmarksSettings settings =
-      BenchmarksSettings.from(args)
-        .injectors(1000)
-        .messageRate(100_000)
-        .rampUpDuration(Duration.ofSeconds(60))
-        .executionTaskDuration(Duration.ofSeconds(300))
-        .consoleReporterEnabled(true)
-        .durationUnit(TimeUnit.MILLISECONDS)
-        .build();
+        BenchmarksSettings.from(args)
+            .injectors(1000)
+            .messageRate(100_000)
+            .rampUpDuration(Duration.ofSeconds(60))
+            .executionTaskDuration(Duration.ofSeconds(300))
+            .consoleReporterEnabled(true)
+            .durationUnit(TimeUnit.MILLISECONDS)
+            .build();
 
     AbstractBenchmarkState<?> benchmarkState = benchmarkStateFactory.apply(settings);
 
@@ -35,7 +41,7 @@ public final class RequestOneBenchmark {
           Timer timer = state.timer("service-one-timer");
           return (executionTick, client) -> {
             Timer.Context timeContext = timer.time();
-            ExampleService service = client.forService(ExampleService.class);
+            GreetingService service = client.forService(GreetingService.class);
             return service.one("hello").doOnTerminate(timeContext::stop);
           };
         },

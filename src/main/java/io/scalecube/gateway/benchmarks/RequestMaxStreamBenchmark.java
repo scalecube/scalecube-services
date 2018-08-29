@@ -16,40 +16,46 @@ public final class RequestMaxStreamBenchmark {
     // Do not instantiate
   }
 
+  /**
+   * Runner function for benchmarks.
+   *
+   * @param args program arguments
+   * @param benchmarkStateFactory producer function for {@link AbstractBenchmarkState}
+   */
   public static void runWith(
-    String[] args,
-    Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
+      String[] args,
+      Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
     int injectors = Runtime.getRuntime().availableProcessors() * 2;
     int messageRate = 1; // doesn't count in this test
 
     BenchmarksSettings settings =
-      BenchmarksSettings.from(args)
-        .injectors(injectors)
-        .messageRate(messageRate)
-        .rampUpDuration(Duration.ofSeconds(10))
-        .executionTaskDuration(Duration.ofSeconds(300))
-        .consoleReporterEnabled(true)
-        .durationUnit(TimeUnit.MILLISECONDS)
-        .build();
+        BenchmarksSettings.from(args)
+            .injectors(injectors)
+            .messageRate(messageRate)
+            .rampUpDuration(Duration.ofSeconds(10))
+            .executionTaskDuration(Duration.ofSeconds(300))
+            .consoleReporterEnabled(true)
+            .durationUnit(TimeUnit.MILLISECONDS)
+            .build();
 
     AbstractBenchmarkState<?> benchmarkState = benchmarkStateFactory.apply(settings);
 
     benchmarkState.runWithRampUp(
-      (rampUpTick, state) -> state.createClient(),
-      state -> {
-        Timer timer = state.timer("service-stream-timer");
-        return (executionTick, client) ->
-          client
-            .rawStream(ClientMessage.builder().qualifier(QUALIFIER).build())
-            .doOnNext(
-              msg -> {
-                long serverTimestamp =
-                  Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY));
-                timer.update(
-                  System.currentTimeMillis() - serverTimestamp, TimeUnit.MILLISECONDS);
-              });
-      },
-      (state, client) -> client.close());
+        (rampUpTick, state) -> state.createClient(),
+        state -> {
+          Timer timer = state.timer("service-stream-timer");
+          return (executionTick, client) ->
+              client
+                  .requestStream(ClientMessage.builder().qualifier(QUALIFIER).build())
+                  .doOnNext(
+                      msg -> {
+                        long serverTimestamp =
+                            Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY));
+                        timer.update(
+                            System.currentTimeMillis() - serverTimestamp, TimeUnit.MILLISECONDS);
+                      });
+        },
+        (state, client) -> client.close());
   }
 }

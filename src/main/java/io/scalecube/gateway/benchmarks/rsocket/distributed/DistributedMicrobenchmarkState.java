@@ -1,8 +1,8 @@
 package io.scalecube.gateway.benchmarks.rsocket.distributed;
 
+import com.codahale.metrics.MetricRegistry;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
-import io.scalecube.gateway.benchmarks.example.ExampleServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 
 public class DistributedMicrobenchmarkState
-  extends AbstractBenchmarkState<DistributedMicrobenchmarkState> {
+    extends AbstractBenchmarkState<DistributedMicrobenchmarkState> {
 
   private static final String GATEWAY_ALIAS_NAME = "rsws";
 
@@ -32,13 +32,14 @@ public class DistributedMicrobenchmarkState
     super.beforeAll();
 
     services =
-      Microservices.builder()
-        .services(new GreetingServiceImpl(), new ExampleServiceImpl())
-        .startAwait();
+        Microservices.builder()
+            .services(new GreetingServiceImpl())
+            .startAwait();
 
     gateway =
         Microservices.builder()
             .seeds(services.discovery().address())
+            .metrics(new MetricRegistry()) // todo workaround
             .gateway(gatewayConfig)
             .startAwait();
   }
