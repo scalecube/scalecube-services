@@ -122,11 +122,19 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
     }
 
     private ServiceMessage toMessage(Payload payload) {
-      return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+      ServiceMessage decodedMessage =
+          messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+      return ServiceMessage.from(decodedMessage)
+          .header("gw-recd-from-client-time", String.valueOf(System.currentTimeMillis()))
+          .build();
     }
 
     private Payload toPayload(ServiceMessage serviceMessage) {
-      return messageCodec.encodeAndTransform(serviceMessage, ByteBufPayload::create);
+      ServiceMessage message =
+          ServiceMessage.from(serviceMessage)
+              .header("gw-recd-from-srv-time", String.valueOf(System.currentTimeMillis()))
+              .build();
+      return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
     }
   }
 }
