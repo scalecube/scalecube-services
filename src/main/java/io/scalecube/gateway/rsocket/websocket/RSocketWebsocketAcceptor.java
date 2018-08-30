@@ -32,14 +32,14 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
     LOGGER.info("Accepted rsocket websocket: {}, connectionSetup: {}", rsocket, setup);
-    metrics.incrConnection();
+    metrics.incConnection();
 
     rsocket
         .onClose()
         .doOnTerminate(
             () -> {
               LOGGER.info("Client disconnected: {}", rsocket);
-              metrics.decrConnection();
+              metrics.decConnection();
             })
         .subscribe();
 
