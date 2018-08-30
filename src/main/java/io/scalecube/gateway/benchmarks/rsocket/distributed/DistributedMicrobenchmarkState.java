@@ -40,7 +40,6 @@ public class DistributedMicrobenchmarkState
     gateway =
         Microservices.builder()
             .seeds(services.discovery().address())
-            .metrics(new MetricRegistry()) // todo workaround
             .gateway(gatewayConfig)
             .startAwait();
   }

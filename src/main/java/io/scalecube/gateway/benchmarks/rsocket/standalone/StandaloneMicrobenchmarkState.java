@@ -34,7 +34,6 @@ public class StandaloneMicrobenchmarkState
     microservices =
         Microservices.builder()
             .services(new GreetingServiceImpl(), new ExampleServiceImpl())
-            .metrics(new MetricRegistry()) // todo workaround
             .gateway(gatewayConfig)
             .startAwait();
   }
