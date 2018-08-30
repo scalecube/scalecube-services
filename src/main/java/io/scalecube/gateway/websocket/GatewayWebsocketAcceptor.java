@@ -75,16 +75,16 @@ public class GatewayWebsocketAcceptor
                                 Long streamId = sid = request.streamId();
 
                                 // check message contains sid
-                                checkSidNotNullOrThrow(streamId, session, request);
+                                checkSidNotNull(streamId, session, request);
                                 // check session contains sid for CANCEL operation
                                 if (request.hasSignal(Signal.CANCEL)) {
-                                  handleCancelRequestOrThrow(streamId, session, request, sink);
+                                  handleCancelRequest(streamId, session, request, sink);
                                   return;
                                 }
                                 // check session not yet contain sid
-                                checkSessionHasSidOrThrow(streamId, session, request);
+                                checkSessionHasSid(streamId, session, request);
                                 // check message contains quailifier
-                                checkQualifierNotNullOrThrow(session, request);
+                                checkQualifierNotNull(session, request);
 
                                 metrics.markRequest();
 
@@ -133,26 +133,31 @@ public class GatewayWebsocketAcceptor
                               }
                             }))
                 .flatMap(this::toByteBuf)
-                .doOnError(ex -> handleUnhandled(session, ex)));
+                .doOnError(
+                    ex ->
+                        LOGGER.error(
+                            "Unhandled exception occured: {}, " + "session: {} will be closed",
+                            ex,
+                            session,
+                            ex)));
 
     session.onClose(
         () -> {
           LOGGER.info("Session disconnected: " + session);
-          metrics.incrConnection();
+          metrics.decrConnection();
         });
 
     return voidMono.then();
   }
 
-  private void checkQualifierNotNullOrThrow(WebsocketSession session, GatewayMessage request) {
+  private void checkQualifierNotNull(WebsocketSession session, GatewayMessage request) {
     if (request.qualifier() == null) {
       LOGGER.error("Failed gateway request: {}, q is missing for session: {}", request, session);
       throw new BadRequestException("q is missing");
     }
   }
 
-  private void checkSessionHasSidOrThrow(
-      Long streamId, WebsocketSession session, GatewayMessage request) {
+  private void checkSessionHasSid(Long streamId, WebsocketSession session, GatewayMessage request) {
     if (session.containsSid(streamId)) {
       LOGGER.error(
           "Failed gateway request: {}, " + "sid={} is already registered on session: {}",
@@ -162,7 +167,7 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private void handleCancelRequestOrThrow(
+  private void handleCancelRequest(
       Long streamId,
       WebsocketSession session,
       GatewayMessage request,
@@ -183,18 +188,12 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private void checkSidNotNullOrThrow(
-      Long streamId, WebsocketSession session, GatewayMessage request) {
+  private void checkSidNotNull(Long streamId, WebsocketSession session, GatewayMessage request) {
     if (streamId == null) {
       LOGGER.error(
           "Invalid gateway request: {}, " + "sid is missing for session: {}", request, session);
       throw new BadRequestException("sid is missing");
     }
-  }
-
-  private void handleUnhandled(WebsocketSession session, Throwable ex) {
-    LOGGER.error(
-        "Unhandled exception occured: {}, " + "session: {} will be closed", ex, session, ex);
   }
 
   private Mono<Void> onDisconnect(WebsocketSession session) {
