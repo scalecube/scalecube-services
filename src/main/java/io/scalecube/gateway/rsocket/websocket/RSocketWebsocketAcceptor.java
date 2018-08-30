@@ -1,17 +1,16 @@
 package io.scalecube.gateway.rsocket.websocket;
 
-import com.codahale.metrics.Timer;
 import io.rsocket.AbstractRSocket;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
+import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.codec.ServiceMessageCodec;
-import io.scalecube.services.metrics.Metrics;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,17 +21,10 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketAcceptor.class);
 
-  public static final String METRICS_PREFIX = "rsocket";
-  public static final String METRIC_STREAM_DURATION = "streamDurationTimer";
-  public static final String METRIC_CLIENT_CONNECTIONS = "client.connections";
-  public static final String METRIC_CLIENT = "client";
-  public static final String METRIC_REQUESTS = "requests";
-  public static final String METRIC_RESPONSES = "responses";
+  private final ServiceCall serviceCall;
+  private final GatewayMetrics metrics;
 
-  private ServiceCall serviceCall;
-  private final Metrics metrics;
-
-  public RSocketWebsocketAcceptor(ServiceCall serviceCall, Metrics metrics) {
+  public RSocketWebsocketAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
     this.serviceCall = serviceCall;
     this.metrics = metrics;
   }
@@ -40,90 +32,101 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
     LOGGER.info("Accepted rsocket websocket: {}, connectionSetup: {}", rsocket, setup);
+    metrics.incrConnection();
 
     rsocket
         .onClose()
         .doOnTerminate(
             () -> {
               LOGGER.info("Client disconnected: {}", rsocket);
-              metrics.getCounter(METRICS_PREFIX, METRIC_CLIENT_CONNECTIONS).dec();
+              metrics.decrConnection();
             })
         .subscribe();
 
+    // Prepare message codec together with headers from metainfo
     HeadersCodec headersCodec = HeadersCodec.getInstance(setup.metadataMimeType());
+    ServiceMessageCodec messageCodec = new ServiceMessageCodec(headersCodec);
 
-    ServiceMessageCodec codec = new ServiceMessageCodec(headersCodec);
-    metrics.getCounter(METRICS_PREFIX, METRIC_CLIENT_CONNECTIONS).inc();
-    return Mono.just(
-        new AbstractRSocket() {
-          @Override
-          public Mono<Void> fireAndForget(Payload payload) {
-            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
-            Timer.Context roundtripTime =
-                metrics.getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION).time();
-            return serviceCall.oneWay(toServiceMessage(payload)).doOnTerminate(roundtripTime::stop);
-          }
+    return Mono.just(new GatewayRSocket(serviceCall, metrics, messageCodec));
+  }
 
-          @Override
-          public Mono<Payload> requestResponse(Payload payload) {
-            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
-            Timer.Context streamDuration =
-                RSocketWebsocketAcceptor.this
-                    .metrics
-                    .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
-                    .time();
+  /**
+   * Private extension class for rsocket. Holds gateway business logic in following methods: {@link
+   * #fireAndForget(Payload)}, {@link #requestResponse(Payload)}, {@link #requestStream(Payload)}
+   * and {@link #requestChannel(Publisher)}.
+   */
+  private static class GatewayRSocket extends AbstractRSocket {
+
+    private final ServiceCall serviceCall;
+    private final GatewayMetrics metrics;
+    private final ServiceMessageCodec messageCodec;
+
+    /**
+     * Constructor for gateway rsocket.
+     *
+     * @param serviceCall service call coming from microservices.
+     * @param metrics gateway metrics.
+     * @param messageCodec message messageCodec.
+     */
+    private GatewayRSocket(
+        ServiceCall serviceCall, GatewayMetrics metrics, ServiceMessageCodec messageCodec) {
+      this.serviceCall = serviceCall;
+      this.metrics = metrics;
+      this.messageCodec = messageCodec;
+    }
+
+    @Override
+    public Mono<Void> fireAndForget(Payload payload) {
+      return Mono.defer(
+          () -> {
+            metrics.markRequest();
+            return serviceCall.oneWay(toMessage(payload));
+          });
+    }
+
+    @Override
+    public Mono<Payload> requestResponse(Payload payload) {
+      return Mono.defer(
+          () -> {
+            metrics.markRequest();
             return serviceCall
-                .requestOne(toServiceMessage(payload))
+                .requestOne(toMessage(payload))
                 .map(this::toPayload)
-                .doOnNext(
-                    n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
-                .doOnTerminate(streamDuration::stop);
-          }
+                .doOnNext(payload1 -> metrics.markResponse());
+          });
+    }
 
-          @Override
-          public Flux<Payload> requestStream(Payload payload) {
-            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark();
-            Timer.Context streamDuration =
-                RSocketWebsocketAcceptor.this
-                    .metrics
-                    .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
-                    .time();
+    @Override
+    public Flux<Payload> requestStream(Payload payload) {
+      return Flux.defer(
+          () -> {
+            metrics.markRequest();
             return serviceCall
-                .requestMany(toServiceMessage(payload))
+                .requestMany(toMessage(payload))
                 .map(this::toPayload)
-                .doOnNext(
-                    n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
-                .doOnTerminate(streamDuration::stop);
-          }
+                .doOnNext(payload1 -> metrics.markResponse());
+          });
+    }
 
-          @Override
-          public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-            Timer.Context streamDuration =
-                RSocketWebsocketAcceptor.this
-                    .metrics
-                    .getTimer(METRICS_PREFIX, METRIC_STREAM_DURATION)
-                    .time();
-            final Publisher<ServiceMessage> publisher =
-                Flux.from(payloads)
-                    .doOnNext(
-                        n ->
-                            metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_REQUESTS).mark())
-                    .map(this::toServiceMessage);
-            return serviceCall
-                .requestBidirectional(publisher)
-                .map(this::toPayload)
-                .doOnNext(
-                    n -> metrics.getMeter(METRICS_PREFIX, METRIC_CLIENT, METRIC_RESPONSES).mark())
-                .doOnTerminate(streamDuration::stop);
-          }
+    @Override
+    public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
+      return Flux.defer(
+          () ->
+              serviceCall
+                  .requestBidirectional(
+                      Flux.from(payloads)
+                          .doOnNext(payload -> metrics.markRequest())
+                          .map(this::toMessage))
+                  .map(this::toPayload)
+                  .doOnNext(payload -> metrics.markResponse()));
+    }
 
-          private ServiceMessage toServiceMessage(Payload payload) {
-            return codec.decode(payload.sliceData(), payload.sliceMetadata());
-          }
+    private ServiceMessage toMessage(Payload payload) {
+      return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+    }
 
-          private Payload toPayload(ServiceMessage serviceMessage) {
-            return codec.encodeAndTransform(serviceMessage, ByteBufPayload::create);
-          }
-        });
+    private Payload toPayload(ServiceMessage serviceMessage) {
+      return messageCodec.encodeAndTransform(serviceMessage, ByteBufPayload::create);
+    }
   }
 }

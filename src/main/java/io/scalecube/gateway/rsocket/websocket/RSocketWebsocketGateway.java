@@ -5,6 +5,7 @@ import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.NettyContextCloseable;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.rsocket.util.ByteBufPayload;
+import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.GatewayTemplate;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -20,7 +21,6 @@ import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.server.HttpServer;
 import reactor.ipc.netty.resources.LoopResources;
 
-/** Gateway implementation on RSocket over WebSocket. */
 public class RSocketWebsocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketWebsocketGateway.class);
@@ -59,7 +59,8 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
                   });
 
           RSocketWebsocketAcceptor rsocketWebsocketAcceptor =
-              new RSocketWebsocketAcceptor(call.create(), metrics);
+              new RSocketWebsocketAcceptor(
+                  call.create(), new GatewayMetrics(config.name(), metrics));
 
           server =
               RSocketFactory.receive()
