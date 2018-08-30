@@ -1,6 +1,5 @@
 package io.scalecube.gateway.benchmarks.rsocket.distributed;
 
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.benchmarks.example.ExampleServiceImpl;
