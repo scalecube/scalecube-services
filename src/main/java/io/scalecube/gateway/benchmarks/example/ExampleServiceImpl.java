@@ -1,6 +1,7 @@
 package io.scalecube.gateway.benchmarks.example;
 
 import io.scalecube.gateway.examples.StreamRequest;
+import io.scalecube.services.api.ServiceMessage;
 import java.time.Duration;
 import java.util.stream.LongStream;
 import reactor.core.publisher.Flux;
@@ -12,6 +13,16 @@ public class ExampleServiceImpl implements ExampleService {
   @Override
   public Mono<String> one(String name) {
     return Mono.just("Echo:" + name);
+  }
+
+  @Override
+  public Mono<ServiceMessage> oneMessage(ServiceMessage request) {
+    return Mono.defer(
+        () ->
+            Mono.just(
+                ServiceMessage.from(request)
+                    .header("srv-recd-time", String.valueOf(System.currentTimeMillis()))
+                    .build()));
   }
 
   @Override
