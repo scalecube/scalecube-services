@@ -27,14 +27,14 @@ public class GatewayMetrics {
   }
 
   /** Increment connection counter. */
-  public void incrConnection() {
+  public void incConnection() {
     if (connectionCounter != null) {
       connectionCounter.inc();
     }
   }
 
   /** Decrement connection counter. */
-  public void decrConnection() {
+  public void decConnection() {
     if (connectionCounter != null) {
       connectionCounter.dec();
     }
