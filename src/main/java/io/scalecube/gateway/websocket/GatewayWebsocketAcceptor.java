@@ -59,7 +59,7 @@ public class GatewayWebsocketAcceptor
 
   private Mono<Void> onConnect(WebsocketSession session) {
     LOGGER.info("Session connected: " + session);
-    metrics.incrConnection();
+    metrics.incConnection();
 
     Mono<Void> voidMono =
         session.send(
@@ -144,7 +144,7 @@ public class GatewayWebsocketAcceptor
     session.onClose(
         () -> {
           LOGGER.info("Session disconnected: " + session);
-          metrics.decrConnection();
+          metrics.decConnection();
         });
 
     return voidMono.then();
