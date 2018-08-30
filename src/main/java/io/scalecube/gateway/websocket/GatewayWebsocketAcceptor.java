@@ -178,20 +178,17 @@ public class GatewayWebsocketAcceptor
       WebsocketSession session,
       GatewayMessage request,
       FluxSink<GatewayMessage> sink) {
-
-    boolean dispose = session.dispose(streamId);
-
-    if (!dispose) {
+    if (!session.dispose(streamId)) {
       LOGGER.error(
           "CANCEL failed for gateway request: {}, " + "sid={} is not contained in session: {}",
           request,
           streamId,
           session);
       throw new BadRequestException("sid=" + streamId + " is not contained in session");
-    } else {
-      sink.next(GatewayMessage.builder().streamId(streamId).signal(Signal.CANCEL).build());
-      sink.complete();
     }
+    // send message with CAMCEL signal
+    sink.next(GatewayMessage.builder().streamId(streamId).signal(Signal.CANCEL).build());
+    sink.complete();
   }
 
   private void checkSidNotNull(Long streamId, WebsocketSession session, GatewayMessage request) {
