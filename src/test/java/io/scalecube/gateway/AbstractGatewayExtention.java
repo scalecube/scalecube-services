@@ -36,7 +36,7 @@ public abstract class AbstractGatewayExtention
     this.gatewayConfig = gatewayConfig;
     this.serviceInstance = serviceInstance;
     this.seed =
-        Microservices.builder().gateway(gatewayConfig).metrics(new MetricRegistry()).startAwait();
+        Microservices.builder().gateway(gatewayConfig).startAwait();
   }
 
   @Override
