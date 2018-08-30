@@ -48,7 +48,6 @@ class RSocketClientSdkTest {
         Microservices.builder()
             .services(new GreetingServiceImpl())
             .gateway(gatewayConfig)
-            .metrics(new MetricRegistry())
             .startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");

@@ -9,7 +9,6 @@ import io.scalecube.services.exceptions.UnauthorizedException;
 
 public final class ExceptionProcessor {
 
-  /** Default constructor. */
   private ExceptionProcessor() {
     // Do not instantiate
   }
