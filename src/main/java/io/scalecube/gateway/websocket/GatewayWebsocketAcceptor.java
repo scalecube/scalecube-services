@@ -103,25 +103,14 @@ public class GatewayWebsocketAcceptor
                                 Disposable disposable =
                                     serviceStream
                                         .map(
-                                            message -> {
-                                              GatewayMessage.Builder response =
-                                                  GatewayMessage.from(message).streamId(streamId);
-                                              if (ExceptionProcessor.isError(message)) {
-                                                receivedErrorMessage.set(true);
-                                                response.signal(Signal.ERROR);
-                                              }
-                                              return response.build();
-                                            })
+                                            message ->
+                                                prepareResponse(
+                                                    streamId, message, receivedErrorMessage))
                                         .concatWith(
                                             Flux.defer(
                                                 () ->
-                                                    receivedErrorMessage.get()
-                                                        ? Mono.empty()
-                                                        : Mono.just(
-                                                            GatewayMessage.builder()
-                                                                .streamId(streamId)
-                                                                .signal(Signal.COMPLETE)
-                                                                .build())))
+                                                    prepareCompletion(
+                                                        streamId, receivedErrorMessage)))
                                         .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
                                         .doFinally(signalType -> session.dispose(streamId))
                                         .subscribe(sink::next, sink::error, sink::complete);
@@ -148,6 +137,23 @@ public class GatewayWebsocketAcceptor
         });
 
     return voidMono.then();
+  }
+
+  private Mono<GatewayMessage> prepareCompletion(
+      Long streamId, AtomicBoolean receivedErrorMessage) {
+    return receivedErrorMessage.get()
+        ? Mono.empty()
+        : Mono.just(GatewayMessage.builder().streamId(streamId).signal(Signal.COMPLETE).build());
+  }
+
+  private GatewayMessage prepareResponse(
+      Long streamId, ServiceMessage message, AtomicBoolean receivedErrorMessage) {
+    GatewayMessage.Builder response = GatewayMessage.from(message).streamId(streamId);
+    if (ExceptionProcessor.isError(message)) {
+      receivedErrorMessage.set(true);
+      response.signal(Signal.ERROR);
+    }
+    return response.build();
   }
 
   private void checkQualifierNotNull(WebsocketSession session, GatewayMessage request) {
