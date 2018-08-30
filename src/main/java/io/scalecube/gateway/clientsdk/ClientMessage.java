@@ -11,7 +11,7 @@ public final class ClientMessage {
   private Object data;
 
   public ClientMessage(Builder builder) {
-    this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
+    this.headers = new HashMap<>(builder.headers);
     this.data = builder.data;
   }
 
@@ -28,7 +28,7 @@ public final class ClientMessage {
   }
 
   public Map<String, String> headers() {
-    return headers;
+    return Collections.unmodifiableMap(headers);
   }
 
   public <T> T data() {

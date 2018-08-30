@@ -146,11 +146,21 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   private Payload toPayload(ClientMessage clientMessage) {
-    return messageCodec.encodeAndTransform(clientMessage, ByteBufPayload::create);
+    ClientMessage message =
+        ClientMessage.from(clientMessage)
+            .header("client-send-time", String.valueOf(System.currentTimeMillis()))
+            .build();
+    return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
   }
 
   private ClientMessage toClientMessage(Payload payload) {
-    return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+    long clientReceivedTime = System.currentTimeMillis();
+
+    ClientMessage message = messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+
+    return ClientMessage.from(message)
+        .header("client-recd-time", String.valueOf(clientReceivedTime))
+        .build();
   }
 
   private <T> Mono<T> listenConnectionClose(RSocket rsocket) {
