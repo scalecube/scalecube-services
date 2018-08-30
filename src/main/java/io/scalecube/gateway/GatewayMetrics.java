@@ -11,8 +11,8 @@ public class GatewayMetrics {
   public static final String METRIC_RESPONSES = "responses";
 
   private final Counter connectionCounter;
-  private Meter requestMeter;
-  private Meter responseMeter;
+  private final Meter requestMeter;
+  private final Meter responseMeter;
 
   /**
    * Constructor for gatewat metrics.
