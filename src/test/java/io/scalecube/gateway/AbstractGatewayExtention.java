@@ -1,6 +1,5 @@
 package io.scalecube.gateway;
 
-import com.codahale.metrics.MetricRegistry;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
@@ -35,8 +34,7 @@ public abstract class AbstractGatewayExtention
   public AbstractGatewayExtention(Object serviceInstance, GatewayConfig gatewayConfig) {
     this.gatewayConfig = gatewayConfig;
     this.serviceInstance = serviceInstance;
-    this.seed =
-        Microservices.builder().gateway(gatewayConfig).startAwait();
+    this.seed = Microservices.builder().gateway(gatewayConfig).startAwait();
   }
 
   @Override
