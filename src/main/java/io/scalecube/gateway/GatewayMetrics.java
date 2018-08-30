@@ -15,7 +15,7 @@ public class GatewayMetrics {
   private final Meter responseMeter;
 
   /**
-   * Constructor for gatewat metrics.
+   * Constructor for gateway metrics.
    *
    * @param prefix prefix for gateway metrics instance
    * @param metrics microservices metrics
