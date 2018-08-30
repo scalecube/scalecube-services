@@ -1,6 +1,7 @@
 package io.scalecube.gateway.websocket;
 
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.GatewayTemplate;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -17,7 +18,6 @@ import reactor.ipc.netty.http.server.HttpServer;
 import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.BlockingNettyContext;
 
-/** Gateway implementation on pure Websocket. */
 public class WebsocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGateway.class);
@@ -47,7 +47,8 @@ public class WebsocketGateway extends GatewayTemplate {
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
 
           GatewayWebsocketAcceptor websocketAcceptor =
-              new GatewayWebsocketAcceptor(call.create(), metrics);
+              new GatewayWebsocketAcceptor(
+                  call.create(), new GatewayMetrics(config.name(), metrics));
 
           server =
               HttpServer.builder()
