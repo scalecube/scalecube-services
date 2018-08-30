@@ -10,9 +10,7 @@ public class GatewayMetrics {
   public static final String METRIC_REQUESTS = "requests";
   public static final String METRIC_RESPONSES = "responses";
 
-  private final String prefix;
   private final Counter connectionCounter;
-  Metrics metrics;
   private Meter requestMeter;
   private Meter responseMeter;
 
@@ -23,7 +21,6 @@ public class GatewayMetrics {
    * @param metrics microservices metrics
    */
   public GatewayMetrics(String prefix, Metrics metrics) {
-    this.prefix = prefix;
     connectionCounter = metrics != null ? metrics.getCounter(prefix, METRIC_CONNECTIONS) : null;
     requestMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_REQUESTS) : null;
     responseMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_RESPONSES) : null;
