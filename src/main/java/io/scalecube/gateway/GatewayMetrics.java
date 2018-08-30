@@ -1,5 +1,7 @@
 package io.scalecube.gateway;
 
+import com.codahale.metrics.Counter;
+import com.codahale.metrics.Meter;
 import io.scalecube.services.metrics.Metrics;
 
 public class GatewayMetrics {
@@ -9,7 +11,10 @@ public class GatewayMetrics {
   public static final String METRIC_RESPONSES = "responses";
 
   private final String prefix;
-  private final Metrics metrics;
+  private final Counter connectionCounter;
+  Metrics metrics;
+  private Meter requestMeter;
+  private Meter responseMeter;
 
   /**
    * Constructor for gatewat metrics.
@@ -19,34 +24,36 @@ public class GatewayMetrics {
    */
   public GatewayMetrics(String prefix, Metrics metrics) {
     this.prefix = prefix;
-    this.metrics = metrics;
+    connectionCounter = metrics != null ? metrics.getCounter(prefix, METRIC_CONNECTIONS) : null;
+    requestMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_REQUESTS) : null;
+    responseMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_RESPONSES) : null;
   }
 
   /** Increment connection counter. */
   public void incrConnection() {
-    if (metrics != null) {
-      metrics.getCounter(prefix, METRIC_CONNECTIONS).inc();
+    if (connectionCounter != null) {
+      connectionCounter.inc();
     }
   }
 
   /** Decrement connection counter. */
   public void decrConnection() {
-    if (metrics != null) {
-      metrics.getCounter(prefix, METRIC_CONNECTIONS).dec();
+    if (connectionCounter != null) {
+      connectionCounter.dec();
     }
   }
 
   /** Mark request for calls/sec measurement. */
   public void markRequest() {
-    if (metrics != null) {
-      metrics.getMeter(prefix, "", METRIC_REQUESTS).mark();
+    if (requestMeter != null) {
+      requestMeter.mark();
     }
   }
 
   /** Mark response for calls/sec measurement. */
   public void markResponse() {
-    if (metrics != null) {
-      metrics.getMeter(prefix, "", METRIC_RESPONSES).mark();
+    if (responseMeter != null) {
+      responseMeter.mark();
     }
   }
 }
