@@ -24,7 +24,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-    loopResources = LoopResources.create("rsws-client");
+    loopResources = LoopResources.create("client-event-loop");
   }
 
   @Override

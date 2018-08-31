@@ -10,6 +10,6 @@ public class RemoteInfiniteStreamBenchmark {
    * @param args program arguments
    */
   public static void main(String[] args) {
-    InfiniteStreamBenchmark.runWith(args, RemoteBenchmarkState::new);
+    InfiniteStreamBenchmark.runWith(args, RemoteBenchmarksState::new);
   }
 }

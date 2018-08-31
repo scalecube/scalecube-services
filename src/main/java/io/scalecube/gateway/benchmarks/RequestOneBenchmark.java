@@ -27,8 +27,8 @@ public final class RequestOneBenchmark {
 
     BenchmarksSettings settings =
         BenchmarksSettings.from(args)
-            .injectors(1000)
-            .messageRate((int) 1e3)
+            .injectors(Runtime.getRuntime().availableProcessors())
+            .messageRate((int) 100e3)
             .rampUpDuration(Duration.ofSeconds(60))
             .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)

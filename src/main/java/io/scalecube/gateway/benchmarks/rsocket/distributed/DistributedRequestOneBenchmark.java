@@ -2,7 +2,7 @@ package io.scalecube.gateway.benchmarks.rsocket.distributed;
 
 import io.scalecube.gateway.benchmarks.RequestOneBenchmark;
 
-public class DistributedRequestOneMicrobenchmark {
+public class DistributedRequestOneBenchmark {
 
   /**
    * Main runner.

@@ -7,7 +7,7 @@ import io.scalecube.gateway.clientsdk.ClientSettings;
 import java.net.InetSocketAddress;
 import reactor.core.publisher.Mono;
 
-public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmarkState> {
+public class RemoteBenchmarksState extends AbstractBenchmarkState<RemoteBenchmarksState> {
 
   private InetSocketAddress gatewayAddress;
 
@@ -16,7 +16,7 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
    *
    * @param settings benchmarks settings.
    */
-  public RemoteBenchmarkState(BenchmarksSettings settings) {
+  public RemoteBenchmarksState(BenchmarksSettings settings) {
     super(settings);
 
     String address = settings.find("gatewayAddress", null);
