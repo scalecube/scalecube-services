@@ -10,6 +10,8 @@ import reactor.core.scheduler.Schedulers;
 
 public class ExampleServiceImpl implements ExampleService {
 
+  private static final String SERVICE_RECEIVED_TIME_HEADER = "srv-recd-time";
+
   @Override
   public Mono<String> one(String name) {
     return Mono.just("Echo:" + name);
@@ -21,7 +23,8 @@ public class ExampleServiceImpl implements ExampleService {
         () ->
             Mono.just(
                 ServiceMessage.from(request)
-                    .header("srv-recd-time", String.valueOf(System.currentTimeMillis()))
+                    .header(
+                        SERVICE_RECEIVED_TIME_HEADER, String.valueOf(System.currentTimeMillis()))
                     .build()));
   }
 
@@ -56,5 +59,37 @@ public class ExampleServiceImpl implements ExampleService {
     return Flux.concat(fluxes)
         .publishOn(Schedulers.parallel(), Integer.MAX_VALUE)
         .onBackpressureDrop();
+  }
+
+  @Override
+  public Flux<ServiceMessage> requestInfiniteMessageStream(ServiceMessage request) {
+    return Flux.defer(
+        () -> {
+          Duration interval =
+              Duration.ofMillis(Long.parseLong(request.header("executionTaskInterval")));
+          int messagesPerInterval =
+              Integer.parseInt(request.header("messagesPerExecutionInterval"));
+
+          Flux<Flux<ServiceMessage>> fluxes =
+              Flux.interval(interval).map(tick -> emitServiceMessages(messagesPerInterval));
+
+          return Flux.concat(fluxes)
+              .publishOn(Schedulers.parallel(), Integer.MAX_VALUE)
+              .onBackpressureDrop();
+        });
+  }
+
+  private Flux<ServiceMessage> emitServiceMessages(int messagesPerInterval) {
+    return Flux.create(
+        fluxSink -> {
+          for (int i = 0; i < messagesPerInterval; i++) {
+            fluxSink.next(
+                ServiceMessage.builder()
+                    .header(
+                        SERVICE_RECEIVED_TIME_HEADER, String.valueOf(System.currentTimeMillis()))
+                    .build());
+          }
+          fluxSink.complete();
+        });
   }
 }

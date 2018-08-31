@@ -26,4 +26,7 @@ public interface ExampleService {
 
   @ServiceMethod("requestInfiniteStream")
   Flux<Long> requestInfiniteStream(StreamRequest request);
+
+  @ServiceMethod("requestInfiniteMessageStream")
+  Flux<ServiceMessage> requestInfiniteMessageStream(ServiceMessage request);
 }
