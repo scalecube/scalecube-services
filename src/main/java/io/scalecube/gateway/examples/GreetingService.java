@@ -5,10 +5,10 @@ import io.scalecube.services.annotations.ServiceMethod;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Service(GreetingService.QUALIFIER)
+@Service(GreetingService.NAMESPACE)
 public interface GreetingService {
 
-  String QUALIFIER = "greeting";
+  String NAMESPACE = "greeting";
   String TIMESTAMP_KEY = "timestamp";
 
   @ServiceMethod("one")

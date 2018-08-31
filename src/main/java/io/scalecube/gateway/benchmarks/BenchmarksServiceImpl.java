@@ -2,6 +2,7 @@ package io.scalecube.gateway.benchmarks;
 
 import io.scalecube.services.api.ServiceMessage;
 import java.time.Duration;
+import java.util.concurrent.Callable;
 import java.util.stream.LongStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,14 +38,14 @@ public class BenchmarksServiceImpl implements BenchmarksService {
   @Override
   public Flux<ServiceMessage> infiniteStream() {
     return Flux.defer(
-        () ->
-            Mono.fromCallable(
-                    () ->
-                        ServiceMessage.builder()
-                            .header(TIMESTAMP_KEY, Long.toString(System.currentTimeMillis()))
-                            .build())
-                .subscribeOn(Schedulers.parallel())
-                .repeat());
+        () -> {
+          Callable<ServiceMessage> callable =
+              () ->
+                  ServiceMessage.builder()
+                      .header(TIMESTAMP_KEY, Long.toString(System.currentTimeMillis()))
+                      .build();
+          return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel()).repeat();
+        });
   }
 
   @Override
@@ -55,13 +56,13 @@ public class BenchmarksServiceImpl implements BenchmarksService {
               Duration.ofMillis(Long.valueOf(message.header(INTERVAL_MILLIS)));
           long messageNum = Long.valueOf(message.header(MESSAGES_PER_INTERVAL));
 
-          Flux<ServiceMessage> repeat =
+          Mono<ServiceMessage> callable =
               Mono.fromCallable(
-                      () ->
-                          ServiceMessage.builder()
-                              .header(TIMESTAMP_KEY, Long.toString(System.currentTimeMillis()))
-                              .build())
-                  .repeat(messageNum);
+                  () ->
+                      ServiceMessage.builder()
+                          .header(TIMESTAMP_KEY, Long.toString(System.currentTimeMillis()))
+                          .build());
+          Flux<ServiceMessage> repeat = callable.repeat(messageNum);
 
           return Flux.concat(Flux.interval(intervalMillis).map(tick -> repeat))
               .publishOn(Schedulers.parallel())
