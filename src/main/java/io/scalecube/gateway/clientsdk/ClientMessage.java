@@ -31,6 +31,10 @@ public final class ClientMessage {
     return Collections.unmodifiableMap(headers);
   }
 
+  public String header(String name) {
+    return headers.get(name);
+  }
+
   public <T> T data() {
     // noinspection unchecked
     return (T) data;
