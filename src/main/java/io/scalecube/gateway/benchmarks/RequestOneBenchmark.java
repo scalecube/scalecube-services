@@ -2,12 +2,14 @@ package io.scalecube.gateway.benchmarks;
 
 import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.gateway.examples.GreetingService;
+import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public final class RequestOneBenchmark {
+
+  public static final String QUALIFIER = "/benchmarks/one";
 
   private RequestOneBenchmark() {
     // Do not instantiate
@@ -26,9 +28,9 @@ public final class RequestOneBenchmark {
     BenchmarksSettings settings =
         BenchmarksSettings.from(args)
             .injectors(1000)
-            .messageRate(100_000)
+            .messageRate((int) 1e3)
             .rampUpDuration(Duration.ofSeconds(60))
-            .executionTaskDuration(Duration.ofSeconds(300))
+            .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
             .build();
@@ -38,11 +40,11 @@ public final class RequestOneBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("service-one-timer");
+          Timer timer = state.timer("timer-total");
           return (executionTick, client) -> {
             Timer.Context timeContext = timer.time();
-            GreetingService service = client.forService(GreetingService.class);
-            return service.one("hello").doOnTerminate(timeContext::stop);
+            ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
+            return client.requestResponse(request).doOnTerminate(timeContext::stop);
           };
         },
         (state, client) -> client.close());
