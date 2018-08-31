@@ -2,7 +2,7 @@ package io.scalecube.gateway.benchmarks;
 
 import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.gateway.benchmarks.example.ExampleService;
+import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.StreamRequest;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +45,7 @@ public final class RequestStreamBenchmark {
                   .setIntervalMillis(settings.executionTaskInterval().toMillis())
                   .setMessagesPerInterval(settings.messagesPerExecutionInterval());
           return (executionTick, client) -> {
-            ExampleService service = client.forService(ExampleService.class);
+            GreetingService service = client.forService(GreetingService.class);
             return service
                 .requestInfiniteStream(streamRequest)
                 .doOnNext(

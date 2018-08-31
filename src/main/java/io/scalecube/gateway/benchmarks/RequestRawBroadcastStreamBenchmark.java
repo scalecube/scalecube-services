@@ -2,14 +2,19 @@ package io.scalecube.gateway.benchmarks;
 
 import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.examples.GreetingService;
+import io.scalecube.services.api.Qualifier;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public final class RequestOneBenchmark {
+public final class RequestRawBroadcastStreamBenchmark {
 
-  private RequestOneBenchmark() {
+  private static final String QUALIFIER =
+      Qualifier.asString(GreetingService.QUALIFIER, "rawBroadcastStream");
+
+  private RequestRawBroadcastStreamBenchmark() {
     // Do not instantiate
   }
 
@@ -26,7 +31,7 @@ public final class RequestOneBenchmark {
     BenchmarksSettings settings =
         BenchmarksSettings.from(args)
             .injectors(1000)
-            .messageRate(100_000)
+            .messageRate(1) // workaround
             .rampUpDuration(Duration.ofSeconds(60))
             .executionTaskDuration(Duration.ofSeconds(300))
             .consoleReporterEnabled(true)
@@ -38,12 +43,17 @@ public final class RequestOneBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("service-one-timer");
-          return (executionTick, client) -> {
-            Timer.Context timeContext = timer.time();
-            GreetingService service = client.forService(GreetingService.class);
-            return service.one("hello").doOnTerminate(timeContext::stop);
-          };
+          Timer timer = state.timer("service-stream-timer");
+          return (executionTick, client) ->
+              client
+                  .requestStream(ClientMessage.builder().qualifier(QUALIFIER).build())
+                  .doOnNext(
+                      msg -> {
+                        long serverTimestamp =
+                            Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY));
+                        timer.update(
+                            System.currentTimeMillis() - serverTimestamp, TimeUnit.MILLISECONDS);
+                      });
         },
         (state, client) -> client.close());
   }
