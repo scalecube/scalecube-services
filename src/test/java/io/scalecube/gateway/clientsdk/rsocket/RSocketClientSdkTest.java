@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.gateway.clientsdk.Client;
-import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.gateway.examples.GreetingRequest;
@@ -132,48 +131,5 @@ class RSocketClientSdkTest {
     Flux failing = rsocketClient.forService(GreetingService.class).failingMany(JOHN);
 
     StepVerifier.create(failing).expectNextCount(2).expectError().verify();
-  }
-
-  @Test
-  void testStreamRaw() {
-    int cnt = 5;
-
-    long currentTimestamp = System.currentTimeMillis();
-
-    Flux<ClientMessage> rawStream =
-        rsocketClient
-            .requestStream(
-                ClientMessage.builder()
-                    .qualifier("/" + GreetingService.NAMESPACE + "/rawStream")
-                    .build())
-            .take(cnt);
-
-    StepVerifier.create(rawStream)
-        .assertNext(
-            msg ->
-                assertTrue(
-                    Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
-                        >= currentTimestamp))
-        .expectNextCount(cnt - 1 /* minus previous check */)
-        .expectComplete()
-        .verify();
-  }
-
-  @Test
-  void testRawRequestResponse() {
-    long currentTimestamp = System.currentTimeMillis();
-    Mono<ClientMessage> rawStream =
-        rsocketClient.requestResponse(
-            ClientMessage.builder()
-                .qualifier("/" + GreetingService.NAMESPACE + "/rawStream")
-                .build());
-    StepVerifier.create(rawStream)
-        .assertNext(
-            msg ->
-                assertTrue(
-                    Long.parseLong(msg.headers().get(GreetingService.TIMESTAMP_KEY))
-                        >= currentTimestamp))
-        .expectComplete()
-        .verify();
   }
 }
