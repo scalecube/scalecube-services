@@ -36,7 +36,7 @@ public class ExamplesRunner {
     Microservices.builder()
         .seeds(seeds)
         .servicePort(servicePort)
-        .services(new BenchmarksServiceImpl())
+        .services(new BenchmarksServiceImpl(), new GreetingServiceImpl())
         .startAwait();
 
     Thread.currentThread().join();
