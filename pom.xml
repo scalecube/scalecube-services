@@ -11,51 +11,11 @@
 
   <artifactId>scalecube-gateway-examples</artifactId>
 
-  <properties>
-    <mainClass>io.scalecube.gateway.examples.ExamplesRunner</mainClass>
-  </properties>
-
   <dependencies>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-config</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-logger</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-examples-api</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>rsocket-services-transport</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-discovery</artifactId>
-    </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>
