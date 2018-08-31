@@ -7,9 +7,9 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public final class RequestOneBenchmark {
+public final class RequestBroadcastStreamBenchmark {
 
-  private RequestOneBenchmark() {
+  private RequestBroadcastStreamBenchmark() {
     // Do not instantiate
   }
 
@@ -25,9 +25,9 @@ public final class RequestOneBenchmark {
 
     BenchmarksSettings settings =
         BenchmarksSettings.from(args)
-            .injectors(1000)
-            .messageRate(100_000)
-            .rampUpDuration(Duration.ofSeconds(60))
+            .injectors(2)
+            .messageRate(1) // workaround
+            .rampUpDuration(Duration.ofSeconds(1))
             .executionTaskDuration(Duration.ofSeconds(300))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
@@ -38,11 +38,14 @@ public final class RequestOneBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("service-one-timer");
+          Timer timer = state.timer("service-stream-timer");
+
           return (executionTick, client) -> {
-            Timer.Context timeContext = timer.time();
             GreetingService service = client.forService(GreetingService.class);
-            return service.one("hello").doOnTerminate(timeContext::stop);
+            return service
+                .broadcastStream()
+                .doOnNext(
+                    next -> timer.update(System.currentTimeMillis() - next, TimeUnit.MILLISECONDS));
           };
         },
         (state, client) -> client.close());
