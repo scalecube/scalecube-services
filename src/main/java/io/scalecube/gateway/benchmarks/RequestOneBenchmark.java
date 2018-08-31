@@ -29,7 +29,7 @@ public final class RequestOneBenchmark {
         BenchmarksSettings.from(args)
             .injectors(Runtime.getRuntime().availableProcessors())
             .messageRate((int) 100e3)
-            .rampUpDuration(Duration.ofSeconds(60))
+            .rampUpDuration(Duration.ofSeconds(10))
             .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
@@ -41,9 +41,11 @@ public final class RequestOneBenchmark {
         (rampUpTick, state) -> state.createClient(),
         state -> {
           Timer timer = state.timer("timer-total");
+
+          ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
+
           return (executionTick, client) -> {
             Timer.Context timeContext = timer.time();
-            ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
             return client.requestResponse(request).doOnTerminate(timeContext::stop);
           };
         },

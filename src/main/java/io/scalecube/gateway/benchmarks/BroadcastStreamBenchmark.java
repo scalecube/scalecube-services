@@ -31,7 +31,7 @@ public final class BroadcastStreamBenchmark {
         BenchmarksSettings.from(args)
             .injectors(Runtime.getRuntime().availableProcessors())
             .messageRate(1) // workaround
-            .rampUpDuration(Duration.ofSeconds(60))
+            .rampUpDuration(Duration.ofSeconds(10))
             .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)

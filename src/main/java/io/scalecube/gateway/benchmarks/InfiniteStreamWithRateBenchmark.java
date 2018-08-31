@@ -33,7 +33,7 @@ public final class InfiniteStreamWithRateBenchmark {
         BenchmarksSettings.from(args)
             .injectors(Runtime.getRuntime().availableProcessors())
             .messageRate((int) 100e3)
-            .rampUpDuration(Duration.ofSeconds(60))
+            .rampUpDuration(Duration.ofSeconds(10))
             .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
