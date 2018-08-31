@@ -5,7 +5,6 @@ import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.example.ExampleService;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -64,8 +63,7 @@ public final class RequestMessageStreamBenchmark {
                   .requestStream(clientMessage)
                   .doOnNext(
                       message -> {
-                        long serviceReceivedTime =
-                            Long.parseLong(message.headers().get("srv-recd-time"));
+                        long serviceReceivedTime = Long.parseLong(message.header("srv-recd-time"));
                         timer.update(
                             System.currentTimeMillis() - serviceReceivedTime,
                             TimeUnit.MILLISECONDS);
@@ -79,11 +77,9 @@ public final class RequestMessageStreamBenchmark {
 
   private static void calculateReturnLatency(
       ClientMessage message, Timer serviceToGatewayTimer, Timer gatewayToClientTimer) {
-    final Map<String, String> headers = message.headers();
-
-    String serviceReceivedTime = headers.get("srv-recd-time");
-    String gwReceivedFromServiceTime = headers.get("gw-recd-from-srv-time");
-    String clientReceivedTime = headers.get("client-recd-time");
+    String serviceReceivedTime = message.header("srv-recd-time");
+    String gwReceivedFromServiceTime = message.header("gw-recd-from-srv-time");
+    String clientReceivedTime = message.header("client-recd-time");
 
     if (gwReceivedFromServiceTime == null
         || serviceReceivedTime == null

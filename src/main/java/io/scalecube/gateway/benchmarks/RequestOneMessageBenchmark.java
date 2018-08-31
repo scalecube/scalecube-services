@@ -5,7 +5,6 @@ import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.example.ExampleService;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -74,13 +73,12 @@ public final class RequestOneMessageBenchmark {
       Timer gatewayToServiceTimer,
       Timer serviceToGatewayTimer,
       Timer gatewayToClientTimer) {
-    final Map<String, String> headers = message.headers();
 
-    String clientSendTime = headers.get("client-send-time");
-    String gwReceivedFromClientTime = headers.get("gw-recd-from-client-time");
-    String serviceReceivedTime = headers.get("srv-recd-time");
-    String gwReceivedFromServiceTime = headers.get("gw-recd-from-srv-time");
-    String clientReceivedTime = headers.get("client-recd-time");
+    String clientSendTime = message.header("client-send-time");
+    String gwReceivedFromClientTime = message.header("gw-recd-from-client-time");
+    String serviceReceivedTime = message.header("srv-recd-time");
+    String gwReceivedFromServiceTime = message.header("gw-recd-from-srv-time");
+    String clientReceivedTime = message.header("client-recd-time");
 
     if (clientSendTime == null
         || gwReceivedFromClientTime == null
