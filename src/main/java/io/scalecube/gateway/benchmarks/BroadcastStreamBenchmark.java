@@ -1,15 +1,19 @@
 package io.scalecube.gateway.benchmarks;
 
+import static io.scalecube.gateway.benchmarks.BenchmarksService.TIMESTAMP_KEY;
+
 import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.gateway.examples.GreetingService;
+import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public final class RequestBroadcastStreamBenchmark {
+public final class BroadcastStreamBenchmark {
 
-  private RequestBroadcastStreamBenchmark() {
+  public static final String QUALIFIER = "/benchmarks/broadcastStream";
+
+  private BroadcastStreamBenchmark() {
     // Do not instantiate
   }
 
@@ -25,10 +29,10 @@ public final class RequestBroadcastStreamBenchmark {
 
     BenchmarksSettings settings =
         BenchmarksSettings.from(args)
-            .injectors(2)
+            .injectors(Runtime.getRuntime().availableProcessors())
             .messageRate(1) // workaround
-            .rampUpDuration(Duration.ofSeconds(1))
-            .executionTaskDuration(Duration.ofSeconds(300))
+            .rampUpDuration(Duration.ofSeconds(60))
+            .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
             .build();
@@ -38,15 +42,19 @@ public final class RequestBroadcastStreamBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("service-stream-timer");
+          Timer timer = state.timer("timer-total");
 
-          return (executionTick, client) -> {
-            GreetingService service = client.forService(GreetingService.class);
-            return service
-                .broadcastStream()
-                .doOnNext(
-                    next -> timer.update(System.currentTimeMillis() - next, TimeUnit.MILLISECONDS));
-          };
+          ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
+
+          return (executionTick, client) ->
+              client
+                  .requestStream(request)
+                  .doOnNext(
+                      message -> {
+                        long timestamp = Long.parseLong(message.headers().get(TIMESTAMP_KEY));
+                        long total = System.currentTimeMillis() - timestamp;
+                        timer.update(total, TimeUnit.MILLISECONDS);
+                      });
         },
         (state, client) -> client.close());
   }

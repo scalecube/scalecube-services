@@ -2,9 +2,9 @@ package io.scalecube.gateway.benchmarks.rsocket.distributed;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
+import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -30,10 +30,7 @@ public class DistributedMicrobenchmarkState
   protected void beforeAll() throws Exception {
     super.beforeAll();
 
-    services =
-        Microservices.builder()
-            .services(new GreetingServiceImpl())
-            .startAwait();
+    services = Microservices.builder().services(new BenchmarksServiceImpl()).startAwait();
 
     gateway =
         Microservices.builder()
