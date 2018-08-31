@@ -9,7 +9,6 @@ import reactor.core.publisher.Mono;
 public interface GreetingService {
 
   String NAMESPACE = "greeting";
-  String TIMESTAMP_KEY = "timestamp";
 
   @ServiceMethod("one")
   Mono<String> one(String name);
