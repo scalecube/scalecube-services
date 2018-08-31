@@ -13,10 +13,25 @@ public final class ExceptionProcessor {
     // Do not instantiate
   }
 
+  /**
+   * Boolean function telling is given qualifier string an error qualifier. See {@link
+   * Qualifier#ERROR_NAMESPACE}.
+   *
+   * @param qualifier qualifier string.
+   * @return true if qualifier given is error qualifier
+   */
   public static boolean isError(String qualifier) {
     return qualifier.contains(Qualifier.ERROR_NAMESPACE);
   }
 
+  /**
+   * Exception converter to {@link ServiceException}.
+   *
+   * @param qualifier qualifier string.
+   * @param errorCode error code.
+   * @param errorMessage error message.
+   * @return service exception instance.
+   */
   public static ServiceException toException(String qualifier, int errorCode, String errorMessage) {
     int errorType = Integer.parseInt(Qualifier.getQualifierAction(qualifier));
 
@@ -29,7 +44,7 @@ public final class ExceptionProcessor {
         return new ServiceUnavailableException(errorCode, errorMessage);
       case InternalServiceException.ERROR_TYPE:
         return new InternalServiceException(errorCode, errorMessage);
-      // Handle other types of Service Exceptions here
+        // Handle other types of Service Exceptions here
       default:
         return new InternalServiceException(errorCode, errorMessage);
     }

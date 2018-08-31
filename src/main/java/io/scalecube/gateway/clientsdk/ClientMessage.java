@@ -6,6 +6,7 @@ import java.util.Map;
 
 public final class ClientMessage {
 
+  public static final String QUALIFIER = "q";
   private Map<String, String> headers;
   private Object data;
 
@@ -23,7 +24,7 @@ public final class ClientMessage {
   }
 
   public String qualifier() {
-    return headers.get("q");
+    return headers.get(QUALIFIER);
   }
 
   public Map<String, String> headers() {
@@ -39,6 +40,12 @@ public final class ClientMessage {
     return data != null;
   }
 
+  /**
+   * Boolean method telling message contains data of given type or not.
+   *
+   * @param dataClass data class
+   * @return true if message has not null data of given type
+   */
   public boolean hasData(Class<?> dataClass) {
     if (dataClass == null) {
       return false;

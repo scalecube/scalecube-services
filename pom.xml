@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-gateway-parent</artifactId>
@@ -20,10 +21,6 @@
       <artifactId>scalecube-services-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
-    </dependency>
-    <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-core</artifactId>
     </dependency>
@@ -37,6 +34,21 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-gateway-rsocket-websocket</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>rsocket-services-transport</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-discovery</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-jackson</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
