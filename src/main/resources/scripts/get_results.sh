@@ -1,20 +1,25 @@
 #!/bin/bash
-declare -a gws=("35.180.126.189")
-declare -a services=("35.180.83.214")
-declare -a clients=("35.180.28.113" "35.180.85.27" "35.180.101.3" "52.47.173.231")
+declare -a gws=("ip1" "ip2")
+declare -a services=("ip3" "ip4")
+declare -a clients=("ip5" "ip6" "ip7" "ip8")
 
-CERT_PATH=/home/sergiiripa/certs/cloud_cert
-RESULTS_ROOT=/home/sergiiripa/tmp/testReports/requestStream-1
+CERT_PATH=/home/serhiihabryiel/Downloads/cloud_cert
+RESULTS_ROOT=/home/serhiihabryiel/Snapshots/new/2cpu_16injectors
 
 for addr in ${gws[@]}
 do
-    mkdir -p $RESULTS_ROOT/gateway
-    scp -r -i $CERT_PATH ubuntu@$addr:/tmp/reports $RESULTS_ROOT/gateway
+    mkdir -p $RESULTS_ROOT/gateway/$addr
+    scp -r -i $CERT_PATH ubuntu@$addr:/tmp/reports $RESULTS_ROOT/gateway/$addr
 done
 
-CLIENT_REPORTS_DIR=/tmp/reports
 for addr in ${clients[@]}
 do
     mkdir -p $RESULTS_ROOT/client/$addr
-    scp -r -i $CERT_PATH ubuntu@$addr:$CLIENT_REPORTS_DIR $RESULTS_ROOT/client/$addr
+    scp -r -i $CERT_PATH ubuntu@$addr:/tmp/reports $RESULTS_ROOT/client/$addr
+done
+
+for addr in ${services[@]}
+do
+    mkdir -p $RESULTS_ROOT/client/$addr
+    scp -r -i $CERT_PATH ubuntu@$addr:/tmp/reports $RESULTS_ROOT/services/$addr
 done
