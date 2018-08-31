@@ -33,7 +33,7 @@ public class StandaloneMicrobenchmarkState
         Microservices.builder()
             .services(new BenchmarksServiceImpl())
             .gateway(gatewayConfig)
-            .metrics(settings.registry())
+            .metrics(registry())
             .startAwait();
   }
 

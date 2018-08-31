@@ -2,8 +2,8 @@ package io.scalecube.gateway.benchmarks;
 
 import static io.scalecube.gateway.benchmarks.BenchmarksService.TIMESTAMP_KEY;
 
-import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +31,7 @@ public final class BroadcastStreamBenchmark {
         BenchmarksSettings.from(args)
             .injectors(Runtime.getRuntime().availableProcessors())
             .messageRate(1) // workaround
+            .warmUpDuration(Duration.ofSeconds(30))
             .rampUpDuration(Duration.ofSeconds(10))
             .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
@@ -42,7 +43,7 @@ public final class BroadcastStreamBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("timer-total");
+          BenchmarksTimer timer = state.timer("timer-total");
 
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 

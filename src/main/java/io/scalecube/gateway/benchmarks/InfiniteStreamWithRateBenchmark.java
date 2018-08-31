@@ -4,8 +4,8 @@ import static io.scalecube.gateway.benchmarks.BenchmarksService.INTERVAL_MILLIS;
 import static io.scalecube.gateway.benchmarks.BenchmarksService.MESSAGES_PER_INTERVAL;
 import static io.scalecube.gateway.benchmarks.BenchmarksService.TIMESTAMP_KEY;
 
-import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +33,7 @@ public final class InfiniteStreamWithRateBenchmark {
         BenchmarksSettings.from(args)
             .injectors(Runtime.getRuntime().availableProcessors())
             .messageRate((int) 100e3)
+            .warmUpDuration(Duration.ofSeconds(30))
             .rampUpDuration(Duration.ofSeconds(10))
             .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
@@ -44,7 +45,7 @@ public final class InfiniteStreamWithRateBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          Timer timer = state.timer("timer-total");
+          BenchmarksTimer timer = state.timer("timer-total");
 
           long interval = settings.executionTaskInterval().toMillis();
           int messagesPerInterval = settings.messagesPerExecutionInterval();

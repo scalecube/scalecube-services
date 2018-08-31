@@ -36,7 +36,7 @@ public class DistributedMicrobenchmarkState
         Microservices.builder()
             .seeds(services.discovery().address())
             .gateway(gatewayConfig)
-            .metrics(settings.registry())
+            .metrics(registry())
             .startAwait();
   }
 
