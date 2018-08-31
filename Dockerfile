@@ -16,4 +16,4 @@ COPY target/${EXECUTABLE_JAR}.jar /opt/scalecube/app.jar
 # profiler agent port
 EXPOSE 10001
 
-ENTRYPOINT ["/usr/bin/java", "-jar", "-Dlog4j.configurationFile=log4j2-file.xml", "/opt/scalecube/app.jar"]
+ENTRYPOINT exec java -agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-x86-64/libyjpagent.so=port=10001,listen=all -Dlog4j.configurationFile=log4j2-file.xml -jar /opt/scalecube/app.jar
