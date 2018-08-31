@@ -13,7 +13,6 @@
 
   <properties>
     <mainClass>io.scalecube.gateway.GatewayRunner</mainClass>
-    <serviceName>${project.artifactId}</serviceName>
   </properties>
 
   <dependencies>

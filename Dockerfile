@@ -1,9 +1,7 @@
 FROM openjdk:8
 MAINTAINER support@scalecube.io
 
-ARG SERVICE_NAME
 ARG EXECUTABLE_JAR
-ENV SERVICE_NAME ${SERVICE_NAME}
 
 # yourkit profile
 RUN wget https://www.yourkit.com/download/docker/YourKit-JavaProfiler-2018.04-docker.zip -P /tmp/ && \
