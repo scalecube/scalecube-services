@@ -144,7 +144,7 @@ class RSocketClientSdkTest {
         rsocketClient
             .requestStream(
                 ClientMessage.builder()
-                    .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
+                    .qualifier("/" + GreetingService.NAMESPACE + "/rawStream")
                     .build())
             .take(cnt);
 
@@ -165,7 +165,7 @@ class RSocketClientSdkTest {
     Mono<ClientMessage> rawStream =
         rsocketClient.requestResponse(
             ClientMessage.builder()
-                .qualifier("/" + GreetingService.QUALIFIER + "/rawStream")
+                .qualifier("/" + GreetingService.NAMESPACE + "/rawStream")
                 .build());
     StepVerifier.create(rawStream)
         .assertNext(
