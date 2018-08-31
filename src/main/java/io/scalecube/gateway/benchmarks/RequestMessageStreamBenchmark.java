@@ -2,8 +2,8 @@ package io.scalecube.gateway.benchmarks;
 
 import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.gateway.benchmarks.example.ExampleService;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.examples.GreetingService;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -11,7 +11,7 @@ import java.util.function.Function;
 public final class RequestMessageStreamBenchmark {
 
   private static final String QUALIFIER =
-      "/" + ExampleService.QUALIFIER + "/requestInfiniteMessageStream";
+      "/" + GreetingService.QUALIFIER + "/requestInfiniteMessageStream";
   private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private RequestMessageStreamBenchmark() {

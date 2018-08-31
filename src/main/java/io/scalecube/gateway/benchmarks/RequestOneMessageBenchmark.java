@@ -2,15 +2,15 @@ package io.scalecube.gateway.benchmarks;
 
 import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.gateway.benchmarks.example.ExampleService;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.examples.GreetingService;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 public final class RequestOneMessageBenchmark {
 
-  private static final String QUALIFIER = "/" + ExampleService.QUALIFIER + "/oneMessage";
+  private static final String QUALIFIER = "/" + GreetingService.QUALIFIER + "/oneMessage";
   private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private RequestOneMessageBenchmark() {
