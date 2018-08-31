@@ -10,42 +10,46 @@ public class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<String> one(String name) {
-    return Mono.just("Echo:" + name);
+    return Mono.defer(() -> Mono.just("Echo:" + name));
   }
 
   @Override
   public Flux<Long> manyStream(Long cnt) {
-    return Flux.fromStream(LongStream.range(0, cnt).boxed()).publishOn(Schedulers.parallel());
+    return Flux.defer(
+        () -> Flux.fromStream(LongStream.range(0, cnt).boxed()).publishOn(Schedulers.parallel()));
   }
 
   @Override
   public Mono<String> failingOne(String name) {
-    return Mono.error(new RuntimeException(name));
+    return Mono.defer(() -> Mono.error(new RuntimeException(name)));
   }
 
   @Override
   public Flux<String> many(String name) {
-    return Flux.interval(Duration.ofMillis(100)).map(i -> "Greeting (" + i + ") to: " + name);
+    return Flux.defer(
+        () -> Flux.interval(Duration.ofMillis(100)).map(i -> "Greeting (" + i + ") to: " + name));
   }
 
   @Override
   public Flux<String> failingMany(String name) {
-    return Flux.push(
-        sink -> {
-          sink.next("Echo:" + name);
-          sink.next("Echo:" + name);
-          sink.error(new RuntimeException("Echo:" + name));
-        });
+    return Flux.defer(
+        () ->
+            Flux.push(
+                sink -> {
+                  sink.next("Echo:" + name);
+                  sink.next("Echo:" + name);
+                  sink.error(new RuntimeException("Echo:" + name));
+                }));
   }
 
   @Override
   public Mono<GreetingResponse> pojoOne(GreetingRequest request) {
-    return one(request.getText()).map(GreetingResponse::new);
+    return Mono.defer(() -> one(request.getText()).map(GreetingResponse::new));
   }
 
   @Override
   public Flux<GreetingResponse> pojoMany(GreetingRequest request) {
-    return many(request.getText()).map(GreetingResponse::new);
+    return Flux.defer(() -> many(request.getText()).map(GreetingResponse::new));
   }
 
   @Override
@@ -65,11 +69,12 @@ public class GreetingServiceImpl implements GreetingService {
 
   @Override
   public Mono<String> delayOne(String name) {
-    return Mono.delay(Duration.ofSeconds(1)).then(Mono.just(name));
+    return Mono.defer(() -> Mono.delay(Duration.ofSeconds(1)).then(Mono.just(name)));
   }
 
   @Override
   public Flux<String> delayMany(String name) {
-    return Flux.interval(Duration.ofMillis(500), Duration.ofSeconds(2)).map(i -> name);
+    return Flux.defer(
+        () -> Flux.interval(Duration.ofMillis(500), Duration.ofSeconds(2)).map(i -> name));
   }
 }
