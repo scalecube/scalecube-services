@@ -11,10 +11,6 @@
 
   <artifactId>scalecube-gateway-benchmarks</artifactId>
 
-  <properties>
-    <serviceName>${project.artifactId}</serviceName>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
