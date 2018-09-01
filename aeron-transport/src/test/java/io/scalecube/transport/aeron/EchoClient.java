@@ -18,162 +18,159 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Random;
 
+import static java.lang.Boolean.TRUE;
 import static java.nio.charset.StandardCharsets.UTF_8;
-
-public class EchoClient implements Closeable {
-
+public final class EchoClient implements Closeable
+{
     private static final Logger LOG = LoggerFactory.getLogger(EchoClient.class);
 
-    private final MediaDriver driver;
+    private static final int ECHO_STREAM_ID = 0x2044f002;
+
+    private final MediaDriver media_driver;
     private final Aeron aeron;
     private final InetSocketAddress local_address;
     private final InetSocketAddress remote_address;
 
-    private static final int ECHO_STREAM_ID = 12345;
-
-    public static void main(String[] args) throws Exception {
-        if (args.length < 3) {
-            LOG.error("usage: directory local-address local-port remote-address remote-port");
-            System.exit(1);
-        }
-
-        final Path directory = Paths.get(args[0]);
-        final Integer local_port = Integer.valueOf(args[1]);
-        final Integer remote_port = Integer.valueOf(args[2]);
-
-        final InetSocketAddress local_address =
-                new InetSocketAddress("127.0.0.1", local_port);
-        final InetSocketAddress remote_address =
-                new InetSocketAddress("127.0.0.1", remote_port);
-
-        try (final EchoClient client = create(directory, local_address, remote_address)) {
-            client.run();
-        }
+    private EchoClient(
+            final MediaDriver in_media_driver,
+            final Aeron in_aeron,
+            final InetSocketAddress in_local_address,
+            final InetSocketAddress in_remote_address)
+    {
+        this.media_driver =
+                Objects.requireNonNull(in_media_driver, "media_driver");
+        this.aeron =
+                Objects.requireNonNull(in_aeron, "aeron");
+        this.local_address =
+                Objects.requireNonNull(in_local_address, "local_address");
+        this.remote_address =
+                Objects.requireNonNull(in_remote_address, "remote_address");
     }
-
-    public void run() {
-        try(final Subscription sub = this.createSubscription()){
-            try(final Publication pub = this.createPublication()){
-                this.runLoop(sub, pub);
-            }catch (Exception ex){
-                LOG.error("Failed to create publication: ", ex);
-            }
-        }catch (Exception ex){
-            LOG.error("Failed to create subscription: ", ex);
-        }
-    }
-
-    public EchoClient(MediaDriver driver, Aeron aeron,
-                      InetSocketAddress local_address, InetSocketAddress remote_address) {
-        this.driver = driver;
-        this.aeron = aeron;
-        this.local_address = local_address;
-        this.remote_address = remote_address;
-    }
-
 
     /**
-     * Initialize Media, and start Aeron client with the same media path.
+     * Create a new client.
      *
-     * @param media_directory
-     * @param local_address
-     * @param remote_address
-     * @return
-     * @throws Exception
+     * @param media_directory The directory used for the underlying media driver
+     * @param local_address   The local address used by the client
+     * @param remote_address  The address of the server to which the client will connect
+     *
+     * @return A new client
+     *
+     * @throws Exception On any initialization error
      */
+
     public static EchoClient create(
             final Path media_directory,
             final InetSocketAddress local_address,
-            final InetSocketAddress remote_address
-            ) throws Exception {
+            final InetSocketAddress remote_address)
+            throws Exception
+    {
+        Objects.requireNonNull(media_directory, "media_directory");
+        Objects.requireNonNull(local_address, "local_address");
+        Objects.requireNonNull(remote_address, "remote_address");
 
-                Objects.requireNonNull(media_directory, "media_directory");
-                Objects.requireNonNull(local_address, "local_address");
-                Objects.requireNonNull(remote_address, "remote_address");
+        final String directory =
+                media_directory.toAbsolutePath().toString();
 
-                final String directory =
-                        media_directory.toAbsolutePath().toString();
-
-                MediaDriver.Context media_ctx =
-
+        final MediaDriver.Context media_context =
                 new MediaDriver.Context()
-                    .dirDeleteOnStart(true)
-                    .aeronDirectoryName(directory);
+                        .dirDeleteOnStart(true)
+                        .aeronDirectoryName(directory);
 
-                Aeron.Context aeron_ctx = new Aeron.Context().aeronDirectoryName(directory);
-                MediaDriver driver = null;
-                Aeron aeron = null;
-                try{
-                    driver =  MediaDriver.launch(media_ctx);
-                    try{
-                        aeron = Aeron.connect(aeron_ctx);
-                    }catch (final Exception ex){
-                        if(aeron != null ){
-                            aeron.close();
-                        }
-                        throw ex;
-                    }
-                } catch (final Exception ex){
-                    if(driver != null){
-                        driver.close();
-                    }
-                    throw ex;
-                }
-                return new EchoClient(driver, aeron, local_address, remote_address);
+        final Aeron.Context aeron_context =
+                new Aeron.Context().aeronDirectoryName(directory);
+
+        MediaDriver media_driver = null;
+
+        try {
+            media_driver = MediaDriver.launch(media_context);
+
+            Aeron aeron = null;
+            try {
+                aeron = Aeron.connect(aeron_context);
+            } catch (final Exception e) {
+                closeIfNotNull(aeron);
+                throw e;
+            }
+
+            return new EchoClient(media_driver, aeron, local_address, remote_address);
+        } catch (final Exception e) {
+            closeIfNotNull(media_driver);
+            throw e;
+        }
     }
 
-    @Override
-    public void close() {
-        aeron.close();
-        driver.close();
+    private static void closeIfNotNull(
+            final AutoCloseable closeable)
+            throws Exception
+    {
+        if (closeable != null) {
+            closeable.close();
+        }
     }
 
-    private Subscription createSubscription(){
-        final String subscription_channel = new ChannelUriStringBuilder()
-//            .reliable(Boolean.TRUE)
-            .media("udp")
-            .endpoint("localhost:" + local_address.getPort())
-            .build();
-
-        LOG.info("Subscription URI: {}", subscription_channel);
-        return aeron.addSubscription(subscription_channel, ECHO_STREAM_ID);
-    }
-
-    private Publication createPublication(){
-        final String publication_channel_uri = new ChannelUriStringBuilder()
-//                .reliable(Boolean.TRUE)
-                .media("udp")
-                .endpoint("localhost:" + remote_address.getPort())
-                .build();
-        LOG.info("Publication URI: {}", publication_channel_uri);
-        return aeron.addPublication(publication_channel_uri, ECHO_STREAM_ID);
+    public void run()
+            throws Exception
+    {
+        try (final Subscription sub = this.setupSubscription()) {
+            try (final Publication pub = this.setupPublication()) {
+                this.runLoop(sub, pub);
+            }
+        }
     }
 
     private void runLoop(
-            final Subscription subscription,
-            final Publication publication) throws InterruptedException {
-        UnsafeBuffer buffer = new UnsafeBuffer(BufferUtil.allocateDirectAligned(2048, 16));
-        Random r = new Random();
+            final Subscription sub,
+            final Publication pub)
+            throws InterruptedException
+    {
+        final UnsafeBuffer buffer =
+                new UnsafeBuffer(BufferUtil.allocateDirectAligned(2048, 16));
 
-        while(true){
-//            if(publication.isConnected()){
-                if(sendMessage(publication, buffer, "HELLO " + this.local_address.getPort())){
+        final Random random = new Random();
+
+        /*
+         * Try repeatedly to send an initial HELLO message
+         */
+
+        while (true) {
+            if (pub.isConnected()) {
+                if (sendMessage(pub, buffer, "HELLO " + this.local_address.getPort())) {
                     break;
                 }
-                Thread.sleep(1000);
-//            }
+            }
+
+            Thread.sleep(1000L);
         }
 
-        FragmentHandler handler = new FragmentAssembler(EchoClient::onParseMessage);
-        while(true){
-            if(publication.isConnected()){
-                sendMessage(publication, buffer, Integer.toUnsignedString(r.nextInt()));
+        /*
+         * Send an infinite stream of random unsigned integers.
+         */
+
+        final FragmentHandler assembler =
+                new FragmentAssembler(EchoClient::onParseMessage);
+
+        while (true) {
+            if (pub.isConnected()) {
+                sendMessage(pub, buffer, Integer.toUnsignedString(random.nextInt()));
             }
-            if(subscription.isConnected()){
-                subscription.poll(handler, 10);
+            if (sub.isConnected()) {
+                sub.poll(assembler, 10);
             }
-            Thread.sleep(1000);
+            Thread.sleep(1000L);
         }
+    }
+
+    private static void onParseMessage(
+            final DirectBuffer buffer,
+            final int offset,
+            final int length,
+            final Header header)
+    {
+        final byte[] buf = new byte[length];
+        buffer.getBytes(offset, buf);
+        final String response = new String(buf, UTF_8);
+        LOG.debug("response: {}", response);
     }
 
     private static boolean sendMessage(
@@ -181,7 +178,7 @@ public class EchoClient implements Closeable {
             final UnsafeBuffer buffer,
             final String text)
     {
-        LOG.info("send: {}", text);
+        LOG.debug("send: {}", text);
 
         final byte[] value = text.getBytes(UTF_8);
         buffer.putBytes(0, value);
@@ -204,15 +201,61 @@ public class EchoClient implements Closeable {
         return false;
     }
 
-    private static void onParseMessage(
-            final DirectBuffer buffer,
-            final int offset,
-            final int length,
-            final Header header)
+    private Publication setupPublication()
     {
-        final byte[] buf = new byte[length];
-        buffer.getBytes(offset, buf);
-        final String response = new String(buf, UTF_8);
-        LOG.info("response: {}", response);
+        final String pub_uri =
+                new ChannelUriStringBuilder()
+                        .reliable(TRUE)
+                        .media("udp")
+                        .endpoint(this.remote_address.toString().replaceFirst("^/", ""))
+                        .build();
+
+        LOG.debug("publication URI: {}", pub_uri);
+        return this.aeron.addPublication(pub_uri, ECHO_STREAM_ID);
+    }
+
+    private Subscription setupSubscription()
+    {
+        final String sub_uri =
+                new ChannelUriStringBuilder()
+                        .reliable(TRUE)
+                        .media("udp")
+                        .endpoint(this.local_address.toString().replaceFirst("^/", ""))
+                        .build();
+
+        LOG.debug("subscription URI: {}", sub_uri);
+        return this.aeron.addSubscription(sub_uri, ECHO_STREAM_ID);
+    }
+
+    @Override
+    public void close()
+    {
+        this.aeron.close();
+        this.media_driver.close();
+    }
+
+    public static void main(
+            final String[] args)
+            throws Exception
+    {
+        if (args.length < 5) {
+            LOG.error("usage: directory local-address local-port remote-address remote-port");
+            System.exit(1);
+        }
+
+        final Path directory = Paths.get(args[0]);
+        final InetAddress local_name = InetAddress.getByName(args[1]);
+        final Integer local_port = Integer.valueOf(args[2]);
+        final InetAddress remote_name = InetAddress.getByName(args[3]);
+        final Integer remote_port = Integer.valueOf(args[4]);
+
+        final InetSocketAddress local_address =
+                new InetSocketAddress(local_name, local_port.intValue());
+        final InetSocketAddress remote_address =
+                new InetSocketAddress(remote_name, remote_port.intValue());
+
+        try (final EchoClient client = create(directory, local_address, remote_address)) {
+            client.run();
+        }
     }
 }
