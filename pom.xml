@@ -49,6 +49,7 @@
     <module>services</module>
     <module>benchmarks</module>
     <module>examples</module>
+    <module>aeron-transport</module>
   </modules>
 
   <dependencyManagement>
