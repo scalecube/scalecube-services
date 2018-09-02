@@ -1,8 +1,9 @@
 package io.scalecube.services.benchmarks.services;
 
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.metrics.BenchmarksMeter;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer.Context;
 
 public class RequestManyBenchmarks {
 
@@ -20,11 +21,11 @@ public class RequestManyBenchmarks {
             state -> {
               BenchmarkService benchmarkService = state.service(BenchmarkService.class);
               int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
-              Timer timer = state.timer("timer");
-              Meter meter = state.meter("responses");
+              BenchmarksTimer timer = state.timer("timer");
+              BenchmarksMeter meter = state.meter("responses");
 
               return i -> {
-                Timer.Context timeContext = timer.time();
+                Context timeContext = timer.time();
                 return benchmarkService
                     .requestMany(responseCount)
                     .doOnNext(onNext -> meter.mark())

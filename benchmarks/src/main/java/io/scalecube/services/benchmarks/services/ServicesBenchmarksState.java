@@ -27,11 +27,11 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
 
   @Override
   public void beforeAll() {
-    seed = Microservices.builder().metrics(settings.registry()).startAwait();
+    seed = Microservices.builder().metrics(registry()).startAwait();
 
     node =
         Microservices.builder()
-            .metrics(settings.registry())
+            .metrics(registry())
             .seeds(seed.discovery().address())
             .services(services)
             .startAwait();

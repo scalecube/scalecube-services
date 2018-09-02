@@ -1,9 +1,9 @@
 package io.scalecube.services.benchmarks.services;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer.Context;
+import java.util.concurrent.TimeUnit;
 
 public class RequestManyLatencyBenchmarks {
 
@@ -21,18 +21,14 @@ public class RequestManyLatencyBenchmarks {
             state -> {
               BenchmarkService benchmarkService = state.service(BenchmarkService.class);
               int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
-              Timer timer = state.timer("timer");
-              Meter responses = state.meter("responses");
-              Histogram latency = state.histogram("latency");
-
+              BenchmarksTimer timer = state.timer("timer");
               return i -> {
-                Timer.Context timeContext = timer.time();
+                Context timeContext = timer.time();
                 return benchmarkService
                     .nanoTime(responseCount)
                     .doOnNext(
                         onNext -> {
-                          latency.update(System.nanoTime() - onNext);
-                          responses.mark();
+                          timer.update(System.nanoTime() - onNext, TimeUnit.NANOSECONDS);
                         })
                     .doFinally(next -> timeContext.stop());
               };

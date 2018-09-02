@@ -1,7 +1,8 @@
 package io.scalecube.services.benchmarks.services;
 
-import com.codahale.metrics.Timer;
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer.Context;
 
 public class RequestOneBenchmarks {
 
@@ -16,10 +17,10 @@ public class RequestOneBenchmarks {
         .runForAsync(
             state -> {
               BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-              Timer timer = state.timer("timer");
+              BenchmarksTimer timer = state.timer("timer");
 
               return i -> {
-                Timer.Context timeContext = timer.time();
+                Context timeContext = timer.time();
                 return benchmarkService.requestOne("hello").doOnTerminate(timeContext::stop);
               };
             });
