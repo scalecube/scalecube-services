@@ -90,7 +90,8 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
           () -> {
             metrics.markRequest();
             return serviceCall
-                .requestOne(toMessage(payload))
+                .requestOne(enrichFromClient(toMessage(payload)))
+                .map(this::enrichFromService)
                 .map(this::toPayload)
                 .doOnNext(payload1 -> metrics.markResponse());
           });
@@ -102,7 +103,8 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
           () -> {
             metrics.markRequest();
             return serviceCall
-                .requestMany(toMessage(payload))
+                .requestMany(enrichFromClient(toMessage(payload)))
+                .map(this::enrichFromService)
                 .map(this::toPayload)
                 .doOnNext(payload1 -> metrics.markResponse());
           });
@@ -116,25 +118,31 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
                   .requestBidirectional(
                       Flux.from(payloads)
                           .doOnNext(payload -> metrics.markRequest())
-                          .map(this::toMessage))
+                          .map(this::toMessage)
+                          .map(this::enrichFromClient))
+                  .map(this::enrichFromService)
                   .map(this::toPayload)
                   .doOnNext(payload -> metrics.markResponse()));
     }
 
     private ServiceMessage toMessage(Payload payload) {
-      ServiceMessage decodedMessage =
-          messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
-      return ServiceMessage.from(decodedMessage)
-          .header("gw-recd-from-client-time", String.valueOf(System.currentTimeMillis()))
+      return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+    }
+
+    private Payload toPayload(ServiceMessage message) {
+      return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
+    }
+
+    private ServiceMessage enrichFromClient(ServiceMessage message) {
+      return ServiceMessage.from(message)
+          .header("gw-recv-from-client-time", String.valueOf(System.currentTimeMillis()))
           .build();
     }
 
-    private Payload toPayload(ServiceMessage serviceMessage) {
-      ServiceMessage message =
-          ServiceMessage.from(serviceMessage)
-              .header("gw-recd-from-srv-time", String.valueOf(System.currentTimeMillis()))
-              .build();
-      return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
+    private ServiceMessage enrichFromService(ServiceMessage message) {
+      return ServiceMessage.from(message)
+          .header("gw-recv-from-service-time", String.valueOf(System.currentTimeMillis()))
+          .build();
     }
   }
 }
