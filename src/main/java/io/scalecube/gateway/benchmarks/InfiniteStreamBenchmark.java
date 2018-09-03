@@ -4,8 +4,8 @@ import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_RECV_TIME
 import static io.scalecube.gateway.benchmarks.BenchmarksService.GW_RECV_FROM_SERVICE_TIME;
 import static io.scalecube.gateway.benchmarks.BenchmarksService.SERVICE_RECV_TIME;
 
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.metrics.BenchmarksTimer;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -27,13 +27,13 @@ public final class InfiniteStreamBenchmark {
    */
   public static void runWith(
       String[] args,
-      Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
+      Function<BenchmarkSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    int numOfThreads = Runtime.getRuntime().availableProcessors();
+    int numOfThreads = Runtime.getRuntime().availableProcessors() * 4;
     Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
 
-    BenchmarksSettings settings =
-        BenchmarksSettings.from(args)
+    BenchmarkSettings settings =
+        BenchmarkSettings.from(args)
             .injectors(numOfThreads)
             .messageRate(1) // workaround
             .warmUpDuration(Duration.ofSeconds(30))
@@ -48,13 +48,13 @@ public final class InfiniteStreamBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          BenchmarksTimer timer = state.timer("latency.timer");
-          BenchmarksTimer serviceToGatewayTimer = state.timer("latency.service-to-gw-timer");
-          BenchmarksTimer gatewayToClientTimer = state.timer("latency.gw-to-client-timer");
+          BenchmarkTimer timer = state.timer("latency.timer");
+          BenchmarkTimer serviceToGatewayTimer = state.timer("latency.service-to-gw-timer");
+          BenchmarkTimer gatewayToClientTimer = state.timer("latency.gw-to-client-timer");
 
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
-          return (executionTick, client) ->
+          return client -> (executionTick, task) ->
               client
                   .requestStream(request)
                   .doOnNext(
@@ -69,8 +69,8 @@ public final class InfiniteStreamBenchmark {
 
   private static void calculateReturnLatency(
       ClientMessage message,
-      BenchmarksTimer serviceToGatewayTimer,
-      BenchmarksTimer gatewayToClientTimer) {
+      BenchmarkTimer serviceToGatewayTimer,
+      BenchmarkTimer gatewayToClientTimer) {
 
     String clientRecvTime = message.header(CLIENT_RECV_TIME);
     String gwRecvFromServiceTime = message.header(GW_RECV_FROM_SERVICE_TIME);

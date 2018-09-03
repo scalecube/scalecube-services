@@ -6,13 +6,14 @@ import static io.scalecube.gateway.benchmarks.BenchmarksService.GW_RECV_FROM_CLI
 import static io.scalecube.gateway.benchmarks.BenchmarksService.GW_RECV_FROM_SERVICE_TIME;
 import static io.scalecube.gateway.benchmarks.BenchmarksService.SERVICE_RECV_TIME;
 
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.metrics.BenchmarksTimer;
-import io.scalecube.benchmarks.metrics.BenchmarksTimer.Context;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.metrics.BenchmarkTimer;
+import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import reactor.core.publisher.Mono;
 
 public final class RequestOneBenchmark {
 
@@ -29,14 +30,13 @@ public final class RequestOneBenchmark {
    * @param benchmarkStateFactory producer function for {@link AbstractBenchmarkState}
    */
   public static void runWith(
-      String[] args,
-      Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
+      String[] args, Function<BenchmarkSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    int numOfThreads = Runtime.getRuntime().availableProcessors();
+    int numOfThreads = Runtime.getRuntime().availableProcessors() * 4;
     Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
 
-    BenchmarksSettings settings =
-        BenchmarksSettings.from(args)
+    BenchmarkSettings settings =
+        BenchmarkSettings.from(args)
             .injectors(numOfThreads)
             .messageRate(1) // workaround
             .warmUpDuration(Duration.ofSeconds(30))
@@ -51,37 +51,44 @@ public final class RequestOneBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          BenchmarksTimer timer = state.timer("latency.timer");
-          BenchmarksTimer clientToGatewayTimer = state.timer("latency.client-to-gw-timer");
-          BenchmarksTimer gatewayToServiceTimer = state.timer("latency.gw-to-service-timer");
-          BenchmarksTimer serviceToGatewayTimer = state.timer("latency.service-to-gw-timer");
-          BenchmarksTimer gatewayToClientTimer = state.timer("latency.gw-to-client-timer");
+          BenchmarkTimer timer = state.timer("latency.timer");
+          BenchmarkTimer clientToGatewayTimer = state.timer("latency.client-to-gw-timer");
+          BenchmarkTimer gatewayToServiceTimer = state.timer("latency.gw-to-service-timer");
+          BenchmarkTimer serviceToGatewayTimer = state.timer("latency.service-to-gw-timer");
+          BenchmarkTimer gatewayToClientTimer = state.timer("latency.gw-to-client-timer");
 
-          return (executionTick, client) -> {
-            Context timeContext = timer.time();
-            return client
-                .requestResponse(ClientMessage.builder().qualifier(QUALIFIER).build())
-                .doOnNext(
-                    msg -> {
-                      timeContext.stop();
-                      calculateLatency(
-                          msg,
-                          clientToGatewayTimer,
-                          gatewayToServiceTimer,
-                          serviceToGatewayTimer,
-                          gatewayToClientTimer);
-                    });
-          };
+          ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
+
+          return client ->
+              (executionTick, task) ->
+                  Mono.defer(
+                      () -> {
+                        Context timeContext = timer.time();
+
+                        return client
+                            .requestResponse(request)
+                            .doOnNext(
+                                msg -> {
+                                  timeContext.stop();
+                                  calculateLatency(
+                                      msg,
+                                      clientToGatewayTimer,
+                                      gatewayToServiceTimer,
+                                      serviceToGatewayTimer,
+                                      gatewayToClientTimer);
+                                })
+                            .doOnTerminate(task::scheduleNow);
+                      });
         },
         (state, client) -> client.close());
   }
 
   private static void calculateLatency(
       ClientMessage message,
-      BenchmarksTimer clientToGatewayTimer,
-      BenchmarksTimer gatewayToServiceTimer,
-      BenchmarksTimer serviceToGatewayTimer,
-      BenchmarksTimer gatewayToClientTimer) {
+      BenchmarkTimer clientToGatewayTimer,
+      BenchmarkTimer gatewayToServiceTimer,
+      BenchmarkTimer serviceToGatewayTimer,
+      BenchmarkTimer gatewayToClientTimer) {
 
     String clientSendTime = message.header(CLIENT_SEND_TIME);
     String clientRecvTime = message.header(CLIENT_RECV_TIME);

@@ -10,8 +10,8 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.BenchmarksState;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import java.math.BigDecimal;
@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 public class GwMessageCodecMicrobenchmarkState
-    extends BenchmarksState<GwMessageCodecMicrobenchmarkState> {
+    extends BenchmarkState<GwMessageCodecMicrobenchmarkState> {
 
   private static final String GW_MSG_PATTERN =
       "{" + "\"q\":\"%s\"," + "\"sig\":%d," + "\"sid\":%d," + "\"d\":%s" + "}";
@@ -30,7 +30,7 @@ public class GwMessageCodecMicrobenchmarkState
   private GatewayMessage gatewayMessage;
   private ByteBuf byteBufExample;
 
-  public GwMessageCodecMicrobenchmarkState(BenchmarksSettings settings) {
+  public GwMessageCodecMicrobenchmarkState(BenchmarkSettings settings) {
     super(settings);
   }
 
