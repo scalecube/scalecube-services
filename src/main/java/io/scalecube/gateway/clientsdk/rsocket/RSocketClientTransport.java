@@ -55,10 +55,11 @@ public final class RSocketClientTransport implements ClientTransport {
         .flatMap(
             rsocket ->
                 rsocket
-                    .requestResponse(toPayload(request))
+                    .requestResponse(toPayload(enrichForSend(request)))
                     .takeUntilOther(listenConnectionClose(rsocket)))
         .publishOn(Schedulers.parallel())
-        .map(this::toClientMessage);
+        .map(this::toClientMessage)
+        .map(this::enrichForRecv);
   }
 
   @Override
@@ -67,10 +68,11 @@ public final class RSocketClientTransport implements ClientTransport {
         .flatMapMany(
             rsocket ->
                 rsocket
-                    .requestStream(toPayload(request))
+                    .requestStream(toPayload(enrichForSend(request)))
                     .takeUntilOther(listenConnectionClose(rsocket)))
         .publishOn(Schedulers.parallel())
-        .map(this::toClientMessage);
+        .map(this::toClientMessage)
+        .map(this::enrichForRecv);
   }
 
   @Override
@@ -145,21 +147,23 @@ public final class RSocketClientTransport implements ClientTransport {
         path);
   }
 
-  private Payload toPayload(ClientMessage clientMessage) {
-    ClientMessage message =
-        ClientMessage.from(clientMessage)
-            .header("client-send-time", String.valueOf(System.currentTimeMillis()))
-            .build();
+  private Payload toPayload(ClientMessage message) {
     return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
   }
 
   private ClientMessage toClientMessage(Payload payload) {
-    long clientReceivedTime = System.currentTimeMillis();
+    return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+  }
 
-    ClientMessage message = messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+  private ClientMessage enrichForSend(ClientMessage clientMessage) {
+    return ClientMessage.from(clientMessage)
+        .header("client-send-time", String.valueOf(System.currentTimeMillis()))
+        .build();
+  }
 
+  private ClientMessage enrichForRecv(ClientMessage message) {
     return ClientMessage.from(message)
-        .header("client-recd-time", String.valueOf(clientReceivedTime))
+        .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
         .build();
   }
 
