@@ -1,8 +1,9 @@
 package io.scalecube.gateway.benchmarks.codec;
 
-import com.codahale.metrics.Timer;
 import io.netty.buffer.ByteBuf;
 import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer;
+import io.scalecube.benchmarks.metrics.BenchmarksTimer.Context;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import java.util.concurrent.TimeUnit;
@@ -22,10 +23,10 @@ public class GwMessageEncoderMicrobenchmark {
             state -> {
               GatewayMessageCodec codec = state.codec();
               GatewayMessage message = state.message();
-              Timer timer = state.timer("timer");
+              BenchmarksTimer timer = state.timer("timer");
 
               return i -> {
-                Timer.Context timerContext = timer.time();
+                Context timerContext = timer.time();
                 ByteBuf bb = codec.encode(message);
                 timerContext.stop();
                 bb.release();

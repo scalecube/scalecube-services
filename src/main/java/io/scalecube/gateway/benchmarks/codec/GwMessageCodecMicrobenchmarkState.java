@@ -126,34 +126,18 @@ public class GwMessageCodecMicrobenchmarkState
 
     @Override
     public String toString() {
-      return "PlaceOrderRequest{"
-          + "token='"
-          + token
-          + '\''
-          + ", sourceIpAddress='"
-          + sourceIpAddress
-          + '\''
-          + ", orderType='"
-          + orderType
-          + '\''
-          + ", side='"
-          + side
-          + '\''
-          + ", side='"
-          + side
-          + '\''
-          + ", instanceId='"
-          + instanceId
-          + '\''
-          + ", quantity="
-          + quantity
-          + ", price="
-          + price
-          + ", isClosePositionOrder="
-          + isClosePositionOrder
-          + ", requestTimestamp="
-          + requestTimestamp
-          + '}';
+      final StringBuilder sb = new StringBuilder("PlaceOrderRequest{");
+      sb.append("orderType='").append(orderType).append('\'');
+      sb.append(", side='").append(side).append('\'');
+      sb.append(", instanceId='").append(instanceId).append('\'');
+      sb.append(", quantity=").append(quantity);
+      sb.append(", price=").append(price);
+      sb.append(", isClosePositionOrder=").append(isClosePositionOrder);
+      sb.append(", requestTimestamp=").append(requestTimestamp);
+      sb.append(", token='").append(token).append('\'');
+      sb.append(", sourceIpAddress='").append(sourceIpAddress).append('\'');
+      sb.append('}');
+      return sb.toString();
     }
   }
 }

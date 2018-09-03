@@ -3,10 +3,10 @@ package io.scalecube.gateway.benchmarks;
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.BenchmarksState;
 import io.scalecube.gateway.clientsdk.Client;
+import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
-import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
 import reactor.core.publisher.Mono;
@@ -24,7 +24,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-    loopResources = LoopResources.create("rsws-client");
+    loopResources = LoopResources.create("worker");
   }
 
   @Override
@@ -46,6 +46,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
         new RSocketClientTransport(settings, messageCodec, loopResources);
     Client client = new Client(transport, messageCodec);
 
-    return client.forService(GreetingService.class).one("hello").then(Mono.just(client));
+    ClientMessage request = ClientMessage.builder().qualifier("/benchmarks/one").build();
+    return client.requestResponse(request).then(Mono.just(client));
   }
 }
