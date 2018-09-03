@@ -1,7 +1,6 @@
 package io.scalecube.gateway.benchmarks;
 
 import io.scalecube.services.api.ServiceMessage;
-import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.stream.LongStream;
 import reactor.core.publisher.Flux;
@@ -10,11 +9,17 @@ import reactor.core.scheduler.Schedulers;
 
 public class BenchmarksServiceImpl implements BenchmarksService {
 
-  private Flux<Long> source = Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed()).share();
+  private Flux<Long> sharedSource =
+      Flux.fromStream(LongStream.range(0, Long.MAX_VALUE).boxed()).share();
 
   @Override
   public Mono<ServiceMessage> one(ServiceMessage message) {
-    return Mono.defer(() -> Mono.just(ServiceMessage.from(message).build()));
+    return Mono.defer(
+        () ->
+            Mono.just(
+                ServiceMessage.from(message)
+                    .header(SERVICE_RECV_TIME, String.valueOf(System.currentTimeMillis()))
+                    .build()));
   }
 
   @Override
@@ -23,50 +28,28 @@ public class BenchmarksServiceImpl implements BenchmarksService {
   }
 
   @Override
-  public Flux<ServiceMessage> broadcastStream() {
+  public Flux<ServiceMessage> broadcastStream(ServiceMessage message) {
     return Flux.defer(
         () ->
-            source
+            sharedSource
                 .subscribeOn(Schedulers.parallel())
                 .map(
                     i ->
                         ServiceMessage.builder()
-                            .header(TIMESTAMP_KEY, Long.toString(System.currentTimeMillis()))
+                            .header(SERVICE_RECV_TIME, String.valueOf(System.currentTimeMillis()))
                             .build()));
   }
 
   @Override
-  public Flux<ServiceMessage> infiniteStream() {
+  public Flux<ServiceMessage> infiniteStream(ServiceMessage message) {
     return Flux.defer(
         () -> {
           Callable<ServiceMessage> callable =
               () ->
                   ServiceMessage.builder()
-                      .header(TIMESTAMP_KEY, Long.toString(System.currentTimeMillis()))
+                      .header(SERVICE_RECV_TIME, Long.toString(System.currentTimeMillis()))
                       .build();
           return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel()).repeat();
-        });
-  }
-
-  @Override
-  public Flux<ServiceMessage> infiniteStreamWithRate(ServiceMessage message) {
-    return Flux.defer(
-        () -> {
-          Duration intervalMillis =
-              Duration.ofMillis(Long.valueOf(message.header(INTERVAL_MILLIS)));
-          long messageNum = Long.valueOf(message.header(MESSAGES_PER_INTERVAL));
-
-          Mono<ServiceMessage> callable =
-              Mono.fromCallable(
-                  () ->
-                      ServiceMessage.builder()
-                          .header(TIMESTAMP_KEY, Long.toString(System.currentTimeMillis()))
-                          .build());
-          Flux<ServiceMessage> repeat = callable.repeat(messageNum);
-
-          return Flux.concat(Flux.interval(intervalMillis).map(tick -> repeat))
-              .publishOn(Schedulers.parallel())
-              .onBackpressureDrop();
         });
   }
 }

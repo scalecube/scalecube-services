@@ -12,9 +12,12 @@ import reactor.core.publisher.Mono;
 public interface BenchmarksService {
 
   String NAMESPACE = "benchmarks";
-  String TIMESTAMP_KEY = "timestamp";
-  String MESSAGES_PER_INTERVAL = "messagesPerInterval";
-  String INTERVAL_MILLIS = "intervalMillis";
+
+  String SERVICE_RECV_TIME = "service-recv-time";
+  String CLIENT_RECV_TIME = "client-recv-time";
+  String GW_RECV_FROM_SERVICE_TIME = "gw-recv-from-service-time";
+  String CLIENT_SEND_TIME = "client-send-time";
+  String GW_RECV_FROM_CLIENT_TIME = "gw-recv-from-client-time";
 
   @ServiceMethod
   Mono<ServiceMessage> one(ServiceMessage message);
@@ -23,11 +26,8 @@ public interface BenchmarksService {
   Mono<ServiceMessage> failure(ServiceMessage message);
 
   @ServiceMethod
-  Flux<ServiceMessage> broadcastStream();
+  Flux<ServiceMessage> broadcastStream(ServiceMessage message);
 
   @ServiceMethod
-  Flux<ServiceMessage> infiniteStream();
-
-  @ServiceMethod
-  Flux<ServiceMessage> infiniteStreamWithRate(ServiceMessage message);
+  Flux<ServiceMessage> infiniteStream(ServiceMessage message);
 }
