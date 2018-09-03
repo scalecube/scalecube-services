@@ -97,8 +97,8 @@ public final class RequestOneBenchmark {
     long serviceRecvTime = Long.parseLong(message.header(SERVICE_RECV_TIME));
 
     clientToGwTimer.update(gwRecvFromClientTime - clientSendTime, TimeUnit.MILLISECONDS);
+    gwToClientTimer.update(clientRecvTime - gwRecvFromServiceTime, TimeUnit.MILLISECONDS);
     gwToServiceTimer.update(serviceRecvTime - gwRecvFromClientTime, TimeUnit.MILLISECONDS);
     serviceToGwTimer.update(gwRecvFromServiceTime - serviceRecvTime, TimeUnit.MILLISECONDS);
-    gwToClientTimer.update(clientRecvTime - gwRecvFromServiceTime, TimeUnit.MILLISECONDS);
   }
 }
