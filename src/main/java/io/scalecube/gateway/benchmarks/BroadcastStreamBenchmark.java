@@ -1,6 +1,8 @@
 package io.scalecube.gateway.benchmarks;
 
-import static io.scalecube.gateway.benchmarks.BenchmarksService.TIMESTAMP_KEY;
+import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_RECV_TIME;
+import static io.scalecube.gateway.benchmarks.BenchmarksService.GW_RECV_FROM_SERVICE_TIME;
+import static io.scalecube.gateway.benchmarks.BenchmarksService.SERVICE_RECV_TIME;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.benchmarks.metrics.BenchmarksTimer;
@@ -27,12 +29,15 @@ public final class BroadcastStreamBenchmark {
       String[] args,
       Function<BenchmarksSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
+    int numOfThreads = Runtime.getRuntime().availableProcessors();
+    Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
+
     BenchmarksSettings settings =
         BenchmarksSettings.from(args)
-            .injectors(Runtime.getRuntime().availableProcessors())
+            .injectors(numOfThreads)
             .messageRate(1) // workaround
             .warmUpDuration(Duration.ofSeconds(30))
-            .rampUpDuration(Duration.ofSeconds(10))
+            .rampUpDuration(rampUpDuration)
             .executionTaskDuration(Duration.ofSeconds(900))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
@@ -43,7 +48,9 @@ public final class BroadcastStreamBenchmark {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          BenchmarksTimer timer = state.timer("timer-total");
+          BenchmarksTimer timer = state.timer("latency.timer");
+          BenchmarksTimer serviceToGatewayTimer = state.timer("latency.service-to-gw-timer");
+          BenchmarksTimer gatewayToClientTimer = state.timer("latency.gw-to-client-timer");
 
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
@@ -51,12 +58,30 @@ public final class BroadcastStreamBenchmark {
               client
                   .requestStream(request)
                   .doOnNext(
-                      message -> {
-                        long timestamp = Long.parseLong(message.headers().get(TIMESTAMP_KEY));
-                        long total = System.currentTimeMillis() - timestamp;
-                        timer.update(total, TimeUnit.MILLISECONDS);
+                      msg -> {
+                        long timestamp = Long.parseLong(msg.header(SERVICE_RECV_TIME));
+                        timer.update(System.currentTimeMillis() - timestamp, TimeUnit.MILLISECONDS);
+                        calculateReturnLatency(msg, serviceToGatewayTimer, gatewayToClientTimer);
                       });
         },
         (state, client) -> client.close());
+  }
+
+  private static void calculateReturnLatency(
+      ClientMessage message,
+      BenchmarksTimer serviceToGatewayTimer,
+      BenchmarksTimer gatewayToClientTimer) {
+
+    String clientRecvTime = message.header(CLIENT_RECV_TIME);
+    String gwRecvFromServiceTime = message.header(GW_RECV_FROM_SERVICE_TIME);
+    String serviceRecvTime = message.header(SERVICE_RECV_TIME);
+
+    long serviceToGatewayTime =
+        Long.parseLong(gwRecvFromServiceTime) - Long.parseLong(serviceRecvTime);
+    serviceToGatewayTimer.update(serviceToGatewayTime, TimeUnit.MILLISECONDS);
+
+    long gatewayToClientTime =
+        Long.parseLong(clientRecvTime) - Long.parseLong(gwRecvFromServiceTime);
+    gatewayToClientTimer.update(gatewayToClientTime, TimeUnit.MILLISECONDS);
   }
 }
