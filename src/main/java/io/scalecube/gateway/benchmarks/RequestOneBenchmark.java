@@ -52,10 +52,10 @@ public final class RequestOneBenchmark {
         (rampUpTick, state) -> state.createClient(),
         state -> {
           BenchmarkTimer timer = state.timer("latency.timer");
-          BenchmarkTimer clientToGatewayTimer = state.timer("latency.client-to-gw-timer");
-          BenchmarkTimer gatewayToServiceTimer = state.timer("latency.gw-to-service-timer");
-          BenchmarkTimer serviceToGatewayTimer = state.timer("latency.service-to-gw-timer");
-          BenchmarkTimer gatewayToClientTimer = state.timer("latency.gw-to-client-timer");
+          BenchmarkTimer clientToGwTimer = state.timer("latency.client-to-gw-timer");
+          BenchmarkTimer gwToServiceTimer = state.timer("latency.gw-to-service-timer");
+          BenchmarkTimer serviceToGwTimer = state.timer("latency.service-to-gw-timer");
+          BenchmarkTimer gwToClientTimer = state.timer("latency.gw-to-client-timer");
 
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
@@ -72,10 +72,10 @@ public final class RequestOneBenchmark {
                                   timeContext.stop();
                                   calculateLatency(
                                       msg,
-                                      clientToGatewayTimer,
-                                      gatewayToServiceTimer,
-                                      serviceToGatewayTimer,
-                                      gatewayToClientTimer);
+                                      clientToGwTimer,
+                                      gwToServiceTimer,
+                                      serviceToGwTimer,
+                                      gwToClientTimer);
                                 })
                             .doOnTerminate(task::scheduleNow);
                       });
@@ -85,31 +85,20 @@ public final class RequestOneBenchmark {
 
   private static void calculateLatency(
       ClientMessage message,
-      BenchmarkTimer clientToGatewayTimer,
-      BenchmarkTimer gatewayToServiceTimer,
-      BenchmarkTimer serviceToGatewayTimer,
-      BenchmarkTimer gatewayToClientTimer) {
+      BenchmarkTimer clientToGwTimer,
+      BenchmarkTimer gwToServiceTimer,
+      BenchmarkTimer serviceToGwTimer,
+      BenchmarkTimer gwToClientTimer) {
 
-    String clientSendTime = message.header(CLIENT_SEND_TIME);
-    String clientRecvTime = message.header(CLIENT_RECV_TIME);
-    String gwRecvFromClientTime = message.header(GW_RECV_FROM_CLIENT_TIME);
-    String gwRecvFromServiceTime = message.header(GW_RECV_FROM_SERVICE_TIME);
-    String serviceRecvTime = message.header(SERVICE_RECV_TIME);
+    long clientSendTime = Long.parseLong(message.header(CLIENT_SEND_TIME));
+    long clientRecvTime = Long.parseLong(message.header(CLIENT_RECV_TIME));
+    long gwRecvFromClientTime = Long.parseLong(message.header(GW_RECV_FROM_CLIENT_TIME));
+    long gwRecvFromServiceTime = Long.parseLong(message.header(GW_RECV_FROM_SERVICE_TIME));
+    long serviceRecvTime = Long.parseLong(message.header(SERVICE_RECV_TIME));
 
-    long clientToGatewayTime =
-        Long.parseLong(gwRecvFromClientTime) - Long.parseLong(clientSendTime);
-    clientToGatewayTimer.update(clientToGatewayTime, TimeUnit.MILLISECONDS);
-
-    long gatewayToServiceTime =
-        Long.parseLong(serviceRecvTime) - Long.parseLong(gwRecvFromClientTime);
-    gatewayToServiceTimer.update(gatewayToServiceTime, TimeUnit.MILLISECONDS);
-
-    long serviceToGatewayTime =
-        Long.parseLong(gwRecvFromServiceTime) - Long.parseLong(serviceRecvTime);
-    serviceToGatewayTimer.update(serviceToGatewayTime, TimeUnit.MILLISECONDS);
-
-    long gatewayToClientTime =
-        Long.parseLong(clientRecvTime) - Long.parseLong(gwRecvFromServiceTime);
-    gatewayToClientTimer.update(gatewayToClientTime, TimeUnit.MILLISECONDS);
+    clientToGwTimer.update(gwRecvFromClientTime - clientSendTime, TimeUnit.MILLISECONDS);
+    gwToServiceTimer.update(serviceRecvTime - gwRecvFromClientTime, TimeUnit.MILLISECONDS);
+    serviceToGwTimer.update(gwRecvFromServiceTime - serviceRecvTime, TimeUnit.MILLISECONDS);
+    gwToClientTimer.update(clientRecvTime - gwRecvFromServiceTime, TimeUnit.MILLISECONDS);
   }
 }
