@@ -10,6 +10,6 @@ public class RemoteRequestOneBenchmark {
    * @param args program arguments
    */
   public static void main(String[] args) {
-    RequestOneBenchmark.runWith(args, RemoteBenchmarkState::new);
+    RequestOneBenchmark.runWith(args, RemoteBenchmarksState::new);
   }
 }

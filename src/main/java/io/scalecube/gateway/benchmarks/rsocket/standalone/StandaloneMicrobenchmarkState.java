@@ -2,9 +2,9 @@ package io.scalecube.gateway.benchmarks.rsocket.standalone;
 
 import io.scalecube.benchmarks.BenchmarksSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
+import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -31,8 +31,9 @@ public class StandaloneMicrobenchmarkState
 
     microservices =
         Microservices.builder()
-            .services(new GreetingServiceImpl())
+            .services(new BenchmarksServiceImpl())
             .gateway(gatewayConfig)
+            .metrics(registry())
             .startAwait();
   }
 

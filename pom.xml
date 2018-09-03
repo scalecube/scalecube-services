@@ -11,10 +11,6 @@
 
   <artifactId>scalecube-gateway-benchmarks</artifactId>
 
-  <properties>
-    <serviceName>${project.artifactId}</serviceName>
-  </properties>
-
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
@@ -41,7 +37,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-examples-api</artifactId>
+      <artifactId>scalecube-gateway-examples</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
