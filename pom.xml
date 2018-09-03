@@ -38,6 +38,12 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-gateway-logger</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
       <artifactId>rsocket-services-transport</artifactId>
       <scope>test</scope>
     </dependency>
