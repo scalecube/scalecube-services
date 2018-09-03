@@ -51,28 +51,36 @@ public final class RSocketClientTransport implements ClientTransport {
 
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
-    return getOrConnect()
-        .flatMap(
-            rsocket ->
-                rsocket
-                    .requestResponse(toPayload(enrichForSend(request)))
-                    .takeUntilOther(listenConnectionClose(rsocket)))
-        .publishOn(Schedulers.parallel())
-        .map(this::toClientMessage)
-        .map(this::enrichForRecv);
+    return Mono.defer(
+        () -> {
+          Payload payload = toPayload(enrichForSend(request));
+          return getOrConnect()
+              .flatMap(
+                  rsocket ->
+                      rsocket
+                          .requestResponse(payload)
+                          .takeUntilOther(listenConnectionClose(rsocket))) //
+              .publishOn(Schedulers.parallel())
+              .map(this::toClientMessage)
+              .map(this::enrichForRecv);
+        });
   }
 
   @Override
   public Flux<ClientMessage> requestStream(ClientMessage request) {
-    return getOrConnect()
-        .flatMapMany(
-            rsocket ->
-                rsocket
-                    .requestStream(toPayload(enrichForSend(request)))
-                    .takeUntilOther(listenConnectionClose(rsocket)))
-        .publishOn(Schedulers.parallel())
-        .map(this::toClientMessage)
-        .map(this::enrichForRecv);
+    return Flux.defer(
+        () -> {
+          Payload payload = toPayload(enrichForSend(request));
+          return getOrConnect()
+              .flatMapMany(
+                  rsocket ->
+                      rsocket
+                          .requestStream(payload)
+                          .takeUntilOther(listenConnectionClose(rsocket))) //
+              .publishOn(Schedulers.parallel())
+              .map(this::toClientMessage)
+              .map(this::enrichForRecv);
+        });
   }
 
   @Override
