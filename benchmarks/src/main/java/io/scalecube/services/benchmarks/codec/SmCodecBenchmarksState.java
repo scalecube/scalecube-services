@@ -4,8 +4,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.BenchmarksState;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class SmCodecBenchmarksState extends BenchmarksState<SmCodecBenchmarksState> {
+public class SmCodecBenchmarksState extends BenchmarkState<SmCodecBenchmarksState> {
 
   private ServiceMessageCodec serviceMessageCodec;
   private HeadersCodec headersCodec;
@@ -33,7 +33,7 @@ public class SmCodecBenchmarksState extends BenchmarksState<SmCodecBenchmarksSta
    * @param headersCodec - headers codec under test.
    */
   public SmCodecBenchmarksState(
-      BenchmarksSettings settings, DataCodec dataCodec, HeadersCodec headersCodec) {
+      BenchmarkSettings settings, DataCodec dataCodec, HeadersCodec headersCodec) {
     super(settings);
     this.dataCodec = dataCodec;
     this.headersCodec = headersCodec;
@@ -167,7 +167,7 @@ public class SmCodecBenchmarksState extends BenchmarksState<SmCodecBenchmarksSta
 
     private static final JacksonCodec CODEC = new JacksonCodec();
 
-    public Jackson(BenchmarksSettings settings) {
+    public Jackson(BenchmarkSettings settings) {
       super(settings, CODEC, CODEC);
     }
   }
@@ -176,7 +176,7 @@ public class SmCodecBenchmarksState extends BenchmarksState<SmCodecBenchmarksSta
 
     private static final ProtostuffCodec CODEC = new ProtostuffCodec();
 
-    public Protostuff(BenchmarksSettings settings) {
+    public Protostuff(BenchmarkSettings settings) {
       super(settings, CODEC, CODEC);
     }
   }
