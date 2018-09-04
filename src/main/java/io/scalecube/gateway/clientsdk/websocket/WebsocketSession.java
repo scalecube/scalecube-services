@@ -2,8 +2,9 @@ package io.scalecube.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import java.util.logging.Level;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
@@ -15,10 +16,12 @@ final class WebsocketSession {
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
+  private final ClientMessageCodec<ByteBuf> codec;
 
-  WebsocketSession(WebsocketInbound inbound, WebsocketOutbound outbound) {
+  WebsocketSession(WebsocketInbound inbound, WebsocketOutbound outbound, ClientMessageCodec codec) {
     this.inbound = inbound;
     this.outbound = outbound;
+    this.codec = codec;
   }
 
   public Flux<WebSocketFrame> receive() {
@@ -29,10 +32,11 @@ final class WebsocketSession {
         .log(">> RECEIVE", Level.FINE);
   }
 
-  public Mono<Void> send(Publisher<ByteBuf> publisher) {
-    return outbound
-        .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND", Level.FINE))
-        .then();
+  public Mono<Void> send(Publisher<ClientMessage> publisher) {
+    return null;
+    /*return outbound
+    .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND", Level.FINE))
+    .then();*/
   }
 
   public Mono<Void> close() {

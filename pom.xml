@@ -21,6 +21,10 @@
       <artifactId>scalecube-services-api</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-jackson</artifactId>
+    </dependency>
+    <dependency>
       <groupId>io.rsocket</groupId>
       <artifactId>rsocket-core</artifactId>
     </dependency>
@@ -50,11 +54,6 @@
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-discovery</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

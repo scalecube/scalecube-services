@@ -6,12 +6,12 @@ import java.util.Map;
 
 public final class ClientMessage {
 
-  public static final String QUALIFIER = "q";
+  private static final String QUALIFIER = "q";
   private Map<String, String> headers;
   private Object data;
 
   public ClientMessage(Builder builder) {
-    this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
+    this.headers = new HashMap<>(builder.headers);
     this.data = builder.data;
   }
 
@@ -28,7 +28,11 @@ public final class ClientMessage {
   }
 
   public Map<String, String> headers() {
-    return headers;
+    return Collections.unmodifiableMap(headers);
+  }
+
+  public String header(String name) {
+    return headers.get(name);
   }
 
   public <T> T data() {

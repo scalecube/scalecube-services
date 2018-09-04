@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.codec.RSocketPayloadCodec;
 import io.scalecube.gateway.examples.GreetingRequest;
 import io.scalecube.gateway.examples.GreetingResponse;
 import io.scalecube.gateway.examples.GreetingService;
@@ -63,7 +64,7 @@ class RSocketClientSdkTest {
         seed.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass()).getPort();
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
     ClientMessageCodec codec =
-        new ClientMessageCodec(
+        new RSocketPayloadCodec(
             HeadersCodec.getInstance(settings.contentType()),
             DataCodec.getInstance(settings.contentType()));
     rsocketClient =

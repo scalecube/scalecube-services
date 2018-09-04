@@ -30,7 +30,7 @@ public final class RSocketClientTransport implements ClientTransport {
               RSocketClientTransport.class, Mono.class, "rsocketMono");
 
   private final ClientSettings settings;
-  private final ClientMessageCodec messageCodec;
+  private final ClientMessageCodec<Payload> messageCodec;
   private final LoopResources loopResources;
 
   private volatile Mono<RSocket> rsocketMono;
@@ -43,7 +43,9 @@ public final class RSocketClientTransport implements ClientTransport {
    * @param loopResources loop resources.
    */
   public RSocketClientTransport(
-      ClientSettings settings, ClientMessageCodec messageCodec, LoopResources loopResources) {
+      ClientSettings settings,
+      ClientMessageCodec<Payload> messageCodec,
+      LoopResources loopResources) {
     this.settings = settings;
     this.messageCodec = messageCodec;
     this.loopResources = loopResources;
@@ -146,11 +148,11 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   private Payload toPayload(ClientMessage clientMessage) {
-    return messageCodec.encodeAndTransform(clientMessage, ByteBufPayload::create);
+    return messageCodec.encode(clientMessage);
   }
 
   private ClientMessage toClientMessage(Payload payload) {
-    return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+    return messageCodec.decode(payload);
   }
 
   private <T> Mono<T> listenConnectionClose(RSocket rsocket) {

@@ -7,6 +7,7 @@ import static org.hamcrest.core.StringStartsWith.startsWith;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.codec.RSocketPayloadCodec;
 import io.scalecube.gateway.clientsdk.exceptions.ConnectionClosedException;
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
@@ -52,7 +53,7 @@ class RSocketClientSdkDisconnectTest {
     ClientSettings settings = ClientSettings.builder().port(gatewayPort).build();
 
     ClientMessageCodec codec =
-        new ClientMessageCodec(
+        new RSocketPayloadCodec(
             HeadersCodec.getInstance(settings.contentType()),
             DataCodec.getInstance(settings.contentType()));
 

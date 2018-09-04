@@ -113,7 +113,7 @@ public final class WebsocketClientTransport implements ClientTransport {
     public Publisher<Void> apply(WebsocketInbound inbound, WebsocketOutbound outbound) {
       LOGGER.info("Connected successfully to {}", address);
 
-      session = new WebsocketSession(inbound, outbound);
+      session = new WebsocketSession(inbound, outbound, messageCodec);
       session.onClose(() -> LOGGER.info("Connection to {} has been closed successfully", address));
 
       // TODO: handle session -> onConnect (transform and send messages)
