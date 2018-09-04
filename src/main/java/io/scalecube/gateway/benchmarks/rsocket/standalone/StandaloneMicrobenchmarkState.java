@@ -1,6 +1,6 @@
 package io.scalecube.gateway.benchmarks.rsocket.standalone;
 
-import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
@@ -21,7 +21,7 @@ public class StandaloneMicrobenchmarkState
 
   private Microservices microservices;
 
-  public StandaloneMicrobenchmarkState(BenchmarksSettings settings) {
+  public StandaloneMicrobenchmarkState(BenchmarkSettings settings) {
     super(settings);
   }
 

@@ -1,6 +1,6 @@
 package io.scalecube.gateway.benchmarks.rsocket.remote;
 
-import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -16,7 +16,7 @@ public class RemoteBenchmarksState extends AbstractBenchmarkState<RemoteBenchmar
    *
    * @param settings benchmarks settings.
    */
-  public RemoteBenchmarksState(BenchmarksSettings settings) {
+  public RemoteBenchmarksState(BenchmarkSettings settings) {
     super(settings);
 
     String address = settings.find("gatewayAddress", null);

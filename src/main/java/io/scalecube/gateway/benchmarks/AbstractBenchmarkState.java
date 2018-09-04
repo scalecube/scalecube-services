@@ -1,8 +1,7 @@
 package io.scalecube.gateway.benchmarks;
 
-import io.rsocket.Payload;
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.BenchmarksState;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -15,18 +14,18 @@ import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
-    extends BenchmarksState<T> {
+    extends BenchmarkState<T> {
 
   private LoopResources loopResources;
 
-  public AbstractBenchmarkState(BenchmarksSettings settings) {
+  public AbstractBenchmarkState(BenchmarkSettings settings) {
     super(settings);
   }
 
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-    loopResources = LoopResources.create("worker");
+    loopResources = LoopResources.create("worker", 1, true);
   }
 
   @Override
