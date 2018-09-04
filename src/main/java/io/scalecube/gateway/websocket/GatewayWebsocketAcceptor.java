@@ -114,7 +114,10 @@ public class GatewayWebsocketAcceptor
                                         .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
                                         .doFinally(signalType -> session.dispose(streamId))
                                         .subscribe(sink::next, sink::error, sink::complete);
-                                session.register(sid, disposable);
+
+                                if (!disposable.isDisposed()) {
+                                  session.register(sid, disposable);
+                                }
                               } catch (Throwable ex) {
                                 ReferenceCountUtil.safeRelease(frame);
                                 sink.next(toErrorMessage(ex, sid));
