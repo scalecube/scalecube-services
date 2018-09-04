@@ -49,12 +49,8 @@ public class GatewayWebsocketAcceptor
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
     return httpResponse.sendWebsocket(
-        (WebsocketInbound inbound, WebsocketOutbound outbound) -> {
-          WebsocketSession session = new WebsocketSession(httpRequest, inbound, outbound);
-          Mono<Void> voidMono = onConnect(session);
-          session.onClose(() -> onDisconnect(session));
-          return voidMono;
-        });
+        (WebsocketInbound inbound, WebsocketOutbound outbound) ->
+            onConnect(new WebsocketSession(httpRequest, inbound, outbound)));
   }
 
   private Mono<Void> onConnect(WebsocketSession session) {
@@ -200,11 +196,6 @@ public class GatewayWebsocketAcceptor
           "Invalid gateway request: {}, " + "sid is missing for session: {}", request, session);
       throw new BadRequestException("sid is missing");
     }
-  }
-
-  private Mono<Void> onDisconnect(WebsocketSession session) {
-    LOGGER.info("Session disconnected: " + session);
-    return Mono.empty();
   }
 
   private Mono<ByteBuf> toByteBuf(GatewayMessage message) {
