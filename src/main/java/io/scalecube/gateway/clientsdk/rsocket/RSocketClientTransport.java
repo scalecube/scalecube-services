@@ -33,7 +33,7 @@ public final class RSocketClientTransport implements ClientTransport {
   private final ClientMessageCodec<Payload> messageCodec;
   private final LoopResources loopResources;
 
-  private volatile Mono<RSocket> rsocketMono;
+  private volatile Mono<?> rsocketMono;
 
   /**
    * Constructor for client sdk rsocket transport.
@@ -103,8 +103,11 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> getOrConnect() {
-    // noinspection unchecked
-    return rSocketMonoUpdater.updateAndGet(this, this::getOrConnect0);
+    return Mono.defer(
+        () -> {
+          // noinspection unchecked
+          return rSocketMonoUpdater.updateAndGet(this, this::getOrConnect0);
+        });
   }
 
   private Mono<RSocket> getOrConnect0(Mono prev) {
@@ -159,6 +162,7 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private Payload toPayload(ClientMessage clientMessage) {
     return messageCodec.encode(clientMessage);
+  }
 
   private ClientMessage toClientMessage(Payload payload) {
     return messageCodec.decode(payload);

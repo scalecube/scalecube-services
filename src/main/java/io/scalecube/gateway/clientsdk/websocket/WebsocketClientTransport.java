@@ -6,12 +6,15 @@ import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.http.client.HttpClient;
@@ -32,7 +35,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   private final InetSocketAddress address;
   private final HttpClient httpClient;
 
-  private volatile Mono<WebsocketHandler> websocketMono;
+  private volatile Mono<?> websocketMono;
 
   /**
    * Creates instance of websocket client transport.
@@ -59,18 +62,29 @@ public final class WebsocketClientTransport implements ClientTransport {
                     .loopResources(loopResources));
   }
 
+  private final AtomicInteger sidCounter = new AtomicInteger();
+
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
-    return getOrConnect()
-        .flatMap(session -> Mono.from(session.send(request)))
-        .publishOn(Schedulers.parallel());
+    return requestStream(request).as(Mono::from);
   }
 
   @Override
   public Flux<ClientMessage> requestStream(ClientMessage request) {
-    return getOrConnect()
-        .flatMapMany(session -> session.send(request))
-        .publishOn(Schedulers.parallel());
+    return Flux.defer(
+        () -> {
+          String sid = String.valueOf(sidCounter.incrementAndGet());
+          return getOrConnect()
+              .doOnSuccess(
+                  session -> {
+                    ClientMessage request1 = ClientMessage.from(request).header("sid", sid).build();
+                    session.send(request1);
+                  })
+              .flatMapMany(
+                  session ->
+                      session.receive().filter(response -> sid.equals(response.header("sid"))))
+              .publishOn(Schedulers.parallel());
+        });
   }
 
   @Override
@@ -87,46 +101,57 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   private Mono<WebsocketSession> getOrConnect() {
-    // noinspection unchecked
-    return websocketMonoUpdater.updateAndGet(this, this::getOrConnect0);
+    return Mono.defer(
+        () -> {
+          // noinspection unchecked
+          return websocketMonoUpdater.updateAndGet(this, this::getOrConnect0);
+        });
   }
 
   private Mono<WebsocketSession> getOrConnect0(Mono<WebsocketSession> prev) {
-    return Mono.defer(
-        () -> {
-          if (prev != null) {
-            return prev;
-          }
+    if (prev != null) {
+      return prev;
+    }
 
-          return httpClient
-              .ws("/")
-              .flatMap(
-                  response -> {
-                    WebsocketHandler handler = new WebsocketHandler();
-                    return response.receiveWebsocket(handler).then(Mono.just(handler.session));
-                  })
-              .doOnError(
-                  throwable -> {
-                    LOGGER.warn("Connection to {} is failed, cause: {}", address, throwable);
-                    websocketMonoUpdater.getAndSet(this, null);
-                  });
-        });
+    return httpClient
+        .ws("/")
+        .flatMap(
+            response -> {
+              WebsocketHandler handler = new WebsocketHandler();
+              return response
+                  .receiveWebsocket(handler)
+                  .then(Mono.defer(() -> Mono.just(handler.session)));
+            })
+        .doOnError(
+            throwable -> {
+              LOGGER.warn("Connection to {} is failed, cause: {}", address, throwable);
+              websocketMonoUpdater.getAndSet(this, null);
+            })
+        .cache();
   }
 
   private class WebsocketHandler
       implements BiFunction<WebsocketInbound, WebsocketOutbound, Publisher<Void>> {
 
-    WebsocketSession session;
+    private DirectProcessor processor;
+    private FluxSink sink;
+    private WebsocketSession session;
 
     @Override
     public Publisher<Void> apply(WebsocketInbound inbound, WebsocketOutbound outbound) {
       LOGGER.info("Connected successfully to {}", address);
 
-      session = new WebsocketSession(inbound, outbound, messageCodec);
-      session.onClose(() -> LOGGER.info("Connection to {} has been closed successfully", address));
+      processor = DirectProcessor.create();
+      sink = processor.sink();
 
-      // TODO: handle session
-      return Mono.empty();
+      session = new WebsocketSession(inbound, outbound, messageCodec);
+      session.onClose(
+          () -> {
+            sink.complete();
+            LOGGER.info("Connection to {} has been closed successfully", address);
+          });
+
+      return session.receive().then();
     }
   }
 }

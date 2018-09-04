@@ -1,6 +1,7 @@
 package io.scalecube.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
@@ -24,21 +25,25 @@ final class WebsocketSession {
     this.codec = codec;
   }
 
-  public Flux<ClientMessage> send(ClientMessage message) {
-    return send(Mono.just(message));
+  public void send(ClientMessage message) {
+    send(Mono.just(message));
   }
 
-  public Flux<ClientMessage> send(Publisher<ClientMessage> publisher) {
-    return outbound
-        .send(Flux.from(publisher).map(codec::encode).log("<<< SEND", Level.FINE))
-        .then()
-        .flatMapMany(
-            ignore ->
-                inbound
-                    .aggregateFrames()
-                    .receive()
-                    .map(codec::decode)
-                    .log(">>> RECEIVE", Level.FINE));
+  public void send(Publisher<ClientMessage> publisher) {
+    outbound.sendObject(
+        Flux.from(publisher)
+            .map(codec::encode)
+            .map(BinaryWebSocketFrame::new)
+            .log("<<< SEND", Level.FINE));
+  }
+
+  public Flux<ClientMessage> receive() {
+    return inbound
+        .aggregateFrames()
+        .receive()
+        .map(ByteBuf::retain)
+        .map(codec::decode)
+        .log(">>> RECEIVE", Level.FINE);
   }
 
   public Mono<Void> close() {
