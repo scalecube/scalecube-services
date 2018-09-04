@@ -1,5 +1,6 @@
 package io.scalecube.gateway.clientsdk.websocket;
 
+import io.netty.buffer.ByteBuf;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
 import reactor.ipc.netty.http.websocket.WebsocketOutbound;
@@ -26,8 +28,7 @@ public final class WebsocketClientTransport implements ClientTransport {
           AtomicReferenceFieldUpdater.newUpdater(
               WebsocketClientTransport.class, Mono.class, "websocketMono");
 
-  private final ClientSettings settings;
-  private final ClientMessageCodec messageCodec;
+  private final ClientMessageCodec<ByteBuf> messageCodec;
   private final InetSocketAddress address;
   private final HttpClient httpClient;
 
@@ -41,8 +42,9 @@ public final class WebsocketClientTransport implements ClientTransport {
    * @param loopResources loop resources
    */
   public WebsocketClientTransport(
-      ClientSettings settings, ClientMessageCodec messageCodec, LoopResources loopResources) {
-    this.settings = settings;
+      ClientSettings settings,
+      ClientMessageCodec<ByteBuf> messageCodec,
+      LoopResources loopResources) {
     this.messageCodec = messageCodec;
 
     address = InetSocketAddress.createUnresolved(settings.host(), settings.port());
@@ -59,12 +61,16 @@ public final class WebsocketClientTransport implements ClientTransport {
 
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
-    return null;
+    return getOrConnect()
+        .flatMap(session -> Mono.from(session.send(request)))
+        .publishOn(Schedulers.parallel());
   }
 
   @Override
   public Flux<ClientMessage> requestStream(ClientMessage request) {
-    return null;
+    return getOrConnect()
+        .flatMapMany(session -> session.send(request))
+        .publishOn(Schedulers.parallel());
   }
 
   @Override
@@ -86,22 +92,25 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   private Mono<WebsocketSession> getOrConnect0(Mono<WebsocketSession> prev) {
-    if (prev != null) {
-      return prev;
-    }
+    return Mono.defer(
+        () -> {
+          if (prev != null) {
+            return prev;
+          }
 
-    return httpClient
-        .ws("/")
-        .flatMap(
-            response -> {
-              WebsocketHandler handler = new WebsocketHandler();
-              return response.receiveWebsocket(handler).then(Mono.just(handler.session));
-            })
-        .doOnError(
-            throwable -> {
-              LOGGER.warn("Connection to {} is failed, cause: {}", address, throwable);
-              websocketMonoUpdater.getAndSet(this, null);
-            });
+          return httpClient
+              .ws("/")
+              .flatMap(
+                  response -> {
+                    WebsocketHandler handler = new WebsocketHandler();
+                    return response.receiveWebsocket(handler).then(Mono.just(handler.session));
+                  })
+              .doOnError(
+                  throwable -> {
+                    LOGGER.warn("Connection to {} is failed, cause: {}", address, throwable);
+                    websocketMonoUpdater.getAndSet(this, null);
+                  });
+        });
   }
 
   private class WebsocketHandler
@@ -116,7 +125,7 @@ public final class WebsocketClientTransport implements ClientTransport {
       session = new WebsocketSession(inbound, outbound, messageCodec);
       session.onClose(() -> LOGGER.info("Connection to {} has been closed successfully", address));
 
-      // TODO: handle session -> onConnect (transform and send messages)
+      // TODO: handle session
       return Mono.empty();
     }
   }
