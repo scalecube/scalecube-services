@@ -159,6 +159,7 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private Payload toPayload(ClientMessage clientMessage) {
     return messageCodec.encode(clientMessage);
+  }
 
   private ClientMessage toClientMessage(Payload payload) {
     return messageCodec.decode(payload);
