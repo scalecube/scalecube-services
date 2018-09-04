@@ -1,8 +1,10 @@
 package io.scalecube.gateway;
 
+import io.rsocket.Payload;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.codec.RSocketPayloadCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.codec.DataCodec;
@@ -95,7 +97,7 @@ public abstract class AbstractGatewayExtention
   }
 
   protected abstract RSocketClientTransport transport(
-      ClientSettings settings, ClientMessageCodec codec);
+      ClientSettings settings, ClientMessageCodec<Payload> codec);
 
   protected abstract String gatewayAliasName();
 
@@ -106,8 +108,8 @@ public abstract class AbstractGatewayExtention
             .port(gatewayAddress.getPort())
             .build();
 
-    ClientMessageCodec codec =
-        new ClientMessageCodec(
+    ClientMessageCodec<Payload> codec =
+        new RSocketPayloadCodec(
             HeadersCodec.getInstance(settings.contentType()),
             DataCodec.getInstance(settings.contentType()));
 

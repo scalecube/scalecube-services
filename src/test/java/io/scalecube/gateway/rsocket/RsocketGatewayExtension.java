@@ -1,5 +1,6 @@
 package io.scalecube.gateway.rsocket;
 
+import io.rsocket.Payload;
 import io.scalecube.gateway.AbstractGatewayExtention;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
@@ -19,7 +20,8 @@ public class RsocketGatewayExtension extends AbstractGatewayExtention {
   }
 
   @Override
-  protected RSocketClientTransport transport(ClientSettings settings, ClientMessageCodec codec) {
+  protected RSocketClientTransport transport(
+      ClientSettings settings, ClientMessageCodec<Payload> codec) {
     return new RSocketClientTransport(settings, codec, LoopResources.create("eventLoop"));
   }
 
