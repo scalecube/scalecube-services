@@ -1,5 +1,6 @@
 package io.scalecube.gateway.benchmarks;
 
+import io.rsocket.Payload;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
