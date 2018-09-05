@@ -25,16 +25,18 @@ final class WebsocketSession {
     this.codec = codec;
   }
 
-  public void send(ClientMessage message) {
-    send(Mono.just(message));
+  public Mono<Void> send(ClientMessage message) {
+    return send(Mono.just(message));
   }
 
-  public void send(Publisher<ClientMessage> publisher) {
-    outbound.sendObject(
-        Flux.from(publisher)
-            .map(codec::encode)
-            .map(BinaryWebSocketFrame::new)
-            .log("<<< SEND", Level.FINE));
+  public Mono<Void> send(Publisher<ClientMessage> publisher) {
+    return outbound
+        .sendObject(
+            Flux.from(publisher)
+                .map(codec::encode)
+                .map(BinaryWebSocketFrame::new)
+                .log("<<< SEND", Level.FINE))
+        .then();
   }
 
   public Flux<ClientMessage> receive() {
