@@ -4,6 +4,9 @@
 echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 
+echo logging to docker image repository:
+echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
 # get latest version of codacy reporter from sonatype
 latest=$(curl "https://oss.sonatype.org/service/local/repositories/releases/content/com/codacy/codacy-coverage-reporter/maven-metadata.xml" | xpath -e "/metadata/versioning/release/text()")
 

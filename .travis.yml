@@ -3,11 +3,9 @@ addons:
     packages:
     - libxml-xpath-perl
 sudo: required
-services: docker
 language: java
 jdk: openjdk8
 before_install:
-- echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 - "./src/main/scripts/ci/before-install.sh"
 - "./src/main/scripts/cd/before-deploy.sh"
 after_success: "./src/main/scripts/ci/after-success.sh"
