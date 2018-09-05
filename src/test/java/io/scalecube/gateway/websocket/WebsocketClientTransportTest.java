@@ -11,7 +11,7 @@ import reactor.ipc.netty.resources.LoopResources;
 
 public class WebsocketClientTransportTest {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     String contentType = "application/json";
     ClientSettings settings =
         ClientSettings.builder().contentType(contentType).host("localhost").port(7070).build();
@@ -23,9 +23,10 @@ public class WebsocketClientTransportTest {
             new WebsocketGatewayMessageCodec(DataCodec.getInstance(contentType)),
             loopResources);
 
-    ClientMessage request = ClientMessage.builder().qualifier("/greeting/one").build();
+    ClientMessage request =
+        ClientMessage.builder().qualifier("/greeting/one").header("sid", "1").build();
 
-    Mono.delay(Duration.ofSeconds(10))
+    Mono.delay(Duration.ofSeconds(3))
         .doOnTerminate(
             () -> {
               System.err.println("closing ...");
@@ -33,8 +34,8 @@ public class WebsocketClientTransportTest {
             })
         .subscribe();
 
-    ClientMessage block = transport.requestResponse(request).block();
+    transport.requestResponse(request).subscribe(System.out::println, System.err::println);
 
-    System.out.println(block);
+    Thread.currentThread().join();
   }
 }
