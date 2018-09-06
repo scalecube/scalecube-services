@@ -5,8 +5,6 @@ import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.codec.WebsocketGatewayMessageCodec;
 import io.scalecube.gateway.clientsdk.websocket.WebsocketClientTransport;
 import io.scalecube.services.codec.DataCodec;
-import java.time.Duration;
-import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
 
 public class WebsocketClientTransportTest {
@@ -26,15 +24,18 @@ public class WebsocketClientTransportTest {
     ClientMessage request =
         ClientMessage.builder().qualifier("/greeting/one").header("sid", "1").build();
 
-    Mono.delay(Duration.ofSeconds(3))
-        .doOnTerminate(
-            () -> {
-              System.err.println("closing ...");
-              transport.close().subscribe();
-            })
-        .subscribe();
+    //    Mono.delay(Duration.ofSeconds(15))
+    //        .doOnTerminate(
+    //            () -> {
+    //              System.err.println("### Closing ...");
+    //              transport.close().subscribe();
+    //            })
+    //        .subscribe();
 
-    transport.requestResponse(request).subscribe(System.out::println, System.err::println);
+    transport
+        .requestResponse(request)
+        .subscribe(
+            System.out::println, System.err::println, () -> System.out.println("### Complete"));
 
     Thread.currentThread().join();
   }
