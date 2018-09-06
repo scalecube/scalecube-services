@@ -10,9 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Schedulers;
@@ -63,7 +61,12 @@ public final class WebsocketClientTransport implements ClientTransport {
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return Mono.create(
-        sink -> requestStream(request).doOnNext(sink::success).doOnError(sink::error).subscribe());
+        sink ->
+            requestStream(request)
+                .doOnNext(sink::success)
+                .doOnError(sink::error)
+                .doOnComplete(sink::success)
+                .subscribe());
   }
 
   @Override
@@ -90,10 +93,7 @@ public final class WebsocketClientTransport implements ClientTransport {
         () -> {
           // noinspection unchecked
           Mono<WebsocketSession> curr = websocketMonoUpdater.get(this);
-          if (curr == null) {
-            return Mono.empty();
-          }
-          return curr.flatMap(WebsocketSession::close);
+          return curr == null ? Mono.empty() : curr.flatMap(WebsocketSession::close);
         });
   }
 
@@ -117,24 +117,17 @@ public final class WebsocketClientTransport implements ClientTransport {
                             .receiveWebsocket(
                                 (in, out) -> {
                                   LOGGER.info("Connected successfully to {}", address);
-                                  DirectProcessor<Void> processor = DirectProcessor.create();
-                                  FluxSink<Void> processorSink = processor.sink();
 
-                                  // create and setup websocket session
                                   WebsocketSession session =
                                       new WebsocketSession(in, out, messageCodec);
-                                  session.onClose(
-                                      () -> {
-                                        processorSink.complete();
-                                        LOGGER.info(
-                                            "Connection to {} has been closed successfully",
-                                            address);
-                                      });
 
-                                  // emit session
                                   sink.success(session);
 
-                                  return processor;
+                                  return session.onClose(
+                                      () ->
+                                          LOGGER.info(
+                                              "Connection to {} has been closed successfully",
+                                              address));
                                 })
                             .doOnError(sink::error)
                             .subscribe()))
