@@ -111,9 +111,7 @@ public class GatewayWebsocketAcceptor
                                         .doFinally(signalType -> session.dispose(streamId))
                                         .subscribe(sink::next, sink::error, sink::complete);
 
-                                if (!disposable.isDisposed()) {
-                                  session.register(sid, disposable);
-                                }
+                                session.register(sid, disposable);
                               } catch (Throwable ex) {
                                 ReferenceCountUtil.safeRelease(frame);
                                 sink.next(toErrorMessage(ex, sid));

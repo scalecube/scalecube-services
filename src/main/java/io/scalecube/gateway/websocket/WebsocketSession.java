@@ -138,11 +138,14 @@ public final class WebsocketSession {
    * {@link Disposable} reference.
    *
    * @param streamId stream id
-   * @param serviceSubscription service subscrption
+   * @param disposable service subscrption
    * @return true if disposable subscrption was stored
    */
-  public boolean register(Long streamId, Disposable serviceSubscription) {
-    boolean result = subscriptions.putIfAbsent(streamId, serviceSubscription) == null;
+  public boolean register(Long streamId, Disposable disposable) {
+    boolean result = false;
+    if (!disposable.isDisposed()) {
+      result = subscriptions.putIfAbsent(streamId, disposable) == null;
+    }
     if (result) {
       LOGGER.debug("Registered subscrption with streamId: {} on session: {}", streamId, this);
     }
