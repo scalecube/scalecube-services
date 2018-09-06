@@ -8,17 +8,15 @@ import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import java.util.function.BiFunction;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.http.client.HttpClient;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 import reactor.ipc.netty.resources.LoopResources;
 
 public final class WebsocketClientTransport implements ClientTransport {
@@ -64,7 +62,8 @@ public final class WebsocketClientTransport implements ClientTransport {
 
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
-    return requestStream(request).as(Mono::from);
+    return Mono.create(
+        sink -> requestStream(request).doOnNext(sink::success).doOnError(sink::error).subscribe());
   }
 
   @Override
@@ -111,36 +110,39 @@ public final class WebsocketClientTransport implements ClientTransport {
     return httpClient
         .ws("/")
         .flatMap(
-            response -> {
-              WebsocketHandler websocketHandler = new WebsocketHandler();
-              response.receiveWebsocket(websocketHandler).subscribe();
+            response ->
+                Mono.create(
+                    (MonoSink<WebsocketSession> sink) ->
+                        response
+                            .receiveWebsocket(
+                                (in, out) -> {
+                                  LOGGER.info("Connected successfully to {}", address);
+                                  DirectProcessor<Void> processor = DirectProcessor.create();
+                                  FluxSink<Void> processorSink = processor.sink();
 
-              return Mono.from(websocketHandler.processor);
-            })
+                                  // create and setup websocket session
+                                  WebsocketSession session =
+                                      new WebsocketSession(in, out, messageCodec);
+                                  session.onClose(
+                                      () -> {
+                                        processorSink.complete();
+                                        LOGGER.info(
+                                            "Connection to {} has been closed successfully",
+                                            address);
+                                      });
+
+                                  // emit session
+                                  sink.success(session);
+
+                                  return processor;
+                                })
+                            .doOnError(sink::error)
+                            .subscribe()))
         .doOnError(
             throwable -> {
               LOGGER.warn("Connection to {} is failed, cause: {}", address, throwable);
               websocketMonoUpdater.getAndSet(this, null);
             })
         .cache();
-  }
-
-  private class WebsocketHandler
-      implements BiFunction<WebsocketInbound, WebsocketOutbound, Publisher<Void>> {
-
-    private DirectProcessor<WebsocketSession> processor = DirectProcessor.create();
-
-    @Override
-    public Publisher<Void> apply(WebsocketInbound in, WebsocketOutbound out) {
-      LOGGER.info("Connected successfully to {}", address);
-
-      WebsocketSession session = new WebsocketSession(in, out, messageCodec);
-
-      session.onClose(() -> LOGGER.info("Connection to {} has been closed successfully", address));
-
-      processor.onNext(session);
-
-      return processor.then();
-    }
   }
 }
