@@ -103,11 +103,8 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> getOrConnect() {
-    return Mono.defer(
-        () -> {
-          // noinspection unchecked
-          return rSocketMonoUpdater.updateAndGet(this, this::getOrConnect0);
-        });
+    // noinspection unchecked
+    return Mono.defer(() -> rSocketMonoUpdater.updateAndGet(this, this::getOrConnect0));
   }
 
   private Mono<RSocket> getOrConnect0(Mono prev) {
