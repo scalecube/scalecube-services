@@ -6,13 +6,11 @@ import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Schedulers;
@@ -31,9 +29,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   private final ClientMessageCodec<ByteBuf> messageCodec;
   private final InetSocketAddress address;
   private final HttpClient httpClient;
-  private final AtomicInteger sidCounter = new AtomicInteger();
-  private final DirectProcessor<ClientMessage> inboundProcessor = DirectProcessor.create();
-  private final FluxSink<ClientMessage> inboundSink = inboundProcessor.sink();
+  private final AtomicLong sidCounter = new AtomicLong();
 
   private volatile Mono<?> websocketMono;
 
@@ -64,13 +60,22 @@ public final class WebsocketClientTransport implements ClientTransport {
 
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
-    return Mono.create(
-        sink ->
-            requestStream(request)
-                .doOnNext(sink::success)
-                .doOnError(sink::error)
-                .doOnComplete(sink::success)
-                .subscribe());
+    return Mono.defer(
+        () -> {
+          String sid = String.valueOf(sidCounter.incrementAndGet());
+
+          ClientMessage request1 =
+              enrichForSend(ClientMessage.from(request).header("sid", sid).build());
+
+          return getOrConnect()
+              .flatMap(
+                  session ->
+                      session
+                          .send(request1)
+                          .then(session.receive(sid).singleOrEmpty())
+                          .publishOn(Schedulers.parallel())
+                          .map(this::enrichForRecv));
+        });
   }
 
   @Override
@@ -78,18 +83,18 @@ public final class WebsocketClientTransport implements ClientTransport {
     return Flux.defer(
         () -> {
           String sid = String.valueOf(sidCounter.incrementAndGet());
+
           ClientMessage request1 =
               enrichForSend(ClientMessage.from(request).header("sid", sid).build());
+
           return getOrConnect()
               .flatMapMany(
                   session ->
                       session
                           .send(request1)
-                          .thenMany(
-                              inboundProcessor.filter(
-                                  response -> sid.equals(response.header("sid")))))
-              .publishOn(Schedulers.parallel())
-              .map(this::enrichForRecv);
+                          .thenMany(session.receive(sid))
+                          .publishOn(Schedulers.parallel())
+                          .map(this::enrichForRecv));
         });
   }
 
@@ -126,13 +131,6 @@ public final class WebsocketClientTransport implements ClientTransport {
 
                                   WebsocketSession session =
                                       new WebsocketSession(in, out, messageCodec);
-
-                                  session
-                                      .receive()
-                                      .subscribe(
-                                          inboundSink::next,
-                                          inboundSink::error,
-                                          inboundSink::complete);
 
                                   sink.success(session);
 
