@@ -10,7 +10,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Schedulers;
@@ -30,6 +32,8 @@ public final class WebsocketClientTransport implements ClientTransport {
   private final InetSocketAddress address;
   private final HttpClient httpClient;
   private final AtomicInteger sidCounter = new AtomicInteger();
+  private final DirectProcessor<ClientMessage> inboundProcessor = DirectProcessor.create();
+  private final FluxSink<ClientMessage> inboundSink = inboundProcessor.sink();
 
   private volatile Mono<?> websocketMono;
 
@@ -74,15 +78,15 @@ public final class WebsocketClientTransport implements ClientTransport {
     return Flux.defer(
         () -> {
           String sid = String.valueOf(sidCounter.incrementAndGet());
+          ClientMessage request1 = ClientMessage.from(request).header("sid", sid).build();
           return getOrConnect()
               .flatMapMany(
                   session ->
                       session
-                          .send(request)
+                          .send(request1)
                           .thenMany(
-                              session
-                                  .receive()
-                                  .filter(response -> sid.equals(response.header("sid")))))
+                              inboundProcessor.filter(
+                                  response -> sid.equals(response.header("sid")))))
               .publishOn(Schedulers.parallel());
         });
   }
@@ -120,6 +124,13 @@ public final class WebsocketClientTransport implements ClientTransport {
 
                                   WebsocketSession session =
                                       new WebsocketSession(in, out, messageCodec);
+
+                                  session
+                                      .receive()
+                                      .subscribe(
+                                          inboundSink::next,
+                                          inboundSink::error,
+                                          inboundSink::complete);
 
                                   sink.success(session);
 

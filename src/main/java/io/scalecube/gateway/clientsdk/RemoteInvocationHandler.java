@@ -1,6 +1,7 @@
 package io.scalecube.gateway.clientsdk;
 
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -42,15 +43,26 @@ public class RemoteInvocationHandler implements InvocationHandler {
       case REQUEST_RESPONSE:
         return transport
             .requestResponse(request)
-            .map(clientMessage -> messageCodec.decodeData(clientMessage, responseType))
+            .map(response -> messageCodec.decodeData(response, responseType))
+            .map(this::throwIfError)
             .map(ClientMessage::data);
       case REQUEST_STREAM:
         return transport
             .requestStream(request)
             .map(clientMessage -> messageCodec.decodeData(clientMessage, responseType))
+            .map(this::throwIfError)
             .map(ClientMessage::data);
       default:
         throw new IllegalArgumentException("Unsupported communication mode");
     }
+  }
+
+  private ClientMessage throwIfError(ClientMessage response) {
+    if (!response.hasData(ErrorData.class)) {
+      return response;
+    }
+    ErrorData errorData = response.data();
+    throw ExceptionProcessor.toException(
+        response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
   }
 }

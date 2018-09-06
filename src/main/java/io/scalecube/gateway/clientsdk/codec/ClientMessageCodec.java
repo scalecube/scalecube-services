@@ -55,13 +55,6 @@ public interface ClientMessageCodec<T> {
       ReferenceCountUtil.safeRelease(dataBuffer);
     }
 
-    if (targetType == ErrorData.class) {
-      throw ExceptionProcessor.toException(
-          message.qualifier(),
-          ((ErrorData) data).getErrorCode(),
-          ((ErrorData) data).getErrorMessage());
-    }
-
     return ClientMessage.from(message).data(data).build();
   }
 
