@@ -78,7 +78,8 @@ public final class WebsocketClientTransport implements ClientTransport {
     return Flux.defer(
         () -> {
           String sid = String.valueOf(sidCounter.incrementAndGet());
-          ClientMessage request1 = ClientMessage.from(request).header("sid", sid).build();
+          ClientMessage request1 =
+              enrichForSend(ClientMessage.from(request).header("sid", sid).build());
           return getOrConnect()
               .flatMapMany(
                   session ->
@@ -87,7 +88,8 @@ public final class WebsocketClientTransport implements ClientTransport {
                           .thenMany(
                               inboundProcessor.filter(
                                   response -> sid.equals(response.header("sid")))))
-              .publishOn(Schedulers.parallel());
+              .publishOn(Schedulers.parallel())
+              .map(this::enrichForRecv);
         });
   }
 
@@ -148,5 +150,17 @@ public final class WebsocketClientTransport implements ClientTransport {
               websocketMonoUpdater.getAndSet(this, null);
             })
         .cache();
+  }
+
+  private ClientMessage enrichForSend(ClientMessage clientMessage) {
+    return ClientMessage.from(clientMessage)
+        .header("client-send-time", String.valueOf(System.currentTimeMillis()))
+        .build();
+  }
+
+  private ClientMessage enrichForRecv(ClientMessage message) {
+    return ClientMessage.from(message)
+        .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
+        .build();
   }
 }
