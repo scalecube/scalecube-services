@@ -22,9 +22,9 @@ public interface ClientTransport {
   Flux<ClientMessage> requestStream(ClientMessage request);
 
   /**
-   * Initiate cleaning of underlaying resources (if any) like closing websocket connection or
-   * rSocket session. Subsequent calls of requestOne() or requestMany() must issue new connection
-   * creation. Note that close is not the end of client lifecycle.
+   * Initiate cleaning of underlying resources (if any) like closing websocket connection or rSocket
+   * session. Subsequent calls of requestOne() or requestMany() must issue new connection creation.
+   * Note that close is not the end of client lifecycle.
    *
    * @return Async completion signal.
    */

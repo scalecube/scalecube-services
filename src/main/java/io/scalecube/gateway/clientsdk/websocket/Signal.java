@@ -21,10 +21,22 @@ public enum Signal {
     return String.valueOf(code);
   }
 
+  /**
+   * Return appropriate instance of {@link Signal} for given signal code.
+   *
+   * @param code signal code
+   * @return signal instance
+   */
   public static Signal from(String code) {
     return from(Integer.parseInt(code));
   }
 
+  /**
+   * Return appropriate instance of {@link Signal} for given signal code.
+   *
+   * @param code signal code
+   * @return signal instance
+   */
   public static Signal from(int code) {
     return Arrays.stream(values())
         .filter(s -> s.code == code)
