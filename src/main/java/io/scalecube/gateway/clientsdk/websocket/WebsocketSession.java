@@ -4,7 +4,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.ErrorData;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import java.util.logging.Level;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
@@ -39,16 +41,14 @@ final class WebsocketSession {
             response -> {
               String sig = response.header("sig");
               if (sig != null) {
-                switch (Signal.valueOf(sig)) {
-                  case COMPLETE:
-                    inboundSink.complete();
-                    break;
-                  case ERROR:
-                    inboundSink.error(new Throwable("yadayada"));
-                    break;
-                  default:
-                    break;
+                Signal signal = Signal.from(sig);
+                if (signal == Signal.COMPLETE) {
+                  inboundSink.complete();
                 }
+                if (signal == Signal.ERROR) {
+                  inboundSink.error(toError(response));
+                }
+                return;
               }
               inboundSink.next(response);
             },
@@ -67,7 +67,9 @@ final class WebsocketSession {
   }
 
   public Flux<ClientMessage> receive(String sid) {
-    return inboundProcessor.filter(response -> sid.equals(response.header("sid")));
+    return inboundProcessor
+        .filter(response -> sid.equals(response.header("sid")))
+        .log(">>> SID_RECEIVE", Level.INFO);
   }
 
   public Mono<Void> close() {
@@ -81,5 +83,11 @@ final class WebsocketSession {
 
   public Mono<Void> onClose(Runnable runnable) {
     return Mono.defer(() -> inbound.context().onClose(runnable).onClose());
+  }
+
+  private Throwable toError(ClientMessage response) {
+    ErrorData errorData = codec.decodeData(response, ErrorData.class).data();
+    return ExceptionProcessor.toException(
+        response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
   }
 }
