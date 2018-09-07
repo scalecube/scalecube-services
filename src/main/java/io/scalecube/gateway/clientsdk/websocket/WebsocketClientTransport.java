@@ -10,7 +10,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
@@ -65,20 +64,15 @@ public final class WebsocketClientTransport implements ClientTransport {
         () ->
             getOrConnect()
                 .flatMap(
-                    session ->
-                        Mono.create(
-                            sink -> {
-                              String sid = String.valueOf(sidCounter.incrementAndGet());
-
-                              sink.onCancel(() -> session.send(cancelMessage(sid)).subscribe());
-
-                              session
-                                  .send(enrichForSend(requestMessage(request, sid)))
-                                  .then(session.receive(sid).singleOrEmpty())
-                                  .publishOn(Schedulers.parallel())
-                                  .map(this::enrichForRecv)
-                                  .subscribe(sink::success, sink::error, sink::success);
-                            })));
+                    session -> {
+                      String sid = String.valueOf(sidCounter.incrementAndGet());
+                      return session
+                          .send(enrichForSend(requestMessage(request, sid)))
+                          .then(session.receive(sid).singleOrEmpty())
+                          .publishOn(Schedulers.parallel())
+                          .map(this::enrichForRecv)
+                          .doOnCancel(() -> session.send(cancelMessage(sid)).subscribe());
+                    }));
   }
 
   @Override
@@ -87,20 +81,15 @@ public final class WebsocketClientTransport implements ClientTransport {
         () ->
             getOrConnect()
                 .flatMapMany(
-                    session ->
-                        Flux.create(
-                            sink -> {
-                              String sid = String.valueOf(sidCounter.incrementAndGet());
-
-                              sink.onCancel(() -> session.send(cancelMessage(sid)).subscribe());
-
-                              session
-                                  .send(enrichForSend(requestMessage(request, sid)))
-                                  .thenMany(session.receive(sid))
-                                  .publishOn(Schedulers.parallel())
-                                  .map(this::enrichForRecv)
-                                  .subscribe(sink::next, sink::error, sink::complete);
-                            })));
+                    session -> {
+                      String sid = String.valueOf(sidCounter.incrementAndGet());
+                      return session
+                          .send(enrichForSend(requestMessage(request, sid)))
+                          .thenMany(session.receive(sid))
+                          .publishOn(Schedulers.parallel())
+                          .map(this::enrichForRecv)
+                          .doOnCancel(() -> session.send(cancelMessage(sid)).subscribe());
+                    }));
   }
 
   @Override
