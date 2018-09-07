@@ -1,14 +1,10 @@
 package io.scalecube.gateway;
 
-import io.rsocket.Payload;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
+import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
-import io.scalecube.gateway.clientsdk.codec.RSocketPayloadCodec;
-import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.codec.DataCodec;
-import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.gateway.GatewayConfig;
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.extension.AfterAllCallback;
@@ -19,13 +15,12 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractGatewayExtention
+public abstract class AbstractGatewayExtension
     implements BeforeAllCallback, AfterAllCallback, BeforeEachCallback, AfterEachCallback {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGatewayExtention.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGatewayExtension.class);
 
-  protected final Microservices seed;
-
+  private final Microservices gateway;
   private final Object serviceInstance;
   private final GatewayConfig gatewayConfig;
 
@@ -33,16 +28,11 @@ public abstract class AbstractGatewayExtention
   private InetSocketAddress gatewayAddress;
   private Microservices services;
 
-  public AbstractGatewayExtention(Object serviceInstance, GatewayConfig gatewayConfig) {
+  protected AbstractGatewayExtension(Object serviceInstance, GatewayConfig gatewayConfig) {
     this.gatewayConfig = gatewayConfig;
     this.serviceInstance = serviceInstance;
-    this.seed = Microservices.builder().gateway(gatewayConfig).startAwait();
-  }
 
-  @Override
-  public final void beforeAll(ExtensionContext context) {
-    gatewayAddress = seed.gatewayAddress(gatewayAliasName(), gatewayConfig.gatewayClass());
-    startServices();
+    gateway = Microservices.builder().gateway(gatewayConfig).startAwait();
   }
 
   @Override
@@ -59,8 +49,18 @@ public abstract class AbstractGatewayExtention
   }
 
   @Override
+  public final void beforeAll(ExtensionContext context) {
+    gatewayAddress = gateway.gatewayAddress(gatewayAliasName(), gatewayConfig.gatewayClass());
+    startServices();
+  }
+
+  @Override
   public final void beforeEach(ExtensionContext context) {
-    client = initClient();
+    // if services was shutdown in test need to start them again
+    if (services == null) {
+      startServices();
+    }
+    client = new Client(transport(), clientMessageCodec());
   }
 
   public Client client() {
@@ -68,9 +68,9 @@ public abstract class AbstractGatewayExtention
   }
 
   public void startServices() {
-    this.services =
+    services =
         Microservices.builder()
-            .seeds(seed.discovery().address())
+            .seeds(gateway.discovery().address())
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
@@ -81,38 +81,37 @@ public abstract class AbstractGatewayExtention
       try {
         services.shutdown().block();
       } catch (Throwable ignore) {
+        // ignore
       }
       LOGGER.info("Shutdown services {}", services);
+
+      // if this method is called in particular test need to indicate that services are stopped to
+      // start them again before another test
+      services = null;
     }
   }
 
-  public void shutdownGateway() {
-    if (seed != null) {
+  private void shutdownGateway() {
+    if (gateway != null) {
       try {
-        seed.shutdown().block();
+        gateway.shutdown().block();
       } catch (Throwable ignore) {
+        // ignore
       }
-      LOGGER.info("Shutdown gateway {}", seed);
+      LOGGER.info("Shutdown gateway {}", gateway);
     }
   }
 
-  protected abstract RSocketClientTransport transport(
-      ClientSettings settings, ClientMessageCodec<Payload> codec);
+  protected final ClientSettings clientSettings() {
+    return ClientSettings.builder()
+        .host(gatewayAddress.getHostName())
+        .port(gatewayAddress.getPort())
+        .build();
+  }
+
+  protected abstract ClientTransport transport();
+
+  protected abstract ClientMessageCodec clientMessageCodec();
 
   protected abstract String gatewayAliasName();
-
-  private Client initClient() {
-    ClientSettings settings =
-        ClientSettings.builder()
-            .host(gatewayAddress.getHostName())
-            .port(gatewayAddress.getPort())
-            .build();
-
-    ClientMessageCodec<Payload> codec =
-        new RSocketPayloadCodec(
-            HeadersCodec.getInstance(settings.contentType()),
-            DataCodec.getInstance(settings.contentType()));
-
-    return new Client(transport(settings, codec), codec);
-  }
 }

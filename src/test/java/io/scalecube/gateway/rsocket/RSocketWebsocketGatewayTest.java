@@ -12,14 +12,14 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-public class RSocketWebsocketGatewayTest {
+class RSocketWebsocketGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @RegisterExtension
   static RsocketGatewayExtension extension = new RsocketGatewayExtension(new GreetingServiceImpl());
 
-  private static GreetingService service;
+  private GreetingService service;
 
   @BeforeEach
   void initService() {
@@ -27,7 +27,7 @@ public class RSocketWebsocketGatewayTest {
   }
 
   @Test
-  public void shouldReturnSingleResponse() {
+  void shouldReturnSingleResponse() {
     String req = "hello";
     String expected = "Echo:" + req;
 
@@ -40,7 +40,7 @@ public class RSocketWebsocketGatewayTest {
   }
 
   @Test
-  public void shouldReturnManyResponses() {
+  void shouldReturnManyResponses() {
     Flux<Long> result = service.manyStream(5L);
 
     StepVerifier.create(result)
@@ -51,18 +51,17 @@ public class RSocketWebsocketGatewayTest {
   }
 
   @Test
-  public void shouldReturnExceptionWhenQualifierIsWrong() {
+  void shouldReturnExceptionWhenQualifierIsWrong() {
     extension.shutdownServices();
     Mono<String> result = service.one("hello");
     StepVerifier.create(result)
         .expectErrorMatches(
             throwable -> throwable.getMessage().startsWith("No reachable member with such service"))
         .verify(TIMEOUT);
-    extension.startServices();
   }
 
   @Test
-  public void shouldReturnErrorDataWhenServiceFails() {
+  void shouldReturnErrorDataWhenServiceFails() {
     String req = "hello";
     Mono<String> result = service.failingOne(req);
 
@@ -70,7 +69,7 @@ public class RSocketWebsocketGatewayTest {
   }
 
   @Test
-  public void shouldReturnErrorDataWhenRequestDataIsEmpty() {
+  void shouldReturnErrorDataWhenRequestDataIsEmpty() {
     Mono<String> result = service.one(null);
     StepVerifier.create(result)
         .expectErrorMatches(
