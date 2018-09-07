@@ -36,7 +36,7 @@ final class WebsocketSession {
         .receive()
         .map(ByteBuf::retain)
         .map(codec::decode)
-        .log(">>> RECEIVE", Level.INFO)
+        .log(">>> RECEIVE", Level.FINE)
         .subscribe(
             response -> {
               String sig = response.header("sig");
@@ -65,14 +65,14 @@ final class WebsocketSession {
                     Mono.just(message)
                         .map(codec::encode)
                         .map(BinaryWebSocketFrame::new)
-                        .log("<<< SEND", Level.INFO))
+                        .log("<<< SEND", Level.FINE))
                 .then());
   }
 
   public Flux<ClientMessage> receive(String sid) {
     return inboundProcessor
         .filter(response -> sid.equals(response.header("sid")))
-        .log(">>> SID_RECEIVE", Level.INFO);
+        .log(">>> SID_RECEIVE", Level.FINE);
   }
 
   public Mono<Void> close() {
@@ -81,7 +81,7 @@ final class WebsocketSession {
             outbound
                 .sendObject(new CloseWebSocketFrame(1000, "close"))
                 .then()
-                .log("<<< CLOSE", Level.INFO));
+                .log("<<< CLOSE", Level.FINE));
   }
 
   public Mono<Void> onClose(Runnable runnable) {
