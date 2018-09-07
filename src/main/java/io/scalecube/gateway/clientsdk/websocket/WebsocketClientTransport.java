@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
@@ -61,41 +62,45 @@ public final class WebsocketClientTransport implements ClientTransport {
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return Mono.defer(
-        () -> {
-          String sid = String.valueOf(sidCounter.incrementAndGet());
+        () ->
+            getOrConnect()
+                .flatMap(
+                    session ->
+                        Mono.create(
+                            sink -> {
+                              String sid = String.valueOf(sidCounter.incrementAndGet());
 
-          ClientMessage request1 =
-              enrichForSend(ClientMessage.from(request).header("sid", sid).build());
+                              sink.onCancel(() -> session.send(cancelMessage(sid)).subscribe());
 
-          return getOrConnect()
-              .flatMap(
-                  session ->
-                      session
-                          .send(request1)
-                          .then(session.receive(sid).singleOrEmpty())
-                          .publishOn(Schedulers.parallel())
-                          .map(this::enrichForRecv));
-        });
+                              session
+                                  .send(enrichForSend(requestMessage(request, sid)))
+                                  .then(session.receive(sid).singleOrEmpty())
+                                  .publishOn(Schedulers.parallel())
+                                  .map(this::enrichForRecv)
+                                  .subscribe(sink::success, sink::error, sink::success);
+                            })));
   }
 
   @Override
   public Flux<ClientMessage> requestStream(ClientMessage request) {
     return Flux.defer(
-        () -> {
-          String sid = String.valueOf(sidCounter.incrementAndGet());
+        () ->
+            getOrConnect()
+                .flatMapMany(
+                    session ->
+                        Flux.create(
+                            sink -> {
+                              String sid = String.valueOf(sidCounter.incrementAndGet());
 
-          ClientMessage request1 =
-              enrichForSend(ClientMessage.from(request).header("sid", sid).build());
+                              sink.onCancel(() -> session.send(cancelMessage(sid)).subscribe());
 
-          return getOrConnect()
-              .flatMapMany(
-                  session ->
-                      session
-                          .send(request1)
-                          .thenMany(session.receive(sid))
-                          .publishOn(Schedulers.parallel())
-                          .map(this::enrichForRecv));
-        });
+                              session
+                                  .send(enrichForSend(requestMessage(request, sid)))
+                                  .thenMany(session.receive(sid))
+                                  .publishOn(Schedulers.parallel())
+                                  .map(this::enrichForRecv)
+                                  .subscribe(sink::next, sink::error, sink::complete);
+                            })));
   }
 
   @Override
@@ -159,6 +164,17 @@ public final class WebsocketClientTransport implements ClientTransport {
   private ClientMessage enrichForRecv(ClientMessage message) {
     return ClientMessage.from(message)
         .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
+        .build();
+  }
+
+  private ClientMessage requestMessage(ClientMessage request, String sid) {
+    return ClientMessage.from(request).header("sid", sid).build();
+  }
+
+  private ClientMessage cancelMessage(String sid) {
+    return ClientMessage.builder()
+        .header("sid", sid)
+        .header("sig", Signal.CANCEL.codeAsString())
         .build();
   }
 }

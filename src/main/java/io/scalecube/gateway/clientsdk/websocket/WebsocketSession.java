@@ -61,9 +61,12 @@ final class WebsocketSession {
         () ->
             outbound
                 .options(SendOptions::flushOnEach)
-                .sendObject(Mono.just(message).map(codec::encode).map(BinaryWebSocketFrame::new))
-                .then()
-                .log("<<< SEND", Level.INFO));
+                .sendObject(
+                    Mono.just(message)
+                        .map(codec::encode)
+                        .map(BinaryWebSocketFrame::new)
+                        .log("<<< SEND", Level.INFO))
+                .then());
   }
 
   public Flux<ClientMessage> receive(String sid) {
@@ -82,7 +85,7 @@ final class WebsocketSession {
   }
 
   public Mono<Void> onClose(Runnable runnable) {
-    return Mono.defer(() -> inbound.context().onClose(runnable).onClose());
+    return inbound.context().onClose(runnable).onClose();
   }
 
   private Throwable toError(ClientMessage response) {

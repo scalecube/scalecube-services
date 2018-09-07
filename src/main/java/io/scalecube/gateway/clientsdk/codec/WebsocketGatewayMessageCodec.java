@@ -75,7 +75,7 @@ public final class WebsocketGatewayMessageCodec implements ClientMessageCodec<By
         generator.writeNumberField(STREAM_ID_FIELD, Long.parseLong(sid));
       }
 
-      String sig = message.header(STREAM_ID_FIELD);
+      String sig = message.header(SIGNAL_FIELD);
       if (sig != null) {
         generator.writeNumberField(SIGNAL_FIELD, Integer.parseInt(sig));
       }

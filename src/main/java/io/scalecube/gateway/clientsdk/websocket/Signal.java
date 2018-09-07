@@ -17,6 +17,10 @@ public enum Signal {
     return code;
   }
 
+  public String codeAsString() {
+    return String.valueOf(code);
+  }
+
   public static Signal from(String code) {
     return from(Integer.parseInt(code));
   }
