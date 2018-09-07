@@ -15,7 +15,7 @@ public class GatewayConfigRegistry {
 
   private static final String JMX_MBEAN_NAME = "io.scalecube.gateway.config:name=ConfigRegistry";
   private static final Pattern CONFIG_PATTERN =
-      Pattern.compile(".*[\\\\|/]?config[\\\\|/](.*)config(.*)?\\.properties");
+      Pattern.compile("(.*)config(.*)?\\.properties");
   private static final Predicate<Path> PATH_PREDICATE =
       path -> CONFIG_PATTERN.matcher(path.toString()).matches();
 
@@ -28,7 +28,6 @@ public class GatewayConfigRegistry {
                 .addListener(new Slf4JConfigEventListener())
                 .addLastSource("sys_prop", new SystemPropertiesConfigSource())
                 .addLastSource("env_var", new SystemEnvironmentConfigSource())
-                .addLastSource("dir", new DirectoryConfigSource("config", PATH_PREDICATE))
                 .addLastSource("cp", new ClassPathConfigSource(PATH_PREDICATE))
                 .jmxMBeanName(JMX_MBEAN_NAME)
                 .build());
