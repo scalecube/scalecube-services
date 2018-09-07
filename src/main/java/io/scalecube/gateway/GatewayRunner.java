@@ -32,7 +32,6 @@ public class GatewayRunner {
    */
   public static void main(String[] args) throws Exception {
     ConfigRegistry configRegistry = GatewayConfigRegistry.configRegistry();
-    MetricRegistry metrics = initMetricRegistry();
 
     Config config =
         configRegistry
@@ -47,6 +46,8 @@ public class GatewayRunner {
     int servicePort = config.getServicePort();
     int discoveryPort = config.getDiscoveryPort();
     Address[] seeds = config.getSeeds().stream().map(Address::from).toArray(Address[]::new);
+
+    MetricRegistry metrics = initMetricRegistry();
 
     Microservices.builder()
         .seeds(seeds)
