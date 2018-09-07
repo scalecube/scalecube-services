@@ -6,7 +6,6 @@ import io.scalecube.gateway.clientsdk.codec.WebsocketGatewayMessageCodec;
 import io.scalecube.gateway.clientsdk.websocket.WebsocketClientTransport;
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.services.codec.DataCodec;
-import reactor.core.Disposable;
 import reactor.ipc.netty.resources.LoopResources;
 
 public class WebsocketClientTransportTest {
@@ -24,7 +23,15 @@ public class WebsocketClientTransportTest {
         new WebsocketClientTransport(settings, codec, loopResources);
 
     Client client = new Client(transport, codec);
-    System.out.println(client.forService(GreetingService.class).one("hello").block());
+    client
+        .forService(GreetingService.class)
+        .failingOne("hello")
+        .subscribe(
+            null,
+            throwable -> {
+              System.out.println(throwable.hashCode());
+            },
+            () -> System.out.println("complete"));
 
     Thread.currentThread().join();
   }
