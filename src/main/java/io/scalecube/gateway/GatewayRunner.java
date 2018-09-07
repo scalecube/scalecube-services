@@ -11,16 +11,18 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.transport.Address;
 import java.io.File;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GatewayRunner {
 
-  private static final String REPORTER_PATH = "reports/gw/metrics";
+  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayRunner.class);
+  private static final String DECORATOR =
+      "#######################################################################";
 
-  private static final String SEEDS = "SEEDS";
-  private static final List<String> DEFAULT_SEEDS = Collections.singletonList("localhost:4802");
+  private static final String REPORTER_PATH = "reports/gw/metrics";
 
   /**
    * Main runner.
@@ -32,15 +34,24 @@ public class GatewayRunner {
     ConfigRegistry configRegistry = GatewayConfigRegistry.configRegistry();
     MetricRegistry metrics = initMetricRegistry();
 
-    final Address[] seeds =
+    Config config =
         configRegistry
-            .stringListValue(SEEDS, DEFAULT_SEEDS)
-            .stream()
-            .map(Address::from)
-            .toArray(Address[]::new);
+            .objectProperty("io.scalecube.gateway", Config.class)
+            .value()
+            .orElseThrow(() -> new IllegalStateException("Couldn't load config"));
+
+    LOGGER.info(DECORATOR);
+    LOGGER.info("Starting Gateway on " + config);
+    LOGGER.info(DECORATOR);
+
+    int servicePort = config.getServicePort();
+    int discoveryPort = config.getDiscoveryPort();
+    Address[] seeds = config.getSeeds().stream().map(Address::from).toArray(Address[]::new);
 
     Microservices.builder()
         .seeds(seeds)
+        .servicePort(servicePort)
+        .discoveryPort(discoveryPort)
         .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
         .gateway(GatewayConfig.builder("http", HttpGateway.class).port(8080).build())
         .gateway(GatewayConfig.builder("rsws", RSocketWebsocketGateway.class).port(9090).build())
@@ -65,5 +76,47 @@ public class GatewayRunner {
 
     csvReporter.start(10, TimeUnit.SECONDS);
     return metrics;
+  }
+
+  public static class Config {
+
+    private int servicePort;
+    private int discoveryPort;
+    private List<String> seeds;
+
+    public Config() {}
+
+    public int getServicePort() {
+      return servicePort;
+    }
+
+    public void setServicePort(int servicePort) {
+      this.servicePort = servicePort;
+    }
+
+    public int getDiscoveryPort() {
+      return discoveryPort;
+    }
+
+    public void setDiscoveryPort(int discoveryPort) {
+      this.discoveryPort = discoveryPort;
+    }
+
+    public List<String> getSeeds() {
+      return seeds;
+    }
+
+    public void setSeeds(List<String> seeds) {
+      this.seeds = seeds;
+    }
+
+    @Override
+    public String toString() {
+      final StringBuilder sb = new StringBuilder("Config{");
+      sb.append("servicePort=").append(servicePort);
+      sb.append(", seeds='").append(seeds).append('\'');
+      sb.append('}');
+      return sb.toString();
+    }
   }
 }
