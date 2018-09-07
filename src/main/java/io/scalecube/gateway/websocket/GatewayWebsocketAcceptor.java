@@ -61,68 +61,12 @@ public class GatewayWebsocketAcceptor
         session.send(
             session
                 .receive()
-                .flatMap(
-                    frame ->
-                        Flux.create(
-                            (FluxSink<GatewayMessage> sink) -> {
-                              Long sid = null;
-                              try {
-                                GatewayMessage request = toGatewayMessage(frame);
-                                Long streamId = sid = request.streamId();
-
-                                // check message contains sid
-                                checkSidNotNull(streamId, session, request);
-                                // check session contains sid for CANCEL operation
-                                if (request.hasSignal(Signal.CANCEL)) {
-                                  handleCancelRequest(streamId, session, request, sink);
-                                  return;
-                                }
-                                // check session doesn't contain sid yet
-                                checkSidNotRegisteredYet(streamId, session, request);
-                                // check message contains quailifier
-                                checkQualifierNotNull(session, request);
-
-                                metrics.markRequest();
-
-                                AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
-
-                                Flux<ServiceMessage> serviceStream =
-                                    serviceCall.requestMany(
-                                        GatewayMessage.toServiceMessage(request));
-
-                                if (request.inactivity() != null) {
-                                  serviceStream =
-                                      serviceStream.timeout(
-                                          Duration.ofMillis(request.inactivity()));
-                                }
-
-                                Disposable disposable =
-                                    serviceStream
-                                        .map(
-                                            message ->
-                                                prepareResponse(
-                                                    streamId, message, receivedErrorMessage))
-                                        .concatWith(
-                                            Flux.defer(
-                                                () ->
-                                                    prepareCompletion(
-                                                        streamId, receivedErrorMessage)))
-                                        .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
-                                        .doFinally(signalType -> session.dispose(streamId))
-                                        .subscribe(sink::next, sink::error, sink::complete);
-
-                                session.register(sid, disposable);
-                              } catch (Throwable ex) {
-                                ReferenceCountUtil.safeRelease(frame);
-                                sink.next(toErrorMessage(ex, sid));
-                                sink.complete();
-                              }
-                            }))
+                .flatMap(frame -> handleFrame(session, frame))
                 .flatMap(this::toByteBuf)
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "Unhandled exception occured: {}, " + "session: {} will be closed",
+                            "Unhandled exception occurred: {}, " + "session: {} will be closed",
                             ex,
                             session,
                             ex)));
@@ -134,6 +78,57 @@ public class GatewayWebsocketAcceptor
         });
 
     return voidMono.then();
+  }
+
+  private Flux<GatewayMessage> handleFrame(WebsocketSession session, WebSocketFrame frame) {
+    return Flux.create(
+        sink -> {
+          Long sid = null;
+          try {
+            GatewayMessage request = toGatewayMessage(frame);
+            Long streamId = sid = request.streamId();
+
+            // check message contains sid
+            checkSidNotNull(streamId, session, request);
+
+            // check session contains sid for CANCEL operation
+            if (request.hasSignal(Signal.CANCEL)) {
+              handleCancelRequest(streamId, session, request, sink);
+              return;
+            }
+
+            // check session doesn't contain sid yet
+            checkSidNotRegisteredYet(streamId, session, request);
+
+            // check message contains qualifier
+            checkQualifierNotNull(session, request);
+
+            metrics.markRequest();
+
+            AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
+
+            Flux<ServiceMessage> serviceStream =
+                serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
+
+            if (request.inactivity() != null) {
+              serviceStream = serviceStream.timeout(Duration.ofMillis(request.inactivity()));
+            }
+
+            Disposable disposable =
+                serviceStream
+                    .map(message -> prepareResponse(streamId, message, receivedErrorMessage))
+                    .concatWith(Flux.defer(() -> prepareCompletion(streamId, receivedErrorMessage)))
+                    .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
+                    .doFinally(signalType -> session.dispose(streamId))
+                    .subscribe(sink::next, sink::error, sink::complete);
+
+            session.register(sid, disposable);
+          } catch (Throwable ex) {
+            ReferenceCountUtil.safeRelease(frame);
+            sink.next(toErrorMessage(ex, sid));
+            sink.complete();
+          }
+        });
   }
 
   private Mono<GatewayMessage> prepareCompletion(
