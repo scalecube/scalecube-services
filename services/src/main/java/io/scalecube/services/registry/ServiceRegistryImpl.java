@@ -59,23 +59,30 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   public boolean registerService(ServiceEndpoint serviceEndpoint) {
     boolean success = serviceEndpoints.putIfAbsent(serviceEndpoint.id(), serviceEndpoint) == null;
     if (success) {
-      serviceEndpoint
-          .serviceRegistrations()
-          .stream()
-          .flatMap(
-              serviceRegistration ->
-                  serviceRegistration
-                      .methods()
-                      .stream()
-                      .map(sm -> new ServiceReference(sm, serviceRegistration, serviceEndpoint)))
-          .forEach(
-              serviceReference -> {
-                referencesByQualifier
-                    .computeIfAbsent(
-                        serviceReference.qualifier(), key -> new CopyOnWriteArrayList<>())
-                    .add(serviceReference);
-                sink.next(RegistryEvent.createAdded(serviceReference));
-              });
+      List<ServiceReference> references =
+          serviceEndpoint
+              .serviceRegistrations()
+              .stream()
+              .flatMap(
+                  serviceRegistration ->
+                      serviceRegistration
+                          .methods()
+                          .stream()
+                          .map(
+                              sm -> new ServiceReference(sm, serviceRegistration, serviceEndpoint)))
+              .collect(Collectors.toList());
+
+      references.forEach(
+          serviceReference ->
+              referencesByQualifier
+                  .computeIfAbsent(
+                      serviceReference.qualifier(), key -> new CopyOnWriteArrayList<>())
+                  .add(serviceReference));
+
+      // separate processing to maintain consistency, if the subscriber will filter by namespaces
+      // instead qualifiers
+      references.forEach(
+          serviceReference -> sink.next(RegistryEvent.createAdded(serviceReference)));
     }
     return success;
   }
