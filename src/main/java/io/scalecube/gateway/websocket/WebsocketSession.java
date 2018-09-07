@@ -10,6 +10,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +72,11 @@ public final class WebsocketSession {
    * @return flux websocket frame
    */
   public Flux<WebSocketFrame> receive() {
-    return inbound.aggregateFrames().receiveFrames().map(WebSocketFrame::retain).log(">> RECEIVE");
+    return inbound
+        .aggregateFrames()
+        .receiveFrames()
+        .map(WebSocketFrame::retain)
+        .log(">> RECEIVE", Level.FINE);
   }
 
   /**
@@ -82,7 +87,7 @@ public final class WebsocketSession {
    */
   public Mono<Void> send(Publisher<ByteBuf> publisher) {
     return outbound
-        .sendObject(Flux.from(publisher).map(BinaryWebSocketFrame::new).log("<< SEND"))
+        .sendObject(Flux.from(publisher).map(BinaryWebSocketFrame::new).log("<< SEND", Level.FINE))
         .then();
   }
 
@@ -98,7 +103,7 @@ public final class WebsocketSession {
     return outbound
         .sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close"))
         .then()
-        .log("<< CLOSE");
+        .log("<< CLOSE", Level.FINE);
   }
 
   /**
