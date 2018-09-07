@@ -63,8 +63,8 @@ public class GatewayWebsocketAcceptor
                 .receive()
                 .flatMap(
                     frame ->
-                        Flux.<GatewayMessage>create(
-                            sink -> {
+                        Flux.create(
+                            (FluxSink<GatewayMessage> sink) -> {
                               Long sid = null;
                               try {
                                 GatewayMessage request = toGatewayMessage(frame);
@@ -77,8 +77,8 @@ public class GatewayWebsocketAcceptor
                                   handleCancelRequest(streamId, session, request, sink);
                                   return;
                                 }
-                                // check session not yet contain sid
-                                checkSessionHasSid(streamId, session, request);
+                                // check session doesn't contain sid yet
+                                checkSidNotRegisteredYet(streamId, session, request);
                                 // check message contains quailifier
                                 checkQualifierNotNull(session, request);
 
@@ -155,18 +155,17 @@ public class GatewayWebsocketAcceptor
 
   private void checkQualifierNotNull(WebsocketSession session, GatewayMessage request) {
     if (request.qualifier() == null) {
-      LOGGER.error("Failed gateway request: {}, q is missing for session: {}", request, session);
-      throw new BadRequestException("q is missing");
+      LOGGER.error("Bad gateway request {} on session {}: qualifier is missing", request, session);
+      throw new BadRequestException("qualifier is missing");
     }
   }
 
-  private void checkSessionHasSid(Long streamId, WebsocketSession session, GatewayMessage request) {
+  private void checkSidNotRegisteredYet(
+      Long streamId, WebsocketSession session, GatewayMessage request) {
     if (session.containsSid(streamId)) {
       LOGGER.error(
-          "Failed gateway request: {}, " + "sid={} is already registered on session: {}",
-          request,
-          session);
-      throw new BadRequestException("sid=" + streamId + " is already registered on session");
+          "Bad gateway request {} on session {}: sid={} is already registered", request, session);
+      throw new BadRequestException("sid=" + streamId + " is already registered");
     }
   }
 
@@ -175,23 +174,20 @@ public class GatewayWebsocketAcceptor
       WebsocketSession session,
       GatewayMessage request,
       FluxSink<GatewayMessage> sink) {
+
     if (!session.dispose(streamId)) {
-      LOGGER.error(
-          "CANCEL failed for gateway request: {}, " + "sid={} is not contained in session: {}",
-          request,
-          streamId,
-          session);
-      throw new BadRequestException("sid=" + streamId + " is not contained in session");
+      LOGGER.error("CANCEL gateway request {} failed in session {}", request, streamId, session);
+      throw new BadRequestException("Failed CANCEL request");
     }
-    // send message with CAMCEL signal
-    sink.next(GatewayMessage.builder().streamId(streamId).signal(Signal.CANCEL).build());
+
+    // send message with CANCEL signal
+    sink.next(cancelResponse(streamId));
     sink.complete();
   }
 
   private void checkSidNotNull(Long streamId, WebsocketSession session, GatewayMessage request) {
     if (streamId == null) {
-      LOGGER.error(
-          "Invalid gateway request: {}, " + "sid is missing for session: {}", request, session);
+      LOGGER.error("Bad gateway request {} on session {}: sid is missing", request, session);
       throw new BadRequestException("sid is missing");
     }
   }
@@ -217,5 +213,9 @@ public class GatewayWebsocketAcceptor
   private GatewayMessage toErrorMessage(Throwable th, Long streamId) {
     ServiceMessage serviceMessage = ExceptionProcessor.toMessage(th);
     return GatewayMessage.from(serviceMessage).streamId(streamId).signal(Signal.ERROR).build();
+  }
+
+  private GatewayMessage cancelResponse(Long streamId) {
+    return GatewayMessage.builder().streamId(streamId).signal(Signal.CANCEL).build();
   }
 }

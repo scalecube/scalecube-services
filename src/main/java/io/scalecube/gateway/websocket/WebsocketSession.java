@@ -122,7 +122,7 @@ public final class WebsocketSession {
       Disposable disposable = subscriptions.remove(streamId);
       result = disposable != null;
       if (result) {
-        LOGGER.debug("Dispose subscription by streamId: {} on session: {}", streamId, this);
+        LOGGER.debug("Dispose subscription by sid: {} on session: {}", streamId, this);
         disposable.dispose();
       }
     }
@@ -147,7 +147,7 @@ public final class WebsocketSession {
       result = subscriptions.putIfAbsent(streamId, disposable) == null;
     }
     if (result) {
-      LOGGER.debug("Registered subscrption with streamId: {} on session: {}", streamId, this);
+      LOGGER.debug("Registered subscription with sid: {} on session: {}", streamId, this);
     }
     return result;
   }
