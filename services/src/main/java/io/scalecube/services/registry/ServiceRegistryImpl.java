@@ -117,6 +117,11 @@ public class ServiceRegistryImpl implements ServiceRegistry {
     return referencesByQualifier.values().stream().flatMap(Collection::stream);
   }
 
+  /**
+   * Listen on service registry events.
+   *
+   * @return flux object
+   */
   public Flux<RegistryEvent> listen() {
     return Flux.fromIterable(referencesByQualifier.values())
         .flatMap(Flux::fromIterable)
