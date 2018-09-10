@@ -1,5 +1,7 @@
 package io.scalecube.gateway.clientsdk;
 
+import java.net.InetSocketAddress;
+
 public class ClientSettings {
 
   private static final String DEFAULT_HOST = "localhost";
@@ -60,6 +62,10 @@ public class ClientSettings {
     public Builder port(int port) {
       this.port = port;
       return this;
+    }
+
+    public Builder address(InetSocketAddress address) {
+      return host(address.getHostString()).port(address.getPort());
     }
 
     public Builder contentType(String contentType) {
