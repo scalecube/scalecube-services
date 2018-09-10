@@ -6,8 +6,8 @@ import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
-import io.scalecube.gateway.clientsdk.codec.RSocketPayloadCodec;
+import io.scalecube.gateway.clientsdk.ClientCodec;
+import io.scalecube.gateway.clientsdk.rsocket.RSocketClientCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
@@ -42,7 +42,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   protected final Mono<Client> createClient(ClientSettings settings) {
     HeadersCodec headersCodec = HeadersCodec.getInstance(settings.contentType());
     DataCodec dataCodec = DataCodec.getInstance(settings.contentType());
-    ClientMessageCodec<Payload> messageCodec = new RSocketPayloadCodec(headersCodec, dataCodec);
+    ClientCodec<Payload> messageCodec = new RSocketClientCodec(headersCodec, dataCodec);
 
     RSocketClientTransport transport =
         new RSocketClientTransport(settings, messageCodec, loopResources);
