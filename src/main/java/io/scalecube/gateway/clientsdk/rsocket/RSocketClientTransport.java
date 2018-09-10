@@ -147,11 +147,7 @@ public final class RSocketClientTransport implements ClientTransport {
     return WebsocketClientTransport.create(
         HttpClient.create(
             options ->
-                options
-                    .disablePool()
-                    .compression(false)
-                    .connectAddress(() -> address)
-                    .loopResources(loopResources)),
+                options.disablePool().connectAddress(() -> address).loopResources(loopResources)),
         path);
   }
 

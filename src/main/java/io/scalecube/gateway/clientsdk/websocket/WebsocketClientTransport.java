@@ -49,11 +49,7 @@ public final class WebsocketClientTransport implements ClientTransport {
     httpClient =
         HttpClient.create(
             options ->
-                options
-                    .disablePool()
-                    .compression(false)
-                    .connectAddress(() -> address)
-                    .loopResources(loopResources));
+                options.disablePool().connectAddress(() -> address).loopResources(loopResources));
   }
 
   @Override
@@ -121,8 +117,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                                 (in, out) -> {
                                   LOGGER.info("Connected successfully to {}", address);
 
-                                  WebsocketSession session =
-                                      new WebsocketSession(in, out, codec);
+                                  WebsocketSession session = new WebsocketSession(in, out, codec);
 
                                   sink.success(session);
 
