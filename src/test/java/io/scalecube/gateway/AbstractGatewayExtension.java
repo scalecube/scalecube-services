@@ -3,7 +3,7 @@ package io.scalecube.gateway;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.GatewayConfig;
 import java.net.InetSocketAddress;
@@ -111,7 +111,7 @@ public abstract class AbstractGatewayExtension
 
   protected abstract ClientTransport transport();
 
-  protected abstract ClientMessageCodec clientMessageCodec();
+  protected abstract ClientCodec clientMessageCodec();
 
   protected abstract String gatewayAliasName();
 }

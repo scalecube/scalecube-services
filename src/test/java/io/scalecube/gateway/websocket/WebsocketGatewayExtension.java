@@ -3,8 +3,8 @@ package io.scalecube.gateway.websocket;
 import io.netty.buffer.ByteBuf;
 import io.scalecube.gateway.AbstractGatewayExtension;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
-import io.scalecube.gateway.clientsdk.codec.WebsocketGatewayMessageCodec;
+import io.scalecube.gateway.clientsdk.ClientCodec;
+import io.scalecube.gateway.clientsdk.websocket.WebsocketClientCodec;
 import io.scalecube.gateway.clientsdk.websocket.WebsocketClientTransport;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -26,8 +26,8 @@ class WebsocketGatewayExtension extends AbstractGatewayExtension {
   }
 
   @Override
-  protected ClientMessageCodec<ByteBuf> clientMessageCodec() {
-    return new WebsocketGatewayMessageCodec(DataCodec.getInstance(clientSettings().contentType()));
+  protected ClientCodec<ByteBuf> clientMessageCodec() {
+    return new WebsocketClientCodec(DataCodec.getInstance(clientSettings().contentType()));
   }
 
   @Override

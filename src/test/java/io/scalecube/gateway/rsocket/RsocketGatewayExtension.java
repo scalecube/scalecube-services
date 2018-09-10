@@ -3,8 +3,8 @@ package io.scalecube.gateway.rsocket;
 import io.rsocket.Payload;
 import io.scalecube.gateway.AbstractGatewayExtension;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
-import io.scalecube.gateway.clientsdk.codec.RSocketPayloadCodec;
+import io.scalecube.gateway.clientsdk.ClientCodec;
+import io.scalecube.gateway.clientsdk.rsocket.RSocketClientCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.services.codec.DataCodec;
@@ -29,12 +29,12 @@ class RsocketGatewayExtension extends AbstractGatewayExtension {
   }
 
   @Override
-  protected ClientMessageCodec<Payload> clientMessageCodec() {
+  protected ClientCodec<Payload> clientMessageCodec() {
     String contentType = clientSettings().contentType();
     HeadersCodec headersCodec = HeadersCodec.getInstance(contentType);
     DataCodec dataCodec = DataCodec.getInstance(contentType);
 
-    return new RSocketPayloadCodec(headersCodec, dataCodec);
+    return new RSocketClientCodec(headersCodec, dataCodec);
   }
 
   @Override
