@@ -121,8 +121,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                                 (in, out) -> {
                                   LOGGER.info("Connected successfully to {}", address);
 
-                                  WebsocketSession session =
-                                      new WebsocketSession(in, out, codec);
+                                  WebsocketSession session = new WebsocketSession(in, out, codec);
 
                                   sink.success(session);
 
