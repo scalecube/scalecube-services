@@ -1,6 +1,7 @@
 package io.scalecube.gateway.clientsdk;
 
 import java.net.InetSocketAddress;
+import reactor.ipc.netty.resources.LoopResources;
 
 public class ClientSettings {
 
@@ -10,11 +11,13 @@ public class ClientSettings {
   private final String host;
   private final int port;
   private final String contentType;
+  private final LoopResources loopResources;
 
   private ClientSettings(Builder builder) {
     this.host = builder.host;
     this.port = builder.port;
     this.contentType = builder.contentType;
+    this.loopResources = builder.loopResources;
   }
 
   public String host() {
@@ -27,6 +30,10 @@ public class ClientSettings {
 
   public String contentType() {
     return this.contentType;
+  }
+
+  public LoopResources loopResources() {
+    return loopResources;
   }
 
   public static Builder builder() {
@@ -51,6 +58,7 @@ public class ClientSettings {
     private String host = DEFAULT_HOST;
     private int port;
     private String contentType = DEFAULT_CONTENT_TYPE;
+    private LoopResources loopResources;
 
     private Builder() {}
 
@@ -70,6 +78,11 @@ public class ClientSettings {
 
     public Builder contentType(String contentType) {
       this.contentType = contentType;
+      return this;
+    }
+
+    public Builder loopResources(LoopResources loopResources) {
+      this.loopResources = loopResources;
       return this;
     }
 
