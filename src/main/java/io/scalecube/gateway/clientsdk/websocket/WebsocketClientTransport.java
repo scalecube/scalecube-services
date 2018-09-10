@@ -1,10 +1,10 @@
 package io.scalecube.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.ClientCodec;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -41,9 +41,7 @@ public final class WebsocketClientTransport implements ClientTransport {
    * @param loopResources loop resources
    */
   public WebsocketClientTransport(
-      ClientSettings settings,
-      ClientCodec<ByteBuf> messageCodec,
-      LoopResources loopResources) {
+      ClientSettings settings, ClientCodec<ByteBuf> messageCodec, LoopResources loopResources) {
     this.messageCodec = messageCodec;
 
     address = InetSocketAddress.createUnresolved(settings.host(), settings.port());

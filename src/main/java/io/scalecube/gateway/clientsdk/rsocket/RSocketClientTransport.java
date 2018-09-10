@@ -5,10 +5,10 @@ import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
 import io.rsocket.util.ByteBufPayload;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.exceptions.ConnectionClosedException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -43,9 +43,7 @@ public final class RSocketClientTransport implements ClientTransport {
    * @param loopResources loop resources.
    */
   public RSocketClientTransport(
-      ClientSettings settings,
-      ClientCodec<Payload> messageCodec,
-      LoopResources loopResources) {
+      ClientSettings settings, ClientCodec<Payload> messageCodec, LoopResources loopResources) {
     this.settings = settings;
     this.messageCodec = messageCodec;
     this.loopResources = loopResources;
