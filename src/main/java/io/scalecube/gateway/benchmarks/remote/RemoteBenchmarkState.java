@@ -1,23 +1,26 @@
-package io.scalecube.gateway.benchmarks.rsocket.remote;
+package io.scalecube.gateway.benchmarks.remote;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
-import io.scalecube.gateway.clientsdk.ClientSettings;
 import java.net.InetSocketAddress;
+import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
+import reactor.ipc.netty.resources.LoopResources;
 
-public class RemoteBenchmarksState extends AbstractBenchmarkState<RemoteBenchmarksState> {
+public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmarkState> {
 
-  private InetSocketAddress gatewayAddress;
+  private final InetSocketAddress gatewayAddress;
 
   /**
    * Constructor for benchmarks state.
    *
    * @param settings benchmarks settings.
    */
-  public RemoteBenchmarksState(BenchmarkSettings settings) {
-    super(settings);
+  public RemoteBenchmarkState(
+      BenchmarkSettings settings,
+      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
+    super(settings, clientFunction);
 
     String address = settings.find("gatewayAddress", null);
     if (address == null) {
@@ -36,10 +39,6 @@ public class RemoteBenchmarksState extends AbstractBenchmarkState<RemoteBenchmar
    * @return client
    */
   public Mono<Client> createClient() {
-    return createClient(
-        ClientSettings.builder()
-            .host(gatewayAddress.getHostString())
-            .port(gatewayAddress.getPort())
-            .build());
+    return createClient(gatewayAddress, clientFunction);
   }
 }

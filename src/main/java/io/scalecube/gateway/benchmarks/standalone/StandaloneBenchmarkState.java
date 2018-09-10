@@ -1,28 +1,30 @@
-package io.scalecube.gateway.benchmarks.rsocket.standalone;
+package io.scalecube.gateway.benchmarks.standalone;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
-import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
+import io.scalecube.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.GatewayConfig;
 import java.net.InetSocketAddress;
+import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
+import reactor.ipc.netty.resources.LoopResources;
 
-public class StandaloneMicrobenchmarkState
-    extends AbstractBenchmarkState<StandaloneMicrobenchmarkState> {
+public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneBenchmarkState> {
 
-  private static final String GATEWAY_ALIAS_NAME = "rsws";
-
-  private static final GatewayConfig gatewayConfig =
-      GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketWebsocketGateway.class).build();
+  private final String gatewayName;
 
   private Microservices microservices;
 
-  public StandaloneMicrobenchmarkState(BenchmarkSettings settings) {
-    super(settings);
+  public StandaloneBenchmarkState(
+      BenchmarkSettings settings,
+      String gatewayName,
+      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
+    super(settings, clientFunction);
+    this.gatewayName = gatewayName;
   }
 
   @Override
@@ -32,7 +34,8 @@ public class StandaloneMicrobenchmarkState
     microservices =
         Microservices.builder()
             .services(new BenchmarksServiceImpl())
-            .gateway(gatewayConfig)
+            .gateway(GatewayConfig.builder("rsws", RSocketWebsocketGateway.class).build())
+            .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .metrics(registry())
             .startAwait();
   }
@@ -51,13 +54,6 @@ public class StandaloneMicrobenchmarkState
    * @return client
    */
   public Mono<Client> createClient() {
-    InetSocketAddress gatewayAddress =
-        microservices.gatewayAddress(GATEWAY_ALIAS_NAME, gatewayConfig.gatewayClass());
-
-    return createClient(
-        ClientSettings.builder()
-            .host(gatewayAddress.getHostString())
-            .port(gatewayAddress.getPort())
-            .build());
+    return createClient(microservices, gatewayName, clientFunction);
   }
 }
