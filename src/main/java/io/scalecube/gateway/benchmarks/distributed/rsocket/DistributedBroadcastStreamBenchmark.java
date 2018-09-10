@@ -21,11 +21,10 @@ public class DistributedBroadcastStreamBenchmark {
                 benchmarkSettings,
                 "rsws",
                 (address, loopResources) ->
-                    Mono.just(
                         Client.onRSocket(
                             ClientSettings.builder()
                                 .address(address)
                                 .loopResources(loopResources)
-                                .build()))));
+                                .build())));
   }
 }

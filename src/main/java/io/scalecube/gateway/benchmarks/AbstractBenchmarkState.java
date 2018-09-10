@@ -18,13 +18,13 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
       ClientMessage.builder().qualifier("/benchmarks/one").build();
 
   protected LoopResources loopResources;
-  protected BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction;
+  protected BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder;
 
   public AbstractBenchmarkState(
       BenchmarkSettings settings,
-      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
+      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
     super(settings);
-    this.clientFunction = clientFunction;
+    this.clientBuilder = clientBuilder;
   }
 
   @Override
@@ -46,19 +46,17 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   protected final Mono<Client> createClient(
       Microservices gateway,
       String gatewayName,
-      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
-    return Mono.defer(() -> createClient(gatewayAddress(gateway, gatewayName), clientFunction));
+      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
+    return Mono.defer(() -> createClient(gatewayAddress(gateway, gatewayName), clientBuilder));
   }
 
   protected final Mono<Client> createClient(
       InetSocketAddress gatewayAddress,
-      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
+      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
     return Mono.defer(
         () -> {
-          Mono<Client> clientMono = clientFunction.apply(gatewayAddress, loopResources);
-          return clientMono
-              .flatMap(client -> client.requestResponse(FIRST_REQUEST))
-              .then(clientMono);
+          Client client = clientBuilder.apply(gatewayAddress, loopResources);
+          return client.requestResponse(FIRST_REQUEST).then(Mono.just(client));
         });
   }
 
@@ -70,6 +68,9 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
         .filter(entry -> entry.getKey().name().equals(gatewayName))
         .map(Entry::getValue)
         .findFirst()
-        .orElseThrow(() -> new IllegalArgumentException(gatewayName));
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Can't find address for gateway with name '" + gatewayName + "'"));
   }
 }

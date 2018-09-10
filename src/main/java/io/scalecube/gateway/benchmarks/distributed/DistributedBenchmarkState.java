@@ -23,8 +23,8 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
   public DistributedBenchmarkState(
       BenchmarkSettings settings,
       String gatewayName,
-      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
-    super(settings, clientFunction);
+      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
+    super(settings, clientBuilder);
     this.gatewayName = gatewayName;
   }
 
@@ -59,6 +59,6 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
 
   @Override
   public Mono<Client> createClient() {
-    return createClient(gateway, gatewayName, clientFunction);
+    return createClient(gateway, gatewayName, clientBuilder);
   }
 }

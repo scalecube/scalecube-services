@@ -22,8 +22,8 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
   public StandaloneBenchmarkState(
       BenchmarkSettings settings,
       String gatewayName,
-      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
-    super(settings, clientFunction);
+      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
+    super(settings, clientBuilder);
     this.gatewayName = gatewayName;
   }
 
@@ -54,6 +54,6 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
    * @return client
    */
   public Mono<Client> createClient() {
-    return createClient(microservices, gatewayName, clientFunction);
+    return createClient(microservices, gatewayName, clientBuilder);
   }
 }

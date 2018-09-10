@@ -4,7 +4,6 @@ import io.scalecube.gateway.benchmarks.RequestOneBenchmark;
 import io.scalecube.gateway.benchmarks.distributed.DistributedBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import reactor.core.publisher.Mono;
 
 public class DistributedRequestOneBenchmark {
 
@@ -21,11 +20,10 @@ public class DistributedRequestOneBenchmark {
                 benchmarkSettings,
                 "rsws",
                 (address, loopResources) ->
-                    Mono.just(
-                        Client.onRSocket(
-                            ClientSettings.builder()
-                                .address(address)
-                                .loopResources(loopResources)
-                                .build()))));
+                    Client.onRSocket(
+                        ClientSettings.builder()
+                            .address(address)
+                            .loopResources(loopResources)
+                            .build())));
   }
 }

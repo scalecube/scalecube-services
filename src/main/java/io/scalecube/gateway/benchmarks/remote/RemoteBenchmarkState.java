@@ -19,8 +19,8 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
    */
   public RemoteBenchmarkState(
       BenchmarkSettings settings,
-      BiFunction<InetSocketAddress, LoopResources, Mono<Client>> clientFunction) {
-    super(settings, clientFunction);
+      BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
+    super(settings, clientBuilder);
 
     String address = settings.find("gatewayAddress", null);
     if (address == null) {
@@ -39,6 +39,6 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
    * @return client
    */
   public Mono<Client> createClient() {
-    return createClient(gatewayAddress, clientFunction);
+    return createClient(gatewayAddress, clientBuilder);
   }
 }

@@ -20,11 +20,10 @@ public class RemoteBroadcastStreamBenchmark {
             new RemoteBenchmarkState(
                 benchmarkSettings,
                 (address, loopResources) ->
-                    Mono.just(
                         Client.onRSocket(
                             ClientSettings.builder()
                                 .address(address)
                                 .loopResources(loopResources)
-                                .build()))));
+                                .build())));
   }
 }
