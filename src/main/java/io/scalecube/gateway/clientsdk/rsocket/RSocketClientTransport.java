@@ -30,7 +30,7 @@ public final class RSocketClientTransport implements ClientTransport {
               RSocketClientTransport.class, Mono.class, "rsocketMono");
 
   private final ClientSettings settings;
-  private final ClientCodec<Payload> messageCodec;
+  private final ClientCodec<Payload> codec;
   private final LoopResources loopResources;
 
   private volatile Mono<?> rsocketMono;
@@ -39,13 +39,13 @@ public final class RSocketClientTransport implements ClientTransport {
    * Constructor for client sdk rsocket transport.
    *
    * @param settings client settings.
-   * @param messageCodec client message codec.
+   * @param codec client message codec.
    * @param loopResources loop resources.
    */
   public RSocketClientTransport(
-      ClientSettings settings, ClientCodec<Payload> messageCodec, LoopResources loopResources) {
+      ClientSettings settings, ClientCodec<Payload> codec, LoopResources loopResources) {
     this.settings = settings;
-    this.messageCodec = messageCodec;
+    this.codec = codec;
     this.loopResources = loopResources;
   }
 
@@ -156,11 +156,11 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   private Payload toPayload(ClientMessage clientMessage) {
-    return messageCodec.encode(clientMessage);
+    return codec.encode(clientMessage);
   }
 
   private ClientMessage toClientMessage(Payload payload) {
-    return messageCodec.decode(payload);
+    return codec.decode(payload);
   }
 
   private ClientMessage enrichForSend(ClientMessage clientMessage) {

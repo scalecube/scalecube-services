@@ -26,7 +26,7 @@ public final class WebsocketClientTransport implements ClientTransport {
           AtomicReferenceFieldUpdater.newUpdater(
               WebsocketClientTransport.class, Mono.class, "websocketMono");
 
-  private final ClientCodec<ByteBuf> messageCodec;
+  private final ClientCodec<ByteBuf> codec;
   private final InetSocketAddress address;
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
@@ -37,12 +37,12 @@ public final class WebsocketClientTransport implements ClientTransport {
    * Creates instance of websocket client transport.
    *
    * @param settings client settings
-   * @param messageCodec client message codec
+   * @param codec client message codec
    * @param loopResources loop resources
    */
   public WebsocketClientTransport(
-      ClientSettings settings, ClientCodec<ByteBuf> messageCodec, LoopResources loopResources) {
-    this.messageCodec = messageCodec;
+      ClientSettings settings, ClientCodec<ByteBuf> codec, LoopResources loopResources) {
+    this.codec = codec;
 
     address = InetSocketAddress.createUnresolved(settings.host(), settings.port());
 
@@ -122,7 +122,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                                   LOGGER.info("Connected successfully to {}", address);
 
                                   WebsocketSession session =
-                                      new WebsocketSession(in, out, messageCodec);
+                                      new WebsocketSession(in, out, codec);
 
                                   sink.success(session);
 

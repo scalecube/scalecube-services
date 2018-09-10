@@ -10,20 +10,20 @@ public class RemoteInvocationHandler implements InvocationHandler {
 
   private final ClientTransport transport;
   private final Map<Method, MethodInfo> methods;
-  private final ClientCodec messageCodec;
+  private final ClientCodec codec;
 
   /**
    * Constructor for remote invocation handler.
    *
    * @param transport client sdk transport implementation
    * @param methods methods
-   * @param messageCodec client message codec
+   * @param codec client message codec
    */
   public RemoteInvocationHandler(
-      ClientTransport transport, Map<Method, MethodInfo> methods, ClientCodec messageCodec) {
+      ClientTransport transport, Map<Method, MethodInfo> methods, ClientCodec codec) {
     this.transport = transport;
     this.methods = methods;
-    this.messageCodec = messageCodec;
+    this.codec = codec;
   }
 
   @Override
@@ -42,13 +42,13 @@ public class RemoteInvocationHandler implements InvocationHandler {
       case REQUEST_RESPONSE:
         return transport
             .requestResponse(request)
-            .map(response -> messageCodec.decodeData(response, responseType))
+            .map(response -> codec.decodeData(response, responseType))
             .map(this::throwIfError)
             .map(ClientMessage::data);
       case REQUEST_STREAM:
         return transport
             .requestStream(request)
-            .map(clientMessage -> messageCodec.decodeData(clientMessage, responseType))
+            .map(clientMessage -> codec.decodeData(clientMessage, responseType))
             .map(this::throwIfError)
             .map(ClientMessage::data);
       default:
