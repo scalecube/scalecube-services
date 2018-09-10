@@ -4,7 +4,6 @@ import io.scalecube.gateway.benchmarks.BroadcastStreamBenchmark;
 import io.scalecube.gateway.benchmarks.distributed.DistributedBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import reactor.core.publisher.Mono;
 
 public class DistributedBroadcastStreamBenchmark {
 
@@ -21,10 +20,10 @@ public class DistributedBroadcastStreamBenchmark {
                 benchmarkSettings,
                 "ws",
                 (address, loopResources) ->
-                        Client.onWebsocket(
-                            ClientSettings.builder()
-                                .address(address)
-                                .loopResources(loopResources)
-                                .build())));
+                    Client.onWebsocket(
+                        ClientSettings.builder()
+                            .address(address)
+                            .loopResources(loopResources)
+                            .build())));
   }
 }

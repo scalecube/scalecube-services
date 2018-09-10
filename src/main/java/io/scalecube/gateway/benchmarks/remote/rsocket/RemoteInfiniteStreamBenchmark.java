@@ -4,7 +4,6 @@ import io.scalecube.gateway.benchmarks.InfiniteStreamBenchmark;
 import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import reactor.core.publisher.Mono;
 
 public class RemoteInfiniteStreamBenchmark {
 
@@ -20,10 +19,10 @@ public class RemoteInfiniteStreamBenchmark {
             new RemoteBenchmarkState(
                 benchmarkSettings,
                 (address, loopResources) ->
-                        Client.onRSocket(
-                            ClientSettings.builder()
-                                .address(address)
-                                .loopResources(loopResources)
-                                .build())));
+                    Client.onRSocket(
+                        ClientSettings.builder()
+                            .address(address)
+                            .loopResources(loopResources)
+                            .build())));
   }
 }

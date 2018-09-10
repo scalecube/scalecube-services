@@ -4,7 +4,6 @@ import io.scalecube.gateway.benchmarks.RequestOneBenchmark;
 import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import reactor.core.publisher.Mono;
 
 public class RemoteRequestOneBenchmark {
 
@@ -20,10 +19,10 @@ public class RemoteRequestOneBenchmark {
             new RemoteBenchmarkState(
                 benchmarkSettings,
                 (address, loopResources) ->
-                        Client.onWebsocket(
-                            ClientSettings.builder()
-                                .address(address)
-                                .loopResources(loopResources)
-                                .build())));
+                    Client.onWebsocket(
+                        ClientSettings.builder()
+                            .address(address)
+                            .loopResources(loopResources)
+                            .build())));
   }
 }
