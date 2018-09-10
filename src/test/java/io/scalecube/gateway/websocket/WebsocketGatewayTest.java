@@ -1,11 +1,11 @@
-package io.scalecube.gateway.rsocket;
+package io.scalecube.gateway.websocket;
 
-import io.rsocket.exceptions.ApplicationErrorException;
 import io.scalecube.gateway.examples.GreetingRequest;
 import io.scalecube.gateway.examples.GreetingResponse;
 import io.scalecube.gateway.examples.GreetingService;
 import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
+import io.scalecube.services.exceptions.ServiceUnavailableException;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,15 +13,15 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-class RSocketWebsocketGatewayTest {
+class WebsocketGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
   @RegisterExtension
-  static RsocketGatewayExtension extension = new RsocketGatewayExtension(new GreetingServiceImpl());
+  static WebsocketGatewayExtension extension =
+      new WebsocketGatewayExtension(new GreetingServiceImpl());
 
   private GreetingService service;
 
@@ -31,7 +31,7 @@ class RSocketWebsocketGatewayTest {
   }
 
   @Test
-  void shouldReturnSingleResponse() {
+  void shouldReturnSingleResponseWithSimpleRequest() {
     StepVerifier.create(service.one("hello"))
         .expectNext("Echo:hello")
         .expectComplete()
@@ -47,7 +47,7 @@ class RSocketWebsocketGatewayTest {
   }
 
   @Test
-  void shouldReturnManyResponses() {
+  void shouldReturnManyResponsesWithSimpleRequest() {
     int expectedResponseNum = 3;
     List<String> expected =
         IntStream.range(0, expectedResponseNum)
@@ -81,25 +81,21 @@ class RSocketWebsocketGatewayTest {
     StepVerifier.create(service.one("hello"))
         .expectErrorMatches(
             throwable ->
-                throwable instanceof ApplicationErrorException
+                throwable instanceof ServiceUnavailableException
                     && throwable.getMessage().startsWith("No reachable member with such service"))
         .verify(TIMEOUT);
   }
 
   @Test
   void shouldReturnErrorDataWhenServiceFails() {
-    String req = "hello";
-    Mono<String> result = service.failingOne(req);
-
-    StepVerifier.create(result)
+    StepVerifier.create(service.failingOne("hello"))
         .expectErrorMatches(throwable -> throwable instanceof InternalServiceException)
         .verify(TIMEOUT);
   }
 
   @Test
   void shouldReturnErrorDataWhenRequestDataIsEmpty() {
-    Mono<String> result = service.one(null);
-    StepVerifier.create(result)
+    StepVerifier.create(service.one(null))
         .expectErrorMatches(
             throwable ->
                 "Expected service request data of type: class java.lang.String, but received: null"
