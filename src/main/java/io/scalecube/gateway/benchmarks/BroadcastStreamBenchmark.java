@@ -28,7 +28,7 @@ public final class BroadcastStreamBenchmark {
   public static void runWith(
       String[] args, Function<BenchmarkSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    int numOfThreads = Runtime.getRuntime().availableProcessors() * 4;
+    int numOfThreads = Runtime.getRuntime().availableProcessors() * 2;
     Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
 
     BenchmarkSettings settings =
