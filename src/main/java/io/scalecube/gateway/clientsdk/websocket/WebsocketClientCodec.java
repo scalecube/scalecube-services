@@ -1,4 +1,4 @@
-package io.scalecube.gateway.clientsdk.codec;
+package io.scalecube.gateway.clientsdk.websocket;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 
@@ -19,6 +19,7 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.util.ReferenceCountUtil;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.exceptions.MessageCodecException;
@@ -28,9 +29,9 @@ import java.nio.charset.Charset;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class WebsocketGatewayMessageCodec implements ClientMessageCodec<ByteBuf> {
+public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayMessageCodec.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientCodec.class);
 
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper());
 
@@ -48,7 +49,7 @@ public final class WebsocketGatewayMessageCodec implements ClientMessageCodec<By
    *
    * @param dataCodec data message codec.
    */
-  public WebsocketGatewayMessageCodec(DataCodec dataCodec) {
+  public WebsocketClientCodec(DataCodec dataCodec) {
     this.dataCodec = dataCodec;
   }
 

@@ -1,10 +1,8 @@
-package io.scalecube.gateway.clientsdk.codec;
+package io.scalecube.gateway.clientsdk;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.util.ReferenceCountUtil;
-import io.scalecube.gateway.clientsdk.ClientMessage;
-import io.scalecube.gateway.clientsdk.ErrorData;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import io.scalecube.gateway.clientsdk.exceptions.MessageCodecException;
 import io.scalecube.services.codec.DataCodec;
@@ -18,9 +16,9 @@ import org.slf4j.LoggerFactory;
  * @param <T> type which represents source or result for decoding or encoding operations
  *     respectively
  */
-public interface ClientMessageCodec<T> {
+public interface ClientCodec<T> {
 
-  Logger LOGGER = LoggerFactory.getLogger(ClientMessageCodec.class);
+  Logger LOGGER = LoggerFactory.getLogger(ClientCodec.class);
 
   /**
    * Data decoder function.
@@ -61,7 +59,7 @@ public interface ClientMessageCodec<T> {
   /**
    * Returns codec which is used to decode data object of {@link ClientMessage}.
    *
-   * @see ClientMessageCodec#decodeData(ClientMessage, Class)
+   * @see ClientCodec#decodeData(ClientMessage, Class)
    * @return data codec
    */
   DataCodec getDataCodec();

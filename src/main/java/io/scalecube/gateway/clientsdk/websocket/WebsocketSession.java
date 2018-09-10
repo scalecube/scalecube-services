@@ -5,7 +5,7 @@ import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ErrorData;
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import java.util.logging.Level;
 import reactor.core.publisher.DirectProcessor;
@@ -20,13 +20,13 @@ final class WebsocketSession {
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
-  private final ClientMessageCodec<ByteBuf> codec;
+  private final ClientCodec<ByteBuf> codec;
 
   private final DirectProcessor<ClientMessage> inboundProcessor = DirectProcessor.create();
   private final FluxSink<ClientMessage> inboundSink = inboundProcessor.sink();
 
   WebsocketSession(
-      WebsocketInbound inbound, WebsocketOutbound outbound, ClientMessageCodec<ByteBuf> codec) {
+      WebsocketInbound inbound, WebsocketOutbound outbound, ClientCodec<ByteBuf> codec) {
     this.inbound = inbound;
     this.outbound = outbound;
     this.codec = codec;

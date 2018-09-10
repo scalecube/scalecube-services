@@ -8,7 +8,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.exceptions.ConnectionClosedException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -30,7 +30,7 @@ public final class RSocketClientTransport implements ClientTransport {
               RSocketClientTransport.class, Mono.class, "rsocketMono");
 
   private final ClientSettings settings;
-  private final ClientMessageCodec<Payload> messageCodec;
+  private final ClientCodec<Payload> messageCodec;
   private final LoopResources loopResources;
 
   private volatile Mono<?> rsocketMono;
@@ -44,7 +44,7 @@ public final class RSocketClientTransport implements ClientTransport {
    */
   public RSocketClientTransport(
       ClientSettings settings,
-      ClientMessageCodec<Payload> messageCodec,
+      ClientCodec<Payload> messageCodec,
       LoopResources loopResources) {
     this.settings = settings;
     this.messageCodec = messageCodec;

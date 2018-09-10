@@ -1,6 +1,5 @@
 package io.scalecube.gateway.clientsdk;
 
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.InvocationHandler;
@@ -11,7 +10,7 @@ public class RemoteInvocationHandler implements InvocationHandler {
 
   private final ClientTransport transport;
   private final Map<Method, MethodInfo> methods;
-  private final ClientMessageCodec messageCodec;
+  private final ClientCodec messageCodec;
 
   /**
    * Constructor for remote invocation handler.
@@ -21,7 +20,7 @@ public class RemoteInvocationHandler implements InvocationHandler {
    * @param messageCodec client message codec
    */
   public RemoteInvocationHandler(
-      ClientTransport transport, Map<Method, MethodInfo> methods, ClientMessageCodec messageCodec) {
+      ClientTransport transport, Map<Method, MethodInfo> methods, ClientCodec messageCodec) {
     this.transport = transport;
     this.methods = methods;
     this.messageCodec = messageCodec;

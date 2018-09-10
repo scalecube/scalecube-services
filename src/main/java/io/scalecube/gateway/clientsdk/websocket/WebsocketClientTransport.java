@@ -4,7 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.codec.ClientMessageCodec;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
@@ -26,7 +26,7 @@ public final class WebsocketClientTransport implements ClientTransport {
           AtomicReferenceFieldUpdater.newUpdater(
               WebsocketClientTransport.class, Mono.class, "websocketMono");
 
-  private final ClientMessageCodec<ByteBuf> messageCodec;
+  private final ClientCodec<ByteBuf> messageCodec;
   private final InetSocketAddress address;
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
@@ -42,7 +42,7 @@ public final class WebsocketClientTransport implements ClientTransport {
    */
   public WebsocketClientTransport(
       ClientSettings settings,
-      ClientMessageCodec<ByteBuf> messageCodec,
+      ClientCodec<ByteBuf> messageCodec,
       LoopResources loopResources) {
     this.messageCodec = messageCodec;
 
