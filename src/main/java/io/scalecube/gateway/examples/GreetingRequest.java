@@ -6,6 +6,10 @@ public class GreetingRequest {
 
   public GreetingRequest() {}
 
+  public GreetingRequest(String text) {
+    this.text = text;
+  }
+
   public String getText() {
     return text;
   }
