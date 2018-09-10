@@ -18,8 +18,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class GwMessageCodecMicrobenchmarkState
-    extends BenchmarkState<GwMessageCodecMicrobenchmarkState> {
+public class GwMessageCodecBenchmarkState extends BenchmarkState<GwMessageCodecBenchmarkState> {
 
   private static final String GW_MSG_PATTERN =
       "{" + "\"q\":\"%s\"," + "\"sig\":%d," + "\"sid\":%d," + "\"d\":%s" + "}";
@@ -30,7 +29,7 @@ public class GwMessageCodecMicrobenchmarkState
   private GatewayMessage gatewayMessage;
   private ByteBuf byteBufExample;
 
-  public GwMessageCodecMicrobenchmarkState(BenchmarkSettings settings) {
+  public GwMessageCodecBenchmarkState(BenchmarkSettings settings) {
     super(settings);
   }
 

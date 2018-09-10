@@ -8,7 +8,7 @@ import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import java.util.concurrent.TimeUnit;
 
-public class GwMessageDecoderMicrobenchmark {
+public class GwMessageDecoderBenchmark {
 
   /**
    * Main runner.
@@ -18,7 +18,7 @@ public class GwMessageDecoderMicrobenchmark {
   public static void main(String[] args) {
     BenchmarkSettings settings =
         BenchmarkSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
-    new GwMessageCodecMicrobenchmarkState(settings)
+    new GwMessageCodecBenchmarkState(settings)
         .runForSync(
             state -> {
               GatewayMessageCodec codec = state.codec();

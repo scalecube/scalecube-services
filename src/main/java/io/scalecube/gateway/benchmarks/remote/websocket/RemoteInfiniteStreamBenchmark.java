@@ -4,9 +4,6 @@ import io.scalecube.gateway.benchmarks.InfiniteStreamBenchmark;
 import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
-import io.scalecube.gateway.clientsdk.websocket.WebsocketClientCodec;
-import io.scalecube.gateway.clientsdk.websocket.WebsocketClientTransport;
-import io.scalecube.services.codec.DataCodec;
 import reactor.core.publisher.Mono;
 
 public class RemoteInfiniteStreamBenchmark {
@@ -22,16 +19,12 @@ public class RemoteInfiniteStreamBenchmark {
         benchmarkSettings ->
             new RemoteBenchmarkState(
                 benchmarkSettings,
-                (address, loopResources) -> {
-                  ClientSettings clientSettings = ClientSettings.builder().address(address).build();
-
-                  WebsocketClientCodec clientCodec =
-                      new WebsocketClientCodec(DataCodec.getInstance(clientSettings.contentType()));
-
-                  return Mono.just(
-                      new Client(
-                          new WebsocketClientTransport(clientSettings, clientCodec, loopResources),
-                          clientCodec));
-                }));
+                (address, loopResources) ->
+                    Mono.just(
+                        Client.onWebsocket(
+                            ClientSettings.builder()
+                                .address(address)
+                                .loopResources(loopResources)
+                                .build()))));
   }
 }
