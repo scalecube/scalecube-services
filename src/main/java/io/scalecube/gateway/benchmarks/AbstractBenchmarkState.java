@@ -30,7 +30,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-    loopResources = LoopResources.create("worker", 1, true);
+    loopResources = LoopResources.create("worker-client-sdk", 1, true);
   }
 
   @Override
