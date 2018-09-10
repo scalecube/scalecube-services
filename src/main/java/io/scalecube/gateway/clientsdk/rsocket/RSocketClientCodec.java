@@ -103,11 +103,11 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
-      } catch (Throwable ex) {
+      } catch (Throwable t) {
+        LOGGER.error("Failed to encode data on: {}, cause: {}", message, t);
         ReferenceCountUtil.safeRelease(dataBuffer);
-        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
         throw new MessageCodecException(
-            "Failed to encode data on message q=" + message.qualifier(), ex);
+            "Failed to encode data on message q=" + message.qualifier(), t);
       }
     }
 
@@ -116,8 +116,8 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
-        ReferenceCountUtil.safeRelease(headersBuffer);
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
+        ReferenceCountUtil.safeRelease(headersBuffer);
         throw new MessageCodecException(
             "Failed to encode headers on message q=" + message.qualifier(), ex);
       }
