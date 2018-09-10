@@ -4,8 +4,8 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.BenchmarksState;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
@@ -17,8 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class ServiceMessageCodecBenchmarksState
-    extends BenchmarksState<ServiceMessageCodecBenchmarksState> {
+public class SmCodecBenchmarksState extends BenchmarkState<SmCodecBenchmarksState> {
 
   private ServiceMessageCodec serviceMessageCodec;
   private HeadersCodec headersCodec;
@@ -33,8 +32,8 @@ public class ServiceMessageCodecBenchmarksState
    * @param dataCodec - data codec under test.
    * @param headersCodec - headers codec under test.
    */
-  public ServiceMessageCodecBenchmarksState(
-      BenchmarksSettings settings, DataCodec dataCodec, HeadersCodec headersCodec) {
+  public SmCodecBenchmarksState(
+      BenchmarkSettings settings, DataCodec dataCodec, HeadersCodec headersCodec) {
     super(settings);
     this.dataCodec = dataCodec;
     this.headersCodec = headersCodec;
@@ -47,7 +46,7 @@ public class ServiceMessageCodecBenchmarksState
     this.payloadMessage = generatePayload(serviceMessage);
   }
 
-  public ServiceMessageCodec jacksonMessageCodec() {
+  public ServiceMessageCodec messageCodec() {
     return serviceMessageCodec;
   }
 
@@ -164,20 +163,20 @@ public class ServiceMessageCodecBenchmarksState
     }
   }
 
-  public static class Jackson extends ServiceMessageCodecBenchmarksState {
+  public static class Jackson extends SmCodecBenchmarksState {
 
     private static final JacksonCodec CODEC = new JacksonCodec();
 
-    public Jackson(BenchmarksSettings settings) {
+    public Jackson(BenchmarkSettings settings) {
       super(settings, CODEC, CODEC);
     }
   }
 
-  public static class Protostuff extends ServiceMessageCodecBenchmarksState {
+  public static class Protostuff extends SmCodecBenchmarksState {
 
     private static final ProtostuffCodec CODEC = new ProtostuffCodec();
 
-    public Protostuff(BenchmarksSettings settings) {
+    public Protostuff(BenchmarkSettings settings) {
       super(settings, CODEC, CODEC);
     }
   }

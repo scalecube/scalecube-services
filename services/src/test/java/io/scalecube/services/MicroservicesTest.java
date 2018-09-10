@@ -22,16 +22,11 @@ import reactor.test.StepVerifier;
 @MockitoSettings(strictness = Strictness.WARN)
 public class MicroservicesTest {
 
-  @Mock
-  private ServiceDiscovery serviceDiscovery;
-  @Mock
-  private ServiceTransport serviceTransport;
-  @Mock
-  private ServerTransport serverTransport;
-  @Mock
-  private ClientTransport clientTransport;
-  @Mock
-  private ExecutorService workerExecutor;
+  @Mock private ServiceDiscovery serviceDiscovery;
+  @Mock private ServiceTransport serviceTransport;
+  @Mock private ServerTransport serverTransport;
+  @Mock private ClientTransport clientTransport;
+  @Mock private ExecutorService workerExecutor;
 
   @BeforeEach
   public void setUp() {
@@ -58,7 +53,7 @@ public class MicroservicesTest {
         .thenThrow(new RuntimeException(expectedErrorMessage));
 
     StepVerifier.create(
-        Microservices.builder().discovery(serviceDiscovery).transport(serviceTransport).start())
+            Microservices.builder().discovery(serviceDiscovery).transport(serviceTransport).start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
 

@@ -1,7 +1,7 @@
 package io.scalecube.services.benchmarks.services;
 
-import io.scalecube.benchmarks.BenchmarksSettings;
-import io.scalecube.benchmarks.BenchmarksState;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceCall;
 import java.time.Duration;
@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksState> {
+public class ServicesBenchmarksState extends BenchmarkState<ServicesBenchmarksState> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServicesBenchmarksState.class);
 
@@ -20,18 +20,18 @@ public class ServicesBenchmarksState extends BenchmarksState<ServicesBenchmarksS
   private Microservices seed;
   private Microservices node;
 
-  public ServicesBenchmarksState(BenchmarksSettings settings, Object... services) {
+  public ServicesBenchmarksState(BenchmarkSettings settings, Object... services) {
     super(settings);
     this.services = services;
   }
 
   @Override
   public void beforeAll() {
-    seed = Microservices.builder().metrics(settings.registry()).startAwait();
+    seed = Microservices.builder().metrics(registry()).startAwait();
 
     node =
         Microservices.builder()
-            .metrics(settings.registry())
+            .metrics(registry())
             .seeds(seed.discovery().address())
             .services(services)
             .startAwait();

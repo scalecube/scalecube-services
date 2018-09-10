@@ -39,9 +39,7 @@ public class OrderBooks {
     return books.get(instrument);
   }
 
-  /**
-   * Fake <code>enterOrder</code> implementation.
-   */
+  /** Fake <code>enterOrder</code> implementation. */
   public void enterOrder(Order order, String instrument) {
     books
         .get(instrument)

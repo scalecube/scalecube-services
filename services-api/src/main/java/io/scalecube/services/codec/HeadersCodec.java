@@ -7,9 +7,7 @@ import java.io.OutputStream;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Headers code service provider interface.
- */
+/** Headers code service provider interface. */
 public interface HeadersCodec {
 
   Map<String, HeadersCodec> INSTANCES = new ConcurrentHashMap<>();
@@ -26,7 +24,7 @@ public interface HeadersCodec {
    */
   static HeadersCodec loadInstance(String contentType) {
     return ServiceLoaderUtil.findFirst(
-        HeadersCodec.class, codec -> codec.contentType().equalsIgnoreCase(contentType))
+            HeadersCodec.class, codec -> codec.contentType().equalsIgnoreCase(contentType))
         .orElseThrow(() -> new IllegalArgumentException("HeadersCodec not configured"));
   }
 

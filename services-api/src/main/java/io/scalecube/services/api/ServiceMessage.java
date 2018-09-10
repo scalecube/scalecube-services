@@ -6,9 +6,7 @@ import java.util.Map;
 
 public final class ServiceMessage {
 
-  /**
-   * Default message data content type.
-   */
+  /** Default message data content type. */
   static final String DEFAULT_DATA_FORMAT = "application/json";
 
   /**

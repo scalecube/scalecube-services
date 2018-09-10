@@ -80,12 +80,12 @@ public class HeadAndTailTest {
             });
 
     StepVerifier.create(
-        Flux.from(HeadAndTail.createFrom(requests))
-            .flatMap(
-                pair -> {
-                  assertEquals(first, pair.head());
-                  return Flux.from(pair.tail());
-                }))
+            Flux.from(HeadAndTail.createFrom(requests))
+                .flatMap(
+                    pair -> {
+                      assertEquals(first, pair.head());
+                      return Flux.from(pair.tail());
+                    }))
         .expectNext(2L)
         .expectNext(3L)
         .expectError(RuntimeException.class);
@@ -96,12 +96,12 @@ public class HeadAndTailTest {
     Flux<Long> requests = UnicastProcessor.create(emitter -> emitter.error(new RuntimeException()));
 
     StepVerifier.create(
-        Flux.from(HeadAndTail.createFrom(requests))
-            .flatMap(
-                pair -> {
-                  fail("never");
-                  return null;
-                }))
+            Flux.from(HeadAndTail.createFrom(requests))
+                .flatMap(
+                    pair -> {
+                      fail("never");
+                      return null;
+                    }))
         .expectError(RuntimeException.class);
   }
 }

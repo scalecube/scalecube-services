@@ -1,8 +1,6 @@
 package io.scalecube.services.api;
 
-/**
- * Qualifier utility class.
- */
+/** Qualifier utility class. */
 public final class Qualifier {
 
   public static final String DELIMITER = "/";

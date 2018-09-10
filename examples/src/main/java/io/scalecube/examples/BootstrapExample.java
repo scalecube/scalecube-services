@@ -18,6 +18,7 @@ public class BootstrapExample {
 
   /**
    * Main method.
+   *
    * @param args - arguments.
    * @throws Exception - exception.
    */

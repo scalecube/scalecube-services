@@ -5,8 +5,7 @@ public final class GreetingResponse {
   private String result;
   private String sender;
 
-  public GreetingResponse() {
-  }
+  public GreetingResponse() {}
 
   public GreetingResponse(String result) {
     this.result = result;

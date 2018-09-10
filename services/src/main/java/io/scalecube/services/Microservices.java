@@ -338,7 +338,7 @@ public class Microservices {
           () ->
               gatewayInstances != null && !gatewayInstances.isEmpty()
                   ? Mono.when(
-                  gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
+                      gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
                   : Mono.empty());
     }
 

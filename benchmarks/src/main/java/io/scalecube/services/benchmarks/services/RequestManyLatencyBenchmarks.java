@@ -1,9 +1,9 @@
 package io.scalecube.services.benchmarks.services;
 
-import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Meter;
-import com.codahale.metrics.Timer;
-import io.scalecube.benchmarks.BenchmarksSettings;
+import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.metrics.BenchmarkTimer;
+import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
+import java.util.concurrent.TimeUnit;
 
 public class RequestManyLatencyBenchmarks {
 
@@ -15,24 +15,20 @@ public class RequestManyLatencyBenchmarks {
    * @param args - params of main method.
    */
   public static void main(String[] args) {
-    BenchmarksSettings settings = BenchmarksSettings.from(args).build();
+    BenchmarkSettings settings = BenchmarkSettings.from(args).build();
     new ServicesBenchmarksState(settings, new BenchmarkServiceImpl())
         .runForAsync(
             state -> {
               BenchmarkService benchmarkService = state.service(BenchmarkService.class);
               int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
-              Timer timer = state.timer("timer");
-              Meter responses = state.meter("responses");
-              Histogram latency = state.histogram("latency");
-
+              BenchmarkTimer timer = state.timer("timer");
               return i -> {
-                Timer.Context timeContext = timer.time();
+                Context timeContext = timer.time();
                 return benchmarkService
                     .nanoTime(responseCount)
                     .doOnNext(
                         onNext -> {
-                          latency.update(System.nanoTime() - onNext);
-                          responses.mark();
+                          timer.update(System.nanoTime() - onNext, TimeUnit.NANOSECONDS);
                         })
                     .doFinally(next -> timeContext.stop());
               };

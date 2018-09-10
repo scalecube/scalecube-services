@@ -11,9 +11,7 @@ import java.util.Set;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 
-/**
- * An order book.
- */
+/** An order book. */
 public class OrderBook {
 
   private String instrument;
