@@ -142,7 +142,7 @@ public class GatewayWebsocketAcceptor
             session.register(sid, disposable);
           } catch (Throwable e) {
             Optional.ofNullable(request)
-                .map(request.data())
+                .map(GatewayMessage::data)
                 .ifPresent(ReferenceCountUtil::safeRelease);
             handleError(sink, session, sid, e);
           }
