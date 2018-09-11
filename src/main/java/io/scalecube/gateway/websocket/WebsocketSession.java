@@ -6,7 +6,6 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,14 +68,10 @@ public final class WebsocketSession {
   /**
    * Method for receiving request messages coming a form of websocket frames.
    *
-   * @return flux websocket frame
+   * @return flux websocket {@link ByteBuf}
    */
-  public Flux<WebSocketFrame> receive() {
-    return inbound
-        .aggregateFrames()
-        .receiveFrames()
-        .map(WebSocketFrame::retain)
-        .log(">> RECEIVE", Level.FINE);
+  public Flux<ByteBuf> receive() {
+    return inbound.aggregateFrames().receive().map(ByteBuf::retain).log(">> RECEIVE", Level.FINE);
   }
 
   /**

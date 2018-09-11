@@ -1,7 +1,6 @@
 package io.scalecube.gateway.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.util.ReferenceCountUtil;
 import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
@@ -61,7 +60,7 @@ public class GatewayWebsocketAcceptor
         session.send(
             session
                 .receive()
-                .flatMap(frame -> handleFrame(session, frame))
+                .flatMap(response -> handleResponse(session, response))
                 .flatMap(this::toByteBuf)
                 .doOnError(
                     ex ->
@@ -80,12 +79,12 @@ public class GatewayWebsocketAcceptor
     return voidMono.then();
   }
 
-  private Flux<GatewayMessage> handleFrame(WebsocketSession session, WebSocketFrame frame) {
+  private Flux<GatewayMessage> handleResponse(WebsocketSession session, ByteBuf response) {
     return Flux.create(
         sink -> {
           Long sid = null;
           try {
-            GatewayMessage request = toGatewayMessage(frame);
+            GatewayMessage request = toGatewayMessage(response);
             Long streamId = sid = request.streamId();
 
             // check message contains sid
@@ -124,7 +123,7 @@ public class GatewayWebsocketAcceptor
 
             session.register(sid, disposable);
           } catch (Throwable ex) {
-            ReferenceCountUtil.safeRelease(frame);
+            ReferenceCountUtil.safeRelease(response);
             sink.next(toErrorMessage(ex, sid));
             sink.complete();
           }
@@ -196,9 +195,9 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private GatewayMessage toGatewayMessage(WebSocketFrame frame) {
+  private GatewayMessage toGatewayMessage(ByteBuf response) {
     try {
-      return messageCodec.decode(frame.content());
+      return messageCodec.decode(response);
     } catch (Throwable ex) {
       // we will release it in catch block of the onConnect
       throw new BadRequestException(ex.getMessage());
