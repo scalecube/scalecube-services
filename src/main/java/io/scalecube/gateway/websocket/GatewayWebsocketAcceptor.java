@@ -61,8 +61,10 @@ public class GatewayWebsocketAcceptor
         session.send(
             session
                 .receive()
+                .doOnNext(input -> metrics.markRequest())
                 .flatMap(frame -> handleFrame(session, frame))
                 .flatMap(this::toByteBuf)
+                .doOnNext(input -> metrics.markResponse())
                 .doOnError(
                     ex ->
                         LOGGER.error(
@@ -102,8 +104,6 @@ public class GatewayWebsocketAcceptor
 
             // check message contains qualifier
             checkQualifierNotNull(session, request);
-
-            metrics.markRequest();
 
             AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
 

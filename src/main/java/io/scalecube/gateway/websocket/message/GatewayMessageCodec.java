@@ -144,12 +144,14 @@ public class GatewayMessageCodec {
         }
       }
       if (dataEnd > dataStart) {
-        result.data(byteBuf.slice((int) dataStart, (int) (dataEnd - dataStart)));
+        result.data(byteBuf.copy((int) dataStart, (int) (dataEnd - dataStart)));
       }
       return result.build();
     } catch (Throwable ex) {
       LOGGER.error("Failed to decode message: {}", byteBuf.toString(Charset.defaultCharset()), ex);
       throw new MessageCodecException("Failed to decode message", ex);
+    } finally {
+      ReferenceCountUtil.safeRelease(byteBuf);
     }
   }
 
