@@ -106,4 +106,17 @@ class RSocketWebsocketGatewayTest {
                     .equals(throwable.getMessage()))
         .verify(TIMEOUT);
   }
+
+  @Test
+  void shouldSuccessfullyReuseServiceProxy() {
+    StepVerifier.create(service.one("hello"))
+        .expectNext("Echo:hello")
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    StepVerifier.create(service.one("hello"))
+        .expectNext("Echo:hello")
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
 }

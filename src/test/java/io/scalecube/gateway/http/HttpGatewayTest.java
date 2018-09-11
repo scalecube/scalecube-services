@@ -86,4 +86,17 @@ class HttpGatewayTest {
             })
         .verify(timeout);
   }
+
+  @Test
+  void shouldSuccessfullyReuseServiceProxy() {
+    StepVerifier.create(service.one("hello"))
+        .expectNext("Echo:hello")
+        .expectComplete()
+        .verify(TIMEOUT);
+
+    StepVerifier.create(service.one("hello"))
+        .expectNext("Echo:hello")
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
 }
