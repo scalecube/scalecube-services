@@ -32,6 +32,12 @@ public final class Client {
     this.codec = codec;
   }
 
+  /**
+   * Client on rsocket client transport.
+   *
+   * @param clientSettings client settings
+   * @return client
+   */
   public static Client onRSocket(ClientSettings clientSettings) {
     RSocketClientCodec clientCodec =
         new RSocketClientCodec(
@@ -44,6 +50,12 @@ public final class Client {
     return new Client(clientTransport, clientCodec);
   }
 
+  /**
+   * Client on websocket client transport.
+   *
+   * @param clientSettings client settings
+   * @return client
+   */
   public static Client onWebsocket(ClientSettings clientSettings) {
     WebsocketClientCodec clientCodec =
         new WebsocketClientCodec(DataCodec.getInstance(clientSettings.contentType()));
