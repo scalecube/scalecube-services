@@ -6,6 +6,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import java.util.Map;
 import java.util.Optional;
@@ -87,7 +88,7 @@ public final class WebsocketSession {
    */
   public Mono<Void> send(Publisher<ByteBuf> publisher) {
     return outbound
-        .sendObject(Flux.from(publisher).map(BinaryWebSocketFrame::new).log("<< SEND", Level.FINE))
+        .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND", Level.FINE))
         .then();
   }
 
