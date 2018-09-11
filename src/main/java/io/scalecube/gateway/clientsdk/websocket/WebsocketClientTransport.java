@@ -66,7 +66,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                       String sid = String.valueOf(sidCounter.incrementAndGet());
                       return session
                           .send(enrichForSend(requestMessage(request, sid)))
-                          .then(session.receive(sid).singleOrEmpty())
+                          .then(session.receiveResponse(sid))
                           .publishOn(Schedulers.parallel())
                           .map(this::enrichForRecv)
                           .doOnCancel(() -> session.send(cancelMessage(sid)).subscribe());
@@ -83,7 +83,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                       String sid = String.valueOf(sidCounter.incrementAndGet());
                       return session
                           .send(enrichForSend(requestMessage(request, sid)))
-                          .thenMany(session.receive(sid))
+                          .thenMany(session.receiveStream(sid))
                           .publishOn(Schedulers.parallel())
                           .map(this::enrichForRecv)
                           .doOnCancel(() -> session.send(cancelMessage(sid)).subscribe());

@@ -9,6 +9,8 @@ import io.scalecube.gateway.clientsdk.ErrorData;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import java.util.Optional;
 import java.util.logging.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
@@ -18,6 +20,8 @@ import reactor.ipc.netty.http.websocket.WebsocketInbound;
 import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 
 final class WebsocketSession {
+
+  static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
@@ -54,7 +58,7 @@ final class WebsocketSession {
                 .then());
   }
 
-  public Flux<ClientMessage> receive(String sid) {
+  public Flux<ClientMessage> receiveStream(String sid) {
     return Flux.create(
         (FluxSink<ClientMessage> responseSink) ->
             inboundProcessor
@@ -74,6 +78,11 @@ final class WebsocketSession {
                         responseSink.error(e);
                       }
                     }));
+  }
+
+  public Mono<ClientMessage> receiveResponse(String sid) {
+    return Mono.create(
+        sink -> receiveStream(sid).subscribe(sink::success, sink::error, sink::success));
   }
 
   public Mono<Void> close() {
@@ -101,7 +110,13 @@ final class WebsocketSession {
       responseSink.complete();
     }
     if (signal == Signal.ERROR) {
-      responseSink.error(toError(response));
+      Throwable e = toError(response);
+      LOGGER.error(
+          "Received error response on session {}: sid={}, error={}",
+          this,
+          response.header("sid"),
+          e);
+      responseSink.error(e);
     }
   }
 }
