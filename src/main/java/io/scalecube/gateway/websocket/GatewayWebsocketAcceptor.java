@@ -11,6 +11,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
@@ -62,12 +63,11 @@ public class GatewayWebsocketAcceptor
                 .receive()
                 .doOnNext(input -> metrics.markRequest())
                 .flatMap(message -> handleMessage(session, message))
-                .flatMap(this::toByteBuf)
                 .doOnNext(input -> metrics.markResponse())
                 .doOnError(
                     ex ->
                         LOGGER.error(
-                            "Unhandled exception occurred: {}, " + "session: {} will be closed",
+                            "Unhandled exception occurred: {}, session: {} will be closed",
                             ex,
                             session,
                             ex)));
@@ -81,12 +81,13 @@ public class GatewayWebsocketAcceptor
     return voidMono.then();
   }
 
-  private Flux<GatewayMessage> handleMessage(WebsocketSession session, ByteBuf message) {
+  private Flux<ByteBuf> handleMessage(WebsocketSession session, ByteBuf message) {
     return Flux.create(
-        sink -> {
+        (FluxSink<ByteBuf> sink) -> {
           Long sid = null;
+          GatewayMessage request = null;
           try {
-            GatewayMessage request = toMessage(message);
+            request = toMessage(message);
             Long streamId = sid = request.streamId();
 
             // check message contains sid
@@ -94,7 +95,7 @@ public class GatewayWebsocketAcceptor
 
             // check session contains sid for CANCEL operation
             if (request.hasSignal(Signal.CANCEL)) {
-              handleCancelRequest(streamId, session, request, sink);
+              handleCancelRequest(sink, streamId, session, request);
               return;
             }
 
@@ -113,22 +114,37 @@ public class GatewayWebsocketAcceptor
               serviceStream = serviceStream.timeout(Duration.ofMillis(request.inactivity()));
             }
 
+            GatewayMessage finalRequest = request;
             Disposable disposable =
                 serviceStream
                     .map(response -> prepareResponse(streamId, response, receivedErrorMessage))
                     .concatWith(Flux.defer(() -> prepareCompletion(streamId, receivedErrorMessage)))
-                    .onErrorResume(t -> {
-                      ReferenceCountUtil.safeRelease(message);
-                      return Mono.just(toErrorMessage(t, streamId));
-                    })
+                    .onErrorResume(
+                        t -> {
+                          Optional.ofNullable(finalRequest.data())
+                              .ifPresent(ReferenceCountUtil::safeRelease);
+                          return Mono.just(toErrorMessage(t, streamId));
+                        })
                     .doFinally(signalType -> session.dispose(streamId))
-                    .subscribe(sink::next, sink::error, sink::complete);
+                    .subscribe(
+                        response -> {
+                          try {
+                            sink.next(toByteBuf(response));
+                          } catch (Throwable t) {
+                            Optional.ofNullable(response.data())
+                                .ifPresent(ReferenceCountUtil::safeRelease);
+                            LOGGER.error("Failed to encode response message: {}", response, t);
+                          }
+                        },
+                        sink::error,
+                        sink::complete);
 
             session.register(sid, disposable);
-          } catch (Throwable ex) {
-            ReferenceCountUtil.safeRelease(message);
-            sink.next(toErrorMessage(ex, sid));
-            sink.complete();
+          } catch (Throwable e) {
+            Optional.ofNullable(request)
+                .map(request.data())
+                .ifPresent(ReferenceCountUtil::safeRelease);
+            handleError(sink, session, sid, e);
           }
         });
   }
@@ -167,18 +183,18 @@ public class GatewayWebsocketAcceptor
   }
 
   private void handleCancelRequest(
-      Long streamId,
-      WebsocketSession session,
-      GatewayMessage request,
-      FluxSink<GatewayMessage> sink) {
+      FluxSink<ByteBuf> sink, Long streamId, WebsocketSession session, GatewayMessage request) {
 
     if (!session.dispose(streamId)) {
       LOGGER.error("CANCEL gateway request {} failed in session {}", request, streamId, session);
       throw new BadRequestException("Failed CANCEL request");
     }
 
-    // send message with CANCEL signal
-    sink.next(cancelResponse(streamId));
+    // release data, if for any reason client sent data inside CANCEL request
+    Optional.ofNullable(request.data()).ifPresent(ReferenceCountUtil::safeRelease);
+
+    // send ack message, if encoding throws here we're still safe
+    sink.next(toByteBuf(cancelResponse(streamId)));
     sink.complete();
   }
 
@@ -189,29 +205,37 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private Mono<ByteBuf> toByteBuf(GatewayMessage message) {
-    try {
-      return Mono.just(messageCodec.encode(message));
-    } catch (Throwable ex) {
-      ReferenceCountUtil.safeRelease(message.data());
-      return Mono.empty();
-    }
+  private ByteBuf toByteBuf(GatewayMessage message) {
+    return messageCodec.encode(message);
   }
 
   private GatewayMessage toMessage(ByteBuf message) {
-    try {
-      return messageCodec.decode(message);
-    } catch (Throwable ex) {
-      throw new BadRequestException(ex.getMessage());
-    }
+    return messageCodec.decode(message);
   }
 
-  private GatewayMessage toErrorMessage(Throwable th, Long streamId) {
-    ServiceMessage serviceMessage = ExceptionProcessor.toMessage(th);
-    return GatewayMessage.from(serviceMessage).streamId(streamId).signal(Signal.ERROR).build();
+  private GatewayMessage toErrorMessage(Throwable t, Long streamId) {
+    return GatewayMessage.from(ExceptionProcessor.toMessage(t))
+        .streamId(streamId)
+        .signal(Signal.ERROR)
+        .build();
   }
 
   private GatewayMessage cancelResponse(Long streamId) {
     return GatewayMessage.builder().streamId(streamId).signal(Signal.CANCEL).build();
+  }
+
+  private void handleError(
+      FluxSink<ByteBuf> sink, WebsocketSession session, Long sid, Throwable e) {
+    try {
+      sink.next(toByteBuf(toErrorMessage(e, sid)));
+      sink.complete();
+    } catch (Throwable t) {
+      LOGGER.error(
+          "Failed to send error message on session {}: on sid={}, muted cause={}",
+          sid,
+          session,
+          e,
+          t);
+    }
   }
 }
