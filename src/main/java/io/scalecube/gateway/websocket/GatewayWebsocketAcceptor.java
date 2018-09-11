@@ -61,7 +61,7 @@ public class GatewayWebsocketAcceptor
             session
                 .receive()
                 .doOnNext(input -> metrics.markRequest())
-                .flatMap(response -> handleResponse(session, response))
+                .flatMap(message -> handleMessage(session, message))
                 .flatMap(this::toByteBuf)
                 .doOnNext(input -> metrics.markResponse())
                 .doOnError(
@@ -81,12 +81,12 @@ public class GatewayWebsocketAcceptor
     return voidMono.then();
   }
 
-  private Flux<GatewayMessage> handleResponse(WebsocketSession session, ByteBuf response) {
+  private Flux<GatewayMessage> handleMessage(WebsocketSession session, ByteBuf message) {
     return Flux.create(
         sink -> {
           Long sid = null;
           try {
-            GatewayMessage request = toGatewayMessage(response);
+            GatewayMessage request = toMessage(message);
             Long streamId = sid = request.streamId();
 
             // check message contains sid
@@ -115,15 +115,18 @@ public class GatewayWebsocketAcceptor
 
             Disposable disposable =
                 serviceStream
-                    .map(message -> prepareResponse(streamId, message, receivedErrorMessage))
+                    .map(response -> prepareResponse(streamId, response, receivedErrorMessage))
                     .concatWith(Flux.defer(() -> prepareCompletion(streamId, receivedErrorMessage)))
-                    .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
+                    .onErrorResume(t -> {
+                      ReferenceCountUtil.safeRelease(message);
+                      return Mono.just(toErrorMessage(t, streamId));
+                    })
                     .doFinally(signalType -> session.dispose(streamId))
                     .subscribe(sink::next, sink::error, sink::complete);
 
             session.register(sid, disposable);
           } catch (Throwable ex) {
-            ReferenceCountUtil.safeRelease(response);
+            ReferenceCountUtil.safeRelease(message);
             sink.next(toErrorMessage(ex, sid));
             sink.complete();
           }
@@ -195,11 +198,10 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private GatewayMessage toGatewayMessage(ByteBuf response) {
+  private GatewayMessage toMessage(ByteBuf message) {
     try {
-      return messageCodec.decode(response);
+      return messageCodec.decode(message);
     } catch (Throwable ex) {
-      // we will release it in catch block of the onConnect
       throw new BadRequestException(ex.getMessage());
     }
   }
