@@ -10,7 +10,7 @@ public class ExceptionProcessor {
   private static final int DEFAULT_ERROR_CODE = 500;
 
   public static boolean isError(ServiceMessage message) {
-    return message.qualifier().contains(Qualifier.ERROR_NAMESPACE);
+    return message.qualifier() != null && message.qualifier().contains(Qualifier.ERROR_NAMESPACE);
   }
 
   /**
