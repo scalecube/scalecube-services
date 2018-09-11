@@ -92,7 +92,6 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   private boolean isError(int httpCode) {
-    int httpCodeType = httpCode / 100;
-    return httpCodeType == 4 || httpCodeType == 5;
+    return httpCode >= 400 && httpCode <= 599;
   }
 }
