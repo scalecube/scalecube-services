@@ -10,6 +10,9 @@ import reactor.ipc.netty.resources.LoopResources;
 
 public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmarkState> {
 
+  public static final int WS_PORT = 7070;
+  public static final int RS_PORT = 9090;
+
   private final InetSocketAddress gatewayAddress;
 
   /**
@@ -19,18 +22,11 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
    */
   public RemoteBenchmarkState(
       BenchmarkSettings settings,
+      int gatewayPort,
       BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
     super(settings, clientBuilder);
-
-    String address = settings.find("gatewayAddress", null);
-    if (address == null) {
-      throw new IllegalArgumentException();
-    }
-    String[] strings = address.split(":", 2);
-
-    String host = strings[0];
-    int port = Integer.parseInt(strings[1]);
-    gatewayAddress = InetSocketAddress.createUnresolved(host, port);
+    String gatewayHost = settings.find("gatewayIpAddress", "localhost");
+    this.gatewayAddress = InetSocketAddress.createUnresolved(gatewayHost, gatewayPort);
   }
 
   /**
