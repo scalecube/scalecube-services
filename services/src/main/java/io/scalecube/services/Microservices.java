@@ -475,9 +475,14 @@ public class Microservices {
             String hostAddress = Addressing.getLocalIpAddress().getHostAddress();
             InetSocketAddress socketAddress =
                 InetSocketAddress.createUnresolved(hostAddress, listenPort);
-            this.listenAddress = serverTransport.bindAwait(socketAddress, methodRegistry);
 
-            return Mono.just(this);
+            return serverTransport
+                .bind(socketAddress, methodRegistry)
+                .map(
+                    listenAddress -> {
+                      this.listenAddress = listenAddress;
+                      return this;
+                    });
           });
     }
 
