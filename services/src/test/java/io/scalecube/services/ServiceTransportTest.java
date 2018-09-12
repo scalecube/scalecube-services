@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
+import io.scalecube.services.registry.api.EndpointRegistryEvent;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -39,7 +39,7 @@ public class ServiceTransportTest {
     serviceNode =
         Microservices.builder()
             .discoveryPort(port.incrementAndGet())
-            .seeds(gateway.discovery().address())
+            .seeds(gateway.address())
             .services(new SimpleQuoteService())
             .startAwait();
   }
@@ -72,9 +72,9 @@ public class ServiceTransportTest {
     sub1.set(serviceCall.requestOne(JUST_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
-        .discovery()
-        .listen()
-        .filter(DiscoveryEvent::isUnregistered)
+        .serviceRegistry()
+        .listenEndpointEvents()
+        .filter(EndpointRegistryEvent::isRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -101,9 +101,9 @@ public class ServiceTransportTest {
     sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
-        .discovery()
-        .listen()
-        .filter(DiscoveryEvent::isUnregistered)
+        .serviceRegistry()
+        .listenEndpointEvents()
+        .filter(EndpointRegistryEvent::isRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -134,9 +134,9 @@ public class ServiceTransportTest {
             .subscribe());
 
     gateway
-        .discovery()
-        .listen()
-        .filter(DiscoveryEvent::isUnregistered)
+        .serviceRegistry()
+        .listenEndpointEvents()
+        .filter(EndpointRegistryEvent::isRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down

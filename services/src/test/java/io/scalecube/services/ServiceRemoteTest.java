@@ -56,7 +56,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .seeds(gateway.discovery().address())
+        .seeds(gateway.address())
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -187,7 +187,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .seeds(gateway.address())
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -208,7 +208,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     // noinspection unused
     Microservices provider =
-        Microservices.builder().seeds(gateway.discovery().address()).services(another).startAwait();
+        Microservices.builder().seeds(gateway.address()).services(another).startAwait();
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
@@ -225,7 +225,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .seeds(gateway.address())
             .services(another) // add service a and b
             .startAwait();
 
@@ -249,7 +249,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .seeds(gateway.address())
             .services(another) // add service a and b
             .startAwait();
 
@@ -332,7 +332,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder().tags(tags).services(new GreetingServiceImpl()).startAwait();
 
-    assertTrue(ms.discovery().endpoint().tags().containsKey("HOSTNAME"));
+    assertTrue(ms.serviceEndpoint().tags().containsKey("HOSTNAME"));
   }
 
   @Test

@@ -7,7 +7,6 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.DiscoveryConfig;
-import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
@@ -16,9 +15,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 
 public class ScalecubeServiceDiscovery implements ServiceDiscovery {
@@ -34,9 +30,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private Cluster cluster;
 
   private ServiceEndpoint endpoint;
-
-  private final DirectProcessor<DiscoveryEvent> subject = DirectProcessor.create();
-  private final FluxSink<DiscoveryEvent> sink = subject.serialize().sink();
 
   private enum DiscoveryType {
     ADDED,
@@ -79,21 +72,11 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   @Override
-  public Flux<DiscoveryEvent> listen() {
-    return Flux.fromIterable(serviceRegistry.listServiceEndpoints())
-        .map(DiscoveryEvent::registered)
-        .concatWith(subject);
-  }
-
-  @Override
   public Mono<Void> shutdown() {
     return Mono.defer(
-        () -> {
-          sink.complete();
-          return Optional.ofNullable(cluster)
-              .map(cluster1 -> Mono.fromFuture(cluster1.shutdown()))
-              .orElse(Mono.empty());
-        });
+        () -> Optional.ofNullable(cluster)
+            .map(cluster1 -> Mono.fromFuture(cluster1.shutdown()))
+            .orElse(Mono.empty()));
   }
 
   private void configure(DiscoveryConfig config) {
@@ -135,9 +118,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     cluster
         .otherMembers()
         .forEach(
-            member -> {
-              loadMemberServices(DiscoveryType.DISCOVERED, member);
-            });
+            member -> loadMemberServices(DiscoveryType.DISCOVERED, member));
   }
 
   private void loadMemberServices(DiscoveryType type, Member member) {
@@ -156,27 +137,16 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
               LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
               if ((type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED))
                   && (this.serviceRegistry.registerService(serviceEndpoint))) {
-
                 LOGGER.info(
                     "Service Reference was ADDED since new Member has joined the cluster {} : {}",
                     member,
                     serviceEndpoint);
-
-                DiscoveryEvent registrationEvent = DiscoveryEvent.registered(serviceEndpoint);
-                LOGGER.debug("Publish registered: " + registrationEvent);
-                sink.next(registrationEvent);
-
               } else if (type.equals(DiscoveryType.REMOVED)
                   && (this.serviceRegistry.unregisterService(serviceEndpoint.id()) != null)) {
-
                 LOGGER.info(
                     "Service Reference was REMOVED since Member have left the cluster {} : {}",
                     member,
                     serviceEndpoint);
-
-                DiscoveryEvent registrationEvent = DiscoveryEvent.unregistered(serviceEndpoint);
-                LOGGER.debug("Publish unregistered: " + registrationEvent);
-                sink.next(registrationEvent);
               }
             });
   }

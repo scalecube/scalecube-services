@@ -32,13 +32,13 @@ public class ServicesBenchmarksState extends BenchmarkState<ServicesBenchmarksSt
     node =
         Microservices.builder()
             .metrics(registry())
-            .seeds(seed.discovery().address())
+            .seeds(seed.address())
             .services(services)
             .startAwait();
 
     LOGGER.info(
         "Seed address: "
-            + seed.discovery().address()
+            + seed.address()
             + ", services address: "
             + node.serviceAddress()
             + ", seed serviceRegistry: "

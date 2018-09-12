@@ -3,7 +3,8 @@ package io.scalecube.services.registry;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.registry.api.RegistryEvent;
+import io.scalecube.services.registry.api.EndpointRegistryEvent;
+import io.scalecube.services.registry.api.ReferenceRegistryEvent;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,9 +29,15 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   private final Map<String, List<ServiceReference>> referencesByQualifier =
       new NonBlockingHashMap<>();
 
-  private final FluxProcessor<RegistryEvent, RegistryEvent> events = DirectProcessor.create();
+  private final FluxProcessor<ReferenceRegistryEvent, ReferenceRegistryEvent> referenceEvents =
+      DirectProcessor.create();
+  private final FluxSink<ReferenceRegistryEvent> referenceEventSink =
+      referenceEvents.serialize().sink();
 
-  private final FluxSink<RegistryEvent> eventSink = events.serialize().sink();
+  private final FluxProcessor<EndpointRegistryEvent, EndpointRegistryEvent> endpointEvents =
+      DirectProcessor.create();
+  private final FluxSink<EndpointRegistryEvent> endpointEventSink =
+      endpointEvents.serialize().sink();
 
   @Override
   public List<ServiceEndpoint> listServiceEndpoints() {
@@ -77,7 +84,9 @@ public class ServiceRegistryImpl implements ServiceRegistry {
                   .computeIfAbsent(sr.qualifier(), key -> new CopyOnWriteArrayList<>())
                   .add(sr));
 
-      serviceReferences.forEach(sr -> eventSink.next(RegistryEvent.createAdded(sr)));
+      serviceReferences.forEach(
+          sr -> referenceEventSink.next(ReferenceRegistryEvent.createAdded(sr)));
+      endpointEventSink.next(EndpointRegistryEvent.createAdded(serviceEndpoint));
     }
     return success;
   }
@@ -107,7 +116,8 @@ public class ServiceRegistryImpl implements ServiceRegistry {
 
       serviceReferencesOfEndpoint
           .values()
-          .forEach(sr -> eventSink.next(RegistryEvent.createRemoved(sr)));
+          .forEach(sr -> referenceEventSink.next(ReferenceRegistryEvent.createRemoved(sr)));
+      endpointEventSink.next(EndpointRegistryEvent.createRemoved(serviceEndpoint));
     }
 
     return serviceEndpoint;
@@ -118,22 +128,36 @@ public class ServiceRegistryImpl implements ServiceRegistry {
   }
 
   /**
-   * Listen on service registry events.
+   * Listen on service reference registry events.
    *
    * @return flux object
    */
-  public Flux<RegistryEvent> listen() {
+  @Override
+  public Flux<ReferenceRegistryEvent> listenReferenceEvents() {
     return Flux.fromIterable(referencesByQualifier.values())
         .flatMap(Flux::fromIterable)
-        .map(RegistryEvent::createAdded)
-        .concatWith(events);
+        .map(ReferenceRegistryEvent::createAdded)
+        .concatWith(referenceEvents);
+  }
+
+  /**
+   * Listen on service endpoint registry events.
+   *
+   * @return flux object
+   */
+  @Override
+  public Flux<EndpointRegistryEvent> listenEndpointEvents() {
+    return Flux.fromIterable(serviceEndpoints.values())
+        .map(EndpointRegistryEvent::createAdded)
+        .concatWith(endpointEvents);
   }
 
   @Override
   public Mono<Void> close() {
     return Mono.create(
         sink -> {
-          eventSink.complete();
+          referenceEventSink.complete();
+          endpointEventSink.complete();
           sink.success();
         });
   }

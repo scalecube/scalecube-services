@@ -4,7 +4,6 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceLoaderUtil;
 import io.scalecube.transport.Address;
 import java.util.ServiceLoader;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ServiceDiscovery {
@@ -26,6 +25,4 @@ public interface ServiceDiscovery {
   Mono<ServiceDiscovery> start(DiscoveryConfig discoveryConfig);
 
   Mono<Void> shutdown();
-
-  Flux<DiscoveryEvent> listen();
 }

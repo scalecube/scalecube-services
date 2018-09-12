@@ -34,7 +34,7 @@ public class Example2 {
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
         Microservices.builder()
-            .seeds(seed.discovery().address())
+            .seeds(seed.address())
             .services(new GreetingServiceImpl())
             .startAwait();
 

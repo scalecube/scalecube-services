@@ -393,8 +393,12 @@ public class Microservices {
     return gatewayBootstrap.gatewayAddresses();
   }
 
-  public ServiceDiscovery discovery() {
-    return this.discovery;
+  public Address address() {
+    return this.discovery.address();
+  }
+
+  public ServiceEndpoint serviceEndpoint() {
+    return this.discovery.endpoint();
   }
 
   /**
