@@ -1,8 +1,8 @@
 package io.scalecube.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ErrorData;
@@ -15,6 +15,7 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
 import reactor.ipc.netty.http.websocket.WebsocketOutbound;
@@ -40,44 +41,26 @@ final class WebsocketSession {
         .aggregateFrames()
         .receive()
         .map(ByteBuf::retain)
+        .publishOn(Schedulers.single(), Integer.MAX_VALUE) // offload netty thread
         .map(codec::decode)
         .log(">>> RECEIVE", Level.FINE)
         .subscribe(inboundSink::next, inboundSink::error, inboundSink::complete);
   }
 
-  public Mono<Void> send(ClientMessage message) {
-    return Mono.defer(
-        () ->
-            outbound
-                .options(SendOptions::flushOnEach)
-                .sendObject(
-                    Mono.just(message)
-                        .map(codec::encode)
-                        .map(BinaryWebSocketFrame::new)
-                        .log("<<< SEND", Level.FINE))
-                .then());
+  public Mono<Void> send(WebSocketFrame frame) {
+    return outbound
+        .options(SendOptions::flushOnEach)
+        .sendObject(Mono.just(frame).log("<<< SEND", Level.FINE))
+        .then();
   }
 
   public Flux<ClientMessage> receiveStream(String sid) {
     return Flux.create(
-        (FluxSink<ClientMessage> responseSink) ->
+        (FluxSink<ClientMessage> sink) ->
             inboundProcessor
                 .filter(response -> sid.equals(response.header("sid")))
                 .log(">>> SID_RECEIVE", Level.FINE)
-                .subscribe(
-                    response -> {
-                      try {
-                        Optional<Signal> signal =
-                            Optional.ofNullable(response.header("sig")).map(Signal::from);
-                        if (signal.isPresent()) {
-                          handleSignal(responseSink, response, signal.get());
-                        } else {
-                          responseSink.next(response);
-                        }
-                      } catch (Exception e) {
-                        responseSink.error(e);
-                      }
-                    }));
+                .subscribe(response -> handleResponse(sink, response)));
   }
 
   public Mono<ClientMessage> receiveResponse(String sid) {
@@ -98,16 +81,22 @@ final class WebsocketSession {
     return inbound.context().onClose(runnable).onClose();
   }
 
-  private Throwable toError(ClientMessage response) {
-    ErrorData errorData = codec.decodeData(response, ErrorData.class).data();
-    return ExceptionProcessor.toException(
-        response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
+  private void handleResponse(FluxSink<ClientMessage> sink, ClientMessage response) {
+    try {
+      Optional<Signal> signal = Optional.ofNullable(response.header("sig")).map(Signal::from);
+      if (signal.isPresent()) {
+        handleSignal(sink, response, signal.get());
+      } else {
+        sink.next(response);
+      }
+    } catch (Exception e) {
+      sink.error(e);
+    }
   }
 
-  private void handleSignal(
-      FluxSink<ClientMessage> responseSink, ClientMessage response, Signal signal) {
+  private void handleSignal(FluxSink<ClientMessage> sink, ClientMessage response, Signal signal) {
     if (signal == Signal.COMPLETE) {
-      responseSink.complete();
+      sink.complete();
     }
     if (signal == Signal.ERROR) {
       Throwable e = toError(response);
@@ -116,7 +105,13 @@ final class WebsocketSession {
           this,
           response.header("sid"),
           e);
-      responseSink.error(e);
+      sink.error(e);
     }
+  }
+
+  private Throwable toError(ClientMessage response) {
+    ErrorData errorData = codec.decodeData(response, ErrorData.class).data();
+    return ExceptionProcessor.toException(
+        response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
   }
 }

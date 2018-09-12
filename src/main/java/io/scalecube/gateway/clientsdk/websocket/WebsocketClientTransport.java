@@ -1,6 +1,7 @@
 package io.scalecube.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -10,10 +11,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
-import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.resources.LoopResources;
 
@@ -59,35 +60,37 @@ public final class WebsocketClientTransport implements ClientTransport {
   @Override
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return Mono.defer(
-        () ->
-            getOrConnect()
-                .flatMap(
-                    session -> {
-                      String sid = String.valueOf(sidCounter.incrementAndGet());
-                      return session
-                          .send(enrichForSend(requestMessage(request, sid)))
+        () -> {
+          String sid = String.valueOf(sidCounter.incrementAndGet());
+          BinaryWebSocketFrame frame = toRequest(request, sid);
+
+          return getOrConnect()
+              .flatMap(
+                  session ->
+                      session
+                          .send(frame)
                           .then(session.receiveResponse(sid))
-                          .publishOn(Schedulers.parallel())
                           .map(this::enrichForRecv)
-                          .doOnCancel(() -> session.send(cancelMessage(sid)).subscribe());
-                    }));
+                          .doOnCancel(() -> handleCancel(sid, session)));
+        });
   }
 
   @Override
   public Flux<ClientMessage> requestStream(ClientMessage request) {
     return Flux.defer(
-        () ->
-            getOrConnect()
-                .flatMapMany(
-                    session -> {
-                      String sid = String.valueOf(sidCounter.incrementAndGet());
-                      return session
-                          .send(enrichForSend(requestMessage(request, sid)))
+        () -> {
+          String sid = String.valueOf(sidCounter.incrementAndGet());
+          BinaryWebSocketFrame frame = toRequest(request, sid);
+
+          return getOrConnect()
+              .flatMapMany(
+                  session ->
+                      session
+                          .send(frame)
                           .thenMany(session.receiveStream(sid))
-                          .publishOn(Schedulers.parallel())
                           .map(this::enrichForRecv)
-                          .doOnCancel(() -> session.send(cancelMessage(sid)).subscribe());
-                    }));
+                          .doOnCancel(() -> handleCancel(sid, session)));
+        });
   }
 
   @Override
@@ -141,10 +144,15 @@ public final class WebsocketClientTransport implements ClientTransport {
         .cache();
   }
 
-  private ClientMessage enrichForSend(ClientMessage clientMessage) {
-    return ClientMessage.from(clientMessage)
-        .header("client-send-time", String.valueOf(System.currentTimeMillis()))
-        .build();
+  private Disposable handleCancel(String sid, WebsocketSession session) {
+    ClientMessage cancelMessage =
+        ClientMessage.builder()
+            .header("sid", sid)
+            .header("sig", Signal.CANCEL.codeAsString())
+            .build();
+    ByteBuf byteBuf = codec.encode(cancelMessage);
+    BinaryWebSocketFrame cancelFrame = new BinaryWebSocketFrame(byteBuf);
+    return session.send(cancelFrame).subscribe();
   }
 
   private ClientMessage enrichForRecv(ClientMessage message) {
@@ -153,14 +161,12 @@ public final class WebsocketClientTransport implements ClientTransport {
         .build();
   }
 
-  private ClientMessage requestMessage(ClientMessage request, String sid) {
-    return ClientMessage.from(request).header("sid", sid).build();
-  }
-
-  private ClientMessage cancelMessage(String sid) {
-    return ClientMessage.builder()
-        .header("sid", sid)
-        .header("sig", Signal.CANCEL.codeAsString())
-        .build();
+  private BinaryWebSocketFrame toRequest(ClientMessage message, String sid) {
+    ClientMessage request =
+        ClientMessage.from(message)
+            .header("client-send-time", String.valueOf(System.currentTimeMillis()))
+            .header("sid", sid)
+            .build();
+    return new BinaryWebSocketFrame(codec.encode(request));
   }
 }
