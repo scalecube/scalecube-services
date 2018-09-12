@@ -43,30 +43,35 @@ public class GatewayHttpAcceptor
   }
 
   @Override
-  public Publisher<Void> apply(
-      HttpServerRequest httpServerRequest, HttpServerResponse httpServerResponse) {
-    if (httpServerRequest.method() != POST) {
-      LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpServerRequest.method());
-      return methodNotAllowed(httpServerResponse);
+  public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
+    if (httpRequest.method() != POST) {
+      LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpRequest.method());
+      return methodNotAllowed(httpResponse);
     }
 
-    return httpServerRequest
+    return httpRequest
         .receiveContent()
-        .flatMap(
-            httpContent -> callService(httpServerRequest.uri(), httpContent, httpServerResponse))
+        .flatMap(httpContent -> handleHttpContent(httpContent, httpResponse, httpRequest))
         .timeout(DEFAULT_TIMEOUT)
-        .onErrorResume(throwable -> error(httpServerResponse, throwable));
+        .onErrorResume(throwable -> error(httpResponse, throwable));
   }
 
-  private Mono<Void> callService(
-      String qualifier, HttpContent httpContent, HttpServerResponse httpServerResponse) {
-    final ServiceMessage.Builder serviceMessage = ServiceMessage.builder().qualifier(qualifier);
+  private Mono<Void> handleHttpContent(
+      HttpContent httpContent, HttpServerResponse httpResponse, HttpServerRequest httpRequest) {
+    long gwRecvFromClientTime = System.currentTimeMillis();
+
+    ServiceMessage.Builder serviceMessage = ServiceMessage.builder().qualifier(httpRequest.uri());
+
     try {
       serviceMessage.data(httpContent.content().slice().retain());
       return serviceCall
           .requestOne(serviceMessage.build())
           .switchIfEmpty(Mono.defer(() -> Mono.just(serviceMessage.data(null).build())))
-          .flatMap(message -> Mono.from(toHttpResponse(httpServerResponse, message)));
+          .flatMap(
+              message -> {
+                enrichHttpHeaders(httpResponse, httpRequest, gwRecvFromClientTime, message);
+                return Mono.from(toHttpResponse(httpResponse, message));
+              });
     } catch (Exception e) {
       ReferenceCountUtil.safeRelease(httpContent);
       return Mono.error(e);
@@ -126,5 +131,26 @@ public class GatewayHttpAcceptor
 
   private Publisher<Void> ok(HttpServerResponse response, ByteBuf body) {
     return response.status(OK).sendObject(body);
+  }
+
+  private void enrichHttpHeaders(
+      HttpServerResponse httpResponse,
+      HttpServerRequest httpRequest,
+      long gwRecvFromClientTime,
+      ServiceMessage message) {
+    String clientSendTime = httpRequest.requestHeaders().get("client-send-time");
+    if (clientSendTime != null) {
+      httpResponse.header("client-send-time", clientSendTime);
+    }
+
+    String serviceRecvTime = message.header("service-recv-time");
+    if (serviceRecvTime != null) {
+      httpResponse.header("service-recv-time", serviceRecvTime);
+    }
+
+    httpResponse
+        .responseHeaders()
+        .set("gw-recv-from-client-time", gwRecvFromClientTime)
+        .set("gw-recv-from-service-time", System.currentTimeMillis());
   }
 }
