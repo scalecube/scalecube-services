@@ -60,38 +60,40 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public InetSocketAddress bindAwait(
+  public Mono<InetSocketAddress> bind(
       InetSocketAddress address, ServiceMethodRegistry methodRegistry) {
 
-    TcpServer tcpServer =
-        TcpServer.create(
-            options ->
-                options
-                    .loopResources(loopResources)
-                    .listenAddress(address)
-                    .afterNettyContextInit(
-                        nettyContext -> {
-                          LOGGER.info("Accepted connection on {}", nettyContext.channel());
-                          nettyContext.onClose(
-                              () -> {
-                                LOGGER.info("Connection closed on {}", nettyContext.channel());
-                                channels.remove(nettyContext);
-                              });
-                          channels.add(nettyContext);
-                        }));
+    return Mono.defer(
+        () -> {
+          TcpServer tcpServer =
+              TcpServer.create(
+                  options ->
+                      options
+                          .loopResources(loopResources)
+                          .listenAddress(address)
+                          .afterNettyContextInit(
+                              nettyContext -> {
+                                LOGGER.info("Accepted connection on {}", nettyContext.channel());
+                                nettyContext.onClose(
+                                    () -> {
+                                      LOGGER.info(
+                                          "Connection closed on {}", nettyContext.channel());
+                                      channels.remove(nettyContext);
+                                    });
+                                channels.add(nettyContext);
+                              }));
 
-    this.server =
-        RSocketFactory.receive()
-            .frameDecoder(
-                frame ->
-                    ByteBufPayload.create(
-                        frame.sliceData().retain(), frame.sliceMetadata().retain()))
-            .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-            .transport(TcpServerTransport.create(tcpServer))
-            .start()
-            .block();
-
-    return server.address();
+          return RSocketFactory.receive()
+              .frameDecoder(
+                  frame ->
+                      ByteBufPayload.create(
+                          frame.sliceData().retain(), frame.sliceMetadata().retain()))
+              .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
+              .transport(TcpServerTransport.create(tcpServer))
+              .start()
+              .map(server -> this.server = server)
+              .map(NettyContextCloseable::address);
+        });
   }
 
   @Override
