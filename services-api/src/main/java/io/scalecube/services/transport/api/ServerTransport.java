@@ -14,7 +14,7 @@ public interface ServerTransport {
    * @param methodRegistry service method registry
    * @return bound socket address
    */
-  InetSocketAddress bindAwait(InetSocketAddress address, ServiceMethodRegistry methodRegistry);
+  Mono<InetSocketAddress> bind(InetSocketAddress address, ServiceMethodRegistry methodRegistry);
 
   /**
    * Stops server transport.

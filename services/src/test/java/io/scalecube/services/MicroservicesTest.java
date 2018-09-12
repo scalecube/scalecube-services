@@ -7,6 +7,7 @@ import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
+import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +17,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,8 +40,9 @@ public class MicroservicesTest {
   @Test
   public void testServiceTransportNotStarting() {
     String expectedErrorMessage = "expected error message";
-    Mockito.when(serverTransport.bindAwait(any(), any()))
-        .thenThrow(new RuntimeException(expectedErrorMessage));
+
+    Mockito.when(serverTransport.bind(any(), any()))
+        .thenReturn(Mono.error(new RuntimeException(expectedErrorMessage)));
 
     StepVerifier.create(Microservices.builder().transport(serviceTransport).start())
         .expectErrorMessage(expectedErrorMessage)
@@ -51,6 +54,8 @@ public class MicroservicesTest {
     String expectedErrorMessage = "expected error message";
     Mockito.when(serviceDiscovery.start(any()))
         .thenThrow(new RuntimeException(expectedErrorMessage));
+    Mockito.when(serverTransport.bind(any(), any()))
+        .thenReturn(Mono.just(new InetSocketAddress(0)));
 
     StepVerifier.create(
             Microservices.builder().discovery(serviceDiscovery).transport(serviceTransport).start())
