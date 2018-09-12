@@ -4,6 +4,8 @@ import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.DATA_FIELD;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.INACTIVITY_FIELD;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.QUALIFIER_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.SERVICE_MESSAGE_HEADER_DATA_FORMAT;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.SERVICE_MESSAGE_HEADER_DATA_TYPE;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.SIGNAL_FIELD;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.STREAM_ID_FIELD;
 
@@ -28,6 +30,7 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Map.Entry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,9 +63,12 @@ public class GatewayMessageCodec {
       if (message.signal() != null) {
         generator.writeNumberField(SIGNAL_FIELD, message.signal());
       }
-
       if (message.inactivity() != null) {
         generator.writeNumberField(INACTIVITY_FIELD, message.inactivity());
+      }
+
+      for (Entry<String, String> header : message.headers().entrySet()) {
+        generator.writeStringField(header.getKey(), header.getValue());
       }
 
       // data
@@ -128,6 +134,9 @@ public class GatewayMessageCodec {
           case INACTIVITY_FIELD:
             result.inactivity(jp.getValueAsInt());
             break;
+          case SERVICE_MESSAGE_HEADER_DATA_FORMAT:
+          case SERVICE_MESSAGE_HEADER_DATA_TYPE:
+            break;
           case DATA_FIELD:
             dataStart = jp.getTokenLocation().getByteOffset();
             if (current.isScalarValue()) {
@@ -140,7 +149,7 @@ public class GatewayMessageCodec {
             dataEnd = jp.getCurrentLocation().getByteOffset();
             break;
           default:
-            break;
+            result.header(fieldName, jp.getValueAsString());
         }
       }
       if (dataEnd > dataStart) {

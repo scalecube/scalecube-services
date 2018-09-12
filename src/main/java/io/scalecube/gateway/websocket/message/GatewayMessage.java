@@ -1,6 +1,9 @@
 package io.scalecube.gateway.websocket.message;
 
 import io.scalecube.services.api.ServiceMessage;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class GatewayMessage {
@@ -11,11 +14,15 @@ public class GatewayMessage {
   public static final String DATA_FIELD = "d";
   public static final String INACTIVITY_FIELD = "i";
 
-  private String qualifier;
-  private Long streamId;
-  private Integer signal;
-  private Object data;
-  private Integer inactivity;
+  static final String SERVICE_MESSAGE_HEADER_DATA_TYPE = "_type";
+  static final String SERVICE_MESSAGE_HEADER_DATA_FORMAT = "_data_format";
+
+  private final String qualifier;
+  private final Long streamId;
+  private final Integer signal;
+  private final Object data;
+  private final Integer inactivity;
+  private final Map<String, String> headers;
 
   /**
    * Get a builder by pattern form given {@link GatewayMessage}.
@@ -30,6 +37,9 @@ public class GatewayMessage {
     builder.signal = msg.signal();
     builder.inactivity = msg.inactivity();
     builder.data = msg.data();
+    if (msg.headers != null) {
+      builder.headers = new HashMap<>(msg.headers);
+    }
     return builder;
   }
 
@@ -41,31 +51,46 @@ public class GatewayMessage {
    */
   public static Builder from(ServiceMessage serviceMessage) {
     Builder builder = new Builder();
-    builder.qualifier = serviceMessage.qualifier();
     if (serviceMessage.hasData()) {
       builder.data = serviceMessage.data();
     }
-    if (serviceMessage.header(STREAM_ID_FIELD) != null) {
-      builder.streamId = Long.parseLong(serviceMessage.header(STREAM_ID_FIELD));
-    }
-    if (serviceMessage.header(SIGNAL_FIELD) != null) {
-      builder.signal = Integer.parseInt(serviceMessage.header(SIGNAL_FIELD));
-    }
-    if (serviceMessage.header(INACTIVITY_FIELD) != null) {
-      builder.inactivity = Integer.parseInt(serviceMessage.header(INACTIVITY_FIELD));
-    }
+    serviceMessage
+        .headers()
+        .forEach(
+            (key, value) -> {
+              switch (key) {
+                case QUALIFIER_FIELD:
+                  builder.qualifier(value);
+                  break;
+                case STREAM_ID_FIELD:
+                  builder.streamId(Long.parseLong(value));
+                  break;
+                case SIGNAL_FIELD:
+                  builder.signal(Integer.parseInt(value));
+                  break;
+                case INACTIVITY_FIELD:
+                  builder.inactivity(Integer.parseInt(value));
+                  break;
+                case SERVICE_MESSAGE_HEADER_DATA_FORMAT:
+                case SERVICE_MESSAGE_HEADER_DATA_TYPE:
+                  break;
+                default:
+                  builder.header(key, value);
+              }
+            });
     return builder;
   }
 
-  GatewayMessage() {}
-
-  private GatewayMessage(
-      String qualifier, Long streamId, Integer signal, Object data, Integer inactivity) {
-    this.qualifier = qualifier;
-    this.streamId = streamId;
-    this.signal = signal;
-    this.data = data;
-    this.inactivity = inactivity;
+  private GatewayMessage(Builder builder) {
+    this.qualifier = builder.qualifier;
+    this.streamId = builder.streamId;
+    this.signal = builder.signal;
+    this.data = builder.data;
+    this.inactivity = builder.inactivity;
+    this.headers =
+        builder.headers != null
+            ? Collections.unmodifiableMap(builder.headers)
+            : Collections.emptyMap();
   }
 
   public static GatewayMessage toGatewayMessage(ServiceMessage serviceMessage) {
@@ -84,14 +109,17 @@ public class GatewayMessage {
    */
   public static ServiceMessage toServiceMessage(GatewayMessage gatewayMessage) {
     ServiceMessage.Builder builder =
-        ServiceMessage.builder().qualifier(gatewayMessage.qualifier()).data(gatewayMessage.data());
-    if (gatewayMessage.streamId() != null) {
+        ServiceMessage.builder().qualifier(gatewayMessage.qualifier).data(gatewayMessage.data);
+    if (gatewayMessage.headers != null && !gatewayMessage.headers.isEmpty()) {
+      gatewayMessage.headers.forEach(builder::header);
+    }
+    if (gatewayMessage.streamId != null) {
       builder.header(STREAM_ID_FIELD, String.valueOf(gatewayMessage.streamId()));
     }
-    if (gatewayMessage.signal() != null) {
+    if (gatewayMessage.signal != null) {
       builder.header(SIGNAL_FIELD, String.valueOf(gatewayMessage.signal()));
     }
-    if (gatewayMessage.inactivity() != null) {
+    if (gatewayMessage.inactivity != null) {
       builder.header(INACTIVITY_FIELD, String.valueOf(gatewayMessage.inactivity()));
     }
     return builder.build();
@@ -126,6 +154,10 @@ public class GatewayMessage {
     return this.signal != null && this.signal == signal.code();
   }
 
+  public Map<String, String> headers() {
+    return headers;
+  }
+
   @Override
   public String toString() {
     final StringBuilder sb = new StringBuilder("GatewayMessage{");
@@ -134,6 +166,7 @@ public class GatewayMessage {
     sb.append(", signal=").append(signal);
     sb.append(", data=").append(data);
     sb.append(", inactivity=").append(inactivity);
+    sb.append(", headers=").append(headers);
     sb.append('}');
     return sb.toString();
   }
@@ -145,6 +178,7 @@ public class GatewayMessage {
     private Integer signal;
     private Object data;
     private Integer inactivity;
+    private Map<String, String> headers;
 
     Builder() {}
 
@@ -179,12 +213,31 @@ public class GatewayMessage {
     }
 
     /**
+     * Add a header.
+     *
+     * @param key header name
+     * @param value header value
+     * @return self
+     */
+    public Builder header(String key, String value) {
+      if (headers == null) {
+        headers = new HashMap<>();
+      }
+      headers.put(key, value);
+      return this;
+    }
+
+    public Builder header(String key, Object value) {
+      return header(key, value.toString());
+    }
+
+    /**
      * Finally build the {@link GatewayMessage} from current builder.
      *
      * @return {@link GatewayMessage} with parameters from current builder.
      */
     public GatewayMessage build() {
-      return new GatewayMessage(qualifier, streamId, signal, data, inactivity);
+      return new GatewayMessage(this);
     }
   }
 }
