@@ -98,7 +98,7 @@ public class GatewayMessageCodec {
    * @throws MessageCodecException - in case of issues during deserialization.
    */
   public GatewayMessage decode(ByteBuf byteBuf) throws MessageCodecException {
-    try (InputStream stream = new ByteBufInputStream(byteBuf.slice())) {
+    try (InputStream stream = new ByteBufInputStream(byteBuf.slice(), true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       GatewayMessage.Builder result = GatewayMessage.builder();
 
@@ -150,8 +150,6 @@ public class GatewayMessageCodec {
     } catch (Throwable ex) {
       LOGGER.error("Failed to decode message: {}", byteBuf.toString(Charset.defaultCharset()), ex);
       throw new MessageCodecException("Failed to decode message", ex);
-    } finally {
-      ReferenceCountUtil.safeRelease(byteBuf);
     }
   }
 

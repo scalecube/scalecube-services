@@ -83,7 +83,7 @@ public class GatewayWebsocketAcceptor
 
   private Flux<ByteBuf> handleMessage(WebsocketSession session, ByteBuf message) {
     return Flux.create(
-        (FluxSink<ByteBuf> sink) -> {
+        sink -> {
           Long sid = null;
           GatewayMessage request = null;
           try {
