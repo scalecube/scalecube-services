@@ -157,7 +157,7 @@ public final class WebsocketClientTransport implements ClientTransport {
     return session.send(byteBuf).subscribe();
   }
 
-  private ClientMessage enrichForRecv(ClientMessage message) {
+  private ClientMessage enrichResponse(ClientMessage message) {
     return ClientMessage.from(message)
         .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
         .build();
@@ -194,7 +194,7 @@ public final class WebsocketClientTransport implements ClientTransport {
         .map(codec::decode)
         .filter(response -> sid.equals(response.header("sid")))
         .log(">>> SID_RECEIVE", Level.FINE)
-        .map(this::enrichForRecv);
+        .map(this::enrichResponse);
   }
 
   private void handleResponse(
