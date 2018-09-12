@@ -20,6 +20,11 @@ public class GatewayLatencyHelper {
   private final BenchmarkTimer serviceToGwTimer;
   private final BenchmarkTimer gwToClientTimer;
 
+  /**
+   * Creates an instance which helps calculate gateway latency by the headers into received message.
+   *
+   * @param state a benchmark state
+   */
   public GatewayLatencyHelper(BenchmarkState state) {
     clientToGwTimer = state.timer("latency.client-to-gw-timer");
     gwToServiceTimer = state.timer("latency.gw-to-service-timer");
@@ -27,6 +32,11 @@ public class GatewayLatencyHelper {
     gwToClientTimer = state.timer("latency.gw-to-client-timer");
   }
 
+  /**
+   * Calculates latencies by the headers into received message.
+   *
+   * @param message client message
+   */
   public void calculate(ClientMessage message) {
     // client to gateway
     eval(
