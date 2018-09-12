@@ -112,7 +112,7 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
 
   @Override
   public ClientMessage decode(ByteBuf encodedMessage) {
-    try (InputStream stream = new ByteBufInputStream(encodedMessage.slice())) {
+    try (InputStream stream = new ByteBufInputStream(encodedMessage.slice(), true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       ClientMessage.Builder result = ClientMessage.builder();
 
@@ -166,8 +166,6 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
       LOGGER.error(
           "Failed to decode message: {}", encodedMessage.toString(Charset.defaultCharset()), ex);
       throw new MessageCodecException("Failed to decode message", ex);
-    } finally {
-      ReferenceCountUtil.safeRelease(encodedMessage);
     }
   }
 
