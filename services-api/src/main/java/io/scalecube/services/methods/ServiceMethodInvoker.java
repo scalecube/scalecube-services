@@ -33,21 +33,46 @@ public final class ServiceMethodInvoker {
     this.methodInfo = methodInfo;
   }
 
+  /**
+   * Invokes service method with single response.
+   *
+   * @param message request service message
+   * @param dataDecoder function to create new service message with decoded data
+   * @return mono of service message
+   */
   public Mono<ServiceMessage> invokeOne(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
+    return Mono.defer(
+        () -> Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse));
   }
 
+  /**
+   * Invokes service method with message stream response.
+   *
+   * @param message request service message
+   * @param dataDecoder function to create new service message with decoded data
+   * @return flux of service messages
+   */
   public Flux<ServiceMessage> invokeMany(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse);
+    return Flux.defer(
+        () -> Flux.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse));
   }
 
+  /**
+   * Invokes service method with bidirectional communication.
+   *
+   * @param publisher request service message
+   * @param dataDecoder function to create new service message with decoded data
+   * @return flux of service messages
+   */
   public Flux<ServiceMessage> invokeBidirectional(
       Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder))))
-        .map(this::toResponse);
+    return Flux.defer(
+        () ->
+            Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder))))
+                .map(this::toResponse));
   }
 
   private Publisher<?> invoke(Object arguments) {
