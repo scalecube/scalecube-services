@@ -75,7 +75,6 @@ public final class WebsocketClientTransport implements ClientTransport {
                       session
                           .send(byteBuf)
                           .then(receiveResponse(session.receive(), sid))
-                          .map(this::enrichForRecv)
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
@@ -93,7 +92,6 @@ public final class WebsocketClientTransport implements ClientTransport {
                       session
                           .send(byteBuf)
                           .thenMany(receiveStream(session.receive(), sid))
-                          .map(this::enrichForRecv)
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
@@ -173,14 +171,6 @@ public final class WebsocketClientTransport implements ClientTransport {
             .build());
   }
 
-  private Flux<ClientMessage> receiveForSid(Flux<ByteBuf> inbound, String sid) {
-    return inbound
-        .publishOn(Schedulers.single(), Integer.MAX_VALUE)
-        .map(codec::decode)
-        .filter(response -> sid.equals(response.header("sid")))
-        .log(">>> SID_RECEIVE", Level.FINE);
-  }
-
   private Flux<ClientMessage> receiveStream(Flux<ByteBuf> inbound, String sid) {
     return Flux.create(
         sink ->
@@ -196,6 +186,15 @@ public final class WebsocketClientTransport implements ClientTransport {
                 .subscribe(
                     response ->
                         handleResponse(response, sink::success, sink::success, sink::error)));
+  }
+
+  private Flux<ClientMessage> receiveForSid(Flux<ByteBuf> inbound, String sid) {
+    return inbound
+        .publishOn(Schedulers.single(), Integer.MAX_VALUE)
+        .map(codec::decode)
+        .filter(response -> sid.equals(response.header("sid")))
+        .log(">>> SID_RECEIVE", Level.FINE)
+        .map(this::enrichForRecv);
   }
 
   private void handleResponse(
