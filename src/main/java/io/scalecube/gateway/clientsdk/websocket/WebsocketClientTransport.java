@@ -174,25 +174,25 @@ public final class WebsocketClientTransport implements ClientTransport {
   private Flux<ClientMessage> receiveStream(Flux<ByteBuf> inbound, String sid) {
     return Flux.create(
         sink ->
-            receiveForSid(inbound, sid)
+            receiveBySid(inbound, sid)
                 .subscribe(
                     response -> handleResponse(response, sink::next, sink::complete, sink::error)));
   }
 
-  public Mono<ClientMessage> receiveResponse(Flux<ByteBuf> inbound, String sid) {
+  private Mono<ClientMessage> receiveResponse(Flux<ByteBuf> inbound, String sid) {
     return Mono.create(
         sink ->
-            receiveForSid(inbound, sid)
+            receiveBySid(inbound, sid)
                 .subscribe(
                     response ->
                         handleResponse(response, sink::success, sink::success, sink::error)));
   }
 
-  private Flux<ClientMessage> receiveForSid(Flux<ByteBuf> inbound, String sid) {
+  private Flux<ClientMessage> receiveBySid(Flux<ByteBuf> inbound, String sid) {
     return inbound
-        .publishOn(Schedulers.single(), Integer.MAX_VALUE)
+        .publishOn(Schedulers.single(), Integer.MAX_VALUE) // offload netty thread
         .map(codec::decode)
-        .filter(response -> sid.equals(response.header("sid")))
+        .filter(response -> sid.equals(response.header("sid"))) // filter out by stream id
         .log(">>> SID_RECEIVE", Level.FINE)
         .map(this::enrichResponse);
   }
