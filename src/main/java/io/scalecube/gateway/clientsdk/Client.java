@@ -1,5 +1,11 @@
 package io.scalecube.gateway.clientsdk;
 
+import io.scalecube.gateway.clientsdk.rsocket.RSocketClientCodec;
+import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
+import io.scalecube.gateway.clientsdk.websocket.WebsocketClientCodec;
+import io.scalecube.gateway.clientsdk.websocket.WebsocketClientTransport;
+import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -24,6 +30,40 @@ public final class Client {
   public Client(ClientTransport transport, ClientCodec codec) {
     this.transport = transport;
     this.codec = codec;
+  }
+
+  /**
+   * Client on rsocket client transport.
+   *
+   * @param clientSettings client settings
+   * @return client
+   */
+  public static Client onRSocket(ClientSettings clientSettings) {
+    RSocketClientCodec clientCodec =
+        new RSocketClientCodec(
+            HeadersCodec.getInstance(clientSettings.contentType()),
+            DataCodec.getInstance(clientSettings.contentType()));
+
+    RSocketClientTransport clientTransport =
+        new RSocketClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
+
+    return new Client(clientTransport, clientCodec);
+  }
+
+  /**
+   * Client on websocket client transport.
+   *
+   * @param clientSettings client settings
+   * @return client
+   */
+  public static Client onWebsocket(ClientSettings clientSettings) {
+    WebsocketClientCodec clientCodec =
+        new WebsocketClientCodec(DataCodec.getInstance(clientSettings.contentType()));
+
+    WebsocketClientTransport clientTransport =
+        new WebsocketClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
+
+    return new Client(clientTransport, clientCodec);
   }
 
   /**
