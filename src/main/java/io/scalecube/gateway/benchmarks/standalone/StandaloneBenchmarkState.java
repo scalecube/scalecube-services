@@ -4,6 +4,7 @@ import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.benchmarks.AbstractBenchmarkState;
 import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.clientsdk.Client;
+import io.scalecube.gateway.http.HttpGateway;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.Microservices;
@@ -36,6 +37,7 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
             .services(new BenchmarksServiceImpl())
             .gateway(GatewayConfig.builder("rsws", RSocketWebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
+            .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
             .metrics(registry())
             .startAwait();
   }
