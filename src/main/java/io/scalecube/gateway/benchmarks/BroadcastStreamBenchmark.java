@@ -1,7 +1,5 @@
 package io.scalecube.gateway.benchmarks;
 
-import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_RECV_TIME;
-import static io.scalecube.gateway.benchmarks.BenchmarksService.GW_RECV_FROM_SERVICE_TIME;
 import static io.scalecube.gateway.benchmarks.BenchmarksService.SERVICE_RECV_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
@@ -48,8 +46,7 @@ public final class BroadcastStreamBenchmark {
         (rampUpTick, state) -> state.createClient(),
         state -> {
           BenchmarkTimer timer = state.timer("latency.timer");
-          BenchmarkTimer serviceToGwTimer = state.timer("latency.service-to-gw-timer");
-          BenchmarkTimer gwToClientTimer = state.timer("latency.gw-to-client-timer");
+          GatewayLatencyHelper latencyHelper = new GatewayLatencyHelper(state);
 
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
@@ -62,20 +59,9 @@ public final class BroadcastStreamBenchmark {
                             long timestamp = Long.parseLong(msg.header(SERVICE_RECV_TIME));
                             timer.update(
                                 System.currentTimeMillis() - timestamp, TimeUnit.MILLISECONDS);
-                            calculateReturnLatency(msg, serviceToGwTimer, gwToClientTimer);
+                            latencyHelper.calculate(msg);
                           });
         },
         (state, client) -> client.close());
-  }
-
-  private static void calculateReturnLatency(
-      ClientMessage message, BenchmarkTimer serviceToGwTimer, BenchmarkTimer gwToClientTimer) {
-
-    long clientRecvTime = Long.parseLong(message.header(CLIENT_RECV_TIME));
-    long gwRecvFromServiceTime = Long.parseLong(message.header(GW_RECV_FROM_SERVICE_TIME));
-    long serviceRecvTime = Long.parseLong(message.header(SERVICE_RECV_TIME));
-
-    serviceToGwTimer.update(gwRecvFromServiceTime - serviceRecvTime, TimeUnit.MILLISECONDS);
-    gwToClientTimer.update(clientRecvTime - gwRecvFromServiceTime, TimeUnit.MILLISECONDS);
   }
 }
