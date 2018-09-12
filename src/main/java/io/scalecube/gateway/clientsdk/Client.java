@@ -1,5 +1,7 @@
 package io.scalecube.gateway.clientsdk;
 
+import io.scalecube.gateway.clientsdk.http.HttpClientCodec;
+import io.scalecube.gateway.clientsdk.http.HttpClientTransport;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.gateway.clientsdk.websocket.WebsocketClientCodec;
@@ -62,6 +64,22 @@ public final class Client {
 
     WebsocketClientTransport clientTransport =
         new WebsocketClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
+
+    return new Client(clientTransport, clientCodec);
+  }
+
+  /**
+   * Client on http client transport.
+   *
+   * @param clientSettings client settings
+   * @return client
+   */
+  public static Client onHttp(ClientSettings clientSettings) {
+    HttpClientCodec clientCodec =
+        new HttpClientCodec(DataCodec.getInstance(clientSettings.contentType()));
+
+    ClientTransport clientTransport =
+        new HttpClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
 
     return new Client(clientTransport, clientCodec);
   }

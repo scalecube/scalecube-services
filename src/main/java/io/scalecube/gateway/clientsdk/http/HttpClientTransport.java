@@ -1,6 +1,8 @@
 package io.scalecube.gateway.clientsdk.http;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -12,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.client.HttpClient;
+import reactor.ipc.netty.http.client.HttpClientResponse;
 import reactor.ipc.netty.resources.LoopResources;
 
 public final class HttpClientTransport implements ClientTransport {
@@ -51,33 +54,26 @@ public final class HttpClientTransport implements ClientTransport {
                     httpRequest -> {
                       LOGGER.info("Sending request {}", request);
 
+                      httpRequest
+                          .requestHeaders()
+                          .set("client-send-time", System.currentTimeMillis());
+
                       return httpRequest
                           .failOnClientError(false)
                           .failOnServerError(false)
-                          .send(Mono.just(codec.encode(request)));
+                          .sendObject(codec.encode(request));
                     })
                 .flatMap(
                     httpResponse ->
                         httpResponse
                             .receiveContent()
                             .map(
-                                httpContent -> {
-                                  int httpCode = httpResponse.status().code();
-
-                                  String qualifier =
-                                      isError(httpCode)
-                                          ? Qualifier.asError(httpCode)
-                                          : request.qualifier();
-
-                                  ClientMessage message =
-                                      ClientMessage.builder()
-                                          .qualifier(qualifier)
-                                          .data(httpContent.content().slice().retain())
-                                          .build();
-
-                                  LOGGER.info("Received response {}", message);
-                                  return message;
-                                })
+                                content ->
+                                    handleResponseContent(
+                                        httpResponse, content, request.qualifier()))
+                            .map(
+                                message ->
+                                    enrichMessageHeaders(message, httpResponse.responseHeaders()))
                             .singleOrEmpty()));
   }
 
@@ -91,7 +87,33 @@ public final class HttpClientTransport implements ClientTransport {
     return Mono.empty();
   }
 
+  private ClientMessage handleResponseContent(
+      HttpClientResponse httpResponse, HttpContent httpContent, String requestQualifier) {
+    int httpCode = httpResponse.status().code();
+
+    String qualifier = isError(httpCode) ? Qualifier.asError(httpCode) : requestQualifier;
+
+    ClientMessage message =
+        ClientMessage.builder()
+            .qualifier(qualifier)
+            .data(httpContent.content().slice().retain())
+            .build();
+
+    LOGGER.info("Received response {}", message);
+    return message;
+  }
+
   private boolean isError(int httpCode) {
     return httpCode >= 400 && httpCode <= 599;
+  }
+
+  private ClientMessage enrichMessageHeaders(ClientMessage message, HttpHeaders responseHeaders) {
+    return ClientMessage.from(message)
+        .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
+        .header("client-send-time", responseHeaders.get("client-send-time"))
+        .header("service-recv-time", responseHeaders.get("service-recv-time"))
+        .header("gw-recv-from-client-time", responseHeaders.get("gw-recv-from-client-time"))
+        .header("gw-recv-from-client-time", responseHeaders.get("gw-recv-from-client-time"))
+        .build();
   }
 }
