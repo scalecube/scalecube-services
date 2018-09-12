@@ -7,6 +7,7 @@ import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ErrorData;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
+import java.util.Optional;
 import java.util.logging.Level;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
@@ -23,7 +24,7 @@ final class WebsocketSession {
   private final ClientCodec<ByteBuf> codec;
 
   private final DirectProcessor<ClientMessage> inboundProcessor = DirectProcessor.create();
-  private final FluxSink<ClientMessage> inboundSink = inboundProcessor.sink();
+  private final FluxSink<ClientMessage> inboundSink = inboundProcessor.serialize().sink();
 
   WebsocketSession(
       WebsocketInbound inbound, WebsocketOutbound outbound, ClientCodec<ByteBuf> codec) {
@@ -37,23 +38,7 @@ final class WebsocketSession {
         .map(ByteBuf::retain)
         .map(codec::decode)
         .log(">>> RECEIVE", Level.FINE)
-        .subscribe(
-            response -> {
-              String sig = response.header("sig");
-              if (sig != null) {
-                Signal signal = Signal.from(sig);
-                if (signal == Signal.COMPLETE) {
-                  inboundSink.complete();
-                }
-                if (signal == Signal.ERROR) {
-                  inboundSink.error(toError(response));
-                }
-                return;
-              }
-              inboundSink.next(response);
-            },
-            inboundSink::error,
-            inboundSink::complete);
+        .subscribe(inboundSink::next, inboundSink::error, inboundSink::complete);
   }
 
   public Mono<Void> send(ClientMessage message) {
@@ -70,9 +55,25 @@ final class WebsocketSession {
   }
 
   public Flux<ClientMessage> receive(String sid) {
-    return inboundProcessor
-        .filter(response -> sid.equals(response.header("sid")))
-        .log(">>> SID_RECEIVE", Level.FINE);
+    return Flux.create(
+        (FluxSink<ClientMessage> responseSink) ->
+            inboundProcessor
+                .filter(response -> sid.equals(response.header("sid")))
+                .log(">>> SID_RECEIVE", Level.FINE)
+                .subscribe(
+                    response -> {
+                      try {
+                        Optional<Signal> signal =
+                            Optional.ofNullable(response.header("sig")).map(Signal::from);
+                        if (signal.isPresent()) {
+                          handleSignal(responseSink, response, signal.get());
+                        } else {
+                          responseSink.next(response);
+                        }
+                      } catch (Exception e) {
+                        responseSink.error(e);
+                      }
+                    }));
   }
 
   public Mono<Void> close() {
@@ -92,5 +93,15 @@ final class WebsocketSession {
     ErrorData errorData = codec.decodeData(response, ErrorData.class).data();
     return ExceptionProcessor.toException(
         response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
+  }
+
+  private void handleSignal(
+      FluxSink<ClientMessage> responseSink, ClientMessage response, Signal signal) {
+    if (signal == Signal.COMPLETE) {
+      responseSink.complete();
+    }
+    if (signal == Signal.ERROR) {
+      responseSink.error(toError(response));
+    }
   }
 }
