@@ -43,8 +43,7 @@ public final class HttpClientTransport implements ClientTransport {
 
     this.codec = codec;
 
-    this.poolResources =
-        PoolResources.fixed("http-client-sdk-pool", MAX_CONNECTIONS, ACQUIRE_TIMEOUT);
+    this.poolResources = PoolResources.fixed("http-client-sdk", MAX_CONNECTIONS, ACQUIRE_TIMEOUT);
 
     this.httpClient =
         HttpClient.create(
@@ -72,6 +71,7 @@ public final class HttpClientTransport implements ClientTransport {
                           .header("client-send-time", String.valueOf(System.currentTimeMillis()))
                           .failOnClientError(false)
                           .failOnServerError(false)
+                          .keepAlive(true)
                           .onWriteIdle(WRITE_IDLE_TIMEOUT, () -> {})
                           .sendObject(codec.encode(request));
                     })
@@ -98,7 +98,9 @@ public final class HttpClientTransport implements ClientTransport {
 
   @Override
   public Mono<Void> close() {
-    return poolResources.disposeLater();
+    return poolResources
+        .disposeLater()
+        .doOnTerminate(() -> LOGGER.info("Closed http client sdk transport"));
   }
 
   private ClientMessage handleResponseContent(

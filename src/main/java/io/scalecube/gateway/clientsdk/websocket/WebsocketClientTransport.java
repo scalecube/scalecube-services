@@ -95,11 +95,12 @@ public final class WebsocketClientTransport implements ClientTransport {
   @Override
   public Mono<Void> close() {
     return Mono.defer(
-        () -> {
-          // noinspection unchecked
-          Mono<WebsocketSession> curr = websocketMonoUpdater.get(this);
-          return curr == null ? Mono.empty() : curr.flatMap(WebsocketSession::close);
-        });
+            () -> {
+              // noinspection unchecked
+              Mono<WebsocketSession> curr = websocketMonoUpdater.get(this);
+              return curr == null ? Mono.empty() : curr.flatMap(WebsocketSession::close);
+            })
+        .doOnTerminate(() -> LOGGER.info("Closed websocket client sdk transport"));
   }
 
   private Mono<WebsocketSession> getOrConnect() {
