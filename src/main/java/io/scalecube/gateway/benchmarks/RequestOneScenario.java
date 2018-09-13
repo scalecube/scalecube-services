@@ -1,12 +1,12 @@
 package io.scalecube.gateway.benchmarks;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import reactor.core.publisher.Mono;
@@ -61,12 +61,11 @@ public final class RequestOneScenario {
                         return client
                             .requestResponse(request)
                             .doOnNext(
-                                msg -> {
-                                  if (msg.hasData(ByteBuf.class)) {
-                                    ReferenceCountUtil.safeRelease(msg.data());
-                                  }
+                                response -> {
+                                  Optional.ofNullable(response.data())
+                                      .ifPresent(ReferenceCountUtil::safestRelease);
                                   timeContext.stop();
-                                  latencyHelper.calculate(msg);
+                                  latencyHelper.calculate(response);
                                 })
                             .doOnTerminate(task::scheduleNow);
                       });
