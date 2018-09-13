@@ -1,5 +1,7 @@
 package io.scalecube.gateway.benchmarks.remote.websocket;
 
+import static io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState.WS_PORT;
+
 import io.scalecube.gateway.benchmarks.BroadcastStreamBenchmark;
 import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
@@ -18,6 +20,7 @@ public class RemoteBroadcastStreamBenchmark {
         benchmarkSettings ->
             new RemoteBenchmarkState(
                 benchmarkSettings,
+                WS_PORT,
                 (address, loopResources) ->
                     Client.onWebsocket(
                         ClientSettings.builder()

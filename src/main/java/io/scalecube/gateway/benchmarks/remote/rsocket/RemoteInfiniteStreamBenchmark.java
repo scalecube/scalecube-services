@@ -1,5 +1,7 @@
 package io.scalecube.gateway.benchmarks.remote.rsocket;
 
+import static io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState.RS_PORT;
+
 import io.scalecube.gateway.benchmarks.InfiniteStreamBenchmark;
 import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
@@ -18,6 +20,7 @@ public class RemoteInfiniteStreamBenchmark {
         benchmarkSettings ->
             new RemoteBenchmarkState(
                 benchmarkSettings,
+                RS_PORT,
                 (address, loopResources) ->
                     Client.onRSocket(
                         ClientSettings.builder()
