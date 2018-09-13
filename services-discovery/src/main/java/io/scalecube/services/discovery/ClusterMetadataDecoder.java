@@ -1,8 +1,12 @@
 package io.scalecube.services.discovery;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.scalecube.services.ServiceEndpoint;
 import java.io.IOException;
 import org.slf4j.Logger;
@@ -16,17 +20,16 @@ public class ClusterMetadataDecoder {
   private static final ObjectMapper objectMapper = newObjectMapper();
 
   private static ObjectMapper newObjectMapper() {
-    ObjectMapper objectMapper = new ObjectMapper();
-    objectMapper.setVisibility(
-        objectMapper
-            .getSerializationConfig()
-            .getDefaultVisibilityChecker()
-            .withFieldVisibility(JsonAutoDetect.Visibility.ANY)
-            .withGetterVisibility(JsonAutoDetect.Visibility.NONE)
-            .withSetterVisibility(JsonAutoDetect.Visibility.NONE)
-            .withCreatorVisibility(JsonAutoDetect.Visibility.NONE));
-    objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-    return objectMapper;
+    ObjectMapper mapper = new ObjectMapper();
+    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    mapper.configure(DeserializationFeature.READ_UNKNOWN_ENUM_VALUES_AS_NULL, true);
+    mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+    mapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+    mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    mapper.configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true);
+    mapper.registerModule(new JavaTimeModule());
+    return mapper;
   }
 
   /**

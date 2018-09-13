@@ -14,6 +14,8 @@ public class DiscoveryConfig {
   private ServiceRegistry serviceRegistry;
   private Map<String, String> tags;
   private ServiceEndpoint endpoint;
+  private String memberHost;
+  private Integer memberPort;
 
   private DiscoveryConfig(Builder builder) {
     this.seeds = builder.seeds;
@@ -21,6 +23,8 @@ public class DiscoveryConfig {
     this.port = builder.port;
     this.tags = new HashMap<>(builder.tags);
     this.endpoint = builder.endpoint;
+    this.memberHost = builder.memberHost;
+    this.memberPort = builder.memberPort;
   }
 
   public Integer port() {
@@ -43,6 +47,14 @@ public class DiscoveryConfig {
     return this.endpoint;
   }
 
+  public String memberHost() {
+    return memberHost;
+  }
+
+  public Integer memberPort() {
+    return memberPort;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -54,6 +66,8 @@ public class DiscoveryConfig {
     private ServiceRegistry serviceRegistry;
     private Map<String, String> tags = Collections.emptyMap();
     private ServiceEndpoint endpoint;
+    private String memberHost;
+    private Integer memberPort;
 
     public Builder seeds(Address[] seeds) {
       this.seeds = seeds;
@@ -81,6 +95,16 @@ public class DiscoveryConfig {
 
     public Builder endpoint(ServiceEndpoint endpoint) {
       this.endpoint = endpoint;
+      return this;
+    }
+
+    public Builder memberHost(String memberHost) {
+      this.memberHost = memberHost;
+      return this;
+    }
+
+    public Builder memberPort(Integer memberPort) {
+      this.memberPort = memberPort;
       return this;
     }
   }
