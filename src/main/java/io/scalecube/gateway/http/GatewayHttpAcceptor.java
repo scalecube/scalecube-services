@@ -44,6 +44,12 @@ public class GatewayHttpAcceptor
 
   @Override
   public Publisher<Void> apply(HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
+    LOGGER.debug(
+        "Accepted request: {}, headers: {}, params: {}",
+        httpRequest,
+        httpRequest.requestHeaders(),
+        httpRequest.params());
+
     if (httpRequest.method() != POST) {
       LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpRequest.method());
       return methodNotAllowed(httpResponse);
@@ -58,15 +64,18 @@ public class GatewayHttpAcceptor
 
   private Mono<Void> handleHttpContent(
       HttpContent httpContent, HttpServerResponse httpResponse, HttpServerRequest httpRequest) {
+    LOGGER.debug("Try to handle content: {}", httpRequest, httpContent);
+
     long gwRecvFromClientTime = System.currentTimeMillis();
 
-    ServiceMessage.Builder serviceMessage = ServiceMessage.builder().qualifier(httpRequest.uri());
+    ServiceMessage.Builder messageBuilder = ServiceMessage.builder().qualifier(httpRequest.uri());
 
     try {
-      serviceMessage.data(httpContent.content().slice().retain());
+      ByteBuf dataByteBuf = httpContent.content().slice().retain();
+
       return serviceCall
-          .requestOne(serviceMessage.build())
-          .switchIfEmpty(Mono.defer(() -> Mono.just(serviceMessage.data(null).build())))
+          .requestOne(messageBuilder.data(dataByteBuf).build())
+          .switchIfEmpty(Mono.defer(() -> Mono.just(messageBuilder.data(null).build())))
           .flatMap(
               message -> {
                 enrichHttpHeaders(httpResponse, httpRequest, gwRecvFromClientTime, message);
@@ -74,6 +83,12 @@ public class GatewayHttpAcceptor
               });
     } catch (Exception e) {
       ReferenceCountUtil.safeRelease(httpContent);
+      LOGGER.error(
+          "Error during handling request: {}, headers: {}, params: {}",
+          httpRequest,
+          httpRequest.requestHeaders(),
+          httpRequest.params(),
+          e);
       return Mono.error(e);
     }
   }
@@ -88,7 +103,7 @@ public class GatewayHttpAcceptor
       return noContent(response);
     }
 
-    return ok(response, serviceMessage.data());
+    return ok(response, serviceMessage);
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse response) {
@@ -99,38 +114,47 @@ public class GatewayHttpAcceptor
     return error(response, ExceptionProcessor.toMessage(throwable));
   }
 
-  private Publisher<Void> error(HttpServerResponse response, ServiceMessage serviceMessage) {
-    int code = Integer.parseInt(Qualifier.getQualifierAction(serviceMessage.qualifier()));
+  private Publisher<Void> error(HttpServerResponse response, ServiceMessage message) {
+    int code = Integer.parseInt(Qualifier.getQualifierAction(message.qualifier()));
 
     ByteBuf body;
-    if (serviceMessage.hasData(ErrorData.class)) {
-      body = encodeErrorData(serviceMessage.data());
+    if (message.hasData(ErrorData.class)) {
+      body = encodeData(message.data());
     } else {
-      body = serviceMessage.data();
+      body = message.data();
     }
 
     return response.status(HttpResponseStatus.valueOf(code)).sendObject(body);
-  }
-
-  private ByteBuf encodeErrorData(ErrorData errorData) {
-    ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
-    try {
-      DataCodec.getInstance("application/json").encode(new ByteBufOutputStream(byteBuf), errorData);
-    } catch (IOException e) {
-      ReferenceCountUtil.safeRelease(byteBuf);
-      LOGGER.error("Failed to encode data: {}", errorData, e);
-      return Unpooled.EMPTY_BUFFER;
-    }
-
-    return byteBuf;
   }
 
   private Publisher<Void> noContent(HttpServerResponse response) {
     return response.status(NO_CONTENT).send();
   }
 
-  private Publisher<Void> ok(HttpServerResponse response, ByteBuf body) {
+  private Publisher<Void> ok(HttpServerResponse response, ServiceMessage message) {
+    ByteBuf body;
+
+    if (message.hasData(ByteBuf.class)) {
+      body = message.data();
+    } else {
+      body = encodeData(message.data());
+    }
+
     return response.status(OK).sendObject(body);
+  }
+
+  private ByteBuf encodeData(Object data) {
+    ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
+
+    try {
+      DataCodec.getInstance("application/json").encode(new ByteBufOutputStream(byteBuf), data);
+    } catch (IOException e) {
+      ReferenceCountUtil.safeRelease(byteBuf);
+      LOGGER.error("Failed to encode data: {}", data, e);
+      return Unpooled.EMPTY_BUFFER;
+    }
+
+    return byteBuf;
   }
 
   private void enrichHttpHeaders(
