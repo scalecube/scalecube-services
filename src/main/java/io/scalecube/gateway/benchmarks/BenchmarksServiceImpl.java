@@ -19,6 +19,7 @@ public class BenchmarksServiceImpl implements BenchmarksService {
             Mono.just(
                 ServiceMessage.from(message)
                     .header(SERVICE_RECV_TIME, String.valueOf(System.currentTimeMillis()))
+                    .data("hello")
                     .build()));
   }
 
