@@ -6,11 +6,13 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
+import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.FutureMono;
+import reactor.ipc.netty.http.server.HttpServer;
 import reactor.ipc.netty.resources.LoopResources;
 
 public abstract class GatewayTemplate implements Gateway {
@@ -40,14 +42,28 @@ public abstract class GatewayTemplate implements Gateway {
     return new GatewayLoopResources(preferNative, bossGroup, workerGroup);
   }
 
-  protected final Mono<Void> shutdownBossGroup() {
-    return Mono.defer(
-        () -> {
-          if (bossGroup == null) {
-            return Mono.empty();
+  protected final HttpServer prepareHttpServer(
+      LoopResources loopResources, GatewayMetrics gatewayMetrics, int port) {
+    return HttpServer.create(
+        opts -> {
+          opts.listenAddress(new InetSocketAddress(port));
+          if (loopResources != null) {
+            opts.loopResources(loopResources);
           }
-          Future shutdownFuture = ((EventLoopGroup) bossGroup).shutdownGracefully();
-          return FutureMono.from(shutdownFuture);
+          opts.afterNettyContextInit(
+              nc -> {
+                gatewayMetrics.incConnection();
+                nc.onClose(gatewayMetrics::decConnection);
+              });
         });
+  }
+
+  protected final Mono<Void> shutdownBossGroup() {
+    //noinspection unchecked
+    return Mono.defer(
+        () ->
+            bossGroup == null
+                ? Mono.empty()
+                : FutureMono.from((Future) ((EventLoopGroup) bossGroup).shutdownGracefully()));
   }
 }
