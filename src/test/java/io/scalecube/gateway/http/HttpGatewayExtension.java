@@ -21,10 +21,7 @@ class HttpGatewayExtension extends AbstractGatewayExtension {
   @Override
   protected ClientTransport transport() {
     return new HttpClientTransport(
-        clientSettings(),
-        clientMessageCodec(),
-        LoopResources.create(gatewayAliasName() + "-loop")
-    );
+        clientSettings(), clientMessageCodec(), LoopResources.create(gatewayAliasName() + "-loop"));
   }
 
   @Override

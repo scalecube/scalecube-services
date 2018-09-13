@@ -2,8 +2,8 @@ package io.scalecube.gateway.rsocket;
 
 import io.rsocket.Payload;
 import io.scalecube.gateway.AbstractGatewayExtension;
-import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.ClientCodec;
+import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientCodec;
 import io.scalecube.gateway.clientsdk.rsocket.RSocketClientTransport;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;

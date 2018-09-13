@@ -1,9 +1,9 @@
 package io.scalecube.gateway;
 
 import io.scalecube.gateway.clientsdk.Client;
+import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.GatewayConfig;
 import java.net.InetSocketAddress;

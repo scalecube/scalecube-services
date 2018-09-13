@@ -2,8 +2,8 @@ package io.scalecube.gateway.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.scalecube.gateway.AbstractGatewayExtension;
-import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.ClientCodec;
+import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.websocket.WebsocketClientCodec;
 import io.scalecube.gateway.clientsdk.websocket.WebsocketClientTransport;
 import io.scalecube.services.codec.DataCodec;
