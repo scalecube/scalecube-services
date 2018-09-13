@@ -109,7 +109,7 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
         ReferenceCountUtil.safestRelease(dataBuffer);
         LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
         throw new MessageCodecException(
-            "Failed to encode data on message q=" + message.qualifier(), t);
+            "Failed to encode data on message q=" + message.qualifier(), ex);
       }
     }
 
@@ -121,7 +121,6 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
         ReferenceCountUtil.safestRelease(headersBuffer);
         ReferenceCountUtil.safestRelease(dataBuffer); // release data as well
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
-        ReferenceCountUtil.safeRelease(headersBuffer);
         throw new MessageCodecException(
             "Failed to encode headers on message q=" + message.qualifier(), ex);
       }
