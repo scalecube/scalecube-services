@@ -1,5 +1,7 @@
 package io.scalecube.gateway.benchmarks;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
@@ -60,6 +62,9 @@ public final class RequestOneBenchmark {
                             .requestResponse(request)
                             .doOnNext(
                                 msg -> {
+                                  if (msg.hasData(ByteBuf.class)) {
+                                    ReferenceCountUtil.safeRelease(msg.data());
+                                  }
                                   timeContext.stop();
                                   latencyHelper.calculate(msg);
                                 })
