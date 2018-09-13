@@ -3,6 +3,7 @@ package io.scalecube.services;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.ReferenceCountUtil;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -141,8 +142,9 @@ public class ServiceCall {
           .getInvoker(request.qualifier())
           .invokeOne(request, ServiceMessageCodec::decodeData)
           .onErrorMap(ExceptionProcessor::mapException);
-    } else { // remote service.
-      return addressLookup(request).flatMap(address -> requestOne(request, responseType, address));
+    } else {
+      return addressLookup(request)
+          .flatMap(address -> requestOne(request, responseType, address)); // remote service
     }
   }
 
@@ -187,9 +189,9 @@ public class ServiceCall {
           .getInvoker(request.qualifier())
           .invokeMany(request, ServiceMessageCodec::decodeData)
           .onErrorMap(ExceptionProcessor::mapException);
-    } else { // remote service.
+    } else {
       return addressLookup(request)
-          .flatMapMany(address -> requestMany(request, responseType, address));
+          .flatMapMany(address -> requestMany(request, responseType, address)); // remote service
     }
   }
 
@@ -242,7 +244,8 @@ public class ServiceCall {
                     .getInvoker(qualifier)
                     .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
                     .onErrorMap(ExceptionProcessor::mapException);
-              } else { // remote service.
+              } else {
+                // remote service
                 return addressLookup(request)
                     .flatMapMany(address -> requestBidirectional(messages, responseType, address));
               }
@@ -333,7 +336,12 @@ public class ServiceCall {
     return router
         .route(serviceRegistry, request)
         .map(serviceReference -> Mono.just(serviceReference.address()))
-        .orElseGet(() -> Mono.error(noReachableMemberException(request)));
+        .orElseGet(() -> Mono.error(noReachableMemberException(request)))
+        .doOnError(
+            t -> {
+              Optional<Object> dataOptional = Optional.ofNullable(request.data());
+              dataOptional.ifPresent(ReferenceCountUtil::safestRelease);
+            });
   }
 
   private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
