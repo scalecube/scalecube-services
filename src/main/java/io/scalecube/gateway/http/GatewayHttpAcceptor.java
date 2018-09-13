@@ -21,6 +21,7 @@ import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -64,73 +65,60 @@ public class GatewayHttpAcceptor
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
         .doOnComplete(metrics::markResponse)
         .timeout(DEFAULT_TIMEOUT)
-        .onErrorResume(t -> handleError(httpResponse, ExceptionProcessor.toMessage(t)));
+        .onErrorResume(t -> error(httpResponse, ExceptionProcessor.toMessage(t)));
   }
 
   private Mono<Void> handleRequest(
       ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
-    long gwRecvFromClientTime = System.currentTimeMillis();
 
-    ServiceMessage.Builder messageBuilder = ServiceMessage.builder().qualifier(httpRequest.uri());
+    ServiceMessage.Builder messageBuilder =
+        ServiceMessage.builder()
+            .header("gw-recv-from-client-time", String.valueOf(System.currentTimeMillis()))
+            .qualifier(httpRequest.uri());
 
-    try {
-      return serviceCall
-          .requestOne(messageBuilder.data(content).build())
-          .switchIfEmpty(Mono.defer(() -> Mono.just(messageBuilder.data(null).build())))
-          .flatMap(
-              response -> {
-                enrichHttpHeaders(httpResponse, httpRequest, gwRecvFromClientTime, response);
-                return Mono.from(toHttpResponse(httpResponse, response));
-              });
-    } catch (Exception e) {
-      ReferenceCountUtil.safestRelease(content);
-      LOGGER.error(
-          "Error during handling request: {}, headers: {}, params: {}",
-          httpRequest,
-          httpRequest.requestHeaders(),
-          httpRequest.params(),
-          e);
-      return Mono.error(e);
-    }
+    return serviceCall
+        .requestOne(messageBuilder.data(content).build())
+        .switchIfEmpty(Mono.defer(() -> Mono.just(messageBuilder.data(null).build())))
+        .flatMap(
+            response -> {
+              enrichResponse(httpRequest, httpResponse, response);
+              return Mono.defer(
+                  () ->
+                      ExceptionProcessor.isError(response) // check error
+                          ? error(httpResponse, response)
+                          : response.hasData() // check data
+                              ? ok(httpResponse, response)
+                              : noContent(httpResponse));
+            });
   }
 
-  private Publisher<Void> toHttpResponse(HttpServerResponse httpResponse, ServiceMessage response) {
-    if (ExceptionProcessor.isError(response)) {
-      return handleError(httpResponse, response);
-    }
-    return !response.hasData() ? noContent(httpResponse) : ok(httpResponse, response);
+  private Publisher<Void> methodNotAllowed(HttpServerResponse httpResponse) {
+    return httpResponse.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
   }
 
-  private Publisher<Void> methodNotAllowed(HttpServerResponse response) {
-    return response.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
-  }
-
-  private Publisher<Void> handleError(HttpServerResponse response, ServiceMessage message) {
-    ByteBuf body;
-    if (message.hasData(ErrorData.class)) {
-      body = encodeData(message.data(), message.dataFormatOrDefault());
-    } else {
-      body = message.data();
-    }
-    int code = Integer.parseInt(Qualifier.getQualifierAction(message.qualifier()));
+  private Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
+    int code = Integer.parseInt(Qualifier.getQualifierAction(response.qualifier()));
     HttpResponseStatus status = HttpResponseStatus.valueOf(code);
-    return response.status(status).sendObject(body);
+
+    ByteBuf content =
+        response.hasData(ErrorData.class)
+            ? encodeData(response.data(), response.dataFormatOrDefault())
+            : response.data();
+
+    return httpResponse.status(status).sendObject(content).then();
   }
 
-  private Publisher<Void> noContent(HttpServerResponse response) {
-    return response.status(NO_CONTENT).send();
+  private Mono<Void> noContent(HttpServerResponse httpResponse) {
+    return httpResponse.status(NO_CONTENT).send();
   }
 
-  private Publisher<Void> ok(HttpServerResponse response, ServiceMessage message) {
-    ByteBuf body;
+  private Mono<Void> ok(HttpServerResponse httpResponse, ServiceMessage response) {
+    ByteBuf content =
+        response.hasData(ByteBuf.class)
+            ? response.data()
+            : encodeData(response.data(), response.dataFormatOrDefault());
 
-    if (message.hasData(ByteBuf.class)) {
-      body = message.data();
-    } else {
-      body = encodeData(message.data(), message.dataFormatOrDefault());
-    }
-
-    return response.status(OK).sendObject(body);
+    return httpResponse.status(OK).sendObject(content).then();
   }
 
   private ByteBuf encodeData(Object data, String dataFormat) {
@@ -147,24 +135,18 @@ public class GatewayHttpAcceptor
     return byteBuf;
   }
 
-  private void enrichHttpHeaders(
-      HttpServerResponse httpResponse,
-      HttpServerRequest httpRequest,
-      long gwRecvFromClientTime,
-      ServiceMessage message) {
-    String clientSendTime = httpRequest.requestHeaders().get("client-send-time");
-    if (clientSendTime != null) {
-      httpResponse.header("client-send-time", clientSendTime);
-    }
+  private void enrichResponse(
+      HttpServerRequest httpRequest, HttpServerResponse httpResponse, ServiceMessage response) {
 
-    String serviceRecvTime = message.header("service-recv-time");
-    if (serviceRecvTime != null) {
-      httpResponse.header("service-recv-time", serviceRecvTime);
-    }
+    Optional.ofNullable(httpRequest.requestHeaders().get("client-send-time"))
+        .ifPresent(s -> httpResponse.header("client-send-time", s));
 
-    httpResponse
-        .responseHeaders()
-        .set("gw-recv-from-client-time", gwRecvFromClientTime)
-        .set("gw-recv-from-service-time", System.currentTimeMillis());
+    Optional.ofNullable(response.header("service-recv-time"))
+        .ifPresent(s -> httpResponse.header("service-recv-time", s));
+
+    Optional.ofNullable(response.header("gw-recv-from-client-time"))
+        .ifPresent(s -> httpResponse.header("gw-recv-from-client-time", s));
+
+    httpResponse.header("gw-recv-from-service-time", String.valueOf(System.currentTimeMillis()));
   }
 }
