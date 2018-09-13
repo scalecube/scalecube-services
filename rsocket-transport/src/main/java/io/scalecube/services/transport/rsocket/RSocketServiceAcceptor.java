@@ -8,10 +8,13 @@ import io.rsocket.SocketAcceptor;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.HeadAndTail;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.codec.ReferenceCountUtil;
 import io.scalecube.services.codec.ServiceMessageCodec;
+import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.ServiceMethodRegistry;
+import java.util.Optional;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +43,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           public Mono<Payload> requestResponse(Payload payload) {
             return Mono.just(payload)
                 .map(this::toMessage)
-                .doOnNext(this::checkMethodInvokerExist)
+                .doOnNext(this::validateRequest)
                 .flatMap(
                     message ->
                         methodRegistry
@@ -54,7 +57,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
           public Flux<Payload> requestStream(Payload payload) {
             return Flux.just(payload)
                 .map(this::toMessage)
-                .doOnNext(this::checkMethodInvokerExist)
+                .doOnNext(this::validateRequest)
                 .flatMap(
                     message ->
                         methodRegistry
@@ -70,7 +73,7 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
                 .flatMap(
                     pair -> {
                       ServiceMessage message = pair.head();
-                      checkMethodInvokerExist(message);
+                      validateRequest(message);
                       Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(message);
                       return methodRegistry
                           .getInvoker(message.qualifier())
@@ -88,16 +91,23 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
             return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
           }
 
-          private void checkMethodInvokerExist(ServiceMessage message) {
+          private void validateRequest(ServiceMessage message) {
+            if (message.qualifier() == null) {
+              Optional.ofNullable(message.data())
+                  .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
+              LOGGER.error("Failed to invoke service with msg={}: qualifier is null", message);
+              throw new BadRequestException("Qualifier is null in service msg request: " + message);
+            }
+
             if (!methodRegistry.containsInvoker(message.qualifier())) {
+              Optional.ofNullable(message.data())
+                  .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
               LOGGER.error(
-                  "Failed to invoke service with args[{}], "
-                      + "No service invoker found by qualifier: {}",
+                  "Failed to invoke service with msg={}: no service invoker found by qualifier={}",
                   message,
                   message.qualifier());
               throw new ServiceUnavailableException(
-                  "No service invoker registered at service method registry by qualifier: "
-                      + message.qualifier());
+                  "No service invoker found by qualifier=" + message.qualifier());
             }
           }
         });

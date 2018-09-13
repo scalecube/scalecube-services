@@ -5,7 +5,6 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
@@ -48,7 +47,7 @@ public final class ServiceMessageCodec {
         DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
       } catch (Throwable ex) {
-        ReferenceCountUtil.safeRelease(dataBuffer);
+        ReferenceCountUtil.safestRelease(dataBuffer);
         LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
         throw new MessageCodecException(
             "Failed to encode data on message q=" + message.qualifier(), ex);
@@ -60,7 +59,8 @@ public final class ServiceMessageCodec {
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
-        ReferenceCountUtil.safeRelease(headersBuffer);
+        ReferenceCountUtil.safestRelease(headersBuffer);
+        ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
         throw new MessageCodecException(
             "Failed to encode headers on message q=" + message.qualifier(), ex);
@@ -81,22 +81,23 @@ public final class ServiceMessageCodec {
   public ServiceMessage decode(ByteBuf dataBuffer, ByteBuf headersBuffer)
       throws MessageCodecException {
     ServiceMessage.Builder builder = ServiceMessage.builder();
+
     if (dataBuffer.isReadable()) {
       builder.data(dataBuffer);
     }
     if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice())) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice(), true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
+        ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
         LOGGER.error(
             "Failed to decode message headers: {}, cause: {}",
             headersBuffer.toString(StandardCharsets.UTF_8),
             ex);
         throw new MessageCodecException("Failed to decode message headers", ex);
-      } finally {
-        ReferenceCountUtil.safeRelease(headersBuffer);
       }
     }
+
     return builder.build();
   }
 
@@ -119,7 +120,7 @@ public final class ServiceMessageCodec {
     Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice())) {
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice(), true)) {
       DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
@@ -130,8 +131,6 @@ public final class ServiceMessageCodec {
           dataBuffer.toString(StandardCharsets.UTF_8));
       throw new MessageCodecException(
           "Failed to decode data on message q=" + message.qualifier(), ex);
-    } finally {
-      ReferenceCountUtil.safeRelease(dataBuffer);
     }
 
     if (targetType == ErrorData.class) {

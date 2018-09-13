@@ -111,6 +111,14 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     if (config.tags() != null) {
       clusterConfig.metadata(config.tags());
     }
+
+    if (config.memberHost() != null) {
+      clusterConfig.memberHost(config.memberHost());
+    }
+
+    if (config.memberPort() != null) {
+      clusterConfig.memberPort(config.memberPort());
+    }
   }
 
   private void init(Cluster cluster) {
