@@ -348,7 +348,7 @@
               <goals>
                 <goal>build</goal>
               </goals>
-              <phase>install</phase>
+              <phase>package</phase>
               <configuration>
                 <buildArgs>
                   <EXECUTABLE_JAR>${project.build.finalName}</EXECUTABLE_JAR>
