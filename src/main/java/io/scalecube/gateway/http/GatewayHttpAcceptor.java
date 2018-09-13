@@ -10,10 +10,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.gateway.GatewayMetrics;
+import io.scalecube.gateway.ReferenceCountUtil;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
@@ -52,9 +51,6 @@ public class GatewayHttpAcceptor
         httpRequest,
         httpRequest.requestHeaders(),
         httpRequest.params());
-    metrics.incConnection();
-
-    httpResponse.context().onClose(metrics::decConnection);
 
     if (httpRequest.method() != POST) {
       LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpRequest.method());
@@ -62,35 +58,32 @@ public class GatewayHttpAcceptor
     }
 
     return httpRequest
-        .receiveContent()
-        .doOnNext(input -> metrics.markRequest())
-        .flatMap(httpContent -> handleHttpContent(httpContent, httpResponse, httpRequest))
+        .receive()
+        .map(ByteBuf::retain)
+        .doOnNext(content -> metrics.markRequest())
+        .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
         .doOnComplete(metrics::markResponse)
         .timeout(DEFAULT_TIMEOUT)
-        .onErrorResume(throwable -> error(httpResponse, throwable));
+        .onErrorResume(t -> handleError(httpResponse, ExceptionProcessor.toMessage(t)));
   }
 
-  private Mono<Void> handleHttpContent(
-      HttpContent httpContent, HttpServerResponse httpResponse, HttpServerRequest httpRequest) {
-    LOGGER.debug("Try to handle content: {}", httpRequest, httpContent);
-
+  private Mono<Void> handleRequest(
+      ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
     long gwRecvFromClientTime = System.currentTimeMillis();
 
     ServiceMessage.Builder messageBuilder = ServiceMessage.builder().qualifier(httpRequest.uri());
 
     try {
-      ByteBuf dataByteBuf = httpContent.content().slice().retain();
-
       return serviceCall
-          .requestOne(messageBuilder.data(dataByteBuf).build())
+          .requestOne(messageBuilder.data(content).build())
           .switchIfEmpty(Mono.defer(() -> Mono.just(messageBuilder.data(null).build())))
           .flatMap(
-              message -> {
-                enrichHttpHeaders(httpResponse, httpRequest, gwRecvFromClientTime, message);
-                return Mono.from(toHttpResponse(httpResponse, message));
+              response -> {
+                enrichHttpHeaders(httpResponse, httpRequest, gwRecvFromClientTime, response);
+                return Mono.from(toHttpResponse(httpResponse, response));
               });
     } catch (Exception e) {
-      ReferenceCountUtil.safeRelease(httpContent);
+      ReferenceCountUtil.safestRelease(content);
       LOGGER.error(
           "Error during handling request: {}, headers: {}, params: {}",
           httpRequest,
@@ -101,38 +94,27 @@ public class GatewayHttpAcceptor
     }
   }
 
-  private Publisher<Void> toHttpResponse(
-      HttpServerResponse response, ServiceMessage serviceMessage) {
-    if (ExceptionProcessor.isError(serviceMessage)) {
-      return error(response, serviceMessage);
+  private Publisher<Void> toHttpResponse(HttpServerResponse httpResponse, ServiceMessage response) {
+    if (ExceptionProcessor.isError(response)) {
+      return handleError(httpResponse, response);
     }
-
-    if (!serviceMessage.hasData()) {
-      return noContent(response);
-    }
-
-    return ok(response, serviceMessage);
+    return !response.hasData() ? noContent(httpResponse) : ok(httpResponse, response);
   }
 
   private Publisher<Void> methodNotAllowed(HttpServerResponse response) {
     return response.addHeader(ALLOW, POST.name()).status(METHOD_NOT_ALLOWED).send();
   }
 
-  private Publisher<Void> error(HttpServerResponse response, Throwable throwable) {
-    return error(response, ExceptionProcessor.toMessage(throwable));
-  }
-
-  private Publisher<Void> error(HttpServerResponse response, ServiceMessage message) {
-    int code = Integer.parseInt(Qualifier.getQualifierAction(message.qualifier()));
-
+  private Publisher<Void> handleError(HttpServerResponse response, ServiceMessage message) {
     ByteBuf body;
     if (message.hasData(ErrorData.class)) {
-      body = encodeData(message.data());
+      body = encodeData(message.data(), message.dataFormatOrDefault());
     } else {
       body = message.data();
     }
-
-    return response.status(HttpResponseStatus.valueOf(code)).sendObject(body);
+    int code = Integer.parseInt(Qualifier.getQualifierAction(message.qualifier()));
+    HttpResponseStatus status = HttpResponseStatus.valueOf(code);
+    return response.status(status).sendObject(body);
   }
 
   private Publisher<Void> noContent(HttpServerResponse response) {
@@ -145,19 +127,19 @@ public class GatewayHttpAcceptor
     if (message.hasData(ByteBuf.class)) {
       body = message.data();
     } else {
-      body = encodeData(message.data());
+      body = encodeData(message.data(), message.dataFormatOrDefault());
     }
 
     return response.status(OK).sendObject(body);
   }
 
-  private ByteBuf encodeData(Object data) {
+  private ByteBuf encodeData(Object data, String dataFormat) {
     ByteBuf byteBuf = ByteBufAllocator.DEFAULT.buffer();
 
     try {
-      DataCodec.getInstance("application/json").encode(new ByteBufOutputStream(byteBuf), data);
+      DataCodec.getInstance(dataFormat).encode(new ByteBufOutputStream(byteBuf), data);
     } catch (IOException e) {
-      ReferenceCountUtil.safeRelease(byteBuf);
+      ReferenceCountUtil.safestRelease(byteBuf);
       LOGGER.error("Failed to encode data: {}", data, e);
       return Unpooled.EMPTY_BUFFER;
     }
