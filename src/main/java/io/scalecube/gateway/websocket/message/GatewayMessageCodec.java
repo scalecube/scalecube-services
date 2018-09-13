@@ -28,6 +28,7 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,6 +76,7 @@ public class GatewayMessageCodec {
             generator.writeRaw(":");
             generator.flush();
             byteBuf.writeBytes(dataBin);
+            ReferenceCountUtil.safeRelease(dataBin);
           }
         } else {
           generator.writeObjectField(DATA_FIELD, data);
@@ -84,6 +86,7 @@ public class GatewayMessageCodec {
       generator.writeEndObject();
     } catch (Throwable ex) {
       ReferenceCountUtil.safeRelease(byteBuf);
+      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safeRelease);
       LOGGER.error("Failed to encode message: {}", message, ex);
       throw new MessageCodecException("Failed to encode message", ex);
     }
