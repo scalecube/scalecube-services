@@ -18,9 +18,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
@@ -96,7 +96,7 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
             generator.writeRaw(":");
             generator.flush();
             byteBuf.writeBytes(dataBin);
-            ReferenceCountUtil.safeRelease(dataBin);
+            ReferenceCountUtil.safestRelease(dataBin);
           }
         } else {
           generator.writeObjectField(DATA_FIELD, data);
@@ -105,8 +105,8 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
 
       generator.writeEndObject();
     } catch (Throwable ex) {
-      ReferenceCountUtil.safeRelease(byteBuf);
-      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safeRelease);
+      ReferenceCountUtil.safestRelease(byteBuf);
+      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
       LOGGER.error("Failed to encode message: {}", message, ex);
       throw new MessageCodecException("Failed to encode message", ex);
     }
