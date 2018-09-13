@@ -52,7 +52,7 @@ public final class HttpClientTransport implements ClientTransport {
                 .post(
                     request.qualifier(),
                     httpRequest -> {
-                      LOGGER.info("Sending request {}", request);
+                      LOGGER.debug("Sending request {}", request);
 
                       httpRequest
                           .requestHeaders()
@@ -99,7 +99,7 @@ public final class HttpClientTransport implements ClientTransport {
             .data(httpContent.content().slice().retain())
             .build();
 
-    LOGGER.info("Received response {}", message);
+    LOGGER.debug("Received response {}", message);
     return message;
   }
 
