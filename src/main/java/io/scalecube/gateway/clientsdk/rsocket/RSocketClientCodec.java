@@ -5,11 +5,11 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
-import io.netty.util.ReferenceCountUtil;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import io.scalecube.gateway.clientsdk.exceptions.MessageCodecException;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
@@ -62,22 +62,24 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
   private ClientMessage decode(ByteBuf dataBuffer, ByteBuf headersBuffer)
       throws MessageCodecException {
     ClientMessage.Builder builder = ClientMessage.builder();
+
     if (dataBuffer.isReadable()) {
       builder.data(dataBuffer);
     }
+
     if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice())) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice(), true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
+        ReferenceCountUtil.safestRelease(dataBuffer); // release data as well
         LOGGER.error(
             "Failed to decode message headers: {}, cause: {}",
             headersBuffer.toString(StandardCharsets.UTF_8),
             ex);
         throw new MessageCodecException("Failed to decode message headers", ex);
-      } finally {
-        ReferenceCountUtil.safeRelease(headersBuffer);
       }
     }
+
     return builder.build();
   }
 
@@ -103,9 +105,9 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
       dataBuffer = ByteBufAllocator.DEFAULT.buffer();
       try {
         dataCodec.encode(new ByteBufOutputStream(dataBuffer), message.data());
-      } catch (Throwable t) {
-        LOGGER.error("Failed to encode data on: {}, cause: {}", message, t);
-        ReferenceCountUtil.safeRelease(dataBuffer);
+      } catch (Throwable ex) {
+        ReferenceCountUtil.safestRelease(dataBuffer);
+        LOGGER.error("Failed to encode data on: {}, cause: {}", message, ex);
         throw new MessageCodecException(
             "Failed to encode data on message q=" + message.qualifier(), t);
       }
@@ -116,6 +118,8 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
       try {
         headersCodec.encode(new ByteBufOutputStream(headersBuffer), message.headers());
       } catch (Throwable ex) {
+        ReferenceCountUtil.safestRelease(headersBuffer);
+        ReferenceCountUtil.safestRelease(dataBuffer); // release data as well
         LOGGER.error("Failed to encode headers on: {}, cause: {}", message, ex);
         ReferenceCountUtil.safeRelease(headersBuffer);
         throw new MessageCodecException(

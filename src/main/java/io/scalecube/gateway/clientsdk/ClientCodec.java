@@ -2,7 +2,6 @@ package io.scalecube.gateway.clientsdk;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import io.scalecube.gateway.clientsdk.exceptions.MessageCodecException;
 import io.scalecube.services.codec.DataCodec;
@@ -39,7 +38,7 @@ public interface ClientCodec<T> {
         ExceptionProcessor.isError(message.qualifier()) ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice())) {
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice(), true)) {
       data = getDataCodec().decode(inputStream, targetType);
     } catch (Throwable ex) {
       LOGGER.error(
@@ -49,8 +48,6 @@ public interface ClientCodec<T> {
           dataBuffer.toString(StandardCharsets.UTF_8));
       throw new MessageCodecException(
           "Failed to decode data on message q=" + message.qualifier(), ex);
-    } finally {
-      ReferenceCountUtil.safeRelease(dataBuffer);
     }
 
     return ClientMessage.from(message).data(data).build();
