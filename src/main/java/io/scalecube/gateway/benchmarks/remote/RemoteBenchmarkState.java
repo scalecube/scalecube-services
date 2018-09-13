@@ -25,7 +25,7 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
       int gatewayPort,
       BiFunction<InetSocketAddress, LoopResources, Client> clientBuilder) {
     super(settings, clientBuilder);
-    String gatewayHost = settings.find("gatewayIpAddress", "localhost");
+    String gatewayHost = settings.find("gatewayHost", "localhost");
     this.gatewayAddress = InetSocketAddress.createUnresolved(gatewayHost, gatewayPort);
   }
 
