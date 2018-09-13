@@ -113,7 +113,7 @@ public final class HttpClientTransport implements ClientTransport {
         .header("client-send-time", responseHeaders.get("client-send-time"))
         .header("service-recv-time", responseHeaders.get("service-recv-time"))
         .header("gw-recv-from-client-time", responseHeaders.get("gw-recv-from-client-time"))
-        .header("gw-recv-from-client-time", responseHeaders.get("gw-recv-from-client-time"))
+        .header("gw-recv-from-service-time", responseHeaders.get("gw-recv-from-service-time"))
         .build();
   }
 }
