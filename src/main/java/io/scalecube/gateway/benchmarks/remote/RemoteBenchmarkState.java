@@ -12,6 +12,7 @@ public class RemoteBenchmarkState extends AbstractBenchmarkState<RemoteBenchmark
 
   public static final int WS_PORT = 7070;
   public static final int RS_PORT = 9090;
+  public static final int HTTP_PORT = 8080;
 
   private final InetSocketAddress gatewayAddress;
 

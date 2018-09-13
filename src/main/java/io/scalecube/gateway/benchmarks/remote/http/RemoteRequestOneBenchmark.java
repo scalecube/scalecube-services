@@ -1,5 +1,7 @@
 package io.scalecube.gateway.benchmarks.remote.http;
 
+import static io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState.HTTP_PORT;
+
 import io.scalecube.gateway.benchmarks.RequestOneBenchmark;
 import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
@@ -18,6 +20,7 @@ public class RemoteRequestOneBenchmark {
         benchmarkSettings ->
             new RemoteBenchmarkState(
                 benchmarkSettings,
+                HTTP_PORT,
                 (address, loopResources) ->
                     Client.onHttp(
                         ClientSettings.builder()
