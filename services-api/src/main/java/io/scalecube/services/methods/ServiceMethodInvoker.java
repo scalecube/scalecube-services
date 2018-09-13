@@ -43,7 +43,10 @@ public final class ServiceMethodInvoker {
   public Mono<ServiceMessage> invokeOne(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Mono.defer(
-        () -> Mono.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse));
+        () -> {
+          Object request = toRequest(message, dataDecoder);
+          return Mono.from(invoke(request)).map(this::toResponse);
+        });
   }
 
   /**
@@ -56,7 +59,10 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeMany(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Flux.defer(
-        () -> Flux.from(invoke(toRequest(message, dataDecoder))).map(this::toResponse));
+        () -> {
+          Object request = toRequest(message, dataDecoder);
+          return Flux.from(invoke(request)).map(this::toResponse);
+        });
   }
 
   /**
@@ -70,9 +76,11 @@ public final class ServiceMethodInvoker {
       Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
     return Flux.defer(
-        () ->
-            Flux.from(invoke(Flux.from(publisher).map(message -> toRequest(message, dataDecoder))))
-                .map(this::toResponse));
+        () -> {
+          Flux<?> requestPublsiher =
+              Flux.from(publisher).map(message -> toRequest(message, dataDecoder));
+          return Flux.from(invoke(requestPublsiher)).map(this::toResponse);
+        });
   }
 
   private Publisher<?> invoke(Object arguments) {
@@ -103,7 +111,8 @@ public final class ServiceMethodInvoker {
         && !methodInfo.isRequestTypeServiceMessage()
         && !request.hasData(methodInfo.requestType())) {
 
-      Class<?> clazz = Optional.ofNullable(request.data()).map(Object::getClass).orElse(null);
+      Optional<?> dataOptional = Optional.ofNullable(request.data());
+      Class<?> clazz = dataOptional.map(Object::getClass).orElse(null);
       throw new BadRequestException(
           String.format(
               "Expected service request data of type: %s, but received: %s",
