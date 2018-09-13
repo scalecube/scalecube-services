@@ -79,11 +79,7 @@ public final class Client {
         new HttpClientCodec(DataCodec.getInstance(clientSettings.contentType()));
 
     ClientTransport clientTransport =
-        new HttpClientTransport(
-            clientSettings,
-            clientCodec,
-            clientSettings.loopResources()
-        );
+        new HttpClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
 
     return new Client(clientTransport, clientCodec);
   }

@@ -72,13 +72,21 @@ public final class HttpClientTransport implements ClientTransport {
                           .failOnClientError(false)
                           .failOnServerError(false)
                           .keepAlive(true)
-                          .onWriteIdle(WRITE_IDLE_TIMEOUT, () -> {})
+                          .onWriteIdle(
+                              WRITE_IDLE_TIMEOUT,
+                              () -> {
+                                // no-op
+                              })
                           .sendObject(codec.encode(request));
                     })
                 .flatMap(
                     httpResponse ->
                         httpResponse
-                            .onReadIdle(READ_IDLE_TIMEOUT, () -> {})
+                            .onReadIdle(
+                                READ_IDLE_TIMEOUT,
+                                () -> {
+                                  // no-op
+                                })
                             .receive()
                             .map(ByteBuf::retain)
                             .map(
