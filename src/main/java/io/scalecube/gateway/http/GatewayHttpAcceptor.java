@@ -13,6 +13,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.ReferenceCountUtil;
+import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
@@ -37,9 +38,11 @@ public class GatewayHttpAcceptor
   private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
   private final ServiceCall serviceCall;
+  private final GatewayMetrics metrics;
 
-  GatewayHttpAcceptor(ServiceCall serviceCall) {
+  GatewayHttpAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
     this.serviceCall = serviceCall;
+    this.metrics = metrics;
   }
 
   @Override
@@ -49,6 +52,9 @@ public class GatewayHttpAcceptor
         httpRequest,
         httpRequest.requestHeaders(),
         httpRequest.params());
+    metrics.incConnection();
+
+    httpResponse.context().onClose(metrics::decConnection);
 
     if (httpRequest.method() != POST) {
       LOGGER.error("Unsupported HTTP method. Expected POST, actual {}", httpRequest.method());
@@ -57,7 +63,9 @@ public class GatewayHttpAcceptor
 
     return httpRequest
         .receiveContent()
+        .doOnNext(input -> metrics.markRequest())
         .flatMap(httpContent -> handleHttpContent(httpContent, httpResponse, httpRequest))
+        .doOnComplete(metrics::markResponse)
         .timeout(DEFAULT_TIMEOUT)
         .onErrorResume(throwable -> error(httpResponse, throwable));
   }

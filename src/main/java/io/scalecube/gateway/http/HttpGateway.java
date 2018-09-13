@@ -1,6 +1,7 @@
 package io.scalecube.gateway.http;
 
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.GatewayTemplate;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.gateway.GatewayConfig;
@@ -45,7 +46,8 @@ public class HttpGateway extends GatewayTemplate {
           LoopResources loopResources =
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
 
-          GatewayHttpAcceptor httpAcceptor = new GatewayHttpAcceptor(call.create());
+          GatewayHttpAcceptor httpAcceptor =
+              new GatewayHttpAcceptor(call.create(), new GatewayMetrics(config.name(), metrics));
 
           server =
               HttpServer.builder()
