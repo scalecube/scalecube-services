@@ -1,6 +1,6 @@
 package io.scalecube.gateway.benchmarks.standalone.rsocket;
 
-import io.scalecube.gateway.benchmarks.BroadcastStreamBenchmark;
+import io.scalecube.gateway.benchmarks.BroadcastStreamScenario;
 import io.scalecube.gateway.benchmarks.standalone.StandaloneBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -13,7 +13,7 @@ public class StandaloneBroadcastStreamBenchmark {
    * @param args program arguments
    */
   public static void main(String[] args) {
-    BroadcastStreamBenchmark.runWith(
+    BroadcastStreamScenario.runWith(
         args,
         benchmarkSettings ->
             new StandaloneBenchmarkState(

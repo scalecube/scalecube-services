@@ -1,21 +1,19 @@
 package io.scalecube.gateway.benchmarks;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
+import static io.scalecube.gateway.benchmarks.BenchmarksService.SERVICE_RECV_TIME;
+
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
-import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import reactor.core.publisher.Mono;
 
-public final class RequestOneBenchmark {
+public final class InfiniteStreamScenario {
 
-  private static final String QUALIFIER = "/benchmarks/one";
+  public static final String QUALIFIER = "/benchmarks/infiniteStream";
 
-  private RequestOneBenchmark() {
+  private InfiniteStreamScenario() {
     // Do not instantiate
   }
 
@@ -48,28 +46,21 @@ public final class RequestOneBenchmark {
         (rampUpTick, state) -> state.createClient(),
         state -> {
           BenchmarkTimer timer = state.timer("latency.timer");
-          GatewayLatencyHelper latencyHelper = new GatewayLatencyHelper(state);
+          LatencyHelper latencyHelper = new LatencyHelper(state);
 
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
           return client ->
               (executionTick, task) ->
-                  Mono.defer(
-                      () -> {
-                        Context timeContext = timer.time();
-
-                        return client
-                            .requestResponse(request)
-                            .doOnNext(
-                                msg -> {
-                                  if (msg.hasData(ByteBuf.class)) {
-                                    ReferenceCountUtil.safeRelease(msg.data());
-                                  }
-                                  timeContext.stop();
-                                  latencyHelper.calculate(msg);
-                                })
-                            .doOnTerminate(task::scheduleNow);
-                      });
+                  client
+                      .requestStream(request)
+                      .doOnNext(
+                          msg -> {
+                            long timestamp = Long.parseLong(msg.header(SERVICE_RECV_TIME));
+                            timer.update(
+                                System.currentTimeMillis() - timestamp, TimeUnit.MILLISECONDS);
+                            latencyHelper.calculate(msg);
+                          });
         },
         (state, client) -> client.close());
   }

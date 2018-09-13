@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
-public class GatewayLatencyHelper {
+public final class LatencyHelper {
 
   private final BenchmarkTimer clientToGwTimer;
   private final BenchmarkTimer gwToServiceTimer;
@@ -25,7 +25,7 @@ public class GatewayLatencyHelper {
    *
    * @param state a benchmark state
    */
-  public GatewayLatencyHelper(BenchmarkState state) {
+  public LatencyHelper(BenchmarkState state) {
     clientToGwTimer = state.timer("latency.client-to-gw-timer");
     gwToServiceTimer = state.timer("latency.gw-to-service-timer");
     serviceToGwTimer = state.timer("latency.service-to-gw-timer");

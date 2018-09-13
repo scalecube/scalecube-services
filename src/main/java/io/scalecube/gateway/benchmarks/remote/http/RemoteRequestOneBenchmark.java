@@ -2,7 +2,7 @@ package io.scalecube.gateway.benchmarks.remote.http;
 
 import static io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState.HTTP_PORT;
 
-import io.scalecube.gateway.benchmarks.RequestOneBenchmark;
+import io.scalecube.gateway.benchmarks.RequestOneScenario;
 import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -15,7 +15,7 @@ public class RemoteRequestOneBenchmark {
    * @param args program arguments
    */
   public static void main(String[] args) {
-    RequestOneBenchmark.runWith(
+    RequestOneScenario.runWith(
         args,
         benchmarkSettings ->
             new RemoteBenchmarkState(

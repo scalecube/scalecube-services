@@ -1,6 +1,6 @@
 package io.scalecube.gateway.benchmarks.distributed.rsocket;
 
-import io.scalecube.gateway.benchmarks.InfiniteStreamBenchmark;
+import io.scalecube.gateway.benchmarks.InfiniteStreamScenario;
 import io.scalecube.gateway.benchmarks.distributed.DistributedBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -13,7 +13,7 @@ public class DistributedInfiniteStreamBenchmark {
    * @param args program arguments
    */
   public static void main(String[] args) {
-    InfiniteStreamBenchmark.runWith(
+    InfiniteStreamScenario.runWith(
         args,
         benchmarkSettings ->
             new DistributedBenchmarkState(

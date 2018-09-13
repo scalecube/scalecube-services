@@ -1,6 +1,6 @@
 package io.scalecube.gateway.benchmarks.distributed.websocket;
 
-import io.scalecube.gateway.benchmarks.BroadcastStreamBenchmark;
+import io.scalecube.gateway.benchmarks.BroadcastStreamScenario;
 import io.scalecube.gateway.benchmarks.distributed.DistributedBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -13,7 +13,7 @@ public class DistributedBroadcastStreamBenchmark {
    * @param args program arguments
    */
   public static void main(String[] args) {
-    BroadcastStreamBenchmark.runWith(
+    BroadcastStreamScenario.runWith(
         args,
         benchmarkSettings ->
             new DistributedBenchmarkState(
