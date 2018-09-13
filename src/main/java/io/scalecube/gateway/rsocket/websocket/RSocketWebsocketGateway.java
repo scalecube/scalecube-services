@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.http.server.HttpServer;
-import reactor.ipc.netty.resources.LoopResources;
 
 public class RSocketWebsocketGateway extends GatewayTemplate {
 
@@ -44,23 +43,15 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
         () -> {
           LOGGER.info("Starting gateway with {}", config);
 
-          InetSocketAddress listenAddress = new InetSocketAddress(config.port());
-
-          LoopResources loopResources =
-              prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
+          GatewayMetrics gatewayMetrics = new GatewayMetrics(config.name(), metrics);
+          RSocketWebsocketAcceptor rsocketWebsocketAcceptor =
+              new RSocketWebsocketAcceptor(call.create(), gatewayMetrics);
 
           HttpServer httpServer =
-              HttpServer.create(
-                  opts -> {
-                    opts.listenAddress(listenAddress);
-                    if (loopResources != null) {
-                      opts.loopResources(loopResources);
-                    }
-                  });
-
-          RSocketWebsocketAcceptor rsocketWebsocketAcceptor =
-              new RSocketWebsocketAcceptor(
-                  call.create(), new GatewayMetrics(config.name(), metrics));
+              prepareHttpServer(
+                  prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool),
+                  gatewayMetrics,
+                  config.port());
 
           server =
               RSocketFactory.receive()

@@ -32,15 +32,10 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket rsocket) {
     LOGGER.info("Accepted rsocket websocket: {}, connectionSetup: {}", rsocket, setup);
-    metrics.incConnection();
 
     rsocket
         .onClose()
-        .doOnTerminate(
-            () -> {
-              LOGGER.info("Client disconnected: {}", rsocket);
-              metrics.decConnection();
-            })
+        .doOnTerminate(() -> LOGGER.info("Client disconnected: {}", rsocket))
         .subscribe();
 
     // Prepare message codec together with headers from metainfo
