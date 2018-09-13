@@ -24,8 +24,6 @@ public final class HttpClientTransport implements ClientTransport {
 
   private static final int WRITE_IDLE_TIMEOUT = 6000;
   private static final int READ_IDLE_TIMEOUT = 6000;
-  private static final int MAX_CONNECTIONS = 42;
-  private static final int ACQUIRE_TIMEOUT = 6000;
 
   private final ClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
@@ -43,7 +41,7 @@ public final class HttpClientTransport implements ClientTransport {
 
     this.codec = codec;
 
-    this.poolResources = PoolResources.fixed("http-client-sdk", MAX_CONNECTIONS, ACQUIRE_TIMEOUT);
+    this.poolResources = PoolResources.elastic("http-client-sdk");
 
     this.httpClient =
         HttpClient.create(
