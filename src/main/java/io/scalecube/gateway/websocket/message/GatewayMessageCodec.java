@@ -23,7 +23,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import io.netty.util.ReferenceCountUtil;
+import io.scalecube.gateway.ReferenceCountUtil;
 import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -76,7 +76,7 @@ public class GatewayMessageCodec {
             generator.writeRaw(":");
             generator.flush();
             byteBuf.writeBytes(dataBin);
-            ReferenceCountUtil.safeRelease(dataBin);
+            ReferenceCountUtil.safestRelease(dataBin);
           }
         } else {
           generator.writeObjectField(DATA_FIELD, data);
@@ -85,8 +85,8 @@ public class GatewayMessageCodec {
 
       generator.writeEndObject();
     } catch (Throwable ex) {
-      ReferenceCountUtil.safeRelease(byteBuf);
-      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safeRelease);
+      ReferenceCountUtil.safestRelease(byteBuf);
+      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safestRelease);
       LOGGER.error("Failed to encode message: {}", message, ex);
       throw new MessageCodecException("Failed to encode message", ex);
     }

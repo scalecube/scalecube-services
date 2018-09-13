@@ -1,8 +1,8 @@
 package io.scalecube.gateway.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.util.ReferenceCountUtil;
 import io.scalecube.gateway.GatewayMetrics;
+import io.scalecube.gateway.ReferenceCountUtil;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import io.scalecube.gateway.websocket.message.Signal;
@@ -114,25 +114,17 @@ public class GatewayWebsocketAcceptor
               serviceStream = serviceStream.timeout(Duration.ofMillis(request.inactivity()));
             }
 
-            GatewayMessage finalRequest = request;
             Disposable disposable =
                 serviceStream
                     .map(response -> prepareResponse(streamId, response, receivedErrorMessage))
                     .concatWith(Flux.defer(() -> prepareCompletion(streamId, receivedErrorMessage)))
-                    .onErrorResume(
-                        t -> {
-                          Optional.ofNullable(finalRequest.data())
-                              .ifPresent(ReferenceCountUtil::safeRelease);
-                          return Mono.just(toErrorMessage(t, streamId));
-                        })
+                    .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
                     .doFinally(signalType -> session.dispose(streamId))
                     .subscribe(
                         response -> {
                           try {
                             sink.next(toByteBuf(response));
                           } catch (Throwable t) {
-                            Optional.ofNullable(response.data())
-                                .ifPresent(ReferenceCountUtil::safeRelease);
                             LOGGER.error("Failed to encode response message: {}", response, t);
                           }
                         },
@@ -143,7 +135,7 @@ public class GatewayWebsocketAcceptor
           } catch (Throwable e) {
             Optional.ofNullable(request)
                 .map(GatewayMessage::data)
-                .ifPresent(ReferenceCountUtil::safeRelease);
+                .ifPresent(ReferenceCountUtil::safestRelease);
             handleError(sink, session, sid, e);
           }
         });
@@ -191,7 +183,7 @@ public class GatewayWebsocketAcceptor
     }
 
     // release data, if for any reason client sent data inside CANCEL request
-    Optional.ofNullable(request.data()).ifPresent(ReferenceCountUtil::safeRelease);
+    Optional.ofNullable(request.data()).ifPresent(ReferenceCountUtil::safestRelease);
 
     // send ack message, if encoding throws here we're still safe
     sink.next(toByteBuf(cancelResponse(streamId)));
