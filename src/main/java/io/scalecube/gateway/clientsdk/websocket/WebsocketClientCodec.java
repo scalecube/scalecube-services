@@ -26,6 +26,7 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,6 +96,7 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
             generator.writeRaw(":");
             generator.flush();
             byteBuf.writeBytes(dataBin);
+            ReferenceCountUtil.safeRelease(dataBin);
           }
         } else {
           generator.writeObjectField(DATA_FIELD, data);
@@ -104,6 +106,7 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
       generator.writeEndObject();
     } catch (Throwable ex) {
       ReferenceCountUtil.safeRelease(byteBuf);
+      Optional.ofNullable(message.data()).ifPresent(ReferenceCountUtil::safeRelease);
       LOGGER.error("Failed to encode message: {}", message, ex);
       throw new MessageCodecException("Failed to encode message", ex);
     }
@@ -112,7 +115,7 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
 
   @Override
   public ClientMessage decode(ByteBuf encodedMessage) {
-    try (InputStream stream = new ByteBufInputStream(encodedMessage.slice())) {
+    try (InputStream stream = new ByteBufInputStream(encodedMessage.slice(), true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       ClientMessage.Builder result = ClientMessage.builder();
 
@@ -166,8 +169,6 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
       LOGGER.error(
           "Failed to decode message: {}", encodedMessage.toString(Charset.defaultCharset()), ex);
       throw new MessageCodecException("Failed to decode message", ex);
-    } finally {
-      ReferenceCountUtil.safeRelease(encodedMessage);
     }
   }
 

@@ -1,8 +1,8 @@
 package io.scalecube.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import java.util.logging.Level;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
@@ -27,7 +27,6 @@ final class WebsocketSession {
     this.inbound
         .aggregateFrames()
         .receive()
-        .map(ByteBuf::retain)
         .log(">>> RECEIVE", Level.FINE)
         .subscribe(inboundSink::next, inboundSink::error, inboundSink::complete);
   }
@@ -35,12 +34,12 @@ final class WebsocketSession {
   public Mono<Void> send(ByteBuf byteBuf) {
     return outbound
         .options(SendOptions::flushOnEach)
-        .sendObject(Mono.just(new BinaryWebSocketFrame(byteBuf)).log("<<< SEND", Level.FINE))
+        .sendObject(Mono.just(new TextWebSocketFrame(byteBuf)).log("<<< SEND", Level.FINE))
         .then();
   }
 
   public Flux<ByteBuf> receive() {
-    return inboundProcessor;
+    return inboundProcessor.map(ByteBuf::retain);
   }
 
   public Mono<Void> close() {
