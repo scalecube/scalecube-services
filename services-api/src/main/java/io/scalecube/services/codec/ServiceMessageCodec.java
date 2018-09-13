@@ -85,7 +85,7 @@ public final class ServiceMessageCodec {
       builder.data(dataBuffer);
     }
     if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice())) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice(), true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
         LOGGER.error(
@@ -93,8 +93,6 @@ public final class ServiceMessageCodec {
             headersBuffer.toString(StandardCharsets.UTF_8),
             ex);
         throw new MessageCodecException("Failed to decode message headers", ex);
-      } finally {
-        ReferenceCountUtil.safeRelease(headersBuffer);
       }
     }
     return builder.build();
@@ -119,7 +117,7 @@ public final class ServiceMessageCodec {
     Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice())) {
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice(), true)) {
       DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
@@ -130,8 +128,6 @@ public final class ServiceMessageCodec {
           dataBuffer.toString(StandardCharsets.UTF_8));
       throw new MessageCodecException(
           "Failed to decode data on message q=" + message.qualifier(), ex);
-    } finally {
-      ReferenceCountUtil.safeRelease(dataBuffer);
     }
 
     if (targetType == ErrorData.class) {
