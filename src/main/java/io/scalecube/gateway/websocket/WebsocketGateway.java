@@ -14,8 +14,6 @@ import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.server.HttpServer;
-import reactor.ipc.netty.resources.LoopResources;
 import reactor.ipc.netty.tcp.BlockingNettyContext;
 
 public class WebsocketGateway extends GatewayTemplate {
@@ -41,25 +39,16 @@ public class WebsocketGateway extends GatewayTemplate {
         () -> {
           LOGGER.info("Starting gateway with {}", config);
 
-          InetSocketAddress listenAddress = new InetSocketAddress(config.port());
-
-          LoopResources loopResources =
-              prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
-
+          GatewayMetrics gatewayMetrics = new GatewayMetrics(config.name(), metrics);
           GatewayWebsocketAcceptor websocketAcceptor =
-              new GatewayWebsocketAcceptor(
-                  call.create(), new GatewayMetrics(config.name(), metrics));
+              new GatewayWebsocketAcceptor(call.create(), gatewayMetrics);
 
           server =
-              HttpServer.builder()
-                  .options(
-                      opts -> {
-                        opts.listenAddress(listenAddress);
-                        if (loopResources != null) {
-                          opts.loopResources(loopResources);
-                        }
-                      })
-                  .build()
+              prepareHttpServer(
+                      prepareLoopResources(
+                          preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool),
+                      gatewayMetrics,
+                      config.port())
                   .start(websocketAcceptor, START_TIMEOUT);
 
           InetSocketAddress address = server.getContext().address();
