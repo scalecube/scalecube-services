@@ -41,6 +41,7 @@ public class RoutersTest extends BaseTest {
   private static Microservices provider1;
   private static Microservices provider2;
 
+  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway = Microservices.builder().startAwait();
@@ -73,6 +74,7 @@ public class RoutersTest extends BaseTest {
             .startAwait();
   }
 
+  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     gateway.shutdown();
@@ -109,7 +111,7 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_service_tags() {
+  public void test_remote_service_tags() throws Exception {
 
     CanaryService service =
         gateway
@@ -118,7 +120,7 @@ public class RoutersTest extends BaseTest {
             .create()
             .api(CanaryService.class);
 
-    Util.sleep(1000);
+    Thread.sleep(1000);
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 

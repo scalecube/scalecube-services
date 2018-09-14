@@ -32,6 +32,7 @@ public class ServiceTransportTest {
   private Microservices gateway;
   private Microservices serviceNode;
 
+  /** Setup. */
   @BeforeEach
   public void setUp() {
     gateway = Microservices.builder().discoveryPort(port.incrementAndGet()).startAwait();
@@ -44,18 +45,21 @@ public class ServiceTransportTest {
             .startAwait();
   }
 
+  /** Cleanup. */
   @AfterEach
   public void cleanUp() {
     if (gateway != null) {
       try {
         gateway.shutdown();
       } catch (Throwable ignore) {
+        // no-op
       }
     }
     if (serviceNode != null) {
       try {
         serviceNode.shutdown();
       } catch (Throwable ignore) {
+        // no-op
       }
     }
   }

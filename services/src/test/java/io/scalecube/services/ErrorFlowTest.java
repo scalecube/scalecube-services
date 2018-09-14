@@ -23,6 +23,7 @@ public class ErrorFlowTest {
   private static Microservices provider;
   private static Microservices consumer;
 
+  /** Setup. */
   @BeforeAll
   public static void initNodes() {
     provider =

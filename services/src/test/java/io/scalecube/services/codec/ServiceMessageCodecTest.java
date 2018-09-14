@@ -78,7 +78,8 @@ class ServiceMessageCodecTest extends BaseTest {
     result.requestTimestamp = LocalDateTime.now();
     result.sourceIpAddress = "255.255.255.255";
     result.token =
-        "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJUZW5hbnQxIiwic3ViIjoiMSIsIm5hbWUiOiJ0cmFkZXIxIn0.j9dCs63J4xtWfhctrXb5popLAl8ohSlMTJU3_vCrQHk";
+        "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJUZW5hbnQxIiwic3ViIjoiMSIsIm5hbWUiOiJ0cmFkZXIxIn0."
+            + "j9dCs63J4xtWfhctrXb5popLAl8ohSlMTJU3_vCrQHk";
     return result;
   }
 

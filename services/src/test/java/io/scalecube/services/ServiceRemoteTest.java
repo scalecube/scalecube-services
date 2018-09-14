@@ -31,22 +31,26 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices provider;
 
+  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway = gateway();
     provider = serviceProvider();
   }
 
+  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     try {
       gateway.shutdown().block();
-    } catch (Exception ex) {
+    } catch (Exception ignore) {
+      // no-op
     }
 
     try {
       provider.shutdown().block();
-    } catch (Exception ex) {
+    } catch (Exception ignore) {
+      // no-op
     }
   }
 
@@ -306,8 +310,6 @@ public class ServiceRemoteTest extends BaseTest {
     GreetingService service = createProxy();
 
     EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
-    // call the service.
-    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
 
     // call the service.
 
@@ -315,6 +317,9 @@ public class ServiceRemoteTest extends BaseTest {
     requests.onNext(new GreetingRequest("joe-2"));
     requests.onNext(new GreetingRequest("joe-3"));
     requests.onComplete();
+
+    // call the service.
+    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
 
     StepVerifier.create(responses)
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
