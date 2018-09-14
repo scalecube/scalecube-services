@@ -296,6 +296,7 @@
             </excludes>
           </configuration>
         </plugin>
+
         <plugin>
           <artifactId>maven-dependency-plugin</artifactId>
           <executions>
@@ -316,76 +317,6 @@
           <groupId>com.spotify</groupId>
           <artifactId>dockerfile-maven-plugin</artifactId>
           <version>${dockerfile.maven.version}</version>
-          <executions>
-            <execution>
-              <id>default</id>
-              <goals>
-                <goal>build</goal>
-              </goals>
-              <phase>package</phase>
-              <configuration>
-                <buildArgs>
-                  <EXECUTABLE_JAR>${project.build.finalName}</EXECUTABLE_JAR>
-                </buildArgs>
-                <tag>latest</tag>
-              </configuration>
-            </execution>
-            <execution>
-              <id>tag-version</id>
-              <goals>
-                <goal>tag</goal>
-              </goals>
-              <phase>install</phase>
-              <configuration>
-                <tag>${project.version}</tag>
-              </configuration>
-            </execution>
-            <execution>
-              <id>deployment</id>
-              <goals>
-                <goal>push</goal>
-              </goals>
-              <phase>deploy</phase>
-              <configuration>
-                <tag>latest</tag>
-              </configuration>
-            </execution>
-            <execution>
-              <id>tag-deployment</id>
-              <goals>
-                <goal>push</goal>
-              </goals>
-              <phase>deploy</phase>
-              <configuration>
-                <tag>${project.version}</tag>
-              </configuration>
-            </execution>
-            <execution>
-              <id>create-extra-tags</id>
-              <goals>
-                <goal>tag</goal>
-              </goals>
-              <phase>install</phase>
-              <configuration>
-                <tag>${extratags}</tag>
-                <skipTag>${noextratags}</skipTag>
-              </configuration>
-            </execution>
-            <execution>
-              <id>push-extra-tags</id>
-              <goals>
-                <goal>push</goal>
-              </goals>
-              <phase>deploy</phase>
-              <configuration>
-                <tag>${extratags}</tag>
-                <skip>${noextratags}</skip>
-              </configuration>
-            </execution>
-          </executions>
-          <configuration>
-            <useMavenSettingsForAuth>true</useMavenSettingsForAuth>
-          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
