@@ -11,6 +11,11 @@ import reactor.core.publisher.Mono;
 
 public class ServiceTagsExample {
 
+  /**
+   * Main runner.
+   *
+   * @param args arguments
+   */
   public static void main(String[] args) {
     Microservices gateway = Microservices.builder().startAwait();
 

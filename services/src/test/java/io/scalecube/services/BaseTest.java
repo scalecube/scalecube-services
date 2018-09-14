@@ -10,6 +10,11 @@ public abstract class BaseTest {
 
   protected static final Logger LOGGER = LoggerFactory.getLogger(BaseTest.class);
 
+  /**
+   * Setup.
+   *
+   * @param testInfo test info
+   */
   @BeforeEach
   public final void baseSetUp(TestInfo testInfo) {
     LOGGER.info(
@@ -20,6 +25,11 @@ public abstract class BaseTest {
             + " *****");
   }
 
+  /**
+   * Setup.
+   *
+   * @param testInfo test info
+   */
   @AfterEach
   public final void baseTearDown(TestInfo testInfo) {
     LOGGER.info(

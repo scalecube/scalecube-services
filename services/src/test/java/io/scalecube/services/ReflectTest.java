@@ -17,6 +17,12 @@ import reactor.core.publisher.Mono;
 
 public class ReflectTest {
 
+  /**
+   * Test communication mode.
+   *
+   * @param methodName method name
+   * @param expectedMode expected mode
+   */
   @ParameterizedTest
   @MethodSource("argsProvider")
   public void testCommunicationMode(String methodName, CommunicationMode expectedMode) {
