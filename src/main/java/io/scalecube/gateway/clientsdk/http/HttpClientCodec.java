@@ -3,7 +3,6 @@ package io.scalecube.gateway.clientsdk.http;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
-import io.netty.buffer.Unpooled;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
@@ -30,11 +29,11 @@ public final class HttpClientCodec implements ClientCodec<ByteBuf> {
 
   @Override
   public ByteBuf encode(ClientMessage message) {
-    ByteBuf content = Unpooled.EMPTY_BUFFER;
+    ByteBuf content;
 
     if (message.hasData(ByteBuf.class)) {
       content = message.data();
-    } else if (message.hasData()) {
+    } else {
       content = ByteBufAllocator.DEFAULT.buffer();
       try {
         dataCodec.encode(new ByteBufOutputStream(content), message.data());
