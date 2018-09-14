@@ -8,6 +8,7 @@ import io.scalecube.gateway.http.HttpGateway;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.transport.Address;
 import java.io.File;
@@ -23,6 +24,7 @@ public class GatewayRunner {
       "#######################################################################";
 
   private static final String REPORTER_PATH = "reports/gw/metrics";
+  private static final String CLUSTER_MEMBER_DNS_NAME = "io.scalecube.cluster.member.dns.name";
 
   /**
    * Main runner.
@@ -38,9 +40,10 @@ public class GatewayRunner {
             .objectProperty("io.scalecube.gateway", Config.class)
             .value()
             .orElseThrow(() -> new IllegalStateException("Couldn't load config"));
+    String memberHost = configRegistry.stringValue(CLUSTER_MEMBER_DNS_NAME, null);
 
     LOGGER.info(DECORATOR);
-    LOGGER.info("Starting Gateway on " + config);
+    LOGGER.info("Starting Gateway on {}, memberHost={}", config, memberHost);
     LOGGER.info(DECORATOR);
 
     int servicePort = config.getServicePort();
@@ -50,7 +53,7 @@ public class GatewayRunner {
     MetricRegistry metrics = initMetricRegistry();
 
     Microservices.builder()
-        .seeds(seeds)
+        .discoveryConfig(DiscoveryConfig.builder().seeds(seeds).memberHost(memberHost))
         .servicePort(servicePort)
         .discoveryPort(discoveryPort)
         .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
