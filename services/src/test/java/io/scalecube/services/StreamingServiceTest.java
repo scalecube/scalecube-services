@@ -21,6 +21,7 @@ public class StreamingServiceTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices node;
 
+  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway = Microservices.builder().startAwait();
@@ -100,11 +101,11 @@ public class StreamingServiceTest extends BaseTest {
     QuoteService service = gateway.call().create().api(QuoteService.class);
     CountDownLatch latch1 = new CountDownLatch(streamBound);
 
-    Disposable sub1 = service.snapshot(streamBound).subscribe(onNext -> latch1.countDown());
+    final Disposable sub1 = service.snapshot(streamBound).subscribe(onNext -> latch1.countDown());
 
     latch1.await(15, TimeUnit.SECONDS);
     System.out.println("Curr value received: " + latch1.getCount());
-    assertTrue(latch1.getCount() == 0);
+    assertEquals(0, latch1.getCount());
     sub1.dispose();
   }
 
