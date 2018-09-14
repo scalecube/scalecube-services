@@ -2,12 +2,6 @@ package io.scalecube.gateway.websocket.message;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.DATA_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.INACTIVITY_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.QUALIFIER_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.SERVICE_MESSAGE_HEADER_DATA_FORMAT;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.SERVICE_MESSAGE_HEADER_DATA_TYPE;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.SIGNAL_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.STREAM_ID_FIELD;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -30,8 +24,8 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
-import java.util.Optional;
 import java.util.Map.Entry;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,19 +49,7 @@ public class GatewayMessageCodec {
             (OutputStream) new ByteBufOutputStream(byteBuf), JsonEncoding.UTF8)) {
       generator.writeStartObject();
 
-      if (message.qualifier() != null) {
-        generator.writeStringField(QUALIFIER_FIELD, message.qualifier());
-      }
-      if (message.streamId() != null) {
-        generator.writeNumberField(STREAM_ID_FIELD, message.streamId());
-      }
-      if (message.signal() != null) {
-        generator.writeNumberField(SIGNAL_FIELD, message.signal());
-      }
-      if (message.inactivity() != null) {
-        generator.writeNumberField(INACTIVITY_FIELD, message.inactivity());
-      }
-
+      // headers
       for (Entry<String, String> header : message.headers().entrySet()) {
         generator.writeStringField(header.getKey(), header.getValue());
       }
@@ -124,35 +106,19 @@ public class GatewayMessageCodec {
         if (current == VALUE_NULL) {
           continue;
         }
-        switch (fieldName) {
-          case QUALIFIER_FIELD:
-            result.qualifier(jp.getValueAsString());
-            break;
-          case STREAM_ID_FIELD:
-            result.streamId(jp.getValueAsLong());
-            break;
-          case SIGNAL_FIELD:
-            result.signal(jp.getValueAsInt());
-            break;
-          case INACTIVITY_FIELD:
-            result.inactivity(jp.getValueAsInt());
-            break;
-          case SERVICE_MESSAGE_HEADER_DATA_FORMAT:
-          case SERVICE_MESSAGE_HEADER_DATA_TYPE:
-            break;
-          case DATA_FIELD:
-            dataStart = jp.getTokenLocation().getByteOffset();
-            if (current.isScalarValue()) {
-              if (!current.isNumeric() && !current.isBoolean()) {
-                jp.getValueAsString();
-              }
-            } else if (current.isStructStart()) {
-              jp.skipChildren();
+
+        if (fieldName.equals(DATA_FIELD)) {
+          dataStart = jp.getTokenLocation().getByteOffset();
+          if (current.isScalarValue()) {
+            if (!current.isNumeric() && !current.isBoolean()) {
+              jp.getValueAsString();
             }
-            dataEnd = jp.getCurrentLocation().getByteOffset();
-            break;
-          default:
-            result.header(fieldName, jp.getValueAsString());
+          } else if (current.isStructStart()) {
+            jp.skipChildren();
+          }
+          dataEnd = jp.getCurrentLocation().getByteOffset();
+        } else {
+          result.header(fieldName, jp.getValueAsString());
         }
       }
       if (dataEnd > dataStart) {

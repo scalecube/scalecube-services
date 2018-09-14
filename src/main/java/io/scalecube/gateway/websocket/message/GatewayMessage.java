@@ -14,15 +14,15 @@ public class GatewayMessage {
   public static final String DATA_FIELD = "d";
   public static final String INACTIVITY_FIELD = "i";
 
-  static final String SERVICE_MESSAGE_HEADER_DATA_TYPE = "_type";
-  static final String SERVICE_MESSAGE_HEADER_DATA_FORMAT = "_data_format";
+  private static final String SERVICE_MESSAGE_HEADER_DATA_TYPE = "_type";
+  private static final String SERVICE_MESSAGE_HEADER_DATA_FORMAT = "_data_format";
 
-  private final String qualifier;
-  private final Long streamId;
-  private final Integer signal;
-  private final Object data;
-  private final Integer inactivity;
   private final Map<String, String> headers;
+  private final Object data;
+
+  public static Builder builder() {
+    return new Builder();
+  }
 
   /**
    * Get a builder by pattern form given {@link GatewayMessage}.
@@ -32,14 +32,8 @@ public class GatewayMessage {
    */
   public static Builder from(GatewayMessage msg) {
     Builder builder = new Builder();
-    builder.qualifier = msg.qualifier();
-    builder.streamId = msg.streamId();
-    builder.signal = msg.signal();
-    builder.inactivity = msg.inactivity();
+    builder.headers = new HashMap<>(msg.headers);
     builder.data = msg.data();
-    if (msg.headers != null) {
-      builder.headers = new HashMap<>(msg.headers);
-    }
     return builder;
   }
 
@@ -59,18 +53,6 @@ public class GatewayMessage {
         .forEach(
             (key, value) -> {
               switch (key) {
-                case QUALIFIER_FIELD:
-                  builder.qualifier(value);
-                  break;
-                case STREAM_ID_FIELD:
-                  builder.streamId(Long.parseLong(value));
-                  break;
-                case SIGNAL_FIELD:
-                  builder.signal(Integer.parseInt(value));
-                  break;
-                case INACTIVITY_FIELD:
-                  builder.inactivity(Integer.parseInt(value));
-                  break;
                 case SERVICE_MESSAGE_HEADER_DATA_FORMAT:
                 case SERVICE_MESSAGE_HEADER_DATA_TYPE:
                   break;
@@ -82,15 +64,8 @@ public class GatewayMessage {
   }
 
   private GatewayMessage(Builder builder) {
-    this.qualifier = builder.qualifier;
-    this.streamId = builder.streamId;
-    this.signal = builder.signal;
     this.data = builder.data;
-    this.inactivity = builder.inactivity;
-    this.headers =
-        builder.headers != null
-            ? Collections.unmodifiableMap(builder.headers)
-            : Collections.emptyMap();
+    this.headers = Collections.unmodifiableMap(builder.headers);
   }
 
   public static GatewayMessage toGatewayMessage(ServiceMessage serviceMessage) {
@@ -109,36 +84,25 @@ public class GatewayMessage {
    */
   public static ServiceMessage toServiceMessage(GatewayMessage gatewayMessage) {
     ServiceMessage.Builder builder =
-        ServiceMessage.builder().qualifier(gatewayMessage.qualifier).data(gatewayMessage.data);
+        ServiceMessage.builder().qualifier(gatewayMessage.qualifier()).data(gatewayMessage.data);
     if (gatewayMessage.headers != null && !gatewayMessage.headers.isEmpty()) {
       gatewayMessage.headers.forEach(builder::header);
-    }
-    if (gatewayMessage.streamId != null) {
-      builder.header(STREAM_ID_FIELD, String.valueOf(gatewayMessage.streamId()));
-    }
-    if (gatewayMessage.signal != null) {
-      builder.header(SIGNAL_FIELD, String.valueOf(gatewayMessage.signal()));
-    }
-    if (gatewayMessage.inactivity != null) {
-      builder.header(INACTIVITY_FIELD, String.valueOf(gatewayMessage.inactivity()));
     }
     return builder.build();
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
   public String qualifier() {
-    return qualifier;
+    return headers.get(QUALIFIER_FIELD);
   }
 
   public Long streamId() {
-    return streamId;
+    String value = headers.get(STREAM_ID_FIELD);
+    return value != null ? Long.parseLong(value) : null;
   }
 
   public Integer signal() {
-    return signal;
+    String value = headers.get(SIGNAL_FIELD);
+    return value != null ? Integer.valueOf(value) : null;
   }
 
   public <T> T data() {
@@ -147,11 +111,13 @@ public class GatewayMessage {
   }
 
   public Integer inactivity() {
-    return inactivity;
+    String value = headers.get(INACTIVITY_FIELD);
+    return value != null ? Integer.valueOf(value) : null;
   }
 
   public boolean hasSignal(Signal signal) {
-    return this.signal != null && this.signal == signal.code();
+    String value = headers.get(SIGNAL_FIELD);
+    return value != null && Integer.parseInt(value) == signal.code();
   }
 
   public Map<String, String> headers() {
@@ -160,51 +126,40 @@ public class GatewayMessage {
 
   @Override
   public String toString() {
-    final StringBuilder sb = new StringBuilder("GatewayMessage{");
-    sb.append("qualifier='").append(qualifier).append('\'');
-    sb.append(", streamId=").append(streamId);
-    sb.append(", signal=").append(signal);
-    sb.append(", data=").append(data);
-    sb.append(", inactivity=").append(inactivity);
-    sb.append(", headers=").append(headers);
-    sb.append('}');
-    return sb.toString();
+    return new StringBuilder("GatewayMessage{")
+        .append("headers=")
+        .append(headers)
+        .append(", data=")
+        .append(data)
+        .append('}')
+        .toString();
   }
 
   public static class Builder {
 
-    private String qualifier;
-    private Long streamId;
-    private Integer signal;
+    private Map<String, String> headers = new HashMap<>();
     private Object data;
-    private Integer inactivity;
-    private Map<String, String> headers;
 
     Builder() {}
 
     public Builder qualifier(String qualifier) {
-      this.qualifier = qualifier;
-      return this;
+      return header(QUALIFIER_FIELD, qualifier);
     }
 
     public Builder streamId(Long streamId) {
-      this.streamId = streamId;
-      return this;
+      return header(STREAM_ID_FIELD, streamId);
     }
 
     public Builder signal(Integer signal) {
-      this.signal = signal;
-      return this;
+      return header(SIGNAL_FIELD, signal);
     }
 
     public Builder signal(Signal signal) {
-      this.signal = signal.code();
-      return this;
+      return signal(signal.code());
     }
 
     public Builder inactivity(Integer inactivity) {
-      this.inactivity = inactivity;
-      return this;
+      return header(INACTIVITY_FIELD, inactivity);
     }
 
     public Builder data(Object data) {
@@ -220,9 +175,6 @@ public class GatewayMessage {
      * @return self
      */
     public Builder header(String key, String value) {
-      if (headers == null) {
-        headers = new HashMap<>();
-      }
       headers.put(key, value);
       return this;
     }
