@@ -31,10 +31,7 @@ public class GatewayMessage {
    * @return builder with fields copied from given {@link GatewayMessage}
    */
   public static Builder from(GatewayMessage msg) {
-    Builder builder = new Builder();
-    builder.headers = new HashMap<>(msg.headers);
-    builder.data = msg.data();
-    return builder;
+    return new Builder().headers(msg.headers).data(msg.data);
   }
 
   /**
@@ -173,12 +170,35 @@ public class GatewayMessage {
      * @return self
      */
     public Builder header(String key, String value) {
-      headers.put(key, value);
+      if (value != null) {
+        headers.put(key, value);
+      }
       return this;
     }
 
+    /**
+     * Add a header.
+     *
+     * @param key header name
+     * @param value header value
+     * @return self
+     */
     public Builder header(String key, Object value) {
-      return header(key, value.toString());
+      if (value != null) {
+        headers.put(key, value.toString());
+      }
+      return this;
+    }
+
+    /**
+     * Add all headers.
+     *
+     * @param headers given headers
+     * @return self
+     */
+    public Builder headers(Map<String, String> headers) {
+      this.headers.putAll(headers);
+      return this;
     }
 
     /**
