@@ -158,7 +158,7 @@ public class GatewayMessage {
     }
 
     public Builder data(Object data) {
-      this.data = Objects.requireNonNull(data);
+      this.data = data;
       return this;
     }
 
