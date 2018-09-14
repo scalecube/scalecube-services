@@ -85,9 +85,7 @@ public class GatewayMessage {
   public static ServiceMessage toServiceMessage(GatewayMessage gatewayMessage) {
     ServiceMessage.Builder builder =
         ServiceMessage.builder().qualifier(gatewayMessage.qualifier()).data(gatewayMessage.data);
-    if (gatewayMessage.headers != null && !gatewayMessage.headers.isEmpty()) {
-      gatewayMessage.headers.forEach(builder::header);
-    }
+    gatewayMessage.headers.forEach(builder::header);
     return builder.build();
   }
 
