@@ -55,13 +55,10 @@ public class GatewayMessageCodec {
       for (Entry<String, String> header : message.headers().entrySet()) {
         String fieldName = header.getKey();
         String value = header.getValue();
-        switch (fieldName) {
-          case STREAM_ID_FIELD:
-          case SIGNAL_FIELD:
-            generator.writeNumberField(fieldName, Long.parseLong(value));
-            break;
-          default:
-            generator.writeStringField(fieldName, value);
+        if (STREAM_ID_FIELD.equals(fieldName) || SIGNAL_FIELD.equals(fieldName)) {
+          generator.writeNumberField(fieldName, Long.parseLong(value));
+        } else {
+          generator.writeStringField(fieldName, value);
         }
       }
 

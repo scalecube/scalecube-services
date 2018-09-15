@@ -4,7 +4,6 @@ import io.scalecube.services.api.ServiceMessage;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class GatewayMessage {
 
@@ -49,12 +48,9 @@ public class GatewayMessage {
         .headers()
         .forEach(
             (key, value) -> {
-              switch (key) {
-                case SERVICE_MESSAGE_HEADER_DATA_FORMAT:
-                case SERVICE_MESSAGE_HEADER_DATA_TYPE:
-                  break;
-                default:
-                  builder.header(key, value);
+              if (!SERVICE_MESSAGE_HEADER_DATA_FORMAT.equals(key)
+                  && !SERVICE_MESSAGE_HEADER_DATA_TYPE.equals(key)) {
+                builder.header(key, value);
               }
             });
     return builder;
