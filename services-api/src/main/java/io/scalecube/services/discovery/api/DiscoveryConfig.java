@@ -69,7 +69,7 @@ public class DiscoveryConfig {
     private String memberHost;
     private Integer memberPort;
 
-    public Builder seeds(Address[] seeds) {
+    public Builder seeds(Address... seeds) {
       this.seeds = seeds;
       return this;
     }

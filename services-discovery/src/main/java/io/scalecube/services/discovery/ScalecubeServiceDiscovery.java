@@ -58,15 +58,21 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   public Mono<ServiceDiscovery> start(DiscoveryConfig config) {
     configure(config);
 
-    clusterConfig.addMetadata(
-        this.serviceRegistry
-            .listServiceEndpoints()
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)));
+    ClusterConfig clusterConfig0 =
+        clusterConfig
+            .addMetadata(
+                this.serviceRegistry
+                    .listServiceEndpoints()
+                    .stream()
+                    .collect(
+                        Collectors.toMap(
+                            ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)))
+            .build();
+
+    LOGGER.info("Join to cluster with {}", clusterConfig0);
+
     CompletableFuture<Cluster> promise =
-        Cluster.join(clusterConfig.build())
+        Cluster.join(clusterConfig0)
             .whenComplete(
                 (success, error) -> {
                   if (error == null) {

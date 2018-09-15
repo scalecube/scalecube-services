@@ -33,7 +33,7 @@ public class Example1 {
 
     Microservices ms =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new DefaultMarketDataService())
             .startAwait();
 

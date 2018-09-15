@@ -61,7 +61,7 @@ public class ServiceCallRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .seeds(gateway.discovery().address())
+        .discovery(options -> options.seeds(gateway.discovery().address()))
         .services(new GreetingServiceImpl())
         .startAwait();
   }

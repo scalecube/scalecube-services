@@ -48,7 +48,7 @@ public class RoutersTest extends BaseTest {
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -62,7 +62,7 @@ public class RoutersTest extends BaseTest {
     // Create microservices instance cluster.
     provider2 =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
