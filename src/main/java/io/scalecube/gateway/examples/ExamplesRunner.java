@@ -4,8 +4,10 @@ import io.scalecube.config.ConfigRegistry;
 import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.config.GatewayConfigRegistry;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.transport.Address;
 import java.util.List;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,16 +36,16 @@ public class ExamplesRunner {
     LOGGER.info("Starting Examples services on " + config);
     LOGGER.info(DECORATOR);
 
-    int servicePort = config.getServicePort();
-    int discoveryPort = config.getDiscoveryPort();
-    int numOfThreads = config.getNumOfThreads();
-    Address[] seeds = config.getSeeds().stream().map(Address::from).toArray(Address[]::new);
-
     Microservices.builder()
-        .seeds(seeds)
-        .numOfThreads(numOfThreads)
-        .servicePort(servicePort)
-        .discoveryPort(discoveryPort)
+        .discoveryConfig(
+            DiscoveryConfig.builder()
+                .seeds(config.seedAddresses())
+                .port(config.discoveryPort())
+                .memberHost(config.memberHost())
+                .memberPort(config.memberPort()))
+        .servicePort(config.servicePort())
+        .numOfThreads(config.numOfThreads())
+        .servicePort(config.servicePort())
         .services(new BenchmarksServiceImpl(), new GreetingServiceImpl())
         .startAwait();
 
@@ -56,39 +58,39 @@ public class ExamplesRunner {
     private int discoveryPort;
     private int numOfThreads;
     private List<String> seeds;
+    private String memberHost;
+    private Integer memberPort;
 
     public Config() {}
 
-    public int getServicePort() {
+    public int servicePort() {
       return servicePort;
     }
 
-    public void setServicePort(int servicePort) {
-      this.servicePort = servicePort;
-    }
-
-    public int getDiscoveryPort() {
+    public int discoveryPort() {
       return discoveryPort;
     }
 
-    public void setDiscoveryPort(int discoveryPort) {
-      this.discoveryPort = discoveryPort;
-    }
-
-    public int getNumOfThreads() {
+    public int numOfThreads() {
       return numOfThreads;
     }
 
-    public void setNumOfThreads(int numOfThreads) {
-      this.numOfThreads = numOfThreads;
-    }
-
-    public List<String> getSeeds() {
+    public List<String> seeds() {
       return seeds;
     }
 
-    public void setSeeds(List<String> seeds) {
-      this.seeds = seeds;
+    public Address[] seedAddresses() {
+      return Optional.ofNullable(seeds())
+          .map(seeds -> seeds.stream().map(Address::from).toArray(Address[]::new))
+          .orElse(new Address[0]);
+    }
+
+    public String memberHost() {
+      return memberHost;
+    }
+
+    public Integer memberPort() {
+      return memberPort;
     }
 
     @Override
@@ -98,6 +100,8 @@ public class ExamplesRunner {
       sb.append(", discoveryPort=").append(discoveryPort);
       sb.append(", numOfThreads=").append(numOfThreads);
       sb.append(", seeds=").append(seeds);
+      sb.append(", memberHost=").append(memberHost);
+      sb.append(", memberPort=").append(memberPort);
       sb.append('}');
       return sb.toString();
     }
