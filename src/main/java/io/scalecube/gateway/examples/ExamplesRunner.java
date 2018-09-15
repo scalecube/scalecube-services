@@ -79,6 +79,11 @@ public class ExamplesRunner {
       return seeds;
     }
 
+    /**
+     * Returns seeds as an {@link Address}'s array.
+     *
+     * @return {@link Address}'s array
+     */
     public Address[] seedAddresses() {
       return Optional.ofNullable(seeds())
           .map(seeds -> seeds.stream().map(Address::from).toArray(Address[]::new))
