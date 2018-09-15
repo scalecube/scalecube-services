@@ -150,28 +150,23 @@ public class Microservices {
                   .flatMap(serviceProvider -> serviceProvider.apply(call).stream())
                   .forEach(this::collectAndRegister);
 
-              DiscoveryConfig.Builder discoveryConfigBuilder = DiscoveryConfig.builder();
-              if (discoveryOptions != null) {
-                discoveryOptions.accept(discoveryConfigBuilder);
-              }
-
               // register services in service registry
+              ServiceEndpoint endpoint = null;
               if (!serviceInfos.isEmpty()) {
                 String serviceHost = serviceAddress.getHostString();
                 int servicePort = serviceAddress.getPort();
-
-                ServiceEndpoint endpoint =
-                    ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
-
+                endpoint = ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
                 serviceRegistry.registerService(endpoint);
-                discoveryConfigBuilder.endpoint(endpoint);
               }
 
               // configure discovery and publish to the cluster
-              DiscoveryConfig discoveryOptions =
-                  discoveryConfigBuilder.serviceRegistry(serviceRegistry).build();
+              DiscoveryConfig discoveryConfig =
+                  DiscoveryConfig.builder(discoveryOptions)
+                      .serviceRegistry(serviceRegistry)
+                      .endpoint(endpoint)
+                      .build();
               return discovery
-                  .start(discoveryOptions)
+                  .start(discoveryConfig)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
                   .then(Mono.just(this));
