@@ -33,7 +33,7 @@ public class ExamplesRunner {
             .orElseThrow(() -> new IllegalStateException("Couldn't load config"));
 
     LOGGER.info(DECORATOR);
-    LOGGER.info("Starting Examples services on " + config);
+    LOGGER.info("Starting Examples services on {}", config);
     LOGGER.info(DECORATOR);
 
     Microservices.builder()
@@ -60,8 +60,6 @@ public class ExamplesRunner {
     private List<String> seeds;
     private String memberHost;
     private Integer memberPort;
-
-    public Config() {}
 
     public int servicePort() {
       return servicePort;
