@@ -67,6 +67,7 @@ public abstract class AbstractGatewayExtension
     return client;
   }
 
+  /** Start services. */
   public void startServices() {
     services =
         Microservices.builder()
@@ -76,6 +77,7 @@ public abstract class AbstractGatewayExtension
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }
 
+  /** Shutdown services. */
   public void shutdownServices() {
     if (services != null) {
       try {

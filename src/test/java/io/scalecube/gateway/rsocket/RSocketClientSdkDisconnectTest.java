@@ -76,7 +76,8 @@ class RSocketClientSdkDisconnectTest {
     if (seed != null) {
       try {
         seed.shutdown().block(SHUTDOWN_TIMEOUT);
-      } catch (Exception ignored) {
+      } catch (Exception ignore) {
+        // no-op
       }
     }
   }
