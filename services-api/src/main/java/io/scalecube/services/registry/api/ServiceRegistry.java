@@ -4,6 +4,7 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import java.util.List;
+import java.util.function.Predicate;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -23,9 +24,7 @@ public interface ServiceRegistry {
 
   ServiceEndpoint unregisterService(String endpointId);
 
-  Flux<ReferenceRegistryEvent> listenReferenceEvents();
-
-  Flux<EndpointRegistryEvent> listenEndpointEvents();
+  <T> Flux<RegistryEvent<T>> listen(Predicate<? super RegistryEvent<T>> predicate);
 
   Mono<Void> close();
 }

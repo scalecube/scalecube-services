@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.registry.api.EndpointRegistryEvent;
+import io.scalecube.services.registry.api.RegistryEvent;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -79,8 +79,8 @@ public class ServiceTransportTest {
 
     gateway
         .serviceRegistry()
-        .listenEndpointEvents()
-        .filter(EndpointRegistryEvent::isRemoved)
+        .listen(RegistryEvent.asEndpoint())
+        .filter(RegistryEvent::isRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -108,8 +108,8 @@ public class ServiceTransportTest {
 
     gateway
         .serviceRegistry()
-        .listenEndpointEvents()
-        .filter(EndpointRegistryEvent::isRemoved)
+        .listen(RegistryEvent.asEndpoint())
+        .filter(RegistryEvent::isRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -141,8 +141,8 @@ public class ServiceTransportTest {
 
     gateway
         .serviceRegistry()
-        .listenEndpointEvents()
-        .filter(EndpointRegistryEvent::isRemoved)
+        .listen(RegistryEvent.asEndpoint())
+        .filter(RegistryEvent::isRemoved)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
