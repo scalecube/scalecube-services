@@ -39,6 +39,15 @@ class WebsocketGatewayTest {
   }
 
   @Test
+  void shouldReturnSingleResponseWithSimpleLongDataRequest() {
+    String data = new String(new char[500]);
+    StepVerifier.create(service.one(data))
+        .expectNext("Echo:" + data)
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
   void shouldReturnSingleResponseWithPojoRequest() {
     StepVerifier.create(service.pojoOne(new GreetingRequest("hello")))
         .expectNextMatches(response -> "Echo:hello".equals(response.getText()))

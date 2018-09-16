@@ -31,7 +31,19 @@ class HttpGatewayTest {
 
   @Test
   void shouldReturnSingleResponseWithSimpleRequest() {
-    StepVerifier.create(service.one("hello")).expectNext("Echo:hello").verifyComplete();
+    StepVerifier.create(service.one("hello"))
+        .expectNext("Echo:hello")
+        .expectComplete()
+        .verify(TIMEOUT);
+  }
+
+  @Test
+  void shouldReturnSingleResponseWithSimpleLongDataRequest() {
+    String data = new String(new char[500]);
+    StepVerifier.create(service.one(data))
+        .expectNext("Echo:" + data)
+        .expectComplete()
+        .verify(TIMEOUT);
   }
 
   @Test
