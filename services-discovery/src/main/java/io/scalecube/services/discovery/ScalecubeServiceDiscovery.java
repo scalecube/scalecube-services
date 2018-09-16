@@ -69,7 +69,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
                             ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)))
             .build();
 
-    LOGGER.info("Join to cluster with {}", clusterConfig);
+    LOGGER.info("Start scalecube service discovery with config: {}", clusterConfig);
 
     CompletableFuture<Cluster> promise =
         Cluster.join(clusterConfig)
@@ -103,23 +103,23 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   private ClusterConfig.Builder clusterConfigBuilder(DiscoveryConfig config) {
-    Builder clusterConfig = ClusterConfig.builder();
+    Builder builder = ClusterConfig.builder();
     if (config.seeds() != null) {
-      clusterConfig.seedMembers(config.seeds());
+      builder.seedMembers(config.seeds());
     }
     if (config.port() != null) {
-      clusterConfig.port(config.port());
+      builder.port(config.port());
     }
     if (config.tags() != null) {
-      clusterConfig.metadata(config.tags());
+      builder.metadata(config.tags());
     }
     if (config.memberHost() != null) {
-      clusterConfig.memberHost(config.memberHost());
+      builder.memberHost(config.memberHost());
     }
     if (config.memberPort() != null) {
-      clusterConfig.memberPort(config.memberPort());
+      builder.memberPort(config.memberPort());
     }
-    return clusterConfig;
+    return builder;
   }
 
   private void init(Cluster cluster) {

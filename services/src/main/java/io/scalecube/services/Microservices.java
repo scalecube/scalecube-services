@@ -133,7 +133,6 @@ public class Microservices {
   }
 
   private Mono<Microservices> start() {
-
     return transportBootstrap
         .start(methodRegistry)
         .flatMap(
