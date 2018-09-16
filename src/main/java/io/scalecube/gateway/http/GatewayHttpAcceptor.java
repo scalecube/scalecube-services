@@ -60,10 +60,11 @@ public class GatewayHttpAcceptor
 
     return httpRequest
         .receive()
+        .aggregate()
         .map(ByteBuf::retain)
         .doOnNext(content -> metrics.markRequest())
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
-        .doOnComplete(metrics::markResponse)
+        .doOnTerminate(metrics::markResponse)
         .timeout(DEFAULT_TIMEOUT)
         .onErrorResume(t -> error(httpResponse, ExceptionProcessor.toMessage(t)));
   }
