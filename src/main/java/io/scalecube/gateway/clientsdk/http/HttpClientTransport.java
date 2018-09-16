@@ -86,6 +86,7 @@ public final class HttpClientTransport implements ClientTransport {
                                   // no-op
                                 })
                             .receive()
+                            .aggregate()
                             .map(ByteBuf::retain)
                             .map(
                                 content ->
@@ -93,8 +94,7 @@ public final class HttpClientTransport implements ClientTransport {
                                         httpResponse, content, request.qualifier()))
                             .map(
                                 response ->
-                                    enrichResponse(response, httpResponse.responseHeaders()))
-                            .singleOrEmpty()));
+                                    enrichResponse(response, httpResponse.responseHeaders()))));
   }
 
   @Override
