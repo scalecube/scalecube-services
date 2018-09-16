@@ -17,6 +17,7 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.WorkerThreadChooser;
+import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
