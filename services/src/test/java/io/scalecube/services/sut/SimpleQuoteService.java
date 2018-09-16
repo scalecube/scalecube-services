@@ -8,7 +8,7 @@ import reactor.core.publisher.Mono;
 
 public class SimpleQuoteService implements QuoteService {
 
-  final AtomicInteger i = new AtomicInteger(1);
+  final AtomicInteger counter = new AtomicInteger(1);
 
   public SimpleQuoteService() {}
 
@@ -19,12 +19,12 @@ public class SimpleQuoteService implements QuoteService {
 
   @Override
   public Flux<String> scheduled(int interval) {
-    return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + i.incrementAndGet());
+    return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + counter.incrementAndGet());
   }
 
   @Override
   public Flux<String> quotes() {
-    return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + i.incrementAndGet());
+    return Flux.interval(Duration.ofSeconds(1)).map(s -> "quote : " + counter.incrementAndGet());
   }
 
   @Override

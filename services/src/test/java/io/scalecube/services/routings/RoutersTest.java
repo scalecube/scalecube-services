@@ -41,13 +41,14 @@ public class RoutersTest extends BaseTest {
   private static Microservices provider1;
   private static Microservices provider2;
 
+  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway = Microservices.builder().startAwait();
     // Create microservices instance cluster.
     provider1 =
         Microservices.builder()
-            .seeds(gateway.address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -61,7 +62,7 @@ public class RoutersTest extends BaseTest {
     // Create microservices instance cluster.
     provider2 =
         Microservices.builder()
-            .seeds(gateway.address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
@@ -73,6 +74,7 @@ public class RoutersTest extends BaseTest {
             .startAwait();
   }
 
+  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     gateway.shutdown();
@@ -109,7 +111,7 @@ public class RoutersTest extends BaseTest {
   }
 
   @Test
-  public void test_remote_service_tags() {
+  public void test_remote_service_tags() throws Exception {
 
     CanaryService service =
         gateway
@@ -118,7 +120,7 @@ public class RoutersTest extends BaseTest {
             .create()
             .api(CanaryService.class);
 
-    Util.sleep(1000);
+    Thread.sleep(1000);
 
     AtomicInteger serviceBCount = new AtomicInteger(0);
 

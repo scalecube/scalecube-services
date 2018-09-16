@@ -31,22 +31,26 @@ public class ServiceRemoteTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices provider;
 
+  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway = gateway();
     provider = serviceProvider();
   }
 
+  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     try {
       gateway.shutdown().block();
-    } catch (Exception ex) {
+    } catch (Exception ignore) {
+      // no-op
     }
 
     try {
       provider.shutdown().block();
-    } catch (Exception ex) {
+    } catch (Exception ignore) {
+      // no-op
     }
   }
 
@@ -56,7 +60,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .seeds(gateway.address())
+        .discovery(options -> options.seeds(gateway.discovery().address()))
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -187,7 +191,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .seeds(gateway.address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -208,7 +212,10 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     // noinspection unused
     Microservices provider =
-        Microservices.builder().seeds(gateway.address()).services(another).startAwait();
+        Microservices.builder()
+            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .services(another)
+            .startAwait();
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
@@ -225,7 +232,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms =
         Microservices.builder()
-            .seeds(gateway.address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
 
@@ -249,7 +256,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider =
         Microservices.builder()
-            .seeds(gateway.address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
 
@@ -306,8 +313,6 @@ public class ServiceRemoteTest extends BaseTest {
     GreetingService service = createProxy();
 
     EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
-    // call the service.
-    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
 
     // call the service.
 
@@ -315,6 +320,9 @@ public class ServiceRemoteTest extends BaseTest {
     requests.onNext(new GreetingRequest("joe-2"));
     requests.onNext(new GreetingRequest("joe-3"));
     requests.onComplete();
+
+    // call the service.
+    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
 
     StepVerifier.create(responses)
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))
@@ -332,7 +340,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder().tags(tags).services(new GreetingServiceImpl()).startAwait();
 
-    assertTrue(ms.serviceEndpoint().tags().containsKey("HOSTNAME"));
+    assertTrue(ms.discovery().endpoint().tags().containsKey("HOSTNAME"));
   }
 
   @Test

@@ -11,12 +11,17 @@ import reactor.core.publisher.Mono;
 
 public class ServiceTagsExample {
 
+  /**
+   * Main runner.
+   *
+   * @param args arguments
+   */
   public static void main(String[] args) {
     Microservices gateway = Microservices.builder().startAwait();
 
     Microservices services1 =
         Microservices.builder()
-            .seeds(gateway.address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
                     .tag("Weight", "0.3")
@@ -25,7 +30,7 @@ public class ServiceTagsExample {
 
     Microservices services2 =
         Microservices.builder()
-            .seeds(gateway.address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
                     .tag("Weight", "0.7")

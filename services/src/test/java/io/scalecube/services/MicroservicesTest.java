@@ -30,6 +30,7 @@ public class MicroservicesTest {
   @Mock private ClientTransport clientTransport;
   @Mock private ExecutorService workerExecutor;
 
+  /** Setup. */
   @BeforeEach
   public void setUp() {
     Mockito.when(serviceTransport.getWorkerThreadPool(anyInt(), any())).thenReturn(workerExecutor);

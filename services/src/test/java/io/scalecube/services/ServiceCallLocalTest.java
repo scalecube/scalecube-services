@@ -35,23 +35,22 @@ public class ServiceCallLocalTest extends BaseTest {
 
   private static Microservices provider;
 
+  /** Setup. */
   @BeforeAll
   public static void setup() {
     provider = serviceProvider();
   }
 
+  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
-    try {
-      provider.shutdown().block();
-    } catch (Exception ex) {
-    }
+    provider.shutdown().block();
   }
 
   @Test
   public void test_local_async_no_params() {
 
-    ServiceCall serviceCall = this.provider.call().router(RoundRobinServiceRouter.class).create();
+    ServiceCall serviceCall = provider.call().router(RoundRobinServiceRouter.class).create();
 
     // call the service.
     Publisher<ServiceMessage> future = serviceCall.requestOne(GREETING_NO_PARAMS_REQUEST);
@@ -162,9 +161,8 @@ public class ServiceCallLocalTest extends BaseTest {
       Mono.from(service.requestOne(NOT_FOUND_REQ)).block(timeout);
       fail("Expected no-service-found exception");
     } catch (Exception ex) {
-      assertTrue(
-          ex.getMessage()
-              .equals("No reachable member with such service: " + NOT_FOUND_REQ.qualifier()));
+      assertEquals(
+          ex.getMessage(), "No reachable member with such service: " + NOT_FOUND_REQ.qualifier());
     }
   }
 }

@@ -36,28 +36,32 @@ public class ServiceCallRemoteTest extends BaseTest {
   private static Microservices gateway;
   private static Microservices provider;
 
+  /** Setup. */
   @BeforeAll
   public static void setup() {
     gateway = gateway();
     provider = serviceProvider();
   }
 
+  /** Cleanup. */
   @AfterAll
   public static void tearDown() {
     try {
       gateway.shutdown().block();
-    } catch (Exception ex) {
+    } catch (Exception ignore) {
+      // no-op
     }
 
     try {
       provider.shutdown().block();
-    } catch (Exception ex) {
+    } catch (Exception ignore) {
+      // no-op
     }
   }
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .seeds(gateway.address())
+        .discovery(options -> options.seeds(gateway.discovery().address()))
         .services(new GreetingServiceImpl())
         .startAwait();
   }

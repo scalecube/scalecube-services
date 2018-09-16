@@ -27,15 +27,17 @@ public class ServiceLocalTest extends BaseTest {
 
   private Microservices microservices;
 
+  /** Setup. */
   @BeforeEach
   public void setUp() {
     microservices =
         Microservices.builder()
-            .discoveryPort(port.incrementAndGet())
+            .discovery(options -> options.port(port.incrementAndGet()))
             .services(new GreetingServiceImpl())
             .startAwait();
   }
 
+  /** Cleanup. */
   @AfterEach
   public void cleanUp() {
     if (microservices != null) {
@@ -55,7 +57,7 @@ public class ServiceLocalTest extends BaseTest {
 
     // print the greeting.
     System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
-    assertTrue(result.getResult().equals(" hello to: joe"));
+    assertEquals(" hello to: joe", result.getResult());
   }
 
   @Test
@@ -226,8 +228,6 @@ public class ServiceLocalTest extends BaseTest {
     GreetingService service = createProxy(microservices);
 
     EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
-    // call the service.
-    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
 
     // call the service.
 
@@ -235,6 +235,9 @@ public class ServiceLocalTest extends BaseTest {
     requests.onNext(new GreetingRequest("joe-2"));
     requests.onNext(new GreetingRequest("joe-3"));
     requests.onComplete();
+
+    // call the service.
+    Flux<GreetingResponse> responses = service.bidiGreeting(requests);
 
     StepVerifier.create(responses)
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-1"))

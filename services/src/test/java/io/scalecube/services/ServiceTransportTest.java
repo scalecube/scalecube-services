@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.discovery.api.DiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
-import io.scalecube.services.registry.api.EndpointRegistryEvent;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -32,30 +32,38 @@ public class ServiceTransportTest {
   private Microservices gateway;
   private Microservices serviceNode;
 
+  /** Setup. */
   @BeforeEach
   public void setUp() {
-    gateway = Microservices.builder().discoveryPort(port.incrementAndGet()).startAwait();
+    gateway =
+        Microservices.builder()
+            .discovery(options -> options.port(port.incrementAndGet()))
+            .startAwait();
 
     serviceNode =
         Microservices.builder()
-            .discoveryPort(port.incrementAndGet())
-            .seeds(gateway.address())
+            .discovery(
+                options ->
+                    options.seeds(gateway.discovery().address()).port(port.incrementAndGet()))
             .services(new SimpleQuoteService())
             .startAwait();
   }
 
+  /** Cleanup. */
   @AfterEach
   public void cleanUp() {
     if (gateway != null) {
       try {
         gateway.shutdown();
       } catch (Throwable ignore) {
+        // no-op
       }
     }
     if (serviceNode != null) {
       try {
         serviceNode.shutdown();
       } catch (Throwable ignore) {
+        // no-op
       }
     }
   }
@@ -72,9 +80,9 @@ public class ServiceTransportTest {
     sub1.set(serviceCall.requestOne(JUST_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
-        .serviceRegistry()
-        .listenEndpointEvents()
-        .filter(EndpointRegistryEvent::isRemoved)
+        .discovery()
+        .listen()
+        .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -101,9 +109,9 @@ public class ServiceTransportTest {
     sub1.set(serviceCall.requestMany(JUST_MANY_NEVER).doOnError(exceptionHolder::set).subscribe());
 
     gateway
-        .serviceRegistry()
-        .listenEndpointEvents()
-        .filter(EndpointRegistryEvent::isRemoved)
+        .discovery()
+        .listen()
+        .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -134,9 +142,9 @@ public class ServiceTransportTest {
             .subscribe());
 
     gateway
-        .serviceRegistry()
-        .listenEndpointEvents()
-        .filter(EndpointRegistryEvent::isRemoved)
+        .discovery()
+        .listen()
+        .filter(DiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
