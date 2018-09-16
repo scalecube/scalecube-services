@@ -71,7 +71,7 @@ public abstract class AbstractGatewayExtension
   public void startServices() {
     services =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(serviceInstance)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
