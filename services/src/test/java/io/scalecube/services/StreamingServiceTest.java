@@ -28,7 +28,7 @@ public class StreamingServiceTest extends BaseTest {
 
     node =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new SimpleQuoteService())
             .startAwait();
   }

@@ -35,12 +35,16 @@ public class ServiceTransportTest {
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    gateway = Microservices.builder().discoveryPort(port.incrementAndGet()).startAwait();
+    gateway =
+        Microservices.builder()
+            .discovery(options -> options.port(port.incrementAndGet()))
+            .startAwait();
 
     serviceNode =
         Microservices.builder()
-            .discoveryPort(port.incrementAndGet())
-            .seeds(gateway.discovery().address())
+            .discovery(
+                options ->
+                    options.seeds(gateway.discovery().address()).port(port.incrementAndGet()))
             .services(new SimpleQuoteService())
             .startAwait();
   }

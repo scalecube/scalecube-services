@@ -6,6 +6,7 @@ import io.scalecube.transport.Address;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class DiscoveryConfig {
 
@@ -59,6 +60,20 @@ public class DiscoveryConfig {
     return new Builder();
   }
 
+  /**
+   * Returns a new discovery config builder and apply to it the given discovery options.
+   *
+   * @param discoveryOptions discovery options
+   * @return discovery config builder
+   */
+  public static Builder builder(Consumer<Builder> discoveryOptions) {
+    Builder builder = new Builder();
+    if (discoveryOptions != null) {
+      discoveryOptions.accept(builder);
+    }
+    return builder;
+  }
+
   public static class Builder {
 
     private Address[] seeds;
@@ -69,7 +84,7 @@ public class DiscoveryConfig {
     private String memberHost;
     private Integer memberPort;
 
-    public Builder seeds(Address[] seeds) {
+    public Builder seeds(Address... seeds) {
       this.seeds = seeds;
       return this;
     }

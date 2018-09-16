@@ -60,7 +60,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .seeds(gateway.discovery().address())
+        .discovery(options -> options.seeds(gateway.discovery().address()))
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -191,7 +191,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -212,7 +212,10 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     // noinspection unused
     Microservices provider =
-        Microservices.builder().seeds(gateway.discovery().address()).services(another).startAwait();
+        Microservices.builder()
+            .discovery(options -> options.seeds(gateway.discovery().address()))
+            .services(another)
+            .startAwait();
 
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
@@ -229,7 +232,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
 
@@ -253,7 +256,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
 

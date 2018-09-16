@@ -17,7 +17,6 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.WorkerThreadChooser;
-import io.scalecube.transport.Address;
 import io.scalecube.transport.Addressing;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -31,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Flux;
@@ -110,8 +110,8 @@ public class Microservices {
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
-  private final DiscoveryConfig.Builder discoveryConfig;
   private final ServiceDiscovery discovery;
+  private final Consumer<DiscoveryConfig.Builder> discoveryOptions;
 
   private Microservices(Builder builder) {
     this.id = IdGenerator.generateId();
@@ -125,7 +125,7 @@ public class Microservices {
     this.transportBootstrap = builder.transportBootstrap;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discovery = builder.discovery;
-    this.discoveryConfig = builder.discoveryConfig;
+    this.discoveryOptions = builder.discoveryOptions;
   }
 
   public String id() {
@@ -150,24 +150,22 @@ public class Microservices {
                   .forEach(this::collectAndRegister);
 
               // register services in service registry
+              ServiceEndpoint endpoint = null;
               if (!serviceInfos.isEmpty()) {
                 String serviceHost = serviceAddress.getHostString();
                 int servicePort = serviceAddress.getPort();
-
-                ServiceEndpoint endpoint =
-                    ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
-
+                endpoint = ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
                 serviceRegistry.registerService(endpoint);
-                discoveryConfig.endpoint(endpoint);
               }
 
-              return Mono.just(call);
-            })
-        .flatMap(
-            call -> {
               // configure discovery and publish to the cluster
+              DiscoveryConfig discoveryConfig =
+                  DiscoveryConfig.builder(discoveryOptions)
+                      .serviceRegistry(serviceRegistry)
+                      .endpoint(endpoint)
+                      .build();
               return discovery
-                  .start(discoveryConfig.serviceRegistry(serviceRegistry).build())
+                  .start(discoveryConfig)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
                   .then(Mono.just(this));
@@ -214,7 +212,7 @@ public class Microservices {
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
-    private DiscoveryConfig.Builder discoveryConfig = DiscoveryConfig.builder();
+    private Consumer<DiscoveryConfig.Builder> discoveryOptions;
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
 
@@ -251,13 +249,13 @@ public class Microservices {
       return this;
     }
 
-    public Builder transport(ServiceTransport transport) {
-      this.transportBootstrap.transport(transport);
+    public Builder discovery(Consumer<DiscoveryConfig.Builder> options) {
+      this.discoveryOptions = options;
       return this;
     }
 
-    public Builder discoveryPort(int port) {
-      this.discoveryConfig.port(port);
+    public Builder transport(ServiceTransport transport) {
+      this.transportBootstrap.transport(transport);
       return this;
     }
 
@@ -268,16 +266,6 @@ public class Microservices {
 
     public Builder numOfThreads(int numOfThreads) {
       this.transportBootstrap.numOfThreads(numOfThreads);
-      return this;
-    }
-
-    public Builder seeds(Address... seeds) {
-      this.discoveryConfig.seeds(seeds);
-      return this;
-    }
-
-    public Builder discoveryConfig(DiscoveryConfig.Builder discoveryConfig) {
-      this.discoveryConfig = discoveryConfig;
       return this;
     }
 
