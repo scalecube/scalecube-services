@@ -8,7 +8,6 @@ import io.scalecube.gateway.http.HttpGateway;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.transport.Address;
 import java.io.File;
@@ -48,12 +47,13 @@ public class GatewayRunner {
     MetricRegistry metrics = initMetricRegistry();
 
     Microservices.builder()
-        .discoveryConfig(
-            DiscoveryConfig.builder()
-                .seeds(config.seedAddresses())
-                .port(config.discoveryPort())
-                .memberHost(config.memberHost())
-                .memberPort(config.memberPort()))
+        .discovery(
+            options ->
+                options
+                    .seeds(config.seedAddresses())
+                    .port(config.discoveryPort())
+                    .memberHost(config.memberHost())
+                    .memberPort(config.memberPort()))
         .servicePort(config.servicePort())
         .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
         .gateway(GatewayConfig.builder("http", HttpGateway.class).port(8080).build())
