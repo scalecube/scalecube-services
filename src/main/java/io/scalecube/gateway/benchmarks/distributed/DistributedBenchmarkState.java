@@ -43,7 +43,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
 
     services =
         Microservices.builder()
-            .seeds(gateway.discovery().address())
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new BenchmarksServiceImpl())
             .numOfThreads(1)
             .startAwait();
