@@ -13,9 +13,6 @@ public class GatewayMessage {
   public static final String DATA_FIELD = "d";
   public static final String INACTIVITY_FIELD = "i";
 
-  private static final String SERVICE_MESSAGE_HEADER_DATA_TYPE = "_type";
-  private static final String SERVICE_MESSAGE_HEADER_DATA_FORMAT = "_data_format";
-
   private final Map<String, String> headers;
   private final Object data;
 
@@ -44,15 +41,7 @@ public class GatewayMessage {
     if (serviceMessage.hasData()) {
       builder.data = serviceMessage.data();
     }
-    serviceMessage
-        .headers()
-        .forEach(
-            (key, value) -> {
-              if (!SERVICE_MESSAGE_HEADER_DATA_FORMAT.equals(key)
-                  && !SERVICE_MESSAGE_HEADER_DATA_TYPE.equals(key)) {
-                builder.header(key, value);
-              }
-            });
+    serviceMessage.headers().forEach(builder::header);
     return builder;
   }
 
