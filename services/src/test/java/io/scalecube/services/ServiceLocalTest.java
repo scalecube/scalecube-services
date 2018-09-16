@@ -32,7 +32,7 @@ public class ServiceLocalTest extends BaseTest {
   public void setUp() {
     microservices =
         Microservices.builder()
-            .discoveryPort(port.incrementAndGet())
+            .discovery(options -> options.port(port.incrementAndGet()))
             .services(new GreetingServiceImpl())
             .startAwait();
   }

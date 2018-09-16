@@ -4,6 +4,7 @@ import static io.scalecube.services.discovery.ClusterMetadataDecoder.decodeMetad
 
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
+import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.DiscoveryConfig;
@@ -24,8 +25,6 @@ import reactor.core.publisher.Mono;
 public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   public static final String SERVICE_METADATA = "service";
-
-  private ClusterConfig.Builder clusterConfig = ClusterConfig.builder();
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
@@ -55,18 +54,25 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   @Override
-  public Mono<ServiceDiscovery> start(DiscoveryConfig config) {
-    configure(config);
+  public Mono<ServiceDiscovery> start(DiscoveryConfig discoveryConfig) {
+    this.serviceRegistry = discoveryConfig.serviceRegistry();
+    this.endpoint = discoveryConfig.endpoint();
 
-    clusterConfig.addMetadata(
-        this.serviceRegistry
-            .listServiceEndpoints()
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)));
+    ClusterConfig clusterConfig =
+        clusterConfigBuilder(discoveryConfig)
+            .addMetadata(
+                this.serviceRegistry
+                    .listServiceEndpoints()
+                    .stream()
+                    .collect(
+                        Collectors.toMap(
+                            ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)))
+            .build();
+
+    LOGGER.info("Start scalecube service discovery with config: {}", clusterConfig);
+
     CompletableFuture<Cluster> promise =
-        Cluster.join(clusterConfig.build())
+        Cluster.join(clusterConfig)
             .whenComplete(
                 (success, error) -> {
                   if (error == null) {
@@ -96,29 +102,24 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
         });
   }
 
-  private void configure(DiscoveryConfig config) {
-    this.serviceRegistry = config.serviceRegistry();
-    this.endpoint = config.endpoint();
-
+  private ClusterConfig.Builder clusterConfigBuilder(DiscoveryConfig config) {
+    Builder builder = ClusterConfig.builder();
     if (config.seeds() != null) {
-      clusterConfig.seedMembers(config.seeds());
+      builder.seedMembers(config.seeds());
     }
-
     if (config.port() != null) {
-      clusterConfig.port(config.port());
+      builder.port(config.port());
     }
-
     if (config.tags() != null) {
-      clusterConfig.metadata(config.tags());
+      builder.metadata(config.tags());
     }
-
     if (config.memberHost() != null) {
-      clusterConfig.memberHost(config.memberHost());
+      builder.memberHost(config.memberHost());
     }
-
     if (config.memberPort() != null) {
-      clusterConfig.memberPort(config.memberPort());
+      builder.memberPort(config.memberPort());
     }
+    return builder;
   }
 
   private void init(Cluster cluster) {

@@ -25,13 +25,13 @@ public class ServiceRegistryEventsTest {
 
     Microservices ms1 =
         Microservices.builder()
-            .seeds(seed.discovery().address())
+            .discovery(options -> options.seeds(seed.discovery().address()))
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
-            .seeds(seed.discovery().address())
+            .discovery(options -> options.seeds(seed.discovery().address()))
             .services(new GreetingServiceImpl())
             .startAwait();
 

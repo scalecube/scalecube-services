@@ -28,13 +28,14 @@ public class ErrorFlowTest {
   public static void initNodes() {
     provider =
         Microservices.builder()
-            .discoveryPort(port.incrementAndGet())
+            .discovery(options -> options.port(port.incrementAndGet()))
             .services(new GreetingServiceImpl())
             .startAwait();
     consumer =
         Microservices.builder()
-            .discoveryPort(port.incrementAndGet())
-            .seeds(provider.discovery().address())
+            .discovery(
+                options ->
+                    options.seeds(provider.discovery().address()).port(port.incrementAndGet()))
             .startAwait();
   }
 
