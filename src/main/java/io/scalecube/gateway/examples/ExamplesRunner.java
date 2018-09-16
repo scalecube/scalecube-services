@@ -4,7 +4,6 @@ import io.scalecube.config.ConfigRegistry;
 import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.config.GatewayConfigRegistry;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.transport.Address;
 import java.util.List;
 import java.util.Optional;
@@ -37,12 +36,13 @@ public class ExamplesRunner {
     LOGGER.info(DECORATOR);
 
     Microservices.builder()
-        .discoveryConfig(
-            DiscoveryConfig.builder()
-                .seeds(config.seedAddresses())
-                .port(config.discoveryPort())
-                .memberHost(config.memberHost())
-                .memberPort(config.memberPort()))
+        .discovery(
+            options ->
+                options
+                    .seeds(config.seedAddresses())
+                    .port(config.discoveryPort())
+                    .memberHost(config.memberHost())
+                    .memberPort(config.memberPort()))
         .servicePort(config.servicePort())
         .numOfThreads(config.numOfThreads())
         .servicePort(config.servicePort())
