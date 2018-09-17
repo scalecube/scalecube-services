@@ -85,21 +85,6 @@ class HttpGatewayTest {
   }
 
   @Test
-  void shouldReturnInternalServerErrorWhenTimeoutReached() {
-    Duration timeout = Duration.ofSeconds(11);
-
-    StepVerifier.create(service.neverOne("hello"))
-        .expectErrorSatisfies(
-            throwable -> {
-              assertEquals(InternalServiceException.class, throwable.getClass());
-              assertThat(
-                  throwable.getMessage(),
-                  startsWith("Did not observe any item or terminal signal"));
-            })
-        .verify(timeout);
-  }
-
-  @Test
   void shouldSuccessfullyReuseServiceProxy() {
     StepVerifier.create(service.one("hello"))
         .expectNext("Echo:hello")
