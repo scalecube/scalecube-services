@@ -20,7 +20,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
@@ -34,8 +33,6 @@ public class GatewayHttpAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayHttpAcceptor.class);
-
-  private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
@@ -65,7 +62,6 @@ public class GatewayHttpAcceptor
         .doOnNext(content -> metrics.markRequest())
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
         .doOnTerminate(metrics::markResponse)
-        .timeout(DEFAULT_TIMEOUT)
         .onErrorResume(t -> error(httpResponse, ExceptionProcessor.toMessage(t)));
   }
 
