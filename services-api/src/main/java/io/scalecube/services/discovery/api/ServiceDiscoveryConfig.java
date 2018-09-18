@@ -3,12 +3,13 @@ package io.scalecube.services.discovery.api;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.transport.Address;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class DiscoveryConfig {
+public class ServiceDiscoveryConfig {
 
   private Integer port;
   private Address[] seeds;
@@ -18,7 +19,7 @@ public class DiscoveryConfig {
   private String memberHost;
   private Integer memberPort;
 
-  private DiscoveryConfig(Builder builder) {
+  private ServiceDiscoveryConfig(Builder builder) {
     this.seeds = builder.seeds;
     this.serviceRegistry = builder.serviceRegistry;
     this.port = builder.port;
@@ -99,8 +100,8 @@ public class DiscoveryConfig {
       return this;
     }
 
-    public DiscoveryConfig build() {
-      return new DiscoveryConfig(this);
+    public ServiceDiscoveryConfig build() {
+      return new ServiceDiscoveryConfig(this);
     }
 
     public Builder tags(Map<String, String> tags) {
@@ -122,5 +123,19 @@ public class DiscoveryConfig {
       this.memberPort = memberPort;
       return this;
     }
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("ServiceDiscoveryConfig{");
+    sb.append("port=").append(port);
+    sb.append(", seeds=").append(Arrays.toString(seeds));
+    sb.append(", serviceRegistry=").append(serviceRegistry);
+    sb.append(", tags=").append(tags);
+    sb.append(", endpoint=").append(endpoint);
+    sb.append(", memberHost='").append(memberHost).append('\'');
+    sb.append(", memberPort=").append(memberPort);
+    sb.append('}');
+    return sb.toString();
   }
 }

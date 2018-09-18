@@ -3,6 +3,7 @@ package io.scalecube.services;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ServiceEndpoint {
 
@@ -64,8 +65,25 @@ public class ServiceEndpoint {
     return tags;
   }
 
+  /**
+   * Return collection of service registratrions.
+   *
+   * @return collection of {@link ServiceRegistration}
+   */
   public Collection<ServiceRegistration> serviceRegistrations() {
     return serviceRegistrations;
+  }
+
+  /**
+   * Creates collection of service references from this service endpoint.
+   *
+   * @return collection of {@link ServiceReference}
+   */
+  public Collection<ServiceReference> serviceReferences() {
+    return serviceRegistrations
+        .stream()
+        .flatMap(sr -> sr.methods().stream().map(sm -> new ServiceReference(sm, sr, this)))
+        .collect(Collectors.toList());
   }
 
   @Override

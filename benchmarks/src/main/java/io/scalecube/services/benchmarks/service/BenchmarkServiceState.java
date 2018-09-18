@@ -40,9 +40,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
         "Seed address: "
             + seed.discovery().address()
             + ", services address: "
-            + node.serviceAddress()
-            + ", seed serviceRegistry: "
-            + seed.serviceRegistry().listServiceReferences());
+            + node.serviceAddress());
   }
 
   @Override

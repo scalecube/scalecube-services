@@ -7,7 +7,7 @@ import io.scalecube.services.registry.api.ServiceRegistry;
  * Service registration event. This event is being fired when {@link ServiceEndpoint} is being added
  * (or removed from) to (from) {@link ServiceRegistry}.
  */
-public class DiscoveryEvent {
+public class ServiceDiscoveryEvent {
 
   public enum Type {
     REGISTERED, // service endpoint added
@@ -17,17 +17,17 @@ public class DiscoveryEvent {
   private final ServiceEndpoint serviceEndpoint;
   private final Type type;
 
-  private DiscoveryEvent(Type type, ServiceEndpoint serviceEndpoint) {
+  private ServiceDiscoveryEvent(ServiceEndpoint serviceEndpoint, Type type) {
     this.serviceEndpoint = serviceEndpoint;
     this.type = type;
   }
 
-  public static DiscoveryEvent registered(ServiceEndpoint serviceEndpoint) {
-    return new DiscoveryEvent(Type.REGISTERED, serviceEndpoint);
+  public static ServiceDiscoveryEvent registered(ServiceEndpoint serviceEndpoint) {
+    return new ServiceDiscoveryEvent(serviceEndpoint, Type.REGISTERED);
   }
 
-  public static DiscoveryEvent unregistered(ServiceEndpoint serviceEndpoint) {
-    return new DiscoveryEvent(Type.UNREGISTERED, serviceEndpoint);
+  public static ServiceDiscoveryEvent unregistered(ServiceEndpoint serviceEndpoint) {
+    return new ServiceDiscoveryEvent(serviceEndpoint, Type.UNREGISTERED);
   }
 
   public ServiceEndpoint serviceEndpoint() {
@@ -38,16 +38,20 @@ public class DiscoveryEvent {
     return this.type;
   }
 
-  @Override
-  public String toString() {
-    return "RegistrationEvent [serviceEndpoint=" + serviceEndpoint + ", type=" + type + "]";
-  }
-
   public boolean isRegistered() {
     return Type.REGISTERED.equals(this.type);
   }
 
   public boolean isUnregistered() {
     return Type.UNREGISTERED.equals(this.type);
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("ServiceDiscoveryEvent{");
+    sb.append("serviceEndpoint=").append(serviceEndpoint);
+    sb.append(", type=").append(type);
+    sb.append('}');
+    return sb.toString();
   }
 }
