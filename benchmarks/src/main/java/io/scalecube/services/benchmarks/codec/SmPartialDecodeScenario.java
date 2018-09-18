@@ -11,9 +11,9 @@ import io.scalecube.services.codec.ServiceMessageCodec;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class SmPartialDecodeBenchmarks {
+public class SmPartialDecodeScenario {
 
-  private SmPartialDecodeBenchmarks() {
+  private SmPartialDecodeScenario() {
     // Do not instantiate
   }
 
@@ -24,12 +24,12 @@ public class SmPartialDecodeBenchmarks {
    * @param benchmarkStateFactory producer function for {@link BenchmarkState}
    */
   public static void runWith(
-      String[] args, Function<BenchmarkSettings, SmCodecBenchmarksState> benchmarkStateFactory) {
+      String[] args, Function<BenchmarkSettings, SmCodecBenchmarkState> benchmarkStateFactory) {
 
     BenchmarkSettings settings =
         BenchmarkSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
 
-    SmCodecBenchmarksState benchmarkState = benchmarkStateFactory.apply(settings);
+    SmCodecBenchmarkState benchmarkState = benchmarkStateFactory.apply(settings);
 
     benchmarkState.runForSync(
         state -> {

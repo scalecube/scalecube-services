@@ -140,8 +140,7 @@ public class Microservices {
               ClientTransport clientTransport = transportBootstrap.clientTransport();
               InetSocketAddress serviceAddress = transportBootstrap.listenAddress();
 
-              Call call =
-                  new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
+              Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
 
               // invoke service providers and register services
               serviceProviders
@@ -369,8 +368,7 @@ public class Microservices {
   }
 
   public Call call() {
-    ClientTransport clientTransport = transportBootstrap.clientTransport();
-    return new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
+    return new Call(transportBootstrap.clientTransport(), methodRegistry, serviceRegistry);
   }
 
   public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {

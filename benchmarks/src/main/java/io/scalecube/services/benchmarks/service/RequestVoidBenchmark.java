@@ -1,13 +1,11 @@
-package io.scalecube.services.benchmarks.services;
+package io.scalecube.services.benchmarks.service;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
-import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
+import io.scalecube.services.api.ServiceMessage;
 
-public class RequestManyBenchmarks {
-
-  private static final String RESPONSE_COUNT = "1000";
+public class RequestVoidBenchmark {
 
   /**
    * Main method.
@@ -16,20 +14,16 @@ public class RequestManyBenchmarks {
    */
   public static void main(String[] args) {
     BenchmarkSettings settings = BenchmarkSettings.from(args).build();
-    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl())
+    new BenchmarkServiceState(settings, new BenchmarkServiceImpl())
         .runForAsync(
             state -> {
               BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-              int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
               BenchmarkTimer timer = state.timer("timer");
-              BenchmarkMeter meter = state.meter("responses");
-
+              ServiceMessage message =
+                  ServiceMessage.builder().qualifier("/benchmarks/oneWay").build();
               return i -> {
                 Context timeContext = timer.time();
-                return benchmarkService
-                    .requestMany(responseCount)
-                    .doOnNext(onNext -> meter.mark())
-                    .doFinally(next -> timeContext.stop());
+                return benchmarkService.oneWay(message).doOnTerminate(timeContext::stop);
               };
             });
   }

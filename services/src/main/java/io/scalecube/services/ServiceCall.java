@@ -9,7 +9,6 @@ import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodRegistry;
-import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
@@ -35,14 +34,12 @@ public class ServiceCall {
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
   private final Router router;
-  private final Metrics metrics;
 
   private ServiceCall(Call call) {
     this.transport = call.transport;
     this.methodRegistry = call.methodRegistry;
     this.serviceRegistry = call.serviceRegistry;
     this.router = call.router;
-    this.metrics = call.metrics;
   }
 
   /**
@@ -52,7 +49,6 @@ public class ServiceCall {
   public static class Call {
 
     private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
-    private Metrics metrics;
 
     private final ClientTransport transport;
     private final ServiceMethodRegistry methodRegistry;
@@ -84,11 +80,6 @@ public class ServiceCall {
 
     public Call router(Router router) {
       this.router = router;
-      return this;
-    }
-
-    public Call metrics(Metrics metrics) {
-      this.metrics = metrics;
       return this;
     }
 
@@ -298,8 +289,6 @@ public class ServiceCall {
               if (check.isPresent()) {
                 return check.get(); // toString, hashCode was invoked.
               }
-
-              Metrics.mark(serviceInterface, metrics, method, "request");
 
               switch (methodInfo.communicationMode()) {
                 case FIRE_AND_FORGET:

@@ -17,7 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class SmCodecBenchmarksState extends BenchmarkState<SmCodecBenchmarksState> {
+public class SmCodecBenchmarkState extends BenchmarkState<SmCodecBenchmarkState> {
 
   private ServiceMessageCodec serviceMessageCodec;
   private HeadersCodec headersCodec;
@@ -32,7 +32,7 @@ public class SmCodecBenchmarksState extends BenchmarkState<SmCodecBenchmarksStat
    * @param dataCodec - data codec under test.
    * @param headersCodec - headers codec under test.
    */
-  public SmCodecBenchmarksState(
+  public SmCodecBenchmarkState(
       BenchmarkSettings settings, DataCodec dataCodec, HeadersCodec headersCodec) {
     super(settings);
     this.dataCodec = dataCodec;
@@ -163,7 +163,7 @@ public class SmCodecBenchmarksState extends BenchmarkState<SmCodecBenchmarksStat
     }
   }
 
-  public static class Jackson extends SmCodecBenchmarksState {
+  public static class Jackson extends SmCodecBenchmarkState {
 
     private static final JacksonCodec CODEC = new JacksonCodec();
 
@@ -172,7 +172,7 @@ public class SmCodecBenchmarksState extends BenchmarkState<SmCodecBenchmarksStat
     }
   }
 
-  public static class Protostuff extends SmCodecBenchmarksState {
+  public static class Protostuff extends SmCodecBenchmarkState {
 
     private static final ProtostuffCodec CODEC = new ProtostuffCodec();
 

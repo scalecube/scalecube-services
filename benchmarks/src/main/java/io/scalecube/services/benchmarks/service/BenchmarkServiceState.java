@@ -1,4 +1,4 @@
-package io.scalecube.services.benchmarks.services;
+package io.scalecube.services.benchmarks.service;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
@@ -9,9 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
-public class ServicesBenchmarksState extends BenchmarkState<ServicesBenchmarksState> {
+public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServicesBenchmarksState.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BenchmarkServiceState.class);
 
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(6);
 
@@ -20,7 +20,7 @@ public class ServicesBenchmarksState extends BenchmarkState<ServicesBenchmarksSt
   private Microservices seed;
   private Microservices node;
 
-  public ServicesBenchmarksState(BenchmarkSettings settings, Object... services) {
+  public BenchmarkServiceState(BenchmarkSettings settings, Object... services) {
     super(settings);
     this.services = services;
   }
