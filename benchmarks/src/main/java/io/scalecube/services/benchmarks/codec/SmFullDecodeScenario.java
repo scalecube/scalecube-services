@@ -1,6 +1,6 @@
 package io.scalecube.services.benchmarks.codec;
 
-import io.netty.util.ReferenceCountUtil;
+import io.netty.buffer.ByteBuf;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
@@ -10,9 +10,9 @@ import io.scalecube.services.codec.ServiceMessageCodec;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class SmPartialEncodeBenchmarks {
+public class SmFullDecodeScenario {
 
-  private SmPartialEncodeBenchmarks() {
+  private SmFullDecodeScenario() {
     // Do not instantiate
   }
 
@@ -23,30 +23,28 @@ public class SmPartialEncodeBenchmarks {
    * @param benchmarkStateFactory producer function for {@link BenchmarkState}
    */
   public static void runWith(
-      String[] args, Function<BenchmarkSettings, SmCodecBenchmarksState> benchmarkStateFactory) {
+      String[] args, Function<BenchmarkSettings, SmCodecBenchmarkState> benchmarkStateFactory) {
 
     BenchmarkSettings settings =
         BenchmarkSettings.from(args).durationUnit(TimeUnit.NANOSECONDS).build();
 
-    SmCodecBenchmarksState benchmarkState = benchmarkStateFactory.apply(settings);
+    SmCodecBenchmarkState benchmarkState = benchmarkStateFactory.apply(settings);
 
     benchmarkState.runForSync(
         state -> {
           BenchmarkTimer timer = state.timer("timer");
           ServiceMessageCodec messageCodec = state.messageCodec();
-          ServiceMessage message = state.messageWithByteBuf();
+          Class<?> dataType = state.dataType();
 
           return i -> {
             Context timeContext = timer.time();
-            Object result =
-                messageCodec.encodeAndTransform(
-                    message,
-                    (dataByteBuf, headersByteBuf) -> {
-                      ReferenceCountUtil.release(headersByteBuf);
-                      return dataByteBuf;
-                    });
+            ByteBuf dataBuffer = state.dataBuffer().retain();
+            ByteBuf headersBuffer = state.headersBuffer().retain();
+            ServiceMessage message =
+                ServiceMessageCodec.decodeData(
+                    messageCodec.decode(dataBuffer, headersBuffer), dataType);
             timeContext.stop();
-            return result;
+            return message;
           };
         });
   }
