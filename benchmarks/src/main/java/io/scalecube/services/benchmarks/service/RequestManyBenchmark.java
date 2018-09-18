@@ -1,11 +1,11 @@
-package io.scalecube.services.benchmarks.services;
+package io.scalecube.services.benchmarks.service;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import java.util.concurrent.TimeUnit;
 
-public class RequestManyLatencyBenchmarks {
+public class RequestManyBenchmark {
 
   private static final String RESPONSE_COUNT = "1000";
 
@@ -16,7 +16,7 @@ public class RequestManyLatencyBenchmarks {
    */
   public static void main(String[] args) {
     BenchmarkSettings settings = BenchmarkSettings.from(args).build();
-    new ServicesBenchmarksState(settings, new BenchmarkServiceImpl())
+    new BenchmarkServiceState(settings, new BenchmarkServiceImpl())
         .runForAsync(
             state -> {
               BenchmarkService benchmarkService = state.service(BenchmarkService.class);
@@ -25,10 +25,11 @@ public class RequestManyLatencyBenchmarks {
               return i -> {
                 Context timeContext = timer.time();
                 return benchmarkService
-                    .nanoTime(responseCount)
+                    .requestStreamRange(responseCount)
                     .doOnNext(
-                        onNext -> {
-                          timer.update(System.nanoTime() - onNext, TimeUnit.NANOSECONDS);
+                        msg -> {
+                          long time = Long.valueOf(msg.header("time"));
+                          timer.update(System.nanoTime() - time, TimeUnit.NANOSECONDS);
                         })
                     .doFinally(next -> timeContext.stop());
               };
