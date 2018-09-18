@@ -35,7 +35,7 @@ public class ErrorFlowTest {
         Microservices.builder()
             .discovery(
                 options ->
-                    options.seeds(provider.address()).port(port.incrementAndGet()))
+                    options.seeds(provider.discovery().address()).port(port.incrementAndGet()))
             .startAwait();
   }
 

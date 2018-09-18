@@ -4,9 +4,6 @@ import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.ServiceReference;
 import io.scalecube.services.api.ServiceMessage;
 import java.util.List;
-import java.util.function.Predicate;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 /**
  * Service registry interface provides API to register/unregister services in the system and make
@@ -23,8 +20,4 @@ public interface ServiceRegistry {
   boolean registerService(ServiceEndpoint serviceEndpoint);
 
   ServiceEndpoint unregisterService(String endpointId);
-
-  <T> Flux<RegistryEvent<T>> listen(Predicate<? super RegistryEvent<T>> predicate);
-
-  Mono<Void> close();
 }

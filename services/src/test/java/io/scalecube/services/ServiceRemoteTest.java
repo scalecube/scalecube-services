@@ -60,7 +60,7 @@ public class ServiceRemoteTest extends BaseTest {
 
   private static Microservices serviceProvider() {
     return Microservices.builder()
-        .discovery(options -> options.seeds(gateway.address()))
+        .discovery(options -> options.seeds(gateway.discovery().address()))
         .services(new GreetingServiceImpl())
         .startAwait();
   }
@@ -191,7 +191,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.address()))
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
 
@@ -213,7 +213,7 @@ public class ServiceRemoteTest extends BaseTest {
     // noinspection unused
     Microservices provider =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.address()))
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another)
             .startAwait();
 
@@ -232,7 +232,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices ms =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.address()))
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
 
@@ -256,7 +256,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     Microservices provider =
         Microservices.builder()
-            .discovery(options -> options.seeds(gateway.address()))
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
 
@@ -340,7 +340,7 @@ public class ServiceRemoteTest extends BaseTest {
     Microservices ms =
         Microservices.builder().tags(tags).services(new GreetingServiceImpl()).startAwait();
 
-    assertTrue(ms.serviceEndpoint().tags().containsKey("HOSTNAME"));
+    assertTrue(ms.discovery().endpoint().tags().containsKey("HOSTNAME"));
   }
 
   @Test

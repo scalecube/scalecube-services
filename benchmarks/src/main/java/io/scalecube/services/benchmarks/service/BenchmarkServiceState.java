@@ -32,17 +32,15 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
     node =
         Microservices.builder()
             .metrics(registry())
-            .discovery(options -> options.seeds(seed.address()))
+            .discovery(options -> options.seeds(seed.discovery().address()))
             .services(services)
             .startAwait();
 
     LOGGER.info(
         "Seed address: "
-            + seed.address()
+            + seed.discovery().address()
             + ", services address: "
-            + node.serviceAddress()
-            + ", seed serviceRegistry: "
-            + seed.serviceRegistry().listServiceReferences());
+            + node.serviceAddress());
   }
 
   @Override

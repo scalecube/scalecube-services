@@ -1,10 +1,9 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.registry.api.RegistryEvent.Type.ADDED;
-import static io.scalecube.services.registry.api.RegistryEvent.Type.REMOVED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.scalecube.services.registry.api.RegistryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -17,31 +16,31 @@ public class ServiceRegistryEventsTest {
   @Test
   public void test_added_removed_registration_events() {
 
-    List<RegistryEvent<ServiceEndpoint>> events = new ArrayList<>();
+    List<ServiceDiscoveryEvent> events = new ArrayList<>();
 
     Microservices seed = Microservices.builder().startAwait();
 
-    seed.serviceRegistry().listen(RegistryEvent.asEndpoint()).subscribe(events::add);
+    seed.discovery().listen().subscribe(events::add);
 
     Microservices ms1 =
         Microservices.builder()
-            .discovery(options -> options.seeds(seed.address()))
+            .discovery(options -> options.seeds(seed.discovery().address()))
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Microservices ms2 =
         Microservices.builder()
-            .discovery(options -> options.seeds(seed.address()))
+            .discovery(options -> options.seeds(seed.discovery().address()))
             .services(new GreetingServiceImpl())
             .startAwait();
 
     Mono.when(ms1.shutdown(), ms2.shutdown()).block(Duration.ofSeconds(6));
 
     assertEquals(4, events.size());
-    assertEquals(ADDED, events.get(0).type());
-    assertEquals(ADDED, events.get(1).type());
-    assertEquals(REMOVED, events.get(2).type());
-    assertEquals(REMOVED, events.get(3).type());
+    assertEquals(Type.REGISTERED, events.get(0).type());
+    assertEquals(Type.REGISTERED, events.get(1).type());
+    assertEquals(Type.UNREGISTERED, events.get(2).type());
+    assertEquals(Type.UNREGISTERED, events.get(3).type());
 
     seed.shutdown().block(Duration.ofSeconds(6));
   }
