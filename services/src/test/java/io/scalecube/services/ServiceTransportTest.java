@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.discovery.api.DiscoveryEvent;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
@@ -82,7 +82,7 @@ public class ServiceTransportTest {
     gateway
         .discovery()
         .listen()
-        .filter(DiscoveryEvent::isUnregistered)
+        .filter(ServiceDiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -111,7 +111,7 @@ public class ServiceTransportTest {
     gateway
         .discovery()
         .listen()
-        .filter(DiscoveryEvent::isUnregistered)
+        .filter(ServiceDiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down
@@ -144,7 +144,7 @@ public class ServiceTransportTest {
     gateway
         .discovery()
         .listen()
-        .filter(DiscoveryEvent::isUnregistered)
+        .filter(ServiceDiscoveryEvent::isUnregistered)
         .subscribe(onNext -> latch1.countDown(), System.err::println);
 
     // service node goes down

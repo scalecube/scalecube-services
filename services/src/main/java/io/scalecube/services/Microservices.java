@@ -4,8 +4,8 @@ import com.codahale.metrics.MetricRegistry;
 import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
-import io.scalecube.services.discovery.api.DiscoveryConfig;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -111,7 +111,7 @@ public class Microservices {
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscovery discovery;
-  private final Consumer<DiscoveryConfig.Builder> discoveryOptions;
+  private final Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
 
   private Microservices(Builder builder) {
     this.id = IdGenerator.generateId();
@@ -140,8 +140,7 @@ public class Microservices {
               ClientTransport clientTransport = transportBootstrap.clientTransport();
               InetSocketAddress serviceAddress = transportBootstrap.listenAddress();
 
-              Call call =
-                  new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
+              Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
 
               // invoke service providers and register services
               serviceProviders
@@ -159,8 +158,8 @@ public class Microservices {
               }
 
               // configure discovery and publish to the cluster
-              DiscoveryConfig discoveryConfig =
-                  DiscoveryConfig.builder(discoveryOptions)
+              ServiceDiscoveryConfig discoveryConfig =
+                  ServiceDiscoveryConfig.builder(discoveryOptions)
                       .serviceRegistry(serviceRegistry)
                       .endpoint(endpoint)
                       .build();
@@ -212,7 +211,7 @@ public class Microservices {
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
-    private Consumer<DiscoveryConfig.Builder> discoveryOptions;
+    private Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
     private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
 
@@ -249,8 +248,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder discovery(Consumer<DiscoveryConfig.Builder> options) {
-      this.discoveryOptions = options;
+    public Builder discovery(Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions) {
+      this.discoveryOptions = discoveryOptions;
       return this;
     }
 
@@ -360,17 +359,12 @@ public class Microservices {
     return new Builder();
   }
 
-  public ServiceRegistry serviceRegistry() {
-    return serviceRegistry;
-  }
-
   public InetSocketAddress serviceAddress() {
     return transportBootstrap.listenAddress();
   }
 
   public Call call() {
-    ClientTransport clientTransport = transportBootstrap.clientTransport();
-    return new Call(clientTransport, methodRegistry, serviceRegistry).metrics(metrics);
+    return new Call(transportBootstrap.clientTransport(), methodRegistry, serviceRegistry);
   }
 
   public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
@@ -394,9 +388,6 @@ public class Microservices {
     return Mono.defer(
         () ->
             Mono.when(
-                Optional.ofNullable(serviceRegistry)
-                    .map(ServiceRegistry::close)
-                    .orElse(Mono.empty()),
                 Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
                 Optional.ofNullable(gatewayBootstrap)
                     .map(GatewayBootstrap::shutdown)

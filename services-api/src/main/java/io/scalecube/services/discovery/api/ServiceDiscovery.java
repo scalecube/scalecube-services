@@ -23,9 +23,9 @@ public interface ServiceDiscovery {
         .orElseThrow(() -> new IllegalStateException("ServiceDiscovery not configured"));
   }
 
-  Mono<ServiceDiscovery> start(DiscoveryConfig discoveryConfig);
+  Mono<ServiceDiscovery> start(ServiceDiscoveryConfig config);
 
   Mono<Void> shutdown();
 
-  Flux<DiscoveryEvent> listen();
+  Flux<ServiceDiscoveryEvent> listen();
 }
