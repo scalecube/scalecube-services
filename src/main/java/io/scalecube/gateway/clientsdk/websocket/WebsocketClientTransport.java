@@ -64,7 +64,6 @@ public final class WebsocketClientTransport implements ClientTransport {
         () -> {
           String sid = String.valueOf(sidCounter.incrementAndGet());
           ByteBuf byteBuf = toRequest(request, sid);
-
           return getOrConnect()
               .flatMap(
                   session ->
@@ -81,7 +80,6 @@ public final class WebsocketClientTransport implements ClientTransport {
         () -> {
           String sid = String.valueOf(sidCounter.incrementAndGet());
           ByteBuf byteBuf = toRequest(request, sid);
-
           return getOrConnect()
               .flatMapMany(
                   session ->
