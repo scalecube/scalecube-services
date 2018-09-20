@@ -26,6 +26,7 @@ import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Map.Entry;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,11 +37,9 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
 
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper());
 
-  private static final String QUALIFIER_FIELD = "q";
   private static final String STREAM_ID_FIELD = "sid";
   private static final String SIGNAL_FIELD = "sig";
   private static final String DATA_FIELD = "d";
-  private static final String INACTIVITY_FIELD = "i";
 
   private final DataCodec dataCodec;
 
@@ -68,23 +67,15 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
             (OutputStream) new ByteBufOutputStream(byteBuf), JsonEncoding.UTF8)) {
       generator.writeStartObject();
 
-      if (message.qualifier() != null) {
-        generator.writeStringField(QUALIFIER_FIELD, message.qualifier());
-      }
-
-      String sid = message.header(STREAM_ID_FIELD);
-      if (sid != null) {
-        generator.writeNumberField(STREAM_ID_FIELD, Long.parseLong(sid));
-      }
-
-      String sig = message.header(SIGNAL_FIELD);
-      if (sig != null) {
-        generator.writeNumberField(SIGNAL_FIELD, Integer.parseInt(sig));
-      }
-
-      String inactivity = message.header(INACTIVITY_FIELD);
-      if (inactivity != null) {
-        generator.writeNumberField(INACTIVITY_FIELD, Integer.parseInt(inactivity));
+      // headers
+      for (Entry<String, String> header : message.headers().entrySet()) {
+        String fieldName = header.getKey();
+        String value = header.getValue();
+        if (STREAM_ID_FIELD.equals(fieldName) || SIGNAL_FIELD.equals(fieldName)) {
+          generator.writeNumberField(fieldName, Long.parseLong(value));
+        } else {
+          generator.writeStringField(fieldName, value);
+        }
       }
 
       Object data = message.data();
@@ -133,32 +124,19 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
         if (current == VALUE_NULL) {
           continue;
         }
-        switch (fieldName) {
-          case QUALIFIER_FIELD:
-            result.qualifier(jp.getValueAsString());
-            break;
-          case STREAM_ID_FIELD:
-            result.header(STREAM_ID_FIELD, jp.getValueAsString());
-            break;
-          case SIGNAL_FIELD:
-            result.header(SIGNAL_FIELD, jp.getValueAsString());
-            break;
-          case INACTIVITY_FIELD:
-            result.header(INACTIVITY_FIELD, jp.getValueAsString());
-            break;
-          case DATA_FIELD:
-            dataStart = jp.getTokenLocation().getByteOffset();
-            if (current.isScalarValue()) {
-              if (!current.isNumeric() && !current.isBoolean()) {
-                jp.getValueAsString();
-              }
-            } else if (current.isStructStart()) {
-              jp.skipChildren();
+
+        if (DATA_FIELD.equals(fieldName)) {
+          dataStart = jp.getTokenLocation().getByteOffset();
+          if (current.isScalarValue()) {
+            if (!current.isNumeric() && !current.isBoolean()) {
+              jp.getValueAsString();
             }
-            dataEnd = jp.getCurrentLocation().getByteOffset();
-            break;
-          default:
-            break;
+          } else if (current.isStructStart()) {
+            jp.skipChildren();
+          }
+          dataEnd = jp.getCurrentLocation().getByteOffset();
+        } else {
+          result.header(fieldName, jp.getValueAsString());
         }
       }
       if (dataEnd > dataStart) {
