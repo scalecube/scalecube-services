@@ -185,7 +185,7 @@ public final class WebsocketClientTransport implements ClientTransport {
 
   private Flux<ClientMessage> receiveBySid(Flux<ByteBuf> inbound, String sid) {
     return inbound
-        .publishOn(Schedulers.single(), Integer.MAX_VALUE) // offload netty thread
+        .publishOn(Schedulers.parallel()) // offload netty thread
         .map(codec::decode)
         .filter(response -> sid.equals(response.header("sid"))) // filter out by stream id
         .log(">>> SID_RECEIVE", Level.FINE)

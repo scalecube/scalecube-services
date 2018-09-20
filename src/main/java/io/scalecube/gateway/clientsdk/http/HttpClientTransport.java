@@ -92,7 +92,7 @@ public final class HttpClientTransport implements ClientTransport {
                           .receive()
                           .aggregate()
                           .map(ByteBuf::retain)
-                          .publishOn(Schedulers.single()) // offload netty thread
+                          .publishOn(Schedulers.parallel()) // offload netty thread
                           .map(
                               content ->
                                   toClientMessage(httpResponse, content, request.qualifier())));

@@ -60,7 +60,7 @@ public final class RSocketClientTransport implements ClientTransport {
                       rsocket
                           .requestResponse(payload)
                           .takeUntilOther(listenConnectionClose(rsocket))) //
-              .publishOn(Schedulers.single()) // offload netty thread
+              .publishOn(Schedulers.parallel()) // offload netty thread
               .map(this::toClientMessage)
               .map(this::enrichForRecv);
         });
@@ -77,7 +77,7 @@ public final class RSocketClientTransport implements ClientTransport {
                       rsocket
                           .requestStream(payload)
                           .takeUntilOther(listenConnectionClose(rsocket))) //
-              .publishOn(Schedulers.single(), Integer.MAX_VALUE) // offload netty thread
+              .publishOn(Schedulers.parallel()) // offload netty thread
               .map(this::toClientMessage)
               .map(this::enrichForRecv);
         });
