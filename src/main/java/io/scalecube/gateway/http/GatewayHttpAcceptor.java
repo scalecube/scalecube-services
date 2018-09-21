@@ -19,7 +19,6 @@ import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
-import java.io.IOException;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
@@ -123,9 +122,9 @@ public class GatewayHttpAcceptor
 
     try {
       DataCodec.getInstance(dataFormat).encode(new ByteBufOutputStream(byteBuf), data);
-    } catch (IOException e) {
+    } catch (Throwable t) {
       ReferenceCountUtil.safestRelease(byteBuf);
-      LOGGER.error("Failed to encode data: {}", data, e);
+      LOGGER.error("Failed to encode data: {}", data, t);
       return Unpooled.EMPTY_BUFFER;
     }
 
