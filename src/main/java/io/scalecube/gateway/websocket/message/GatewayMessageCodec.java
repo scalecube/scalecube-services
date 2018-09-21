@@ -67,12 +67,15 @@ public class GatewayMessageCodec {
       if (data != null) {
         if (data instanceof ByteBuf) {
           ByteBuf dataBin = (ByteBuf) data;
-          if (dataBin.readableBytes() > 0) {
-            generator.writeFieldName(DATA_FIELD);
-            generator.writeRaw(":");
-            generator.flush();
-            byteBuf.writeBytes(dataBin);
-            ReferenceCountUtil.safestRelease(dataBin);
+          if (dataBin.isReadable()) {
+            try {
+              generator.writeFieldName(DATA_FIELD);
+              generator.writeRaw(":");
+              generator.flush();
+              byteBuf.writeBytes(dataBin);
+            } finally {
+              ReferenceCountUtil.safestRelease(dataBin);
+            }
           }
         } else {
           generator.writeObjectField(DATA_FIELD, data);
