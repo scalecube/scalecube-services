@@ -61,11 +61,11 @@ public final class RequestOneScenario {
                         return client
                             .requestResponse(request)
                             .doOnNext(
-                                response -> {
-                                  Optional.ofNullable(response.data())
+                                msg -> {
+                                  Optional.ofNullable(msg.data())
                                       .ifPresent(ReferenceCountUtil::safestRelease);
                                   timeContext.stop();
-                                  latencyHelper.calculate(response);
+                                  latencyHelper.calculate(msg);
                                 })
                             .doOnTerminate(task::scheduleNow);
                       });

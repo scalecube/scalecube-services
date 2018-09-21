@@ -4,9 +4,11 @@ import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import io.scalecube.services.Microservices;
 import java.net.InetSocketAddress;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
 import reactor.ipc.netty.resources.LoopResources;
@@ -56,7 +58,13 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
     return Mono.defer(
         () -> {
           Client client = clientBuilder.apply(gatewayAddress, loopResources);
-          return client.requestResponse(FIRST_REQUEST).then(Mono.just(client));
+          return client
+              .requestResponse(FIRST_REQUEST)
+              .doOnNext(
+                  response ->
+                      Optional.ofNullable(response.data())
+                          .ifPresent(ReferenceCountUtil::safestRelease))
+              .then(Mono.just(client));
         });
   }
 
