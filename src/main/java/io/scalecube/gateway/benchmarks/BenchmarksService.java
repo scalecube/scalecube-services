@@ -14,10 +14,7 @@ public interface BenchmarksService {
   String NAMESPACE = "benchmarks";
 
   String SERVICE_RECV_TIME = "service-recv-time";
-  String CLIENT_RECV_TIME = "client-recv-time";
-  String GW_RECV_FROM_SERVICE_TIME = "gw-recv-from-service-time";
-  String CLIENT_SEND_TIME = "client-send-time";
-  String GW_RECV_FROM_CLIENT_TIME = "gw-recv-from-client-time";
+  String SERVICE_SEND_TIME = "service-send-time";
 
   @ServiceMethod
   Mono<ServiceMessage> one(ServiceMessage message);
