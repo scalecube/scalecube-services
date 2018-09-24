@@ -82,7 +82,7 @@ public class GatewayWebsocketAcceptor
           Long sid = null;
           GatewayMessage request = null;
           try {
-            request = enrichFromClient(toMessage(message));
+            request = toMessage(message);
             Long streamId = sid = request.streamId();
 
             // check message contains sid
@@ -103,9 +103,7 @@ public class GatewayWebsocketAcceptor
             AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
 
             Flux<ServiceMessage> serviceStream =
-                serviceCall
-                    .requestMany(GatewayMessage.toServiceMessage(request))
-                    .map(this::enrichFromService);
+                serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
 
             if (request.inactivity() != null) {
               serviceStream = serviceStream.timeout(Duration.ofMillis(request.inactivity()));
@@ -226,17 +224,5 @@ public class GatewayWebsocketAcceptor
           e,
           t);
     }
-  }
-
-  private GatewayMessage enrichFromClient(GatewayMessage message) {
-    return GatewayMessage.from(message)
-        .header("gw-recv-from-client-time", System.currentTimeMillis())
-        .build();
-  }
-
-  private ServiceMessage enrichFromService(ServiceMessage message) {
-    return ServiceMessage.from(message)
-        .header("gw-recv-from-service-time", String.valueOf(System.currentTimeMillis()))
-        .build();
   }
 }
