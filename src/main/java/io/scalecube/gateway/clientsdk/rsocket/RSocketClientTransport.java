@@ -4,7 +4,6 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
-import io.rsocket.util.ByteBufPayload;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -115,9 +114,6 @@ public final class RSocketClientTransport implements ClientTransport {
 
     return RSocketFactory.connect()
         .metadataMimeType(settings.contentType())
-        .frameDecoder(
-            frame ->
-                ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
         .transport(createRSocketTransport(address))
         .start()
         .doOnSuccess(
