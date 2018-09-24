@@ -85,8 +85,7 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
           () -> {
             metrics.markRequest();
             return serviceCall
-                .requestOne(enrichFromClient(toMessage(payload)))
-                .map(this::enrichFromService)
+                .requestOne(toMessage(payload))
                 .map(this::toPayload)
                 .doOnNext(payload1 -> metrics.markResponse());
           });
@@ -98,8 +97,7 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
           () -> {
             metrics.markRequest();
             return serviceCall
-                .requestMany(enrichFromClient(toMessage(payload)))
-                .map(this::enrichFromService)
+                .requestMany(toMessage(payload))
                 .map(this::toPayload)
                 .doOnNext(payload1 -> metrics.markResponse());
           });
@@ -113,9 +111,7 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
                   .requestBidirectional(
                       Flux.from(payloads)
                           .doOnNext(payload -> metrics.markRequest())
-                          .map(this::toMessage)
-                          .map(this::enrichFromClient))
-                  .map(this::enrichFromService)
+                          .map(this::toMessage))
                   .map(this::toPayload)
                   .doOnNext(payload -> metrics.markResponse()));
     }
@@ -126,18 +122,6 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
 
     private Payload toPayload(ServiceMessage message) {
       return messageCodec.encodeAndTransform(message, ByteBufPayload::create);
-    }
-
-    private ServiceMessage enrichFromClient(ServiceMessage message) {
-      return ServiceMessage.from(message)
-          .header("gw-recv-from-client-time", String.valueOf(System.currentTimeMillis()))
-          .build();
-    }
-
-    private ServiceMessage enrichFromService(ServiceMessage message) {
-      return ServiceMessage.from(message)
-          .header("gw-recv-from-service-time", String.valueOf(System.currentTimeMillis()))
-          .build();
     }
   }
 }
