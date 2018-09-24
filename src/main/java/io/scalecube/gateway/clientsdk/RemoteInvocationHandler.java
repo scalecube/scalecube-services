@@ -5,6 +5,7 @@ import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
+import reactor.core.scheduler.Schedulers;
 
 public class RemoteInvocationHandler implements InvocationHandler {
 
@@ -41,13 +42,13 @@ public class RemoteInvocationHandler implements InvocationHandler {
     switch (methodInfo.communicationMode()) {
       case REQUEST_RESPONSE:
         return transport
-            .requestResponse(request)
+            .requestResponse(request, Schedulers.immediate())
             .map(response -> codec.decodeData(response, responseType))
             .map(this::throwIfError)
             .map(ClientMessage::data);
       case REQUEST_STREAM:
         return transport
-            .requestStream(request)
+            .requestStream(request, Schedulers.immediate())
             .map(clientMessage -> codec.decodeData(clientMessage, responseType))
             .map(this::throwIfError)
             .map(ClientMessage::data);

@@ -4,6 +4,7 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.client.WebsocketClientTransport;
+import io.rsocket.util.ByteBufPayload;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
@@ -15,13 +16,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.scheduler.Scheduler;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.resources.LoopResources;
 
 public final class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
+
+  private static final String CLIENT_RECV_TIME = "client-recv-time";
+  private static final String CLIENT_SEND_TIME = "client-send-time";
 
   private static final AtomicReferenceFieldUpdater<RSocketClientTransport, Mono>
       rSocketMonoUpdater =
@@ -49,36 +53,36 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request) {
+  public Mono<ClientMessage> requestResponse(ClientMessage request, Scheduler scheduler) {
     return Mono.defer(
         () -> {
-          Payload payload = toPayload(enrichForSend(request));
+          Payload payload = toPayload(enrichRequest(request));
           return getOrConnect()
               .flatMap(
                   rsocket ->
                       rsocket
                           .requestResponse(payload)
                           .takeUntilOther(listenConnectionClose(rsocket))) //
-              .publishOn(Schedulers.parallel()) // offload netty thread
+              .publishOn(scheduler)
               .map(this::toClientMessage)
-              .map(this::enrichForRecv);
+              .map(this::enrichResponse);
         });
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request) {
+  public Flux<ClientMessage> requestStream(ClientMessage request, Scheduler scheduler) {
     return Flux.defer(
         () -> {
-          Payload payload = toPayload(enrichForSend(request));
+          Payload payload = toPayload(enrichRequest(request));
           return getOrConnect()
               .flatMapMany(
                   rsocket ->
                       rsocket
                           .requestStream(payload)
                           .takeUntilOther(listenConnectionClose(rsocket))) //
-              .publishOn(Schedulers.parallel()) // offload netty thread
+              .publishOn(scheduler)
               .map(this::toClientMessage)
-              .map(this::enrichForRecv);
+              .map(this::enrichResponse);
         });
   }
 
@@ -114,6 +118,9 @@ public final class RSocketClientTransport implements ClientTransport {
 
     return RSocketFactory.connect()
         .metadataMimeType(settings.contentType())
+        .frameDecoder(
+            frame ->
+                ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
         .transport(createRSocketTransport(address))
         .start()
         .doOnSuccess(
@@ -154,15 +161,15 @@ public final class RSocketClientTransport implements ClientTransport {
     return codec.decode(payload);
   }
 
-  private ClientMessage enrichForSend(ClientMessage clientMessage) {
+  private ClientMessage enrichRequest(ClientMessage clientMessage) {
     return ClientMessage.from(clientMessage)
-        .header("client-send-time", String.valueOf(System.currentTimeMillis()))
+        .header(CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()))
         .build();
   }
 
-  private ClientMessage enrichForRecv(ClientMessage message) {
+  private ClientMessage enrichResponse(ClientMessage message) {
     return ClientMessage.from(message)
-        .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
+        .header(CLIENT_RECV_TIME, String.valueOf(System.currentTimeMillis()))
         .build();
   }
 

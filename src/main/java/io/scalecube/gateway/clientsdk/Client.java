@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 public final class Client {
 
@@ -118,19 +119,21 @@ public final class Client {
    * Request with mono response as response.
    *
    * @param clientMessage client request message.
+   * @param scheduler scheduler for response handler.
    * @return mono response
    */
-  public Mono<ClientMessage> requestResponse(ClientMessage clientMessage) {
-    return transport.requestResponse(clientMessage);
+  public Mono<ClientMessage> requestResponse(ClientMessage clientMessage, Scheduler scheduler) {
+    return transport.requestResponse(clientMessage, scheduler);
   }
 
   /**
    * Request with flux stream as response.
    *
    * @param clientMessage client request message.
+   * @param scheduler scheduler for response handler.
    * @return flux response
    */
-  public Flux<ClientMessage> requestStream(ClientMessage clientMessage) {
-    return transport.requestStream(clientMessage);
+  public Flux<ClientMessage> requestStream(ClientMessage clientMessage, Scheduler scheduler) {
+    return transport.requestStream(clientMessage, scheduler);
   }
 }

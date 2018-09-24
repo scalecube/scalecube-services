@@ -4,15 +4,17 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.ClientMessage.Builder;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.api.Qualifier;
 import java.net.InetSocketAddress;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.scheduler.Scheduler;
 import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.http.client.HttpClientResponse;
@@ -25,6 +27,11 @@ public final class HttpClientTransport implements ClientTransport {
 
   private static final int WRITE_IDLE_TIMEOUT = 6000;
   private static final int READ_IDLE_TIMEOUT = 6000;
+
+  private static final String SERVICE_RECV_TIME = "service-recv-time";
+  private static final String SERVICE_SEND_TIME = "service-send-time";
+  private static final String CLIENT_RECV_TIME = "client-recv-time";
+  private static final String CLIENT_SEND_TIME = "client-send-time";
 
   private final ClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
@@ -57,7 +64,7 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request) {
+  public Mono<ClientMessage> requestResponse(ClientMessage request, Scheduler scheduler) {
     return Mono.defer(
         () -> {
           ByteBuf byteBuf = codec.encode(request);
@@ -69,7 +76,6 @@ public final class HttpClientTransport implements ClientTransport {
 
                     return httpRequest
                         .options(SendOptions::flushOnEach)
-                        .header("client-send-time", String.valueOf(System.currentTimeMillis()))
                         .failOnClientError(false)
                         .failOnServerError(false)
                         .keepAlive(true)
@@ -78,6 +84,7 @@ public final class HttpClientTransport implements ClientTransport {
                             () -> {
                               // no-op
                             })
+                        .header(CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()))
                         .sendObject(byteBuf)
                         .then();
                   })
@@ -92,7 +99,7 @@ public final class HttpClientTransport implements ClientTransport {
                           .receive()
                           .aggregate()
                           .map(ByteBuf::retain)
-                          .publishOn(Schedulers.parallel()) // offload netty thread
+                          .publishOn(scheduler)
                           .map(
                               content ->
                                   toClientMessage(httpResponse, content, request.qualifier())));
@@ -100,7 +107,7 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request) {
+  public Flux<ClientMessage> requestStream(ClientMessage request, Scheduler scheduler) {
     return Flux.error(
         new UnsupportedOperationException("Request stream is not supported by HTTP/1.x"));
   }
@@ -119,16 +126,21 @@ public final class HttpClientTransport implements ClientTransport {
     String qualifier = isError(httpCode) ? Qualifier.asError(httpCode) : requestQualifier;
     HttpHeaders responseHeaders = httpResponse.responseHeaders();
 
-    ClientMessage message =
+    Builder builder =
         ClientMessage.builder()
             .qualifier(qualifier)
-            .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
-            .header("client-send-time", responseHeaders.get("client-send-time"))
-            .header("service-recv-time", responseHeaders.get("service-recv-time"))
-            .header("gw-recv-from-client-time", responseHeaders.get("gw-recv-from-client-time"))
-            .header("gw-recv-from-service-time", responseHeaders.get("gw-recv-from-service-time"))
-            .data(content)
-            .build();
+            .header(CLIENT_RECV_TIME, String.valueOf(System.currentTimeMillis()));
+
+    Optional.ofNullable(responseHeaders.get(CLIENT_SEND_TIME))
+        .ifPresent(value -> builder.header(CLIENT_SEND_TIME, value));
+
+    Optional.ofNullable(responseHeaders.get(SERVICE_RECV_TIME))
+        .ifPresent(value -> builder.header(SERVICE_RECV_TIME, value));
+
+    Optional.ofNullable(responseHeaders.get(SERVICE_SEND_TIME))
+        .ifPresent(value -> builder.header(SERVICE_SEND_TIME, value));
+
+    ClientMessage message = builder.data(content).build();
 
     LOGGER.debug("Received response {}", message);
     return message;

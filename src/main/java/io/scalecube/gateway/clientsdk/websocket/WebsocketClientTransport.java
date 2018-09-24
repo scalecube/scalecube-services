@@ -19,13 +19,19 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.scheduler.Scheduler;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.resources.LoopResources;
 
 public final class WebsocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientTransport.class);
+
+  private static final String CLIENT_RECV_TIME = "client-recv-time";
+  private static final String CLIENT_SEND_TIME = "client-send-time";
+
+  private static final String STREAM_ID = "sid";
+  private static final String SIGNAL = "sig";
 
   private static final AtomicReferenceFieldUpdater<WebsocketClientTransport, Mono>
       websocketMonoUpdater =
@@ -59,33 +65,53 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request) {
+  public Mono<ClientMessage> requestResponse(ClientMessage request, Scheduler scheduler) {
     return Mono.defer(
         () -> {
           String sid = String.valueOf(sidCounter.incrementAndGet());
-          ByteBuf byteBuf = toRequest(request, sid);
+          ByteBuf byteBuf = enrichRequest(request, sid);
           return getOrConnect()
               .flatMap(
                   session ->
                       session
                           .send(byteBuf)
-                          .then(receiveResponse(session.receive(), sid))
+                          .then(
+                              Mono.<ClientMessage>create(
+                                  sink ->
+                                      receive(session.receive().publishOn(scheduler), sid)
+                                          .subscribe(
+                                              response ->
+                                                  handleResponse(
+                                                      response,
+                                                      sink::success,
+                                                      sink::success,
+                                                      sink::error))))
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request) {
+  public Flux<ClientMessage> requestStream(ClientMessage request, Scheduler scheduler) {
     return Flux.defer(
         () -> {
           String sid = String.valueOf(sidCounter.incrementAndGet());
-          ByteBuf byteBuf = toRequest(request, sid);
+          ByteBuf byteBuf = enrichRequest(request, sid);
           return getOrConnect()
               .flatMapMany(
                   session ->
                       session
                           .send(byteBuf)
-                          .thenMany(receiveStream(session.receive(), sid))
+                          .thenMany(
+                              Flux.<ClientMessage>create(
+                                  sink ->
+                                      receive(session.receive().publishOn(scheduler), sid)
+                                          .subscribe(
+                                              response ->
+                                                  handleResponse(
+                                                      response,
+                                                      sink::next,
+                                                      sink::complete,
+                                                      sink::error))))
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
@@ -146,48 +172,16 @@ public final class WebsocketClientTransport implements ClientTransport {
     ByteBuf byteBuf =
         codec.encode(
             ClientMessage.builder()
-                .header("sid", sid)
-                .header("sig", Signal.CANCEL.codeAsString())
+                .header(STREAM_ID, sid)
+                .header(SIGNAL, Signal.CANCEL.codeAsString())
                 .build());
     return session.send(byteBuf).subscribe();
   }
 
-  private ClientMessage enrichResponse(ClientMessage message) {
-    return ClientMessage.from(message)
-        .header("client-recv-time", String.valueOf(System.currentTimeMillis()))
-        .build();
-  }
-
-  private ByteBuf toRequest(ClientMessage message, String sid) {
-    return codec.encode(
-        ClientMessage.from(message)
-            .header("client-send-time", String.valueOf(System.currentTimeMillis()))
-            .header("sid", sid)
-            .build());
-  }
-
-  private Flux<ClientMessage> receiveStream(Flux<ByteBuf> inbound, String sid) {
-    return Flux.create(
-        sink ->
-            receiveBySid(inbound, sid)
-                .subscribe(
-                    response -> handleResponse(response, sink::next, sink::complete, sink::error)));
-  }
-
-  private Mono<ClientMessage> receiveResponse(Flux<ByteBuf> inbound, String sid) {
-    return Mono.create(
-        sink ->
-            receiveBySid(inbound, sid)
-                .subscribe(
-                    response ->
-                        handleResponse(response, sink::success, sink::success, sink::error)));
-  }
-
-  private Flux<ClientMessage> receiveBySid(Flux<ByteBuf> inbound, String sid) {
+  private Flux<ClientMessage> receive(Flux<ByteBuf> inbound, String sid) {
     return inbound
-        .publishOn(Schedulers.parallel()) // offload netty thread
         .map(codec::decode)
-        .filter(response -> sid.equals(response.header("sid"))) // filter out by stream id
+        .filter(response -> sid.equals(response.header(STREAM_ID))) // filter out by stream id
         .log(">>> SID_RECEIVE", Level.FINE)
         .map(this::enrichResponse);
   }
@@ -199,7 +193,7 @@ public final class WebsocketClientTransport implements ClientTransport {
       Consumer<Throwable> onError) {
     try {
       Optional<Signal> signalOptional =
-          Optional.ofNullable(response.header("sig")).map(Signal::from);
+          Optional.ofNullable(response.header(SIGNAL)).map(Signal::from);
 
       if (signalOptional.isPresent()) {
         // handle completion signal
@@ -213,7 +207,7 @@ public final class WebsocketClientTransport implements ClientTransport {
           Throwable e =
               ExceptionProcessor.toException(
                   response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
-          String sid = response.header("sid");
+          String sid = response.header(STREAM_ID);
           LOGGER.error("Received error response: sid={}, error={}", sid, e);
           onError.accept(e);
         }
@@ -224,5 +218,19 @@ public final class WebsocketClientTransport implements ClientTransport {
     } catch (Exception e) {
       onError.accept(e);
     }
+  }
+
+  private ByteBuf enrichRequest(ClientMessage message, String sid) {
+    return codec.encode(
+        ClientMessage.from(message)
+            .header(CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()))
+            .header(STREAM_ID, sid)
+            .build());
+  }
+
+  private ClientMessage enrichResponse(ClientMessage message) {
+    return ClientMessage.from(message)
+        .header(CLIENT_RECV_TIME, String.valueOf(System.currentTimeMillis()))
+        .build();
   }
 }
