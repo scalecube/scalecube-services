@@ -33,6 +33,11 @@ public class GatewayHttpAcceptor
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayHttpAcceptor.class);
 
+  private static final String SERVICE_RECV_TIME = "service-recv-time";
+  private static final String SERVICE_SEND_TIME = "service-send-time";
+  private static final String CLIENT_RECV_TIME = "client-recv-time";
+  private static final String CLIENT_SEND_TIME = "client-send-time";
+
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
 
@@ -67,17 +72,15 @@ public class GatewayHttpAcceptor
   private Mono<Void> handleRequest(
       ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
 
-    ServiceMessage.Builder messageBuilder =
-        ServiceMessage.builder()
-            .header("gw-recv-from-client-time", String.valueOf(System.currentTimeMillis()))
-            .qualifier(httpRequest.uri());
+    String qualifier = httpRequest.uri();
 
     return serviceCall
-        .requestOne(messageBuilder.data(content).build())
-        .switchIfEmpty(Mono.defer(() -> Mono.just(messageBuilder.data(null).build())))
+        .requestOne(ServiceMessage.builder().qualifier(qualifier).data(content).build())
+        .switchIfEmpty(
+            Mono.defer(() -> Mono.just(ServiceMessage.builder().qualifier(qualifier).build())))
         .flatMap(
             response -> {
-              enrichResponse(httpRequest, httpResponse, response);
+              enrichResponse(httpResponse, response);
               return Mono.defer(
                   () ->
                       ExceptionProcessor.isError(response) // check error
@@ -131,18 +134,17 @@ public class GatewayHttpAcceptor
     return byteBuf;
   }
 
-  private void enrichResponse(
-      HttpServerRequest httpRequest, HttpServerResponse httpResponse, ServiceMessage response) {
+  private void enrichResponse(HttpServerResponse httpResponse, ServiceMessage response) {
+    Optional.ofNullable(response.header(CLIENT_SEND_TIME))
+        .ifPresent(value -> httpResponse.header(CLIENT_SEND_TIME, value));
 
-    Optional.ofNullable(httpRequest.requestHeaders().get("client-send-time"))
-        .ifPresent(s -> httpResponse.header("client-send-time", s));
+    Optional.ofNullable(response.header(CLIENT_RECV_TIME))
+        .ifPresent(value -> httpResponse.header(CLIENT_RECV_TIME, value));
 
-    Optional.ofNullable(response.header("service-recv-time"))
-        .ifPresent(s -> httpResponse.header("service-recv-time", s));
+    Optional.ofNullable(response.header(SERVICE_RECV_TIME))
+        .ifPresent(value -> httpResponse.header(SERVICE_RECV_TIME, value));
 
-    Optional.ofNullable(response.header("gw-recv-from-client-time"))
-        .ifPresent(s -> httpResponse.header("gw-recv-from-client-time", s));
-
-    httpResponse.header("gw-recv-from-service-time", String.valueOf(System.currentTimeMillis()));
+    Optional.ofNullable(response.header(SERVICE_SEND_TIME))
+        .ifPresent(value -> httpResponse.header(SERVICE_SEND_TIME, value));
   }
 }
