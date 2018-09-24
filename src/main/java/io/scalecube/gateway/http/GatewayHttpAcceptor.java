@@ -10,6 +10,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.ReferenceCountUtil;
@@ -17,6 +18,7 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.Optional;
@@ -73,9 +75,11 @@ public class GatewayHttpAcceptor
       ByteBuf content, HttpServerRequest httpRequest, HttpServerResponse httpResponse) {
 
     String qualifier = httpRequest.uri();
+    Builder builder = ServiceMessage.builder().qualifier(qualifier).data(content);
+    enrichRequest(httpRequest.requestHeaders(), builder);
 
     return serviceCall
-        .requestOne(ServiceMessage.builder().qualifier(qualifier).data(content).build())
+        .requestOne(builder.build())
         .switchIfEmpty(
             Mono.defer(() -> Mono.just(ServiceMessage.builder().qualifier(qualifier).build())))
         .flatMap(
@@ -132,6 +136,20 @@ public class GatewayHttpAcceptor
     }
 
     return byteBuf;
+  }
+
+  private void enrichRequest(HttpHeaders requestHeaders, Builder builder) {
+    Optional.ofNullable(requestHeaders.get(CLIENT_SEND_TIME))
+        .ifPresent(value -> builder.header(CLIENT_SEND_TIME, value));
+
+    Optional.ofNullable(requestHeaders.get(CLIENT_RECV_TIME))
+        .ifPresent(value -> builder.header(CLIENT_RECV_TIME, value));
+
+    Optional.ofNullable(requestHeaders.get(SERVICE_RECV_TIME))
+        .ifPresent(value -> builder.header(SERVICE_RECV_TIME, value));
+
+    Optional.ofNullable(requestHeaders.get(SERVICE_SEND_TIME))
+        .ifPresent(value -> builder.header(SERVICE_SEND_TIME, value));
   }
 
   private void enrichResponse(HttpServerResponse httpResponse, ServiceMessage response) {
