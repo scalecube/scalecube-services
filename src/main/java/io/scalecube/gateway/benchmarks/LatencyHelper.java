@@ -1,11 +1,5 @@
 package io.scalecube.gateway.benchmarks;
 
-import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_RECV_TIME;
-import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_SEND_TIME;
-import static io.scalecube.gateway.benchmarks.BenchmarksService.GW_RECV_FROM_CLIENT_TIME;
-import static io.scalecube.gateway.benchmarks.BenchmarksService.GW_RECV_FROM_SERVICE_TIME;
-import static io.scalecube.gateway.benchmarks.BenchmarksService.SERVICE_RECV_TIME;
-
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.gateway.clientsdk.ClientMessage;
@@ -15,10 +9,13 @@ import java.util.function.BiConsumer;
 
 public final class LatencyHelper {
 
-  private final BenchmarkTimer clientToGwTimer;
-  private final BenchmarkTimer gwToServiceTimer;
-  private final BenchmarkTimer serviceToGwTimer;
-  private final BenchmarkTimer gwToClientTimer;
+  private static final String SERVICE_RECV_TIME = "service-recv-time";
+  private static final String SERVICE_SEND_TIME = "service-send-time";
+  private static final String CLIENT_RECV_TIME = "client-recv-time";
+  private static final String CLIENT_SEND_TIME = "client-send-time";
+
+  private final BenchmarkTimer clientToServiceTimer;
+  private final BenchmarkTimer serviceToClientTimer;
 
   /**
    * Creates an instance which helps calculate gateway latency by the headers into received message.
@@ -26,10 +23,8 @@ public final class LatencyHelper {
    * @param state a benchmark state
    */
   public LatencyHelper(BenchmarkState state) {
-    clientToGwTimer = state.timer("latency.client-to-gw-timer");
-    gwToServiceTimer = state.timer("latency.gw-to-service-timer");
-    serviceToGwTimer = state.timer("latency.service-to-gw-timer");
-    gwToClientTimer = state.timer("latency.gw-to-client-timer");
+    clientToServiceTimer = state.timer("latency.client-to-service-timer");
+    serviceToClientTimer = state.timer("latency.service-to-client-timer");
   }
 
   /**
@@ -38,29 +33,17 @@ public final class LatencyHelper {
    * @param message client message
    */
   public void calculate(ClientMessage message) {
-    // client to gateway
+    // client to service
     eval(
-        message.header(GW_RECV_FROM_CLIENT_TIME),
+        message.header(SERVICE_RECV_TIME),
         message.header(CLIENT_SEND_TIME),
-        (v1, v2) -> clientToGwTimer.update(v1 - v2, TimeUnit.MILLISECONDS));
+        (v1, v2) -> clientToServiceTimer.update(v1 - v2, TimeUnit.MILLISECONDS));
 
-    // gateway to client
+    // service to client
     eval(
         message.header(CLIENT_RECV_TIME),
-        message.header(GW_RECV_FROM_SERVICE_TIME),
-        (v1, v2) -> gwToClientTimer.update(v1 - v2, TimeUnit.MILLISECONDS));
-
-    // gateway to service
-    eval(
-        message.header(SERVICE_RECV_TIME),
-        message.header(GW_RECV_FROM_CLIENT_TIME),
-        (v1, v2) -> gwToServiceTimer.update(v1 - v2, TimeUnit.MILLISECONDS));
-
-    // service to gateway
-    eval(
-        message.header(GW_RECV_FROM_SERVICE_TIME),
-        message.header(SERVICE_RECV_TIME),
-        (v1, v2) -> serviceToGwTimer.update(v1 - v2, TimeUnit.MILLISECONDS));
+        message.header(SERVICE_SEND_TIME),
+        (v1, v2) -> serviceToClientTimer.update(v1 - v2, TimeUnit.MILLISECONDS));
   }
 
   private void eval(String value0, String value1, BiConsumer<Long, Long> consumer) {

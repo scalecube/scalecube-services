@@ -1,9 +1,6 @@
 package io.scalecube.gateway.benchmarks;
 
-import static io.scalecube.gateway.benchmarks.BenchmarksService.SERVICE_RECV_TIME;
-
 import io.scalecube.benchmarks.BenchmarkSettings;
-import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
@@ -45,22 +42,14 @@ public final class BroadcastStreamScenario {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          BenchmarkTimer timer = state.timer("latency.timer");
           LatencyHelper latencyHelper = new LatencyHelper(state);
-
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
           return client ->
               (executionTick, task) ->
                   client
-                      .requestStream(request)
-                      .doOnNext(
-                          msg -> {
-                            long timestamp = Long.parseLong(msg.header(SERVICE_RECV_TIME));
-                            timer.update(
-                                System.currentTimeMillis() - timestamp, TimeUnit.MILLISECONDS);
-                            latencyHelper.calculate(msg);
-                          });
+                      .requestStream(request, task.scheduler())
+                      .doOnNext(latencyHelper::calculate);
         },
         (state, client) -> client.close());
   }

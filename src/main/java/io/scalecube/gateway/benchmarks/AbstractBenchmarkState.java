@@ -11,6 +11,7 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
@@ -32,7 +33,8 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-    loopResources = LoopResources.create("worker-client-sdk", 1, true);
+    int workerCount = Runtime.getRuntime().availableProcessors();
+    loopResources = LoopResources.create("worker-client-sdk", workerCount, true);
   }
 
   @Override
@@ -59,7 +61,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
         () -> {
           Client client = clientBuilder.apply(gatewayAddress, loopResources);
           return client
-              .requestResponse(FIRST_REQUEST)
+              .requestResponse(FIRST_REQUEST, Schedulers.immediate())
               .doOnNext(
                   response ->
                       Optional.ofNullable(response.data())

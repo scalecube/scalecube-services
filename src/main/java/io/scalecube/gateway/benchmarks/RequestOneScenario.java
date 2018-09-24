@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 public final class RequestOneScenario {
 
@@ -49,7 +50,6 @@ public final class RequestOneScenario {
         state -> {
           BenchmarkTimer timer = state.timer("latency.timer");
           LatencyHelper latencyHelper = new LatencyHelper(state);
-
           ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
           return client ->
@@ -57,17 +57,17 @@ public final class RequestOneScenario {
                   Mono.defer(
                       () -> {
                         Context timeContext = timer.time();
-
+                        Scheduler scheduler = task.scheduler();
                         return client
-                            .requestResponse(request)
+                            .requestResponse(request, scheduler)
                             .doOnNext(
                                 msg -> {
                                   Optional.ofNullable(msg.data())
                                       .ifPresent(ReferenceCountUtil::safestRelease);
-                                  timeContext.stop();
                                   latencyHelper.calculate(msg);
-                                })
-                            .doOnTerminate(task::scheduleNow);
+                                  timeContext.stop();
+                                  scheduler.schedule(task);
+                                });
                       });
         },
         (state, client) -> client.close());
