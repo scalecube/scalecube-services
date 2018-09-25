@@ -69,7 +69,7 @@ public final class WebsocketClientTransport implements ClientTransport {
               .flatMap(
                   session ->
                       session
-                          .send(byteBuf)
+                          .send(byteBuf, sid)
                           .then(
                               Mono.<ClientMessage>create(
                                   sink ->
@@ -91,7 +91,7 @@ public final class WebsocketClientTransport implements ClientTransport {
               .flatMapMany(
                   session ->
                       session
-                          .send(byteBuf)
+                          .send(byteBuf, sid)
                           .thenMany(
                               Flux.<ClientMessage>create(
                                   sink ->
@@ -162,7 +162,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                 .header(STREAM_ID, sid)
                 .header(SIGNAL, Signal.CANCEL.codeAsString())
                 .build());
-    return session.send(byteBuf).subscribe();
+    return session.send(byteBuf, sid).subscribe();
   }
 
   private ByteBuf enrichRequest(ClientMessage message, String sid) {
