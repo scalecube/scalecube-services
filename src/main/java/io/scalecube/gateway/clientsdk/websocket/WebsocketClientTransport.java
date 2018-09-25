@@ -77,7 +77,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                               Mono.<ClientMessage>create(
                                   sink ->
                                       session
-                                          .receive(sid)
+                                          .receive(sid, scheduler)
                                           .map(this::enrichResponse)
                                           .subscribe(sink::success, sink::error, sink::success)))
                           .doOnCancel(() -> handleCancel(sid, session)));
@@ -99,7 +99,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                               Flux.<ClientMessage>create(
                                   sink ->
                                       session
-                                          .receive(sid)
+                                          .receive(sid, scheduler)
                                           .map(this::enrichResponse)
                                           .subscribe(sink::next, sink::error, sink::complete)))
                           .doOnCancel(() -> handleCancel(sid, session)));
