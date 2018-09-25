@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.http.client.HttpClient;
 import reactor.ipc.netty.http.client.HttpClientResponse;
 import reactor.ipc.netty.resources.LoopResources;
@@ -75,7 +74,6 @@ public final class HttpClientTransport implements ClientTransport {
                     LOGGER.debug("Sending request {}", request);
 
                     return httpRequest
-                        .options(SendOptions::flushOnEach)
                         .failOnClientError(false)
                         .failOnServerError(false)
                         .keepAlive(true)
