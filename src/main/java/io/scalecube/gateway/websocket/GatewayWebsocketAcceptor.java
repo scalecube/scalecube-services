@@ -62,7 +62,6 @@ public class GatewayWebsocketAcceptor
                 .receive()
                 .doOnNext(input -> metrics.markRequest())
                 .flatMap(message -> handleMessage(session, message))
-                .doOnNext(input -> metrics.markResponse())
                 .doOnError(
                     ex ->
                         LOGGER.error(
@@ -112,13 +111,16 @@ public class GatewayWebsocketAcceptor
             Disposable disposable =
                 serviceStream
                     .map(response -> prepareResponse(streamId, response, receivedErrorMessage))
-                    .concatWith(Flux.defer(() -> prepareCompletion(streamId, receivedErrorMessage)))
+                    .concatWith(Mono.defer(() -> prepareCompletion(streamId, receivedErrorMessage)))
                     .onErrorResume(t -> Mono.just(toErrorMessage(t, streamId)))
                     .doFinally(signalType -> session.dispose(streamId))
                     .subscribe(
                         response -> {
                           try {
                             sink.next(toByteBuf(response));
+                            if (response.hasSignal(Signal.COMPLETE)) {
+                              metrics.markResponse();
+                            }
                           } catch (Throwable t) {
                             LOGGER.error("Failed to encode response message: {}", response, t);
                           }
