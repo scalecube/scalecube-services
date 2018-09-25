@@ -34,28 +34,25 @@ public class BenchmarksServiceImpl implements BenchmarksService {
   @Override
   public Flux<ServiceMessage> broadcastStream(ServiceMessage message) {
     return Flux.defer(
-        () -> {
-          String value = String.valueOf(System.currentTimeMillis());
-          return sharedSource
-              .subscribeOn(Schedulers.parallel())
-              .map(
-                  i ->
-                      ServiceMessage.from(message)
-                          .header(SERVICE_RECV_TIME, value)
-                          .header(SERVICE_SEND_TIME, String.valueOf(System.currentTimeMillis()))
-                          .build());
-        });
+        () ->
+            sharedSource
+                .subscribeOn(Schedulers.parallel())
+                .map(
+                    i ->
+                        ServiceMessage.builder()
+                            .qualifier(message.qualifier())
+                            .header(SERVICE_SEND_TIME, String.valueOf(System.currentTimeMillis()))
+                            .build()));
   }
 
   @Override
   public Flux<ServiceMessage> infiniteStream(ServiceMessage message) {
     return Flux.defer(
         () -> {
-          String value = String.valueOf(System.currentTimeMillis());
           Callable<ServiceMessage> callable =
               () ->
-                  ServiceMessage.from(message)
-                      .header(SERVICE_RECV_TIME, value)
+                  ServiceMessage.builder()
+                      .qualifier(message.qualifier())
                       .header(SERVICE_SEND_TIME, Long.toString(System.currentTimeMillis()))
                       .build();
           return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel()).repeat();
