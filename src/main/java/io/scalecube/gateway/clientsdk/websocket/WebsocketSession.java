@@ -10,6 +10,7 @@ import io.scalecube.gateway.clientsdk.ErrorData;
 import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.logging.Level;
@@ -110,12 +111,8 @@ final class WebsocketSession {
   }
 
   public Mono<Void> close() {
-    return outbound
-        .sendObject(
-            Mono.<WebSocketFrame>fromCallable(
-                    () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close"))
-                .log("<<< CLOSE", Level.FINE))
-        .then();
+    Callable<WebSocketFrame> callable = () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close");
+    return outbound.sendObject(Mono.fromCallable(callable).log("<<< CLOSE", Level.FINE)).then();
   }
 
   public Mono<Void> onClose(Runnable runnable) {

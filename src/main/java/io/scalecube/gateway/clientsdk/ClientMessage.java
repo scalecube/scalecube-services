@@ -92,6 +92,13 @@ public final class ClientMessage {
       message.headers().forEach(this::header);
     }
 
+    /**
+     * Add a header.
+     *
+     * @param key header name
+     * @param value header value
+     * @return self
+     */
     public Builder header(String key, String value) {
       if (value != null) {
         headers.put(key, value);
@@ -99,6 +106,13 @@ public final class ClientMessage {
       return this;
     }
 
+    /**
+     * Add a header.
+     *
+     * @param key header name
+     * @param value header value
+     * @return self
+     */
     public Builder header(String key, Object value) {
       if (value != null) {
         headers.put(key, value.toString());
