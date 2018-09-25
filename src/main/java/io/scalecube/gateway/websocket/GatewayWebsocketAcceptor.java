@@ -118,7 +118,7 @@ public class GatewayWebsocketAcceptor
                         response -> {
                           try {
                             sink.next(toByteBuf(response));
-                            if (response.hasSignal(Signal.COMPLETE)) {
+                            if (!response.hasHeader("sig")) {
                               metrics.markResponse();
                             }
                           } catch (Throwable t) {

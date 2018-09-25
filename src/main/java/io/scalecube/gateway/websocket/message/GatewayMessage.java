@@ -97,6 +97,10 @@ public class GatewayMessage {
     return headers;
   }
 
+  public boolean hasHeader(String name) {
+    return headers.containsKey(name);
+  }
+
   @Override
   public String toString() {
     return "GatewayMessage {headers: " + headers + ", data: " + dataToString() + '}';
@@ -122,11 +126,11 @@ public class GatewayMessage {
       return header(QUALIFIER_FIELD, qualifier);
     }
 
-    public Builder streamId(long streamId) {
+    public Builder streamId(Long streamId) {
       return header(STREAM_ID_FIELD, streamId);
     }
 
-    public Builder signal(int signal) {
+    public Builder signal(Integer signal) {
       return header(SIGNAL_FIELD, signal);
     }
 
@@ -134,7 +138,7 @@ public class GatewayMessage {
       return signal(signal.code());
     }
 
-    public Builder inactivity(int inactivity) {
+    public Builder inactivity(Integer inactivity) {
       return header(INACTIVITY_FIELD, inactivity);
     }
 
