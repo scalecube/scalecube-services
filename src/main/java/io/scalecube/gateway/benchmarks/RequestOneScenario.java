@@ -65,6 +65,9 @@ public final class RequestOneScenario {
                                   Optional.ofNullable(msg.data())
                                       .ifPresent(ReferenceCountUtil::safestRelease);
                                   latencyHelper.calculate(msg);
+                                })
+                            .doOnTerminate(
+                                () -> {
                                   timeContext.stop();
                                   scheduler.schedule(task);
                                 });

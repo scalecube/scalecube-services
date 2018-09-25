@@ -33,7 +33,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
   @Override
   protected void beforeAll() throws Exception {
     super.beforeAll();
-    int workerCount = Runtime.getRuntime().availableProcessors();
+    int workerCount = 1; // workaround
     loopResources = LoopResources.create("worker-client-sdk", workerCount, true);
   }
 
