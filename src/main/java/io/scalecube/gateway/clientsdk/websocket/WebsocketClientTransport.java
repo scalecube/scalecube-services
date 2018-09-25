@@ -8,6 +8,7 @@ import io.scalecube.gateway.clientsdk.ClientTransport;
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -16,6 +17,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Scheduler;
 import reactor.ipc.netty.http.client.HttpClient;
+import reactor.ipc.netty.http.websocket.WebsocketInbound;
+import reactor.ipc.netty.http.websocket.WebsocketOutbound;
 import reactor.ipc.netty.resources.LoopResources;
 
 public final class WebsocketClientTransport implements ClientTransport {
@@ -63,7 +66,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   public Mono<ClientMessage> requestResponse(ClientMessage request, Scheduler scheduler) {
     return Mono.defer(
         () -> {
-          String sid = String.valueOf(sidCounter.incrementAndGet());
+          long sid = sidCounter.incrementAndGet();
           ByteBuf byteBuf = enrichRequest(request, sid);
           return getOrConnect()
               .flatMap(
@@ -85,7 +88,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   public Flux<ClientMessage> requestStream(ClientMessage request, Scheduler scheduler) {
     return Flux.defer(
         () -> {
-          String sid = String.valueOf(sidCounter.incrementAndGet());
+          long sid = sidCounter.incrementAndGet();
           ByteBuf byteBuf = enrichRequest(request, sid);
           return getOrConnect()
               .flatMapMany(
@@ -131,20 +134,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                 Mono.create(
                     (MonoSink<WebsocketSession> sink) ->
                         response
-                            .receiveWebsocket(
-                                (in, out) -> {
-                                  LOGGER.info("Connected successfully to {}", address);
-
-                                  WebsocketSession session = new WebsocketSession(codec, in, out);
-
-                                  sink.success(session);
-
-                                  return session.onClose(
-                                      () ->
-                                          LOGGER.info(
-                                              "Connection to {} has been closed successfully",
-                                              address));
-                                })
+                            .receiveWebsocket((in, out) -> handleWebsocket(sink, in, out))
                             .doOnError(sink::error)
                             .subscribe()))
         .doOnError(
@@ -155,7 +145,17 @@ public final class WebsocketClientTransport implements ClientTransport {
         .cache();
   }
 
-  private Disposable handleCancel(String sid, WebsocketSession session) {
+  private Publisher<Void> handleWebsocket(
+      MonoSink<WebsocketSession> sink, WebsocketInbound in, WebsocketOutbound out) {
+
+    WebsocketSession session = new WebsocketSession(codec, in, out);
+
+    LOGGER.info("Created {} on {}", session, address);
+    sink.success(session);
+    return session.onClose(() -> LOGGER.info("Closed {} on {}", session, address));
+  }
+
+  private Disposable handleCancel(long sid, WebsocketSession session) {
     ByteBuf byteBuf =
         codec.encode(
             ClientMessage.builder()
@@ -165,17 +165,15 @@ public final class WebsocketClientTransport implements ClientTransport {
     return session.send(byteBuf, sid).subscribe();
   }
 
-  private ByteBuf enrichRequest(ClientMessage message, String sid) {
+  private ByteBuf enrichRequest(ClientMessage message, long sid) {
     return codec.encode(
         ClientMessage.from(message)
-            .header(CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()))
+            .header(CLIENT_SEND_TIME, System.currentTimeMillis())
             .header(STREAM_ID, sid)
             .build());
   }
 
   private ClientMessage enrichResponse(ClientMessage message) {
-    return ClientMessage.from(message)
-        .header(CLIENT_RECV_TIME, String.valueOf(System.currentTimeMillis()))
-        .build();
+    return ClientMessage.from(message).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 }

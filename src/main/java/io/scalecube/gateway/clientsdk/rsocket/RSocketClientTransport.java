@@ -163,14 +163,12 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private ClientMessage enrichRequest(ClientMessage clientMessage) {
     return ClientMessage.from(clientMessage)
-        .header(CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()))
+        .header(CLIENT_SEND_TIME, System.currentTimeMillis())
         .build();
   }
 
   private ClientMessage enrichResponse(ClientMessage message) {
-    return ClientMessage.from(message)
-        .header(CLIENT_RECV_TIME, String.valueOf(System.currentTimeMillis()))
-        .build();
+    return ClientMessage.from(message).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 
   private <T> Mono<T> listenConnectionClose(RSocket rsocket) {

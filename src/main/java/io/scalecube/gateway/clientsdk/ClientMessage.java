@@ -1,5 +1,6 @@
 package io.scalecube.gateway.clientsdk;
 
+import io.netty.buffer.ByteBuf;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -11,8 +12,8 @@ public final class ClientMessage {
   private Object data;
 
   public ClientMessage(Builder builder) {
-    this.headers = new HashMap<>(builder.headers);
     this.data = builder.data;
+    this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
   }
 
   public static Builder builder() {
@@ -28,11 +29,15 @@ public final class ClientMessage {
   }
 
   public Map<String, String> headers() {
-    return Collections.unmodifiableMap(headers);
+    return headers;
   }
 
   public String header(String name) {
     return headers.get(name);
+  }
+
+  public boolean hasHeader(String name) {
+    return headers.containsKey(name);
   }
 
   public <T> T data() {
@@ -63,7 +68,17 @@ public final class ClientMessage {
 
   @Override
   public String toString() {
-    return "ClientMessage {headers: " + headers + ", data: " + data + '}';
+    return "ClientMessage {headers: " + headers + ", data: " + dataToString() + '}';
+  }
+
+  private Object dataToString() {
+    if (data instanceof ByteBuf) {
+      return "bb-" + ((ByteBuf) data).readableBytes();
+    }
+    if (data instanceof String) {
+      return "str-" + ((String) data).length();
+    }
+    return data;
   }
 
   public static class Builder {
@@ -73,17 +88,26 @@ public final class ClientMessage {
     private Builder() {}
 
     public Builder(ClientMessage message) {
-      this.headers = message.headers;
       this.data = message.data;
+      message.headers().forEach(this::header);
     }
 
     public Builder header(String key, String value) {
-      headers.put(key, value);
+      if (value != null) {
+        headers.put(key, value);
+      }
+      return this;
+    }
+
+    public Builder header(String key, Object value) {
+      if (value != null) {
+        headers.put(key, value.toString());
+      }
       return this;
     }
 
     public Builder qualifier(String qualifier) {
-      return header("q", qualifier);
+      return header(QUALIFIER, qualifier);
     }
 
     public Builder data(Object data) {

@@ -3,6 +3,7 @@ package io.scalecube.gateway.clientsdk.websocket;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ErrorData;
@@ -26,18 +27,24 @@ final class WebsocketSession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
+  // close ws session normally status code
+  private static final int STATUS_CODE_CLOSE = 1000;
+
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
 
+  private final String id; // keep id for tracing
   private final ClientCodec<ByteBuf> codec;
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
 
-  private final ConcurrentMap<String, UnicastProcessor<ClientMessage>> inboundProcessors =
+  // processor by sid mapping
+  private final ConcurrentMap<Long, UnicastProcessor<ClientMessage>> inboundProcessors =
       new NonBlockingHashMap<>();
 
   WebsocketSession(
       ClientCodec<ByteBuf> codec, WebsocketInbound inbound, WebsocketOutbound outbound) {
+    this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.inbound = inbound;
     this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
@@ -49,64 +56,63 @@ final class WebsocketSession {
         .map(codec::decode)
         .log(">>> RECEIVE", Level.FINE)
         .subscribe(
-            response -> {
-              String sid = response.header(STREAM_ID);
+            msg -> {
               // ignore msgs w/o sid
-              if (sid == null) {
-                LOGGER.error("Ignore response: {} with null sid", response);
-                Optional.ofNullable(response.data()).ifPresent(ReferenceCountUtil::safestRelease);
+              if (!msg.hasHeader(STREAM_ID)) {
+                LOGGER.error("Ignore response: {} with null sid, session={}", msg, id);
+                Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
+              long sid = Long.valueOf(msg.header(STREAM_ID));
               // processor?
               UnicastProcessor<ClientMessage> processor = inboundProcessors.get(sid);
               if (processor == null) {
-                LOGGER.error("Can't find processor by sid={} for response: {}", sid, response);
-                Optional.ofNullable(response.data()).ifPresent(ReferenceCountUtil::safestRelease);
+                LOGGER.error(
+                    "Can't find processor by sid={} for response: {}, session={}", sid, msg, id);
+                Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
                 return;
               }
               // handle response msg
-              handleResponse(
-                  response, processor::onNext, processor::onError, processor::onComplete);
+              handleResponse(msg, processor::onNext, processor::onError, processor::onComplete);
             });
   }
 
-  public Mono<Void> send(ByteBuf byteBuf, String sid) {
-    return Mono.defer(
-        () -> {
-          inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
-          LOGGER.info("Put sid=" + sid);
-          return outbound
-              .sendObject(Mono.just(new TextWebSocketFrame(byteBuf)).log("<<< SEND", Level.FINE))
-              .then();
-        });
+  public Mono<Void> send(ByteBuf byteBuf, long sid) {
+    return outbound
+        .sendObject(
+            Mono.<WebSocketFrame>fromCallable(() -> new TextWebSocketFrame(byteBuf))
+                .log("<<< SEND", Level.FINE))
+        .then()
+        .doOnSuccess(
+            avoid -> {
+              inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
+              LOGGER.debug("Put sid={}, session={}", sid, id);
+            });
   }
 
-  public Flux<ClientMessage> receive(String sid) {
+  public Flux<ClientMessage> receive(long sid) {
     return Flux.defer(
         () -> {
           UnicastProcessor<ClientMessage> processor = inboundProcessors.get(sid);
           if (processor == null) {
-            LOGGER.error("Can't find processor by sid={}", sid);
+            LOGGER.error("Can't find processor by sid={}, session={}", sid, id);
             throw new IllegalStateException("Can't find processor by sid");
           }
-          return processor
-              .log(">>> SID_RECEIVE")
-              .doOnTerminate(
-                  () -> {
-                    inboundProcessors.remove(sid);
-                    LOGGER.info("Removed sid=" + sid);
-                  })
-              .log(">>> SID_RECEIVE", Level.FINE);
+          return processor.doOnTerminate(
+              () -> {
+                inboundProcessors.remove(sid);
+                LOGGER.debug("Removed sid={}, session={}", sid, id);
+              });
         });
   }
 
   public Mono<Void> close() {
-    return Mono.defer(
-        () ->
-            outbound
-                .sendObject(new CloseWebSocketFrame(1000, "close"))
-                .then()
-                .log("<<< CLOSE", Level.FINE));
+    return outbound
+        .sendObject(
+            Mono.<WebSocketFrame>fromCallable(
+                    () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close"))
+                .log("<<< CLOSE", Level.FINE))
+        .then();
   }
 
   public Mono<Void> onClose(Runnable runnable) {
@@ -118,7 +124,6 @@ final class WebsocketSession {
       Consumer<ClientMessage> onNext,
       Consumer<Throwable> onError,
       Runnable onComplete) {
-    String sid = response.header(STREAM_ID);
     try {
       Optional<Signal> signalOptional =
           Optional.ofNullable(response.header(SIGNAL)).map(Signal::from);
@@ -135,7 +140,7 @@ final class WebsocketSession {
           Throwable e =
               ExceptionProcessor.toException(
                   response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
-
+          String sid = response.header(STREAM_ID);
           LOGGER.error("Received error response: sid={}, error={}", sid, e);
           onError.accept(e);
         }
@@ -146,5 +151,13 @@ final class WebsocketSession {
     } catch (Exception e) {
       onError.accept(e);
     }
+  }
+
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("client-sdk.WebsocketSession{");
+    sb.append("id='").append(id).append('\'');
+    sb.append('}');
+    return sb.toString();
   }
 }

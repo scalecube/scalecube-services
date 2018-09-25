@@ -127,7 +127,7 @@ public final class HttpClientTransport implements ClientTransport {
     Builder builder =
         ClientMessage.builder()
             .qualifier(qualifier)
-            .header(CLIENT_RECV_TIME, String.valueOf(System.currentTimeMillis()));
+            .header(CLIENT_RECV_TIME, System.currentTimeMillis());
 
     Optional.ofNullable(responseHeaders.get(CLIENT_SEND_TIME))
         .ifPresent(value -> builder.header(CLIENT_SEND_TIME, value));
