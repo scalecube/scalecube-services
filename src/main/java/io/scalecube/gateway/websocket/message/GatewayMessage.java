@@ -1,5 +1,6 @@
 package io.scalecube.gateway.websocket.message;
 
+import io.netty.buffer.ByteBuf;
 import io.scalecube.services.api.ServiceMessage;
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,15 +48,7 @@ public class GatewayMessage {
 
   private GatewayMessage(Builder builder) {
     this.data = builder.data;
-    this.headers = Collections.unmodifiableMap(builder.headers);
-  }
-
-  public static GatewayMessage toGatewayMessage(ServiceMessage serviceMessage) {
-    return from(serviceMessage).build();
-  }
-
-  public ServiceMessage toServiceMessage() {
-    return toServiceMessage(this);
+    this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
   }
 
   /**
@@ -106,17 +99,20 @@ public class GatewayMessage {
 
   @Override
   public String toString() {
-    return new StringBuilder("GatewayMessage{")
-        .append("headers=")
-        .append(headers)
-        .append(", data=")
-        .append(data)
-        .append('}')
-        .toString();
+    return "GatewayMessage {headers: " + headers + ", data: " + dataToString() + '}';
+  }
+
+  private Object dataToString() {
+    if (data instanceof ByteBuf) {
+      return "bb-" + ((ByteBuf) data).readableBytes();
+    }
+    if (data instanceof String) {
+      return "str-" + ((String) data).length();
+    }
+    return data;
   }
 
   public static class Builder {
-
     private Map<String, String> headers = new HashMap<>();
     private Object data;
 
@@ -126,11 +122,11 @@ public class GatewayMessage {
       return header(QUALIFIER_FIELD, qualifier);
     }
 
-    public Builder streamId(Long streamId) {
+    public Builder streamId(long streamId) {
       return header(STREAM_ID_FIELD, streamId);
     }
 
-    public Builder signal(Integer signal) {
+    public Builder signal(int signal) {
       return header(SIGNAL_FIELD, signal);
     }
 
@@ -138,7 +134,7 @@ public class GatewayMessage {
       return signal(signal.code());
     }
 
-    public Builder inactivity(Integer inactivity) {
+    public Builder inactivity(int inactivity) {
       return header(INACTIVITY_FIELD, inactivity);
     }
 
