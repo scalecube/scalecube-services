@@ -5,14 +5,9 @@ import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import io.scalecube.gateway.clientsdk.ErrorData;
-import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import java.net.InetSocketAddress;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import java.util.function.Consumer;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -78,14 +73,10 @@ public final class WebsocketClientTransport implements ClientTransport {
                           .then(
                               Mono.<ClientMessage>create(
                                   sink ->
-                                      receive(session.receive().publishOn(scheduler), sid)
-                                          .subscribe(
-                                              response ->
-                                                  handleResponse(
-                                                      response,
-                                                      sink::success,
-                                                      sink::success,
-                                                      sink::error))))
+                                      session
+                                          .receive(sid)
+                                          .map(this::enrichResponse)
+                                          .subscribe(sink::success, sink::error, sink::success)))
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
@@ -104,14 +95,10 @@ public final class WebsocketClientTransport implements ClientTransport {
                           .thenMany(
                               Flux.<ClientMessage>create(
                                   sink ->
-                                      receive(session.receive().publishOn(scheduler), sid)
-                                          .subscribe(
-                                              response ->
-                                                  handleResponse(
-                                                      response,
-                                                      sink::next,
-                                                      sink::complete,
-                                                      sink::error))))
+                                      session
+                                          .receive(sid)
+                                          .map(this::enrichResponse)
+                                          .subscribe(sink::next, sink::error, sink::complete)))
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
   }
@@ -148,7 +135,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                                 (in, out) -> {
                                   LOGGER.info("Connected successfully to {}", address);
 
-                                  WebsocketSession session = new WebsocketSession(in, out);
+                                  WebsocketSession session = new WebsocketSession(codec, in, out);
 
                                   sink.success(session);
 
@@ -176,48 +163,6 @@ public final class WebsocketClientTransport implements ClientTransport {
                 .header(SIGNAL, Signal.CANCEL.codeAsString())
                 .build());
     return session.send(byteBuf).subscribe();
-  }
-
-  private Flux<ClientMessage> receive(Flux<ByteBuf> inbound, String sid) {
-    return inbound
-        .map(codec::decode)
-        .filter(response -> sid.equals(response.header(STREAM_ID))) // filter out by stream id
-        .log(">>> SID_RECEIVE", Level.FINE)
-        .map(this::enrichResponse);
-  }
-
-  private void handleResponse(
-      ClientMessage response,
-      Consumer<ClientMessage> onNext,
-      Runnable onComplete,
-      Consumer<Throwable> onError) {
-    try {
-      Optional<Signal> signalOptional =
-          Optional.ofNullable(response.header(SIGNAL)).map(Signal::from);
-
-      if (signalOptional.isPresent()) {
-        // handle completion signal
-        Signal signal = signalOptional.get();
-        if (signal == Signal.COMPLETE) {
-          onComplete.run();
-        }
-        if (signal == Signal.ERROR) {
-          // decode error data to retrieve real error cause
-          ErrorData errorData = codec.decodeData(response, ErrorData.class).data();
-          Throwable e =
-              ExceptionProcessor.toException(
-                  response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
-          String sid = response.header(STREAM_ID);
-          LOGGER.error("Received error response: sid={}, error={}", sid, e);
-          onError.accept(e);
-        }
-      } else {
-        // handle normal response
-        onNext.accept(response);
-      }
-    } catch (Exception e) {
-      onError.accept(e);
-    }
   }
 
   private ByteBuf enrichRequest(ClientMessage message, String sid) {
