@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 public final class RequestOneScenario {
 
@@ -57,9 +57,8 @@ public final class RequestOneScenario {
                   Mono.defer(
                       () -> {
                         Context timeContext = timer.time();
-                        Scheduler scheduler = task.scheduler();
                         return client
-                            .requestResponse(request, scheduler)
+                            .requestResponse(request, Schedulers.parallel())
                             .doOnNext(
                                 msg -> {
                                   Optional.ofNullable(msg.data())
@@ -69,7 +68,7 @@ public final class RequestOneScenario {
                             .doOnTerminate(
                                 () -> {
                                   timeContext.stop();
-                                  scheduler.schedule(task);
+                                  task.scheduler().schedule(task);
                                 });
                       });
         },

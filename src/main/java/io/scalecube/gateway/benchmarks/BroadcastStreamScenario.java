@@ -5,6 +5,7 @@ import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import reactor.core.scheduler.Schedulers;
 
 public final class BroadcastStreamScenario {
 
@@ -48,7 +49,7 @@ public final class BroadcastStreamScenario {
           return client ->
               (executionTick, task) ->
                   client
-                      .requestStream(request, task.scheduler())
+                      .requestStream(request, Schedulers.parallel())
                       .doOnNext(latencyHelper::calculate);
         },
         (state, client) -> client.close());
