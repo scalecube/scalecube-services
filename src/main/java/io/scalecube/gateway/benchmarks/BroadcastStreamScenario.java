@@ -24,7 +24,7 @@ public final class BroadcastStreamScenario {
   public static void runWith(
       String[] args, Function<BenchmarkSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    int numOfThreads = Runtime.getRuntime().availableProcessors() * 2;
+    int numOfThreads = Runtime.getRuntime().availableProcessors();
     Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
 
     BenchmarkSettings settings =
@@ -33,7 +33,7 @@ public final class BroadcastStreamScenario {
             .messageRate(1) // workaround
             .warmUpDuration(Duration.ofSeconds(30))
             .rampUpDuration(rampUpDuration)
-            .executionTaskDuration(Duration.ofSeconds(900))
+            .executionTaskDuration(Duration.ofSeconds(600))
             .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
             .build();
