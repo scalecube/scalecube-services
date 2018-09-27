@@ -1,15 +1,12 @@
 package io.scalecube.gateway.websocket;
 
 import io.scalecube.gateway.GatewayMetrics;
-import io.scalecube.gateway.ReferenceCountUtil;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ExceptionProcessor;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
@@ -83,17 +80,30 @@ public class GatewayWebsocketAcceptor
                                   .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
                                   .doFinally(signalType -> session.dispose(sid))
                                   .subscribe(
-                                      response -> {
-                                        Mono<Void> promise = session.send(response);
-                                        if (!response.hasHeader("sig")) {
-                                          promise.doOnSuccess(avoid -> metrics.markResponse());
-                                        }
-                                      });
+                                      response ->
+                                          session
+                                              .send(response)
+                                              .doOnSuccess(
+                                                  avoid -> {
+                                                    if (!response.hasHeader("sig")) {
+                                                      metrics.markResponse();
+                                                    }
+                                                  })
+                                              .subscribe());
 
                           session.register(sid, disposable);
                         },
-                        throwable -> {
-                          System.err.println(throwable);
+                        th -> {
+                          if (th instanceof WebsocketException) {
+                            WebsocketException ex = (WebsocketException) th;
+                            session
+                                .send(ex.getCause(), ex.releaseRequest().request().streamId())
+                                .subscribe();
+                          } else {
+                            // just log
+                            LOGGER.error(
+                                "Unhandled exception occurred: {}, session: {}", th, session.id());
+                          }
                         }));
 
     return session.onClose(() -> LOGGER.info("Session disconnected: " + session));
@@ -101,16 +111,15 @@ public class GatewayWebsocketAcceptor
 
   private Mono<GatewayMessage> checkQualifier(GatewayMessage msg) {
     if (msg.qualifier() == null) {
-      release(msg);
-      throw new BadRequestException("qualifier is missing");
+      throw WebsocketException.newBadRequest("qualifier is missing", msg);
     }
     return Mono.just(msg);
   }
 
   private Mono<GatewayMessage> checkSidNonce(WebsocketSession session, GatewayMessage msg) {
     if (session.containsSid(msg.streamId())) {
-      release(msg);
-      throw new BadRequestException("sid=" + msg.streamId() + " is already registered");
+      throw WebsocketException.newBadRequest(
+          "sid=" + msg.streamId() + " is already registered", msg);
     } else {
       return Mono.just(msg);
     }
@@ -120,11 +129,9 @@ public class GatewayWebsocketAcceptor
     if (!msg.hasSignal(Signal.CANCEL)) {
       return Mono.just(msg);
     }
-    // not expecting data in CANCEL but release anyway
-    release(msg);
 
     if (!session.dispose(msg.streamId())) {
-      throw new BadRequestException("Failed CANCEL request");
+      throw WebsocketException.newBadRequest("Failed CANCEL request", msg);
     }
 
     GatewayMessage cancelAck =
@@ -134,8 +141,7 @@ public class GatewayWebsocketAcceptor
 
   private Mono<GatewayMessage> checkSid(GatewayMessage msg) {
     if (msg.streamId() == null) {
-      release(msg);
-      throw new BadRequestException("sid is missing");
+      throw WebsocketException.newBadRequest("sid is missing", msg);
     } else {
       return Mono.just(msg);
     }
@@ -163,9 +169,5 @@ public class GatewayWebsocketAcceptor
         .streamId(streamId)
         .signal(Signal.ERROR)
         .build();
-  }
-
-  private void release(GatewayMessage msg) {
-    Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
   }
 }
