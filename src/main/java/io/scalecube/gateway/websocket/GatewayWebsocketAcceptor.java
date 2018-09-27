@@ -61,38 +61,7 @@ public class GatewayWebsocketAcceptor
                     .flatMap(msg -> checkSidNonce(session, (GatewayMessage) msg))
                     .flatMap(this::checkQualifier)
                     .subscribe(
-                        request -> {
-                          Long sid = request.streamId();
-
-                          AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
-
-                          Flux<ServiceMessage> serviceStream =
-                              serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
-
-                          Disposable disposable =
-                              serviceStream
-                                  .map(
-                                      response ->
-                                          prepareResponse(sid, response, receivedErrorMessage))
-                                  .concatWith(
-                                      Mono.defer(
-                                          () -> prepareCompletion(sid, receivedErrorMessage)))
-                                  .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
-                                  .doFinally(signalType -> session.dispose(sid))
-                                  .subscribe(
-                                      response ->
-                                          session
-                                              .send(response)
-                                              .doOnSuccess(
-                                                  avoid -> {
-                                                    if (!response.hasHeader("sig")) {
-                                                      metrics.markResponse();
-                                                    }
-                                                  })
-                                              .subscribe());
-
-                          session.register(sid, disposable);
-                        },
+                        request -> handleMessage(session, request),
                         th -> {
                           if (th instanceof WebsocketException) {
                             WebsocketException ex = (WebsocketException) th;
@@ -107,6 +76,36 @@ public class GatewayWebsocketAcceptor
                         }));
 
     return session.onClose(() -> LOGGER.info("Session disconnected: " + session));
+  }
+
+  private void handleMessage(WebsocketSession session, GatewayMessage request) {
+    Long sid = request.streamId();
+
+    AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
+
+    Flux<ServiceMessage> serviceStream =
+        serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
+
+    Disposable disposable =
+        serviceStream
+            .map(response -> prepareResponse(sid, response, receivedErrorMessage))
+            .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedErrorMessage)))
+            .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
+            .doFinally(signalType -> session.dispose(sid))
+            .subscribe(
+                response ->
+                    session
+                        .send(response)
+                        .doOnSuccess(avoid -> markResponse(response))
+                        .subscribe());
+
+    session.register(sid, disposable);
+  }
+
+  private void markResponse(GatewayMessage response) {
+    if (!response.hasHeader("sig")) {
+      metrics.markResponse();
+    }
   }
 
   private Mono<GatewayMessage> checkQualifier(GatewayMessage msg) {
