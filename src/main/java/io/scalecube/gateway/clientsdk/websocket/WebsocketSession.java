@@ -55,7 +55,7 @@ final class WebsocketSession {
         .aggregateFrames()
         .receive()
         .retain()
-        .log(">>>> RECEIVE", Level.FINE)
+        .log("client-sdk.RECEIVE", Level.FINE)
         .subscribe(
             byteBuf -> {
               // decode msg
@@ -86,10 +86,9 @@ final class WebsocketSession {
   }
 
   public Mono<Void> send(ByteBuf byteBuf, long sid) {
+    Callable<WebSocketFrame> callable = () -> new TextWebSocketFrame(byteBuf);
     return outbound
-        .sendObject(
-            Mono.<WebSocketFrame>fromCallable(() -> new TextWebSocketFrame(byteBuf))
-                .log("<<<< SEND", Level.FINE))
+        .sendObject(Mono.fromCallable(callable).log("client-sdk.SEND", Level.FINE))
         .then()
         .doOnSuccess(
             avoid -> {
@@ -118,7 +117,9 @@ final class WebsocketSession {
 
   public Mono<Void> close() {
     Callable<WebSocketFrame> callable = () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close");
-    return outbound.sendObject(Mono.fromCallable(callable).log("<<< CLOSE", Level.FINE)).then();
+    return outbound
+        .sendObject(Mono.fromCallable(callable).log("client-sdk.CLOSE", Level.FINE))
+        .then();
   }
 
   public Mono<Void> onClose(Runnable runnable) {
