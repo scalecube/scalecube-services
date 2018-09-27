@@ -67,7 +67,7 @@ public class GatewayHttpAcceptor
         .map(ByteBuf::retain)
         .doOnNext(content -> metrics.markRequest())
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
-        .doOnTerminate(metrics::markResponse)
+        .doOnSuccess(avoid -> metrics.markResponse())
         .onErrorResume(t -> error(httpResponse, ExceptionProcessor.toMessage(t)));
   }
 
@@ -80,6 +80,7 @@ public class GatewayHttpAcceptor
 
     return serviceCall
         .requestOne(builder.build())
+        .doOnNext(message -> metrics.markServiceResponse())
         .switchIfEmpty(
             Mono.defer(() -> Mono.just(ServiceMessage.builder().qualifier(qualifier).build())))
         .flatMap(
