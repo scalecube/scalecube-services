@@ -87,7 +87,7 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
             return serviceCall
                 .requestOne(toMessage(payload))
                 .map(this::toPayload)
-                .doOnNext(payload1 -> metrics.markResponse());
+                .doOnNext(payload1 -> metrics.markServiceResponse());
           });
     }
 
@@ -99,7 +99,7 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
             return serviceCall
                 .requestMany(toMessage(payload))
                 .map(this::toPayload)
-                .doOnNext(payload1 -> metrics.markResponse());
+                .doOnNext(payload1 -> metrics.markServiceResponse());
           });
     }
 
@@ -110,7 +110,7 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
               serviceCall
                   .requestBidirectional(
                       Flux.from(payloads)
-                          .doOnNext(payload -> metrics.markRequest())
+                          .doOnNext(payload -> metrics.markServiceResponse())
                           .map(this::toMessage))
                   .map(this::toPayload)
                   .doOnNext(payload -> metrics.markResponse()));
