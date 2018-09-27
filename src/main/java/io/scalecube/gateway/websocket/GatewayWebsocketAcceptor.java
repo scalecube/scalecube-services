@@ -9,6 +9,7 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.logging.Level;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,18 +61,16 @@ public class GatewayWebsocketAcceptor
                     .flatMap(msg -> handleCancelIfNeeded(session, msg))
                     .flatMap(msg -> checkSidNonce(session, (GatewayMessage) msg))
                     .flatMap(this::checkQualifier)
+                    .log(">> RECEIVE_MESSAGE", Level.FINE)
                     .subscribe(
                         request -> handleMessage(session, request),
                         th -> {
+                          LOGGER.error("Exception occurred: {}, session={}", th, session.id());
                           if (th instanceof WebsocketException) {
                             WebsocketException ex = (WebsocketException) th;
                             session
                                 .send(ex.getCause(), ex.releaseRequest().request().streamId())
                                 .subscribe();
-                          } else {
-                            // just log
-                            LOGGER.error(
-                                "Unhandled exception occurred: {}, session: {}", th, session.id());
                           }
                         }));
 
@@ -92,12 +91,13 @@ public class GatewayWebsocketAcceptor
             .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedErrorMessage)))
             .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
             .doFinally(signalType -> session.dispose(sid))
+            .log(">> HANDLE_MESSAGE", Level.FINE)
             .subscribe(
-                response ->
-                    session
-                        .send(response)
-                        .doOnSuccess(avoid -> markResponse(response))
-                        .subscribe());
+                response -> {
+                  session
+                      .send(response) /*.doOnSuccess(avoid -> markResponse(response))*/
+                      .subscribe();
+                });
 
     session.register(sid, disposable);
   }
@@ -135,7 +135,7 @@ public class GatewayWebsocketAcceptor
 
     GatewayMessage cancelAck =
         GatewayMessage.builder().streamId(msg.streamId()).signal(Signal.CANCEL).build();
-    return session.send(cancelAck).then();
+    return session.send(cancelAck);
   }
 
   private Mono<GatewayMessage> checkSid(GatewayMessage msg) {
