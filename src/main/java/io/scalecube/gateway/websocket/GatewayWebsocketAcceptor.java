@@ -61,7 +61,6 @@ public class GatewayWebsocketAcceptor
                     .flatMap(msg -> handleCancelIfNeeded(session, msg))
                     .flatMap(msg -> checkSidNonce(session, (GatewayMessage) msg))
                     .flatMap(this::checkQualifier)
-                    .log(">> RECEIVE_MESSAGE", Level.FINE)
                     .subscribe(
                         request -> handleMessage(session, request),
                         th -> {
@@ -92,7 +91,6 @@ public class GatewayWebsocketAcceptor
             .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedErrorMessage)))
             .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
             .doFinally(signalType -> session.dispose(sid))
-            .log("<< RESPONSE", Level.FINE)
             .subscribe(
                 response ->
                     session

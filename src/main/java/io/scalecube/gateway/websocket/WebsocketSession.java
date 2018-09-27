@@ -16,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -86,7 +85,7 @@ public final class WebsocketSession {
    * @return flux websocket {@link ByteBuf}
    */
   public Flux<ByteBuf> receive() {
-    return inbound.aggregateFrames().receive().retain().log(">> RECEIVE", Level.FINE);
+    return inbound.aggregateFrames().receive().retain();
   }
 
   /**
@@ -120,7 +119,6 @@ public final class WebsocketSession {
         sink ->
             publisher
                 .map(TextWebSocketFrame::new)
-                .log("<< SEND", Level.FINE)
                 .map(frame -> outbound.context().channel().writeAndFlush(frame))
                 .subscribe(future -> combine(sink, future), sink::error, sink::success));
   }
@@ -162,7 +160,7 @@ public final class WebsocketSession {
    */
   public Mono<Void> close() {
     Callable<WebSocketFrame> callable = () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close");
-    return outbound.sendObject(Mono.fromCallable(callable).log("<< CLOSE", Level.FINE)).then();
+    return outbound.sendObject(Mono.fromCallable(callable)).then();
   }
 
   /**
