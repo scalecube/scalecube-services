@@ -1,4 +1,4 @@
-package io.scalecube.gateway.benchmarks.standalone.webscoket;
+package io.scalecube.gateway.benchmarks.standalone.websocket;
 
 import io.scalecube.gateway.benchmarks.RequestOneScenario;
 import io.scalecube.gateway.benchmarks.standalone.StandaloneBenchmarkState;
