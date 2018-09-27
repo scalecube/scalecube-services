@@ -88,7 +88,7 @@ public class GatewayWebsocketAcceptor
     Disposable disposable =
         serviceStream
             .map(response -> prepareResponse(sid, response, receivedErrorMessage))
-            .doOnNext(this::markServiceResponse)
+            .doOnNext(response -> metrics.markServiceResponse())
             .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedErrorMessage)))
             .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
             .doFinally(signalType -> session.dispose(sid))
@@ -101,11 +101,6 @@ public class GatewayWebsocketAcceptor
                         .subscribe());
 
     session.register(sid, disposable);
-  }
-
-  @SuppressWarnings("unused")
-  private void markServiceResponse(GatewayMessage response) {
-    metrics.markServiceResponse();
   }
 
   private void markResponse(GatewayMessage response) {
