@@ -13,7 +13,6 @@ import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
-import java.util.logging.Level;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +54,6 @@ final class WebsocketSession {
         .aggregateFrames()
         .receive()
         .retain()
-        .log("client-sdk.RECEIVE", Level.FINE)
         .subscribe(
             byteBuf -> {
               // decode msg
@@ -88,7 +86,7 @@ final class WebsocketSession {
   public Mono<Void> send(ByteBuf byteBuf, long sid) {
     Callable<WebSocketFrame> callable = () -> new TextWebSocketFrame(byteBuf);
     return outbound
-        .sendObject(Mono.fromCallable(callable).log("client-sdk.SEND", Level.FINE))
+        .sendObject(Mono.fromCallable(callable))
         .then()
         .doOnSuccess(
             avoid -> {
@@ -117,9 +115,7 @@ final class WebsocketSession {
 
   public Mono<Void> close() {
     Callable<WebSocketFrame> callable = () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close");
-    return outbound
-        .sendObject(Mono.fromCallable(callable).log("client-sdk.CLOSE", Level.FINE))
-        .then();
+    return outbound.sendObject(Mono.fromCallable(callable)).then();
   }
 
   public Mono<Void> onClose(Runnable runnable) {
