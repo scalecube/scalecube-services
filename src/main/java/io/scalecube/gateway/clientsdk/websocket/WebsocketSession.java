@@ -55,10 +55,16 @@ final class WebsocketSession {
         .aggregateFrames()
         .receive()
         .retain()
-        .map(codec::decode)
-        .log(">>> RECEIVE", Level.FINE)
+        .log(">>>> RECEIVE", Level.FINE)
         .subscribe(
-            msg -> {
+            byteBuf -> {
+              // decode msg
+              ClientMessage msg;
+              try {
+                msg = codec.decode(byteBuf);
+              } catch (Exception ex) {
+                return;
+              }
               // ignore msgs w/o sid
               if (!msg.hasHeader(STREAM_ID)) {
                 LOGGER.error("Ignore response: {} with null sid, session={}", msg, id);
@@ -83,7 +89,7 @@ final class WebsocketSession {
     return outbound
         .sendObject(
             Mono.<WebSocketFrame>fromCallable(() -> new TextWebSocketFrame(byteBuf))
-                .log("<<< SEND", Level.FINE))
+                .log("<<<< SEND", Level.FINE))
         .then()
         .doOnSuccess(
             avoid -> {
@@ -124,6 +130,9 @@ final class WebsocketSession {
       Consumer<ClientMessage> onNext,
       Consumer<Throwable> onError,
       Runnable onComplete) {
+
+    LOGGER.debug("Handle response: {}, session={}", response, id);
+
     try {
       Optional<Signal> signalOptional =
           Optional.ofNullable(response.header(SIGNAL)).map(Signal::from);
