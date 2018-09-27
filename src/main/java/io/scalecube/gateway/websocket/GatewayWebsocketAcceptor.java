@@ -88,18 +88,24 @@ public class GatewayWebsocketAcceptor
     Disposable disposable =
         serviceStream
             .map(response -> prepareResponse(sid, response, receivedErrorMessage))
+            .doOnNext(this::markServiceResponse)
             .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedErrorMessage)))
             .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
             .doFinally(signalType -> session.dispose(sid))
-            .log(">> HANDLE_MESSAGE", Level.FINE)
+            .log("<< RESPONSE", Level.FINE)
             .subscribe(
-                response -> {
-                  session
-                      .send(response) /*.doOnSuccess(avoid -> markResponse(response))*/
-                      .subscribe();
-                });
+                response ->
+                    session
+                        .send(response)
+                        .doOnSuccess(avoid -> markResponse(response))
+                        .subscribe());
 
     session.register(sid, disposable);
+  }
+
+  @SuppressWarnings("unused")
+  private void markServiceResponse(GatewayMessage response) {
+    metrics.markServiceResponse();
   }
 
   private void markResponse(GatewayMessage response) {
@@ -135,7 +141,7 @@ public class GatewayWebsocketAcceptor
 
     GatewayMessage cancelAck =
         GatewayMessage.builder().streamId(msg.streamId()).signal(Signal.CANCEL).build();
-    return session.send(cancelAck);
+    return session.send(cancelAck); // no need to subscribe here since flatMap will do
   }
 
   private Mono<GatewayMessage> checkSid(GatewayMessage msg) {

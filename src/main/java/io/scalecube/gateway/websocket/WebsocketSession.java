@@ -3,6 +3,7 @@ package io.scalecube.gateway.websocket;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFuture;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -21,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
@@ -88,34 +90,66 @@ public final class WebsocketSession {
   }
 
   /**
-   * Method to send normal reply.
+   * Method to send normal response.
    *
    * @param response response
    * @return mono void
    */
   public Mono<Void> send(GatewayMessage response) {
-    return send(Mono.just(response).map(messageCodec::encode));
+    return send(Mono.just(response).map(messageCodec::encode))
+        .doOnSuccessOrError((avoid, th) -> logSendIfNeeded(response, th));
   }
 
   /**
-   * Method to send error reply.
+   * Method to send error response.
    *
-   * @param throwable error
+   * @param err error
    * @param sid stream id; optional
    * @return mono void
    */
-  public Mono<Void> send(Throwable throwable, Long sid) {
-    return send(
-        Mono.just(throwable)
+  public Mono<Void> send(Throwable err, Long sid) {
+    return send(Mono.just(err)
             .map(ExceptionProcessor::toMessage)
             .map(msg -> GatewayMessage.from(msg).streamId(sid).signal(Signal.ERROR).build())
-            .map(messageCodec::encode));
+            .map(messageCodec::encode))
+        .doOnSuccessOrError((avoid, th) -> logSendIfNeeded(err, sid, th));
   }
 
   private Mono<Void> send(Mono<ByteBuf> publisher) {
-    return outbound
-        .sendObject(publisher.map(TextWebSocketFrame::new).log("<< SEND", Level.FINE))
-        .then();
+    return Mono.create(
+        sink ->
+            publisher
+                .map(TextWebSocketFrame::new)
+                .log("<< SEND", Level.FINE)
+                .map(frame -> outbound.context().channel().writeAndFlush(frame))
+                .subscribe(future -> combine(sink, future), sink::error, sink::success));
+  }
+
+  private ChannelFuture combine(MonoSink<Void> sink, ChannelFuture channelFuture) {
+    return channelFuture.addListener(
+        future -> {
+          if (future.isSuccess()) {
+            sink.success();
+          } else {
+            sink.error(future.cause());
+          }
+        });
+  }
+
+  private void logSendIfNeeded(GatewayMessage response, Throwable th) {
+    if (th == null) {
+      LOGGER.debug("<< SEND success: {}, session={}", response, id);
+    } else {
+      LOGGER.warn("<< SEND failed: {}, session={}, cause: {}", response, id, th);
+    }
+  }
+
+  private void logSendIfNeeded(Throwable err, Long sid, Throwable th) {
+    if (th == null) {
+      LOGGER.debug("<< SEND success: {}, sid={}, session={}", err, sid, id);
+    } else {
+      LOGGER.warn("<< SEND failed: {}, sid={}, session={}, cause: {}", err, sid, id, th);
+    }
   }
 
   /**
