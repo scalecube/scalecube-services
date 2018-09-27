@@ -14,7 +14,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-import org.jctools.maps.NonBlockingHashMap;
+import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -42,7 +42,7 @@ final class WebsocketSession {
 
   // processor by sid mapping
   private final ConcurrentMap<Long, UnicastProcessor<ClientMessage>> inboundProcessors =
-      new NonBlockingHashMap<>();
+      new NonBlockingHashMapLong<>(1024);
 
   WebsocketSession(
       ClientCodec<ByteBuf> codec, WebsocketInbound inbound, WebsocketOutbound outbound) {
