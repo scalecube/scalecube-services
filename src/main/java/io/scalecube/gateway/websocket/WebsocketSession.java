@@ -6,15 +6,16 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -29,8 +30,10 @@ public final class WebsocketSession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
 
-  public static final String DEFAULT_CONTENT_TYPE = "application/json";
-  public static final int STATUS_CODE_NORMAL_CLOSE = 1000;
+  // close ws session normally status code
+  private static final int STATUS_CODE_CLOSE = 1000;
+
+  private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
   private final Map<Long, Disposable> subscriptions = new ConcurrentHashMap<>();
 
@@ -109,9 +112,9 @@ public final class WebsocketSession {
             .map(messageCodec::encode));
   }
 
-  private Mono<Void> send(Publisher<ByteBuf> publisher) {
+  private Mono<Void> send(Mono<ByteBuf> publisher) {
     return outbound
-        .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND", Level.FINE))
+        .sendObject(publisher.map(TextWebSocketFrame::new).log("<< SEND", Level.FINE))
         .then();
   }
 
@@ -124,10 +127,8 @@ public final class WebsocketSession {
    * @return mono void
    */
   public Mono<Void> close() {
-    return outbound
-        .sendObject(new CloseWebSocketFrame(STATUS_CODE_NORMAL_CLOSE, "close"))
-        .then()
-        .log("<< CLOSE", Level.FINE);
+    Callable<WebSocketFrame> callable = () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close");
+    return outbound.sendObject(Mono.fromCallable(callable).log("<< CLOSE", Level.FINE)).then();
   }
 
   /**
@@ -151,7 +152,7 @@ public final class WebsocketSession {
       Disposable disposable = subscriptions.remove(streamId);
       result = disposable != null;
       if (result) {
-        LOGGER.debug("Dispose subscription by sid: {} on session: {}", streamId, this);
+        LOGGER.debug("Dispose subscription by sid={}, session={}", streamId, id);
         disposable.dispose();
       }
     }
@@ -176,14 +177,16 @@ public final class WebsocketSession {
       result = subscriptions.putIfAbsent(streamId, disposable) == null;
     }
     if (result) {
-      LOGGER.debug("Registered subscription with sid: {} on session: {}", streamId, this);
+      LOGGER.debug("Registered subscription with sid={}, session={}", streamId, id);
     }
     return result;
   }
 
   private void clearSubscriptions() {
-    if (!subscriptions.isEmpty()) {
-      LOGGER.info("Clear all {} subscriptions on session: {}", subscriptions.size(), this);
+    if (subscriptions.size() > 1) {
+      LOGGER.info("Clear all {} subscriptions on session={}", subscriptions.size(), id);
+    } else if (subscriptions.size() == 1) {
+      LOGGER.info("Clear 1 subscription on session={}", id);
     }
     subscriptions.forEach((sid, disposable) -> disposable.dispose());
     subscriptions.clear();
