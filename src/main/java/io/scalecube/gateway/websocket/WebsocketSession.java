@@ -6,6 +6,10 @@ import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.scalecube.gateway.websocket.message.GatewayMessage;
+import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
+import io.scalecube.gateway.websocket.message.Signal;
+import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +36,7 @@ public final class WebsocketSession {
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
+  private final GatewayMessageCodec messageCodec;
 
   private final String id;
   private final String contentType;
@@ -39,12 +44,17 @@ public final class WebsocketSession {
   /**
    * Create a new websocket session with given handshake, inbound and outbound channels.
    *
+   * @param messageCodec - msg codec
    * @param httpRequest - Init session HTTP request
    * @param inbound - Websocket inbound
    * @param outbound - Websocket outbound
    */
   public WebsocketSession(
-      HttpServerRequest httpRequest, WebsocketInbound inbound, WebsocketOutbound outbound) {
+      GatewayMessageCodec messageCodec,
+      HttpServerRequest httpRequest,
+      WebsocketInbound inbound,
+      WebsocketOutbound outbound) {
+    this.messageCodec = messageCodec;
     this.id = Integer.toHexString(System.identityHashCode(this));
 
     HttpHeaders httpHeaders = httpRequest.requestHeaders();
@@ -71,16 +81,35 @@ public final class WebsocketSession {
    * @return flux websocket {@link ByteBuf}
    */
   public Flux<ByteBuf> receive() {
-    return inbound.aggregateFrames().receive().map(ByteBuf::retain).log(">> RECEIVE", Level.FINE);
+    return inbound.aggregateFrames().receive().retain().log(">> RECEIVE", Level.FINE);
   }
 
   /**
-   * Method for send replies which taken in a form of publisher of byte buffers.
+   * Method to send normal reply.
    *
-   * @param publisher byte buf publisher
+   * @param response response
    * @return mono void
    */
-  public Mono<Void> send(Publisher<ByteBuf> publisher) {
+  public Mono<Void> send(GatewayMessage response) {
+    return send(Mono.just(response).map(messageCodec::encode));
+  }
+
+  /**
+   * Method to send error reply.
+   *
+   * @param throwable error
+   * @param sid stream id; optional
+   * @return mono void
+   */
+  public Mono<Void> send(Throwable throwable, Long sid) {
+    return send(
+        Mono.just(throwable)
+            .map(ExceptionProcessor::toMessage)
+            .map(msg -> GatewayMessage.from(msg).streamId(sid).signal(Signal.ERROR).build())
+            .map(messageCodec::encode));
+  }
+
+  private Mono<Void> send(Publisher<ByteBuf> publisher) {
     return outbound
         .sendObject(Flux.from(publisher).map(TextWebSocketFrame::new).log("<< SEND", Level.FINE))
         .then();
@@ -106,8 +135,8 @@ public final class WebsocketSession {
    *
    * @param runnable lambda
    */
-  public void onClose(Runnable runnable) {
-    inbound.context().onClose(runnable);
+  public Mono<Void> onClose(Runnable runnable) {
+    return inbound.context().onClose(runnable).onClose();
   }
 
   /**
