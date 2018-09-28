@@ -15,7 +15,7 @@ import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
+import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -36,7 +36,7 @@ public final class WebsocketSession {
 
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
-  private final Map<Long, Disposable> subscriptions = new ConcurrentHashMap<>();
+  private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
@@ -96,7 +96,7 @@ public final class WebsocketSession {
    */
   public Mono<Void> send(GatewayMessage response) {
     return send(Mono.just(response).map(messageCodec::encode))
-        .doOnSuccessOrError((avoid, th) -> logSendIfNeeded(response, th));
+        .doOnSuccessOrError((avoid, th) -> logSend(response, th));
   }
 
   /**
@@ -111,7 +111,7 @@ public final class WebsocketSession {
             .map(ExceptionProcessor::toMessage)
             .map(msg -> GatewayMessage.from(msg).streamId(sid).signal(Signal.ERROR).build())
             .map(messageCodec::encode))
-        .doOnSuccessOrError((avoid, th) -> logSendIfNeeded(err, sid, th));
+        .doOnSuccessOrError((avoid, th) -> logSend(err, sid, th));
   }
 
   private Mono<Void> send(Mono<ByteBuf> publisher) {
@@ -134,7 +134,7 @@ public final class WebsocketSession {
         });
   }
 
-  private void logSendIfNeeded(GatewayMessage response, Throwable th) {
+  private void logSend(GatewayMessage response, Throwable th) {
     if (th == null) {
       LOGGER.debug("<< SEND success: {}, session={}", response, id);
     } else {
@@ -142,7 +142,7 @@ public final class WebsocketSession {
     }
   }
 
-  private void logSendIfNeeded(Throwable err, Long sid, Throwable th) {
+  private void logSend(Throwable err, Long sid, Throwable th) {
     if (th == null) {
       LOGGER.debug("<< SEND success: {}, sid={}, session={}", err, sid, id);
     } else {

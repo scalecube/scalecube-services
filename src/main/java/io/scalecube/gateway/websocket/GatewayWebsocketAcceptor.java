@@ -57,7 +57,7 @@ public class GatewayWebsocketAcceptor
                 Mono.fromCallable(() -> messageCodec.decode(byteBuf))
                     .doOnNext(message -> metrics.markRequest())
                     .map(this::checkSid)
-                    .flatMap(msg -> handleCancelIfNeeded(session, msg))
+                    .flatMap(msg -> handleCancel(session, msg))
                     .map(msg -> checkSidNonce(session, (GatewayMessage) msg))
                     .map(this::checkQualifier)
                     .subscribe(
@@ -122,7 +122,7 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private Mono<?> handleCancelIfNeeded(WebsocketSession session, GatewayMessage msg) {
+  private Mono<?> handleCancel(WebsocketSession session, GatewayMessage msg) {
     if (!msg.hasSignal(Signal.CANCEL)) {
       return Mono.just(msg);
     }
