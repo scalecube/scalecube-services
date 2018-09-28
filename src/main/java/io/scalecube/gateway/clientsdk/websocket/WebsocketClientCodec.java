@@ -91,6 +91,7 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
         }
       }
 
+      // data
       Object data = message.data();
       if (data != null) {
         if (data instanceof ByteBuf) {
@@ -154,9 +155,11 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
           }
           dataEnd = jp.getCurrentLocation().getByteOffset();
         } else {
+          // headers
           result.header(fieldName, jp.getValueAsString());
         }
       }
+      // data
       if (dataEnd > dataStart) {
         result.data(encodedMessage.copy((int) dataStart, (int) (dataEnd - dataStart)));
       }
