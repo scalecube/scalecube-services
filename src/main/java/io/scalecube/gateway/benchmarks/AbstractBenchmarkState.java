@@ -10,12 +10,18 @@ import java.net.InetSocketAddress;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.logging.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
 import reactor.ipc.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
     extends BenchmarkState<T> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractBenchmarkState.class);
 
   public static final ClientMessage FIRST_REQUEST =
       ClientMessage.builder().qualifier("/benchmarks/one").build();
@@ -62,11 +68,13 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
           Client client = clientBuilder.apply(gatewayAddress, loopResources);
           return client
               .requestResponse(FIRST_REQUEST, Schedulers.immediate())
+              .log("benchmark-client-first-request", Level.INFO, false, SignalType.ON_NEXT)
               .doOnNext(
                   response ->
                       Optional.ofNullable(response.data())
                           .ifPresent(ReferenceCountUtil::safestRelease))
-              .then(Mono.just(client));
+              .then(Mono.just(client))
+              .doOnNext(c -> LOGGER.info("benchmark-client: {}", c));
         });
   }
 
