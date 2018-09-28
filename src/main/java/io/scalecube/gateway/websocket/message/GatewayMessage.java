@@ -117,7 +117,7 @@ public class GatewayMessage {
   }
 
   public static class Builder {
-    private Map<String, String> headers = new HashMap<>();
+    private Map<String, String> headers = new HashMap<>(1);
     private Object data;
 
     Builder() {}
