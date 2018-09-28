@@ -9,9 +9,9 @@ import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ErrorData;
 import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ final class WebsocketSession {
   private final WebsocketOutbound outbound;
 
   // processor by sid mapping
-  private final ConcurrentMap<Long, UnicastProcessor<ClientMessage>> inboundProcessors =
+  private final Map<Long, UnicastProcessor<ClientMessage>> inboundProcessors =
       new NonBlockingHashMapLong<>(1024);
 
   WebsocketSession(
