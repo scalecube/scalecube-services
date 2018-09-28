@@ -9,7 +9,6 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
-import java.util.logging.Level;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,10 +56,10 @@ public class GatewayWebsocketAcceptor
             byteBuf ->
                 Mono.fromCallable(() -> messageCodec.decode(byteBuf))
                     .doOnNext(message -> metrics.markRequest())
-                    .flatMap(this::checkSid)
+                    .map(this::checkSid)
                     .flatMap(msg -> handleCancelIfNeeded(session, msg))
-                    .flatMap(msg -> checkSidNonce(session, (GatewayMessage) msg))
-                    .flatMap(this::checkQualifier)
+                    .map(msg -> checkSidNonce(session, (GatewayMessage) msg))
+                    .map(this::checkQualifier)
                     .subscribe(
                         request -> handleMessage(session, request),
                         th -> {
@@ -79,16 +78,16 @@ public class GatewayWebsocketAcceptor
   private void handleMessage(WebsocketSession session, GatewayMessage request) {
     Long sid = request.streamId();
 
-    AtomicBoolean receivedErrorMessage = new AtomicBoolean(false);
+    AtomicBoolean receivedError = new AtomicBoolean(false);
 
     Flux<ServiceMessage> serviceStream =
         serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
 
     Disposable disposable =
         serviceStream
-            .map(response -> prepareResponse(sid, response, receivedErrorMessage))
+            .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
-            .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedErrorMessage)))
+            .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedError)))
             .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
             .doFinally(signalType -> session.dispose(sid))
             .subscribe(
@@ -107,19 +106,19 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private Mono<GatewayMessage> checkQualifier(GatewayMessage msg) {
+  private GatewayMessage checkQualifier(GatewayMessage msg) {
     if (msg.qualifier() == null) {
       throw WebsocketException.newBadRequest("qualifier is missing", msg);
     }
-    return Mono.just(msg);
+    return msg;
   }
 
-  private Mono<GatewayMessage> checkSidNonce(WebsocketSession session, GatewayMessage msg) {
+  private GatewayMessage checkSidNonce(WebsocketSession session, GatewayMessage msg) {
     if (session.containsSid(msg.streamId())) {
       throw WebsocketException.newBadRequest(
           "sid=" + msg.streamId() + " is already registered", msg);
     } else {
-      return Mono.just(msg);
+      return msg;
     }
   }
 
@@ -137,17 +136,16 @@ public class GatewayWebsocketAcceptor
     return session.send(cancelAck); // no need to subscribe here since flatMap will do
   }
 
-  private Mono<GatewayMessage> checkSid(GatewayMessage msg) {
+  private GatewayMessage checkSid(GatewayMessage msg) {
     if (msg.streamId() == null) {
       throw WebsocketException.newBadRequest("sid is missing", msg);
     } else {
-      return Mono.just(msg);
+      return msg;
     }
   }
 
-  private Mono<GatewayMessage> prepareCompletion(
-      Long streamId, AtomicBoolean receivedErrorMessage) {
-    return receivedErrorMessage.get()
+  private Mono<GatewayMessage> prepareCompletion(Long streamId, AtomicBoolean receivedError) {
+    return receivedError.get()
         ? Mono.empty()
         : Mono.just(GatewayMessage.builder().streamId(streamId).signal(Signal.COMPLETE).build());
   }
