@@ -43,8 +43,7 @@ public class ExamplesRunner {
                     .port(config.discoveryPort())
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()))
-        .servicePort(config.servicePort())
-        .numOfThreads(config.numOfThreads())
+        .numOfThreads(config.numOfThreads()) // num of worker threads
         .servicePort(config.servicePort())
         .services(new BenchmarksServiceImpl(), new GreetingServiceImpl())
         .startAwait();
