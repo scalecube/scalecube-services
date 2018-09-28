@@ -94,6 +94,15 @@ public final class Client {
     return Mono.defer(transport::close);
   }
 
+  @Override
+  public String toString() {
+    final StringBuilder sb = new StringBuilder("Client{");
+    sb.append("transport=").append(transport);
+    sb.append(", codec=").append(codec);
+    sb.append('}');
+    return sb.toString();
+  }
+
   /**
    * Proxy creator function.
    *
