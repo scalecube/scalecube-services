@@ -9,10 +9,23 @@
     <Console name="STDOUT" target="SYSTEM_OUT">
       <PatternLayout pattern="${patternLayout}"/>
     </Console>
+
+    <RollingFile name="FILE"
+      fileName="logs/server.log"
+      filePattern="logs/server-%d{yyyy-MM-dd-HH}-%i.log">
+      <PatternLayout pattern="${patternLayout}"/>
+      <Policies>
+        <OnStartupTriggeringPolicy/>
+        <TimeBasedTriggeringPolicy/>
+        <SizeBasedTriggeringPolicy size="50MB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="1000"/>
+    </RollingFile>
   </Appenders>
 
   <Loggers>
     <AsyncRoot level="${env:logLevel:-info}">
+      <AppenderRef ref="FILE"/>
       <AppenderRef ref="STDOUT"/>
     </AsyncRoot>
   </Loggers>
