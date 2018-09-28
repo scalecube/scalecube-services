@@ -38,6 +38,16 @@ public class GatewayMessageCodec {
 
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper);
 
+  private final boolean releaseDataOnEncode;
+
+  public GatewayMessageCodec() {
+    this(true /*always release by default*/);
+  }
+
+  public GatewayMessageCodec(boolean releaseDataOnEncode) {
+    this.releaseDataOnEncode = releaseDataOnEncode;
+  }
+
   /**
    * Encode given {@code message} to given {@code byteBuf}.
    *
@@ -74,7 +84,9 @@ public class GatewayMessageCodec {
               generator.flush();
               byteBuf.writeBytes(dataBin);
             } finally {
-              ReferenceCountUtil.safestRelease(dataBin);
+              if (releaseDataOnEncode) {
+                ReferenceCountUtil.safestRelease(dataBin);
+              }
             }
           }
         } else {
