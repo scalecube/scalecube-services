@@ -141,9 +141,11 @@ public class GatewayMessageCodec {
           }
           dataEnd = jp.getCurrentLocation().getByteOffset();
         } else {
+          // headers
           result.header(fieldName, jp.getValueAsString());
         }
       }
+      // data
       if (dataEnd > dataStart) {
         result.data(byteBuf.copy((int) dataStart, (int) (dataEnd - dataStart)));
       }
