@@ -24,26 +24,21 @@ public class GatewayMessage {
   /**
    * Get a builder by pattern form given {@link GatewayMessage}.
    *
-   * @param msg Message form where to copy field values.
+   * @param message Message form where to copy field values.
    * @return builder with fields copied from given {@link GatewayMessage}
    */
-  public static Builder from(GatewayMessage msg) {
-    return new Builder().headers(msg.headers).data(msg.data);
+  public static Builder from(GatewayMessage message) {
+    return new Builder().headers(message.headers).data(message.data);
   }
 
   /**
    * Get a builder by pattern form given {@link ServiceMessage}.
    *
-   * @param serviceMessage ServiceMessage form where to copy field values.
+   * @param message ServiceMessage form where to copy field values.
    * @return builder with fields copied from given {@link ServiceMessage}
    */
-  public static Builder from(ServiceMessage serviceMessage) {
-    Builder builder = new Builder();
-    if (serviceMessage.hasData()) {
-      builder.data = serviceMessage.data();
-    }
-    serviceMessage.headers().forEach(builder::header);
-    return builder;
+  public static Builder from(ServiceMessage message) {
+    return new Builder().headers(message.headers()).data(message.data());
   }
 
   private GatewayMessage(Builder builder) {
@@ -54,14 +49,11 @@ public class GatewayMessage {
   /**
    * {@link GatewayMessage} to {@link ServiceMessage} converter.
    *
-   * @param gatewayMessage gateway message
+   * @param message gateway message
    * @return service message
    */
-  public static ServiceMessage toServiceMessage(GatewayMessage gatewayMessage) {
-    ServiceMessage.Builder builder =
-        ServiceMessage.builder().qualifier(gatewayMessage.qualifier()).data(gatewayMessage.data);
-    gatewayMessage.headers.forEach(builder::header);
-    return builder.build();
+  public static ServiceMessage toServiceMessage(GatewayMessage message) {
+    return ServiceMessage.builder().headers(message.headers).data(message.data).build();
   }
 
   public String qualifier() {
@@ -182,7 +174,7 @@ public class GatewayMessage {
      * @return self
      */
     public Builder headers(Map<String, String> headers) {
-      this.headers.putAll(headers);
+      headers.forEach(this::header);
       return this;
     }
 
