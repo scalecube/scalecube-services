@@ -4,8 +4,10 @@ import io.netty.buffer.ByteBuf;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
+import io.scalecube.gateway.ReferenceCountUtil;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 public class GwMessageDecoderBenchmark {
@@ -27,9 +29,11 @@ public class GwMessageDecoderBenchmark {
 
               return i -> {
                 Context timerContext = timer.time();
-                GatewayMessage gatewayMessage = codec.decode(bb);
+                GatewayMessage message = codec.decode(bb.retain());
+                Optional.ofNullable(message.data()) //
+                    .ifPresent(ReferenceCountUtil::safestRelease);
                 timerContext.stop();
-                return gatewayMessage;
+                return message;
               };
             });
   }
