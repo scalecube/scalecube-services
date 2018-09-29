@@ -9,12 +9,14 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
+import java.util.logging.Level;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.server.HttpServerResponse;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
@@ -85,6 +87,8 @@ public class GatewayWebsocketAcceptor
 
     Disposable disposable =
         serviceStream
+            .limitRate(192)
+            //.log("SERVICE_STREAM", Level.INFO, false, SignalType.REQUEST)
             .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
             .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedError)))
