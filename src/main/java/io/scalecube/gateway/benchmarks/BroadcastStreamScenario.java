@@ -31,7 +31,7 @@ public final class BroadcastStreamScenario {
         BenchmarkSettings.from(args)
             .injectors(numOfThreads)
             .messageRate(1) // workaround
-            .warmUpDuration(Duration.ofSeconds(30))
+            .warmUpDuration(Duration.ofSeconds(10))
             .rampUpDuration(rampUpDuration)
             .executionTaskDuration(Duration.ofSeconds(600))
             .consoleReporterEnabled(true)
