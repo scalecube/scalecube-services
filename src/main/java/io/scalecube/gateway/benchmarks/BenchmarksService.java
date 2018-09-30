@@ -23,7 +23,7 @@ public interface BenchmarksService {
   Mono<ServiceMessage> failure(ServiceMessage message);
 
   @ServiceMethod
-  Flux<ServiceMessage> broadcastStream(ServiceMessage message);
+  Flux<ServiceMessage> sharedStream(ServiceMessage message);
 
   @ServiceMethod
   Flux<ServiceMessage> infiniteStream(ServiceMessage message);

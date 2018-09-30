@@ -32,7 +32,7 @@ public class BenchmarksServiceImpl implements BenchmarksService {
   }
 
   @Override
-  public Flux<ServiceMessage> broadcastStream(ServiceMessage message) {
+  public Flux<ServiceMessage> sharedStream(ServiceMessage message) {
     return Flux.defer(
         () ->
             sharedSource
