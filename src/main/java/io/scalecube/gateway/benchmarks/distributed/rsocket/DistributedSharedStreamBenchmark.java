@@ -1,13 +1,11 @@
-package io.scalecube.gateway.benchmarks.remote.websocket;
+package io.scalecube.gateway.benchmarks.distributed.rsocket;
 
-import static io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState.WS_PORT;
-
-import io.scalecube.gateway.benchmarks.BroadcastStreamScenario;
-import io.scalecube.gateway.benchmarks.remote.RemoteBenchmarkState;
+import io.scalecube.gateway.benchmarks.SharedStreamScenario;
+import io.scalecube.gateway.benchmarks.distributed.DistributedBenchmarkState;
 import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 
-public class RemoteBroadcastStreamBenchmark {
+public class DistributedSharedStreamBenchmark {
 
   /**
    * Main runner.
@@ -15,14 +13,14 @@ public class RemoteBroadcastStreamBenchmark {
    * @param args program arguments
    */
   public static void main(String[] args) {
-    BroadcastStreamScenario.runWith(
+    SharedStreamScenario.runWith(
         args,
         benchmarkSettings ->
-            new RemoteBenchmarkState(
+            new DistributedBenchmarkState(
                 benchmarkSettings,
-                WS_PORT,
+                "rsws",
                 (address, loopResources) ->
-                    Client.onWebsocket(
+                    Client.onRSocket(
                         ClientSettings.builder()
                             .address(address)
                             .loopResources(loopResources)

@@ -3,6 +3,7 @@ package io.scalecube.gateway.benchmarks;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import reactor.core.scheduler.Schedulers;
@@ -10,6 +11,8 @@ import reactor.core.scheduler.Schedulers;
 public final class InfiniteStreamScenario {
 
   public static final String QUALIFIER = "/benchmarks/infiniteStream";
+
+  private static final String RATE_LIMIT = "rateLimit";
 
   private InfiniteStreamScenario() {
     // Do not instantiate
@@ -44,7 +47,12 @@ public final class InfiniteStreamScenario {
         (rampUpTick, state) -> state.createClient(),
         state -> {
           LatencyHelper latencyHelper = new LatencyHelper(state);
-          ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
+          Integer rateLimit =
+              Optional.ofNullable(settings.find(RATE_LIMIT, null))
+                  .map(Integer::parseInt)
+                  .orElse(null);
+          ClientMessage request =
+              ClientMessage.builder().qualifier(QUALIFIER).rateLimit(rateLimit).build();
 
           return client ->
               (executionTick, task) ->

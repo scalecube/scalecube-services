@@ -3,15 +3,18 @@ package io.scalecube.gateway.benchmarks;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import reactor.core.scheduler.Schedulers;
 
-public final class BroadcastStreamScenario {
+public final class SharedStreamScenario {
 
-  public static final String QUALIFIER = "/benchmarks/broadcastStream";
+  public static final String QUALIFIER = "/benchmarks/sharedStream";
 
-  private BroadcastStreamScenario() {
+  private static final String RATE_LIMIT = "rateLimit";
+
+  private SharedStreamScenario() {
     // Do not instantiate
   }
 
@@ -44,7 +47,12 @@ public final class BroadcastStreamScenario {
         (rampUpTick, state) -> state.createClient(),
         state -> {
           LatencyHelper latencyHelper = new LatencyHelper(state);
-          ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
+          Integer rateLimit =
+              Optional.ofNullable(settings.find(RATE_LIMIT, null))
+                  .map(Integer::parseInt)
+                  .orElse(null);
+          ClientMessage request =
+              ClientMessage.builder().qualifier(QUALIFIER).rateLimit(rateLimit).build();
 
           return client ->
               (executionTick, task) ->
