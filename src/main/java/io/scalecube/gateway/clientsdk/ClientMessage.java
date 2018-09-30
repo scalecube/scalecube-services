@@ -131,7 +131,7 @@ public final class ClientMessage {
       return header(QUALIFIER_FIELD, qualifier);
     }
 
-    Builder rateLimit(Integer rateLimit) {
+    public Builder rateLimit(Integer rateLimit) {
       return header(RATE_LIMIT_FIELD, rateLimit);
     }
 
