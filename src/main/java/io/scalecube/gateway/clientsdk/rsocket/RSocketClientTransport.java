@@ -62,7 +62,7 @@ public final class RSocketClientTransport implements ClientTransport {
                   rsocket ->
                       rsocket
                           .requestResponse(payload)
-                          .takeUntilOther(listenConnectionClose(rsocket))) //
+                          .takeUntilOther(listenConnectionClose(rsocket)))
               .publishOn(scheduler)
               .map(this::toClientMessage)
               .map(this::enrichResponse);
@@ -76,10 +76,13 @@ public final class RSocketClientTransport implements ClientTransport {
           Payload payload = toPayload(enrichRequest(request));
           return getOrConnect()
               .flatMapMany(
-                  rsocket ->
-                      rsocket
-                          .requestStream(payload)
-                          .takeUntilOther(listenConnectionClose(rsocket))) //
+                  rsocket -> {
+                    Flux<Payload> requestStream = rsocket.requestStream(payload);
+                    if (request.rateLimit() != null) {
+                      requestStream = requestStream.limitRate(request.rateLimit());
+                    }
+                    return requestStream.takeUntilOther(listenConnectionClose(rsocket));
+                  })
               .publishOn(scheduler)
               .map(this::toClientMessage)
               .map(this::enrichResponse);
