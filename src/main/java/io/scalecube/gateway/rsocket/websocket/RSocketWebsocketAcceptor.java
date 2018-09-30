@@ -103,19 +103,6 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
           });
     }
 
-    @Override
-    public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-      return Flux.defer(
-          () ->
-              serviceCall
-                  .requestBidirectional(
-                      Flux.from(payloads)
-                          .doOnNext(payload -> metrics.markServiceResponse())
-                          .map(this::toMessage))
-                  .map(this::toPayload)
-                  .doOnNext(payload -> metrics.markResponse()));
-    }
-
     private ServiceMessage toMessage(Payload payload) {
       return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
     }
