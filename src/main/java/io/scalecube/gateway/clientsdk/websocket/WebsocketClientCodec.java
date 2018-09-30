@@ -37,8 +37,12 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
 
   private static final MappingJsonFactory jsonFactory = new MappingJsonFactory(objectMapper());
 
+  // special numeric fields
   private static final String STREAM_ID_FIELD = "sid";
   private static final String SIGNAL_FIELD = "sig";
+  private static final String INACTIVITY_FIELD = "i";
+  private static final String RATE_LIMIT_FIELD = "rlimit";
+  // data field
   private static final String DATA_FIELD = "d";
 
   private final DataCodec dataCodec;
@@ -84,10 +88,15 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
       for (Entry<String, String> header : message.headers().entrySet()) {
         String fieldName = header.getKey();
         String value = header.getValue();
-        if (STREAM_ID_FIELD.equals(fieldName) || SIGNAL_FIELD.equals(fieldName)) {
-          generator.writeNumberField(fieldName, Long.parseLong(value));
-        } else {
-          generator.writeStringField(fieldName, value);
+        switch (fieldName) {
+          case STREAM_ID_FIELD:
+          case SIGNAL_FIELD:
+          case INACTIVITY_FIELD:
+          case RATE_LIMIT_FIELD:
+            generator.writeNumberField(fieldName, Long.parseLong(value));
+            break;
+          default:
+            generator.writeStringField(fieldName, value);
         }
       }
 

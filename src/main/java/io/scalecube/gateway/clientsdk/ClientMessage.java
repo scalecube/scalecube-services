@@ -7,7 +7,8 @@ import java.util.Map;
 
 public final class ClientMessage {
 
-  public static final String QUALIFIER = "q";
+  public static final String QUALIFIER_FIELD = "q";
+  public static final String RATE_LIMIT_FIELD = "rlimit";
 
   private Map<String, String> headers;
   private Object data;
@@ -26,7 +27,12 @@ public final class ClientMessage {
   }
 
   public String qualifier() {
-    return headers.get(QUALIFIER);
+    return headers.get(QUALIFIER_FIELD);
+  }
+
+  public Integer rateLimit() {
+    String value = headers.get(RATE_LIMIT_FIELD);
+    return value != null ? Integer.valueOf(value) : null;
   }
 
   public Map<String, String> headers() {
@@ -122,7 +128,11 @@ public final class ClientMessage {
     }
 
     public Builder qualifier(String qualifier) {
-      return header(QUALIFIER, qualifier);
+      return header(QUALIFIER_FIELD, qualifier);
+    }
+
+    Builder rateLimit(Integer rateLimit) {
+      return header(RATE_LIMIT_FIELD, rateLimit);
     }
 
     public Builder data(Object data) {
