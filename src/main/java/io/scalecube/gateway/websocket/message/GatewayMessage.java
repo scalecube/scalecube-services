@@ -140,7 +140,7 @@ public class GatewayMessage {
       return header(INACTIVITY_FIELD, inactivity);
     }
 
-    Builder rateLimit(Integer rateLimit) {
+    public Builder rateLimit(Integer rateLimit) {
       return header(RATE_LIMIT_FIELD, rateLimit);
     }
 
