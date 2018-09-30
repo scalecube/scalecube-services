@@ -31,7 +31,7 @@ public final class InfiniteStreamScenario {
         BenchmarkSettings.from(args)
             .injectors(numOfThreads)
             .messageRate(1) // workaround
-            .warmUpDuration(Duration.ofSeconds(10))
+            .warmUpDuration(Duration.ofSeconds(30))
             .rampUpDuration(rampUpDuration)
             .executionTaskDuration(Duration.ofSeconds(600))
             .consoleReporterEnabled(true)
