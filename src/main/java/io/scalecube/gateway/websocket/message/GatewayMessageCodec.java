@@ -2,6 +2,8 @@ package io.scalecube.gateway.websocket.message;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.DATA_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.INACTIVITY_FIELD;
+import static io.scalecube.gateway.websocket.message.GatewayMessage.RATE_LIMIT_FIELD;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.SIGNAL_FIELD;
 import static io.scalecube.gateway.websocket.message.GatewayMessage.STREAM_ID_FIELD;
 
@@ -65,10 +67,15 @@ public class GatewayMessageCodec {
       for (Entry<String, String> header : message.headers().entrySet()) {
         String fieldName = header.getKey();
         String value = header.getValue();
-        if (STREAM_ID_FIELD.equals(fieldName) || SIGNAL_FIELD.equals(fieldName)) {
-          generator.writeNumberField(fieldName, Long.parseLong(value));
-        } else {
-          generator.writeStringField(fieldName, value);
+        switch (fieldName) {
+          case STREAM_ID_FIELD:
+          case SIGNAL_FIELD:
+          case INACTIVITY_FIELD:
+          case RATE_LIMIT_FIELD:
+            generator.writeNumberField(fieldName, Long.parseLong(value));
+            break;
+          default:
+            generator.writeStringField(fieldName, value);
         }
       }
 

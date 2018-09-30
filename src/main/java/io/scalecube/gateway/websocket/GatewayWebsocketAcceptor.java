@@ -7,16 +7,15 @@ import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
-import java.util.logging.Level;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.server.HttpServerResponse;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
@@ -26,6 +25,9 @@ public class GatewayWebsocketAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GatewayWebsocketAcceptor.class);
+
+  // default message rate limit
+  private static final int DEFAULT_RATE_LIMIT = 192;
 
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
@@ -87,8 +89,7 @@ public class GatewayWebsocketAcceptor
 
     Disposable disposable =
         serviceStream
-            .limitRate(192)
-            //.log("SERVICE_STREAM", Level.INFO, false, SignalType.REQUEST)
+            .limitRate(Optional.ofNullable(request.rateLimit()).orElse(DEFAULT_RATE_LIMIT))
             .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
             .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedError)))

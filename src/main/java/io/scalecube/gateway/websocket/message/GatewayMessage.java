@@ -13,6 +13,7 @@ public class GatewayMessage {
   public static final String SIGNAL_FIELD = "sig";
   public static final String DATA_FIELD = "d";
   public static final String INACTIVITY_FIELD = "i";
+  public static final String RATE_LIMIT_FIELD = "rlimit";
 
   private final Map<String, String> headers;
   private final Object data;
@@ -80,6 +81,11 @@ public class GatewayMessage {
     return value != null ? Integer.valueOf(value) : null;
   }
 
+  public Integer rateLimit() {
+    String value = headers.get(RATE_LIMIT_FIELD);
+    return value != null ? Integer.valueOf(value) : null;
+  }
+
   public boolean hasSignal(Signal signal) {
     String value = headers.get(SIGNAL_FIELD);
     return value != null && Integer.parseInt(value) == signal.code();
@@ -132,6 +138,10 @@ public class GatewayMessage {
 
     public Builder inactivity(Integer inactivity) {
       return header(INACTIVITY_FIELD, inactivity);
+    }
+
+    Builder rateLimit(Integer rateLimit) {
+      return header(RATE_LIMIT_FIELD, rateLimit);
     }
 
     public Builder data(Object data) {
