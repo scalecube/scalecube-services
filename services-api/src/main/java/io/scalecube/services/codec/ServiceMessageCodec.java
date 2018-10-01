@@ -9,7 +9,6 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.MessageCodecException;
-import java.nio.charset.StandardCharsets;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,10 +89,6 @@ public final class ServiceMessageCodec {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
-        LOGGER.error(
-            "Failed to decode message headers: {}, cause: {}",
-            headersBuffer.toString(StandardCharsets.UTF_8),
-            ex);
         throw new MessageCodecException("Failed to decode message headers", ex);
       }
     }
@@ -124,11 +119,6 @@ public final class ServiceMessageCodec {
       DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
-      LOGGER.error(
-          "Failed to decode data on: {}, cause: {}, data buffer: {}",
-          message,
-          ex,
-          dataBuffer.toString(StandardCharsets.UTF_8));
       throw new MessageCodecException(
           "Failed to decode data on message q=" + message.qualifier(), ex);
     }

@@ -39,7 +39,7 @@ class ServiceMethodInvokerTest {
     serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).streamId("1").build();
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     StepVerifier.create(serviceMethodInvoker.invokeOne(message, dataDecoder)).verifyComplete();
   }
@@ -63,7 +63,7 @@ class ServiceMethodInvokerTest {
     serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).streamId("1").build();
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     StepVerifier.create(serviceMethodInvoker.invokeMany(message, dataDecoder)).verifyComplete();
   }
@@ -87,7 +87,7 @@ class ServiceMethodInvokerTest {
     serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).streamId("1").build();
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     StepVerifier.create(serviceMethodInvoker.invokeBidirectional(Flux.just(message), dataDecoder))
         .verifyComplete();
@@ -112,7 +112,7 @@ class ServiceMethodInvokerTest {
     serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).streamId("1").build();
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
     final Mono<ServiceMessage> invokeOne = serviceMethodInvoker.invokeOne(message, dataDecoder);
@@ -139,7 +139,7 @@ class ServiceMethodInvokerTest {
     serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).streamId("1").build();
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     final Flux<ServiceMessage> invokeOne = serviceMethodInvoker.invokeMany(message, dataDecoder);
 
@@ -165,7 +165,7 @@ class ServiceMethodInvokerTest {
     serviceMethodInvoker = new ServiceMethodInvoker(method, stubService, methodInfo);
 
     ServiceMessage message =
-        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).streamId("1").build();
+        ServiceMessage.builder().qualifier(qualifierPrefix + methodName).build();
 
     // invokeOne
     final Flux<ServiceMessage> invokeOne =
