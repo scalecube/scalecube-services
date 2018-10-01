@@ -9,10 +9,14 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 public final class RequestOneScenario {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RequestOneScenario.class);
 
   private static final String QUALIFIER = "/benchmarks/one";
 
@@ -65,6 +69,8 @@ public final class RequestOneScenario {
                         Context timeContext = timer.time();
                         return client
                             .requestResponse(request, Schedulers.parallel())
+                            .doOnError(
+                                th -> LOGGER.warn("Exception occured on requestResponse: " + th))
                             .doOnNext(
                                 msg -> {
                                   Optional.ofNullable(msg.data())

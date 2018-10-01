@@ -6,9 +6,13 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.scheduler.Schedulers;
 
 public final class SharedStreamScenario {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(SharedStreamScenario.class);
 
   public static final String QUALIFIER = "/benchmarks/sharedStream";
 
@@ -58,6 +62,7 @@ public final class SharedStreamScenario {
               (executionTick, task) ->
                   client
                       .requestStream(request, Schedulers.parallel())
+                      .doOnError(th -> LOGGER.warn("Exception occured on requestStream: " + th))
                       .doOnNext(latencyHelper::calculate);
         },
         (state, client) -> client.close());
