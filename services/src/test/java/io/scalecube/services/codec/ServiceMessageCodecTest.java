@@ -49,7 +49,6 @@ class ServiceMessageCodecTest extends BaseTest {
 
     assertAll(
         () -> assertEquals(message.qualifier(), actual.qualifier()),
-        () -> assertEquals(message.streamId(), actual.streamId()),
         () -> assertEquals(message.headers(), actual.headers()),
         () -> assertEquals(message.dataFormat(), actual.dataFormat()),
         () -> assertEquals(message.data(), actual.data()));

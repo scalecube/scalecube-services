@@ -3,6 +3,8 @@ package io.scalecube.services.api;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 public final class ServiceMessage {
 
@@ -16,29 +18,27 @@ public final class ServiceMessage {
   static final String HEADER_QUALIFIER = "q";
 
   /**
-   * This header stands for "Stream Id" and has to be used for Stream multiplexing. Messages within
-   * one logical stream have to be signed with equal sid-s.
-   */
-  static final String HEADER_STREAM_ID = "sid";
-
-  /**
    * This is a system header which used by transport for serialization and deserialization purpose.
    * It is not supposed to be used by application directly and it is subject to changes in future
    * releases.
    */
   static final String HEADER_DATA_TYPE = "_type";
 
-  static final String HEADER_DATA_FORMAT = "_data_format";
+  /**
+   * Data format header. Json, Protostuff and etc. Note that default data format is defined at
+   * {@link #DEFAULT_DATA_FORMAT}.
+   */
+  public static final String HEADER_DATA_FORMAT = "_data_format";
 
-  private Map<String, String> headers = Collections.emptyMap();
+  private Map<String, String> headers = new HashMap<>(1);
   private Object data;
 
   /** Instantiates empty message for deserialization purpose. */
   ServiceMessage() {}
 
   private ServiceMessage(Builder builder) {
-    this.data = builder.data();
-    this.headers = builder.headers();
+    this.data = builder.data;
+    this.headers = Collections.unmodifiableMap(new HashMap<>(builder.headers));
   }
 
   /**
@@ -57,7 +57,7 @@ public final class ServiceMessage {
    * @return new builder
    */
   public static Builder builder() {
-    return Builder.getInstance();
+    return new Builder();
   }
 
   /**
@@ -75,7 +75,7 @@ public final class ServiceMessage {
    * @param headers headers to set
    */
   void setHeaders(Map<String, String> headers) {
-    this.headers = Collections.unmodifiableMap(headers);
+    this.headers = Collections.unmodifiableMap(new HashMap<>(headers));
   }
 
   /**
@@ -94,6 +94,7 @@ public final class ServiceMessage {
    * @return the message header by given header name
    */
   public String header(String name) {
+    Objects.requireNonNull(name);
     return headers.get(name);
   }
 
@@ -107,15 +108,6 @@ public final class ServiceMessage {
   }
 
   /**
-   * Returns message's sid.
-   *
-   * @return streamId.
-   */
-  public String streamId() {
-    return header(HEADER_STREAM_ID);
-  }
-
-  /**
    * Returns data format of the message data.
    *
    * @return data format of the data
@@ -125,8 +117,7 @@ public final class ServiceMessage {
   }
 
   public String dataFormatOrDefault() {
-    String dataFormat = dataFormat();
-    return dataFormat != null ? dataFormat : DEFAULT_DATA_FORMAT;
+    return Optional.ofNullable(dataFormat()).orElse(DEFAULT_DATA_FORMAT);
   }
 
   /**
@@ -173,14 +164,6 @@ public final class ServiceMessage {
 
     private Builder() {}
 
-    static Builder getInstance() {
-      return new Builder();
-    }
-
-    private Object data() {
-      return this.data;
-    }
-
     public Builder data(Object data) {
       this.data = data;
       return this;
@@ -201,12 +184,35 @@ public final class ServiceMessage {
     }
 
     public Builder headers(Map<String, String> headers) {
-      this.headers.putAll(headers);
+      headers.forEach(this::header);
       return this;
     }
 
+    /**
+     * Sets a header key value pair.
+     *
+     * @param key key; not null
+     * @param value value; not null
+     * @return self
+     */
     public Builder header(String key, String value) {
+      Objects.requireNonNull(key);
+      Objects.requireNonNull(value);
       headers.put(key, value);
+      return this;
+    }
+
+    /**
+     * Sets a header key value pair.
+     *
+     * @param key key; not null
+     * @param value value; not null
+     * @return self
+     */
+    public Builder header(String key, Object value) {
+      Objects.requireNonNull(key);
+      Objects.requireNonNull(value);
+      headers.put(key, value.toString());
       return this;
     }
 
@@ -216,10 +222,6 @@ public final class ServiceMessage {
 
     public Builder qualifier(String serviceName, String methodName) {
       return qualifier(Qualifier.asString(serviceName, methodName));
-    }
-
-    public Builder streamId(String streamId) {
-      return header(HEADER_STREAM_ID, streamId);
     }
 
     public ServiceMessage build() {
