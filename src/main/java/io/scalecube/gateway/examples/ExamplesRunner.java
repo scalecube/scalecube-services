@@ -35,6 +35,11 @@ public class ExamplesRunner {
     LOGGER.info("Starting Examples services on {}", config);
     LOGGER.info(DECORATOR);
 
+    int numOfThreads =
+        Optional.ofNullable(config.numOfThreads())
+            .orElse(Runtime.getRuntime().availableProcessors());
+    LOGGER.info("Number of worker threads: " + numOfThreads);
+
     Microservices.builder()
         .discovery(
             options ->
@@ -43,7 +48,7 @@ public class ExamplesRunner {
                     .port(config.discoveryPort())
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()))
-        .numOfThreads(config.numOfThreads()) // num of worker threads
+        .numOfThreads(numOfThreads)
         .servicePort(config.servicePort())
         .services(new BenchmarksServiceImpl(), new GreetingServiceImpl())
         .startAwait();
@@ -55,7 +60,7 @@ public class ExamplesRunner {
 
     private int servicePort;
     private int discoveryPort;
-    private int numOfThreads;
+    private Integer numOfThreads;
     private List<String> seeds;
     private String memberHost;
     private Integer memberPort;
@@ -68,7 +73,7 @@ public class ExamplesRunner {
       return discoveryPort;
     }
 
-    public int numOfThreads() {
+    public Integer numOfThreads() {
       return numOfThreads;
     }
 
