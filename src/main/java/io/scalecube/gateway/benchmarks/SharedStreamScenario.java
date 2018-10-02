@@ -61,7 +61,7 @@ public final class SharedStreamScenario {
           return client ->
               (executionTick, task) ->
                   client
-                      .requestStream(request, Schedulers.parallel())
+                      .requestStream(request, task.scheduler())
                       .doOnError(th -> LOGGER.warn("Exception occured on requestStream: " + th))
                       .doOnNext(latencyHelper::calculate);
         },

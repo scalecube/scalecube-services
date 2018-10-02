@@ -12,7 +12,7 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.scheduler.Scheduler;
 
 public final class RequestOneScenario {
 
@@ -67,8 +67,9 @@ public final class RequestOneScenario {
                   Mono.defer(
                       () -> {
                         Context timeContext = timer.time();
+                        Scheduler taskScheduler = task.scheduler();
                         return client
-                            .requestResponse(request, Schedulers.parallel())
+                            .requestResponse(request, taskScheduler)
                             .doOnError(
                                 th -> LOGGER.warn("Exception occured on requestResponse: " + th))
                             .doOnNext(
@@ -80,7 +81,7 @@ public final class RequestOneScenario {
                             .doOnTerminate(
                                 () -> {
                                   timeContext.stop();
-                                  task.scheduler().schedule(task);
+                                  taskScheduler.schedule(task);
                                 });
                       });
         },
