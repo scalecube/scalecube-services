@@ -14,16 +14,16 @@ public class BenchmarksServiceImpl implements BenchmarksService {
 
   @Override
   public Mono<ServiceMessage> one(ServiceMessage message) {
-    return Mono.defer(
+    Callable<ServiceMessage> callable =
         () -> {
           String value = String.valueOf(System.currentTimeMillis());
-          return Mono.just(
-              ServiceMessage.from(message)
-                  .header(SERVICE_RECV_TIME, value)
-                  .header(SERVICE_SEND_TIME, value)
-                  .data("hello")
-                  .build());
-        });
+          return ServiceMessage.from(message)
+              .header(SERVICE_RECV_TIME, value)
+              .header(SERVICE_SEND_TIME, value)
+              .data("hello")
+              .build();
+        };
+    return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel());
   }
 
   @Override
