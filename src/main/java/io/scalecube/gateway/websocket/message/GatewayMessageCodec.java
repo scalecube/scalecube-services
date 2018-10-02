@@ -27,7 +27,6 @@ import io.scalecube.gateway.ReferenceCountUtil;
 import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -125,7 +124,6 @@ public class GatewayMessageCodec {
 
       JsonToken current = jp.nextToken();
       if (current != JsonToken.START_OBJECT) {
-        LOGGER.error("Root should be object: {}", byteBuf.toString(Charset.defaultCharset()));
         throw new MessageCodecException("Root should be object", null);
       }
       long dataStart = 0;
@@ -158,7 +156,6 @@ public class GatewayMessageCodec {
       }
       return result.build();
     } catch (Throwable ex) {
-      LOGGER.error("Failed to decode message: {}", byteBuf.toString(Charset.defaultCharset()), ex);
       throw new MessageCodecException("Failed to decode message", ex);
     }
   }
