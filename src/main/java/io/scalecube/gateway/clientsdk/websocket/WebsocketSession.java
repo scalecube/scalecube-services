@@ -61,6 +61,7 @@ final class WebsocketSession {
               try {
                 msg = codec.decode(byteBuf);
               } catch (Exception ex) {
+                LOGGER.error("Response decoder failed: " + ex);
                 return;
               }
               // ignore msgs w/o sid
