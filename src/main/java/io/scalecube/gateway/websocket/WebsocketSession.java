@@ -3,7 +3,6 @@ package io.scalecube.gateway.websocket;
 import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.channel.ChannelFuture;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
@@ -21,7 +20,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoSink;
+import reactor.ipc.netty.FutureMono;
 import reactor.ipc.netty.NettyPipeline.SendOptions;
 import reactor.ipc.netty.http.server.HttpServerRequest;
 import reactor.ipc.netty.http.websocket.WebsocketInbound;
@@ -115,23 +114,10 @@ public final class WebsocketSession {
   }
 
   private Mono<Void> send(Mono<ByteBuf> publisher) {
-    return Mono.create(
-        sink ->
-            publisher
-                .map(TextWebSocketFrame::new)
-                .map(frame -> outbound.context().channel().writeAndFlush(frame))
-                .subscribe(future -> combine(sink, future), sink::error, sink::success));
-  }
-
-  private ChannelFuture combine(MonoSink<Void> sink, ChannelFuture channelFuture) {
-    return channelFuture.addListener(
-        future -> {
-          if (future.isSuccess()) {
-            sink.success();
-          } else {
-            sink.error(future.cause());
-          }
-        });
+    return publisher
+        .map(TextWebSocketFrame::new)
+        .map(frame -> outbound.context().channel().writeAndFlush(frame))
+        .flatMap(FutureMono::from);
   }
 
   private void logSend(GatewayMessage response, Throwable th) {

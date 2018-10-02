@@ -90,22 +90,40 @@ public class GatewayWebsocketAcceptor
         serviceStream
             .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
-            .concatWith(Mono.defer(() -> prepareCompletion(sid, receivedError)))
-            .onErrorResume(t -> Mono.just(toErrorMessage(t, sid)))
             .doFinally(signalType -> session.dispose(sid))
             .subscribe(
                 response ->
-                    session
-                        .send(response)
-                        .doOnSuccess(avoid -> markResponse(response))
-                        .subscribe());
+                    session.send(response).doOnSuccess(avoid -> metrics.markResponse()).subscribe(),
+                th -> {
+                  LOGGER.error(
+                      "Exception occurred on request: {}, session={}, cause: {}",
+                      request,
+                      session.id(),
+                      th);
+                  handleError(session, sid, th);
+                },
+                () -> {
+                  // handle complete
+                  handleCompletion(session, sid, receivedError);
+                });
 
     session.register(sid, disposable);
   }
 
-  private void markResponse(GatewayMessage response) {
-    if (!response.hasHeader("sig")) {
-      metrics.markResponse();
+  private void handleError(WebsocketSession session, Long sid, Throwable th) {
+    GatewayMessage response =
+        GatewayMessage.from(ExceptionProcessor.toMessage(th))
+            .streamId(sid)
+            .signal(Signal.ERROR)
+            .build();
+    session.send(response).subscribe();
+  }
+
+  private void handleCompletion(WebsocketSession session, Long sid, AtomicBoolean receivedError) {
+    if (!receivedError.get()) {
+      GatewayMessage response =
+          GatewayMessage.builder().streamId(sid).signal(Signal.COMPLETE).build();
+      session.send(response).subscribe();
     }
   }
 
@@ -147,12 +165,6 @@ public class GatewayWebsocketAcceptor
     }
   }
 
-  private Mono<GatewayMessage> prepareCompletion(Long streamId, AtomicBoolean receivedError) {
-    return receivedError.get()
-        ? Mono.empty()
-        : Mono.just(GatewayMessage.builder().streamId(streamId).signal(Signal.COMPLETE).build());
-  }
-
   private GatewayMessage prepareResponse(
       Long streamId, ServiceMessage message, AtomicBoolean receivedErrorMessage) {
     GatewayMessage.Builder response = GatewayMessage.from(message).streamId(streamId);
@@ -161,12 +173,5 @@ public class GatewayWebsocketAcceptor
       response.signal(Signal.ERROR);
     }
     return response.build();
-  }
-
-  private GatewayMessage toErrorMessage(Throwable t, Long streamId) {
-    return GatewayMessage.from(ExceptionProcessor.toMessage(t))
-        .streamId(streamId)
-        .signal(Signal.ERROR)
-        .build();
   }
 }
