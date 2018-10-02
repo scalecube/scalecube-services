@@ -3,11 +3,15 @@ package io.scalecube.services.benchmarks.service;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
+import io.scalecube.services.api.ServiceMessage;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import reactor.core.publisher.Flux;
 
 public class RequestManyBenchmark {
 
-  private static final String RESPONSE_COUNT = "1000";
+  private static final int RESPONSE_COUNT = 1000;
+  private static final String RATE_LIMIT = "rateLimit";
 
   /**
    * Main method.
@@ -20,12 +24,17 @@ public class RequestManyBenchmark {
         .runForAsync(
             state -> {
               BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-              int responseCount = Integer.parseInt(settings.find("responseCount", RESPONSE_COUNT));
+              int responseCount = getResponseCount(settings);
+              Integer rateLimit = getRateLimit(settings);
               BenchmarkTimer timer = state.timer("timer");
               return i -> {
                 Context timeContext = timer.time();
-                return benchmarkService
-                    .requestStreamRange(responseCount)
+                Flux<ServiceMessage> requestStream =
+                    benchmarkService.requestStreamRange(responseCount);
+                if (rateLimit != null) {
+                  requestStream = requestStream.limitRate(rateLimit);
+                }
+                return requestStream
                     .doOnNext(
                         msg -> {
                           long time = Long.valueOf(msg.header("time"));
@@ -34,5 +43,13 @@ public class RequestManyBenchmark {
                     .doFinally(next -> timeContext.stop());
               };
             });
+  }
+
+  private static Integer getRateLimit(BenchmarkSettings settings) {
+    return Optional.ofNullable(settings.find(RATE_LIMIT, null)).map(Integer::parseInt).orElse(null);
+  }
+
+  private static int getResponseCount(BenchmarkSettings settings) {
+    return Integer.parseInt(settings.find("responseCount", String.valueOf(RESPONSE_COUNT)));
   }
 }
