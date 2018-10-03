@@ -1,11 +1,16 @@
 package io.scalecube.services.benchmarks.service;
 
+import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_RECV_TIME;
+import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_SEND_TIME;
+
 import io.scalecube.benchmarks.BenchmarkSettings;
-import io.scalecube.benchmarks.metrics.BenchmarkTimer;
-import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
+import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
+import java.time.Duration;
 
 public class RequestOneBenchmark {
+
+  private static final String QUALIFIER = "/benchmarks/requestOne";
 
   /**
    * Main method.
@@ -13,18 +18,35 @@ public class RequestOneBenchmark {
    * @param args - params of main method.
    */
   public static void main(String[] args) {
-    BenchmarkSettings settings = BenchmarkSettings.from(args).build();
+    BenchmarkSettings settings =
+        BenchmarkSettings.from(args)
+            .warmUpDuration(Duration.ofSeconds(30))
+            .executionTaskDuration(Duration.ofSeconds(300))
+            .consoleReporterEnabled(true)
+            .build();
+
     new BenchmarkServiceState(settings, new BenchmarkServiceImpl())
         .runForAsync(
             state -> {
-              BenchmarkService benchmarkService = state.service(BenchmarkService.class);
-              BenchmarkTimer timer = state.timer("timer");
-              ServiceMessage message =
-                  ServiceMessage.builder().qualifier("/benchmarks/requestOne").build();
-              return i -> {
-                Context timeContext = timer.time();
-                return benchmarkService.requestOne(message).doOnTerminate(timeContext::stop);
-              };
+              LatencyHelper latencyHelper = new LatencyHelper(state);
+              ServiceCall serviceCall = state.serviceCall();
+
+              return i ->
+                  serviceCall
+                      .requestOne(enrichRequest())
+                      .map(RequestOneBenchmark::enrichResponse)
+                      .doOnNext(latencyHelper::calculate);
             });
+  }
+
+  private static ServiceMessage enrichResponse(ServiceMessage msg) {
+    return ServiceMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
+  }
+
+  private static ServiceMessage enrichRequest() {
+    return ServiceMessage.builder()
+        .qualifier(QUALIFIER)
+        .header(CLIENT_SEND_TIME, System.currentTimeMillis())
+        .build();
   }
 }
