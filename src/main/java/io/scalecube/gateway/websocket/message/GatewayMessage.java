@@ -5,6 +5,7 @@ import io.scalecube.services.api.ServiceMessage;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class GatewayMessage {
 
@@ -157,9 +158,9 @@ public class GatewayMessage {
      * @return self
      */
     public Builder header(String key, String value) {
-      if (value != null) {
-        headers.put(key, value);
-      }
+      Objects.requireNonNull(key);
+      Objects.requireNonNull(value);
+      headers.put(key, value);
       return this;
     }
 
@@ -171,9 +172,9 @@ public class GatewayMessage {
      * @return self
      */
     public Builder header(String key, Object value) {
-      if (value != null) {
-        headers.put(key, value.toString());
-      }
+      Objects.requireNonNull(key);
+      Objects.requireNonNull(value);
+      headers.put(key, value.toString());
       return this;
     }
 

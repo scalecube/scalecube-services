@@ -8,8 +8,10 @@ import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
+import io.scalecube.gateway.websocket.message.GatewayMessage.Builder;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import io.scalecube.gateway.websocket.message.Signal;
+import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.Map;
 import java.util.Optional;
@@ -108,7 +110,7 @@ public final class WebsocketSession {
   public Mono<Void> send(Throwable err, Long sid) {
     return send(Mono.just(err)
             .map(ExceptionProcessor::toMessage)
-            .map(msg -> GatewayMessage.from(msg).streamId(sid).signal(Signal.ERROR).build())
+            .map(msg -> toErrorMessage(sid, msg))
             .map(messageCodec::encode))
         .doOnSuccessOrError((avoid, th) -> logSend(err, sid, th));
   }
@@ -134,6 +136,12 @@ public final class WebsocketSession {
     } else {
       LOGGER.warn("<< SEND failed: {}, sid={}, session={}, cause: {}", err, sid, id, th);
     }
+  }
+
+  private GatewayMessage toErrorMessage(Long sid, ServiceMessage msg) {
+    Builder builder = GatewayMessage.from(msg);
+    Optional.ofNullable(sid).ifPresent(builder::streamId);
+    return builder.signal(Signal.ERROR).build();
   }
 
   /**

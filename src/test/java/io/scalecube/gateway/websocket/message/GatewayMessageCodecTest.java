@@ -16,12 +16,14 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
+import io.scalecube.gateway.websocket.message.GatewayMessage.Builder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 public class GatewayMessageCodecTest {
@@ -284,14 +286,22 @@ public class GatewayMessageCodecTest {
 
     Map<String, Object> map =
         objectMapper.readValue((InputStream) new ByteBufInputStream(bb.slice()), HashMap.class);
-    return GatewayMessage.builder()
-        .qualifier((String) map.get(GatewayMessage.QUALIFIER_FIELD))
-        .streamId(
-            map.containsKey(STREAM_ID_FIELD)
-                ? Long.valueOf(String.valueOf(map.get(STREAM_ID_FIELD)))
-                : null)
-        .signal((Integer) map.get(GatewayMessage.SIGNAL_FIELD))
-        .inactivity((Integer) map.get(GatewayMessage.INACTIVITY_FIELD))
+    Builder builder = GatewayMessage.builder();
+
+    Optional.ofNullable((String) map.get(GatewayMessage.QUALIFIER_FIELD)) //
+        .ifPresent(builder::qualifier);
+
+    Optional.ofNullable(String.valueOf(map.get(STREAM_ID_FIELD))) //
+        .map(Long::valueOf)
+        .ifPresent(builder::streamId);
+
+    Optional.ofNullable((Integer) map.get(GatewayMessage.SIGNAL_FIELD)) //
+        .ifPresent(builder::signal);
+
+    Optional.ofNullable((Integer) map.get(GatewayMessage.INACTIVITY_FIELD)) //
+        .ifPresent(builder::signal);
+
+    return builder
         .data(objectMapper.convertValue(map.get(GatewayMessage.DATA_FIELD), dataClass))
         .build();
   }

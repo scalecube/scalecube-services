@@ -1,12 +1,15 @@
 package io.scalecube.gateway.websocket;
 
 import io.scalecube.gateway.GatewayMetrics;
+import io.scalecube.gateway.ReferenceCountUtil;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
+import io.scalecube.gateway.websocket.message.GatewayMessage.Builder;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
 import io.scalecube.gateway.websocket.message.Signal;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import org.reactivestreams.Publisher;
@@ -64,8 +67,8 @@ public class GatewayWebsocketAcceptor
                         request -> handleMessage(session, request),
                         th -> {
                           LOGGER.error("Exception occurred: {}, session={}", th, session.id());
-                          if (th instanceof WebsocketException) {
-                            WebsocketException ex = (WebsocketException) th;
+                          if (th instanceof WebsocketRequestException) {
+                            WebsocketRequestException ex = (WebsocketRequestException) th;
                             session
                                 .send(ex.getCause(), ex.releaseRequest().request().streamId())
                                 .subscribe();
@@ -111,32 +114,31 @@ public class GatewayWebsocketAcceptor
   }
 
   private void handleError(WebsocketSession session, Long sid, Throwable th) {
-    GatewayMessage response =
-        GatewayMessage.from(ExceptionProcessor.toMessage(th))
-            .streamId(sid)
-            .signal(Signal.ERROR)
-            .build();
+    Builder builder = GatewayMessage.from(ExceptionProcessor.toMessage(th));
+    Optional.ofNullable(sid).ifPresent(builder::streamId);
+    GatewayMessage response = builder.signal(Signal.ERROR).build();
     session.send(response).subscribe();
   }
 
   private void handleCompletion(WebsocketSession session, Long sid, AtomicBoolean receivedError) {
     if (!receivedError.get()) {
-      GatewayMessage response =
-          GatewayMessage.builder().streamId(sid).signal(Signal.COMPLETE).build();
+      Builder builder = GatewayMessage.builder();
+      Optional.ofNullable(sid).ifPresent(builder::streamId);
+      GatewayMessage response = builder.signal(Signal.COMPLETE).build();
       session.send(response).subscribe();
     }
   }
 
   private GatewayMessage checkQualifier(GatewayMessage msg) {
     if (msg.qualifier() == null) {
-      throw WebsocketException.newBadRequest("qualifier is missing", msg);
+      throw WebsocketRequestException.newBadRequest("qualifier is missing", msg);
     }
     return msg;
   }
 
   private GatewayMessage checkSidNonce(WebsocketSession session, GatewayMessage msg) {
     if (session.containsSid(msg.streamId())) {
-      throw WebsocketException.newBadRequest(
+      throw WebsocketRequestException.newBadRequest(
           "sid=" + msg.streamId() + " is already registered", msg);
     } else {
       return msg;
@@ -149,8 +151,10 @@ public class GatewayWebsocketAcceptor
     }
 
     if (!session.dispose(msg.streamId())) {
-      throw WebsocketException.newBadRequest("Failed CANCEL request", msg);
+      throw WebsocketRequestException.newBadRequest("Failed CANCEL request", msg);
     }
+    // release data if CANCEL contains data (it shouldn't normally), just in case
+    Optional.ofNullable(msg.data()).ifPresent(ReferenceCountUtil::safestRelease);
 
     GatewayMessage cancelAck =
         GatewayMessage.builder().streamId(msg.streamId()).signal(Signal.CANCEL).build();
@@ -159,7 +163,7 @@ public class GatewayWebsocketAcceptor
 
   private GatewayMessage checkSid(GatewayMessage msg) {
     if (msg.streamId() == null) {
-      throw WebsocketException.newBadRequest("sid is missing", msg);
+      throw WebsocketRequestException.newBadRequest("sid is missing", msg);
     } else {
       return msg;
     }
