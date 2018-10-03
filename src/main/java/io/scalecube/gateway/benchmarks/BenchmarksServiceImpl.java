@@ -16,7 +16,7 @@ public class BenchmarksServiceImpl implements BenchmarksService {
   public Mono<ServiceMessage> one(ServiceMessage message) {
     Callable<ServiceMessage> callable =
         () -> {
-          String value = String.valueOf(System.currentTimeMillis());
+          long value = System.currentTimeMillis();
           return ServiceMessage.from(message)
               .header(SERVICE_RECV_TIME, value)
               .header(SERVICE_SEND_TIME, value)
@@ -41,7 +41,7 @@ public class BenchmarksServiceImpl implements BenchmarksService {
                     i ->
                         ServiceMessage.builder()
                             .qualifier(message.qualifier())
-                            .header(SERVICE_SEND_TIME, String.valueOf(System.currentTimeMillis()))
+                            .header(SERVICE_SEND_TIME, System.currentTimeMillis())
                             .build()));
   }
 
