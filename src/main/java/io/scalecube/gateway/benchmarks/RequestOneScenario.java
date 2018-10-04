@@ -21,6 +21,8 @@ public final class RequestOneScenario {
 
   private static final String QUALIFIER = "/benchmarks/one";
 
+  private static final int MULT_FACTOR = 2;
+
   private RequestOneScenario() {
     // Do not instantiate
   }
@@ -34,12 +36,17 @@ public final class RequestOneScenario {
   public static void runWith(
       String[] args, Function<BenchmarkSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
+    int multFactor =
+        Integer.parseInt(
+            BenchmarkSettings.from(args).build().find("multFactor", String.valueOf(MULT_FACTOR)));
+
     int numOfThreads = Runtime.getRuntime().availableProcessors();
+    int injectors = numOfThreads * multFactor;
     Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
 
     BenchmarkSettings settings =
         BenchmarkSettings.from(args)
-            .injectors(numOfThreads)
+            .injectors(injectors)
             .messageRate(1) // workaround
             .rampUpDuration(rampUpDuration)
             .durationUnit(TimeUnit.MILLISECONDS)
