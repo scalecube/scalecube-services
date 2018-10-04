@@ -33,8 +33,6 @@ public class SharedStreamBenchmark {
             .injectors(numOfThreads)
             .messageRate(1) // workaround
             .rampUpDuration(rampUpDuration)
-            .warmUpDuration(Duration.ofSeconds(30))
-            .executionTaskDuration(Duration.ofSeconds(300))
             .build();
 
     new BenchmarkServiceState(settings, new BenchmarkServiceImpl())
