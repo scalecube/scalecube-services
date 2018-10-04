@@ -4,6 +4,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.util.ReferenceCountUtil;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
+import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.services.api.ServiceMessage;
@@ -34,6 +35,7 @@ public class SmPartialDecodeScenario {
     benchmarkState.runForSync(
         state -> {
           BenchmarkTimer timer = state.timer("timer");
+          BenchmarkMeter meter = state.meter("meter");
           ServiceMessageCodec messageCodec = state.messageCodec();
 
           return i -> {
@@ -43,6 +45,7 @@ public class SmPartialDecodeScenario {
             ServiceMessage message = messageCodec.decode(dataBuffer, headersBuffer);
             ReferenceCountUtil.release(message.data());
             timeContext.stop();
+            meter.mark();
             return message;
           };
         });
