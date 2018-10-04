@@ -15,6 +15,8 @@ public interface BenchmarksService {
 
   String SERVICE_RECV_TIME = "service-recv-time";
   String SERVICE_SEND_TIME = "service-send-time";
+  String CLIENT_RECV_TIME = "client-recv-time";
+  String CLIENT_SEND_TIME = "client-send-time";
 
   @ServiceMethod
   Mono<ServiceMessage> one(ServiceMessage message);
