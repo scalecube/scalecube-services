@@ -6,7 +6,6 @@ import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_S
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
-import java.time.Duration;
 
 public class RequestOneBenchmark {
 
@@ -18,12 +17,7 @@ public class RequestOneBenchmark {
    * @param args - params of main method.
    */
   public static void main(String[] args) {
-    BenchmarkSettings settings =
-        BenchmarkSettings.from(args)
-            .warmUpDuration(Duration.ofSeconds(30))
-            .executionTaskDuration(Duration.ofSeconds(300))
-            .consoleReporterEnabled(true)
-            .build();
+    BenchmarkSettings settings = BenchmarkSettings.from(args).build();
 
     new BenchmarkServiceState(settings, new BenchmarkServiceImpl())
         .runForAsync(

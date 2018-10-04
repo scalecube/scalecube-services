@@ -3,6 +3,7 @@ package io.scalecube.services.benchmarks.codec;
 import io.netty.buffer.ByteBuf;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
+import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.services.api.ServiceMessage;
@@ -33,6 +34,7 @@ public class SmFullDecodeScenario {
     benchmarkState.runForSync(
         state -> {
           BenchmarkTimer timer = state.timer("timer");
+          BenchmarkMeter meter = state.meter("meter");
           ServiceMessageCodec messageCodec = state.messageCodec();
           Class<?> dataType = state.dataType();
 
@@ -44,6 +46,7 @@ public class SmFullDecodeScenario {
                 ServiceMessageCodec.decodeData(
                     messageCodec.decode(dataBuffer, headersBuffer), dataType);
             timeContext.stop();
+            meter.mark();
             return message;
           };
         });
