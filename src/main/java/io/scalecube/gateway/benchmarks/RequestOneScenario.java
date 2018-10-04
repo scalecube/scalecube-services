@@ -1,8 +1,9 @@
 package io.scalecube.gateway.benchmarks;
 
+import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_RECV_TIME;
+import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_SEND_TIME;
+
 import io.scalecube.benchmarks.BenchmarkSettings;
-import io.scalecube.benchmarks.metrics.BenchmarkTimer;
-import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import java.time.Duration;
@@ -20,8 +21,6 @@ public final class RequestOneScenario {
 
   private static final String QUALIFIER = "/benchmarks/one";
 
-  private static final int MULT_FACTOR = 8;
-
   private RequestOneScenario() {
     // Do not instantiate
   }
@@ -35,21 +34,14 @@ public final class RequestOneScenario {
   public static void runWith(
       String[] args, Function<BenchmarkSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    int multFactor =
-        Integer.parseInt(
-            BenchmarkSettings.from(args).build().find("multFactor", String.valueOf(MULT_FACTOR)));
-
-    int numOfThreads = Runtime.getRuntime().availableProcessors() * multFactor;
+    int numOfThreads = Runtime.getRuntime().availableProcessors();
     Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
 
     BenchmarkSettings settings =
         BenchmarkSettings.from(args)
             .injectors(numOfThreads)
             .messageRate(1) // workaround
-            .warmUpDuration(Duration.ofSeconds(30))
             .rampUpDuration(rampUpDuration)
-            .executionTaskDuration(Duration.ofSeconds(600))
-            .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
             .build();
 
@@ -58,18 +50,16 @@ public final class RequestOneScenario {
     benchmarkState.runWithRampUp(
         (rampUpTick, state) -> state.createClient(),
         state -> {
-          BenchmarkTimer timer = state.timer("latency.timer");
           LatencyHelper latencyHelper = new LatencyHelper(state);
-          ClientMessage request = ClientMessage.builder().qualifier(QUALIFIER).build();
 
           return client ->
               (executionTick, task) ->
                   Mono.defer(
                       () -> {
-                        Context timeContext = timer.time();
                         Scheduler taskScheduler = task.scheduler();
                         return client
-                            .requestResponse(request, taskScheduler)
+                            .requestResponse(enrichRequest(), taskScheduler)
+                            .map(RequestOneScenario::enrichResponse)
                             .doOnError(
                                 th -> LOGGER.warn("Exception occured on requestResponse: " + th))
                             .doOnNext(
@@ -78,13 +68,20 @@ public final class RequestOneScenario {
                                       .ifPresent(ReferenceCountUtil::safestRelease);
                                   latencyHelper.calculate(msg);
                                 })
-                            .doOnTerminate(
-                                () -> {
-                                  timeContext.stop();
-                                  taskScheduler.schedule(task);
-                                });
+                            .doOnTerminate(() -> taskScheduler.schedule(task));
                       });
         },
         (state, client) -> client.close());
+  }
+
+  private static ClientMessage enrichResponse(ClientMessage msg) {
+    return ClientMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
+  }
+
+  private static ClientMessage enrichRequest() {
+    return ClientMessage.builder()
+        .qualifier(QUALIFIER)
+        .header(CLIENT_SEND_TIME, System.currentTimeMillis())
+        .build();
   }
 }

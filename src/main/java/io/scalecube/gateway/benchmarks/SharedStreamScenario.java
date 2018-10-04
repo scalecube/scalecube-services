@@ -2,6 +2,7 @@ package io.scalecube.gateway.benchmarks;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.gateway.clientsdk.ClientMessage;
+import io.scalecube.gateway.clientsdk.ClientMessage.Builder;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -37,10 +38,7 @@ public final class SharedStreamScenario {
         BenchmarkSettings.from(args)
             .injectors(numOfThreads)
             .messageRate(1) // workaround
-            .warmUpDuration(Duration.ofSeconds(30))
             .rampUpDuration(rampUpDuration)
-            .executionTaskDuration(Duration.ofSeconds(600))
-            .consoleReporterEnabled(true)
             .durationUnit(TimeUnit.MILLISECONDS)
             .build();
 
@@ -50,12 +48,12 @@ public final class SharedStreamScenario {
         (rampUpTick, state) -> state.createClient(),
         state -> {
           LatencyHelper latencyHelper = new LatencyHelper(state);
-          Integer rateLimit =
-              Optional.ofNullable(settings.find(RATE_LIMIT, null))
-                  .map(Integer::parseInt)
-                  .orElse(null);
-          ClientMessage request =
-              ClientMessage.builder().qualifier(QUALIFIER).rateLimit(rateLimit).build();
+
+          Integer rateLimit = rateLimit(settings);
+
+          Builder builder = ClientMessage.builder().qualifier(QUALIFIER);
+          Optional.ofNullable(rateLimit).ifPresent(builder::rateLimit);
+          ClientMessage request = builder.build();
 
           return client ->
               (executionTick, task) ->
@@ -65,5 +63,9 @@ public final class SharedStreamScenario {
                       .doOnNext(latencyHelper::calculate);
         },
         (state, client) -> client.close());
+  }
+
+  private static Integer rateLimit(BenchmarkSettings settings) {
+    return Optional.ofNullable(settings.find(RATE_LIMIT, null)).map(Integer::parseInt).orElse(null);
   }
 }
