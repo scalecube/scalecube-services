@@ -18,13 +18,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
+import io.scalecube.services.sut.CoarseGrainedServiceImpl;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.time.Duration;
+
+import io.scalecube.services.sut.QuoteService;
+import io.scalecube.services.sut.SimpleQuoteService;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -40,7 +45,7 @@ public class ServiceCallRemoteTest extends BaseTest {
   @BeforeAll
   public static void setup() {
     gateway = gateway();
-    provider = serviceProvider();
+    provider = serviceProvider(new GreetingServiceImpl());
   }
 
   /** Cleanup. */
@@ -59,10 +64,10 @@ public class ServiceCallRemoteTest extends BaseTest {
     }
   }
 
-  private static Microservices serviceProvider() {
+  private static Microservices serviceProvider(Object service) {
     return Microservices.builder()
         .discovery(options -> options.seeds(gateway.discovery().address()))
-        .services(new GreetingServiceImpl())
+        .services(service)
         .startAwait();
   }
 
@@ -203,6 +208,29 @@ public class ServiceCallRemoteTest extends BaseTest {
     GreetingResponse greetings = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
     System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
     assertTrue(greetings.getResult().equals(" hello to: joe"));
+  }
+
+  @Test
+  public void test_service_address_lookup_occur_only_after_subscription() {
+
+    Flux<ServiceMessage> quotes = gateway.call().create().requestMany(ServiceMessage.builder()
+      .qualifier(QuoteService.NAME, "quotes")
+      .data(null)
+      .build());
+
+    // Add service to cluster AFTER creating a call object. (prove address lookup occur only after subscription)
+    Microservices quotesService = serviceProvider(new SimpleQuoteService());
+
+    StepVerifier.create(quotes.take(1))
+        .expectNextCount(1)
+        .expectComplete()
+        .verify(timeout);
+
+    try {
+      quotesService.shutdown();
+    } catch (Exception ignored) {
+      // no-op
+    }
   }
 
   private static Microservices gateway() {
