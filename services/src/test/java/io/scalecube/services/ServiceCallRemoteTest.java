@@ -18,13 +18,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceException;
-import io.scalecube.services.sut.CoarseGrainedServiceImpl;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingServiceImpl;
-import java.time.Duration;
-
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
+import java.time.Duration;
+
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -213,12 +212,16 @@ public class ServiceCallRemoteTest extends BaseTest {
   @Test
   public void test_service_address_lookup_occur_only_after_subscription() {
 
-    Flux<ServiceMessage> quotes = gateway.call().create().requestMany(ServiceMessage.builder()
-      .qualifier(QuoteService.NAME, "quotes")
-      .data(null)
-      .build());
+    Flux<ServiceMessage> quotes =
+        gateway
+            .call()
+            .create()
+            .requestMany(
+                ServiceMessage.builder().qualifier(QuoteService.NAME, "onlyOneAndThenNever")
+                  .data(null).build());
 
-    // Add service to cluster AFTER creating a call object. (prove address lookup occur only after subscription)
+    // Add service to cluster AFTER creating a call object.
+    // (prove address lookup occur only after subscription)
     Microservices quotesService = serviceProvider(new SimpleQuoteService());
 
     StepVerifier.create(quotes.take(1))
