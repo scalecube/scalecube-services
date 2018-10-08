@@ -23,7 +23,6 @@ import io.scalecube.services.sut.GreetingServiceImpl;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
-
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -217,17 +216,16 @@ public class ServiceCallRemoteTest extends BaseTest {
             .call()
             .create()
             .requestMany(
-                ServiceMessage.builder().qualifier(QuoteService.NAME, "onlyOneAndThenNever")
-                  .data(null).build());
+                ServiceMessage.builder()
+                    .qualifier(QuoteService.NAME, "onlyOneAndThenNever")
+                    .data(null)
+                    .build());
 
     // Add service to cluster AFTER creating a call object.
     // (prove address lookup occur only after subscription)
     Microservices quotesService = serviceProvider(new SimpleQuoteService());
 
-    StepVerifier.create(quotes.take(1))
-        .expectNextCount(1)
-        .expectComplete()
-        .verify(timeout);
+    StepVerifier.create(quotes.take(1)).expectNextCount(1).expectComplete().verify(timeout);
 
     try {
       quotesService.shutdown();

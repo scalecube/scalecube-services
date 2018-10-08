@@ -322,14 +322,17 @@ public class ServiceCall {
   }
 
   private Mono<Address> addressLookup(ServiceMessage request) {
-    return Mono.fromCallable(() -> router.route(serviceRegistry, request)
-      .map(ServiceReference::address)
-      .orElseThrow(() -> noReachableMemberException(request)))
-      .doOnError(
-        t -> {
-          Optional<Object> dataOptional = Optional.ofNullable(request.data());
-          dataOptional.ifPresent(ReferenceCountUtil::safestRelease);
-        });
+    return Mono.fromCallable(
+            () ->
+                router
+                    .route(serviceRegistry, request)
+                    .map(ServiceReference::address)
+                    .orElseThrow(() -> noReachableMemberException(request)))
+        .doOnError(
+            t -> {
+              Optional<Object> dataOptional = Optional.ofNullable(request.data());
+              dataOptional.ifPresent(ReferenceCountUtil::safestRelease);
+            });
   }
 
   private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
