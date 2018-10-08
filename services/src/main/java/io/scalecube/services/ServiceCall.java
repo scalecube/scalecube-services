@@ -19,6 +19,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -322,10 +323,13 @@ public class ServiceCall {
   }
 
   private Mono<Address> addressLookup(ServiceMessage request) {
-    return router
-        .route(serviceRegistry, request)
-        .map(serviceReference -> Mono.just(serviceReference.address()))
-        .orElseGet(() -> Mono.error(noReachableMemberException(request)))
+    Callable<Address> callable =
+        () ->
+            router
+                .route(serviceRegistry, request)
+                .map(ServiceReference::address)
+                .orElseThrow(() -> noReachableMemberException(request));
+    return Mono.fromCallable(callable)
         .doOnError(
             t -> {
               Optional<Object> dataOptional = Optional.ofNullable(request.data());
