@@ -2,7 +2,6 @@ package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
-import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
@@ -62,7 +61,7 @@ public class RSocketClientTransport implements ClientTransport {
                 frame ->
                     ByteBufPayload.create(
                         frame.sliceData().retain(), frame.sliceMetadata().retain()))
-            .transport(TcpClientTransport.create(tcpClient))
+            .transport(new RSocketTcpClientTransport(tcpClient))
             .start();
 
     return rsocketMono
