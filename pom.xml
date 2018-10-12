@@ -96,7 +96,7 @@
 
       <!-- Reactor Netty -->
       <dependency>
-        <groupId>io.projectreactor.ipc</groupId>
+        <groupId>io.projectreactor.netty</groupId>
         <artifactId>reactor-netty</artifactId>
         <version>${reactor-netty.version}</version>
       </dependency>
