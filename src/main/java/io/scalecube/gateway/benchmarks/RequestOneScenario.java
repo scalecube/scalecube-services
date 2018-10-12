@@ -4,6 +4,7 @@ import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_RECV_TIME
 import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_SEND_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import java.time.Duration;
@@ -59,11 +60,15 @@ public final class RequestOneScenario {
         state -> {
           LatencyHelper latencyHelper = new LatencyHelper(state);
 
+          BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
+          BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
+
           return client ->
               (executionTick, task) ->
                   Mono.defer(
                       () -> {
                         Scheduler taskScheduler = task.scheduler();
+                        clientToServiceMeter.mark();
                         return client
                             .requestResponse(enrichRequest(), taskScheduler)
                             .map(RequestOneScenario::enrichResponse)
@@ -74,6 +79,7 @@ public final class RequestOneScenario {
                                   Optional.ofNullable(msg.data())
                                       .ifPresent(ReferenceCountUtil::safestRelease);
                                   latencyHelper.calculate(msg);
+                                  serviceToClientMeter.mark();
                                 })
                             .doOnTerminate(() -> taskScheduler.schedule(task));
                       });
