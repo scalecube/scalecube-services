@@ -14,7 +14,6 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 
 public final class RequestOneScenario {
 
@@ -67,21 +66,20 @@ public final class RequestOneScenario {
               (executionTick, task) ->
                   Mono.defer(
                       () -> {
-                        Scheduler taskScheduler = task.scheduler();
                         clientToServiceMeter.mark();
                         return client
-                            .requestResponse(enrichRequest(), taskScheduler)
+                            .requestResponse(enrichRequest(), task.scheduler())
                             .map(RequestOneScenario::enrichResponse)
-                            .doOnError(
-                                th -> LOGGER.warn("Exception occured on requestResponse: " + th))
                             .doOnNext(
                                 msg -> {
+                                  serviceToClientMeter.mark();
                                   Optional.ofNullable(msg.data())
                                       .ifPresent(ReferenceCountUtil::safestRelease);
                                   latencyHelper.calculate(msg);
-                                  serviceToClientMeter.mark();
                                 })
-                            .doOnTerminate(() -> taskScheduler.schedule(task));
+                            .doOnTerminate(() -> task.scheduler().schedule(task))
+                            .doOnError(
+                                th -> LOGGER.warn("Exception occured on requestResponse: " + th));
                       });
         },
         (state, client) -> client.close());

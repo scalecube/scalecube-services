@@ -1,6 +1,7 @@
 package io.scalecube.gateway.benchmarks;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientMessage.Builder;
 import java.time.Duration;
@@ -9,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 
 public final class InfiniteStreamScenario {
 
@@ -49,6 +51,9 @@ public final class InfiniteStreamScenario {
         state -> {
           LatencyHelper latencyHelper = new LatencyHelper(state);
 
+          BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
+          BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
+
           Integer rateLimit = rateLimit(settings);
 
           Builder builder = ClientMessage.builder().qualifier(QUALIFIER);
@@ -57,10 +62,19 @@ public final class InfiniteStreamScenario {
 
           return client ->
               (executionTick, task) ->
-                  client
-                      .requestStream(request, task.scheduler())
-                      .doOnError(th -> LOGGER.warn("Exception occured on requestStream: " + th))
-                      .doOnNext(latencyHelper::calculate);
+                  Flux.defer(
+                      () -> {
+                        clientToServiceMeter.mark();
+                        return client
+                            .requestStream(request, task.scheduler())
+                            .doOnNext(
+                                message -> {
+                                  serviceToClientMeter.mark();
+                                  latencyHelper.calculate(message);
+                                })
+                            .doOnError(
+                                th -> LOGGER.warn("Exception occured on requestStream: " + th));
+                      });
         },
         (state, client) -> client.close());
   }
