@@ -27,8 +27,8 @@
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <reactor.version>3.1.8.RELEASE</reactor.version>
     <metrics.version>3.1.2</metrics.version>
-    <rsocket.version>0.11.5</rsocket.version>
-    <reactor-netty.version>0.7.8.RELEASE</reactor-netty.version>
+    <rsocket.version>0.11.8</rsocket.version>
+    <reactor-netty.version>0.8.0.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.25.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>

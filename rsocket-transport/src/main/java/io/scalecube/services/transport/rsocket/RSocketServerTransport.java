@@ -6,7 +6,8 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.Future;
 import io.rsocket.RSocketFactory;
-import io.rsocket.transport.netty.server.NettyContextCloseable;
+import io.rsocket.transport.netty.server.CloseableChannel;
+import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -18,9 +19,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.FutureMono;
-import reactor.ipc.netty.NettyContext;
-import reactor.ipc.netty.tcp.TcpServer;
+import reactor.netty.Connection;
+import reactor.netty.FutureMono;
+import reactor.netty.tcp.TcpServer;
 
 /** RSocket server transport implementation. */
 public class RSocketServerTransport implements ServerTransport {
@@ -36,8 +37,8 @@ public class RSocketServerTransport implements ServerTransport {
   private final EventLoopGroup bossGroup;
   private final DelegatedLoopResources loopResources;
 
-  private NettyContextCloseable server; // calculated
-  private List<NettyContext> channels = new CopyOnWriteArrayList<>(); // calculated
+  private CloseableChannel server; // calculated
+  private List<Connection> connections = new CopyOnWriteArrayList<>(); // calculated
 
   /**
    * Constructor for this server transport.
@@ -65,22 +66,19 @@ public class RSocketServerTransport implements ServerTransport {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =
-              TcpServer.create(
-                  options ->
-                      options
-                          .loopResources(loopResources)
-                          .listenAddress(address)
-                          .afterNettyContextInit(
-                              nettyContext -> {
-                                LOGGER.info("Accepted connection on {}", nettyContext.channel());
-                                nettyContext.onClose(
-                                    () -> {
-                                      LOGGER.info(
-                                          "Connection closed on {}", nettyContext.channel());
-                                      channels.remove(nettyContext);
-                                    });
-                                channels.add(nettyContext);
-                              }));
+              TcpServer.create()
+                  .runOn(loopResources)
+                  .addressSupplier(() -> address)
+                  .doOnConnection(
+                      connection -> {
+                        LOGGER.info("Accepted connection on {}", connection.channel());
+                        connection.onDispose(
+                            () -> {
+                              LOGGER.info("Connection closed on {}", connection.channel());
+                              connections.remove(connection);
+                            });
+                        connections.add(connection);
+                      });
 
           return RSocketFactory.receive()
               .frameDecoder(
@@ -88,10 +86,10 @@ public class RSocketServerTransport implements ServerTransport {
                       ByteBufPayload.create(
                           frame.sliceData().retain(), frame.sliceMetadata().retain()))
               .acceptor(new RSocketServiceAcceptor(codec, methodRegistry))
-              .transport(new RSocketTcpServerTransport(tcpServer))
+              .transport(() -> TcpServerTransport.create(tcpServer))
               .start()
               .map(server -> this.server = server)
-              .map(NettyContextCloseable::address);
+              .map(CloseableChannel::address);
         });
   }
 
@@ -104,13 +102,13 @@ public class RSocketServerTransport implements ServerTransport {
           //noinspection unchecked
           stopList.add(FutureMono.from((Future) ((EventLoopGroup) bossGroup).shutdownGracefully()));
 
-          channels
+          connections
               .stream()
               .collect(
                   () -> stopList,
-                  (list, context) -> {
-                    context.dispose();
-                    list.add(context.onClose());
+                  (list, connection) -> {
+                    connection.dispose();
+                    list.add(connection.onTerminate());
                   },
                   (monos1, monos2) -> {
                     // no-op
