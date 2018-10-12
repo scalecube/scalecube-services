@@ -4,10 +4,15 @@ import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_R
 import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_SEND_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RequestOneBenchmark {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RequestOneBenchmark.class);
 
   private static final String QUALIFIER = "/benchmarks/requestOne";
 
@@ -23,13 +28,24 @@ public class RequestOneBenchmark {
         .runForAsync(
             state -> {
               LatencyHelper latencyHelper = new LatencyHelper(state);
+
+              BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
+              BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
+
               ServiceCall serviceCall = state.serviceCall();
 
-              return i ->
-                  serviceCall
-                      .requestOne(enrichRequest())
-                      .map(RequestOneBenchmark::enrichResponse)
-                      .doOnNext(latencyHelper::calculate);
+              return i -> {
+                clientToServiceMeter.mark();
+                return serviceCall
+                    .requestOne(enrichRequest())
+                    .map(RequestOneBenchmark::enrichResponse)
+                    .doOnNext(
+                        message -> {
+                          serviceToClientMeter.mark();
+                          latencyHelper.calculate(message);
+                        })
+                    .doOnError(ex -> LOGGER.warn("Exception occured: " + ex));
+              };
             });
   }
 

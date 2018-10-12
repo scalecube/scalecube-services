@@ -3,6 +3,7 @@ package io.scalecube.services.benchmarks.service;
 import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_RECV_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
+import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.api.ServiceMessage;
 import java.time.Duration;
 import java.util.Optional;
@@ -41,6 +42,9 @@ public class InfiniteStreamBenchmark {
             state -> {
               LatencyHelper latencyHelper = new LatencyHelper(state);
 
+              BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
+              BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
+
               Integer rateLimit = rateLimit(settings);
 
               ServiceMessage message = //
@@ -48,6 +52,7 @@ public class InfiniteStreamBenchmark {
 
               return service ->
                   (executionTick, task) -> {
+                    clientToServiceMeter.mark();
                     Flux<ServiceMessage> requestStream =
                         service
                             .infiniteStream(message) //
@@ -56,8 +61,12 @@ public class InfiniteStreamBenchmark {
                       requestStream = requestStream.limitRate(rateLimit);
                     }
                     return requestStream
-                        .doOnError(th -> LOGGER.warn("Exception occured on requestStream: " + th))
-                        .doOnNext(latencyHelper::calculate);
+                        .doOnNext(
+                            message1 -> {
+                              serviceToClientMeter.mark();
+                              latencyHelper.calculate(message1);
+                            })
+                        .doOnError(ex -> LOGGER.warn("Exception occured: " + ex));
                   };
             },
             (state, service) -> Mono.empty());
