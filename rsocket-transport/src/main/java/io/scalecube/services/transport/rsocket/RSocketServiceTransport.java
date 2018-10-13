@@ -16,7 +16,7 @@ import java.util.concurrent.ThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.FutureMono;
+import reactor.netty.FutureMono;
 
 /**
  * RSocket service transport. Entry point for getting {@link RSocketClientTransport} and {@link
