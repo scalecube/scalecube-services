@@ -10,7 +10,7 @@ import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.gateway.GatewayConfig;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.resources.LoopResources;
 
 class RsocketGatewayExtension extends AbstractGatewayExtension {
 

@@ -8,7 +8,7 @@ import io.scalecube.gateway.clientsdk.http.HttpClientCodec;
 import io.scalecube.gateway.clientsdk.http.HttpClientTransport;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.gateway.GatewayConfig;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.resources.LoopResources;
 
 class HttpGatewayExtension extends AbstractGatewayExtension {
 
