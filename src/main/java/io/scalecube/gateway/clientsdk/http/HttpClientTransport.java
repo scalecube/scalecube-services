@@ -15,17 +15,14 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.ipc.netty.http.client.HttpClient;
-import reactor.ipc.netty.http.client.HttpClientResponse;
-import reactor.ipc.netty.resources.LoopResources;
-import reactor.ipc.netty.resources.PoolResources;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClientResponse;
+import reactor.netty.resources.ConnectionProvider;
+import reactor.netty.resources.LoopResources;
 
 public final class HttpClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientTransport.class);
-
-  private static final int WRITE_IDLE_TIMEOUT = 6000;
-  private static final int READ_IDLE_TIMEOUT = 6000;
 
   private static final String SERVICE_RECV_TIME = "service-recv-time";
   private static final String SERVICE_SEND_TIME = "service-send-time";
@@ -34,7 +31,7 @@ public final class HttpClientTransport implements ClientTransport {
 
   private final ClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
-  private final PoolResources poolResources;
+  private final ConnectionProvider connectionProvider;
 
   /**
    * Creates instance of http client transport.
@@ -48,18 +45,18 @@ public final class HttpClientTransport implements ClientTransport {
 
     this.codec = codec;
 
-    this.poolResources = PoolResources.elastic("http-client-sdk");
+    connectionProvider = ConnectionProvider.elastic("http-client-sdk");
 
-    InetSocketAddress address =
-        InetSocketAddress.createUnresolved(settings.host(), settings.port());
-
-    this.httpClient =
-        HttpClient.create(
-            options ->
-                options
-                    .loopResources(loopResources)
-                    .poolResources(poolResources)
-                    .connectAddress(() -> address));
+    httpClient =
+        HttpClient.create(connectionProvider)
+            .tcpConfiguration(
+                tcpClient ->
+                    tcpClient
+                        .runOn(loopResources)
+                        .addressSupplier(
+                            () ->
+                                InetSocketAddress.createUnresolved(
+                                    settings.host(), settings.port())));
   }
 
   @Override
@@ -68,34 +65,18 @@ public final class HttpClientTransport implements ClientTransport {
         () -> {
           ByteBuf byteBuf = codec.encode(request);
           return httpClient
-              .post(
-                  request.qualifier(),
-                  httpRequest -> {
+              .post()
+              .uri(request.qualifier())
+              .send(
+                  (httpRequest, out) -> {
                     LOGGER.debug("Sending request {}", request);
-
-                    return httpRequest
-                        .failOnClientError(false)
-                        .failOnServerError(false)
-                        .keepAlive(true)
-                        .onWriteIdle(
-                            WRITE_IDLE_TIMEOUT,
-                            () -> {
-                              // no-op
-                            })
-                        .header(CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()))
-                        .sendObject(byteBuf)
-                        .then();
+                    httpRequest.header(
+                        CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()));
+                    return out.sendObject(byteBuf).then();
                   })
-              .flatMap(
-                  httpResponse ->
-                      httpResponse
-                          .onReadIdle(
-                              READ_IDLE_TIMEOUT,
-                              () -> {
-                                // no-op
-                              })
-                          .receive()
-                          .aggregate()
+              .responseSingle(
+                  (httpResponse, bbMono) ->
+                      bbMono
                           .map(ByteBuf::retain)
                           .publishOn(scheduler)
                           .map(
@@ -112,9 +93,9 @@ public final class HttpClientTransport implements ClientTransport {
 
   @Override
   public Mono<Void> close() {
-    return poolResources
+    return connectionProvider
         .disposeLater()
-        .doOnTerminate(() -> LOGGER.info("Closed http client sdk transport"));
+        .doOnTerminate(() -> LOGGER.info("Closed http-client-sdk transport"));
   }
 
   private ClientMessage toClientMessage(

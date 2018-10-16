@@ -1,7 +1,7 @@
 package io.scalecube.gateway.clientsdk;
 
 import java.net.InetSocketAddress;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.resources.LoopResources;
 
 public class ClientSettings {
 

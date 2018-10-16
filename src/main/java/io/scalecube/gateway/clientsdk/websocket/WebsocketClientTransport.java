@@ -16,10 +16,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Scheduler;
-import reactor.ipc.netty.http.client.HttpClient;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.websocket.WebsocketInbound;
+import reactor.netty.http.websocket.WebsocketOutbound;
+import reactor.netty.resources.LoopResources;
 
 public final class WebsocketClientTransport implements ClientTransport {
 
@@ -57,9 +57,9 @@ public final class WebsocketClientTransport implements ClientTransport {
     address = InetSocketAddress.createUnresolved(settings.host(), settings.port());
 
     httpClient =
-        HttpClient.create(
-            options ->
-                options.disablePool().connectAddress(() -> address).loopResources(loopResources));
+        HttpClient.newConnection()
+            .tcpConfiguration(
+                tcpClient -> tcpClient.addressSupplier(() -> address).runOn(loopResources));
   }
 
   @Override
@@ -127,21 +127,18 @@ public final class WebsocketClientTransport implements ClientTransport {
       return prev;
     }
 
-    return httpClient
-        .ws("/")
-        .flatMap(
-            response ->
-                Mono.create(
-                    (MonoSink<WebsocketSession> sink) ->
-                        response
-                            .receiveWebsocket((in, out) -> handleWebsocket(sink, in, out))
-                            .doOnError(sink::error)
-                            .subscribe()))
-        .doOnError(
-            throwable -> {
-              LOGGER.warn("Connection to {} is failed, cause: {}", address, throwable);
-              websocketMonoUpdater.getAndSet(this, null);
-            })
+    return Mono.create(
+            (MonoSink<WebsocketSession> sink) ->
+                httpClient
+                    .websocket()
+                    .uri("/")
+                    .handle((in, out) -> handleWebsocket(sink, in, out))
+                    .doOnError(
+                        ex -> {
+                          LOGGER.warn("Connection to {} is failed, cause: {}", address, ex);
+                          websocketMonoUpdater.getAndSet(this, null);
+                          sink.error(ex);
+                        }))
         .cache();
   }
 
@@ -151,8 +148,9 @@ public final class WebsocketClientTransport implements ClientTransport {
     WebsocketSession session = new WebsocketSession(codec, in, out);
 
     LOGGER.info("Created {} on {}", session, address);
+    Mono<Void> result = session.onClose(() -> LOGGER.info("Closed {} on {}", session, address));
     sink.success(session);
-    return session.onClose(() -> LOGGER.info("Closed {} on {}", session, address));
+    return result;
   }
 
   private Disposable handleCancel(long sid, WebsocketSession session) {

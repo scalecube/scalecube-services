@@ -1,7 +1,6 @@
 package io.scalecube.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.scalecube.gateway.clientsdk.ClientCodec;
@@ -16,20 +15,18 @@ import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.core.scheduler.Scheduler;
-import reactor.ipc.netty.NettyPipeline.SendOptions;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
+import reactor.netty.NettyPipeline.SendOptions;
+import reactor.netty.http.websocket.WebsocketInbound;
+import reactor.netty.http.websocket.WebsocketOutbound;
 
 final class WebsocketSession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
-
-  // close ws session normally status code
-  private static final int STATUS_CODE_CLOSE = 1000;
 
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
@@ -114,13 +111,27 @@ final class WebsocketSession {
         });
   }
 
+  /**
+   * Close the websocket session with <i>normal</i> status. <a
+   * href="https://tools.ietf.org/html/rfc6455#section-7.4.1">Defined Status Codes:</a> <i>1000
+   * indicates a normal closure, meaning that the purpose for which the connection was established
+   * has been fulfilled.</i>
+   *
+   * @return mono void
+   */
   public Mono<Void> close() {
-    Callable<WebSocketFrame> callable = () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close");
-    return outbound.sendObject(Mono.fromCallable(callable)).then();
+    return outbound.sendClose().then();
   }
 
-  public Mono<Void> onClose(Runnable runnable) {
-    return inbound.context().onClose(runnable).onClose();
+  public Mono<Void> onClose(Disposable disposable) {
+    return Mono.create(
+        sink ->
+            inbound.withConnection(
+                connection ->
+                    connection
+                        .onDispose(disposable)
+                        .onTerminate()
+                        .subscribe(sink::success, sink::error, sink::success)));
   }
 
   private void handleResponse(

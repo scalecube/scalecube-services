@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.ipc.netty.http.client.HttpClient;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.LoopResources;
 
 public final class RSocketClientTransport implements ClientTransport {
 
@@ -149,11 +149,13 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private WebsocketClientTransport createRSocketTransport(InetSocketAddress address) {
     String path = "/";
-    return WebsocketClientTransport.create(
-        HttpClient.create(
-            options ->
-                options.disablePool().connectAddress(() -> address).loopResources(loopResources)),
-        path);
+
+    HttpClient httpClient =
+        HttpClient.newConnection()
+            .tcpConfiguration(
+                tcpClient -> tcpClient.runOn(loopResources).addressSupplier(() -> address));
+
+    return WebsocketClientTransport.create(httpClient, path);
   }
 
   private Payload toPayload(ClientMessage clientMessage) {
