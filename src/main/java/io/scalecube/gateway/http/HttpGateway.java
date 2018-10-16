@@ -14,7 +14,8 @@ import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.tcp.BlockingNettyContext;
+import reactor.netty.DisposableServer;
+import reactor.netty.resources.LoopResources;
 
 public class HttpGateway extends GatewayTemplate {
 
@@ -23,9 +24,9 @@ public class HttpGateway extends GatewayTemplate {
   private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
       new DefaultThreadFactory("http-boss", true);
 
-  private static final Duration START_TIMEOUT = Duration.ofSeconds(30);
+  public static final Duration START_TIMEOUT = Duration.ofSeconds(30);
 
-  private BlockingNettyContext server;
+  private DisposableServer server;
 
   @Override
   public Mono<InetSocketAddress> start(
@@ -39,18 +40,18 @@ public class HttpGateway extends GatewayTemplate {
         () -> {
           LOGGER.info("Starting gateway with {}", config);
 
-          GatewayMetrics gatewayMetrics = new GatewayMetrics(config.name(), metrics);
-          GatewayHttpAcceptor httpAcceptor = new GatewayHttpAcceptor(call.create(), gatewayMetrics);
+          GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
+          GatewayHttpAcceptor acceptor = new GatewayHttpAcceptor(call.create(), metrics1);
+
+          LoopResources loopResources =
+              prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
 
           server =
-              prepareHttpServer(
-                      prepareLoopResources(
-                          preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool),
-                      gatewayMetrics,
-                      config.port())
-                  .start(httpAcceptor, START_TIMEOUT);
+              prepareHttpServer(loopResources, metrics1, config.port())
+                  .handle(acceptor)
+                  .bindNow(START_TIMEOUT);
 
-          InetSocketAddress address = server.getContext().address();
+          InetSocketAddress address = server.address();
           LOGGER.info("Gateway has been started successfully on {}", address);
           return Mono.just(address);
         });
@@ -63,8 +64,8 @@ public class HttpGateway extends GatewayTemplate {
           List<Mono<Void>> stopList = new ArrayList<>();
           stopList.add(shutdownBossGroup());
           if (server != null) {
-            server.getContext().dispose();
-            stopList.add(server.getContext().onClose());
+            server.dispose();
+            stopList.add(server.onDispose());
           }
           return Mono.when(stopList);
         });
