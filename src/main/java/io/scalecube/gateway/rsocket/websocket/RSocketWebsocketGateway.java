@@ -2,7 +2,8 @@ package io.scalecube.gateway.rsocket.websocket;
 
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.rsocket.RSocketFactory;
-import io.rsocket.transport.netty.server.NettyContextCloseable;
+import io.rsocket.transport.netty.server.CloseableChannel;
+import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.GatewayTemplate;
@@ -17,7 +18,7 @@ import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.server.HttpServer;
+import reactor.netty.resources.LoopResources;
 
 public class RSocketWebsocketGateway extends GatewayTemplate {
 
@@ -28,7 +29,7 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
 
   private static final Duration START_TIMEOUT = Duration.ofSeconds(30);
 
-  private NettyContextCloseable server;
+  private CloseableChannel server;
 
   @Override
   public Mono<InetSocketAddress> start(
@@ -42,15 +43,15 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
         () -> {
           LOGGER.info("Starting gateway with {}", config);
 
-          GatewayMetrics gatewayMetrics = new GatewayMetrics(config.name(), metrics);
-          RSocketWebsocketAcceptor rsocketWebsocketAcceptor =
-              new RSocketWebsocketAcceptor(call.create(), gatewayMetrics);
+          GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
+          RSocketWebsocketAcceptor acceptor = new RSocketWebsocketAcceptor(call.create(), metrics1);
 
-          HttpServer httpServer =
-              prepareHttpServer(
-                  prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool),
-                  gatewayMetrics,
-                  config.port());
+          LoopResources loopResources =
+              prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
+
+          WebsocketServerTransport rsocketTransport =
+              WebsocketServerTransport.create(
+                  prepareHttpServer(loopResources, metrics1, config.port()));
 
           server =
               RSocketFactory.receive()
@@ -58,8 +59,8 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
                       frame ->
                           ByteBufPayload.create(
                               frame.sliceData().retain(), frame.sliceMetadata().retain()))
-                  .acceptor(rsocketWebsocketAcceptor)
-                  .transport(new RSocketWebsocketServerTransport(httpServer))
+                  .acceptor(acceptor)
+                  .transport(rsocketTransport)
                   .start()
                   .block(START_TIMEOUT);
 
