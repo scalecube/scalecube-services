@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Schedulers;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
     extends BenchmarkState<T> {

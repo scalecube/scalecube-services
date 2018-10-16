@@ -12,7 +12,7 @@ import io.scalecube.services.gateway.GatewayConfig;
 import java.net.InetSocketAddress;
 import java.util.function.BiFunction;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.resources.LoopResources;
 
 public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneBenchmarkState> {
 
