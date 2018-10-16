@@ -4,9 +4,7 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.scalecube.gateway.websocket.message.GatewayMessage;
 import io.scalecube.gateway.websocket.message.GatewayMessage.Builder;
 import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
@@ -15,25 +13,20 @@ import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.FutureMono;
-import reactor.ipc.netty.NettyPipeline.SendOptions;
-import reactor.ipc.netty.http.server.HttpServerRequest;
-import reactor.ipc.netty.http.websocket.WebsocketInbound;
-import reactor.ipc.netty.http.websocket.WebsocketOutbound;
+import reactor.netty.NettyPipeline.SendOptions;
+import reactor.netty.http.server.HttpServerRequest;
+import reactor.netty.http.websocket.WebsocketInbound;
+import reactor.netty.http.websocket.WebsocketOutbound;
 
 public final class WebsocketSession {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketSession.class);
-
-  // close ws session normally status code
-  private static final int STATUS_CODE_CLOSE = 1000;
 
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
@@ -66,10 +59,10 @@ public final class WebsocketSession {
     this.contentType =
         Optional.ofNullable(httpHeaders.get(CONTENT_TYPE)).orElse(DEFAULT_CONTENT_TYPE);
 
-    this.inbound = inbound;
+    this.inbound =
+        (WebsocketInbound)
+            inbound.withConnection(connection -> connection.onDispose(this::clearSubscriptions));
     this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
-
-    inbound.context().onClose(this::clearSubscriptions);
   }
 
   public String id() {
@@ -118,8 +111,7 @@ public final class WebsocketSession {
   private Mono<Void> send(Mono<ByteBuf> publisher) {
     return publisher
         .map(TextWebSocketFrame::new)
-        .map(frame -> outbound.context().channel().writeAndFlush(frame))
-        .flatMap(FutureMono::from);
+        .flatMap(frame -> outbound.sendObject(frame).then());
   }
 
   private void logSend(GatewayMessage response, Throwable th) {
@@ -153,17 +145,23 @@ public final class WebsocketSession {
    * @return mono void
    */
   public Mono<Void> close() {
-    Callable<WebSocketFrame> callable = () -> new CloseWebSocketFrame(STATUS_CODE_CLOSE, "close");
-    return outbound.sendObject(Mono.fromCallable(callable)).then();
+    return outbound.sendClose().then();
   }
 
   /**
    * Lambda setter for reacting on channel close occurence.
    *
-   * @param runnable lambda
+   * @param disposable function to run when disposable would take place
    */
-  public Mono<Void> onClose(Runnable runnable) {
-    return inbound.context().onClose(runnable).onClose();
+  public Mono<Void> onClose(Disposable disposable) {
+    return Mono.create(
+        sink ->
+            inbound.withConnection(
+                connection ->
+                    connection
+                        .onDispose(disposable)
+                        .onTerminate()
+                        .subscribe(sink::success, sink::error, sink::success)));
   }
 
   /**
