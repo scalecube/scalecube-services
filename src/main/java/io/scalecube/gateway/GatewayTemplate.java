@@ -11,9 +11,10 @@ import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.FutureMono;
-import reactor.ipc.netty.http.server.HttpServer;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.FutureMono;
+import reactor.netty.http.server.HttpServer;
+import reactor.netty.resources.LoopResources;
+import reactor.netty.tcp.TcpServer;
 
 public abstract class GatewayTemplate implements Gateway {
 
@@ -21,6 +22,19 @@ public abstract class GatewayTemplate implements Gateway {
 
   private EventLoopGroup bossGroup; // calculated
 
+  /**
+   * Builds loop resources object with given parameters. If gateway config contains thread pool then
+   * this thread pool would be choosen as io worker thread pool, if not -- then service transprt
+   * worker thread pool from parameters would be choosen as io worker thread pool. If config's
+   * thread pool wasn't specified and service transpotr thread pool wasn't specified then this
+   * function reutrns null.
+   *
+   * @param preferNative should native be preferred
+   * @param bossThreadFactory connection acceptor factory
+   * @param config gateway configuration object
+   * @param workerThreadPool service transport worker thread pool
+   * @return loop resources or null
+   */
   protected final LoopResources prepareLoopResources(
       boolean preferNative,
       ThreadFactory bossThreadFactory,
@@ -42,22 +56,41 @@ public abstract class GatewayTemplate implements Gateway {
     return new GatewayLoopResources(preferNative, bossGroup, workerGroup);
   }
 
+  /**
+   * Builds http server with given parameters.
+   *
+   * @param loopResources loop resources calculated at {@link #prepareLoopResources(boolean,
+   *     ThreadFactory, GatewayConfig, Executor)}
+   * @param metrics gateway metrics object
+   * @param port listen port
+   * @return http server
+   */
   protected final HttpServer prepareHttpServer(
-      LoopResources loopResources, GatewayMetrics gatewayMetrics, int port) {
-    return HttpServer.create(
-        opts -> {
-          opts.listenAddress(new InetSocketAddress(port));
-          if (loopResources != null) {
-            opts.loopResources(loopResources);
-          }
-          opts.afterNettyContextInit(
-              nc -> {
-                gatewayMetrics.incConnection();
-                nc.onClose(gatewayMetrics::decConnection);
-              });
-        });
+      LoopResources loopResources, GatewayMetrics metrics, int port) {
+
+    return HttpServer.create()
+        .tcpConfiguration(
+            tcpServer -> {
+              TcpServer tcpServer1 =
+                  tcpServer
+                      .addressSupplier(() -> new InetSocketAddress(port))
+                      .doOnConnection(
+                          connection -> {
+                            metrics.incConnection();
+                            connection.onDispose(metrics::decConnection);
+                          });
+              if (loopResources != null) {
+                tcpServer1 = tcpServer1.runOn(loopResources);
+              }
+              return tcpServer1;
+            });
   }
 
+  /**
+   * Shutting down boss thread pool if it's not null.
+   *
+   * @return mono handle
+   */
   protected final Mono<Void> shutdownBossGroup() {
     //noinspection unchecked
     return Mono.defer(

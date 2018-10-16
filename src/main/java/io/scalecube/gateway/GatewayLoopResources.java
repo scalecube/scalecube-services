@@ -12,7 +12,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.resources.LoopResources;
+import reactor.netty.resources.LoopResources;
 
 public class GatewayLoopResources implements LoopResources {
 
