@@ -2,6 +2,7 @@ package io.scalecube.services.transport.rsocket;
 
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
+import io.rsocket.transport.netty.client.TcpClientTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ClientChannel;
@@ -12,8 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.resources.LoopResources;
-import reactor.ipc.netty.tcp.TcpClient;
+import reactor.netty.resources.LoopResources;
+import reactor.netty.tcp.TcpClient;
 
 /** RSocket client transport implementation. */
 public class RSocketClientTransport implements ClientTransport {
@@ -47,13 +48,10 @@ public class RSocketClientTransport implements ClientTransport {
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
     TcpClient tcpClient =
-        TcpClient.create(
-            options ->
-                options
-                    .disablePool()
-                    .loopResources(loopResources)
-                    .host(address.host())
-                    .port(address.port()));
+        TcpClient.newConnection() // create non-pooled
+            .runOn(loopResources)
+            .host(address.host())
+            .port(address.port());
 
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()
@@ -61,7 +59,7 @@ public class RSocketClientTransport implements ClientTransport {
                 frame ->
                     ByteBufPayload.create(
                         frame.sliceData().retain(), frame.sliceMetadata().retain()))
-            .transport(new RSocketTcpClientTransport(tcpClient))
+            .transport(() -> TcpClientTransport.create(tcpClient))
             .start();
 
     return rsocketMono
