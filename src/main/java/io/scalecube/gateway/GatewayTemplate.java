@@ -79,7 +79,7 @@ public abstract class GatewayTemplate implements Gateway {
                           connection.onDispose(metrics::decConnection);
                         });
               }
-              return tcpServer.port(port);
+              return tcpServer.host("0.0.0.0").port(port);
             });
   }
 
