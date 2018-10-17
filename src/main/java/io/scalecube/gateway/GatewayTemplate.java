@@ -6,7 +6,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
-import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
@@ -14,7 +13,6 @@ import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
-import reactor.netty.tcp.TcpServer;
 
 public abstract class GatewayTemplate implements Gateway {
 
@@ -57,32 +55,31 @@ public abstract class GatewayTemplate implements Gateway {
   }
 
   /**
-   * Builds http server with given parameters.
+   * Builds generic http server with given parameters.
    *
    * @param loopResources loop resources calculated at {@link #prepareLoopResources(boolean,
    *     ThreadFactory, GatewayConfig, Executor)}
-   * @param metrics gateway metrics object
    * @param port listen port
+   * @param metrics gateway metrics
    * @return http server
    */
   protected final HttpServer prepareHttpServer(
-      LoopResources loopResources, GatewayMetrics metrics, int port) {
-
+      LoopResources loopResources, int port, GatewayMetrics metrics) {
     return HttpServer.create()
         .tcpConfiguration(
             tcpServer -> {
-              TcpServer tcpServer1 =
-                  tcpServer
-                      .addressSupplier(() -> new InetSocketAddress(port))
-                      .doOnConnection(
-                          connection -> {
-                            metrics.incConnection();
-                            connection.onDispose(metrics::decConnection);
-                          });
               if (loopResources != null) {
-                tcpServer1 = tcpServer1.runOn(loopResources);
+                tcpServer = tcpServer.runOn(loopResources);
               }
-              return tcpServer1;
+              if (metrics != null) {
+                tcpServer =
+                    tcpServer.doOnConnection(
+                        connection -> {
+                          metrics.incConnection();
+                          connection.onDispose(metrics::decConnection);
+                        });
+              }
+              return tcpServer.port(port);
             });
   }
 

@@ -3,6 +3,7 @@ package io.scalecube.gateway;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import io.scalecube.services.metrics.Metrics;
+import java.util.Optional;
 
 public class GatewayMetrics {
 
@@ -11,10 +12,10 @@ public class GatewayMetrics {
   public static final String METRIC_RESP = "response";
   public static final String METRIC_SERVICE_RESP = "service-response";
 
-  private final Counter connCounter;
-  private final Meter reqMeter;
-  private final Meter respMeter;
-  private final Meter serviceRespMeter;
+  private final Counter connectionCounter;
+  private final Meter requestMeter;
+  private final Meter responseMeter;
+  private final Meter serviceResponseMeter;
 
   /**
    * Constructor for gateway metrics.
@@ -23,44 +24,46 @@ public class GatewayMetrics {
    * @param metrics microservices metrics
    */
   public GatewayMetrics(String prefix, Metrics metrics) {
-    connCounter = metrics != null ? metrics.getCounter(prefix, METRIC_CONNECTION) : null;
-    reqMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_REQ) : null;
-    respMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_RESP) : null;
-    serviceRespMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_SERVICE_RESP) : null;
+    connectionCounter =
+        Optional.ofNullable(metrics.getCounter(prefix, METRIC_CONNECTION)).orElse(null);
+    requestMeter = Optional.ofNullable(metrics.getMeter(prefix, "", METRIC_REQ)).orElse(null);
+    responseMeter = Optional.ofNullable(metrics.getMeter(prefix, "", METRIC_RESP)).orElse(null);
+    serviceResponseMeter =
+        Optional.ofNullable(metrics.getMeter(prefix, "", METRIC_SERVICE_RESP)).orElse(null);
   }
 
   /** Increment connection counter. */
   public void incConnection() {
-    if (connCounter != null) {
-      connCounter.inc();
+    if (connectionCounter != null) {
+      connectionCounter.inc();
     }
   }
 
   /** Decrement connection counter. */
   public void decConnection() {
-    if (connCounter != null) {
-      connCounter.dec();
+    if (connectionCounter != null) {
+      connectionCounter.dec();
     }
   }
 
   /** Mark request for calls/sec measurement. */
   public void markRequest() {
-    if (reqMeter != null) {
-      reqMeter.mark();
+    if (requestMeter != null) {
+      requestMeter.mark();
     }
   }
 
   /** Mark response for calls/sec measurement. */
   public void markResponse() {
-    if (respMeter != null) {
-      respMeter.mark();
+    if (responseMeter != null) {
+      responseMeter.mark();
     }
   }
 
   /** Mark service response for calls/sec measurement. */
   public void markServiceResponse() {
-    if (serviceRespMeter != null) {
-      serviceRespMeter.mark();
+    if (serviceResponseMeter != null) {
+      serviceResponseMeter.mark();
     }
   }
 }
