@@ -130,7 +130,7 @@ public final class RSocketClientTransport implements ClientTransport {
                   .onClose()
                   .doOnTerminate(
                       () -> {
-                        rSocketMonoUpdater.getAndSet(this, null); // clean reference
+                        rSocketMonoUpdater.getAndSet(this, null); // clear reference
                         LOGGER.info("Connection closed on {}:{}", settings.host(), settings.port());
                       })
                   .subscribe();
@@ -138,8 +138,8 @@ public final class RSocketClientTransport implements ClientTransport {
         .doOnError(
             ex -> {
               LOGGER.warn(
-                  "Connection failed on {}:{}, cause: {}", settings.host(), settings.port(), ex);
-              rSocketMonoUpdater.getAndSet(this, null); // clean reference
+                  "Failed to connect on {}:{}, cause: {}", settings.host(), settings.port(), ex);
+              rSocketMonoUpdater.getAndSet(this, null); // clear reference
             })
         .cache();
   }

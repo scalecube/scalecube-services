@@ -7,17 +7,13 @@ import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoSink;
 import reactor.core.scheduler.Scheduler;
 import reactor.netty.http.client.HttpClient;
-import reactor.netty.http.websocket.WebsocketInbound;
-import reactor.netty.http.websocket.WebsocketOutbound;
 import reactor.netty.resources.LoopResources;
 
 public final class WebsocketClientTransport implements ClientTransport {
@@ -122,34 +118,37 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   private Mono<WebsocketSession> getOrConnect0(Mono<WebsocketSession> prev) {
-    return prev != null ? prev : Mono.create(this::emitWebsocketSession).cache();
-  }
+    if (prev != null) {
+      return prev;
+    }
 
-  private void emitWebsocketSession(MonoSink<WebsocketSession> sink) {
-    httpClient
+    return httpClient
         .websocket()
         .uri("/")
-        .handle((in, out) -> emitWebsocketSession0(sink, in, out))
+        .connect()
+        .map(
+            connection -> {
+              WebsocketSession session = new WebsocketSession(codec, connection);
+              LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
+              // setup shutdown hook
+              session
+                  .onClose()
+                  .doOnTerminate(
+                      () -> {
+                        websocketMonoUpdater.getAndSet(this, null); // clear reference
+                        LOGGER.info(
+                            "Closed {} on {}:{}", session, settings.host(), settings.port());
+                      })
+                  .subscribe();
+              return session;
+            })
         .doOnError(
             ex -> {
               LOGGER.warn(
-                  "Connection to {}:{} failed, cause: {}", settings.host(), settings.port(), ex);
-              websocketMonoUpdater.getAndSet(this, null);
-              sink.error(ex);
-            });
-  }
-
-  private Publisher<Void> emitWebsocketSession0(
-      MonoSink<WebsocketSession> sink, WebsocketInbound in, WebsocketOutbound out) {
-
-    WebsocketSession session = new WebsocketSession(codec, in, out);
-
-    LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
-    Mono<Void> result =
-        session.onClose(
-            () -> LOGGER.info("Closed {} on {}:{}", session, settings.host(), settings.port()));
-    sink.success(session);
-    return result;
+                  "Failed to connect on {}:{}, cause: {}", settings.host(), settings.port(), ex);
+              websocketMonoUpdater.getAndSet(this, null); // clear reference
+            })
+        .cache();
   }
 
   private Disposable handleCancel(long sid, WebsocketSession session) {

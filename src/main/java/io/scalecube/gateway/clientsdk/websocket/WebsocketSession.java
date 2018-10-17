@@ -15,11 +15,11 @@ import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.core.scheduler.Scheduler;
+import reactor.netty.Connection;
 import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
@@ -33,6 +33,7 @@ final class WebsocketSession {
 
   private final String id; // keep id for tracing
   private final ClientCodec<ByteBuf> codec;
+  private final Connection connection;
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
 
@@ -40,12 +41,12 @@ final class WebsocketSession {
   private final Map<Long, UnicastProcessor<ClientMessage>> inboundProcessors =
       new NonBlockingHashMapLong<>(1024);
 
-  WebsocketSession(
-      ClientCodec<ByteBuf> codec, WebsocketInbound inbound, WebsocketOutbound outbound) {
+  WebsocketSession(ClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
-    this.inbound = inbound;
-    this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
+    this.connection = connection;
+    this.inbound = (WebsocketInbound) connection.inbound();
+    this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
 
     this.inbound
         .aggregateFrames()
@@ -123,15 +124,8 @@ final class WebsocketSession {
     return outbound.sendClose().then();
   }
 
-  public Mono<Void> onClose(Disposable disposable) {
-    return Mono.create(
-        sink ->
-            inbound.withConnection(
-                connection ->
-                    connection
-                        .onDispose(disposable)
-                        .onTerminate()
-                        .subscribe(sink::success, sink::error, sink::success)));
+  public Mono<Void> onClose() {
+    return connection.onDispose();
   }
 
   private void handleResponse(
