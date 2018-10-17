@@ -3,7 +3,6 @@ package io.scalecube.gateway;
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Meter;
 import io.scalecube.services.metrics.Metrics;
-import java.util.Optional;
 
 public class GatewayMetrics {
 
@@ -24,12 +23,11 @@ public class GatewayMetrics {
    * @param metrics microservices metrics
    */
   public GatewayMetrics(String prefix, Metrics metrics) {
-    connectionCounter =
-        Optional.ofNullable(metrics.getCounter(prefix, METRIC_CONNECTION)).orElse(null);
-    requestMeter = Optional.ofNullable(metrics.getMeter(prefix, "", METRIC_REQ)).orElse(null);
-    responseMeter = Optional.ofNullable(metrics.getMeter(prefix, "", METRIC_RESP)).orElse(null);
+    connectionCounter = metrics != null ? metrics.getCounter(prefix, METRIC_CONNECTION) : null;
+    requestMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_REQ) : null;
+    responseMeter = metrics != null ? metrics.getMeter(prefix, "", METRIC_RESP) : null;
     serviceResponseMeter =
-        Optional.ofNullable(metrics.getMeter(prefix, "", METRIC_SERVICE_RESP)).orElse(null);
+        metrics != null ? metrics.getMeter(prefix, "", METRIC_SERVICE_RESP) : null;
   }
 
   /** Increment connection counter. */
