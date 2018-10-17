@@ -122,30 +122,24 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   private Mono<WebsocketSession> getOrConnect0(Mono<WebsocketSession> prev) {
-    if (prev != null) {
-      return prev;
-    }
-
-    return Mono.create(
-            (MonoSink<WebsocketSession> sink) ->
-                httpClient
-                    .websocket()
-                    .uri("/")
-                    .handle((in, out) -> handleWebsocket(sink, in, out))
-                    .doOnError(
-                        ex -> {
-                          LOGGER.warn(
-                              "Connection to {}:{} failed, cause: {}",
-                              settings.host(),
-                              settings.port(),
-                              ex);
-                          websocketMonoUpdater.getAndSet(this, null);
-                          sink.error(ex);
-                        }))
-        .cache();
+    return prev != null ? prev : Mono.create(this::emitWebsocketSession).cache();
   }
 
-  private Publisher<Void> handleWebsocket(
+  private void emitWebsocketSession(MonoSink<WebsocketSession> sink) {
+    httpClient
+        .websocket()
+        .uri("/")
+        .handle((in, out) -> emitWebsocketSession0(sink, in, out))
+        .doOnError(
+            ex -> {
+              LOGGER.warn(
+                  "Connection to {}:{} failed, cause: {}", settings.host(), settings.port(), ex);
+              websocketMonoUpdater.getAndSet(this, null);
+              sink.error(ex);
+            });
+  }
+
+  private Publisher<Void> emitWebsocketSession0(
       MonoSink<WebsocketSession> sink, WebsocketInbound in, WebsocketOutbound out) {
 
     WebsocketSession session = new WebsocketSession(codec, in, out);
