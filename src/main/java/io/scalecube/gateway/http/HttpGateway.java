@@ -47,7 +47,7 @@ public class HttpGateway extends GatewayTemplate {
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
 
           server =
-              prepareHttpServer(loopResources, metrics1, config.port())
+              prepareHttpServer(loopResources, config.port(), null /*metrics*/)
                   .handle(acceptor)
                   .bindNow(START_TIMEOUT);
 
