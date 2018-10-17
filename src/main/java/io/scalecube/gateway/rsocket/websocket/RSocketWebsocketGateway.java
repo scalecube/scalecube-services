@@ -51,7 +51,7 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
 
           WebsocketServerTransport rsocketTransport =
               WebsocketServerTransport.create(
-                  prepareHttpServer(loopResources, metrics1, config.port()));
+                  prepareHttpServer(loopResources, config.port(), metrics1));
 
           server =
               RSocketFactory.receive()
