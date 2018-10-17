@@ -8,7 +8,6 @@ import io.scalecube.gateway.clientsdk.ClientMessage.Builder;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.api.Qualifier;
-import java.net.InetSocketAddress;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,12 +50,7 @@ public final class HttpClientTransport implements ClientTransport {
         HttpClient.create(connectionProvider)
             .tcpConfiguration(
                 tcpClient ->
-                    tcpClient
-                        .runOn(loopResources)
-                        .addressSupplier(
-                            () ->
-                                InetSocketAddress.createUnresolved(
-                                    settings.host(), settings.port())));
+                    tcpClient.runOn(loopResources).host(settings.host()).port(settings.port()));
   }
 
   @Override

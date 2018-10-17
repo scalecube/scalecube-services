@@ -5,7 +5,6 @@ import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
-import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.reactivestreams.Publisher;
@@ -37,7 +36,7 @@ public final class WebsocketClientTransport implements ClientTransport {
               WebsocketClientTransport.class, Mono.class, "websocketMono");
 
   private final ClientCodec<ByteBuf> codec;
-  private final InetSocketAddress address;
+  private final ClientSettings settings;
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
 
@@ -53,13 +52,13 @@ public final class WebsocketClientTransport implements ClientTransport {
   public WebsocketClientTransport(
       ClientSettings settings, ClientCodec<ByteBuf> codec, LoopResources loopResources) {
     this.codec = codec;
-
-    address = InetSocketAddress.createUnresolved(settings.host(), settings.port());
+    this.settings = settings;
 
     httpClient =
         HttpClient.newConnection()
             .tcpConfiguration(
-                tcpClient -> tcpClient.addressSupplier(() -> address).runOn(loopResources));
+                tcpClient ->
+                    tcpClient.runOn(loopResources).host(settings.host()).port(settings.port()));
   }
 
   @Override
@@ -135,7 +134,11 @@ public final class WebsocketClientTransport implements ClientTransport {
                     .handle((in, out) -> handleWebsocket(sink, in, out))
                     .doOnError(
                         ex -> {
-                          LOGGER.warn("Connection to {} is failed, cause: {}", address, ex);
+                          LOGGER.warn(
+                              "Connection to {}:{} failed, cause: {}",
+                              settings.host(),
+                              settings.port(),
+                              ex);
                           websocketMonoUpdater.getAndSet(this, null);
                           sink.error(ex);
                         }))
@@ -147,8 +150,10 @@ public final class WebsocketClientTransport implements ClientTransport {
 
     WebsocketSession session = new WebsocketSession(codec, in, out);
 
-    LOGGER.info("Created {} on {}", session, address);
-    Mono<Void> result = session.onClose(() -> LOGGER.info("Closed {} on {}", session, address));
+    LOGGER.info("Created {} on {}:{}", session, settings.host(), settings.port());
+    Mono<Void> result =
+        session.onClose(
+            () -> LOGGER.info("Closed {} on {}:{}", session, settings.host(), settings.port()));
     sink.success(session);
     return result;
   }

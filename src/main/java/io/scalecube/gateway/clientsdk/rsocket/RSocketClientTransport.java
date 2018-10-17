@@ -10,7 +10,6 @@ import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.gateway.clientsdk.exceptions.ConnectionClosedException;
-import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,44 +115,43 @@ public final class RSocketClientTransport implements ClientTransport {
       return prev;
     }
 
-    InetSocketAddress address =
-        InetSocketAddress.createUnresolved(settings.host(), settings.port());
-
     return RSocketFactory.connect()
         .metadataMimeType(settings.contentType())
         .frameDecoder(
             frame ->
                 ByteBufPayload.create(frame.sliceData().retain(), frame.sliceMetadata().retain()))
-        .transport(createRSocketTransport(address))
+        .transport(createRSocketTransport(settings))
         .start()
         .doOnSuccess(
             rsocket -> {
-              LOGGER.info("Connected successfully on {}", address);
+              LOGGER.info("Connected successfully on {}:{}", settings.host(), settings.port());
               // setup shutdown hook
               rsocket
                   .onClose()
                   .doOnTerminate(
                       () -> {
                         rSocketMonoUpdater.getAndSet(this, null); // clean reference
-                        LOGGER.info("Connection closed on {}", address);
+                        LOGGER.info("Connection closed on {}:{}", settings.host(), settings.port());
                       })
                   .subscribe();
             })
         .doOnError(
-            throwable -> {
-              LOGGER.warn("Connection failed on {}, cause: {}", address, throwable);
+            ex -> {
+              LOGGER.warn(
+                  "Connection failed on {}:{}, cause: {}", settings.host(), settings.port(), ex);
               rSocketMonoUpdater.getAndSet(this, null); // clean reference
             })
         .cache();
   }
 
-  private WebsocketClientTransport createRSocketTransport(InetSocketAddress address) {
+  private WebsocketClientTransport createRSocketTransport(ClientSettings settings) {
     String path = "/";
 
     HttpClient httpClient =
         HttpClient.newConnection()
             .tcpConfiguration(
-                tcpClient -> tcpClient.runOn(loopResources).addressSupplier(() -> address));
+                tcpClient ->
+                    tcpClient.runOn(loopResources).host(settings.host()).port(settings.port()));
 
     return WebsocketClientTransport.create(httpClient, path);
   }
