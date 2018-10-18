@@ -25,8 +25,5 @@ public interface BenchmarkService {
   Mono<ServiceMessage> requestOne(ServiceMessage message);
 
   @ServiceMethod
-  Flux<ServiceMessage> sharedStream(ServiceMessage message);
-
-  @ServiceMethod
   Flux<ServiceMessage> infiniteStream(ServiceMessage message);
 }
