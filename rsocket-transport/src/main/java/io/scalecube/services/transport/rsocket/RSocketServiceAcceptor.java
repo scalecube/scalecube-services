@@ -12,7 +12,9 @@ import io.scalecube.services.codec.ReferenceCountUtil;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import java.util.Optional;
 import org.reactivestreams.Publisher;
@@ -21,6 +23,10 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * RSocket service acceptor. Implementation of {@link SocketAcceptor}. See for details and supported
+ * methods -- {@link AbstractRSocket0}.
+ */
 public class RSocketServiceAcceptor implements SocketAcceptor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServiceAcceptor.class);
@@ -36,80 +42,90 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
   @Override
   public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket socket) {
     LOGGER.info("Accepted rSocket: {}, connectionSetup: {}", socket, setup);
+    return Mono.just(new AbstractRSocket0());
+  }
 
-    return Mono.just(
-        new AbstractRSocket() {
-          @Override
-          public Mono<Payload> requestResponse(Payload payload) {
-            return Mono.just(payload)
-                .map(this::toMessage)
-                .doOnNext(this::validateRequest)
-                .flatMap(
-                    message ->
-                        methodRegistry
-                            .getInvoker(message.qualifier())
-                            .invokeOne(message, ServiceMessageCodec::decodeData))
-                .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
-                .map(this::toPayload);
-          }
+  private class AbstractRSocket0 extends AbstractRSocket {
 
-          @Override
-          public Flux<Payload> requestStream(Payload payload) {
-            return Flux.just(payload)
-                .map(this::toMessage)
-                .doOnNext(this::validateRequest)
-                .flatMap(
-                    message ->
-                        methodRegistry
-                            .getInvoker(message.qualifier())
-                            .invokeMany(message, ServiceMessageCodec::decodeData))
-                .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
-                .map(this::toPayload);
-          }
+    @Override
+    public Mono<Payload> requestResponse(Payload payload) {
+      return Mono.fromCallable(() -> toMessage(payload))
+          .doOnNext(this::validateRequest)
+          .flatMap(
+              message -> {
+                ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
+                return methodInvoker.invokeOne(message, ServiceMessageCodec::decodeData);
+              })
+          .onErrorResume(ex -> Mono.just(ExceptionProcessor.toMessage(ex)))
+          .map(this::toPayload);
+    }
 
-          @Override
-          public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-            return Flux.from(HeadAndTail.createFrom(Flux.from(payloads).map(this::toMessage)))
-                .flatMap(
-                    pair -> {
-                      ServiceMessage message = pair.head();
-                      validateRequest(message);
-                      Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(message);
-                      return methodRegistry
-                          .getInvoker(message.qualifier())
-                          .invokeBidirectional(messages, ServiceMessageCodec::decodeData);
-                    })
-                .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
-                .map(this::toPayload);
-          }
+    @Override
+    public Flux<Payload> requestStream(Payload payload) {
+      return Mono.fromCallable(() -> toMessage(payload))
+          .doOnNext(this::validateRequest)
+          .flatMapMany(
+              message -> {
+                ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
+                return methodInvoker.invokeMany(message, ServiceMessageCodec::decodeData);
+              })
+          .onErrorResume(this::toMessage)
+          .map(this::toPayload);
+    }
 
-          private Payload toPayload(ServiceMessage response) {
-            return messageCodec.encodeAndTransform(response, ByteBufPayload::create);
-          }
+    @Override
+    public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
+      return Flux.from(HeadAndTail.createFrom(Flux.from(payloads).map(this::toMessage)))
+          .flatMap(
+              pair -> {
+                ServiceMessage message = pair.head();
+                validateRequest(message);
+                Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(message);
+                ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
+                return methodInvoker.invokeBidirectional(messages, ServiceMessageCodec::decodeData);
+              })
+          .onErrorResume(this::toMessage)
+          .map(this::toPayload);
+    }
 
-          private ServiceMessage toMessage(Payload payload) {
-            return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
-          }
+    private Payload toPayload(ServiceMessage response) {
+      return messageCodec.encodeAndTransform(response, ByteBufPayload::create);
+    }
 
-          private void validateRequest(ServiceMessage message) {
-            if (message.qualifier() == null) {
-              Optional.ofNullable(message.data())
-                  .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
-              LOGGER.error("Failed to invoke service with msg={}: qualifier is null", message);
-              throw new BadRequestException("Qualifier is null in service msg request: " + message);
-            }
+    private ServiceMessage toMessage(Payload payload) {
+      return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
+    }
 
-            if (!methodRegistry.containsInvoker(message.qualifier())) {
-              Optional.ofNullable(message.data())
-                  .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
-              LOGGER.error(
-                  "Failed to invoke service with msg={}: no service invoker found by qualifier={}",
-                  message,
-                  message.qualifier());
-              throw new ServiceUnavailableException(
-                  "No service invoker found by qualifier=" + message.qualifier());
-            }
-          }
-        });
+    private Flux<ServiceMessage> toMessage(Throwable ex) {
+      return Flux.just(ExceptionProcessor.toMessage(ex));
+    }
+
+    /**
+     * Performs basic validation on incoming message: qualifier must be present, method invoker must
+     * be present in the method registry by incoming qualifier. May throw exception
+     *
+     * @param message incoming message
+     * @throws ServiceException in case qualfier is missing or method invoker is missing by given
+     *     qualifier
+     */
+    private void validateRequest(ServiceMessage message) throws ServiceException {
+      if (message.qualifier() == null) {
+        Optional.ofNullable(message.data())
+            .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
+        LOGGER.error("Failed to invoke service with msg={}: qualifier is null", message);
+        throw new BadRequestException("Qualifier is null in service msg request: " + message);
+      }
+
+      if (!methodRegistry.containsInvoker(message.qualifier())) {
+        Optional.ofNullable(message.data())
+            .ifPresent(ReferenceCountUtil::safestRelease); // release message data if any
+        LOGGER.error(
+            "Failed to invoke service with msg={}: no service invoker found by qualifier={}",
+            message,
+            message.qualifier());
+        throw new ServiceUnavailableException(
+            "No service invoker found by qualifier=" + message.qualifier());
+      }
+    }
   }
 }
