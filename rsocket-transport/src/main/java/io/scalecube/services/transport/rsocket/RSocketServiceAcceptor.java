@@ -41,29 +41,29 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
         new AbstractRSocket() {
           @Override
           public Mono<Payload> requestResponse(Payload payload) {
-            return Mono.just(payload)
-                .map(this::toMessage)
-                .doOnNext(this::validateRequest)
-                .flatMap(
-                    message ->
-                        methodRegistry
-                            .getInvoker(message.qualifier())
-                            .invokeOne(message, ServiceMessageCodec::decodeData))
-                .onErrorResume(t -> Mono.just(ExceptionProcessor.toMessage(t)))
+            return Mono.defer(
+                    () -> {
+                      ServiceMessage message = toMessage(payload);
+                      validateRequest(message);
+                      return methodRegistry
+                          .getInvoker(message.qualifier())
+                          .invokeOne(message, ServiceMessageCodec::decodeData);
+                    })
+                .onErrorResume(ex -> Mono.just(ExceptionProcessor.toMessage(ex)))
                 .map(this::toPayload);
           }
 
           @Override
           public Flux<Payload> requestStream(Payload payload) {
-            return Flux.just(payload)
-                .map(this::toMessage)
-                .doOnNext(this::validateRequest)
-                .flatMap(
-                    message ->
-                        methodRegistry
-                            .getInvoker(message.qualifier())
-                            .invokeMany(message, ServiceMessageCodec::decodeData))
-                .onErrorResume(t -> Flux.just(ExceptionProcessor.toMessage(t)))
+            return Flux.defer(
+                    () -> {
+                      ServiceMessage message = toMessage(payload);
+                      validateRequest(message);
+                      return methodRegistry
+                          .getInvoker(message.qualifier())
+                          .invokeMany(message, ServiceMessageCodec::decodeData);
+                    })
+                .onErrorResume(ex -> Flux.just(ExceptionProcessor.toMessage(ex)))
                 .map(this::toPayload);
           }
 
