@@ -60,15 +60,14 @@ public class RSocketServerTransport implements ServerTransport {
   }
 
   @Override
-  public Mono<InetSocketAddress> bind(
-      InetSocketAddress address, ServiceMethodRegistry methodRegistry) {
-
+  public Mono<InetSocketAddress> bind(int port, ServiceMethodRegistry methodRegistry) {
     return Mono.defer(
         () -> {
           TcpServer tcpServer =
               TcpServer.create()
                   .runOn(loopResources)
-                  .addressSupplier(() -> address)
+                  .host("0.0.0.0")
+                  .port(port)
                   .doOnConnection(
                       connection -> {
                         LOGGER.info("Accepted connection on {}", connection.channel());

@@ -10,11 +10,11 @@ public interface ServerTransport {
   /**
    * Starts a server transport.
    *
-   * @param address listen address where to bind
+   * @param port listen port
    * @param methodRegistry service method registry
    * @return bound socket address
    */
-  Mono<InetSocketAddress> bind(InetSocketAddress address, ServiceMethodRegistry methodRegistry);
+  Mono<InetSocketAddress> bind(int port, ServiceMethodRegistry methodRegistry);
 
   /**
    * Stops server transport.
