@@ -51,7 +51,12 @@ public class RSocketClientTransport implements ClientTransport {
         TcpClient.newConnection() // create non-pooled
             .runOn(loopResources)
             .host(address.host())
-            .port(address.port());
+            .port(address.port())
+            .doOnConnected(
+                connection -> {
+                  // set flush immediately
+                  connection.outbound().options(sendOptions -> sendOptions.flushOnEach(false));
+                });
 
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()

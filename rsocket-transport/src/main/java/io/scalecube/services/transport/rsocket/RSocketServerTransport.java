@@ -72,6 +72,11 @@ public class RSocketServerTransport implements ServerTransport {
                   .doOnConnection(
                       connection -> {
                         LOGGER.info("Accepted connection on {}", connection.channel());
+                        // set flush immediately
+                        connection
+                            .outbound()
+                            .options(sendOptions -> sendOptions.flushOnEach(false));
+                        // set cleanup hook
                         connection.onDispose(
                             () -> {
                               LOGGER.info("Connection closed on {}", connection.channel());
