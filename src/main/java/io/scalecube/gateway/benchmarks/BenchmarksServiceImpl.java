@@ -29,15 +29,14 @@ public class BenchmarksServiceImpl implements BenchmarksService {
 
   @Override
   public Flux<ServiceMessage> infiniteStream(ServiceMessage message) {
-    return Flux.defer(
-        () -> {
-          Callable<ServiceMessage> callable =
-              () ->
-                  ServiceMessage.builder()
-                      .qualifier(message.qualifier())
-                      .header(SERVICE_SEND_TIME, Long.toString(System.currentTimeMillis()))
-                      .build();
-          return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel()).repeat();
-        });
+    Callable<ServiceMessage> callable =
+        () ->
+            ServiceMessage.from(message)
+                .header(SERVICE_SEND_TIME, System.currentTimeMillis())
+                .build();
+    return Mono.fromCallable(callable)
+        .subscribeOn(Schedulers.parallel())
+        .repeat()
+        .onBackpressureDrop();
   }
 }
