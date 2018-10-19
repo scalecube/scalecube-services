@@ -42,7 +42,7 @@ public class MicroservicesTest {
   public void testServiceTransportNotStarting() {
     String expectedErrorMessage = "expected error message";
 
-    Mockito.when(serverTransport.bind(any(), any()))
+    Mockito.when(serverTransport.bind(anyInt(), any()))
         .thenReturn(Mono.error(new RuntimeException(expectedErrorMessage)));
 
     StepVerifier.create(Microservices.builder().transport(serviceTransport).start())
@@ -55,7 +55,7 @@ public class MicroservicesTest {
     String expectedErrorMessage = "expected error message";
     Mockito.when(serviceDiscovery.start(any()))
         .thenThrow(new RuntimeException(expectedErrorMessage));
-    Mockito.when(serverTransport.bind(any(), any()))
+    Mockito.when(serverTransport.bind(anyInt(), any()))
         .thenReturn(Mono.just(new InetSocketAddress(0)));
 
     StepVerifier.create(

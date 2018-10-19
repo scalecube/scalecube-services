@@ -17,7 +17,6 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.WorkerThreadChooser;
-import io.scalecube.transport.Addressing;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -451,12 +450,8 @@ public class Microservices {
             this.serverTransport = transport.getServerTransport(workerThreadPool);
 
             // bind service serverTransport transport
-            String hostAddress = Addressing.getLocalIpAddress().getHostAddress();
-            InetSocketAddress socketAddress =
-                InetSocketAddress.createUnresolved(hostAddress, listenPort);
-
             return serverTransport
-                .bind(socketAddress, methodRegistry)
+                .bind(listenPort, methodRegistry)
                 .map(
                     listenAddress -> {
                       this.listenAddress = listenAddress;
