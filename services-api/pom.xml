@@ -20,7 +20,7 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-utils</artifactId>
+      <artifactId>scalecube-transport</artifactId>
     </dependency>
 
     <dependency>
