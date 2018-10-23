@@ -19,7 +19,7 @@ public class BenchmarksServiceImpl implements BenchmarksService {
               .data("hello")
               .build();
         };
-    return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel());
+    return Mono.fromCallable(callable);
   }
 
   @Override
@@ -35,7 +35,7 @@ public class BenchmarksServiceImpl implements BenchmarksService {
                 .header(SERVICE_SEND_TIME, System.currentTimeMillis())
                 .build();
     return Mono.fromCallable(callable)
-        .subscribeOn(Schedulers.parallel())
+        .subscribeOn(Schedulers.newSingle("infiniteStream"))
         .repeat()
         .onBackpressureDrop();
   }
