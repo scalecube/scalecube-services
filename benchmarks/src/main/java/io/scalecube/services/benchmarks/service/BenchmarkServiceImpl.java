@@ -10,7 +10,7 @@ public class BenchmarkServiceImpl implements BenchmarkService {
 
   @Override
   public Mono<Void> requestVoid(ServiceMessage request) {
-    return Mono.<Void>empty().subscribeOn(Schedulers.immediate());
+    return Mono.empty();
   }
 
   @Override
@@ -23,7 +23,7 @@ public class BenchmarkServiceImpl implements BenchmarkService {
               .header(SERVICE_SEND_TIME, value)
               .build();
         };
-    return Mono.fromCallable(callable).subscribeOn(Schedulers.immediate());
+    return Mono.fromCallable(callable);
   }
 
   @Override
