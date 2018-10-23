@@ -58,7 +58,7 @@ public class StreamingServiceTest extends BaseTest {
     QuoteService service = node.call().create().api(QuoteService.class);
 
     int expected = 3;
-    List<String> list = service.quotes().take(Duration.ofSeconds(4)).collectList().block();
+    List<String> list = service.quotes().take(Duration.ofMillis(3500)).collectList().block();
 
     assertEquals(expected, list.size());
   }

@@ -2,6 +2,7 @@ package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
 
+import io.scalecube.services.api.Address;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.ReferenceCountUtil;
 import io.scalecube.services.codec.ServiceMessageCodec;
@@ -13,7 +14,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.routing.RoundRobinServiceRouter;
 import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
-import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;

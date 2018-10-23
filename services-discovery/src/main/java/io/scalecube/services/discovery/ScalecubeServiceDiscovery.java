@@ -7,11 +7,11 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;
+import io.scalecube.services.api.Address;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.transport.Address;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -43,9 +43,9 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   }
 
   @Override
-  public io.scalecube.services.transport.api.Address address() {
-    Address address = cluster.address();
-    return io.scalecube.services.transport.api.Address.create(address.host(), address.port());
+  public Address address() {
+    io.scalecube.transport.Address address = cluster.address();
+    return Address.create(address.host(), address.port());
   }
 
   @Override
@@ -107,8 +107,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     if (config.seeds() != null) {
       builder.seedMembers(
           Arrays.stream(config.seeds())
-              .map(address -> Address.create(address.host(), address.port()))
-              .toArray(Address[]::new));
+              .map(address -> io.scalecube.transport.Address.create(address.host(), address.port()))
+              .toArray(io.scalecube.transport.Address[]::new));
     }
     if (config.port() != null) {
       builder.port(config.port());

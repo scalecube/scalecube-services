@@ -58,11 +58,6 @@
         <artifactId>scalecube-cluster</artifactId>
         <version>${scalecube-cluster.version}</version>
       </dependency>
-      <dependency>
-        <groupId>io.scalecube</groupId>
-        <artifactId>scalecube-transport</artifactId>
-        <version>${scalecube-cluster.version}</version>
-      </dependency>
 
       <!-- Reactor -->
       <dependency>

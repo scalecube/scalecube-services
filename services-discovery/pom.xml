@@ -15,10 +15,6 @@
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-cluster</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-transport</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.scalecube</groupId>
