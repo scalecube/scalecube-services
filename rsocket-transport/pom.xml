@@ -19,11 +19,6 @@
     </dependency>
 
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-utils</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>

@@ -19,11 +19,6 @@
 
   <dependencies>
     <dependency>
-      <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-utils</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-core</artifactId>
     </dependency>
