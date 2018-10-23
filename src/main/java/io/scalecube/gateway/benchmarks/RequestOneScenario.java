@@ -5,23 +5,21 @@ import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_SEND_TIME
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
+import io.scalecube.gateway.clientsdk.Client;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
-import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public final class RequestOneScenario {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RequestOneScenario.class);
 
   private static final String QUALIFIER = "/benchmarks/one";
-
-  private static final int MULT_FACTOR = 2;
 
   private RequestOneScenario() {
     // Do not instantiate
@@ -36,53 +34,39 @@ public final class RequestOneScenario {
   public static void runWith(
       String[] args, Function<BenchmarkSettings, AbstractBenchmarkState<?>> benchmarkStateFactory) {
 
-    int multFactor =
-        Integer.parseInt(
-            BenchmarkSettings.from(args).build().find("multFactor", String.valueOf(MULT_FACTOR)));
-
-    int numOfThreads = Runtime.getRuntime().availableProcessors();
-    int injectors = numOfThreads * multFactor;
-    Duration rampUpDuration = Duration.ofSeconds(numOfThreads);
-
-    BenchmarkSettings settings =
-        BenchmarkSettings.from(args)
-            .injectors(injectors)
-            .messageRate(1) // workaround
-            .rampUpDuration(rampUpDuration)
-            .durationUnit(TimeUnit.MILLISECONDS)
-            .build();
+    BenchmarkSettings settings = BenchmarkSettings.from(args).build();
 
     AbstractBenchmarkState<?> benchmarkState = benchmarkStateFactory.apply(settings);
 
-    benchmarkState.runWithRampUp(
-        (rampUpTick, state) -> state.createClient(),
+    benchmarkState.runForAsync(
         state -> {
           LatencyHelper latencyHelper = new LatencyHelper(state);
 
           BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
           BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
 
-          return client ->
-              (executionTick, task) ->
-                  Mono.defer(
-                      () -> {
-                        clientToServiceMeter.mark();
-                        return client
-                            .requestResponse(enrichRequest(), task.scheduler())
-                            .map(RequestOneScenario::enrichResponse)
-                            .doOnNext(
-                                msg -> {
-                                  serviceToClientMeter.mark();
-                                  Optional.ofNullable(msg.data())
-                                      .ifPresent(ReferenceCountUtil::safestRelease);
-                                  latencyHelper.calculate(msg);
-                                })
-                            .doOnTerminate(() -> task.scheduler().schedule(task))
-                            .doOnError(
-                                th -> LOGGER.warn("Exception occured on requestResponse: " + th));
-                      });
-        },
-        (state, client) -> client.close());
+          ThreadLocal<Mono<Client>> clientHolder =
+              ThreadLocal.withInitial(() -> state.createClient().cache());
+
+          return i -> {
+            Mono<Client> clientMono = clientHolder.get();
+            return clientMono.flatMap(
+                client -> {
+                  clientToServiceMeter.mark();
+                  return client
+                      .requestResponse(enrichRequest(), Schedulers.immediate())
+                      .map(RequestOneScenario::enrichResponse)
+                      .doOnNext(
+                          msg -> {
+                            serviceToClientMeter.mark();
+                            Optional.ofNullable(msg.data())
+                                .ifPresent(ReferenceCountUtil::safestRelease);
+                            latencyHelper.calculate(msg);
+                          })
+                      .doOnError(th -> LOGGER.warn("Exception occured on requestResponse: " + th));
+                });
+          };
+        });
   }
 
   private static ClientMessage enrichResponse(ClientMessage msg) {
