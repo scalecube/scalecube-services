@@ -7,7 +7,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-examples-runner</artifactId>
+  <artifactId>scalecube-gateway-examples-runner</artifactId>
 
   <properties>
     <mainClass>io.scalecube.gateway.examples.ExamplesRunner</mainClass>
