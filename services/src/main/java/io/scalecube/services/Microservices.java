@@ -1,7 +1,6 @@
 package io.scalecube.services;
 
 import com.codahale.metrics.MetricRegistry;
-import io.scalecube.cluster.membership.IdGenerator;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -113,7 +113,7 @@ public class Microservices {
   private final Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
 
   private Microservices(Builder builder) {
-    this.id = IdGenerator.generateId();
+    this.id = UUID.randomUUID().toString();
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
 
