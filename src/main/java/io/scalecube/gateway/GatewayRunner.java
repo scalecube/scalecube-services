@@ -8,9 +8,10 @@ import io.scalecube.gateway.http.HttpGateway;
 import io.scalecube.gateway.rsocket.websocket.RSocketWebsocketGateway;
 import io.scalecube.gateway.websocket.WebsocketGateway;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.api.Address;
 import io.scalecube.services.gateway.GatewayConfig;
-import io.scalecube.transport.Address;
 import java.io.File;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -50,7 +51,10 @@ public class GatewayRunner {
         .discovery(
             options ->
                 options
-                    .seeds(config.seedAddresses())
+                    .seeds(
+                        Arrays.stream(config.seedAddresses())
+                            .map(address -> Address.create(address.host(), address.port()))
+                            .toArray(Address[]::new))
                     .port(config.discoveryPort())
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()))
