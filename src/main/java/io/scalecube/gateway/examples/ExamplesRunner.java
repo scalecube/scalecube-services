@@ -5,6 +5,7 @@ import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.config.GatewayConfigRegistry;
 import io.scalecube.services.Microservices;
 import io.scalecube.transport.Address;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -44,7 +45,10 @@ public class ExamplesRunner {
         .discovery(
             options ->
                 options
-                    .seeds(config.seedAddresses())
+                    .seeds(
+                        Arrays.stream(config.seedAddresses())
+                            .map(address -> Address.create(address.host(), address.port()))
+                            .toArray(io.scalecube.services.api.Address[]::new))
                     .port(config.discoveryPort())
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()))
