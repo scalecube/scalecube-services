@@ -6,6 +6,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
+import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
@@ -79,7 +80,7 @@ public abstract class GatewayTemplate implements Gateway {
                           connection.onDispose(metrics::decConnection);
                         });
               }
-              return tcpServer.host("0.0.0.0").port(port);
+              return tcpServer.addressSupplier(() -> new InetSocketAddress(port));
             });
   }
 
