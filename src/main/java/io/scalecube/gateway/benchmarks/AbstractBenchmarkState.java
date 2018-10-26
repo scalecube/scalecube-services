@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
-import reactor.core.scheduler.Schedulers;
 import reactor.netty.resources.LoopResources;
 
 public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>>
@@ -67,7 +66,7 @@ public abstract class AbstractBenchmarkState<T extends AbstractBenchmarkState<T>
         () -> {
           Client client = clientBuilder.apply(gatewayAddress, loopResources);
           return client
-              .requestResponse(FIRST_REQUEST, Schedulers.immediate())
+              .requestResponse(FIRST_REQUEST)
               .log("benchmark-client-first-request", Level.INFO, false, SignalType.ON_NEXT)
               .doOnNext(
                   response ->

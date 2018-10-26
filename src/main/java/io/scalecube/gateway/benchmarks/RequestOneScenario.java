@@ -13,7 +13,6 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 public final class RequestOneScenario {
 
@@ -54,7 +53,7 @@ public final class RequestOneScenario {
                 client -> {
                   clientToServiceMeter.mark();
                   return client
-                      .requestResponse(enrichRequest(), Schedulers.immediate())
+                      .requestResponse(enrichRequest())
                       .map(RequestOneScenario::enrichResponse)
                       .doOnNext(
                           msg -> {

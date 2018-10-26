@@ -3,7 +3,6 @@ package io.scalecube.gateway.benchmarks;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.gateway.clientsdk.ClientMessage;
-import io.scalecube.gateway.clientsdk.ClientMessage.Builder;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -11,12 +10,15 @@ import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.util.concurrent.Queues;
 
 public final class InfiniteStreamScenario {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InfiniteStreamScenario.class);
 
   public static final String QUALIFIER = "/benchmarks/infiniteStream";
+
+  private static final int DEFAULT_RATE_LIMIT = Queues.SMALL_BUFFER_SIZE;
 
   private static final String RATE_LIMIT = "rateLimit";
 
@@ -56,9 +58,8 @@ public final class InfiniteStreamScenario {
 
           Integer rateLimit = rateLimit(settings);
 
-          Builder builder = ClientMessage.builder().qualifier(QUALIFIER);
-          Optional.ofNullable(rateLimit).ifPresent(builder::rateLimit);
-          ClientMessage request = builder.build();
+          ClientMessage request =
+              ClientMessage.builder().qualifier(QUALIFIER).rateLimit(rateLimit).build();
 
           return client ->
               (executionTick, task) ->
@@ -66,7 +67,8 @@ public final class InfiniteStreamScenario {
                       () -> {
                         clientToServiceMeter.mark();
                         return client
-                            .requestStream(request, task.scheduler())
+                            .requestStream(request)
+                            .limitRate(rateLimit)
                             .doOnNext(
                                 message -> {
                                   serviceToClientMeter.mark();
@@ -80,6 +82,8 @@ public final class InfiniteStreamScenario {
   }
 
   private static Integer rateLimit(BenchmarkSettings settings) {
-    return Optional.ofNullable(settings.find(RATE_LIMIT, null)).map(Integer::parseInt).orElse(null);
+    return Optional.ofNullable(settings.find(RATE_LIMIT, null))
+        .map(Integer::parseInt)
+        .orElse(DEFAULT_RATE_LIMIT);
   }
 }
