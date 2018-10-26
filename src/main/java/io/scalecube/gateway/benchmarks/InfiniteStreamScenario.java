@@ -53,7 +53,6 @@ public final class InfiniteStreamScenario {
         state -> {
           LatencyHelper latencyHelper = new LatencyHelper(state);
 
-          BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
           BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
 
           Integer rateLimit = rateLimit(settings);
@@ -64,19 +63,17 @@ public final class InfiniteStreamScenario {
           return client ->
               (executionTick, task) ->
                   Flux.defer(
-                      () -> {
-                        clientToServiceMeter.mark();
-                        return client
-                            .requestStream(request)
-                            .limitRate(rateLimit)
-                            .doOnNext(
-                                message -> {
-                                  serviceToClientMeter.mark();
-                                  latencyHelper.calculate(message);
-                                })
-                            .doOnError(
-                                th -> LOGGER.warn("Exception occured on requestStream: " + th));
-                      });
+                      () ->
+                          client
+                              .requestStream(request)
+                              .limitRate(rateLimit)
+                              .doOnNext(
+                                  message -> {
+                                    serviceToClientMeter.mark();
+                                    latencyHelper.calculate(message);
+                                  })
+                              .doOnError(
+                                  th -> LOGGER.warn("Exception occured on requestStream: " + th)));
         },
         (state, client) -> client.close());
   }
