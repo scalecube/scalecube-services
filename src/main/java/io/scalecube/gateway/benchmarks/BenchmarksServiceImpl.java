@@ -36,7 +36,6 @@ public class BenchmarksServiceImpl implements BenchmarksService {
                 .build();
     return Mono.fromCallable(callable)
         .subscribeOn(Schedulers.parallel())
-        .repeat()
-        .onBackpressureDrop();
+        .repeat();
   }
 }
