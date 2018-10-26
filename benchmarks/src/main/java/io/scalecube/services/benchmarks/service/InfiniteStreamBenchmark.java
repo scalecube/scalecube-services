@@ -1,7 +1,5 @@
 package io.scalecube.services.benchmarks.service;
 
-import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_RECV_TIME;
-
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.api.ServiceMessage;
@@ -9,14 +7,16 @@ import java.time.Duration;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.concurrent.Queues;
 
 public class InfiniteStreamBenchmark {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(InfiniteStreamBenchmark.class);
 
   private static final String QUALIFIER = "/benchmarks/infiniteStream";
+
+  private static final int DEFAULT_RATE_LIMIT = Queues.SMALL_BUFFER_SIZE;
 
   private static final String RATE_LIMIT = "rateLimit";
 
@@ -42,41 +42,30 @@ public class InfiniteStreamBenchmark {
             state -> {
               LatencyHelper latencyHelper = new LatencyHelper(state);
 
-              BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
               BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
 
               Integer rateLimit = rateLimit(settings);
 
-              ServiceMessage message = //
-                  ServiceMessage.builder().qualifier(QUALIFIER).build();
+              ServiceMessage request = ServiceMessage.builder().qualifier(QUALIFIER).build();
 
               return service ->
-                  (executionTick, task) -> {
-                    clientToServiceMeter.mark();
-                    Flux<ServiceMessage> requestStream =
-                        service
-                            .infiniteStream(message) //
-                            .map(InfiniteStreamBenchmark::enichResponse);
-                    if (rateLimit != null) {
-                      requestStream = requestStream.limitRate(rateLimit);
-                    }
-                    return requestStream
-                        .doOnNext(
-                            message1 -> {
-                              serviceToClientMeter.mark();
-                              latencyHelper.calculate(message1);
-                            })
-                        .doOnError(ex -> LOGGER.warn("Exception occured: " + ex));
-                  };
+                  (executionTick, task) ->
+                      service
+                          .infiniteStream(request)
+                          .limitRate(rateLimit)
+                          .doOnNext(
+                              message -> {
+                                serviceToClientMeter.mark();
+                                latencyHelper.calculate(message);
+                              })
+                          .doOnError(ex -> LOGGER.warn("Exception occured: " + ex));
             },
             (state, service) -> Mono.empty());
   }
 
   private static Integer rateLimit(BenchmarkSettings settings) {
-    return Optional.ofNullable(settings.find(RATE_LIMIT, null)).map(Integer::parseInt).orElse(null);
-  }
-
-  private static ServiceMessage enichResponse(ServiceMessage msg) {
-    return ServiceMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
+    return Optional.ofNullable(settings.find(RATE_LIMIT, null))
+        .map(Integer::parseInt)
+        .orElse(DEFAULT_RATE_LIMIT);
   }
 }

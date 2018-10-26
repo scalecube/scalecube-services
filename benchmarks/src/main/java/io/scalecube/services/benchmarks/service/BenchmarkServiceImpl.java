@@ -33,9 +33,6 @@ public class BenchmarkServiceImpl implements BenchmarkService {
             ServiceMessage.from(message)
                 .header(SERVICE_SEND_TIME, System.currentTimeMillis())
                 .build();
-    return Mono.fromCallable(callable)
-        .subscribeOn(Schedulers.parallel())
-        .repeat()
-        .onBackpressureDrop();
+    return Mono.fromCallable(callable).subscribeOn(Schedulers.parallel()).repeat();
   }
 }
