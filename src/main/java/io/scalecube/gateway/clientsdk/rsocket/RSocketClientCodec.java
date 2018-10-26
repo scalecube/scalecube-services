@@ -13,7 +13,6 @@ import io.scalecube.gateway.clientsdk.ReferenceCountUtil;
 import io.scalecube.gateway.clientsdk.exceptions.MessageCodecException;
 import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.codec.HeadersCodec;
-import java.nio.charset.StandardCharsets;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,14 +67,10 @@ public final class RSocketClientCodec implements ClientCodec<Payload> {
     }
 
     if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice(), true)) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer); // release data as well
-        LOGGER.error(
-            "Failed to decode message headers: {}, cause: {}",
-            headersBuffer.toString(StandardCharsets.UTF_8),
-            ex);
         throw new MessageCodecException("Failed to decode message headers", ex);
       }
     }

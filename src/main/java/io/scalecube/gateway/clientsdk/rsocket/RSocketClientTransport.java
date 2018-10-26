@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -52,7 +51,7 @@ public final class RSocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request, Scheduler scheduler) {
+  public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return Mono.defer(
         () -> {
           Payload payload = toPayload(enrichRequest(request));
@@ -60,29 +59,24 @@ public final class RSocketClientTransport implements ClientTransport {
               .flatMap(
                   rsocket ->
                       rsocket
-                          .requestResponse(payload)
+                          .requestResponse(payload) //
                           .takeUntilOther(listenConnectionClose(rsocket)))
-              .publishOn(scheduler)
               .map(this::toClientMessage)
               .map(this::enrichResponse);
         });
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request, Scheduler scheduler) {
+  public Flux<ClientMessage> requestStream(ClientMessage request) {
     return Flux.defer(
         () -> {
           Payload payload = toPayload(enrichRequest(request));
           return getOrConnect()
               .flatMapMany(
-                  rsocket -> {
-                    Flux<Payload> requestStream = rsocket.requestStream(payload);
-                    if (request.rateLimit() != null) {
-                      requestStream = requestStream.limitRate(request.rateLimit());
-                    }
-                    return requestStream.takeUntilOther(listenConnectionClose(rsocket));
-                  })
-              .publishOn(scheduler)
+                  rsocket ->
+                      rsocket
+                          .requestStream(payload) //
+                          .takeUntilOther(listenConnectionClose(rsocket)))
               .map(this::toClientMessage)
               .map(this::enrichResponse);
         });

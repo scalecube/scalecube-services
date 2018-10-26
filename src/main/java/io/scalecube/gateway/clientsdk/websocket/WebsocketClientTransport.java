@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.resources.LoopResources;
 
@@ -58,7 +57,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request, Scheduler scheduler) {
+  public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return Mono.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
@@ -72,7 +71,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                               Mono.<ClientMessage>create(
                                   sink ->
                                       session
-                                          .receive(sid, scheduler)
+                                          .receive(sid)
                                           .map(this::enrichResponse)
                                           .subscribe(sink::success, sink::error, sink::success)))
                           .doOnCancel(() -> handleCancel(sid, session)));
@@ -80,7 +79,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request, Scheduler scheduler) {
+  public Flux<ClientMessage> requestStream(ClientMessage request) {
     return Flux.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
@@ -94,7 +93,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                               Flux.<ClientMessage>create(
                                   sink ->
                                       session
-                                          .receive(sid, scheduler)
+                                          .receive(sid)
                                           .map(this::enrichResponse)
                                           .subscribe(sink::next, sink::error, sink::complete)))
                           .doOnCancel(() -> handleCancel(sid, session)));

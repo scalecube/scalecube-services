@@ -5,7 +5,6 @@ import io.netty.buffer.ByteBufInputStream;
 import io.scalecube.gateway.clientsdk.exceptions.ExceptionProcessor;
 import io.scalecube.gateway.clientsdk.exceptions.MessageCodecException;
 import io.scalecube.services.codec.DataCodec;
-import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,14 +37,9 @@ public interface ClientCodec<T> {
         ExceptionProcessor.isError(message.qualifier()) ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice(), true)) {
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
       data = getDataCodec().decode(inputStream, targetType);
     } catch (Throwable ex) {
-      LOGGER.error(
-          "Failed to decode data on: {}, cause: {}, data buffer: {}",
-          message,
-          ex,
-          dataBuffer.toString(StandardCharsets.UTF_8));
       throw new MessageCodecException(
           "Failed to decode data on message q=" + message.qualifier(), ex);
     }

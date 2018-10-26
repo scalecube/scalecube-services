@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.UnicastProcessor;
-import reactor.core.scheduler.Scheduler;
 import reactor.netty.Connection;
 import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.websocket.WebsocketInbound;
@@ -94,7 +93,7 @@ final class WebsocketSession {
             });
   }
 
-  public Flux<ClientMessage> receive(long sid, Scheduler scheduler) {
+  public Flux<ClientMessage> receive(long sid) {
     return Flux.defer(
         () -> {
           UnicastProcessor<ClientMessage> processor = inboundProcessors.get(sid);
@@ -102,13 +101,11 @@ final class WebsocketSession {
             LOGGER.error("Can't find processor by sid={}, session={}", sid, id);
             throw new IllegalStateException("Can't find processor by sid");
           }
-          return processor
-              .publishOn(scheduler)
-              .doOnTerminate(
-                  () -> {
-                    inboundProcessors.remove(sid);
-                    LOGGER.debug("Removed sid={}, session={}", sid, id);
-                  });
+          return processor.doOnTerminate(
+              () -> {
+                inboundProcessors.remove(sid);
+                LOGGER.debug("Removed sid={}, session={}", sid, id);
+              });
         });
   }
 

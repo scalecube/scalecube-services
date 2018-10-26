@@ -25,7 +25,6 @@ import io.scalecube.services.codec.DataCodec;
 import io.scalecube.services.exceptions.MessageCodecException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.Map.Entry;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -134,14 +133,12 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
 
   @Override
   public ClientMessage decode(ByteBuf encodedMessage) {
-    try (InputStream stream = new ByteBufInputStream(encodedMessage.slice(), true)) {
+    try (InputStream stream = new ByteBufInputStream(encodedMessage, true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       ClientMessage.Builder result = ClientMessage.builder();
 
       JsonToken current = jp.nextToken();
       if (current != JsonToken.START_OBJECT) {
-        LOGGER.error(
-            "Root should be object: {}", encodedMessage.toString(Charset.defaultCharset()));
         throw new MessageCodecException("Root should be object", null);
       }
       long dataStart = 0;
@@ -174,8 +171,6 @@ public final class WebsocketClientCodec implements ClientCodec<ByteBuf> {
       }
       return result.build();
     } catch (Throwable ex) {
-      LOGGER.error(
-          "Failed to decode message: {}", encodedMessage.toString(Charset.defaultCharset()), ex);
       throw new MessageCodecException("Failed to decode message", ex);
     }
   }

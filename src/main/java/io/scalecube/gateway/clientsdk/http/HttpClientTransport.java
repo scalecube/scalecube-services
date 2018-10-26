@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.http.client.HttpClientResponse;
 import reactor.netty.resources.ConnectionProvider;
@@ -54,7 +53,7 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Mono<ClientMessage> requestResponse(ClientMessage request, Scheduler scheduler) {
+  public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return Mono.defer(
         () -> {
           ByteBuf byteBuf = codec.encode(request);
@@ -72,7 +71,6 @@ public final class HttpClientTransport implements ClientTransport {
                   (httpResponse, bbMono) ->
                       bbMono
                           .map(ByteBuf::retain)
-                          .publishOn(scheduler)
                           .map(
                               content ->
                                   toClientMessage(httpResponse, content, request.qualifier())));
@@ -80,7 +78,7 @@ public final class HttpClientTransport implements ClientTransport {
   }
 
   @Override
-  public Flux<ClientMessage> requestStream(ClientMessage request, Scheduler scheduler) {
+  public Flux<ClientMessage> requestStream(ClientMessage request) {
     return Flux.error(
         new UnsupportedOperationException("Request stream is not supported by HTTP/1.x"));
   }
