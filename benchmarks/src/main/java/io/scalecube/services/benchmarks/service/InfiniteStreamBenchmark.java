@@ -6,7 +6,6 @@ import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.api.ServiceMessage;
 import java.time.Duration;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -17,8 +16,6 @@ public class InfiniteStreamBenchmark {
   private static final Logger LOGGER = LoggerFactory.getLogger(InfiniteStreamBenchmark.class);
 
   private static final String QUALIFIER = "/benchmarks/infiniteStream";
-
-  private static final String RATE_LIMIT = "rateLimit";
 
   /**
    * Main method.
@@ -45,8 +42,6 @@ public class InfiniteStreamBenchmark {
               BenchmarkMeter clientToServiceMeter = state.meter("meter.client-to-service");
               BenchmarkMeter serviceToClientMeter = state.meter("meter.service-to-client");
 
-              Integer rateLimit = rateLimit(settings);
-
               ServiceMessage message = //
                   ServiceMessage.builder().qualifier(QUALIFIER).build();
 
@@ -57,9 +52,6 @@ public class InfiniteStreamBenchmark {
                         service
                             .infiniteStream(message) //
                             .map(InfiniteStreamBenchmark::enichResponse);
-                    if (rateLimit != null) {
-                      requestStream = requestStream.limitRate(rateLimit);
-                    }
                     return requestStream
                         .doOnNext(
                             message1 -> {
@@ -70,10 +62,6 @@ public class InfiniteStreamBenchmark {
                   };
             },
             (state, service) -> Mono.empty());
-  }
-
-  private static Integer rateLimit(BenchmarkSettings settings) {
-    return Optional.ofNullable(settings.find(RATE_LIMIT, null)).map(Integer::parseInt).orElse(null);
   }
 
   private static ServiceMessage enichResponse(ServiceMessage msg) {
