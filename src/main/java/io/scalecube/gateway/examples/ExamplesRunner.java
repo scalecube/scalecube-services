@@ -4,7 +4,7 @@ import io.scalecube.config.ConfigRegistry;
 import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
 import io.scalecube.gateway.config.GatewayConfigRegistry;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.api.Address;
+import io.scalecube.services.transport.api.Address;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
