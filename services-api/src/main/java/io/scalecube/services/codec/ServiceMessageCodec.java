@@ -85,7 +85,7 @@ public final class ServiceMessageCodec {
       builder.data(dataBuffer);
     }
     if (headersBuffer.isReadable()) {
-      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer.slice(), true)) {
+      try (ByteBufInputStream stream = new ByteBufInputStream(headersBuffer, true)) {
         builder.headers(headersCodec.decode(stream));
       } catch (Throwable ex) {
         ReferenceCountUtil.safestRelease(dataBuffer); // release data buf as well
@@ -115,7 +115,7 @@ public final class ServiceMessageCodec {
     Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
-    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer.slice(), true)) {
+    try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
       DataCodec dataCodec = DataCodec.getInstance(message.dataFormatOrDefault());
       data = dataCodec.decode(inputStream, targetType);
     } catch (Throwable ex) {
