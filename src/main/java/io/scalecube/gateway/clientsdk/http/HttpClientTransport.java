@@ -1,14 +1,12 @@
 package io.scalecube.gateway.clientsdk.http;
 
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.scalecube.gateway.clientsdk.ClientCodec;
 import io.scalecube.gateway.clientsdk.ClientMessage;
 import io.scalecube.gateway.clientsdk.ClientMessage.Builder;
 import io.scalecube.gateway.clientsdk.ClientSettings;
 import io.scalecube.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.api.Qualifier;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -21,11 +19,6 @@ import reactor.netty.resources.LoopResources;
 public final class HttpClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientTransport.class);
-
-  private static final String SERVICE_RECV_TIME = "service-recv-time";
-  private static final String SERVICE_SEND_TIME = "service-send-time";
-  private static final String CLIENT_RECV_TIME = "client-recv-time";
-  private static final String CLIENT_SEND_TIME = "client-send-time";
 
   private final ClientCodec<ByteBuf> codec;
   private final HttpClient httpClient;
@@ -63,17 +56,13 @@ public final class HttpClientTransport implements ClientTransport {
               .send(
                   (httpRequest, out) -> {
                     LOGGER.debug("Sending request {}", request);
-                    httpRequest.header(
-                        CLIENT_SEND_TIME, String.valueOf(System.currentTimeMillis()));
+                    // prepare request headers
+                    request.headers().forEach(httpRequest::header);
                     return out.sendObject(byteBuf).then();
                   })
               .responseSingle(
                   (httpResponse, bbMono) ->
-                      bbMono
-                          .map(ByteBuf::retain)
-                          .map(
-                              content ->
-                                  toClientMessage(httpResponse, content, request.qualifier())));
+                      bbMono.map(ByteBuf::retain).map(content -> toMessage(httpResponse, content)));
         });
   }
 
@@ -90,28 +79,17 @@ public final class HttpClientTransport implements ClientTransport {
         .doOnTerminate(() -> LOGGER.info("Closed http-client-sdk transport"));
   }
 
-  private ClientMessage toClientMessage(
-      HttpClientResponse httpResponse, ByteBuf content, String requestQualifier) {
-
+  private ClientMessage toMessage(HttpClientResponse httpResponse, ByteBuf content) {
     int httpCode = httpResponse.status().code();
-    String qualifier = isError(httpCode) ? Qualifier.asError(httpCode) : requestQualifier;
-    HttpHeaders responseHeaders = httpResponse.responseHeaders();
+    String qualifier = isError(httpCode) ? Qualifier.asError(httpCode) : httpResponse.uri();
 
-    Builder builder =
-        ClientMessage.builder()
-            .qualifier(qualifier)
-            .header(CLIENT_RECV_TIME, System.currentTimeMillis());
-
-    Optional.ofNullable(responseHeaders.get(CLIENT_SEND_TIME))
-        .ifPresent(value -> builder.header(CLIENT_SEND_TIME, value));
-
-    Optional.ofNullable(responseHeaders.get(SERVICE_RECV_TIME))
-        .ifPresent(value -> builder.header(SERVICE_RECV_TIME, value));
-
-    Optional.ofNullable(responseHeaders.get(SERVICE_SEND_TIME))
-        .ifPresent(value -> builder.header(SERVICE_SEND_TIME, value));
-
-    ClientMessage message = builder.data(content).build();
+    Builder builder = ClientMessage.builder().qualifier(qualifier).data(content);
+    // prepare response headers
+    httpResponse
+        .responseHeaders()
+        .entries()
+        .forEach(entry -> builder.header(entry.getKey(), entry.getValue()));
+    ClientMessage message = builder.build();
 
     LOGGER.debug("Received response {}", message);
     return message;

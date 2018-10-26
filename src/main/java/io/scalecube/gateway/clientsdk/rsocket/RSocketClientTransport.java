@@ -22,9 +22,6 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketClientTransport.class);
 
-  private static final String CLIENT_RECV_TIME = "client-recv-time";
-  private static final String CLIENT_SEND_TIME = "client-send-time";
-
   private static final AtomicReferenceFieldUpdater<RSocketClientTransport, Mono>
       rSocketMonoUpdater =
           AtomicReferenceFieldUpdater.newUpdater(
@@ -54,15 +51,14 @@ public final class RSocketClientTransport implements ClientTransport {
   public Mono<ClientMessage> requestResponse(ClientMessage request) {
     return Mono.defer(
         () -> {
-          Payload payload = toPayload(enrichRequest(request));
+          Payload payload = toPayload(request);
           return getOrConnect()
               .flatMap(
                   rsocket ->
                       rsocket
                           .requestResponse(payload) //
                           .takeUntilOther(listenConnectionClose(rsocket)))
-              .map(this::toClientMessage)
-              .map(this::enrichResponse);
+              .map(this::toMessage);
         });
   }
 
@@ -70,15 +66,14 @@ public final class RSocketClientTransport implements ClientTransport {
   public Flux<ClientMessage> requestStream(ClientMessage request) {
     return Flux.defer(
         () -> {
-          Payload payload = toPayload(enrichRequest(request));
+          Payload payload = toPayload(request);
           return getOrConnect()
               .flatMapMany(
                   rsocket ->
                       rsocket
                           .requestStream(payload) //
                           .takeUntilOther(listenConnectionClose(rsocket)))
-              .map(this::toClientMessage)
-              .map(this::enrichResponse);
+              .map(this::toMessage);
         });
   }
 
@@ -150,22 +145,12 @@ public final class RSocketClientTransport implements ClientTransport {
     return WebsocketClientTransport.create(httpClient, path);
   }
 
-  private Payload toPayload(ClientMessage clientMessage) {
-    return codec.encode(clientMessage);
+  private Payload toPayload(ClientMessage message) {
+    return codec.encode(message);
   }
 
-  private ClientMessage toClientMessage(Payload payload) {
+  private ClientMessage toMessage(Payload payload) {
     return codec.decode(payload);
-  }
-
-  private ClientMessage enrichRequest(ClientMessage clientMessage) {
-    return ClientMessage.from(clientMessage)
-        .header(CLIENT_SEND_TIME, System.currentTimeMillis())
-        .build();
-  }
-
-  private ClientMessage enrichResponse(ClientMessage message) {
-    return ClientMessage.from(message).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 
   private <T> Mono<T> listenConnectionClose(RSocket rsocket) {

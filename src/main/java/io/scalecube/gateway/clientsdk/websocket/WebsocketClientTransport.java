@@ -19,9 +19,6 @@ public final class WebsocketClientTransport implements ClientTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketClientTransport.class);
 
-  private static final String CLIENT_RECV_TIME = "client-recv-time";
-  private static final String CLIENT_SEND_TIME = "client-send-time";
-
   private static final String STREAM_ID = "sid";
   private static final String SIGNAL = "sig";
 
@@ -61,7 +58,7 @@ public final class WebsocketClientTransport implements ClientTransport {
     return Mono.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
-          ByteBuf byteBuf = enrichRequest(request, sid);
+          ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMap(
                   session ->
@@ -72,7 +69,6 @@ public final class WebsocketClientTransport implements ClientTransport {
                                   sink ->
                                       session
                                           .receive(sid)
-                                          .map(this::enrichResponse)
                                           .subscribe(sink::success, sink::error, sink::success)))
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
@@ -83,7 +79,7 @@ public final class WebsocketClientTransport implements ClientTransport {
     return Flux.defer(
         () -> {
           long sid = sidCounter.incrementAndGet();
-          ByteBuf byteBuf = enrichRequest(request, sid);
+          ByteBuf byteBuf = encodeRequest(request, sid);
           return getOrConnect()
               .flatMapMany(
                   session ->
@@ -94,7 +90,6 @@ public final class WebsocketClientTransport implements ClientTransport {
                                   sink ->
                                       session
                                           .receive(sid)
-                                          .map(this::enrichResponse)
                                           .subscribe(sink::next, sink::error, sink::complete)))
                           .doOnCancel(() -> handleCancel(sid, session)));
         });
@@ -160,15 +155,7 @@ public final class WebsocketClientTransport implements ClientTransport {
     return session.send(byteBuf, sid).subscribe();
   }
 
-  private ByteBuf enrichRequest(ClientMessage message, long sid) {
-    return codec.encode(
-        ClientMessage.from(message)
-            .header(CLIENT_SEND_TIME, System.currentTimeMillis())
-            .header(STREAM_ID, sid)
-            .build());
-  }
-
-  private ClientMessage enrichResponse(ClientMessage message) {
-    return ClientMessage.from(message).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
+  private ByteBuf encodeRequest(ClientMessage message, long sid) {
+    return codec.encode(ClientMessage.from(message).header(STREAM_ID, sid).build());
   }
 }
