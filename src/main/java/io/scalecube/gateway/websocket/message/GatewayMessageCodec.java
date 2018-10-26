@@ -118,7 +118,7 @@ public class GatewayMessageCodec {
    * @throws MessageCodecException - in case of issues during deserialization.
    */
   public GatewayMessage decode(ByteBuf byteBuf) throws MessageCodecException {
-    try (InputStream stream = new ByteBufInputStream(byteBuf.slice(), true)) {
+    try (InputStream stream = new ByteBufInputStream(byteBuf, true)) {
       JsonParser jp = jsonFactory.createParser(stream);
       GatewayMessage.Builder result = GatewayMessage.builder();
 

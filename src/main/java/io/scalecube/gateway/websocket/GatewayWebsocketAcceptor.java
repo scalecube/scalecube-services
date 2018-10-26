@@ -83,14 +83,13 @@ public class GatewayWebsocketAcceptor
 
     AtomicBoolean receivedError = new AtomicBoolean(false);
 
-    Flux<ServiceMessage> serviceStream =
+    final Flux<ServiceMessage> serviceStream =
         serviceCall.requestMany(GatewayMessage.toServiceMessage(request));
-    if (request.rateLimit() != null) {
-      serviceStream = serviceStream.limitRate(request.rateLimit());
-    }
 
     Disposable disposable =
-        serviceStream
+        Optional.ofNullable(request.rateLimit())
+            .map(serviceStream::limitRate)
+            .orElse(serviceStream)
             .map(response -> prepareResponse(sid, response, receivedError))
             .doOnNext(response -> metrics.markServiceResponse())
             .doFinally(signalType -> session.dispose(sid))
