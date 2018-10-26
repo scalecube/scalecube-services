@@ -1,7 +1,5 @@
 package io.scalecube.services.transport.api;
 
-import io.scalecube.services.api.Address;
-
 /** Client service transport interface. */
 public interface ClientTransport {
 
