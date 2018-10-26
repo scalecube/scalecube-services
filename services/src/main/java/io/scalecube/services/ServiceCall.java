@@ -338,6 +338,11 @@ public class ServiceCall {
   }
 
   private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
+    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
+      return ServiceMessage.from((ServiceMessage) params[0])
+          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+          .build();
+    }
     return ServiceMessage.builder()
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
         .data(methodInfo.parameterCount() != 0 ? params[0] : null)
