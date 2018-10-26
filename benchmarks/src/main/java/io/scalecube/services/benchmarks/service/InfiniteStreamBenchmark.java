@@ -1,5 +1,7 @@
 package io.scalecube.services.benchmarks.service;
 
+import static io.scalecube.services.benchmarks.service.BenchmarkService.CLIENT_RECV_TIME;
+
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.api.ServiceMessage;
@@ -52,6 +54,7 @@ public class InfiniteStreamBenchmark {
                   (executionTick, task) ->
                       service
                           .infiniteStream(request)
+                          .map(InfiniteStreamBenchmark::enichResponse)
                           .limitRate(rateLimit)
                           .doOnNext(
                               message -> {
@@ -67,5 +70,9 @@ public class InfiniteStreamBenchmark {
     return Optional.ofNullable(settings.find(RATE_LIMIT, null))
         .map(Integer::parseInt)
         .orElse(DEFAULT_RATE_LIMIT);
+  }
+
+  private static ServiceMessage enichResponse(ServiceMessage msg) {
+    return ServiceMessage.from(msg).header(CLIENT_RECV_TIME, System.currentTimeMillis()).build();
   }
 }
