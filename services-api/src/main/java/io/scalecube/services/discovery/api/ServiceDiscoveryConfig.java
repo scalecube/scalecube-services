@@ -1,7 +1,7 @@
 package io.scalecube.services.discovery.api;
 
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.api.Address;
+import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import java.util.Arrays;
 import java.util.Collections;

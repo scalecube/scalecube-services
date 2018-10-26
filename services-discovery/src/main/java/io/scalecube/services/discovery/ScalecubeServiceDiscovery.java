@@ -7,7 +7,7 @@ import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.cluster.Member;
 import io.scalecube.services.ServiceEndpoint;
-import io.scalecube.services.api.Address;
+import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
