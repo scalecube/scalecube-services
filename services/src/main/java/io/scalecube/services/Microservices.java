@@ -12,6 +12,7 @@ import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.transport.api.Addressing;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
@@ -137,7 +138,7 @@ public class Microservices {
         .flatMap(
             input -> {
               ClientTransport clientTransport = transportBootstrap.clientTransport();
-              InetSocketAddress serviceAddress = transportBootstrap.listenAddress();
+              InetSocketAddress serviceAddress = transportBootstrap.serviceAddress();
 
               Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
 
@@ -257,8 +258,13 @@ public class Microservices {
       return this;
     }
 
+    public Builder serviceHost(String host) {
+      this.transportBootstrap.serviceHost(host);
+      return this;
+    }
+
     public Builder servicePort(int port) {
-      this.transportBootstrap.listenPort(port);
+      this.transportBootstrap.servicePort(port);
       return this;
     }
 
@@ -359,7 +365,7 @@ public class Microservices {
   }
 
   public InetSocketAddress serviceAddress() {
-    return transportBootstrap.listenAddress();
+    return transportBootstrap.serviceAddress();
   }
 
   public Call call() {
@@ -398,17 +404,23 @@ public class Microservices {
 
   private static class ServiceTransportBootstrap {
 
-    private int listenPort; // config
+    private String serviceHost; // config
+    private int servicePort; // config
     private WorkerThreadChooser workerThreadChooser; // config
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
     private Executor workerThreadPool; // calculated
-    private InetSocketAddress listenAddress; // calculated
-    private int numOfThreads = Runtime.getRuntime().availableProcessors();
+    private InetSocketAddress serviceAddress; // calculated
+    private int numOfThreads = Runtime.getRuntime().availableProcessors(); // config or default
 
-    private ServiceTransportBootstrap listenPort(int listenPort) {
-      this.listenPort = listenPort;
+    public ServiceTransportBootstrap serviceHost(String host) {
+      this.serviceHost = host;
+      return this;
+    }
+
+    private ServiceTransportBootstrap servicePort(int port) {
+      this.servicePort = port;
       return this;
     }
 
@@ -434,8 +446,8 @@ public class Microservices {
       return workerThreadPool;
     }
 
-    private InetSocketAddress listenAddress() {
-      return listenAddress;
+    private InetSocketAddress serviceAddress() {
+      return serviceAddress;
     }
 
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
@@ -451,10 +463,15 @@ public class Microservices {
 
             // bind service serverTransport transport
             return serverTransport
-                .bind(listenPort, methodRegistry)
+                .bind(servicePort, methodRegistry)
                 .map(
                     listenAddress -> {
-                      this.listenAddress = listenAddress;
+                      // prepare service host:port for exposing
+                      int port = listenAddress.getPort();
+                      String host =
+                          Optional.ofNullable(serviceHost)
+                              .orElseGet(() -> Addressing.getLocalIpAddress().getHostAddress());
+                      this.serviceAddress = InetSocketAddress.createUnresolved(host, port);
                       return this;
                     });
           });
