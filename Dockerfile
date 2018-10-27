@@ -6,7 +6,7 @@ ENV YOURKIT_AGENT "-agentpath:/usr/local/YourKit-JavaProfiler-2018.04/bin/linux-
 
 WORKDIR /opt/scalecube
 
-ENV DEFAULT_JAVA_OPTS="-Xms1g \
+ENV DEFAULT_JAVA_OPTS="-Xms2048m \
 -XX:+DisableExplicitGC \
 -Dsun.rmi.dgc.client.gcInterval=3600000 \
 -Dsun.rmi.dgc.server.gcInterval=3600000"
