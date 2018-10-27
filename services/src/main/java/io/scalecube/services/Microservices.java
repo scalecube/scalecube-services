@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static java.util.Optional.ofNullable;
+
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
@@ -12,6 +14,7 @@ import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
+import io.scalecube.services.transport.ServiceTransportConfig;
 import io.scalecube.services.transport.api.Addressing;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
@@ -99,6 +102,7 @@ import reactor.core.publisher.Mono;
  *
  * }</pre>
  */
+@SuppressWarnings("ALL")
 public class Microservices {
 
   private final String id;
@@ -117,15 +121,17 @@ public class Microservices {
     this.id = UUID.randomUUID().toString();
     this.metrics = builder.metrics;
     this.tags = new HashMap<>(builder.tags);
-
     this.serviceProviders = new ArrayList<>(builder.serviceProviders);
     this.serviceRegistry = builder.serviceRegistry;
     this.methodRegistry = builder.methodRegistry;
-
-    this.transportBootstrap = builder.transportBootstrap;
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discovery = builder.discovery;
     this.discoveryOptions = builder.discoveryOptions;
+    this.transportBootstrap = builder.transportBootstrap;
+  }
+
+  public static Builder builder() {
+    return new Builder();
   }
 
   public String id() {
@@ -203,6 +209,42 @@ public class Microservices {
     return this.metrics;
   }
 
+  public InetSocketAddress serviceAddress() {
+    return transportBootstrap.serviceAddress();
+  }
+
+  public Call call() {
+    return new Call(transportBootstrap.clientTransport(), methodRegistry, serviceRegistry);
+  }
+
+  public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
+    return gatewayBootstrap.gatewayAddress(name, gatewayClass);
+  }
+
+  public Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
+    return gatewayBootstrap.gatewayAddresses();
+  }
+
+  public ServiceDiscovery discovery() {
+    return this.discovery;
+  }
+
+  /**
+   * Shutdown instance and clear resources.
+   *
+   * @return result of shutdown
+   */
+  public Mono<Void> shutdown() {
+    return Mono.defer(
+        () ->
+            Mono.when(
+                ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
+                ofNullable(gatewayBootstrap).map(GatewayBootstrap::shutdown).orElse(Mono.empty()),
+                ofNullable(transportBootstrap)
+                    .map(ServiceTransportBootstrap::shutdown)
+                    .orElse(Mono.empty())));
+  }
+
   public static final class Builder {
 
     private Metrics metrics;
@@ -253,23 +295,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder transport(ServiceTransport transport) {
-      this.transportBootstrap.transport(transport);
-      return this;
-    }
-
-    public Builder serviceHost(String host) {
-      this.transportBootstrap.serviceHost(host);
-      return this;
-    }
-
-    public Builder servicePort(int port) {
-      this.transportBootstrap.servicePort(port);
-      return this;
-    }
-
-    public Builder numOfThreads(int numOfThreads) {
-      this.transportBootstrap.numOfThreads(numOfThreads);
+    public Builder transportConfig(ServiceTransportConfig serviceTransportOptions) {
+      this.transportBootstrap = new ServiceTransportBootstrap(serviceTransportOptions);
       return this;
     }
 
@@ -360,48 +387,6 @@ public class Microservices {
     }
   }
 
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public InetSocketAddress serviceAddress() {
-    return transportBootstrap.serviceAddress();
-  }
-
-  public Call call() {
-    return new Call(transportBootstrap.clientTransport(), methodRegistry, serviceRegistry);
-  }
-
-  public InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
-    return gatewayBootstrap.gatewayAddress(name, gatewayClass);
-  }
-
-  public Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
-    return gatewayBootstrap.gatewayAddresses();
-  }
-
-  public ServiceDiscovery discovery() {
-    return this.discovery;
-  }
-
-  /**
-   * Shutdown instance and clear resources.
-   *
-   * @return result of shutdown
-   */
-  public Mono<Void> shutdown() {
-    return Mono.defer(
-        () ->
-            Mono.when(
-                Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
-                Optional.ofNullable(gatewayBootstrap)
-                    .map(GatewayBootstrap::shutdown)
-                    .orElse(Mono.empty()),
-                Optional.ofNullable(transportBootstrap)
-                    .map(ServiceTransportBootstrap::shutdown)
-                    .orElse(Mono.empty())));
-  }
-
   private static class ServiceTransportBootstrap {
 
     private String serviceHost; // config
@@ -414,19 +399,15 @@ public class Microservices {
     private InetSocketAddress serviceAddress; // calculated
     private int numOfThreads = Runtime.getRuntime().availableProcessors(); // config or default
 
-    public ServiceTransportBootstrap serviceHost(String host) {
-      this.serviceHost = host;
-      return this;
-    }
+    public ServiceTransportBootstrap() {}
 
-    private ServiceTransportBootstrap servicePort(int port) {
-      this.servicePort = port;
-      return this;
-    }
-
-    private ServiceTransportBootstrap transport(ServiceTransport transport) {
-      this.transport = transport;
-      return this;
+    public ServiceTransportBootstrap(ServiceTransportConfig options) {
+      this.serviceHost = options.serviceHost();
+      this.servicePort = ofNullable(options.servicePort()).orElse(0);
+      this.numOfThreads =
+          ofNullable(options.numOfThreads()).orElse(Runtime.getRuntime().availableProcessors());
+      this.workerThreadChooser = options.workerThreadChooser();
+      this.transport = options.transport();
     }
 
     private ServiceTransport transport() {
@@ -435,11 +416,6 @@ public class Microservices {
 
     private ClientTransport clientTransport() {
       return clientTransport;
-    }
-
-    public ServiceTransportBootstrap numOfThreads(int numOfThreads) {
-      this.numOfThreads = numOfThreads;
-      return this;
     }
 
     private Executor workerThreadPool() {
@@ -453,8 +429,7 @@ public class Microservices {
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
       return Mono.defer(
           () -> {
-            this.transport =
-                Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
+            this.transport = ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
             this.workerThreadPool =
                 transport.getWorkerThreadPool(numOfThreads, workerThreadChooser);
@@ -469,7 +444,7 @@ public class Microservices {
                       // prepare service host:port for exposing
                       int port = listenAddress.getPort();
                       String host =
-                          Optional.ofNullable(serviceHost)
+                          ofNullable(serviceHost)
                               .orElseGet(() -> Addressing.getLocalIpAddress().getHostAddress());
                       this.serviceAddress = InetSocketAddress.createUnresolved(host, port);
                       return this;
@@ -481,10 +456,8 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.when(
-                  Optional.ofNullable(serverTransport)
-                      .map(ServerTransport::stop)
-                      .orElse(Mono.empty()),
-                  Optional.ofNullable(transport)
+                  ofNullable(serverTransport).map(ServerTransport::stop).orElse(Mono.empty()),
+                  ofNullable(transport)
                       .map(transport -> transport.shutdown(workerThreadPool))
                       .orElse(Mono.empty())));
     }

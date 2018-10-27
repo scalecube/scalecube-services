@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 
 import io.scalecube.services.discovery.api.ServiceDiscovery;
+import io.scalecube.services.transport.ServiceTransportConfig;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
@@ -45,7 +46,11 @@ public class MicroservicesTest {
     Mockito.when(serverTransport.bind(anyInt(), any()))
         .thenReturn(Mono.error(new RuntimeException(expectedErrorMessage)));
 
-    StepVerifier.create(Microservices.builder().transport(serviceTransport).start())
+    StepVerifier.create(
+            Microservices.builder()
+                .transportConfig(
+                    ServiceTransportConfig.builder().transport(serviceTransport).build())
+                .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
   }
@@ -59,7 +64,11 @@ public class MicroservicesTest {
         .thenReturn(Mono.just(new InetSocketAddress(0)));
 
     StepVerifier.create(
-            Microservices.builder().discovery(serviceDiscovery).transport(serviceTransport).start())
+            Microservices.builder()
+                .discovery(serviceDiscovery)
+                .transportConfig(
+                    ServiceTransportConfig.builder().transport(serviceTransport).build())
+                .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
 
