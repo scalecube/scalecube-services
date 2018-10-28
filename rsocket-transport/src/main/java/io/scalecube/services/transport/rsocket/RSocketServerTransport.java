@@ -11,7 +11,6 @@ import io.rsocket.transport.netty.server.TcpServerTransport;
 import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.methods.ServiceMethodRegistry;
-import io.scalecube.services.transport.api.Addressing;
 import io.scalecube.services.transport.api.ServerTransport;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -67,8 +66,7 @@ public class RSocketServerTransport implements ServerTransport {
           TcpServer tcpServer =
               TcpServer.create()
                   .runOn(loopResources)
-                  .host(Addressing.getLocalIpAddress().getHostAddress())
-                  .port(port)
+                  .addressSupplier(() -> new InetSocketAddress(port))
                   .doOnConnection(
                       connection -> {
                         LOGGER.info("Accepted connection on {}", connection.channel());
