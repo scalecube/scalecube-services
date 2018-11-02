@@ -14,7 +14,6 @@ import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,17 +70,9 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
     LOGGER.info("Start scalecube service discovery with config: {}", clusterConfig);
 
-    CompletableFuture<Cluster> promise =
-        Cluster.join(clusterConfig)
-            .whenComplete(
-                (success, error) -> {
-                  if (error == null) {
-                    this.cluster = success;
-                    this.init(this.cluster);
-                  }
-                });
-
-    return Mono.fromFuture(promise).map(mapper -> this);
+    return Cluster.join(clusterConfig)
+        .doOnSuccess(cluster -> init(this.cluster = cluster))
+        .thenReturn(this);
   }
 
   @Override
@@ -96,9 +87,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           sink.complete();
-          return Optional.ofNullable(cluster)
-              .map(cluster1 -> Mono.fromFuture(cluster1.shutdown()))
-              .orElse(Mono.empty());
+          return Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty());
         });
   }
 
