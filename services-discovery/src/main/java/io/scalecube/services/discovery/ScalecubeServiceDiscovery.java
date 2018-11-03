@@ -133,31 +133,31 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
         .forEach(
             serviceEndpoint -> {
               // Register services
-              if (event.isAdded()) {
-                if (serviceRegistry.registerService(serviceEndpoint)) {
-                  LOGGER.info(
-                      "ServiceEndpoint was ADDED since new Member has joined the cluster {} : {}",
-                      member,
-                      serviceEndpoint);
-                  ServiceDiscoveryEvent discoveryEvent =
-                      ServiceDiscoveryEvent.registered(serviceEndpoint);
-                  LOGGER.info("Publish services registered: {}", discoveryEvent);
-                  sink.next(discoveryEvent);
-                }
+              if (event.isAdded() && serviceRegistry.registerService(serviceEndpoint)) {
+                LOGGER.info(
+                    "ServiceEndpoint was ADDED since new Member has joined the cluster {} : {}",
+                    member,
+                    serviceEndpoint);
+
+                ServiceDiscoveryEvent discoveryEvent =
+                    ServiceDiscoveryEvent.registered(serviceEndpoint);
+                LOGGER.info("Publish services registered: {}", discoveryEvent);
+
+                sink.next(discoveryEvent);
               }
               // Unregister services
-              if (event.isRemoved()) {
-                if (serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
-                  LOGGER.info(
-                      "ServiceEndpoint was REMOVED since Member have left the cluster {} : {}",
-                      member,
-                      serviceEndpoint);
+              if (event.isRemoved()
+                  && serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
+                LOGGER.info(
+                    "ServiceEndpoint was REMOVED since Member have left the cluster {} : {}",
+                    member,
+                    serviceEndpoint);
 
-                  ServiceDiscoveryEvent discoveryEvent =
-                      ServiceDiscoveryEvent.unregistered(serviceEndpoint);
-                  LOGGER.info("Publish services unregistered: {}", discoveryEvent);
-                  sink.next(discoveryEvent);
-                }
+                ServiceDiscoveryEvent discoveryEvent =
+                    ServiceDiscoveryEvent.unregistered(serviceEndpoint);
+                LOGGER.info("Publish services unregistered: {}", discoveryEvent);
+
+                sink.next(discoveryEvent);
               }
             });
   }
