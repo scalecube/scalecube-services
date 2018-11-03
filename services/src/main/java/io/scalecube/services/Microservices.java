@@ -12,7 +12,7 @@ import io.scalecube.services.methods.ServiceMethodRegistryImpl;
 import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
-import io.scalecube.services.transport.api.Addressing;
+import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
@@ -33,6 +33,9 @@ import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -101,6 +104,8 @@ import reactor.core.publisher.Mono;
  */
 public class Microservices {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
+
   private final String id;
   private final Metrics metrics;
   private final Map<String, String> tags;
@@ -155,37 +160,48 @@ public class Microservices {
                 int servicePort = serviceAddress.getPort();
                 endpoint = ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
                 serviceRegistry.registerService(endpoint);
+                LOGGER.debug("ServiceRegistry has registered new {}", serviceRegistry, endpoint);
               }
 
-              // configure discovery and publish to the cluster
-              ServiceDiscoveryConfig discoveryConfig =
-                  ServiceDiscoveryConfig.builder(discoveryOptions)
-                      .serviceRegistry(serviceRegistry)
-                      .endpoint(endpoint)
-                      .build();
-              return discovery
-                  .start(discoveryConfig)
+              return startDiscovery(endpoint)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
-                  .then(Mono.just(this));
+                  .thenReturn(this);
             })
         .onErrorResume(
             ex -> {
+              LOGGER.error("Shutting down microservices due error: {}", ex, ex);
               // return original error then shutdown
               return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
             });
   }
 
+  private Mono<ServiceDiscovery> startDiscovery(ServiceEndpoint endpoint) {
+    ServiceDiscoveryConfig discoveryConfig =
+        ServiceDiscoveryConfig.builder(discoveryOptions)
+            .serviceRegistry(serviceRegistry)
+            .endpoint(endpoint)
+            .build();
+    return discovery
+        .start(discoveryConfig)
+        .doOnTerminate(() -> LOGGER.debug("ServiceDiscovery {} has been started", discovery));
+  }
+
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    Executor workerThreadPool = transportBootstrap.workerThreadPool();
-    boolean preferNative = transportBootstrap.transport().isNativeSupported();
-    return gatewayBootstrap.start(workerThreadPool, preferNative, call, metrics);
+    return gatewayBootstrap.start(
+        transportBootstrap.workerThreadPool(),
+        transportBootstrap.transport().isNativeSupported(),
+        call,
+        metrics);
   }
 
   private Mono<Microservices> doInjection() {
-    List<Object> serviceInstances =
-        serviceInfos.stream().map(ServiceInfo::serviceInstance).collect(Collectors.toList());
-    return Mono.just(Reflect.inject(this, serviceInstances));
+    List<Object> services =
+        serviceInfos //
+            .stream()
+            .map(ServiceInfo::serviceInstance)
+            .collect(Collectors.toList());
+    return Mono.just(Reflect.inject(this, services));
   }
 
   private void collectAndRegister(Object serviceInstance) {
@@ -311,15 +327,21 @@ public class Microservices {
         Executor workerThreadPool, boolean preferNative, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
-              gatewayConfig -> {
-                Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
-                Gateway gateway = Gateway.getGateway(gatewayClass);
+              config -> {
+                Gateway gateway = Gateway.getGateway(config.gatewayClass());
+                LOGGER.debug("Start {} with config: {}", gateway, config);
                 return gateway
-                    .start(gatewayConfig, workerThreadPool, preferNative, call, metrics)
+                    .start(config, workerThreadPool, preferNative, call, metrics)
+                    .doOnSuccess(
+                        address ->
+                            LOGGER.info(
+                                "Gateway has been started successfully on {} with config: {}",
+                                address,
+                                config))
                     .doOnSuccess(
                         listenAddress -> {
-                          gatewayInstances.put(gatewayConfig, gateway);
-                          gatewayAddresses.put(gatewayConfig, listenAddress);
+                          gatewayInstances.put(config, gateway);
+                          gatewayAddresses.put(config, listenAddress);
                         });
               })
           .then(Mono.just(this));
@@ -327,11 +349,19 @@ public class Microservices {
 
     private Mono<Void> shutdown() {
       return Mono.defer(
-          () ->
-              gatewayInstances != null && !gatewayInstances.isEmpty()
-                  ? Mono.when(
-                      gatewayInstances.values().stream().map(Gateway::stop).toArray(Mono[]::new))
-                  : Mono.empty());
+          () -> {
+            if (gatewayInstances == null || gatewayInstances.isEmpty()) {
+              return Mono.empty();
+            }
+            Stream<Gateway> gatewayStream = gatewayInstances.values().stream();
+            return Mono.when(gatewayStream.map(this::stopGateway).toArray(Mono[]::new));
+          });
+    }
+
+    private Mono<Void> stopGateway(Gateway gateway) {
+      return gateway
+          .stop()
+          .doOnTerminate(() -> LOGGER.debug("Gateway {} has been stopped", gateway));
     }
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
@@ -391,15 +421,29 @@ public class Microservices {
    */
   public Mono<Void> shutdown() {
     return Mono.defer(
-        () ->
-            Mono.when(
-                Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
-                Optional.ofNullable(gatewayBootstrap)
-                    .map(GatewayBootstrap::shutdown)
-                    .orElse(Mono.empty()),
-                Optional.ofNullable(transportBootstrap)
-                    .map(ServiceTransportBootstrap::shutdown)
-                    .orElse(Mono.empty())));
+        () -> {
+          LOGGER.info("Shutdown microservices instance");
+          return Mono.when(shutdownDiscovery(), shutdownGateway(), shutdownTransport());
+        });
+  }
+
+  private Mono<Void> shutdownDiscovery() {
+    return Optional.ofNullable(discovery)
+        .map(ServiceDiscovery::shutdown)
+        .orElse(Mono.empty())
+        .doOnTerminate(() -> LOGGER.debug("ServiceDiscovery {} has been stopped", discovery));
+  }
+
+  private Mono<Void> shutdownGateway() {
+    return Optional.ofNullable(gatewayBootstrap)
+        .map(GatewayBootstrap::shutdown)
+        .orElse(Mono.empty());
+  }
+
+  private Mono<Void> shutdownTransport() {
+    return Optional.ofNullable(transportBootstrap)
+        .map(ServiceTransportBootstrap::shutdown)
+        .orElse(Mono.empty());
   }
 
   private static class ServiceTransportBootstrap {
@@ -470,7 +514,7 @@ public class Microservices {
                       int port = listenAddress.getPort();
                       String host =
                           Optional.ofNullable(serviceHost)
-                              .orElseGet(() -> Addressing.getLocalIpAddress().getHostAddress());
+                              .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
                       this.serviceAddress = InetSocketAddress.createUnresolved(host, port);
                       return this;
                     });
@@ -481,12 +525,14 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.when(
-                  Optional.ofNullable(serverTransport)
-                      .map(ServerTransport::stop)
-                      .orElse(Mono.empty()),
-                  Optional.ofNullable(transport)
-                      .map(transport -> transport.shutdown(workerThreadPool))
-                      .orElse(Mono.empty())));
+                      Optional.ofNullable(serverTransport)
+                          .map(ServerTransport::stop)
+                          .orElse(Mono.empty()),
+                      Optional.ofNullable(transport)
+                          .map(transport -> transport.shutdown(workerThreadPool))
+                          .orElse(Mono.empty()))
+                  .doOnTerminate(
+                      () -> LOGGER.debug("ServiceTransport {} has been stopped", transport)));
     }
   }
 }
