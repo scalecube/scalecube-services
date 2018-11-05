@@ -1,7 +1,5 @@
 package io.scalecube.services;
 
-import static java.util.Optional.ofNullable;
-
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
@@ -239,9 +237,11 @@ public class Microservices {
     return Mono.defer(
         () ->
             Mono.when(
-                ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
-                ofNullable(gatewayBootstrap).map(GatewayBootstrap::shutdown).orElse(Mono.empty()),
-                ofNullable(transportBootstrap)
+                Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
+                Optional.ofNullable(gatewayBootstrap)
+                    .map(GatewayBootstrap::shutdown)
+                    .orElse(Mono.empty()),
+                Optional.ofNullable(transportBootstrap)
                     .map(ServiceTransportBootstrap::shutdown)
                     .orElse(Mono.empty())));
   }
@@ -404,8 +404,9 @@ public class Microservices {
 
     public ServiceTransportBootstrap(ServiceTransportConfig options) {
       this.serviceHost = options.host();
-      this.servicePort = ofNullable(options.port()).orElse(0);
-      this.numOfThreads = ofNullable(options.numOfThreads()).orElse(DEFAULT_NUM_OF_THREADS);
+      this.servicePort = Optional.ofNullable(options.port()).orElse(0);
+      this.numOfThreads =
+          Optional.ofNullable(options.numOfThreads()).orElse(DEFAULT_NUM_OF_THREADS);
       this.workerThreadChooser = options.workerThreadChooser();
       this.transport = options.transport();
     }
@@ -429,7 +430,8 @@ public class Microservices {
     private Mono<ServiceTransportBootstrap> start(ServiceMethodRegistry methodRegistry) {
       return Mono.defer(
           () -> {
-            this.transport = ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
+            this.transport =
+                Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
             this.workerThreadPool =
                 transport.getWorkerThreadPool(numOfThreads, workerThreadChooser);
@@ -444,7 +446,7 @@ public class Microservices {
                       // prepare service host:port for exposing
                       int port = listenAddress.getPort();
                       String host =
-                          ofNullable(serviceHost)
+                          Optional.ofNullable(serviceHost)
                               .orElseGet(() -> Addressing.getLocalIpAddress().getHostAddress());
                       this.serviceAddress = InetSocketAddress.createUnresolved(host, port);
                       return this;
@@ -456,8 +458,10 @@ public class Microservices {
       return Mono.defer(
           () ->
               Mono.when(
-                  ofNullable(serverTransport).map(ServerTransport::stop).orElse(Mono.empty()),
-                  ofNullable(transport)
+                  Optional.ofNullable(serverTransport)
+                      .map(ServerTransport::stop)
+                      .orElse(Mono.empty()),
+                  Optional.ofNullable(transport)
                       .map(transport -> transport.shutdown(workerThreadPool))
                       .orElse(Mono.empty())));
     }
