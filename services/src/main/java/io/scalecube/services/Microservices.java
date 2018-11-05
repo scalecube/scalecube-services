@@ -1,5 +1,7 @@
 package io.scalecube.services;
 
+import static java.util.stream.Collectors.toMap;
+
 import com.codahale.metrics.MetricRegistry;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
@@ -27,6 +29,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -321,7 +324,6 @@ public class Microservices {
 
     private Set<GatewayConfig> gatewayConfigs = new HashSet<>(); // config
     private Map<GatewayConfig, Gateway> gatewayInstances = new HashMap<>(); // calculated
-    private Map<GatewayConfig, InetSocketAddress> gatewayAddresses = new HashMap<>(); // calculated
 
     private GatewayBootstrap addConfig(GatewayConfig config) {
       if (!gatewayConfigs.add(config)) {
@@ -339,17 +341,10 @@ public class Microservices {
         Executor workerThreadPool, boolean preferNative, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
-              gatewayConfig -> {
-                Class<? extends Gateway> gatewayClass = gatewayConfig.gatewayClass();
-                Gateway gateway = Gateway.getGateway(gatewayClass);
-                return gateway
-                    .start(gatewayConfig, workerThreadPool, preferNative, call, metrics)
-                    .doOnSuccess(
-                        listenAddress -> {
-                          gatewayInstances.put(gatewayConfig, gateway);
-                          gatewayAddresses.put(gatewayConfig, listenAddress);
-                        });
-              })
+              gatewayConfig ->
+                  Gateway.getGateway(gatewayConfig.gatewayClass())
+                      .start(gatewayConfig, workerThreadPool, preferNative, call, metrics)
+                      .doOnSuccess(gw -> gatewayInstances.put(gatewayConfig, gw)))
           .then(Mono.just(this));
     }
 
@@ -364,7 +359,7 @@ public class Microservices {
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
       Optional<GatewayConfig> result =
-          gatewayAddresses
+          gatewayInstances
               .keySet()
               .stream()
               .filter(config -> config.name().equals(name))
@@ -380,11 +375,15 @@ public class Microservices {
                 + "'");
       }
 
-      return gatewayAddresses.get(result.get());
+      return gatewayInstances.get(result.get()).address();
     }
 
     private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
-      return Collections.unmodifiableMap(gatewayAddresses);
+      return Collections.unmodifiableMap(
+          gatewayInstances
+              .entrySet()
+              .stream()
+              .collect(toMap(Entry::getKey, e -> e.getValue().address())));
     }
   }
 

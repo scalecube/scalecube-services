@@ -31,12 +31,19 @@ public interface Gateway {
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
-  Mono<InetSocketAddress> start(
+  Mono<Gateway> start(
       GatewayConfig config,
       Executor workerThreadPool,
       boolean preferNative,
       Call call,
       Metrics metrics);
+
+  /**
+   * Returns Gateway's address if it's started, {@code null} otherwise.
+   *
+   * @return Mono of listening address of gateway if it's started.
+   */
+  InetSocketAddress address();
 
   /**
    * Stops the gateway.

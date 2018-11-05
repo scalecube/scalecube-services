@@ -13,22 +13,24 @@ import reactor.core.publisher.Mono;
 public class WebsocketStubGateway implements Gateway {
 
   public static final String WS_SPECIFIC_OPTION_NAME = "ws.specific.option";
+  private InetSocketAddress address;
 
   @Override
-  public Mono<InetSocketAddress> start(
+  public Mono<Gateway> start(
       GatewayConfig config,
       Executor workerThreadPool,
       boolean preferNative,
       Call call,
       Metrics metrics) {
 
+    this.address = new InetSocketAddress(config.port());
     return Mono.defer(
         () -> {
           System.out.println("Starting WS gateway...");
 
           return Mono.delay(Duration.ofMillis(ThreadLocalRandom.current().nextInt(100, 500)))
-              .map(tick -> new InetSocketAddress(config.port()))
-              .doOnSuccess(address -> System.out.println("WS gateway is started on " + address));
+              .map(tick -> this)
+              .doOnSuccess(gw -> System.out.println("WS gateway is started on " + gw.address));
         });
   }
 
@@ -39,5 +41,10 @@ public class WebsocketStubGateway implements Gateway {
           System.out.println("Stopping WS gateway...");
           return Mono.empty();
         });
+  }
+
+  @Override
+  public InetSocketAddress address() {
+    return address;
   }
 }
