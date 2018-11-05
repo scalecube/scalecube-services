@@ -102,7 +102,6 @@ import reactor.core.publisher.Mono;
  *
  * }</pre>
  */
-@SuppressWarnings("ALL")
 public class Microservices {
 
   private final String id;
@@ -391,6 +390,8 @@ public class Microservices {
 
   private static class ServiceTransportBootstrap {
 
+    private static final int DEFAULT_NUM_OF_THREADS = Runtime.getRuntime().availableProcessors();
+
     private String serviceHost; // config
     private int servicePort; // config
     private WorkerThreadChooser workerThreadChooser; // config
@@ -399,13 +400,12 @@ public class Microservices {
     private ServerTransport serverTransport; // calculated
     private Executor workerThreadPool; // calculated
     private InetSocketAddress serviceAddress; // calculated
-    private int numOfThreads = Runtime.getRuntime().availableProcessors(); // config or default
+    private int numOfThreads; // calculated
 
     public ServiceTransportBootstrap(ServiceTransportConfig options) {
       this.serviceHost = options.host();
       this.servicePort = ofNullable(options.port()).orElse(0);
-      this.numOfThreads =
-          ofNullable(options.numOfThreads()).orElse(Runtime.getRuntime().availableProcessors());
+      this.numOfThreads = ofNullable(options.numOfThreads()).orElse(DEFAULT_NUM_OF_THREADS);
       this.workerThreadChooser = options.workerThreadChooser();
       this.transport = options.transport();
     }
