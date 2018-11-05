@@ -48,7 +48,6 @@ public class MicroservicesTest {
     StepVerifier.create(
             Microservices.builder()
                 .transport(options -> options.transport(serviceTransport))
-                .discovery(option -> option.port(45))
                 .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
