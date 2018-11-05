@@ -41,7 +41,7 @@ public interface Gateway {
   /**
    * Returns Gateway's address if it's started, {@code null} otherwise.
    *
-   * @return Mono of listening address of gateway if it's started, otherwise - empty.
+   * @return Mono of listening address of gateway if it's started.
    */
   InetSocketAddress address();
 

@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -349,12 +350,12 @@ public class Microservices {
       return gatewayInstances.get(result.get()).address();
     }
 
-    private Map<Class<?>, InetSocketAddress> gatewayAddresses() {
+    private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
       return Collections.unmodifiableMap(
           gatewayInstances
               .entrySet()
               .stream()
-              .collect(toMap(e -> e.getKey().gatewayClass(), e -> e.getValue().address())));
+              .collect(toMap(Entry::getKey, e -> e.getValue().address())));
     }
   }
 
@@ -374,7 +375,7 @@ public class Microservices {
     return gatewayBootstrap.gatewayAddress(name, gatewayClass);
   }
 
-  public Map<Class<?>, InetSocketAddress> gatewayAddresses() {
+  public Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
     return gatewayBootstrap.gatewayAddresses();
   }
 
