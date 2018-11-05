@@ -58,7 +58,7 @@ public class GatewayRunner {
                     .port(config.discoveryPort())
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()))
-        .servicePort(config.servicePort())
+        .transport(options -> options.port(config.servicePort()))
         .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).port(7070).build())
         .gateway(GatewayConfig.builder("http", HttpGateway.class).port(8080).build())
         .gateway(GatewayConfig.builder("rsws", RSocketWebsocketGateway.class).port(9090).build())

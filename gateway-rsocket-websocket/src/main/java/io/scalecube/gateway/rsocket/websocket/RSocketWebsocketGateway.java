@@ -8,6 +8,7 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.GatewayTemplate;
 import io.scalecube.services.ServiceCall;
+import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
@@ -32,7 +33,7 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
   private CloseableChannel server;
 
   @Override
-  public Mono<InetSocketAddress> start(
+  public Mono<Gateway> start(
       GatewayConfig config,
       Executor workerThreadPool,
       boolean preferNative,
@@ -66,8 +67,13 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
 
           InetSocketAddress address = server.address();
           LOGGER.info("Gateway has been started successfully on {}", address);
-          return Mono.just(address);
+          return Mono.just(this);
         });
+  }
+
+  @Override
+  public InetSocketAddress address() {
+    return server.address();
   }
 
   @Override
