@@ -1,11 +1,10 @@
 package io.scalecube.services.discovery;
 
-import static io.scalecube.services.discovery.ClusterMetadataDecoder.decodeMetadata;
-
 import io.scalecube.cluster.Cluster;
 import io.scalecube.cluster.ClusterConfig;
 import io.scalecube.cluster.ClusterConfig.Builder;
 import io.scalecube.cluster.Member;
+import io.scalecube.cluster.membership.MembershipEvent;
 import io.scalecube.services.ServiceEndpoint;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
@@ -13,8 +12,10 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.util.Arrays;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,12 +37,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private final DirectProcessor<ServiceDiscoveryEvent> subject = DirectProcessor.create();
   private final FluxSink<ServiceDiscoveryEvent> sink = subject.serialize().sink();
 
-  private enum DiscoveryType {
-    ADDED,
-    REMOVED,
-    DISCOVERED;
-  }
-
   @Override
   public Address address() {
     io.scalecube.transport.Address address = cluster.address();
@@ -55,40 +50,42 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Mono<ServiceDiscovery> start(ServiceDiscoveryConfig config) {
-    this.serviceRegistry = config.serviceRegistry();
-    this.endpoint = config.endpoint();
+    return Mono.defer(
+        () -> {
+          this.serviceRegistry = config.serviceRegistry();
+          this.endpoint = config.endpoint();
 
-    ClusterConfig clusterConfig =
-        clusterConfigBuilder(config)
-            .addMetadata(
-                this.serviceRegistry
-                    .listServiceEndpoints()
-                    .stream()
-                    .collect(
-                        Collectors.toMap(
-                            ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA)))
-            .build();
+          ClusterConfig clusterConfig =
+              clusterConfigBuilder(config).addMetadata(getMetadata()).build();
 
-    LOGGER.info("Start scalecube service discovery with config: {}", clusterConfig);
+          LOGGER.info("Start scalecube service discovery with config: {}", clusterConfig);
 
-    CompletableFuture<Cluster> promise =
-        Cluster.join(clusterConfig)
-            .whenComplete(
-                (success, error) -> {
-                  if (error == null) {
-                    this.cluster = success;
-                    this.init(this.cluster);
-                  }
-                });
+          return Cluster.join(clusterConfig)
+              .doOnSuccess(cluster -> this.cluster = cluster)
+              .doOnSuccess(this::listen)
+              .thenReturn(this);
+        });
+  }
 
-    return Mono.fromFuture(promise).map(mapper -> this);
+  private Map<String, String> getMetadata() {
+    return serviceRegistry
+        .listServiceEndpoints()
+        .stream()
+        .collect(
+            Collectors.toMap(ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA));
+  }
+
+  private void listen(Cluster cluster) {
+    cluster.listenMembership().subscribe(this::onMemberEvent);
   }
 
   @Override
   public Flux<ServiceDiscoveryEvent> listen() {
-    return Flux.fromIterable(serviceRegistry.listServiceEndpoints())
-        .map(ServiceDiscoveryEvent::registered)
-        .concatWith(subject);
+    return Flux.defer(
+        () ->
+            Flux.fromIterable(serviceRegistry.listServiceEndpoints())
+                .map(ServiceDiscoveryEvent::registered)
+                .concatWith(subject));
   }
 
   @Override
@@ -96,9 +93,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return Mono.defer(
         () -> {
           sink.complete();
-          return Optional.ofNullable(cluster)
-              .map(cluster1 -> Mono.fromFuture(cluster1.shutdown()))
-              .orElse(Mono.empty());
+          return Optional.ofNullable(cluster).map(Cluster::shutdown).orElse(Mono.empty());
         });
   }
 
@@ -125,63 +120,44 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return builder;
   }
 
-  private void init(Cluster cluster) {
-    loadClusterServices(cluster);
-    listenCluster(cluster);
-  }
-
-  private void listenCluster(Cluster cluster) {
-    cluster
-        .listenMembership()
-        .subscribe(
-            event -> {
-              if (event.isAdded()) {
-                loadMemberServices(DiscoveryType.ADDED, event.member());
-              } else if (event.isRemoved()) {
-                loadMemberServices(DiscoveryType.REMOVED, event.member());
-              }
-            });
-  }
-
-  private void loadClusterServices(Cluster cluster) {
-    cluster.otherMembers().forEach(member -> loadMemberServices(DiscoveryType.DISCOVERED, member));
-  }
-
-  private void loadMemberServices(DiscoveryType type, Member member) {
+  private void onMemberEvent(MembershipEvent event) {
+    Member member = event.member();
     member
         .metadata()
         .entrySet()
         .stream()
         .filter(entry -> SERVICE_METADATA.equals(entry.getValue()))
+        .map(Entry::getKey)
+        .map(ClusterMetadataDecoder::decodeMetadata)
+        .filter(Objects::nonNull)
         .forEach(
-            entry -> {
-              ServiceEndpoint serviceEndpoint = decodeMetadata(entry.getKey());
-              if (serviceEndpoint == null) {
-                return;
+            serviceEndpoint -> {
+              // Register services
+              if (event.isAdded() && serviceRegistry.registerService(serviceEndpoint)) {
+                LOGGER.info(
+                    "ServiceEndpoint was ADDED since new Member has joined the cluster {} : {}",
+                    member,
+                    serviceEndpoint);
+
+                ServiceDiscoveryEvent discoveryEvent =
+                    ServiceDiscoveryEvent.registered(serviceEndpoint);
+                LOGGER.info("Publish services registered: {}", discoveryEvent);
+
+                sink.next(discoveryEvent);
               }
-
-              LOGGER.debug("Member: {} is {} : {}", member, type, serviceEndpoint);
-              if ((type.equals(DiscoveryType.ADDED) || type.equals(DiscoveryType.DISCOVERED))
-                  && (this.serviceRegistry.registerService(serviceEndpoint))) {
+              // Unregister services
+              if (event.isRemoved()
+                  && serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
                 LOGGER.info(
-                    "Service Reference was ADDED since new Member has joined the cluster {} : {}",
+                    "ServiceEndpoint was REMOVED since Member have left the cluster {} : {}",
                     member,
                     serviceEndpoint);
 
-                ServiceDiscoveryEvent event = ServiceDiscoveryEvent.registered(serviceEndpoint);
-                LOGGER.debug("Publish registered: " + event);
-                sink.next(event);
+                ServiceDiscoveryEvent discoveryEvent =
+                    ServiceDiscoveryEvent.unregistered(serviceEndpoint);
+                LOGGER.info("Publish services unregistered: {}", discoveryEvent);
 
-              } else if (type.equals(DiscoveryType.REMOVED)
-                  && (this.serviceRegistry.unregisterService(serviceEndpoint.id()) != null)) {
-                LOGGER.info(
-                    "Service Reference was REMOVED since Member have left the cluster {} : {}",
-                    member,
-                    serviceEndpoint);
-
-                ServiceDiscoveryEvent event = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
-                LOGGER.debug("Publish unregistered: " + event);
-                sink.next(event);
+                sink.next(discoveryEvent);
               }
             });
   }
