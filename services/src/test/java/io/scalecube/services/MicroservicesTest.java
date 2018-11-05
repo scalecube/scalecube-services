@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 
 import io.scalecube.services.discovery.api.ServiceDiscovery;
-import io.scalecube.services.transport.ServiceTransportConfig;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
@@ -48,8 +47,8 @@ public class MicroservicesTest {
 
     StepVerifier.create(
             Microservices.builder()
-                .transportConfig(
-                    ServiceTransportConfig.builder().transport(serviceTransport).build())
+                .transport(options -> options.transport(serviceTransport))
+                .discovery(option -> option.port(45))
                 .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
@@ -66,8 +65,7 @@ public class MicroservicesTest {
     StepVerifier.create(
             Microservices.builder()
                 .discovery(serviceDiscovery)
-                .transportConfig(
-                    ServiceTransportConfig.builder().transport(serviceTransport).build())
+                .transport(options -> options.transport(serviceTransport))
                 .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();

@@ -127,7 +127,9 @@ public class Microservices {
     this.gatewayBootstrap = builder.gatewayBootstrap;
     this.discovery = builder.discovery;
     this.discoveryOptions = builder.discoveryOptions;
-    this.transportBootstrap = builder.transportBootstrap;
+    this.transportBootstrap =
+        new ServiceTransportBootstrap(
+            ServiceTransportConfig.builder(builder.transportOptions).build());
   }
 
   public static Builder builder() {
@@ -254,7 +256,7 @@ public class Microservices {
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
     private Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
-    private ServiceTransportBootstrap transportBootstrap = new ServiceTransportBootstrap();
+    private Consumer<ServiceTransportConfig.Builder> transportOptions;
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
 
     public Mono<Microservices> start() {
@@ -295,8 +297,8 @@ public class Microservices {
       return this;
     }
 
-    public Builder transportConfig(ServiceTransportConfig serviceTransportOptions) {
-      this.transportBootstrap = new ServiceTransportBootstrap(serviceTransportOptions);
+    public Builder transport(Consumer<ServiceTransportConfig.Builder> transportOptions) {
+      this.transportOptions = transportOptions;
       return this;
     }
 
@@ -399,11 +401,9 @@ public class Microservices {
     private InetSocketAddress serviceAddress; // calculated
     private int numOfThreads = Runtime.getRuntime().availableProcessors(); // config or default
 
-    public ServiceTransportBootstrap() {}
-
     public ServiceTransportBootstrap(ServiceTransportConfig options) {
-      this.serviceHost = options.serviceHost();
-      this.servicePort = ofNullable(options.servicePort()).orElse(0);
+      this.serviceHost = options.host();
+      this.servicePort = ofNullable(options.port()).orElse(0);
       this.numOfThreads =
           ofNullable(options.numOfThreads()).orElse(Runtime.getRuntime().availableProcessors());
       this.workerThreadChooser = options.workerThreadChooser();

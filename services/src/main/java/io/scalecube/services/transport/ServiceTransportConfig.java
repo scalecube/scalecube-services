@@ -2,32 +2,47 @@ package io.scalecube.services.transport;
 
 import io.scalecube.services.transport.api.ServiceTransport;
 import io.scalecube.services.transport.api.WorkerThreadChooser;
+import java.util.function.Consumer;
 
 public class ServiceTransportConfig {
-  private Integer servicePort;
-  private String serviceHost;
-  private ServiceTransport transport;
-  private Integer numOfThreads;
-  private WorkerThreadChooser workerThreadChooser;
+  private final Integer port;
+  private final String host;
+  private final ServiceTransport transport;
+  private final Integer numOfThreads;
+  private final WorkerThreadChooser workerThreadChooser;
 
   private ServiceTransportConfig(Builder builder) {
-    this.servicePort = builder.servicePort;
-    this.serviceHost = builder.serviceHost;
+    this.port = builder.port;
+    this.host = builder.host;
     this.transport = builder.transport;
     this.numOfThreads = builder.numOfThreads;
     this.workerThreadChooser = builder.workerThreadChooser;
+  }
+
+  /**
+   * Returns a new transport config builder and apply to it the given transport options.
+   *
+   * @param transportOptions transport options
+   * @return transport config builder
+   */
+  public static Builder builder(Consumer<Builder> transportOptions) {
+    Builder builder = new Builder();
+    if (transportOptions != null) {
+      transportOptions.accept(builder);
+    }
+    return builder;
   }
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public Integer servicePort() {
-    return servicePort;
+  public Integer port() {
+    return port;
   }
 
-  public String serviceHost() {
-    return serviceHost;
+  public String host() {
+    return host;
   }
 
   public ServiceTransport transport() {
@@ -45,8 +60,8 @@ public class ServiceTransportConfig {
   @Override
   public String toString() {
     final StringBuffer sb = new StringBuffer("ServiceTransportConfig{");
-    sb.append("servicePort=").append(servicePort);
-    sb.append(", serviceHost='").append(serviceHost).append('\'');
+    sb.append("port=").append(port);
+    sb.append(", host='").append(host).append('\'');
     sb.append(", transport=").append(transport);
     sb.append(", numOfThreads=").append(numOfThreads);
     sb.append(", workerThreadChooser=").append(workerThreadChooser);
@@ -55,19 +70,19 @@ public class ServiceTransportConfig {
   }
 
   public static class Builder {
-    private Integer servicePort;
-    private String serviceHost;
+    private Integer port;
+    private String host;
     private ServiceTransport transport;
     private WorkerThreadChooser workerThreadChooser;
     private Integer numOfThreads = Runtime.getRuntime().availableProcessors();
 
-    public Builder servicePort(Integer servicePort) {
-      this.servicePort = servicePort;
+    public Builder port(Integer port) {
+      this.port = port;
       return this;
     }
 
-    public Builder serviceHost(String serviceHost) {
-      this.serviceHost = serviceHost;
+    public Builder host(String host) {
+      this.host = host;
       return this;
     }
 
