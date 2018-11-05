@@ -45,7 +45,10 @@ public class MicroservicesTest {
     Mockito.when(serverTransport.bind(anyInt(), any()))
         .thenReturn(Mono.error(new RuntimeException(expectedErrorMessage)));
 
-    StepVerifier.create(Microservices.builder().transport(serviceTransport).start())
+    StepVerifier.create(
+            Microservices.builder()
+                .transport(options -> options.transport(serviceTransport))
+                .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
   }
@@ -59,7 +62,10 @@ public class MicroservicesTest {
         .thenReturn(Mono.just(new InetSocketAddress(0)));
 
     StepVerifier.create(
-            Microservices.builder().discovery(serviceDiscovery).transport(serviceTransport).start())
+            Microservices.builder()
+                .discovery(serviceDiscovery)
+                .transport(options -> options.transport(serviceTransport))
+                .start())
         .expectErrorMessage(expectedErrorMessage)
         .verify();
 
