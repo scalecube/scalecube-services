@@ -11,7 +11,6 @@ import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,8 +18,6 @@ import org.junit.jupiter.api.Test;
 import reactor.core.Disposable;
 
 public class ServiceTransportTest {
-
-  private static AtomicInteger port = new AtomicInteger(6000);
 
   private static final ServiceMessage JUST_NEVER =
       ServiceMessage.builder().qualifier(QuoteService.NAME, "justNever").build();
@@ -35,16 +32,11 @@ public class ServiceTransportTest {
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    gateway =
-        Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
-            .startAwait();
+    gateway = Microservices.builder().startAwait();
 
     serviceNode =
         Microservices.builder()
-            .discovery(
-                options ->
-                    options.seeds(gateway.discovery().address()).port(port.incrementAndGet()))
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new SimpleQuoteService())
             .startAwait();
   }

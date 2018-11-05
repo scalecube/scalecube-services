@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.2.3-SNAPSHOT</version>
+  <version>2.2.6-SNAPSHOT</version>
 
   <parent>
     <groupId>io.scalecube</groupId>
@@ -23,9 +23,9 @@
 
   <properties>
     <jackson.version>2.9.6</jackson.version>
-    <scalecube-cluster.version>2.1.1</scalecube-cluster.version>
+    <scalecube-cluster.version>2.1.4</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <reactor.version>3.1.8.RELEASE</reactor.version>
+    <reactor.version>3.2.1.RELEASE</reactor.version>
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.8</rsocket.version>
     <reactor-netty.version>0.8.1.RELEASE</reactor-netty.version>
