@@ -50,8 +50,6 @@
     <module>services</module>
     <module>benchmarks</module>
     <module>examples</module>
-    <module>gateway-logger</module>
-    <module>gateway-config</module>
     <module>gateway-websocket</module>
     <module>gateway-http</module>
     <module>gateway-examples</module>

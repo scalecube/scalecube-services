@@ -1,13 +1,20 @@
 package io.scalecube.gateway.examples;
 
 import io.scalecube.config.ConfigRegistry;
+import io.scalecube.config.ConfigRegistrySettings;
+import io.scalecube.config.audit.Slf4JConfigEventListener;
+import io.scalecube.config.source.ClassPathConfigSource;
+import io.scalecube.config.source.SystemEnvironmentConfigSource;
+import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.gateway.benchmarks.BenchmarksServiceImpl;
-import io.scalecube.gateway.config.GatewayConfigRegistry;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.transport.api.Address;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +31,7 @@ public class ExamplesRunner {
    * @throws Exception exception thrown
    */
   public static void main(String[] args) throws Exception {
-    ConfigRegistry configRegistry = GatewayConfigRegistry.configRegistry();
+    ConfigRegistry configRegistry = ConfigBootstrap.configRegistry();
 
     Config config =
         configRegistry
@@ -114,6 +121,29 @@ public class ExamplesRunner {
       sb.append(", memberPort=").append(memberPort);
       sb.append('}');
       return sb.toString();
+    }
+  }
+
+  public static class ConfigBootstrap {
+
+    private static final Pattern CONFIG_PATTERN = Pattern.compile("(.*)config(.*)?\\.properties");
+    private static final Predicate<Path> PATH_PREDICATE =
+        path -> CONFIG_PATTERN.matcher(path.toString()).matches();
+
+    /**
+     * ConfigRegistry method factory.
+     *
+     * @return configRegistry
+     */
+    public static ConfigRegistry configRegistry() {
+      return ConfigRegistry.create(
+          ConfigRegistrySettings.builder()
+              .addListener(new Slf4JConfigEventListener())
+              .addLastSource("sys_prop", new SystemPropertiesConfigSource())
+              .addLastSource("env_var", new SystemEnvironmentConfigSource())
+              .addLastSource("cp", new ClassPathConfigSource(PATH_PREDICATE))
+              .jmxEnabled(false)
+              .build());
     }
   }
 }
