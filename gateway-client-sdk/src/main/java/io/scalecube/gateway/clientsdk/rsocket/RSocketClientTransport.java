@@ -31,6 +31,7 @@ public final class RSocketClientTransport implements ClientTransport {
   private final ClientCodec<Payload> codec;
   private final LoopResources loopResources;
 
+  @SuppressWarnings("unused")
   private volatile Mono<?> rsocketMono;
 
   /**

@@ -11,7 +11,6 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.codec.HeadersCodec;
 import io.scalecube.services.codec.ServiceMessageCodec;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -48,7 +47,7 @@ public class RSocketWebsocketAcceptor implements SocketAcceptor {
   /**
    * Private extension class for rsocket. Holds gateway business logic in following methods: {@link
    * #fireAndForget(Payload)}, {@link #requestResponse(Payload)}, {@link #requestStream(Payload)}
-   * and {@link #requestChannel(Publisher)}.
+   * and {@link #requestChannel(org.reactivestreams.Publisher)}.
    */
   private static class GatewayRSocket extends AbstractRSocket {
 

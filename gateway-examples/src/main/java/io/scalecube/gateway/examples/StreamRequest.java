@@ -5,8 +5,6 @@ public class StreamRequest {
   private long intervalMillis;
   private int messagesPerInterval;
 
-  public StreamRequest() {}
-
   public long getIntervalMillis() {
     return intervalMillis;
   }

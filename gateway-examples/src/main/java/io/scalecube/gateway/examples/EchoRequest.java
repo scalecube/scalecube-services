@@ -5,8 +5,6 @@ public class EchoRequest {
   private String name;
   private long frequencyMillis;
 
-  public EchoRequest() {}
-
   public String getName() {
     return name;
   }

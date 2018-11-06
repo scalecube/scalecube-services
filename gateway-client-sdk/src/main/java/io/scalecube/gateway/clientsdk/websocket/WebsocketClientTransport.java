@@ -32,6 +32,7 @@ public final class WebsocketClientTransport implements ClientTransport {
   private final HttpClient httpClient;
   private final AtomicLong sidCounter = new AtomicLong();
 
+  @SuppressWarnings("unused")
   private volatile Mono<?> websocketMono;
 
   /**

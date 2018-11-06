@@ -33,7 +33,6 @@ final class WebsocketSession {
   private final String id; // keep id for tracing
   private final ClientCodec<ByteBuf> codec;
   private final Connection connection;
-  private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
 
   // processor by sid mapping
@@ -44,10 +43,10 @@ final class WebsocketSession {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.connection = connection;
-    this.inbound = (WebsocketInbound) connection.inbound();
     this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
 
-    this.inbound
+    WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
+    inbound
         .aggregateFrames()
         .receive()
         .retain()
