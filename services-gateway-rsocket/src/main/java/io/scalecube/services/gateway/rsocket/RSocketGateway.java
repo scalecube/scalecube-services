@@ -80,10 +80,21 @@ public class RSocketGateway extends GatewayTemplate {
                 .map(
                     server -> {
                       server.dispose();
-                      return server.onClose();
+                      return server
+                          .onClose()
+                          .onErrorResume(
+                              e -> {
+                                LOGGER.error("Failed to close server", e);
+                                return Mono.empty();
+                              });
                     })
                 .orElse(Mono.empty())
-                .concatWith(shutdownBossGroup())
-                .then());
+                .then(
+                    shutdownBossGroup()
+                        .onErrorResume(
+                            e -> {
+                              LOGGER.error("Failed to close bossGroup", e);
+                              return Mono.empty();
+                            })));
   }
 }

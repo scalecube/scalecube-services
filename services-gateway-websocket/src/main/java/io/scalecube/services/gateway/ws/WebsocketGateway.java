@@ -69,10 +69,21 @@ public class WebsocketGateway extends GatewayTemplate {
                 .map(
                     server -> {
                       server.dispose();
-                      return server.onDispose();
+                      return server
+                          .onDispose()
+                          .onErrorResume(
+                              e -> {
+                                LOGGER.error("Failed to close server", e);
+                                return Mono.empty();
+                              });
                     })
                 .orElse(Mono.empty())
-                .concatWith(shutdownBossGroup())
-                .then());
+                .then(
+                    shutdownBossGroup()
+                        .onErrorResume(
+                            e -> {
+                              LOGGER.error("Failed to close bossGroup", e);
+                              return Mono.empty();
+                            })));
   }
 }

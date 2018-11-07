@@ -102,20 +102,37 @@ public class RSocketServerTransport implements ServerTransport {
                 .map(
                     server -> {
                       server.dispose();
-                      return server.onClose();
+                      return server
+                          .onClose()
+                          .onErrorResume(
+                              e -> {
+                                LOGGER.error("Failed to close server", e);
+                                return Mono.empty();
+                              });
                     })
                 .orElse(Mono.empty())
-                .concatWith(
-                    Flux.defer(
+                .then(
+                    Mono.defer(
                         () ->
-                            Flux.fromIterable(connections)
-                                .doOnNext(DisposableChannel::dispose)
-                                .flatMap(Connection::onTerminate)))
-                .concatWith(
-                    Mono.<Void>defer(
+                            Mono.when(
+                                    Flux.fromIterable(connections)
+                                        .doOnNext(DisposableChannel::dispose)
+                                        .map(Connection::onTerminate)
+                                        .toIterable())
+                                .onErrorResume(
+                                    e -> {
+                                      LOGGER.error("Failed to close connections", e);
+                                      return Mono.empty();
+                                    })))
+                .then(
+                    Mono.defer(
                         () ->
                             FutureMono.from(
-                                (Future) ((EventLoopGroup) bossGroup).shutdownGracefully())))
-                .then());
+                                    (Future) ((EventLoopGroup) bossGroup).shutdownGracefully())
+                                .onErrorResume(
+                                    e -> {
+                                      LOGGER.error("Failed to close bossGroup", e);
+                                      return Mono.empty();
+                                    }))));
   }
 }
