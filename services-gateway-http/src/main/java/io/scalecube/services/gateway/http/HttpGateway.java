@@ -47,14 +47,15 @@ public class HttpGateway extends GatewayTemplate {
           LoopResources loopResources =
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
 
-          server =
-              prepareHttpServer(loopResources, config.port(), null /*metrics*/)
-                  .handle(acceptor)
-                  .bindNow(START_TIMEOUT);
-
-          InetSocketAddress address = server.address();
-          LOGGER.info("Gateway has been started successfully on {}", address);
-          return Mono.just(this);
+          return prepareHttpServer(loopResources, config.port(), null /*metrics*/)
+              .handle(acceptor)
+              .bind()
+              .doOnSuccess(server -> this.server = server)
+              .doOnSuccess(
+                  server ->
+                      LOGGER.info(
+                          "HTTP Gateway has been started successfully on {}", server.address()))
+              .then(Mono.just(this));
         });
   }
 

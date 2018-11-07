@@ -47,14 +47,16 @@ public class WebsocketGateway extends GatewayTemplate {
           LoopResources loopResources =
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
 
-          server =
-              prepareHttpServer(loopResources, config.port(), metrics1)
-                  .handle(acceptor)
-                  .bindNow(START_TIMEOUT);
-
-          InetSocketAddress address = server.address();
-          LOGGER.info("Gateway has been started successfully on {}", address);
-          return Mono.just(this);
+          return prepareHttpServer(loopResources, config.port(), metrics1)
+              .handle(acceptor)
+              .bind()
+              .doOnSuccess(server -> this.server = server)
+              .doOnSuccess(
+                  server ->
+                      LOGGER.info(
+                          "Websocket Gateway has been started successfully on {}",
+                          server.address()))
+              .then(Mono.just(this));
         });
   }
 
