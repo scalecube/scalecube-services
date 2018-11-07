@@ -12,7 +12,6 @@ import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -27,8 +26,6 @@ public class RSocketGateway extends GatewayTemplate {
 
   private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
       new DefaultThreadFactory("rsws-boss", true);
-
-  private static final Duration START_TIMEOUT = Duration.ofSeconds(30);
 
   private CloseableChannel server;
 
