@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>rsocket-services-transport</artifactId>
+      <artifactId>scalecube-services-transport-rsocket</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

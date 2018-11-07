@@ -138,7 +138,7 @@ You can think about scalecube as slf4j for microservices - Currently supported S
 
 **Transport providers:**
 
-* rsocket-services-transport: using rsocket to communicate with remote services.
+* scalecube-services-transport-rsocket: using rsocket to communicate with remote services.
 
 **Message codec providers:**
 
@@ -200,7 +200,7 @@ To add a dependency on ScaleCube Services using Maven, use the following:
  ------------------------------------------- -->
  <dependency>
   <groupId>io.scalecube</groupId>
-  <artifactId>rsocket-services-transport</artifactId>
+  <artifactId>scalecube-services-transport-rsocket</artifactId>
   <version>2.x.x</version>
  </dependency>
  
