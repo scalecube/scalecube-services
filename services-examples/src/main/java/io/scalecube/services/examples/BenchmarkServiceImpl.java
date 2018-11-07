@@ -9,6 +9,11 @@ import reactor.core.scheduler.Schedulers;
 public class BenchmarkServiceImpl implements BenchmarkService {
 
   @Override
+  public Mono<Void> requestVoid(ServiceMessage request) {
+    return Mono.empty();
+  }
+
+  @Override
   public Mono<ServiceMessage> one(ServiceMessage message) {
     Callable<ServiceMessage> callable =
         () -> {

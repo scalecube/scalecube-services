@@ -19,6 +19,9 @@ public interface BenchmarkService {
   String CLIENT_SEND_TIME = "client-send-time";
 
   @ServiceMethod
+  Mono<Void> requestVoid(ServiceMessage request);
+
+  @ServiceMethod
   Mono<ServiceMessage> one(ServiceMessage message);
 
   @ServiceMethod

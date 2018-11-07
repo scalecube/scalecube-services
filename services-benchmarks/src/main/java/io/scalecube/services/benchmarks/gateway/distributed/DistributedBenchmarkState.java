@@ -2,8 +2,8 @@ package io.scalecube.services.benchmarks.gateway.distributed;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.benchmarks.BenchmarkServiceImpl;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
+import io.scalecube.services.examples.BenchmarkServiceImpl;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.http.HttpGateway;

@@ -1,7 +1,7 @@
 package io.scalecube.services.benchmarks.gateway;
 
-import static io.scalecube.services.benchmarks.BenchmarkService.CLIENT_RECV_TIME;
-import static io.scalecube.services.benchmarks.BenchmarkService.CLIENT_SEND_TIME;
+import static io.scalecube.services.examples.BenchmarkService.CLIENT_RECV_TIME;
+import static io.scalecube.services.examples.BenchmarkService.CLIENT_SEND_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;

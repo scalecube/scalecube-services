@@ -1,13 +1,13 @@
 package io.scalecube.services.benchmarks.transport;
 
-import static io.scalecube.services.benchmarks.BenchmarkService.CLIENT_RECV_TIME;
+import static io.scalecube.services.examples.BenchmarkService.CLIENT_RECV_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.benchmarks.BenchmarkService;
-import io.scalecube.services.benchmarks.BenchmarkServiceImpl;
 import io.scalecube.services.benchmarks.LatencyHelper;
+import io.scalecube.services.examples.BenchmarkService;
+import io.scalecube.services.examples.BenchmarkServiceImpl;
 import java.time.Duration;
 import java.util.Optional;
 import org.slf4j.Logger;
