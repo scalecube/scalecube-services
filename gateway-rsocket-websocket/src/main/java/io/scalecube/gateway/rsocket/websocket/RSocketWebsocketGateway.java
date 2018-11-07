@@ -54,20 +54,20 @@ public class RSocketWebsocketGateway extends GatewayTemplate {
               WebsocketServerTransport.create(
                   prepareHttpServer(loopResources, config.port(), metrics1));
 
-          server =
-              RSocketFactory.receive()
-                  .frameDecoder(
-                      frame ->
-                          ByteBufPayload.create(
-                              frame.sliceData().retain(), frame.sliceMetadata().retain()))
-                  .acceptor(acceptor)
-                  .transport(rsocketTransport)
-                  .start()
-                  .block(START_TIMEOUT);
-
-          InetSocketAddress address = server.address();
-          LOGGER.info("Gateway has been started successfully on {}", address);
-          return Mono.just(this);
+          return RSocketFactory.receive()
+              .frameDecoder(
+                  frame ->
+                      ByteBufPayload.create(
+                          frame.sliceData().retain(), frame.sliceMetadata().retain()))
+              .acceptor(acceptor)
+              .transport(rsocketTransport)
+              .start()
+              .doOnSuccess(server -> this.server = server)
+              .doOnSuccess(
+                  server ->
+                      LOGGER.info(
+                          "Rsocket Gateway has been started successfully on {}", server.address()))
+              .then(Mono.just(this));
         });
   }
 
