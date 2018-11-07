@@ -57,7 +57,6 @@
     <module>gateway-runner</module>
     <module>gateway-client-sdk</module>
     <module>gateway-tests</module>
-    <module>gateway-benchmarks</module>
     <module>gateway-common</module>
     <module>gateway-examples-runner</module>
     <module>gateway-service-runner</module>
