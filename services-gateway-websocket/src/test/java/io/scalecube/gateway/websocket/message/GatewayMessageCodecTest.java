@@ -1,6 +1,6 @@
 package io.scalecube.gateway.websocket.message;
 
-import static io.scalecube.gateway.websocket.message.GatewayMessage.STREAM_ID_FIELD;
+import static io.scalecube.gateway.websocket.GatewayMessage.STREAM_ID_FIELD;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -16,7 +16,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufOutputStream;
-import io.scalecube.gateway.websocket.message.GatewayMessage.Builder;
+import io.scalecube.gateway.websocket.GatewayMessage;
+import io.scalecube.gateway.websocket.GatewayMessage.Builder;
+import io.scalecube.gateway.websocket.GatewayMessageCodec;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;

@@ -30,10 +30,10 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
-public class GatewayHttpAcceptor
+public class HttpGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayHttpAcceptor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HttpGatewayAcceptor.class);
 
   private static final String SERVICE_RECV_TIME = "service-recv-time";
   private static final String SERVICE_SEND_TIME = "service-send-time";
@@ -43,7 +43,7 @@ public class GatewayHttpAcceptor
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
 
-  GatewayHttpAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
+  HttpGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
     this.serviceCall = serviceCall;
     this.metrics = metrics;
   }

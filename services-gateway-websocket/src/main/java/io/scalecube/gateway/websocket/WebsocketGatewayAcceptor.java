@@ -2,10 +2,7 @@ package io.scalecube.gateway.websocket;
 
 import io.scalecube.gateway.GatewayMetrics;
 import io.scalecube.gateway.ReferenceCountUtil;
-import io.scalecube.gateway.websocket.message.GatewayMessage;
-import io.scalecube.gateway.websocket.message.GatewayMessage.Builder;
-import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
-import io.scalecube.gateway.websocket.message.Signal;
+import io.scalecube.gateway.websocket.GatewayMessage.Builder;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
@@ -23,10 +20,10 @@ import reactor.netty.http.server.HttpServerResponse;
 import reactor.netty.http.websocket.WebsocketInbound;
 import reactor.netty.http.websocket.WebsocketOutbound;
 
-public class GatewayWebsocketAcceptor
+public class WebsocketGatewayAcceptor
     implements BiFunction<HttpServerRequest, HttpServerResponse, Publisher<Void>> {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayWebsocketAcceptor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGatewayAcceptor.class);
 
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
@@ -38,7 +35,7 @@ public class GatewayWebsocketAcceptor
    * @param serviceCall service call
    * @param metrics metrics instance
    */
-  public GatewayWebsocketAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
+  public WebsocketGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
     this.serviceCall = serviceCall;
     this.metrics = metrics;
   }

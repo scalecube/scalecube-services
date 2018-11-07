@@ -45,7 +45,7 @@ public class RSocketGateway extends GatewayTemplate {
           LOGGER.info("Starting gateway with {}", config);
 
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
-          RSocketAcceptor acceptor = new RSocketAcceptor(call.create(), metrics1);
+          RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(call.create(), metrics1);
 
           LoopResources loopResources =
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);

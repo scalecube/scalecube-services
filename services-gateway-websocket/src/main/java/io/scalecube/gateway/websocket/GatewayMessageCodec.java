@@ -1,11 +1,11 @@
-package io.scalecube.gateway.websocket.message;
+package io.scalecube.gateway.websocket;
 
 import static com.fasterxml.jackson.core.JsonToken.VALUE_NULL;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.DATA_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.INACTIVITY_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.RATE_LIMIT_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.SIGNAL_FIELD;
-import static io.scalecube.gateway.websocket.message.GatewayMessage.STREAM_ID_FIELD;
+import static io.scalecube.gateway.websocket.GatewayMessage.DATA_FIELD;
+import static io.scalecube.gateway.websocket.GatewayMessage.INACTIVITY_FIELD;
+import static io.scalecube.gateway.websocket.GatewayMessage.RATE_LIMIT_FIELD;
+import static io.scalecube.gateway.websocket.GatewayMessage.SIGNAL_FIELD;
+import static io.scalecube.gateway.websocket.GatewayMessage.STREAM_ID_FIELD;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;

@@ -42,7 +42,7 @@ public class WebsocketGateway extends GatewayTemplate {
           LOGGER.info("Starting gateway with {}", config);
 
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
-          GatewayWebsocketAcceptor acceptor = new GatewayWebsocketAcceptor(call.create(), metrics1);
+          WebsocketGatewayAcceptor acceptor = new WebsocketGatewayAcceptor(call.create(), metrics1);
 
           LoopResources loopResources =
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);

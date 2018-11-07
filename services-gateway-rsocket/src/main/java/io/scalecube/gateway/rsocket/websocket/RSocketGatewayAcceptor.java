@@ -16,14 +16,14 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class RSocketAcceptor implements SocketAcceptor {
+public class RSocketGatewayAcceptor implements SocketAcceptor {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketAcceptor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGatewayAcceptor.class);
 
   private final ServiceCall serviceCall;
   private final GatewayMetrics metrics;
 
-  public RSocketAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
+  public RSocketGatewayAcceptor(ServiceCall serviceCall, GatewayMetrics metrics) {
     this.serviceCall = serviceCall;
     this.metrics = metrics;
   }

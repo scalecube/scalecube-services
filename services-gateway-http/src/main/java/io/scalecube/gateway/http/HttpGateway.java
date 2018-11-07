@@ -42,7 +42,7 @@ public class HttpGateway extends GatewayTemplate {
           LOGGER.info("Starting gateway with {}", config);
 
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
-          GatewayHttpAcceptor acceptor = new GatewayHttpAcceptor(call.create(), metrics1);
+          HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(call.create(), metrics1);
 
           LoopResources loopResources =
               prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);

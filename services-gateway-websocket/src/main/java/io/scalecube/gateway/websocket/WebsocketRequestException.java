@@ -1,7 +1,6 @@
 package io.scalecube.gateway.websocket;
 
 import io.scalecube.gateway.ReferenceCountUtil;
-import io.scalecube.gateway.websocket.message.GatewayMessage;
 import java.util.Objects;
 import java.util.Optional;
 

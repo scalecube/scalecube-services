@@ -6,8 +6,8 @@ import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.gateway.ReferenceCountUtil;
-import io.scalecube.gateway.websocket.message.GatewayMessage;
-import io.scalecube.gateway.websocket.message.GatewayMessageCodec;
+import io.scalecube.gateway.websocket.GatewayMessage;
+import io.scalecube.gateway.websocket.GatewayMessageCodec;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
