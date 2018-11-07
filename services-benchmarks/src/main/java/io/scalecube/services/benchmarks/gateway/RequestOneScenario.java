@@ -1,10 +1,11 @@
 package io.scalecube.services.benchmarks.gateway;
 
-import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_RECV_TIME;
-import static io.scalecube.gateway.benchmarks.BenchmarksService.CLIENT_SEND_TIME;
+import static io.scalecube.services.benchmarks.BenchmarkService.CLIENT_RECV_TIME;
+import static io.scalecube.services.benchmarks.BenchmarkService.CLIENT_SEND_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
+import io.scalecube.services.benchmarks.LatencyHelper;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ReferenceCountUtil;

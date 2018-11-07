@@ -12,7 +12,7 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-examples</artifactId>
+      <artifactId>scalecube-services-examples</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

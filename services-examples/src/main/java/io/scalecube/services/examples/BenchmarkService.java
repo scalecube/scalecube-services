@@ -1,6 +1,6 @@
-package io.scalecube.services.examples.services;
+package io.scalecube.services.examples;
 
-import static io.scalecube.services.examples.services.BenchmarksService.NAMESPACE;
+import static io.scalecube.services.examples.BenchmarkService.NAMESPACE;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
@@ -9,7 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Service(NAMESPACE)
-public interface BenchmarksService {
+public interface BenchmarkService {
 
   String NAMESPACE = "benchmarks";
 

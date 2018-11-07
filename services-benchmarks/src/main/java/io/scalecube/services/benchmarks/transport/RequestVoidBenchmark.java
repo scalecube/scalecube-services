@@ -5,6 +5,8 @@ import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer.Context;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.benchmarks.BenchmarkService;
+import io.scalecube.services.benchmarks.BenchmarkServiceImpl;
 
 public class RequestVoidBenchmark {
 

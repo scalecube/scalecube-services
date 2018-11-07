@@ -1,4 +1,4 @@
-package io.scalecube.services.examples.services;
+package io.scalecube.services.examples;
 
 public class EchoRequest {
 

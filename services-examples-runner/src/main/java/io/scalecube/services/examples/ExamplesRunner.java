@@ -7,8 +7,6 @@ import io.scalecube.config.source.ClassPathConfigSource;
 import io.scalecube.config.source.SystemEnvironmentConfigSource;
 import io.scalecube.config.source.SystemPropertiesConfigSource;
 import io.scalecube.services.Microservices;
-import io.scalecube.services.examples.services.BenchmarksServiceImpl;
-import io.scalecube.services.examples.services.GreetingServiceImpl;
 import io.scalecube.services.transport.api.Address;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -61,7 +59,7 @@ public class ExamplesRunner {
                     .memberHost(config.memberHost())
                     .memberPort(config.memberPort()))
         .transport(options -> options.numOfThreads(numOfThreads).port(config.servicePort()))
-        .services(new BenchmarksServiceImpl(), new GreetingServiceImpl())
+        .services(new BenchmarkServiceImpl(), new GreetingServiceImpl())
         .startAwait();
 
     Thread.currentThread().join();

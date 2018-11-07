@@ -15,7 +15,7 @@ import io.scalecube.services.metrics.Metrics;
 import io.scalecube.services.registry.ServiceRegistryImpl;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.ServiceTransportConfig;
-import io.scalecube.services.transport.api.Addressing;
+import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
@@ -446,7 +446,7 @@ public class Microservices {
                       int port = listenAddress.getPort();
                       String host =
                           Optional.ofNullable(serviceHost)
-                              .orElseGet(() -> Addressing.getLocalIpAddress().getHostAddress());
+                              .orElseGet(() -> Address.getLocalIpAddress().getHostAddress());
                       this.serviceAddress = InetSocketAddress.createUnresolved(host, port);
                       return this;
                     });

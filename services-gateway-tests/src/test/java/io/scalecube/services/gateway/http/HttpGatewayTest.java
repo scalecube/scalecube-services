@@ -4,9 +4,9 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.scalecube.gateway.examples.GreetingRequest;
-import io.scalecube.gateway.examples.GreetingService;
-import io.scalecube.gateway.examples.GreetingServiceImpl;
+import io.scalecube.services.examples.GreetingRequest;
+import io.scalecube.services.examples.GreetingService;
+import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import java.time.Duration;

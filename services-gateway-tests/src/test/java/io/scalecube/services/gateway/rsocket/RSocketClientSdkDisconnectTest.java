@@ -4,9 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.StringEndsWith.endsWith;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 
-import io.scalecube.gateway.examples.GreetingService;
-import io.scalecube.gateway.examples.GreetingServiceImpl;
 import io.scalecube.services.Microservices;
+import io.scalecube.services.examples.GreetingService;
+import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.gateway.clientsdk.Client;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;

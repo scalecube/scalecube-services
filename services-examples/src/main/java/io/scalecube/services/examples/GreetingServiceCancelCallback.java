@@ -1,4 +1,4 @@
-package io.scalecube.services.examples.services;
+package io.scalecube.services.examples;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

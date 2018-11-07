@@ -1,9 +1,9 @@
 package io.scalecube.services.gateway.websocket;
 
-import io.scalecube.gateway.examples.GreetingRequest;
-import io.scalecube.gateway.examples.GreetingResponse;
-import io.scalecube.gateway.examples.GreetingService;
-import io.scalecube.gateway.examples.GreetingServiceImpl;
+import io.scalecube.services.examples.GreetingRequest;
+import io.scalecube.services.examples.GreetingResponse;
+import io.scalecube.services.examples.GreetingService;
+import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import java.time.Duration;
