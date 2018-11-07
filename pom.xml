@@ -27,6 +27,7 @@
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.4</scalecube-config.version>
     <reactor.version>3.2.1.RELEASE</reactor.version>
+    <reactor-test.version>3.2.1.RELEASE</reactor-test.version>
     <reactivestreams.version>1.0.2</reactivestreams.version>
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.8</rsocket.version>
@@ -43,21 +44,21 @@
 
   <modules>
     <module>services-api</module>
-    <module>rsocket-transport</module>
+    <module>services-transport-rsocket</module>
     <module>services-discovery</module>
-    <module>services-codec-jackson</module>
-    <module>services-codec-protostuff</module>
+    <module>services-transport-jackson</module>
+    <module>services-transport-protostuff</module>
     <module>services</module>
-    <module>benchmarks</module>
-    <module>examples</module>
-    <module>gateway-websocket</module>
-    <module>gateway-http</module>
-    <module>gateway-rsocket-websocket</module>
-    <module>gateway-runner</module>
-    <module>gateway-client-sdk</module>
-    <module>gateway-tests</module>
-    <module>gateway-common</module>
-    <module>gateway-examples-runner</module>
+    <module>services-benchmarks</module>
+    <module>services-examples</module>
+    <module>services-gateway-common</module>
+    <module>services-gateway-websocket</module>
+    <module>services-gateway-http</module>
+    <module>services-gateway-rsocket</module>
+    <module>services-gateway-tests</module>
+    <module>services-gateway-runner</module>
+    <module>services-examples-runner</module>
+    <module>services-gateway-clientsdk</module>
   </modules>
 
   <dependencyManagement>
