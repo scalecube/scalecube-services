@@ -13,7 +13,7 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ProtostuffCodec implements HeadersCodec, DataCodec {
+public final class ProtostuffCodec implements HeadersCodec, DataCodec {
 
   public static final String CONTENT_TYPE = "application/protostuff";
 
