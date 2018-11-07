@@ -1,7 +1,7 @@
-package io.scalecube.benchmarks.services.codec.protostuff;
+package io.scalecube.benchmarks.transport.codec.protostuff;
 
-import io.scalecube.benchmarks.services.codec.SmCodecBenchmarkState;
-import io.scalecube.benchmarks.services.codec.SmPartialEncodeScenario;
+import io.scalecube.benchmarks.transport.codec.SmCodecBenchmarkState;
+import io.scalecube.benchmarks.transport.codec.SmPartialEncodeScenario;
 
 public class ProtostuffSmPartialEncodeBenchmark {
 

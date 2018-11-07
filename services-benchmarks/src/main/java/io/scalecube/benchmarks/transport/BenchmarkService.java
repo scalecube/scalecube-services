@@ -1,6 +1,6 @@
-package io.scalecube.benchmarks.services;
+package io.scalecube.benchmarks.transport;
 
-import static io.scalecube.benchmarks.services.BenchmarkService.NAMESPACE;
+import static io.scalecube.benchmarks.transport.BenchmarkService.NAMESPACE;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;

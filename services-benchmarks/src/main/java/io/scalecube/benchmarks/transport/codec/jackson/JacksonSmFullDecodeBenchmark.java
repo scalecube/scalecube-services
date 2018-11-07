@@ -1,7 +1,7 @@
-package io.scalecube.benchmarks.services.codec.jackson;
+package io.scalecube.benchmarks.transport.codec.jackson;
 
-import io.scalecube.benchmarks.services.codec.SmCodecBenchmarkState;
-import io.scalecube.benchmarks.services.codec.SmFullDecodeScenario;
+import io.scalecube.benchmarks.transport.codec.SmCodecBenchmarkState;
+import io.scalecube.benchmarks.transport.codec.SmFullDecodeScenario;
 
 public class JacksonSmFullDecodeBenchmark {
 

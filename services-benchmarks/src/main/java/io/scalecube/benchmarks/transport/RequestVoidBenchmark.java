@@ -1,4 +1,4 @@
-package io.scalecube.benchmarks.services;
+package io.scalecube.benchmarks.transport;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;

@@ -1,6 +1,6 @@
-package io.scalecube.benchmarks.services;
+package io.scalecube.benchmarks.transport;
 
-import static io.scalecube.benchmarks.services.BenchmarkService.CLIENT_RECV_TIME;
+import static io.scalecube.benchmarks.transport.BenchmarkService.CLIENT_RECV_TIME;
 
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;

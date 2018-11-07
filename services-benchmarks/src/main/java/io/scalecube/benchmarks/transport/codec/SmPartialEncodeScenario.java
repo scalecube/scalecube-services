@@ -1,6 +1,6 @@
-package io.scalecube.benchmarks.services.codec;
+package io.scalecube.benchmarks.transport.codec;
 
-import io.netty.buffer.ByteBuf;
+import io.netty.util.ReferenceCountUtil;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.BenchmarkState;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
@@ -11,9 +11,9 @@ import io.scalecube.services.codec.ServiceMessageCodec;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class SmFullDecodeScenario {
+public class SmPartialEncodeScenario {
 
-  private SmFullDecodeScenario() {
+  private SmPartialEncodeScenario() {
     // Do not instantiate
   }
 
@@ -36,18 +36,20 @@ public class SmFullDecodeScenario {
           BenchmarkTimer timer = state.timer("timer");
           BenchmarkMeter meter = state.meter("meter");
           ServiceMessageCodec messageCodec = state.messageCodec();
-          Class<?> dataType = state.dataType();
+          ServiceMessage message = state.messageWithByteBuf();
 
           return i -> {
             Context timeContext = timer.time();
-            ByteBuf dataBuffer = state.dataBuffer().retain();
-            ByteBuf headersBuffer = state.headersBuffer().retain();
-            ServiceMessage message =
-                ServiceMessageCodec.decodeData(
-                    messageCodec.decode(dataBuffer, headersBuffer), dataType);
+            Object result =
+                messageCodec.encodeAndTransform(
+                    message,
+                    (dataByteBuf, headersByteBuf) -> {
+                      ReferenceCountUtil.release(headersByteBuf);
+                      return dataByteBuf;
+                    });
             timeContext.stop();
             meter.mark();
-            return message;
+            return result;
           };
         });
   }

@@ -1,4 +1,4 @@
-package io.scalecube.benchmarks.services;
+package io.scalecube.benchmarks.transport;
 
 import io.scalecube.services.api.ServiceMessage;
 import java.util.concurrent.Callable;

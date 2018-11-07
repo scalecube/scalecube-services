@@ -1,4 +1,4 @@
-package io.scalecube.benchmarks.services.codec;
+package io.scalecube.benchmarks.transport.codec;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
