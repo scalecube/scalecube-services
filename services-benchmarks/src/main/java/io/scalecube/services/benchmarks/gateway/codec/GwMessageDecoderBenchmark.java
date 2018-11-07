@@ -1,6 +1,5 @@
 package io.scalecube.services.benchmarks.gateway.codec;
 
-import io.netty.buffer.ByteBuf;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.benchmarks.metrics.BenchmarkMeter;
 import io.scalecube.benchmarks.metrics.BenchmarkTimer;
@@ -26,13 +25,12 @@ public class GwMessageDecoderBenchmark {
         .runForSync(
             state -> {
               GatewayMessageCodec codec = state.codec();
-              ByteBuf bb = state.byteBufExample();
               BenchmarkTimer timer = state.timer("timer");
               BenchmarkMeter meter = state.meter("meter");
 
               return i -> {
                 Context timerContext = timer.time();
-                GatewayMessage message = codec.decode(bb.retain());
+                GatewayMessage message = codec.decode(state.byteBufExample().retain());
                 Optional.ofNullable(message.data()) //
                     .ifPresent(ReferenceCountUtil::safestRelease);
                 timerContext.stop();
