@@ -34,7 +34,7 @@ public class ExamplesRunner {
 
     Config config =
         configRegistry
-            .objectProperty("io.scalecube.gateway.examples", Config.class)
+            .objectProperty("io.scalecube.services.examples", Config.class)
             .value()
             .orElseThrow(() -> new IllegalStateException("Couldn't load config"));
 

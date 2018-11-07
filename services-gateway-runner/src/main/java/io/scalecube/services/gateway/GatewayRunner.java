@@ -43,7 +43,7 @@ public class GatewayRunner {
 
     Config config =
         configRegistry
-            .objectProperty("io.scalecube.gateway", Config.class)
+            .objectProperty("io.scalecube.services.gateway", Config.class)
             .value()
             .orElseThrow(() -> new IllegalStateException("Couldn't load config"));
 
