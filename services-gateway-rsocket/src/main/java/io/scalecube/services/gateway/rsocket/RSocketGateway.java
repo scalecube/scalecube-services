@@ -12,8 +12,7 @@ import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,14 +75,15 @@ public class RSocketGateway extends GatewayTemplate {
   @Override
   public Mono<Void> stop() {
     return Mono.defer(
-        () -> {
-          List<Mono<Void>> stopList = new ArrayList<>();
-          stopList.add(shutdownBossGroup());
-          if (server != null) {
-            server.dispose();
-            stopList.add(server.onClose());
-          }
-          return Mono.when(stopList);
-        });
+        () ->
+            Optional.ofNullable(server)
+                .map(
+                    server -> {
+                      server.dispose();
+                      return server.onClose();
+                    })
+                .orElse(Mono.empty())
+                .concatWith(shutdownBossGroup())
+                .then());
   }
 }
