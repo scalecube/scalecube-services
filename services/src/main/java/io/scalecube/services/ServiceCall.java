@@ -3,8 +3,6 @@ package io.scalecube.services;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.codec.ReferenceCountUtil;
-import io.scalecube.services.codec.ServiceMessageCodec;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
@@ -15,6 +13,8 @@ import io.scalecube.services.routing.Router;
 import io.scalecube.services.routing.Routers;
 import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
+import io.scalecube.services.transport.api.ReferenceCountUtil;
+import io.scalecube.services.transport.api.ServiceMessageCodec;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;

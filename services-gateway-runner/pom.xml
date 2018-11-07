@@ -10,7 +10,7 @@
   <artifactId>scalecube-gateway-runner</artifactId>
 
   <properties>
-    <mainClass>io.scalecube.gateway.GatewayRunner</mainClass>
+    <mainClass>io.scalecube.services.gateway.GatewayRunner</mainClass>
   </properties>
 
   <dependencies>
