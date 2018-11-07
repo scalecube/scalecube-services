@@ -75,7 +75,7 @@ public class GwMessageCodecBenchmarkState extends BenchmarkState<GwMessageCodecB
 
   private GatewayMessage generateGatewayMessage(Object data) {
     return GatewayMessage.builder()
-        .qualifier("io.scalecube.gateway.benchmarks/SomeBenchmarkService/benchmark")
+        .qualifier("/some/service")
         .streamId(Long.MAX_VALUE)
         .signal(9)
         .inactivity(Integer.MAX_VALUE)
