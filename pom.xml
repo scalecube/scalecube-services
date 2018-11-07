@@ -52,14 +52,12 @@
     <module>examples</module>
     <module>gateway-websocket</module>
     <module>gateway-http</module>
-    <module>gateway-examples</module>
     <module>gateway-rsocket-websocket</module>
     <module>gateway-runner</module>
     <module>gateway-client-sdk</module>
     <module>gateway-tests</module>
     <module>gateway-common</module>
     <module>gateway-examples-runner</module>
-    <module>gateway-service-runner</module>
   </modules>
 
   <dependencyManagement>

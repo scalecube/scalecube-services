@@ -1,4 +1,4 @@
-package io.scalecube.gateway.examples;
+package io.scalecube.examples.services;
 
 import java.time.Duration;
 import java.util.stream.LongStream;

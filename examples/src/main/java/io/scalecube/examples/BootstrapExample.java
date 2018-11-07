@@ -1,7 +1,7 @@
 package io.scalecube.examples;
 
-import io.scalecube.examples.gateway.HttpStubGateway;
-import io.scalecube.examples.gateway.WebsocketStubGateway;
+import io.scalecube.examples.spi.gateway.HttpStubGateway;
+import io.scalecube.examples.spi.gateway.WebsocketStubGateway;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;

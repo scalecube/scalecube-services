@@ -44,7 +44,6 @@
       <artifactId>scalecube-gateway-websocket</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>config</artifactId>

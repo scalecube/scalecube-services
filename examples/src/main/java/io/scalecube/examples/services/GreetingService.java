@@ -1,4 +1,4 @@
-package io.scalecube.gateway.examples;
+package io.scalecube.examples.services;
 
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;

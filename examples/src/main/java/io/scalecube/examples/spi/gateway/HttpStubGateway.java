@@ -1,4 +1,4 @@
-package io.scalecube.examples.gateway;
+package io.scalecube.examples.spi.gateway;
 
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.gateway.Gateway;

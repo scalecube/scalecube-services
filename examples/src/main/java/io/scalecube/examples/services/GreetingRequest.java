@@ -1,4 +1,4 @@
-package io.scalecube.gateway.examples;
+package io.scalecube.examples.services;
 
 public class GreetingRequest {
 
