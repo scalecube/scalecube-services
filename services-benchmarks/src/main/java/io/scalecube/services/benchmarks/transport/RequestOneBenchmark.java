@@ -9,6 +9,8 @@ import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.benchmarks.LatencyHelper;
 import io.scalecube.services.examples.BenchmarkServiceImpl;
+import io.scalecube.services.gateway.clientsdk.ReferenceCountUtil;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +18,7 @@ public class RequestOneBenchmark {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RequestOneBenchmark.class);
 
-  private static final String QUALIFIER = "/benchmarks/requestOne";
+  private static final String QUALIFIER = "/benchmarks/one";
 
   /**
    * Main method.
@@ -44,6 +46,8 @@ public class RequestOneBenchmark {
                     .doOnNext(
                         message -> {
                           serviceToClientMeter.mark();
+                          Optional.ofNullable(message.data())
+                              .ifPresent(ReferenceCountUtil::safestRelease);
                           latencyHelper.calculate(message);
                         })
                     .doOnError(ex -> LOGGER.warn("Exception occured: " + ex));
