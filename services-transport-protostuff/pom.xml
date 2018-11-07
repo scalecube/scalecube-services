@@ -8,7 +8,7 @@
     <version>2.3.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>scalecube-services-protostuff</artifactId>
+  <artifactId>scalecube-services-transport-protostuff</artifactId>
 
   <dependencies>
     <dependency>

@@ -7,12 +7,12 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-gateway-http</artifactId>
+  <artifactId>scalecube-services-gateway-http</artifactId>
 
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-common</artifactId>
+      <artifactId>scalecube-services-gateway-common</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -31,7 +31,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
+      <artifactId>scalecube-services-transport-jackson</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

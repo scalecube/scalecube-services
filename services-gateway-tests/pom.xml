@@ -7,7 +7,7 @@
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>scalecube-gateway-tests</artifactId>
+  <artifactId>scalecube-services-gateway-tests</artifactId>
 
   <dependencies>
     <dependency>
@@ -17,22 +17,22 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-http</artifactId>
+      <artifactId>scalecube-services-gateway-http</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-websocket</artifactId>
+      <artifactId>scalecube-services-gateway-websocket</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-rsocket-websocket</artifactId>
+      <artifactId>scalecube-services-gateway-rsocket</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-clientsdk</artifactId>
+      <artifactId>scalecube-services-gateway-clientsdk</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -42,7 +42,7 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
+      <artifactId>scalecube-services-transport-jackson</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

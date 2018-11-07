@@ -24,7 +24,7 @@
 
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-jackson</artifactId>
+      <artifactId>scalecube-services-transport-jackson</artifactId>
       <version>${project.version}</version>
     </dependency>
 
