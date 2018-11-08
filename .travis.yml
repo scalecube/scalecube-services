@@ -20,3 +20,8 @@ deploy:
   - "./src/main/scripts/cd/release.sh"
   on:
     branch: master
+- provider: script
+  script:
+  - "./src/main/scripts/cd/push_docker_image.sh"
+  on:
+    branch: /^(?!(master$|develop$)).*$/
