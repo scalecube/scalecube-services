@@ -16,12 +16,11 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
-import reactor.netty.DisposableChannel;
 import reactor.netty.FutureMono;
 import reactor.netty.tcp.TcpServer;
 
@@ -95,44 +94,53 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Mono<Void> stop() {
-    //noinspection unchecked
+    return shutdownServer(server).then(closeConnections()).then(shutdownBossGroup());
+  }
+
+  private Mono<Void> closeConnections() {
     return Mono.defer(
         () ->
-            Optional.ofNullable(server)
+            Mono.when(
+                    connections
+                        .stream()
+                        .map(
+                            connection -> {
+                              connection.dispose();
+                              return connection
+                                  .onTerminate()
+                                  .doOnError(e -> LOGGER.warn("Failed to close connection: " + e))
+                                  .onErrorResume(e -> Mono.empty());
+                            })
+                        .collect(Collectors.toList()))
+                .doOnTerminate(connections::clear));
+  }
+
+  private Mono<Void> shutdownBossGroup() {
+    return Mono.defer(
+        () -> {
+          //noinspection unchecked
+          return Optional.ofNullable(bossGroup)
+              .map(
+                  bossGroup ->
+                      FutureMono.from((Future<Void>) bossGroup.shutdownGracefully())
+                          .doOnError(e -> LOGGER.warn("Failed to close bossGroup: " + e))
+                          .onErrorResume(e -> Mono.empty()))
+              .orElse(Mono.empty());
+        });
+  }
+
+  private Mono<Void> shutdownServer(CloseableChannel closeableChannel) {
+    return Mono.defer(
+        () ->
+            Optional.ofNullable(closeableChannel)
                 .map(
                     server -> {
                       server.dispose();
                       return server
                           .onClose()
-                          .onErrorResume(
-                              e -> {
-                                LOGGER.error("Failed to close server", e);
-                                return Mono.empty();
-                              });
+                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e))
+                          .onErrorResume(e -> Mono.empty());
                     })
-                .orElse(Mono.empty())
-                .then(
-                    Mono.defer(
-                        () ->
-                            Mono.when(
-                                    Flux.fromIterable(connections)
-                                        .doOnNext(DisposableChannel::dispose)
-                                        .map(Connection::onTerminate)
-                                        .toIterable())
-                                .onErrorResume(
-                                    e -> {
-                                      LOGGER.error("Failed to close connections", e);
-                                      return Mono.empty();
-                                    })))
-                .then(
-                    Mono.defer(
-                        () ->
-                            FutureMono.from(
-                                    (Future) ((EventLoopGroup) bossGroup).shutdownGracefully())
-                                .onErrorResume(
-                                    e -> {
-                                      LOGGER.error("Failed to close bossGroup", e);
-                                      return Mono.empty();
-                                    }))));
+                .orElse(Mono.empty()));
   }
 }

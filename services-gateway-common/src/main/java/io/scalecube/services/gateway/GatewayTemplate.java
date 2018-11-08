@@ -8,12 +8,17 @@ import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.netty.DisposableServer;
 import reactor.netty.FutureMono;
 import reactor.netty.http.server.HttpServer;
 import reactor.netty.resources.LoopResources;
 
 public abstract class GatewayTemplate implements Gateway {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(GatewayTemplate.class);
 
   private static final int BOSS_THREADS_NUM = 1;
 
@@ -88,11 +93,37 @@ public abstract class GatewayTemplate implements Gateway {
    * @return mono handle
    */
   protected final Mono<Void> shutdownBossGroup() {
-    //noinspection unchecked
+    return Mono.defer(
+        () -> {
+          //noinspection unchecked
+          return Optional.ofNullable(bossGroup)
+              .map(
+                  bossGroup ->
+                      FutureMono.from((Future<Void>) bossGroup.shutdownGracefully())
+                          .doOnError(e -> LOGGER.warn("Failed to close bossGroup: " + e))
+                          .onErrorResume(e -> Mono.empty()))
+              .orElse(Mono.empty());
+        });
+  }
+
+  /**
+   * Shutting down server of type {@link DisposableServer} if it's not null.
+   *
+   * @param disposableServer server
+   * @return mono hanle
+   */
+  protected final Mono<Void> shutdownServer(DisposableServer disposableServer) {
     return Mono.defer(
         () ->
-            bossGroup == null
-                ? Mono.empty()
-                : FutureMono.from((Future) ((EventLoopGroup) bossGroup).shutdownGracefully()));
+            Optional.ofNullable(disposableServer)
+                .map(
+                    server -> {
+                      server.dispose();
+                      return server
+                          .onDispose()
+                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e))
+                          .onErrorResume(e -> Mono.empty());
+                    })
+                .orElse(Mono.empty()));
   }
 }
