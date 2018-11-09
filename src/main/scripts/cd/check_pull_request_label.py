@@ -21,4 +21,4 @@ def check_label_in_pull_request(organization, repo_name, cloud_label, pull_reque
         print "not exist"
 
 if __name__ == "__main__":
-check_label_in_pull_request(organization, repo_name, cloud_label, pull_request_number)
+    check_label_in_pull_request(organization, repo_name, cloud_label, pull_request_number)
