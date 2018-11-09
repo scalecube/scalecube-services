@@ -25,5 +25,4 @@ deploy:
   - "./src/main/scripts/cd/push_docker_image.sh"
   on:
     all_branches: true
-    condition: branch != master OR \
-               branch != develop
+    condition: branch != master OR branch != develop
