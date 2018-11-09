@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 pip install --user -r requirements.txt
 label_exist=$(python src/main/scripts/cd/check_pull_request_label.py)
+echo "Travis PULL_REQUEST is $TRAVIS_PULL_REQUEST"
 if [ ! "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$label_exist" == "exist" ]; then
     mvn clean install -DskipTests
     LABEL=$(echo $(git rev-parse HEAD) | cut -c1-7)
