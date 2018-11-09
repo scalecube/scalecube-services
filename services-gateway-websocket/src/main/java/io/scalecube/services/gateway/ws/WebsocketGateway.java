@@ -8,7 +8,6 @@ import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.metrics.Metrics;
 import java.net.InetSocketAddress;
-import java.util.Optional;
 import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,27 +62,6 @@ public class WebsocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Void> stop() {
-    return Mono.defer(
-        () ->
-            Optional.ofNullable(server)
-                .map(
-                    server -> {
-                      server.dispose();
-                      return server
-                          .onDispose()
-                          .onErrorResume(
-                              e -> {
-                                LOGGER.error("Failed to close server", e);
-                                return Mono.empty();
-                              });
-                    })
-                .orElse(Mono.empty())
-                .then(
-                    shutdownBossGroup()
-                        .onErrorResume(
-                            e -> {
-                              LOGGER.error("Failed to close bossGroup", e);
-                              return Mono.empty();
-                            })));
+    return shutdownServer(server).then(shutdownBossGroup());
   }
 }
