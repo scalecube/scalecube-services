@@ -1,6 +1,9 @@
 package io.scalecube.services.transport.api;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Objects;
+import reactor.core.Exceptions;
 
 public class Address {
 
@@ -37,6 +40,21 @@ public class Address {
     String host = split[0];
     int port = Integer.parseInt(split[1]);
     return new Address(host, port);
+  }
+
+  /**
+   * Getting local IP address by the address of local host. <b>NOTE:</b> returned IP address is
+   * expected to be a publicly visible IP address.
+   *
+   * @throws RuntimeException wrapped {@link UnknownHostException} in case when local host name
+   *     couldn't be resolved into an address.
+   */
+  public static InetAddress getLocalIpAddress() {
+    try {
+      return InetAddress.getLocalHost();
+    } catch (UnknownHostException e) {
+      throw Exceptions.propagate(e);
+    }
   }
 
   public String host() {

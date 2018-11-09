@@ -138,12 +138,12 @@ You can think about scalecube as slf4j for microservices - Currently supported S
 
 **Transport providers:**
 
-* rsocket-services-transport: using rsocket to communicate with remote services.
+* scalecube-services-transport-rsocket: using rsocket to communicate with remote services.
 
 **Message codec providers:**
 
-* scalecube-services-jackson: using Jackson to encode / decode service messages. https://github.com/FasterXML
-* scalecube-services-protostuff: using protostuff to encode / decode service messages. https://github.com/protostuff
+* scalecube-services-transport-jackson: using Jackson to encode / decode service messages. https://github.com/FasterXML
+* scalecube-services-transport-protostuff: using protostuff to encode / decode service messages. https://github.com/protostuff
  
 **Service discovery providers:**
 
@@ -154,9 +154,9 @@ You can think about scalecube as slf4j for microservices - Currently supported S
 
 releases: https://github.com/scalecube/scalecube-gateway/releases
 
-* HTTP-Gateway - scalecube-gateway-http
-* RSocket-Gateway - scalecube-gateway-rsocket-websocket
-* WebSocket - scalecube-gateway-websocket
+* HTTP-Gateway - scalecube-services-gateway-http
+* RSocket-Gateway - scalecube-services-gateway-rsocket
+* WebSocket - scalecube-services-gateway-websocket
 
 
 Binaries and dependency information for Maven can be found at http://search.maven.org.
@@ -200,7 +200,7 @@ To add a dependency on ScaleCube Services using Maven, use the following:
  ------------------------------------------- -->
  <dependency>
   <groupId>io.scalecube</groupId>
-  <artifactId>rsocket-services-transport</artifactId>
+  <artifactId>scalecube-services-transport-rsocket</artifactId>
   <version>2.x.x</version>
  </dependency>
  
@@ -211,14 +211,14 @@ To add a dependency on ScaleCube Services using Maven, use the following:
  <!-- jackson scalecube messages codec -->
  <dependency>
   <groupId>io.scalecube</groupId>
-  <artifactId>scalecube-services-jackson</artifactId>
+  <artifactId>scalecube-services-transport-jackson</artifactId>
   <version>2.x.x</version>
  </dependency>
 
 <!-- protostuff scalecube messages codec -->
  <dependency>
   <groupId>io.scalecube</groupId>
-  <artifactId>scalecube-services-protostuff</artifactId>
+  <artifactId>scalecube-services-transport-protostuff</artifactId>
   <version>2.x.x</version>
  </dependency>
 
@@ -238,24 +238,24 @@ To add a dependency on ScaleCube Services using Maven, use the following:
     please see: https://github.com/scalecube/scalecube-gateway
    ------------------------------------------- -->
    
-  <!-- HTTP https://mvnrepository.com/artifact/io.scalecube/scalecube-gateway-http-->
+  <!-- HTTP https://mvnrepository.com/artifact/io.scalecube/scalecube-services-gateway-http-->
   <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-http</artifactId>
+      <artifactId>scalecube-services-gateway-http</artifactId>
       <version>2.x.x</version>
     </dependency>
 
-    <!-- RSocket WebSocket https://mvnrepository.com/artifact/io.scalecube/scalecube-gateway-rsocket-websocket -->
+    <!-- RSocket WebSocket https://mvnrepository.com/artifact/io.scalecube/scalecube-services-gateway-rsocket -->
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-rsocket-websocket</artifactId>
+      <artifactId>scalecube-services-gateway-rsocket</artifactId>
       <version>2.x.x</version>
     </dependency>
 
-    <!-- WebSocket https://mvnrepository.com/artifact/io.scalecube/scalecube-gateway-websocket -->
+    <!-- WebSocket https://mvnrepository.com/artifact/io.scalecube/scalecube-services-gateway-websocket -->
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-gateway-websocket</artifactId>
+      <artifactId>scalecube-services-gateway-websocket</artifactId>
       <version>2.x.x</version>
     </dependency>
 

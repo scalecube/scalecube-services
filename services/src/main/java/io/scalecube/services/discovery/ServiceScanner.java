@@ -8,7 +8,7 @@ import io.scalecube.services.ServiceMethodDefinition;
 import io.scalecube.services.ServiceRegistration;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
-import io.scalecube.services.codec.DataCodec;
+import io.scalecube.services.transport.api.DataCodec;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
