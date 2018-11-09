@@ -8,6 +8,7 @@ jdk: openjdk8
 before_install:
 - "./src/main/scripts/ci/before-install.sh"
 - "./src/main/scripts/cd/before-deploy.sh"
+- "./src/main/scripts/ci/push_docker_image.sh"
 after_success: "./src/main/scripts/ci/after-success.sh"
 deploy:
 - provider: script
@@ -20,9 +21,3 @@ deploy:
   - "./src/main/scripts/cd/release.sh"
   on:
     branch: master
-- provider: script
-  script:
-  - "./src/main/scripts/cd/push_docker_image.sh"
-  on:
-    all_branches: true
-    condition: $TRAVIS_BRANCH != master && $TRAVIS_BRANCH != develop
