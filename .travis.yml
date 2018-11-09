@@ -24,4 +24,5 @@ deploy:
   script:
   - "./src/main/scripts/cd/push_docker_image.sh"
   on:
-    branch: /^(?!(master$|develop$)).*$/
+    all_branches: true
+    condition: type = pull_request
