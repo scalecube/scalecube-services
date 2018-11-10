@@ -18,7 +18,7 @@ def check_label_in_pull_request(organization, repo_name, cloud_label, pull_reque
             if label['name'] == cloud_label:
                 print "exist"
     except Exception as e:
-        print "Esception({0}): {1}".format(e.errno, e.strerror)    
+        print "Esception({0}): {1}".format(e.errno, e.strerror)
 
 if __name__ == "__main__":
     check_label_in_pull_request(organization, repo_name, cloud_label, pull_request_number)
