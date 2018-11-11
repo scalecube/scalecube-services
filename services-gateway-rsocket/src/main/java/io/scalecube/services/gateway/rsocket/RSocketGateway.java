@@ -74,27 +74,21 @@ public class RSocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Void> stop() {
+    return shutdownServer(server).then(shutdownBossGroup());
+  }
+
+  private Mono<Void> shutdownServer(CloseableChannel closeableChannel) {
     return Mono.defer(
         () ->
-            Optional.ofNullable(server)
+            Optional.ofNullable(closeableChannel)
                 .map(
                     server -> {
                       server.dispose();
                       return server
                           .onClose()
-                          .onErrorResume(
-                              e -> {
-                                LOGGER.error("Failed to close server", e);
-                                return Mono.empty();
-                              });
+                          .doOnError(e -> LOGGER.warn("Failed to close server: " + e))
+                          .onErrorResume(e -> Mono.empty());
                     })
-                .orElse(Mono.empty())
-                .then(
-                    shutdownBossGroup()
-                        .onErrorResume(
-                            e -> {
-                              LOGGER.error("Failed to close bossGroup", e);
-                              return Mono.empty();
-                            })));
+                .orElse(Mono.empty()));
   }
 }
