@@ -11,7 +11,7 @@
   <artifactId>scalecube-services-benchmarks</artifactId>
 
   <properties>
-    <uberjar.name>scalecube-services-benchmarks</uberjar.name>
+    <extratags>${env.TRAVIS_COMMIT}</extratags>
   </properties>
 
   <dependencies>

@@ -10,6 +10,7 @@
   <artifactId>scalecube-services-gateway-runner</artifactId>
 
   <properties>
+    <extratags>${env.TRAVIS_COMMIT}</extratags>
     <mainClass>io.scalecube.services.gateway.GatewayRunner</mainClass>
   </properties>
 
