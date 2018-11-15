@@ -66,11 +66,10 @@ public class WebsocketGatewayAcceptor
                           LOGGER.error("Exception occurred: {}, session={}", th, session.id());
                           if (th instanceof WebsocketRequestException) {
                             WebsocketRequestException ex = (WebsocketRequestException) th;
-                            session
-                                .send(ex.getCause(), ex.releaseRequest().request().streamId())
-                                .subscribe();
+                            handleError(session, ex.releaseRequest().request().streamId(), th);
                           }
-                        }));
+                        }),
+            th -> LOGGER.error("Exception occurred on receiving from session {}", session, th));
 
     return session.onClose(() -> LOGGER.info("Session disconnected: " + session));
   }
@@ -92,13 +91,18 @@ public class WebsocketGatewayAcceptor
             .doFinally(signalType -> session.dispose(sid))
             .subscribe(
                 response ->
-                    session.send(response).doOnSuccess(avoid -> metrics.markResponse()).subscribe(),
+                    session
+                        .send(response)
+                        .subscribe(
+                            avoid -> metrics.markResponse(),
+                            th ->
+                                LOGGER.error(
+                                    "Exception occurred on sending response for session {}",
+                                    session,
+                                    th)),
                 th -> {
                   LOGGER.error(
-                      "Exception occurred on request: {}, session={}, cause: {}",
-                      request,
-                      session.id(),
-                      th);
+                      "Exception occurred on request: {}, session={}", request, session.id(), th);
                   handleError(session, sid, th);
                 },
                 () -> {
@@ -113,7 +117,16 @@ public class WebsocketGatewayAcceptor
     Builder builder = GatewayMessage.from(ExceptionProcessor.toMessage(th));
     Optional.ofNullable(sid).ifPresent(builder::streamId);
     GatewayMessage response = builder.signal(Signal.ERROR).build();
-    session.send(response).subscribe();
+    session
+        .send(response)
+        .subscribe(
+            null,
+            throwable ->
+                LOGGER.error(
+                    "Exception occurred on sending ERROR signal: {}, session={}",
+                    response,
+                    session.id(),
+                    throwable));
   }
 
   private void handleCompletion(WebsocketSession session, Long sid, AtomicBoolean receivedError) {
@@ -121,7 +134,16 @@ public class WebsocketGatewayAcceptor
       Builder builder = GatewayMessage.builder();
       Optional.ofNullable(sid).ifPresent(builder::streamId);
       GatewayMessage response = builder.signal(Signal.COMPLETE).build();
-      session.send(response).subscribe();
+      session
+          .send(response)
+          .subscribe(
+              null,
+              throwable ->
+                  LOGGER.error(
+                      "Exception occurred on sending COMPLETE signal: {}, session={}",
+                      response,
+                      session.id(),
+                      throwable));
     }
   }
 
