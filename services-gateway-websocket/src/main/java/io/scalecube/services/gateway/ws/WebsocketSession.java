@@ -5,9 +5,6 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ExceptionProcessor;
-import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
 import java.util.Map;
 import java.util.Optional;
 import org.jctools.maps.NonBlockingHashMapLong;
@@ -90,21 +87,6 @@ public final class WebsocketSession {
         .doOnSuccessOrError((avoid, th) -> logSend(response, th));
   }
 
-  /**
-   * Method to send error response.
-   *
-   * @param err error
-   * @param sid stream id; optional
-   * @return mono void
-   */
-  public Mono<Void> send(Throwable err, Long sid) {
-    return send(Mono.just(err)
-            .map(ExceptionProcessor::toMessage)
-            .map(msg -> toErrorMessage(sid, msg))
-            .map(messageCodec::encode))
-        .doOnSuccessOrError((avoid, th) -> logSend(err, sid, th));
-  }
-
   private Mono<Void> send(Mono<ByteBuf> publisher) {
     return publisher
         .map(TextWebSocketFrame::new)
@@ -117,20 +99,6 @@ public final class WebsocketSession {
     } else {
       LOGGER.warn("<< SEND failed: {}, session={}, cause: {}", response, id, th);
     }
-  }
-
-  private void logSend(Throwable err, Long sid, Throwable th) {
-    if (th == null) {
-      LOGGER.debug("<< SEND success: {}, sid={}, session={}", err, sid, id);
-    } else {
-      LOGGER.warn("<< SEND failed: {}, sid={}, session={}, cause: {}", err, sid, id, th);
-    }
-  }
-
-  private GatewayMessage toErrorMessage(Long sid, ServiceMessage msg) {
-    Builder builder = GatewayMessage.from(msg);
-    Optional.ofNullable(sid).ifPresent(builder::streamId);
-    return builder.signal(Signal.ERROR).build();
   }
 
   /**
