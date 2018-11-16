@@ -135,8 +135,7 @@ public final class WebsocketClientTransport implements ClientTransport {
                             "Closed {} on {}:{}", session, settings.host(), settings.port());
                       })
                   .subscribe(
-                      null,
-                      th -> LOGGER.error("Exception occurred on closing session {}", session, th));
+                      null, th -> LOGGER.warn("Exception on closing session={}", session.id(), th));
               return session;
             })
         .doOnError(
@@ -161,7 +160,7 @@ public final class WebsocketClientTransport implements ClientTransport {
             null,
             th ->
                 LOGGER.error(
-                    "Exception occurred on sending CANCEL signal for session {}", session, th));
+                    "Exception on sending CANCEL signal for session={}", session.id(), th));
   }
 
   private ByteBuf encodeRequest(ClientMessage message, long sid) {

@@ -80,6 +80,10 @@ final class WebsocketSession {
             });
   }
 
+  public String id() {
+    return id;
+  }
+
   public Mono<Void> send(ByteBuf byteBuf, long sid) {
     Callable<WebSocketFrame> callable = () -> new TextWebSocketFrame(byteBuf);
     return outbound
