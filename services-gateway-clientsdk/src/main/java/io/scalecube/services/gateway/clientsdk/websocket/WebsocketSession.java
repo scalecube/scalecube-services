@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ErrorData;
@@ -10,12 +9,12 @@ import io.scalecube.services.gateway.clientsdk.ReferenceCountUtil;
 import io.scalecube.services.gateway.clientsdk.exceptions.ExceptionProcessor;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.Connection;
@@ -39,11 +38,23 @@ final class WebsocketSession {
   private final Map<Long, UnicastProcessor<ClientMessage>> inboundProcessors =
       new NonBlockingHashMapLong<>(1024);
 
+  private final FluxSink<ByteBuf> outboundSink;
+
   WebsocketSession(ClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.connection = connection;
-    this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
+    this.outbound = (WebsocketOutbound) connection.outbound();
+
+    UnicastProcessor<ByteBuf> outboundProcessor = UnicastProcessor.create();
+    outboundSink = outboundProcessor.sink();
+
+    this.outbound
+        .options(SendOptions::flushOnEach)
+        .sendObject(outboundProcessor.onBackpressureBuffer().map(TextWebSocketFrame::new))
+        .then()
+        .subscribe(
+            null, th -> LOGGER.error("Exception on sending for session={}, cause: {}", id, th));
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
     inbound
@@ -85,10 +96,7 @@ final class WebsocketSession {
   }
 
   public Mono<Void> send(ByteBuf byteBuf, long sid) {
-    Callable<WebSocketFrame> callable = () -> new TextWebSocketFrame(byteBuf);
-    return outbound
-        .sendObject(Mono.fromCallable(callable))
-        .then()
+    return Mono.<Void>fromRunnable(() -> outboundSink.next(byteBuf))
         .doOnSuccess(
             avoid -> {
               inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());

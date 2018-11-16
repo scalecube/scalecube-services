@@ -12,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
@@ -25,6 +27,8 @@ public final class WebsocketSession {
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
+
+  private final FluxSink<ByteBuf> outboundSink;
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
@@ -56,7 +60,18 @@ public final class WebsocketSession {
     this.inbound =
         (WebsocketInbound)
             inbound.withConnection(connection -> connection.onDispose(this::clearSubscriptions));
-    this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
+
+    this.outbound = outbound;
+
+    UnicastProcessor<ByteBuf> outboundProcessor = UnicastProcessor.create();
+    outboundSink = outboundProcessor.sink();
+
+    this.outbound
+        .options(SendOptions::flushOnEach)
+        .sendObject(outboundProcessor.onBackpressureBuffer().map(TextWebSocketFrame::new))
+        .then()
+        .subscribe(
+            null, th -> LOGGER.error("Exception on sending for session={}, cause: {}", id, th));
   }
 
   public String id() {
@@ -88,9 +103,7 @@ public final class WebsocketSession {
   }
 
   private Mono<Void> send(Mono<ByteBuf> publisher) {
-    return publisher
-        .map(TextWebSocketFrame::new)
-        .flatMap(frame -> outbound.sendObject(frame).then());
+    return publisher.doOnNext(outboundSink::next).then();
   }
 
   private void logSend(GatewayMessage response, Throwable th) {
@@ -114,7 +127,7 @@ public final class WebsocketSession {
   }
 
   /**
-   * Lambda setter for reacting on channel close occurence.
+   * Lambda setter for reacting on channel close occurrence.
    *
    * @param disposable function to run when disposable would take place
    */
@@ -153,12 +166,12 @@ public final class WebsocketSession {
   }
 
   /**
-   * Saves (if not already saved) by stream id a subscrption of service call coming in form of
+   * Saves (if not already saved) by stream id a subscription of service call coming in form of
    * {@link Disposable} reference.
    *
    * @param streamId stream id
-   * @param disposable service subscrption
-   * @return true if disposable subscrption was stored
+   * @param disposable service subscription
+   * @return true if disposable subscription was stored
    */
   public boolean register(Long streamId, Disposable disposable) {
     boolean result = false;
