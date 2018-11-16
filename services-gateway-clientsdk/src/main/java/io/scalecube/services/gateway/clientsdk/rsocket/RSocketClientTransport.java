@@ -123,7 +123,7 @@ public final class RSocketClientTransport implements ClientTransport {
                         rSocketMonoUpdater.getAndSet(this, null); // clear reference
                         LOGGER.info("Connection closed on {}:{}", settings.host(), settings.port());
                       })
-                  .subscribe();
+                  .subscribe(null, th -> LOGGER.warn("Exception on closing rsocket: {}", th));
             })
         .doOnError(
             ex -> {

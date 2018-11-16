@@ -74,7 +74,7 @@ public class RSocketClientTransport implements ClientTransport {
                         monoMap.remove(address);
                         LOGGER.info("Connection closed on {} and removed from the pool", address);
                       })
-                  .subscribe();
+                  .subscribe(null, th -> LOGGER.warn("Exception on closing rsocket: {}", th));
             })
         .doOnError(
             throwable -> {

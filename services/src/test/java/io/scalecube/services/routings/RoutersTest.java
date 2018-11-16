@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -110,6 +111,7 @@ public class RoutersTest extends BaseTest {
     assertTrue(!result1.sender().equals(result2.sender()));
   }
 
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/439")
   @Test
   public void test_remote_service_tags() throws Exception {
 
@@ -190,6 +192,7 @@ public class RoutersTest extends BaseTest {
     }
   }
 
+  @Disabled("https://github.com/scalecube/scalecube-services/issues/439")
   @Test
   public void test_service_tags() throws Exception {
 

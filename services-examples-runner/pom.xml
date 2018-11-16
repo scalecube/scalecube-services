@@ -10,6 +10,7 @@
   <artifactId>scalecube-services-examples-runner</artifactId>
 
   <properties>
+    <extratags>${env.TRAVIS_COMMIT}</extratags>
     <mainClass>io.scalecube.services.examples.ExamplesRunner</mainClass>
   </properties>
 
@@ -52,6 +53,19 @@
       <plugin>
         <groupId>com.spotify</groupId>
         <artifactId>dockerfile-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>push-extra-tags</id>
+            <goals>
+              <goal>push</goal>
+            </goals>
+            <phase>install</phase>
+            <configuration>
+              <tag>${extratags}</tag>
+              <skip>${noextratags}</skip>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

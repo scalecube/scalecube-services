@@ -5,9 +5,6 @@ import static io.netty.handler.codec.http.HttpHeaderNames.CONTENT_TYPE;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ExceptionProcessor;
-import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
 import java.util.Map;
 import java.util.Optional;
 import org.jctools.maps.NonBlockingHashMapLong;
@@ -15,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
@@ -28,6 +27,8 @@ public final class WebsocketSession {
   private static final String DEFAULT_CONTENT_TYPE = "application/json";
 
   private final Map<Long, Disposable> subscriptions = new NonBlockingHashMapLong<>(1024);
+
+  private final FluxSink<ByteBuf> outboundSink;
 
   private final WebsocketInbound inbound;
   private final WebsocketOutbound outbound;
@@ -59,7 +60,18 @@ public final class WebsocketSession {
     this.inbound =
         (WebsocketInbound)
             inbound.withConnection(connection -> connection.onDispose(this::clearSubscriptions));
-    this.outbound = (WebsocketOutbound) outbound.options(SendOptions::flushOnEach);
+
+    this.outbound = outbound;
+
+    UnicastProcessor<ByteBuf> outboundProcessor = UnicastProcessor.create();
+    outboundSink = outboundProcessor.sink();
+
+    this.outbound
+        .options(SendOptions::flushOnEach)
+        .sendObject(outboundProcessor.onBackpressureBuffer().map(TextWebSocketFrame::new))
+        .then()
+        .subscribe(
+            null, th -> LOGGER.error("Exception on sending for session={}, cause: {}", id, th));
   }
 
   public String id() {
@@ -90,25 +102,8 @@ public final class WebsocketSession {
         .doOnSuccessOrError((avoid, th) -> logSend(response, th));
   }
 
-  /**
-   * Method to send error response.
-   *
-   * @param err error
-   * @param sid stream id; optional
-   * @return mono void
-   */
-  public Mono<Void> send(Throwable err, Long sid) {
-    return send(Mono.just(err)
-            .map(ExceptionProcessor::toMessage)
-            .map(msg -> toErrorMessage(sid, msg))
-            .map(messageCodec::encode))
-        .doOnSuccessOrError((avoid, th) -> logSend(err, sid, th));
-  }
-
   private Mono<Void> send(Mono<ByteBuf> publisher) {
-    return publisher
-        .map(TextWebSocketFrame::new)
-        .flatMap(frame -> outbound.sendObject(frame).then());
+    return publisher.doOnNext(outboundSink::next).then();
   }
 
   private void logSend(GatewayMessage response, Throwable th) {
@@ -117,20 +112,6 @@ public final class WebsocketSession {
     } else {
       LOGGER.warn("<< SEND failed: {}, session={}, cause: {}", response, id, th);
     }
-  }
-
-  private void logSend(Throwable err, Long sid, Throwable th) {
-    if (th == null) {
-      LOGGER.debug("<< SEND success: {}, sid={}, session={}", err, sid, id);
-    } else {
-      LOGGER.warn("<< SEND failed: {}, sid={}, session={}, cause: {}", err, sid, id, th);
-    }
-  }
-
-  private GatewayMessage toErrorMessage(Long sid, ServiceMessage msg) {
-    Builder builder = GatewayMessage.from(msg);
-    Optional.ofNullable(sid).ifPresent(builder::streamId);
-    return builder.signal(Signal.ERROR).build();
   }
 
   /**
@@ -146,7 +127,7 @@ public final class WebsocketSession {
   }
 
   /**
-   * Lambda setter for reacting on channel close occurence.
+   * Lambda setter for reacting on channel close occurrence.
    *
    * @param disposable function to run when disposable would take place
    */
@@ -185,12 +166,12 @@ public final class WebsocketSession {
   }
 
   /**
-   * Saves (if not already saved) by stream id a subscrption of service call coming in form of
+   * Saves (if not already saved) by stream id a subscription of service call coming in form of
    * {@link Disposable} reference.
    *
    * @param streamId stream id
-   * @param disposable service subscrption
-   * @return true if disposable subscrption was stored
+   * @param disposable service subscription
+   * @return true if disposable subscription was stored
    */
   public boolean register(Long streamId, Disposable disposable) {
     boolean result = false;
