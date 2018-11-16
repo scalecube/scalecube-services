@@ -11,10 +11,10 @@ import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.NettyPipeline.SendOptions;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.websocket.WebsocketInbound;
@@ -63,12 +63,12 @@ public final class WebsocketSession {
 
     this.outbound = outbound;
 
-    DirectProcessor<ByteBuf> outboundProcessor = DirectProcessor.create();
+    UnicastProcessor<ByteBuf> outboundProcessor = UnicastProcessor.create();
     outboundSink = outboundProcessor.sink();
 
     this.outbound
         .options(SendOptions::flushOnEach)
-        .sendObject(outboundProcessor.map(TextWebSocketFrame::new))
+        .sendObject(outboundProcessor.onBackpressureBuffer().map(TextWebSocketFrame::new))
         .then()
         .subscribe(
             null, th -> LOGGER.error("Exception on sending for session={}, cause: {}", id, th));

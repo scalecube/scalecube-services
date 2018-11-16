@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
@@ -47,12 +46,12 @@ final class WebsocketSession {
     this.connection = connection;
     this.outbound = (WebsocketOutbound) connection.outbound();
 
-    DirectProcessor<ByteBuf> outboundProcessor = DirectProcessor.create();
+    UnicastProcessor<ByteBuf> outboundProcessor = UnicastProcessor.create();
     outboundSink = outboundProcessor.sink();
 
     this.outbound
         .options(SendOptions::flushOnEach)
-        .sendObject(outboundProcessor.map(TextWebSocketFrame::new))
+        .sendObject(outboundProcessor.onBackpressureBuffer().map(TextWebSocketFrame::new))
         .then()
         .subscribe(
             null, th -> LOGGER.error("Exception on sending for session={}, cause: {}", id, th));
