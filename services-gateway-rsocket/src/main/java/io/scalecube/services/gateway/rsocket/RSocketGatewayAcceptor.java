@@ -35,7 +35,7 @@ public class RSocketGatewayAcceptor implements SocketAcceptor {
     rsocket
         .onClose()
         .doOnTerminate(() -> LOGGER.info("Client disconnected: {}", rsocket))
-        .subscribe(null, th -> LOGGER.error("Exception occurred on closing rsocket", th));
+        .subscribe(null, th -> LOGGER.error("Exception on closing rsocket: {}", th));
 
     // Prepare message codec together with headers from metainfo
     HeadersCodec headersCodec = HeadersCodec.getInstance(setup.metadataMimeType());

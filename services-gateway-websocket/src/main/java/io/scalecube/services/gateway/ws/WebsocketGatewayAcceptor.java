@@ -63,15 +63,23 @@ public class WebsocketGatewayAcceptor
                     .subscribe(
                         request -> handleMessage(session, request),
                         th -> {
-                          LOGGER.error("Exception occurred: {}, session={}", th, session.id());
                           if (th instanceof WebsocketRequestException) {
                             WebsocketRequestException ex = (WebsocketRequestException) th;
-                            handleError(session, ex.releaseRequest().request().streamId(), th);
+                            ex.releaseRequest(); // release
+                            handleError(session, ex.request(), th);
+                          } else {
+                            LOGGER.error(
+                                "Exception occurred on processing request, session={}",
+                                session.id(),
+                                th);
                           }
                         }),
-            th -> LOGGER.error("Exception occurred on receiving from session {}", session, th));
+            th ->
+                LOGGER.error(
+                    "Exception occurred on session.receive(), session={}", session.id(), th));
 
-    return session.onClose(() -> LOGGER.info("Session disconnected: " + session));
+    return session //
+        .onClose(() -> LOGGER.info("Session disconnected: " + session));
   }
 
   private void handleMessage(WebsocketSession session, GatewayMessage request) {
@@ -97,13 +105,15 @@ public class WebsocketGatewayAcceptor
                             avoid -> metrics.markResponse(),
                             th ->
                                 LOGGER.error(
-                                    "Exception occurred on sending response for session {}",
-                                    session,
+                                    "Exception occurred on sending response: "
+                                        + "{} for request: {}, session={}",
+                                    response,
+                                    request,
+                                    session.id(),
                                     th)),
                 th -> {
-                  LOGGER.error(
-                      "Exception occurred on request: {}, session={}", request, session.id(), th);
-                  handleError(session, sid, th);
+                  // handle error
+                  handleError(session, request, th);
                 },
                 () -> {
                   // handle complete
@@ -113,10 +123,13 @@ public class WebsocketGatewayAcceptor
     session.register(sid, disposable);
   }
 
-  private void handleError(WebsocketSession session, Long sid, Throwable th) {
+  private void handleError(WebsocketSession session, GatewayMessage req, Throwable th) {
+    LOGGER.error("Exception occurred on request: {}, session={}", req, session.id(), th);
+
     Builder builder = GatewayMessage.from(ExceptionProcessor.toMessage(th));
-    Optional.ofNullable(sid).ifPresent(builder::streamId);
+    Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
     GatewayMessage response = builder.signal(Signal.ERROR).build();
+
     session
         .send(response)
         .subscribe(
