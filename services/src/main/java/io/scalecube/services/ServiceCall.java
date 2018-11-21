@@ -1,5 +1,6 @@
 package io.scalecube.services;
 
+import static io.scalecube.services.ServiceErrors.EMPTY_RESPONSE_ERROR;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.ServiceMessage;
@@ -36,6 +37,18 @@ public class ServiceCall {
   private final ServiceRegistry serviceRegistry;
   private final Router router;
 
+  private final Function<ServiceMessage, Object> msgToResp =
+      sm -> sm.hasData() ? sm.data() : EMPTY_RESPONSE_ERROR;
+
+  private final Function<Boolean, Function<Mono<ServiceMessage>, Mono<Object>>> monoRespFn =
+      isServiceMsg ->
+          isServiceMsg
+              ? mono -> mono.cast(Object.class)
+              : mono -> mono.map(msgToResp);
+
+  private final Function<Boolean, Function<Flux<ServiceMessage>, Flux<Object>>> fluxRespFn =
+      isServiceMsg -> isServiceMsg ? flux -> flux.cast(Object.class) : flux -> flux.map(msgToResp);
+
   private ServiceCall(Call call) {
     this.transport = call.transport;
     this.methodRegistry = call.methodRegistry;
@@ -53,22 +66,6 @@ public class ServiceCall {
         .qualifier(methodInfo.serviceName(), methodInfo.methodName())
         .data(methodInfo.parameterCount() != 0 ? params[0] : null)
         .build();
-  }
-
-  private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
-      boolean isRequestTypeServiceMessage) {
-    return flux ->
-        isRequestTypeServiceMessage
-            ? flux
-            : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
-  }
-
-  private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
-      boolean isRequestTypeServiceMessage) {
-    return mono ->
-        isRequestTypeServiceMessage
-            ? mono
-            : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
   }
 
   private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
@@ -305,7 +302,7 @@ public class ServiceCall {
               Optional<Object> check =
                   toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
               if (check.isPresent()) {
-                return check.get(); // toString, hashCode was invoked.
+                return check.get(); // toString, hashCode was been invoked.
               }
 
               switch (methodInfo.communicationMode()) {
@@ -315,12 +312,12 @@ public class ServiceCall {
                 case REQUEST_RESPONSE:
                   return serviceCall
                       .requestOne(toServiceMessage(methodInfo, params), returnType)
-                      .transform(asMono(isServiceMessage));
+                      .transform(monoRespFn.apply(isServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
                       .requestMany(toServiceMessage(methodInfo, params), returnType)
-                      .transform(asFlux(isServiceMessage));
+                      .transform(fluxRespFn.apply(isServiceMessage));
 
                 case REQUEST_CHANNEL:
                   // this is REQUEST_CHANNEL so it means params[0] must be a publisher - its safe to
@@ -330,7 +327,7 @@ public class ServiceCall {
                           Flux.from((Publisher) params[0])
                               .map(data -> toServiceMessage(methodInfo, data)),
                           returnType)
-                      .transform(asFlux(isServiceMessage));
+                      .transform(fluxRespFn.apply(isServiceMessage));
 
                 default:
                   throw new IllegalArgumentException(
