@@ -43,49 +43,66 @@ public class ServiceCall {
     this.router = call.router;
   }
 
+  private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
+    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
+      return ServiceMessage.from((ServiceMessage) params[0])
+          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+          .build();
+    }
+    return ServiceMessage.builder()
+        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
+        .build();
+  }
+
+  private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
+      boolean isRequestTypeServiceMessage) {
+    return flux ->
+        isRequestTypeServiceMessage
+            ? flux
+            : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
+  }
+
+  private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
+      boolean isRequestTypeServiceMessage) {
+    return mono ->
+        isRequestTypeServiceMessage
+            ? mono
+            : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
+  }
+
+  private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
+    LOGGER.error(
+        "Failed  to invoke service, "
+            + "No reachable member with such service definition [{}], args [{}]",
+        request.qualifier(),
+        request);
+    return new ServiceUnavailableException(
+        "No reachable member with such service: " + request.qualifier());
+  }
+
   /**
-   * This class represents {@link ServiceCall}'s definition. All {@link ServiceCall} must be created
-   * out of this definition.
+   * check and handle toString or equals or hashcode method where invoked.
+   *
+   * @param method that was invoked.
+   * @param serviceInterface for a given service interface.
+   * @param args parameters that where invoked.
+   * @return Optional object as result of to string equals or hashCode result or absent if none of
+   *     these where invoked.
    */
-  public static class Call {
+  private static Optional<Object> toStringOrEqualsOrHashCode(
+      String method, Class<?> serviceInterface, Object... args) {
 
-    private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+    switch (method) {
+      case "toString":
+        return Optional.of(serviceInterface.toString());
+      case "equals":
+        return Optional.of(serviceInterface.equals(args[0]));
+      case "hashCode":
+        return Optional.of(serviceInterface.hashCode());
 
-    private final ClientTransport transport;
-    private final ServiceMethodRegistry methodRegistry;
-    private final ServiceRegistry serviceRegistry;
-
-    /**
-     * Creates new {@link ServiceCall}'s definition.
-     *
-     * @param transport - transport to be used by {@link ServiceCall} that is created form this
-     *     {@link Call}
-     * @param methodRegistry - methodRegistry to be used by {@link ServiceCall} that is created form
-     *     this {@link Call}
-     * @param serviceRegistry - serviceRegistry to be used by {@link ServiceCall} that is created
-     *     form this {@link Call}
-     */
-    public Call(
-        ClientTransport transport,
-        ServiceMethodRegistry methodRegistry,
-        ServiceRegistry serviceRegistry) {
-      this.transport = transport;
-      this.serviceRegistry = serviceRegistry;
-      this.methodRegistry = methodRegistry;
-    }
-
-    public Call router(Class<? extends Router> routerType) {
-      this.router = Routers.getRouter(routerType);
-      return this;
-    }
-
-    public Call router(Router router) {
-      this.router = router;
-      return this;
-    }
-
-    public ServiceCall create() {
-      return new ServiceCall(this);
+      default:
+        return Optional.empty();
     }
   }
 
@@ -337,66 +354,48 @@ public class ServiceCall {
             });
   }
 
-  private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
-    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
-      return ServiceMessage.from((ServiceMessage) params[0])
-          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .build();
-    }
-    return ServiceMessage.builder()
-        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
-        .build();
-  }
-
-  private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
-      boolean isRequestTypeServiceMessage) {
-    return flux ->
-        isRequestTypeServiceMessage
-            ? flux
-            : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
-  }
-
-  private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
-      boolean isRequestTypeServiceMessage) {
-    return mono ->
-        isRequestTypeServiceMessage
-            ? mono
-            : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
-  }
-
-  private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
-    LOGGER.error(
-        "Failed  to invoke service, "
-            + "No reachable member with such service definition [{}], args [{}]",
-        request.qualifier(),
-        request);
-    return new ServiceUnavailableException(
-        "No reachable member with such service: " + request.qualifier());
-  }
-
   /**
-   * check and handle toString or equals or hashcode method where invoked.
-   *
-   * @param method that was invoked.
-   * @param serviceInterface for a given service interface.
-   * @param args parameters that where invoked.
-   * @return Optional object as result of to string equals or hashCode result or absent if none of
-   *     these where invoked.
+   * This class represents {@link ServiceCall}'s definition. All {@link ServiceCall} must be created
+   * out of this definition.
    */
-  private static Optional<Object> toStringOrEqualsOrHashCode(
-      String method, Class<?> serviceInterface, Object... args) {
+  public static class Call {
 
-    switch (method) {
-      case "toString":
-        return Optional.of(serviceInterface.toString());
-      case "equals":
-        return Optional.of(serviceInterface.equals(args[0]));
-      case "hashCode":
-        return Optional.of(serviceInterface.hashCode());
+    private final ClientTransport transport;
+    private final ServiceMethodRegistry methodRegistry;
+    private final ServiceRegistry serviceRegistry;
+    private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
 
-      default:
-        return Optional.empty();
+    /**
+     * Creates new {@link ServiceCall}'s definition.
+     *
+     * @param transport - transport to be used by {@link ServiceCall} that is created form this
+     *     {@link Call}
+     * @param methodRegistry - methodRegistry to be used by {@link ServiceCall} that is created form
+     *     this {@link Call}
+     * @param serviceRegistry - serviceRegistry to be used by {@link ServiceCall} that is created
+     *     form this {@link Call}
+     */
+    public Call(
+        ClientTransport transport,
+        ServiceMethodRegistry methodRegistry,
+        ServiceRegistry serviceRegistry) {
+      this.transport = transport;
+      this.serviceRegistry = serviceRegistry;
+      this.methodRegistry = methodRegistry;
+    }
+
+    public Call router(Class<? extends Router> routerType) {
+      this.router = Routers.getRouter(routerType);
+      return this;
+    }
+
+    public Call router(Router router) {
+      this.router = router;
+      return this;
+    }
+
+    public ServiceCall create() {
+      return new ServiceCall(this);
     }
   }
 }
