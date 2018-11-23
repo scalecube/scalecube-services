@@ -13,8 +13,10 @@ import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.RejectedExecutionHandler;
 import io.netty.util.concurrent.RejectedExecutionHandlers;
 import java.lang.reflect.Constructor;
+import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
+import java.util.function.BiFunction;
 
 /**
  * Epoll event loop group with provided event executor chooser. Creates instances of {@link
@@ -22,7 +24,7 @@ import java.util.concurrent.ThreadFactory;
  */
 public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
 
-  private final EventExecutorChooser eventExecutorChooser;
+  private final BiFunction<Channel, Iterator<EventExecutor>, EventExecutor> eventExecutorChooser;
 
   /**
    * Constructor for event loop.
@@ -32,7 +34,9 @@ public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
    * @param eventExecutorChooser executor chooser
    */
   public ExtendedEpollEventLoopGroup(
-      int numOfThreads, ThreadFactory threadFactory, EventExecutorChooser eventExecutorChooser) {
+      int numOfThreads,
+      ThreadFactory threadFactory,
+      BiFunction<Channel, Iterator<EventExecutor>, EventExecutor> eventExecutorChooser) {
     super(
         numOfThreads,
         threadFactory,
@@ -67,7 +71,7 @@ public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
 
   @Override
   public ChannelFuture register(Channel channel) {
-    EventExecutor eventExecutor = eventExecutorChooser.getEventExecutor(channel, iterator());
+    EventExecutor eventExecutor = eventExecutorChooser.apply(channel, iterator());
     return eventExecutor != null
         ? ((EventLoop) eventExecutor).register(channel)
         : super.register(channel);
