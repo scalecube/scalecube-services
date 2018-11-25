@@ -41,10 +41,7 @@ public class ServiceCall {
       sm -> sm.hasData() ? sm.data() : EMPTY_RESPONSE_ERROR;
 
   private final Function<Boolean, Function<Mono<ServiceMessage>, Mono<Object>>> monoRespFn =
-      isServiceMsg ->
-          isServiceMsg
-              ? mono -> mono.cast(Object.class)
-              : mono -> mono.map(msgToResp);
+      isServiceMsg -> isServiceMsg ? mono -> mono.cast(Object.class) : mono -> mono.map(msgToResp);
 
   private final Function<Boolean, Function<Flux<ServiceMessage>, Flux<Object>>> fluxRespFn =
       isServiceMsg -> isServiceMsg ? flux -> flux.cast(Object.class) : flux -> flux.map(msgToResp);
@@ -54,53 +51,6 @@ public class ServiceCall {
     this.methodRegistry = call.methodRegistry;
     this.serviceRegistry = call.serviceRegistry;
     this.router = call.router;
-  }
-
-  private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
-    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
-      return ServiceMessage.from((ServiceMessage) params[0])
-          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .build();
-    }
-    return ServiceMessage.builder()
-        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
-        .build();
-  }
-
-  private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
-    LOGGER.error(
-        "Failed  to invoke service, "
-            + "No reachable member with such service definition [{}], args [{}]",
-        request.qualifier(),
-        request);
-    return new ServiceUnavailableException(
-        "No reachable member with such service: " + request.qualifier());
-  }
-
-  /**
-   * check and handle toString or equals or hashcode method where invoked.
-   *
-   * @param method that was invoked.
-   * @param serviceInterface for a given service interface.
-   * @param args parameters that where invoked.
-   * @return Optional object as result of to string equals or hashCode result or absent if none of
-   *     these where invoked.
-   */
-  private static Optional<Object> toStringOrEqualsOrHashCode(
-      String method, Class<?> serviceInterface, Object... args) {
-
-    switch (method) {
-      case "toString":
-        return Optional.of(serviceInterface.toString());
-      case "equals":
-        return Optional.of(serviceInterface.equals(args[0]));
-      case "hashCode":
-        return Optional.of(serviceInterface.hashCode());
-
-      default:
-        return Optional.empty();
-    }
   }
 
   /**
@@ -349,6 +299,53 @@ public class ServiceCall {
               Optional<Object> dataOptional = Optional.ofNullable(request.data());
               dataOptional.ifPresent(ReferenceCountUtil::safestRelease);
             });
+  }
+
+  private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
+    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
+      return ServiceMessage.from((ServiceMessage) params[0])
+          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+          .build();
+    }
+    return ServiceMessage.builder()
+        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
+        .build();
+  }
+
+  private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
+    LOGGER.error(
+        "Failed  to invoke service, "
+            + "No reachable member with such service definition [{}], args [{}]",
+        request.qualifier(),
+        request);
+    return new ServiceUnavailableException(
+        "No reachable member with such service: " + request.qualifier());
+  }
+
+  /**
+   * check and handle toString or equals or hashcode method where invoked.
+   *
+   * @param method that was invoked.
+   * @param serviceInterface for a given service interface.
+   * @param args parameters that where invoked.
+   * @return Optional object as result of to string equals or hashCode result or absent if none of
+   *     these where invoked.
+   */
+  private Optional<Object> toStringOrEqualsOrHashCode(
+      String method, Class<?> serviceInterface, Object... args) {
+
+    switch (method) {
+      case "toString":
+        return Optional.of(serviceInterface.toString());
+      case "equals":
+        return Optional.of(serviceInterface.equals(args[0]));
+      case "hashCode":
+        return Optional.of(serviceInterface.hashCode());
+
+      default:
+        return Optional.empty();
+    }
   }
 
   /**
