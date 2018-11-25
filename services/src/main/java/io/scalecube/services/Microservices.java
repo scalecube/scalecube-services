@@ -2,7 +2,7 @@ package io.scalecube.services;
 
 import static java.util.stream.Collectors.toMap;
 
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
@@ -303,7 +303,7 @@ public class Microservices {
       return this;
     }
 
-    public Builder metrics(MetricRegistry metrics) {
+    public Builder metrics(MeterRegistry metrics) {
       this.metrics = new Metrics(metrics);
       return this;
     }

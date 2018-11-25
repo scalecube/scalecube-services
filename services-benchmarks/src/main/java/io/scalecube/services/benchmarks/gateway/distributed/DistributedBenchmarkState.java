@@ -1,5 +1,6 @@
 package io.scalecube.services.benchmarks.gateway.distributed;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
@@ -38,7 +39,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
-            .metrics(registry())
+            .metrics(null)
             .startAwait();
 
     services =

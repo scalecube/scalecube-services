@@ -29,7 +29,6 @@
     <reactor.version>3.2.1.RELEASE</reactor.version>
     <reactor-test.version>3.2.1.RELEASE</reactor-test.version>
     <reactivestreams.version>1.0.2</reactivestreams.version>
-    <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.8</rsocket.version>
     <reactor-netty.version>0.8.1.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
@@ -40,6 +39,7 @@
     <jsr305.version>3.0.2</jsr305.version>
     <jctools.version>2.1.2</jctools.version>
     <hamcrest-all.version>1.3</hamcrest-all.version>
+    <micrometer-core.version>1.1.0</micrometer-core.version>
   </properties>
 
   <modules>
@@ -228,11 +228,11 @@
         <version>${scalecube-benchmarks.version}</version>
       </dependency>
 
-      <!-- Codahale -->
+      <!-- Micrometer -->
       <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-core</artifactId>
-        <version>${metrics.version}</version>
+        <groupId>io.micrometer</groupId>
+        <artifactId>micrometer-core</artifactId>
+        <version>${micrometer-core.version}</version>
       </dependency>
 
       <!-- JCTools -->

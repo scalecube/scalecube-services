@@ -1,7 +1,8 @@
 package io.scalecube.services.gateway;
 
-import com.codahale.metrics.CsvReporter;
-import com.codahale.metrics.MetricRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.scalecube.config.ConfigRegistry;
 import io.scalecube.config.ConfigRegistrySettings;
 import io.scalecube.config.audit.Slf4JConfigEventListener;
@@ -51,7 +52,7 @@ public class GatewayRunner {
     LOGGER.info("Starting Gateway on {}", config);
     LOGGER.info(DECORATOR);
 
-    MetricRegistry metrics = initMetricRegistry();
+    MeterRegistry metrics = initMetricRegistry();
 
     Microservices.builder()
         .discovery(
@@ -74,21 +75,24 @@ public class GatewayRunner {
     Thread.currentThread().join();
   }
 
-  private static MetricRegistry initMetricRegistry() {
-    MetricRegistry metrics = new MetricRegistry();
-    File reporterDir = new File(REPORTER_PATH);
-    if (!reporterDir.exists()) {
-      //noinspection ResultOfMethodCallIgnored
-      reporterDir.mkdirs();
-    }
-    CsvReporter csvReporter =
-        CsvReporter.forRegistry(metrics)
-            .convertDurationsTo(TimeUnit.MILLISECONDS)
-            .convertRatesTo(TimeUnit.SECONDS)
-            .build(reporterDir);
+  private static MeterRegistry initMetricRegistry() {
+    CompositeMeterRegistry comp = new CompositeMeterRegistry();
+    comp.add(new SimpleMeterRegistry());
 
-    csvReporter.start(10, TimeUnit.SECONDS);
-    return metrics;
+//    MeterRegistry metrics = new Me;
+//    File reporterDir = new File(REPORTER_PATH);
+//    if (!reporterDir.exists()) {
+//      //noinspection ResultOfMethodCallIgnored
+//      reporterDir.mkdirs();
+//    }
+//    CsvReporter csvReporter =
+//        CsvReporter.forRegistry(metrics)
+//            .convertDurationsTo(TimeUnit.MILLISECONDS)
+//            .convertRatesTo(TimeUnit.SECONDS)
+//            .build(reporterDir);
+//
+//    csvReporter.start(10, TimeUnit.SECONDS);
+    return comp;
   }
 
   public static class Config {

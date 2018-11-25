@@ -1,5 +1,6 @@
 package io.scalecube.services.benchmarks.gateway.standalone;
 
+import io.micrometer.core.instrument.MeterRegistry;
 import io.scalecube.benchmarks.BenchmarkSettings;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.benchmarks.gateway.AbstractBenchmarkState;
@@ -38,8 +39,13 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
             .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
-            .metrics(registry())
+            .metrics(reg())
             .startAwait();
+  }
+
+  public MeterRegistry reg() {
+    // FIXME:
+    return null;
   }
 
   @Override
