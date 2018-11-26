@@ -31,6 +31,7 @@
     <reactivestreams.version>1.0.2</reactivestreams.version>
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.8</rsocket.version>
+    <scalecube-rsocket-aeron.version>0.1.2</scalecube-rsocket-aeron.version>
     <reactor-netty.version>0.8.1.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.29.Final</netty.version>
@@ -59,6 +60,7 @@
     <module>services-gateway-runner</module>
     <module>services-examples-runner</module>
     <module>services-gateway-clientsdk</module>
+    <module>services-transport-rsocket-aeron</module>
   </modules>
 
   <dependencyManagement>
@@ -125,6 +127,12 @@
         <groupId>io.rsocket</groupId>
         <artifactId>rsocket-transport-netty</artifactId>
         <version>${rsocket.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.scalecube</groupId>
+        <artifactId>rsocket-transport-aeron</artifactId>
+        <version>${scalecube-rsocket-aeron.version}</version>
       </dependency>
 
       <!-- Reactor Netty -->
