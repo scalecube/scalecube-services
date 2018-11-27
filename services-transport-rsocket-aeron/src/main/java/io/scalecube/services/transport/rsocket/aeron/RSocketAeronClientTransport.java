@@ -48,18 +48,14 @@ public class RSocketAeronClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
-    System.err.println("connect: " + address);
     int bindPort = SocketUtils.findAvailableUdpPort(15000);
     AeronClient aeronClient =
         AeronClient.create(aeronResources)
             .options(
                 options -> {
+                  options.heartbeatTimeoutMillis(1000);
                   options.serverChannel("aeron:udp?endpoint=" + address);
-                  System.err.println(
-                      "connect options.serverChannel() = " + options.serverChannel());
                   options.clientChannel("aeron:udp?endpoint=" + bindHost + ":" + bindPort);
-                  System.err.println(
-                      "connect options.clientChannel() = " + options.clientChannel());
                 });
 
     Mono<RSocket> rsocketMono =

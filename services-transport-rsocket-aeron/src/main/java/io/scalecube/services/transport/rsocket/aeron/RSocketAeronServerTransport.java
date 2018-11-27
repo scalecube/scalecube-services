@@ -38,7 +38,6 @@ public class RSocketAeronServerTransport implements ServerTransport {
 
   @Override
   public Mono<InetSocketAddress> bind(int port, ServiceMethodRegistry methodRegistry) {
-    System.err.println("bind: " + port);
     return Mono.defer(
         () -> {
           int serverPort = port > 0 ? port : SocketUtils.findAvailableUdpPort(12000);
@@ -52,8 +51,7 @@ public class RSocketAeronServerTransport implements ServerTransport {
                                 + bindAddress.getHostString()
                                 + ":"
                                 + bindAddress.getPort());
-                        System.err.println(
-                            "bind options.serverChannel() = " + options.serverChannel());
+                        options.heartbeatTimeoutMillis(1000);
                       });
           return RSocketFactory.receive()
               .frameDecoder(

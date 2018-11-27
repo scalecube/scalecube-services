@@ -130,7 +130,7 @@ public class RoutersTest extends BaseTest {
         .flatMap(i -> service.greeting(new GreetingRequest("joe")))
         .filter(response -> response.getResult().contains("SERVICE_B_TALKING"))
         .doOnNext(response -> serviceBCount.incrementAndGet())
-        .blockLast(Duration.ofSeconds(3));
+        .blockLast(timeout);
 
     System.out.println("Service B was called: " + serviceBCount.get() + " times out of " + n);
 
