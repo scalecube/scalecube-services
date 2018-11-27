@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.aeron.AeronResources;
 import reactor.core.publisher.Mono;
 
 public class RSocketAeronServiceTransport implements ServiceTransport {
@@ -24,6 +25,8 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
 
   private static final String DEFAULT_HEADERS_FORMAT = "application/json";
 
+  private final AeronResources aeronResources = AeronResources.start(); // todo ?
+
   @Override
   public boolean isNativeSupported() {
     return true; // todo ?
@@ -31,19 +34,19 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
 
   @Override
   public ClientTransport getClientTransport(Executor workerThreadPool) {
-    new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT));
-    return null;
+    return new RSocketAeronClientTransport(
+        new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)), aeronResources);
   }
 
   @Override
   public ServerTransport getServerTransport(Executor workerThreadPool) {
-    new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT));
-    return null;
+    return new RSocketAeronServerTransport(
+        new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)), aeronResources);
   }
 
   @Override
   public Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser ignore) {
-    return Executors.newFixedThreadPool(numOfThreads, WORKER_THREAD_FACTORY);
+    return Executors.newFixedThreadPool(numOfThreads, WORKER_THREAD_FACTORY); // todo ?
   }
 
   @Override
