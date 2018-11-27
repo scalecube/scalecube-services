@@ -19,7 +19,6 @@ import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
-import io.scalecube.services.transport.api.WorkerThreadChooser;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -393,7 +392,6 @@ public class Microservices {
 
     private String serviceHost; // config
     private int servicePort; // config
-    private WorkerThreadChooser workerThreadChooser; // config
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
@@ -406,7 +404,6 @@ public class Microservices {
       this.servicePort = Optional.ofNullable(options.port()).orElse(0);
       this.numOfThreads =
           Optional.ofNullable(options.numOfThreads()).orElse(DEFAULT_NUM_OF_THREADS);
-      this.workerThreadChooser = options.workerThreadChooser();
       this.transport = options.transport();
     }
 
@@ -432,8 +429,7 @@ public class Microservices {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.workerThreadPool =
-                transport.getWorkerThreadPool(numOfThreads, workerThreadChooser);
+            this.workerThreadPool = transport.getWorkerThreadPool(numOfThreads);
             this.clientTransport = transport.getClientTransport(workerThreadPool);
             this.serverTransport = transport.getServerTransport(workerThreadPool);
 
