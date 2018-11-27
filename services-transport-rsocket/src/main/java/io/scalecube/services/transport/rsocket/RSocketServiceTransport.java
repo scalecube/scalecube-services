@@ -16,7 +16,6 @@ import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
-import java.util.function.BiFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -51,17 +50,6 @@ public class RSocketServiceTransport implements ServiceTransport {
     LOGGER.debug("Epoll support: " + preferEpoll);
   }
 
-  private final BiFunction<Channel, Iterator<EventExecutor>, EventExecutor> eventLoopChooserFn =
-      (channel, iterator) -> {
-        while (iterator.hasNext()) {
-          EventLoop eventLoop = (EventLoop) iterator.next();
-          if (eventLoop.inEventLoop()) {
-            return eventLoop;
-          }
-        }
-        return null;
-      };
-
   @Override
   public boolean isNativeSupported() {
     return preferEpoll;
@@ -85,8 +73,9 @@ public class RSocketServiceTransport implements ServiceTransport {
   @Override
   public Executor getWorkerThreadPool(int numOfThreads) {
     return preferEpoll
-        ? new ExtendedEpollEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, eventLoopChooserFn)
-        : new ExtendedNioEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, eventLoopChooserFn);
+        ? new ExtendedEpollEventLoopGroup(
+            numOfThreads, WORKER_THREAD_FACTORY, this::chooseEventLoop)
+        : new ExtendedNioEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, this::chooseEventLoop);
   }
 
   @Override
@@ -97,5 +86,15 @@ public class RSocketServiceTransport implements ServiceTransport {
             workerThreadPool != null
                 ? FutureMono.from((Future) ((EventLoopGroup) workerThreadPool).shutdownGracefully())
                 : Mono.empty());
+  }
+
+  private EventLoop chooseEventLoop(Channel channel, Iterator<EventExecutor> executors) {
+    while (executors.hasNext()) {
+      EventExecutor eventLoop = executors.next();
+      if (eventLoop.inEventLoop()) {
+        return (EventLoop) eventLoop;
+      }
+    }
+    return null;
   }
 }

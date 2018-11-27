@@ -22,21 +22,21 @@ import java.util.function.BiFunction;
  */
 public class ExtendedNioEventLoopGroup extends NioEventLoopGroup {
 
-  private final BiFunction<Channel, Iterator<EventExecutor>, EventExecutor> eventExecutorChooser;
+  private final BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser;
 
   /**
    * Constructor for event loop.
    *
    * @param numOfThreads number of worker threads
    * @param threadFactory thread factory
-   * @param eventExecutorChooser executor chooser
+   * @param eventLoopChooser executor chooser
    */
   public ExtendedNioEventLoopGroup(
       int numOfThreads,
       ThreadFactory threadFactory,
-      BiFunction<Channel, Iterator<EventExecutor>, EventExecutor> eventExecutorChooser) {
+      BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser) {
     super(numOfThreads, threadFactory);
-    this.eventExecutorChooser = eventExecutorChooser;
+    this.eventLoopChooser = eventLoopChooser;
   }
 
   @Override
@@ -64,9 +64,9 @@ public class ExtendedNioEventLoopGroup extends NioEventLoopGroup {
 
   @Override
   public ChannelFuture register(Channel channel) {
-    EventExecutor eventExecutor = eventExecutorChooser.apply(channel, iterator());
+    EventLoop eventExecutor = eventLoopChooser.apply(channel, iterator());
     return eventExecutor != null
-        ? ((EventLoop) eventExecutor).register(channel)
+        ? eventExecutor.register(channel)
         : super.register(channel);
   }
 

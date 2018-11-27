@@ -24,26 +24,26 @@ import java.util.function.BiFunction;
  */
 public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
 
-  private final BiFunction<Channel, Iterator<EventExecutor>, EventExecutor> eventExecutorChooser;
+  private final BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser;
 
   /**
    * Constructor for event loop.
    *
    * @param numOfThreads number of worker threads
    * @param threadFactory thread factory
-   * @param eventExecutorChooser executor chooser
+   * @param eventLoopChooser executor chooser
    */
   public ExtendedEpollEventLoopGroup(
       int numOfThreads,
       ThreadFactory threadFactory,
-      BiFunction<Channel, Iterator<EventExecutor>, EventExecutor> eventExecutorChooser) {
+      BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser) {
     super(
         numOfThreads,
         threadFactory,
         0,
         DefaultSelectStrategyFactory.INSTANCE,
         RejectedExecutionHandlers.reject());
-    this.eventExecutorChooser = eventExecutorChooser;
+    this.eventLoopChooser = eventLoopChooser;
   }
 
   @Override
@@ -71,9 +71,9 @@ public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
 
   @Override
   public ChannelFuture register(Channel channel) {
-    EventExecutor eventExecutor = eventExecutorChooser.apply(channel, iterator());
+    EventLoop eventExecutor = eventLoopChooser.apply(channel, iterator());
     return eventExecutor != null
-        ? ((EventLoop) eventExecutor).register(channel)
+        ? eventExecutor.register(channel)
         : super.register(channel);
   }
 
