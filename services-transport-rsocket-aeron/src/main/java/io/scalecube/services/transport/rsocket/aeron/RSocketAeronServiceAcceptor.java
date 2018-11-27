@@ -24,8 +24,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * RSocket Aeron service acceptor. Implementation of {@link SocketAcceptor}. See for details and supported
- * methods -- {@link AbstractRSocket0}.
+ * RSocket Aeron service acceptor. Implementation of {@link SocketAcceptor}. See for details and
+ * supported methods -- {@link AbstractRSocket0}.
  */
 public class RSocketAeronServiceAcceptor implements SocketAcceptor {
 
@@ -34,7 +34,8 @@ public class RSocketAeronServiceAcceptor implements SocketAcceptor {
   private final ServiceMessageCodec messageCodec;
   private final ServiceMethodRegistry methodRegistry;
 
-  public RSocketAeronServiceAcceptor(ServiceMessageCodec codec, ServiceMethodRegistry methodRegistry) {
+  public RSocketAeronServiceAcceptor(
+      ServiceMessageCodec codec, ServiceMethodRegistry methodRegistry) {
     this.messageCodec = codec;
     this.methodRegistry = methodRegistry;
   }

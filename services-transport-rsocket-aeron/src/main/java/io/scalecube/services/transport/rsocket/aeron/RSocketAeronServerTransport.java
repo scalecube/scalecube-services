@@ -38,12 +38,25 @@ public class RSocketAeronServerTransport implements ServerTransport {
 
   @Override
   public Mono<InetSocketAddress> bind(int port, ServiceMethodRegistry methodRegistry) {
+    System.err.println("bind: " + port);
     return Mono.defer(
         () -> {
+          int serverPort = port > 0 ? port : SocketUtils.findAvailableUdpPort(12000);
+          // fixme works only wit "127.0.1.1" as a host
+          // InetSocketAddress address = new InetSocketAddress(serverPort);
+          InetSocketAddress address = InetSocketAddress.createUnresolved("127.0.1.1", serverPort);
           AeronServer aeronServer =
               AeronServer.create(aeronResources)
                   .options(
-                      options -> options.serverChannel("aeron:udp?endpoint=localhost:" + port));
+                      options -> {
+                        options.serverChannel(
+                            "aeron:udp?endpoint="
+                                + address.getHostString()
+                                + ":"
+                                + address.getPort());
+                        System.err.println(
+                            "bind options.serverChannel() = " + options.serverChannel());
+                      });
           return RSocketFactory.receive()
               .frameDecoder(
                   frame ->
@@ -53,7 +66,7 @@ public class RSocketAeronServerTransport implements ServerTransport {
               .transport(() -> new AeronServerTransport(aeronServer))
               .start()
               .map(server -> this.server = server)
-              .thenReturn(InetSocketAddress.createUnresolved("localhost", port));
+              .thenReturn(address);
         });
   }
 
