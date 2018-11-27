@@ -26,6 +26,7 @@ public class RSocketAeronClientTransport implements ClientTransport {
 
   private final ServiceMessageCodec codec;
   private final AeronResources aeronResources;
+  private final String bindHost = "0.0.0.0";
 
   /**
    * Constructor for this transport.
@@ -48,6 +49,7 @@ public class RSocketAeronClientTransport implements ClientTransport {
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
     System.err.println("connect: " + address);
+    int bindPort = SocketUtils.findAvailableUdpPort(15000);
     AeronClient aeronClient =
         AeronClient.create(aeronResources)
             .options(
@@ -55,8 +57,7 @@ public class RSocketAeronClientTransport implements ClientTransport {
                   options.serverChannel("aeron:udp?endpoint=" + address);
                   System.err.println(
                       "connect options.serverChannel() = " + options.serverChannel());
-                  options.clientChannel(
-                      "aeron:udp?endpoint=localhost:" + SocketUtils.findAvailableUdpPort(15000));
+                  options.clientChannel("aeron:udp?endpoint=" + bindHost + ":" + bindPort);
                   System.err.println(
                       "connect options.clientChannel() = " + options.clientChannel());
                 });
