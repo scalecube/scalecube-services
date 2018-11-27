@@ -20,42 +20,63 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketAeronServiceTransport.class);
 
-  private static final ThreadFactory WORKER_THREAD_FACTORY =
-      new DefaultThreadFactory("rsocket-aeron-worker", true);
-
   private static final String DEFAULT_HEADERS_FORMAT = "application/json";
-
-  private final AeronResources aeronResources = AeronResources.start(); // todo ?
 
   @Override
   public boolean isNativeSupported() {
-    return true; // todo ?
+    return true;
   }
 
   @Override
-  public ClientTransport getClientTransport(Executor workerThreadPool) {
+  public ClientTransport getClientTransport(Executor aeronRecourcesHolder) {
+    AeronResources aeronResources = ((AeronRecourcesHolder) aeronRecourcesHolder).aeronResources;
     return new RSocketAeronClientTransport(
         new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)), aeronResources);
   }
 
   @Override
-  public ServerTransport getServerTransport(Executor workerThreadPool) {
+  public ServerTransport getServerTransport(Executor aeronRecourcesHolder) {
+    AeronResources aeronResources = ((AeronRecourcesHolder) aeronRecourcesHolder).aeronResources;
     return new RSocketAeronServerTransport(
         new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)), aeronResources);
   }
 
   @Override
   public Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser ignore) {
-    return Executors.newFixedThreadPool(numOfThreads, WORKER_THREAD_FACTORY); // todo ?
+    return new AeronRecourcesHolder(numOfThreads);
   }
 
   @Override
-  public Mono shutdown(Executor workerThreadPool) {
+  public Mono shutdown(Executor aeronRecourcesHolder) {
     return Mono.fromRunnable(
         () -> {
-          if (workerThreadPool != null) {
-            ((ExecutorService) workerThreadPool).shutdown();
+          if (aeronRecourcesHolder != null) {
+            ((AeronRecourcesHolder) aeronRecourcesHolder).shutdown();
           }
         });
+  }
+
+  private static class AeronRecourcesHolder implements Executor {
+
+    private static final ThreadFactory WORKER_THREAD_FACTORY =
+        new DefaultThreadFactory("rsocket-aeron-worker", true);
+
+    private final ExecutorService workerThreadPool;
+    private final AeronResources aeronResources;
+
+    private AeronRecourcesHolder(int numOfThreads) {
+      this.workerThreadPool = Executors.newFixedThreadPool(numOfThreads, WORKER_THREAD_FACTORY);
+      this.aeronResources = AeronResources.start();
+    }
+
+    @Override
+    public void execute(Runnable command) {
+      workerThreadPool.execute(command);
+    }
+
+    private void shutdown() {
+      workerThreadPool.shutdown();
+      aeronResources.close();
+    }
   }
 }
