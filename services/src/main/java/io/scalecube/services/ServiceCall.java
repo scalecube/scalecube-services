@@ -1,8 +1,9 @@
 package io.scalecube.services;
 
-import static io.scalecube.services.ServiceErrors.EMPTY_RESPONSE_ERROR;
 import static java.util.Objects.requireNonNull;
 
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -30,21 +31,16 @@ import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
+  public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
+      ServiceMessage.builder()
+          .qualifier(Qualifier.asError(503))
+          .data(new ErrorData(503, "Unexpected empty response"))
+          .build();
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
-
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
   private final Router router;
-
-  private final Function<ServiceMessage, Object> msgToResp =
-      sm -> sm.hasData() ? sm.data() : EMPTY_RESPONSE_ERROR;
-
-  private final Function<Boolean, Function<Mono<ServiceMessage>, Mono<Object>>> monoRespFn =
-      isServiceMsg -> isServiceMsg ? mono -> mono.cast(Object.class) : mono -> mono.map(msgToResp);
-
-  private final Function<Boolean, Function<Flux<ServiceMessage>, Flux<Object>>> fluxRespFn =
-      isServiceMsg -> isServiceMsg ? flux -> flux.cast(Object.class) : flux -> flux.map(msgToResp);
 
   private ServiceCall(Call call) {
     this.transport = call.transport;
@@ -252,7 +248,7 @@ public class ServiceCall {
               Optional<Object> check =
                   toStringOrEqualsOrHashCode(method.getName(), serviceInterface, params);
               if (check.isPresent()) {
-                return check.get(); // toString, hashCode was been invoked.
+                return check.get(); // toString, hashCode was invoked.
               }
 
               switch (methodInfo.communicationMode()) {
@@ -262,12 +258,12 @@ public class ServiceCall {
                 case REQUEST_RESPONSE:
                   return serviceCall
                       .requestOne(toServiceMessage(methodInfo, params), returnType)
-                      .transform(monoRespFn.apply(isServiceMessage));
+                      .transform(asMono(isServiceMessage));
 
                 case REQUEST_STREAM:
                   return serviceCall
                       .requestMany(toServiceMessage(methodInfo, params), returnType)
-                      .transform(fluxRespFn.apply(isServiceMessage));
+                      .transform(asFlux(isServiceMessage));
 
                 case REQUEST_CHANNEL:
                   // this is REQUEST_CHANNEL so it means params[0] must be a publisher - its safe to
@@ -277,7 +273,7 @@ public class ServiceCall {
                           Flux.from((Publisher) params[0])
                               .map(data -> toServiceMessage(methodInfo, data)),
                           returnType)
-                      .transform(fluxRespFn.apply(isServiceMessage));
+                      .transform(asFlux(isServiceMessage));
 
                 default:
                   throw new IllegalArgumentException(
@@ -346,6 +342,18 @@ public class ServiceCall {
       default:
         return Optional.empty();
     }
+  }
+
+  private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isRequestTypeServiceMessage) {
+    return flux -> isRequestTypeServiceMessage ? flux.cast(Object.class) : flux.map(msgToResp());
+  }
+
+  private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isRequestTypeServiceMessage) {
+    return mono -> isRequestTypeServiceMessage ? mono.cast(Object.class) : mono.map(msgToResp());
+  }
+
+  private Function<ServiceMessage, Object> msgToResp() {
+    return sm -> sm.hasData() ? sm.data() : UNEXPECTED_EMPTY_RESPONSE;
   }
 
   /**
