@@ -74,7 +74,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Mono<GreetingResponse> result =
         Mono.from(service.greetingRequestTimeout(new GreetingRequest("joe", duration)));
-    assertTrue(" hello to: joe".equals(result.block(Duration.ofSeconds(10)).getResult()));
+    assertTrue(" hello to: joe".equals(result.block(TIMEOUT).getResult()));
   }
 
   @Test
@@ -83,7 +83,7 @@ public class ServiceRemoteTest extends BaseTest {
     GreetingService service = gateway.call().create().api(GreetingService.class);
 
     // call the service.
-    service.greetingVoid(new GreetingRequest("joe")).block(Duration.ofSeconds(3));
+    service.greetingVoid(new GreetingRequest("joe")).block(TIMEOUT);
 
     System.out.println("test_remote_void_greeting done.");
 
@@ -99,7 +99,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     StepVerifier.create(service.failingVoid(request))
         .expectErrorMessage(request.toString())
-        .verify(Duration.ofSeconds(3));
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -110,7 +110,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     StepVerifier.create(service.throwingVoid(request))
         .expectErrorMessage(request.toString())
-        .verify(Duration.ofSeconds(3));
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -120,7 +120,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
-    assertTrue(" hello to: joe".equals(future.block(Duration.ofSeconds(3))));
+    assertTrue(" hello to: joe".equals(future.block(TIMEOUT)));
   }
 
   @Test
@@ -131,7 +131,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Mono<String> future = Mono.from(service.greetingNoParams());
 
-    assertTrue("hello unknown".equals(future.block(Duration.ofSeconds(1))));
+    assertTrue("hello unknown".equals(future.block(TIMEOUT)));
   }
 
   @Test
@@ -152,7 +152,7 @@ public class ServiceRemoteTest extends BaseTest {
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
     assertTrue(
-        " hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(10000)).getResult()));
+        " hello to: joe".equals(Mono.from(future).block(TIMEOUT).getResult()));
   }
 
   @Test
@@ -181,7 +181,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     Publisher<GreetingResponse> future = service.greetingRequest(new GreetingRequest("joe"));
 
-    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1)).getResult()));
+    assertTrue(" hello to: joe".equals(Mono.from(future).block(TIMEOUT).getResult()));
   }
 
   @Test
@@ -200,7 +200,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     Publisher<String> future = service.callGreeting("joe");
 
-    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
+    assertTrue(" hello to: joe".equals(Mono.from(future).block(TIMEOUT)));
     provider.shutdown().block();
   }
 
@@ -220,7 +220,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
-    assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
+    assertTrue(" hello to: joe".equals(Mono.from(future).block(TIMEOUT)));
     provider.shutdown().block();
   }
 
@@ -263,7 +263,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Get a proxy to the service api.
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
 
-    String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
+    String response = service.callGreetingWithDispatcher("joe").block(TIMEOUT);
     assertEquals(response, " hello to: joe");
 
     provider.shutdown().block();
@@ -283,7 +283,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     StepVerifier.create(responses)
         .expectErrorMessage("IllegalArgumentException")
-        .verify(Duration.ofSeconds(3));
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -303,7 +303,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     StepVerifier.create(responses)
         .expectErrorMessage("Not authorized")
-        .verify(Duration.ofSeconds(3));
+        .verify(TIMEOUT);
   }
 
   @Test
@@ -329,7 +329,7 @@ public class ServiceRemoteTest extends BaseTest {
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-2"))
         .expectNextMatches(resp -> resp.getResult().equals(" hello to: joe-3"))
         .expectComplete()
-        .verify(Duration.ofSeconds(3));
+        .verify(TIMEOUT);
   }
 
   @Test
