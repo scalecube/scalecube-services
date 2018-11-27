@@ -33,8 +33,7 @@ import reactor.test.StepVerifier;
 
 public class ServiceCallRemoteTest extends BaseTest {
 
-  public static final int TIMEOUT = 3;
-  private Duration timeout = Duration.ofSeconds(TIMEOUT);
+  private Duration timeout = Duration.ofSeconds(10);
 
   private static Microservices gateway;
   private static Microservices provider;
@@ -97,7 +96,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     // When
     StepVerifier.create(gateway.call().create().requestOne(GREETING_FAILING_VOID_REQ, Void.class))
         .expectErrorMessage(GREETING_FAILING_VOID_REQ.data().toString())
-        .verify(Duration.ofSeconds(TIMEOUT));
+        .verify(timeout);
   }
 
   @Test
@@ -105,7 +104,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     // When
     StepVerifier.create(gateway.call().create().oneWay(GREETING_THROWING_VOID_REQ))
         .expectErrorMessage(GREETING_THROWING_VOID_REQ.data().toString())
-        .verify(Duration.ofSeconds(TIMEOUT));
+        .verify(timeout);
   }
 
   @Test
@@ -148,7 +147,7 @@ public class ServiceCallRemoteTest extends BaseTest {
         gateway.call().create().requestOne(GREETING_REQ, String.class);
 
     // Then
-    ServiceMessage result = Mono.from(resultFuture).block(Duration.ofSeconds(TIMEOUT));
+    ServiceMessage result = Mono.from(resultFuture).block(timeout);
     assertNotNull(result);
     assertEquals(GREETING_REQ.qualifier(), result.qualifier());
     assertEquals(" hello to: joe", result.data());
@@ -162,7 +161,7 @@ public class ServiceCallRemoteTest extends BaseTest {
         gateway.call().create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
     // Then
-    GreetingResponse greeting = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
+    GreetingResponse greeting = Mono.from(result).block(timeout).data();
     assertEquals(" hello to: joe", greeting.getResult());
   }
 
@@ -203,7 +202,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     Publisher<ServiceMessage> result =
         gateway.call().create().requestOne(GREETING_REQUEST_REQ, GreetingResponse.class);
 
-    GreetingResponse greetings = Mono.from(result).block(Duration.ofSeconds(TIMEOUT)).data();
+    GreetingResponse greetings = Mono.from(result).block(timeout).data();
     System.out.println("greeting_request_completes_before_timeout : " + greetings.getResult());
     assertTrue(greetings.getResult().equals(" hello to: joe"));
   }
