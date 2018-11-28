@@ -1,7 +1,6 @@
 package io.scalecube.services.transport;
 
 import io.scalecube.services.transport.api.ServiceTransport;
-import io.scalecube.services.transport.api.WorkerThreadChooser;
 import java.util.function.Consumer;
 
 public class ServiceTransportConfig {
@@ -9,14 +8,12 @@ public class ServiceTransportConfig {
   private final String host;
   private final ServiceTransport transport;
   private final Integer numOfThreads;
-  private final WorkerThreadChooser workerThreadChooser;
 
   private ServiceTransportConfig(Builder builder) {
     this.port = builder.port;
     this.host = builder.host;
     this.transport = builder.transport;
     this.numOfThreads = builder.numOfThreads;
-    this.workerThreadChooser = builder.workerThreadChooser;
   }
 
   /**
@@ -53,10 +50,6 @@ public class ServiceTransportConfig {
     return numOfThreads;
   }
 
-  public WorkerThreadChooser workerThreadChooser() {
-    return workerThreadChooser;
-  }
-
   @Override
   public String toString() {
     final StringBuffer sb = new StringBuffer("ServiceTransportConfig{");
@@ -64,7 +57,6 @@ public class ServiceTransportConfig {
     sb.append(", host='").append(host).append('\'');
     sb.append(", transport=").append(transport);
     sb.append(", numOfThreads=").append(numOfThreads);
-    sb.append(", workerThreadChooser=").append(workerThreadChooser);
     sb.append('}');
     return sb.toString();
   }
@@ -73,7 +65,6 @@ public class ServiceTransportConfig {
     private Integer port;
     private String host;
     private ServiceTransport transport;
-    private WorkerThreadChooser workerThreadChooser;
     private Integer numOfThreads = Runtime.getRuntime().availableProcessors();
 
     public Builder port(Integer port) {
@@ -93,11 +84,6 @@ public class ServiceTransportConfig {
 
     public Builder numOfThreads(Integer numOfThreads) {
       this.numOfThreads = numOfThreads;
-      return this;
-    }
-
-    public Builder workerThreadChooser(WorkerThreadChooser workerThreadChooser) {
-      this.workerThreadChooser = workerThreadChooser;
       return this;
     }
 
