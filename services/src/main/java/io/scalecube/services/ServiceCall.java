@@ -31,12 +31,13 @@ import reactor.core.publisher.Mono;
 
 public class ServiceCall {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
+
   public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
       ServiceMessage.builder()
           .qualifier(Qualifier.asError(503))
           .data(new ErrorData(503, "Unexpected empty response"))
           .build();
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;
