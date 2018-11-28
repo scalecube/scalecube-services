@@ -2,6 +2,8 @@ package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
 
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -31,6 +33,12 @@ public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
+  public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
+      ServiceMessage.builder()
+          .qualifier(Qualifier.asError(503))
+          .data(new ErrorData(503, "Unexpected empty response"))
+          .build();
+
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
@@ -41,69 +49,6 @@ public class ServiceCall {
     this.methodRegistry = call.methodRegistry;
     this.serviceRegistry = call.serviceRegistry;
     this.router = call.router;
-  }
-
-  private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
-    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
-      return ServiceMessage.from((ServiceMessage) params[0])
-          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-          .build();
-    }
-    return ServiceMessage.builder()
-        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
-        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
-        .build();
-  }
-
-  private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
-      boolean isRequestTypeServiceMessage) {
-    return flux ->
-        isRequestTypeServiceMessage
-            ? flux
-            : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
-  }
-
-  private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
-      boolean isRequestTypeServiceMessage) {
-    return mono ->
-        isRequestTypeServiceMessage
-            ? mono
-            : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
-  }
-
-  private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
-    LOGGER.error(
-        "Failed  to invoke service, "
-            + "No reachable member with such service definition [{}], args [{}]",
-        request.qualifier(),
-        request);
-    return new ServiceUnavailableException(
-        "No reachable member with such service: " + request.qualifier());
-  }
-
-  /**
-   * check and handle toString or equals or hashcode method where invoked.
-   *
-   * @param method that was invoked.
-   * @param serviceInterface for a given service interface.
-   * @param args parameters that where invoked.
-   * @return Optional object as result of to string equals or hashCode result or absent if none of
-   *     these where invoked.
-   */
-  private static Optional<Object> toStringOrEqualsOrHashCode(
-      String method, Class<?> serviceInterface, Object... args) {
-
-    switch (method) {
-      case "toString":
-        return Optional.of(serviceInterface.toString());
-      case "equals":
-        return Optional.of(serviceInterface.equals(args[0]));
-      case "hashCode":
-        return Optional.of(serviceInterface.hashCode());
-
-      default:
-        return Optional.empty();
-    }
   }
 
   /**
@@ -368,6 +313,65 @@ public class ServiceCall {
               Optional<Object> dataOptional = Optional.ofNullable(request.data());
               dataOptional.ifPresent(ReferenceCountUtil::safestRelease);
             });
+  }
+
+  private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
+    if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
+      return ServiceMessage.from((ServiceMessage) params[0])
+          .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+          .build();
+    }
+    return ServiceMessage.builder()
+        .qualifier(methodInfo.serviceName(), methodInfo.methodName())
+        .data(methodInfo.parameterCount() != 0 ? params[0] : null)
+        .build();
+  }
+
+  private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
+    LOGGER.error(
+        "Failed  to invoke service, "
+            + "No reachable member with such service definition [{}], args [{}]",
+        request.qualifier(),
+        request);
+    return new ServiceUnavailableException(
+        "No reachable member with such service: " + request.qualifier());
+  }
+
+  /**
+   * check and handle toString or equals or hashcode method where invoked.
+   *
+   * @param method that was invoked.
+   * @param serviceInterface for a given service interface.
+   * @param args parameters that where invoked.
+   * @return Optional object as result of to string equals or hashCode result or absent if none of
+   *     these where invoked.
+   */
+  private Optional<Object> toStringOrEqualsOrHashCode(
+      String method, Class<?> serviceInterface, Object... args) {
+
+    switch (method) {
+      case "toString":
+        return Optional.of(serviceInterface.toString());
+      case "equals":
+        return Optional.of(serviceInterface.equals(args[0]));
+      case "hashCode":
+        return Optional.of(serviceInterface.hashCode());
+
+      default:
+        return Optional.empty();
+    }
+  }
+
+  private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isRequestTypeServiceMessage) {
+    return flux -> isRequestTypeServiceMessage ? flux.cast(Object.class) : flux.map(msgToResp());
+  }
+
+  private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isRequestTypeServiceMessage) {
+    return mono -> isRequestTypeServiceMessage ? mono.cast(Object.class) : mono.map(msgToResp());
+  }
+
+  private Function<ServiceMessage, Object> msgToResp() {
+    return sm -> sm.hasData() ? sm.data() : UNEXPECTED_EMPTY_RESPONSE;
   }
 
   /**
