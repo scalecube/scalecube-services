@@ -11,8 +11,10 @@ import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.RejectedExecutionHandler;
 import java.lang.reflect.Constructor;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
+import java.util.function.BiFunction;
 
 /**
  * Nio event loop group with provided event executor chooser. Creates instances of {@link
@@ -20,19 +22,21 @@ import java.util.concurrent.ThreadFactory;
  */
 public class ExtendedNioEventLoopGroup extends NioEventLoopGroup {
 
-  private final EventExecutorChooser eventExecutorChooser;
+  private final BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser;
 
   /**
    * Constructor for event loop.
    *
    * @param numOfThreads number of worker threads
    * @param threadFactory thread factory
-   * @param eventExecutorChooser executor chooser
+   * @param eventLoopChooser executor chooser
    */
   public ExtendedNioEventLoopGroup(
-      int numOfThreads, ThreadFactory threadFactory, EventExecutorChooser eventExecutorChooser) {
+      int numOfThreads,
+      ThreadFactory threadFactory,
+      BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser) {
     super(numOfThreads, threadFactory);
-    this.eventExecutorChooser = eventExecutorChooser;
+    this.eventLoopChooser = eventLoopChooser;
   }
 
   @Override
@@ -60,9 +64,9 @@ public class ExtendedNioEventLoopGroup extends NioEventLoopGroup {
 
   @Override
   public ChannelFuture register(Channel channel) {
-    EventExecutor eventExecutor = eventExecutorChooser.getEventExecutor(channel, iterator());
+    EventLoop eventExecutor = eventLoopChooser.apply(channel, iterator());
     return eventExecutor != null
-        ? ((EventLoop) eventExecutor).register(channel)
+        ? eventExecutor.register(channel)
         : super.register(channel);
   }
 

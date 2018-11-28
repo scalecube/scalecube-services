@@ -1,7 +1,5 @@
 package io.scalecube.services.gateway.clientsdk.websocket;
 
-import java.util.Arrays;
-
 public enum Signal {
   COMPLETE(1),
   ERROR(2),
@@ -38,9 +36,15 @@ public enum Signal {
    * @return signal instance
    */
   public static Signal from(int code) {
-    return Arrays.stream(values())
-        .filter(s -> s.code == code)
-        .findFirst()
-        .orElseThrow(() -> new IllegalArgumentException("Unknown signal: " + code));
+    switch (code) {
+      case 1:
+        return COMPLETE;
+      case 2:
+        return ERROR;
+      case 3:
+        return CANCEL;
+      default:
+        throw new IllegalArgumentException("Unknown signal: " + code);
+    }
   }
 }

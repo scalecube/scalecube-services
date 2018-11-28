@@ -2,6 +2,8 @@ package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
 
+import io.scalecube.services.api.ErrorData;
+import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -31,6 +33,12 @@ public class ServiceCall {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
+  public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
+      ServiceMessage.builder()
+          .qualifier(Qualifier.asError(503))
+          .data(new ErrorData(503, "Unexpected empty response"))
+          .build();
+
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
@@ -44,59 +52,13 @@ public class ServiceCall {
   }
 
   /**
-   * This class represents {@link ServiceCall}'s definition. All {@link ServiceCall} must be created
-   * out of this definition.
-   */
-  public static class Call {
-
-    private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
-
-    private final ClientTransport transport;
-    private final ServiceMethodRegistry methodRegistry;
-    private final ServiceRegistry serviceRegistry;
-
-    /**
-     * Creates new {@link ServiceCall}'s definition.
-     *
-     * @param transport - transport to be used by {@link ServiceCall} that is created form this
-     *     {@link Call}
-     * @param methodRegistry - methodRegistry to be used by {@link ServiceCall} that is created form
-     *     this {@link Call}
-     * @param serviceRegistry - serviceRegistry to be used by {@link ServiceCall} that is created
-     *     form this {@link Call}
-     */
-    public Call(
-        ClientTransport transport,
-        ServiceMethodRegistry methodRegistry,
-        ServiceRegistry serviceRegistry) {
-      this.transport = transport;
-      this.serviceRegistry = serviceRegistry;
-      this.methodRegistry = methodRegistry;
-    }
-
-    public Call router(Class<? extends Router> routerType) {
-      this.router = Routers.getRouter(routerType);
-      return this;
-    }
-
-    public Call router(Router router) {
-      this.router = router;
-      return this;
-    }
-
-    public ServiceCall create() {
-      return new ServiceCall(this);
-    }
-  }
-
-  /**
    * Issues fire-and-forget request.
    *
    * @param request request message to send.
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request) {
-    return requestOne(request, Void.class).then();
+    return Mono.defer(() -> requestOne(request, Void.class).then());
   }
 
   /**
@@ -107,7 +69,7 @@ public class ServiceCall {
    * @return mono publisher completing normally or with error.
    */
   public Mono<Void> oneWay(ServiceMessage request, Address address) {
-    return requestOne(request, Void.class, address).then();
+    return Mono.defer(() -> requestOne(request, Void.class, address).then());
   }
 
   /**
@@ -128,16 +90,19 @@ public class ServiceCall {
    * @return mono publisher completing with single response message or with error.
    */
   public Mono<ServiceMessage> requestOne(ServiceMessage request, Class<?> responseType) {
-    String qualifier = request.qualifier();
-    if (methodRegistry.containsInvoker(qualifier)) { // local service.
-      return methodRegistry
-          .getInvoker(request.qualifier())
-          .invokeOne(request, ServiceMessageCodec::decodeData)
-          .onErrorMap(ExceptionProcessor::mapException);
-    } else {
-      return addressLookup(request)
-          .flatMap(address -> requestOne(request, responseType, address)); // remote service
-    }
+    return Mono.defer(
+        () -> {
+          String qualifier = request.qualifier();
+          if (methodRegistry.containsInvoker(qualifier)) { // local service.
+            return methodRegistry
+                .getInvoker(request.qualifier())
+                .invokeOne(request, ServiceMessageCodec::decodeData)
+                .onErrorMap(ExceptionProcessor::mapException);
+          } else {
+            return addressLookup(request)
+                .flatMap(address -> requestOne(request, responseType, address)); // remote service
+          }
+        });
   }
 
   /**
@@ -150,11 +115,14 @@ public class ServiceCall {
    */
   public Mono<ServiceMessage> requestOne(
       ServiceMessage request, Class<?> responseType, Address address) {
-    requireNonNull(address, "requestOne address paramter is required and must not be null");
-    return transport
-        .create(address)
-        .requestResponse(request)
-        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+    return Mono.defer(
+        () -> {
+          requireNonNull(address, "requestOne address paramter is required and must not be null");
+          return transport
+              .create(address)
+              .requestResponse(request)
+              .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+        });
   }
 
   /**
@@ -175,16 +143,20 @@ public class ServiceCall {
    * @return flux publisher of service responses.
    */
   public Flux<ServiceMessage> requestMany(ServiceMessage request, Class<?> responseType) {
-    String qualifier = request.qualifier();
-    if (methodRegistry.containsInvoker(qualifier)) { // local service.
-      return methodRegistry
-          .getInvoker(request.qualifier())
-          .invokeMany(request, ServiceMessageCodec::decodeData)
-          .onErrorMap(ExceptionProcessor::mapException);
-    } else {
-      return addressLookup(request)
-          .flatMapMany(address -> requestMany(request, responseType, address)); // remote service
-    }
+    return Flux.defer(
+        () -> {
+          String qualifier = request.qualifier();
+          if (methodRegistry.containsInvoker(qualifier)) { // local service.
+            return methodRegistry
+                .getInvoker(request.qualifier())
+                .invokeMany(request, ServiceMessageCodec::decodeData)
+                .onErrorMap(ExceptionProcessor::mapException);
+          } else {
+            return addressLookup(request)
+                .flatMapMany(
+                    address -> requestMany(request, responseType, address)); // remote service
+          }
+        });
   }
 
   /**
@@ -198,11 +170,14 @@ public class ServiceCall {
    */
   public Flux<ServiceMessage> requestMany(
       ServiceMessage request, Class<?> responseType, Address address) {
-    requireNonNull(address, "requestMany address paramter is required and must not be null");
-    return transport
-        .create(address)
-        .requestStream(request)
-        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+    return Flux.defer(
+        () -> {
+          requireNonNull(address, "requestMany address paramter is required and must not be null");
+          return transport
+              .create(address)
+              .requestStream(request)
+              .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+        });
   }
 
   /**
@@ -255,12 +230,15 @@ public class ServiceCall {
    */
   public Flux<ServiceMessage> requestBidirectional(
       Publisher<ServiceMessage> publisher, Class<?> responseType, Address address) {
-    requireNonNull(
-        address, "requestBidirectional address paramter is required and must not be null");
-    return transport
-        .create(address)
-        .requestChannel(publisher)
-        .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+    return Flux.defer(
+        () -> {
+          requireNonNull(
+              address, "requestBidirectional address paramter is required and must not be null");
+          return transport
+              .create(address)
+              .requestChannel(publisher)
+              .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+        });
   }
 
   /**
@@ -337,7 +315,7 @@ public class ServiceCall {
             });
   }
 
-  private static ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
+  private ServiceMessage toServiceMessage(MethodInfo methodInfo, Object... params) {
     if (methodInfo.parameterCount() != 0 && params[0] instanceof ServiceMessage) {
       return ServiceMessage.from((ServiceMessage) params[0])
           .qualifier(methodInfo.serviceName(), methodInfo.methodName())
@@ -349,23 +327,7 @@ public class ServiceCall {
         .build();
   }
 
-  private static Function<? super Flux<ServiceMessage>, ? extends Publisher<ServiceMessage>> asFlux(
-      boolean isRequestTypeServiceMessage) {
-    return flux ->
-        isRequestTypeServiceMessage
-            ? flux
-            : flux.filter(ServiceMessage::hasData).map(ServiceMessage::data);
-  }
-
-  private static Function<? super Mono<ServiceMessage>, ? extends Publisher<ServiceMessage>> asMono(
-      boolean isRequestTypeServiceMessage) {
-    return mono ->
-        isRequestTypeServiceMessage
-            ? mono
-            : mono.filter(ServiceMessage::hasData).map(ServiceMessage::data);
-  }
-
-  private static ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
+  private ServiceUnavailableException noReachableMemberException(ServiceMessage request) {
     LOGGER.error(
         "Failed  to invoke service, "
             + "No reachable member with such service definition [{}], args [{}]",
@@ -384,7 +346,7 @@ public class ServiceCall {
    * @return Optional object as result of to string equals or hashCode result or absent if none of
    *     these where invoked.
    */
-  private static Optional<Object> toStringOrEqualsOrHashCode(
+  private Optional<Object> toStringOrEqualsOrHashCode(
       String method, Class<?> serviceInterface, Object... args) {
 
     switch (method) {
@@ -397,6 +359,63 @@ public class ServiceCall {
 
       default:
         return Optional.empty();
+    }
+  }
+
+  private Function<Flux<ServiceMessage>, Flux<Object>> asFlux(boolean isRequestTypeServiceMessage) {
+    return flux -> isRequestTypeServiceMessage ? flux.cast(Object.class) : flux.map(msgToResp());
+  }
+
+  private Function<Mono<ServiceMessage>, Mono<Object>> asMono(boolean isRequestTypeServiceMessage) {
+    return mono -> isRequestTypeServiceMessage ? mono.cast(Object.class) : mono.map(msgToResp());
+  }
+
+  private Function<ServiceMessage, Object> msgToResp() {
+    return sm -> sm.hasData() ? sm.data() : UNEXPECTED_EMPTY_RESPONSE;
+  }
+
+  /**
+   * This class represents {@link ServiceCall}'s definition. All {@link ServiceCall} must be created
+   * out of this definition.
+   */
+  public static class Call {
+
+    private final ClientTransport transport;
+    private final ServiceMethodRegistry methodRegistry;
+    private final ServiceRegistry serviceRegistry;
+    private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+
+    /**
+     * Creates new {@link ServiceCall}'s definition.
+     *
+     * @param transport - transport to be used by {@link ServiceCall} that is created form this
+     *     {@link Call}
+     * @param methodRegistry - methodRegistry to be used by {@link ServiceCall} that is created form
+     *     this {@link Call}
+     * @param serviceRegistry - serviceRegistry to be used by {@link ServiceCall} that is created
+     *     form this {@link Call}
+     */
+    public Call(
+        ClientTransport transport,
+        ServiceMethodRegistry methodRegistry,
+        ServiceRegistry serviceRegistry) {
+      this.transport = transport;
+      this.serviceRegistry = serviceRegistry;
+      this.methodRegistry = methodRegistry;
+    }
+
+    public Call router(Class<? extends Router> routerType) {
+      this.router = Routers.getRouter(routerType);
+      return this;
+    }
+
+    public Call router(Router router) {
+      this.router = router;
+      return this;
+    }
+
+    public ServiceCall create() {
+      return new ServiceCall(this);
     }
   }
 }
