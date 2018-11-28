@@ -1,8 +1,11 @@
 package io.scalecube.services.transport.rsocket;
 
+import io.netty.channel.Channel;
+import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
 import io.scalecube.services.transport.api.ClientTransport;
@@ -10,7 +13,7 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
-import io.scalecube.services.transport.api.WorkerThreadChooser;
+import java.util.Iterator;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import org.slf4j.Logger;
@@ -30,10 +33,8 @@ public class RSocketServiceTransport implements ServiceTransport {
       new DefaultThreadFactory("rsocket-worker", true);
 
   private static final String DEFAULT_HEADERS_FORMAT = "application/json";
-
-  private static boolean preferEpoll = false;
-
   private static final String EPOLL_CLASS_NAME = "io.netty.channel.epoll.Epoll";
+  private static boolean preferEpoll = false;
 
   static {
     if (PlatformDependent.isWindows()) {
@@ -70,15 +71,11 @@ public class RSocketServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser threadChooser) {
-    EventExecutorChooser executorChooser =
-        threadChooser != null
-            ? new DefaultEventExecutorChooser(threadChooser)
-            : EventExecutorChooser.DEFAULT_INSTANCE;
-
+  public Executor getWorkerThreadPool(int numOfThreads) {
     return preferEpoll
-        ? new ExtendedEpollEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, executorChooser)
-        : new ExtendedNioEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, executorChooser);
+        ? new ExtendedEpollEventLoopGroup(
+            numOfThreads, WORKER_THREAD_FACTORY, this::chooseEventLoop)
+        : new ExtendedNioEventLoopGroup(numOfThreads, WORKER_THREAD_FACTORY, this::chooseEventLoop);
   }
 
   @Override
@@ -89,5 +86,15 @@ public class RSocketServiceTransport implements ServiceTransport {
             workerThreadPool != null
                 ? FutureMono.from((Future) ((EventLoopGroup) workerThreadPool).shutdownGracefully())
                 : Mono.empty());
+  }
+
+  private EventLoop chooseEventLoop(Channel channel, Iterator<EventExecutor> executors) {
+    while (executors.hasNext()) {
+      EventExecutor eventLoop = executors.next();
+      if (eventLoop.inEventLoop()) {
+        return (EventLoop) eventLoop;
+      }
+    }
+    return null;
   }
 }

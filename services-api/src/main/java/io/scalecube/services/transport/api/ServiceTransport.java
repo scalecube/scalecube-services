@@ -44,10 +44,9 @@ public interface ServiceTransport {
    * Getting new service transport worker thread pool.
    *
    * @param numOfThreads number of threads for worker thread pool
-   * @param workerThreadChooser worker thread chooser function
    * @return executor
    */
-  Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser workerThreadChooser);
+  Executor getWorkerThreadPool(int numOfThreads);
 
   /**
    * Shutdowns service transport.
