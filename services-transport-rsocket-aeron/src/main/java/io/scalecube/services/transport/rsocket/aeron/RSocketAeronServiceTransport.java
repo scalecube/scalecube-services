@@ -6,7 +6,6 @@ import io.scalecube.services.transport.api.HeadersCodec;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
-import io.scalecube.services.transport.api.WorkerThreadChooser;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,7 +41,7 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
   }
 
   @Override
-  public Executor getWorkerThreadPool(int numOfThreads, WorkerThreadChooser ignore) {
+  public Executor getWorkerThreadPool(int numOfThreads) {
     return new AeronRecourcesHolder(numOfThreads);
   }
 

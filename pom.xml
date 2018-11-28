@@ -46,6 +46,7 @@
   <modules>
     <module>services-api</module>
     <module>services-transport-rsocket</module>
+    <module>services-transport-rsocket-aeron</module>
     <module>services-discovery</module>
     <module>services-transport-jackson</module>
     <module>services-transport-protostuff</module>
@@ -60,7 +61,6 @@
     <module>services-gateway-runner</module>
     <module>services-examples-runner</module>
     <module>services-gateway-clientsdk</module>
-    <module>services-transport-rsocket-aeron</module>
   </modules>
 
   <dependencyManagement>
