@@ -6,7 +6,6 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
 import java.net.InetSocketAddress;
 import java.util.Optional;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,22 +32,11 @@ public abstract class GatewayTemplate implements Gateway {
    *
    * @param preferNative should native be preferred
    * @param bossThreadFactory connection acceptor factory
-   * @param config gateway configuration object
-   * @param workerThreadPool service transport worker thread pool
+   * @param workerGroup worker group
    * @return loop resources or null
    */
   protected final LoopResources prepareLoopResources(
-      boolean preferNative,
-      ThreadFactory bossThreadFactory,
-      GatewayConfig config,
-      Executor workerThreadPool) {
-
-    EventLoopGroup workerGroup =
-        (EventLoopGroup) Optional.ofNullable(config.workerThreadPool()).orElse(workerThreadPool);
-
-    if (workerGroup == null) {
-      return null;
-    }
+      boolean preferNative, ThreadFactory bossThreadFactory, EventLoopGroup workerGroup) {
 
     bossGroup =
         preferNative
@@ -62,7 +50,7 @@ public abstract class GatewayTemplate implements Gateway {
    * Builds generic http server with given parameters.
    *
    * @param loopResources loop resources calculated at {@link #prepareLoopResources(boolean,
-   *     ThreadFactory, GatewayConfig, Executor)}
+   *     ThreadFactory, EventLoopGroup)}
    * @param port listen port
    * @param metrics gateway metrics
    * @return http server
