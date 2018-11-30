@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.rsocket;
 
+import io.netty.channel.EventLoopGroup;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
@@ -31,7 +32,7 @@ public class RSocketGateway extends GatewayTemplate {
   @Override
   public Mono<Gateway> start(
       GatewayConfig config,
-      Executor workerThreadPool,
+      Executor workerPool,
       boolean preferNative,
       ServiceCall.Call call,
       Metrics metrics) {
@@ -44,7 +45,10 @@ public class RSocketGateway extends GatewayTemplate {
           RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(call.create(), metrics1);
 
           LoopResources loopResources =
-              prepareLoopResources(preferNative, BOSS_THREAD_FACTORY, config, workerThreadPool);
+              workerPool != null
+                  ? prepareLoopResources(
+                      preferNative, BOSS_THREAD_FACTORY, (EventLoopGroup) workerPool)
+                  : null;
 
           WebsocketServerTransport rsocketTransport =
               WebsocketServerTransport.create(
@@ -63,7 +67,7 @@ public class RSocketGateway extends GatewayTemplate {
                   server ->
                       LOGGER.info(
                           "Rsocket Gateway has been started successfully on {}", server.address()))
-              .then(Mono.just(this));
+              .thenReturn(this);
         });
   }
 
