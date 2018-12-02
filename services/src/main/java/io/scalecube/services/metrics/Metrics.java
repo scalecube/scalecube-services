@@ -106,10 +106,10 @@ public class Metrics {
   }
 
   /**
-   * Stop time measurement and report the interval to metrics.
+   * Report the interval to metrics.
    *
-   * @param timer - timer context to be stopped.
-   * @param duration
+   * @param timer - timer to report
+   * @param duration result to record
    */
   public static void record(Timer timer, Duration duration) {
     if (timer != null) {
@@ -128,23 +128,18 @@ public class Metrics {
     }
   }
 
-  public Counter getCounter(
-      final String component, final String methodName, final String eventType) {
-    return registry.counter(
-        new StringJoiner(".").add(component).add(methodName).add(eventType).toString());
-  }
-
-  public <T> Counter getCounter(
-      final Class<T> component, final String methodName, final String eventType) {
-    return getCounter(component.getName(), methodName, eventType);
-  }
-
   public Timer getTimer(String component, String methodName) {
     return registry.timer(new StringJoiner(".").add(component).add(methodName).toString());
   }
 
   public <T> Timer getTimer(Class<T> component, String methodName) {
     return getTimer(component.getName(), methodName);
+  }
+
+  public Counter getCounter(
+      final String component, final String methodName, final String eventType) {
+    return registry.counter(
+        new StringJoiner(".").add(component).add(methodName).add(eventType).toString());
   }
 
   public Counter getCounter(final String component, final String methodName) {
@@ -155,13 +150,17 @@ public class Metrics {
     return getCounter(component.getName(), methodName);
   }
 
+  public <T> Counter getCounter(
+      final Class<T> component, final String methodName, final String eventType) {
+    return getCounter(component.getName(), methodName, eventType);
+  }
+
   public LongAdder gauge(LongAdder l, Class<?> component, String methodName) {
     return gauge(l, component.getName(), methodName);
   }
 
   public LongAdder gauge(LongAdder l, String component, String methodName) {
-    return registry.gauge(
-        new StringJoiner(".").add(component).add(methodName).toString(), l);
+    return registry.gauge(new StringJoiner(".").add(component).add(methodName).toString(), l);
   }
 
   public DistributionSummary getHistogram(

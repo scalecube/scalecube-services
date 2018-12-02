@@ -3,6 +3,7 @@ package io.scalecube.services.gateway;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import io.micrometer.core.instrument.util.NamedThreadFactory;
 import io.scalecube.config.ConfigRegistry;
 import io.scalecube.config.ConfigRegistrySettings;
 import io.scalecube.config.audit.Slf4JConfigEventListener;
@@ -13,9 +14,11 @@ import io.scalecube.services.Microservices;
 import io.scalecube.services.gateway.http.HttpGateway;
 import io.scalecube.services.gateway.rsocket.RSocketGateway;
 import io.scalecube.services.gateway.ws.WebsocketGateway;
+import io.scalecube.services.metrics.CsvMeterRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -76,23 +79,9 @@ public class GatewayRunner {
   }
 
   private static MeterRegistry initMetricRegistry() {
-    CompositeMeterRegistry comp = new CompositeMeterRegistry();
-    comp.add(new SimpleMeterRegistry());
-
-//    MeterRegistry metrics = new Me;
-//    File reporterDir = new File(REPORTER_PATH);
-//    if (!reporterDir.exists()) {
-//      //noinspection ResultOfMethodCallIgnored
-//      reporterDir.mkdirs();
-//    }
-//    CsvReporter csvReporter =
-//        CsvReporter.forRegistry(metrics)
-//            .convertDurationsTo(TimeUnit.MILLISECONDS)
-//            .convertRatesTo(TimeUnit.SECONDS)
-//            .build(reporterDir);
-//
-//    csvReporter.start(10, TimeUnit.SECONDS);
-    return comp;
+    CsvMeterRegistry metrics = new CsvMeterRegistry(REPORTER_PATH, Duration.ofSeconds(10));
+    metrics.start(new NamedThreadFactory("csv-metrics-reporter"));
+    return metrics;
   }
 
   public static class Config {
