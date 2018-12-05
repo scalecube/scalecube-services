@@ -8,7 +8,7 @@
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.0.14</version>
+    <version>0.0.16</version>
   </parent>
   <packaging>pom</packaging>
 
@@ -23,7 +23,7 @@
 
   <properties>
     <jackson.version>2.9.6</jackson.version>
-    <scalecube-cluster.version>2.1.11</scalecube-cluster.version>
+    <scalecube-cluster.version>2.1.12</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.4</scalecube-config.version>
     <reactor.version>3.2.1.RELEASE</reactor.version>
@@ -31,7 +31,6 @@
     <reactivestreams.version>1.0.2</reactivestreams.version>
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.8</rsocket.version>
-    <reactor-netty.version>0.8.1.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.29.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
@@ -78,12 +77,7 @@
         <version>${scalecube-config.version}</version>
       </dependency>
 
-      <!-- Reactor -->
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-core</artifactId>
-        <version>${reactor.version}</version>
-      </dependency>
+
 
       <!-- Reactive Streams -->
       <dependency>
@@ -125,13 +119,6 @@
         <groupId>io.rsocket</groupId>
         <artifactId>rsocket-transport-netty</artifactId>
         <version>${rsocket.version}</version>
-      </dependency>
-
-      <!-- Reactor Netty -->
-      <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty</artifactId>
-        <version>${reactor-netty.version}</version>
       </dependency>
 
       <!-- Jackson -->
@@ -272,19 +259,16 @@
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest-all.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-core</artifactId>
-      <version>${hamcrest-all.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-test</artifactId>
-      <version>${reactor.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
