@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.clientsdk.websocket;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ErrorData;
@@ -85,7 +86,7 @@ final class WebsocketSession {
     return Mono.defer(
         () ->
             outbound
-                .send(Mono.just(byteBuf))
+                .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new))
                 .then()
                 .doOnSuccess(
                     avoid -> {

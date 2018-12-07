@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.ws;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import java.util.Map;
 import java.util.Optional;
 import org.jctools.maps.NonBlockingHashMapLong;
@@ -82,7 +83,7 @@ public final class WebsocketSession {
     return Mono.defer(
         () ->
             outbound
-                .send(Mono.just(response).map(codec::encode))
+                .sendObject(Mono.just(response).map(codec::encode).map(TextWebSocketFrame::new))
                 .then()
                 .doOnSuccessOrError((avoid, th) -> logSend(response, th)));
   }
