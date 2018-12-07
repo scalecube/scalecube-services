@@ -11,7 +11,7 @@
   <artifactId>scalecube-services-benchmarks</artifactId>
 
   <properties>
-    <extratags>${env.TRAVIS_COMMIT}</extratags>
+    <travisCommit>${env.TRAVIS_COMMIT}</travisCommit>
   </properties>
 
   <dependencies>
@@ -104,7 +104,7 @@
             </goals>
             <phase>install</phase>
             <configuration>
-              <tag>${extratags}</tag>
+              <tag>${travisCommit}</tag>
               <skip>${noextratags}</skip>
             </configuration>
           </execution>
