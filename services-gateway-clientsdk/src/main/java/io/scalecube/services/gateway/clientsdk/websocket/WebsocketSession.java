@@ -14,7 +14,6 @@ import org.jctools.maps.NonBlockingHashMapLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.UnicastProcessor;
 import reactor.netty.Connection;
@@ -38,23 +37,11 @@ final class WebsocketSession {
   private final Map<Long, UnicastProcessor<ClientMessage>> inboundProcessors =
       new NonBlockingHashMapLong<>(1024);
 
-  private final FluxSink<ByteBuf> outboundSink;
-
   WebsocketSession(ClientCodec<ByteBuf> codec, Connection connection) {
     this.id = Integer.toHexString(System.identityHashCode(this));
     this.codec = codec;
     this.connection = connection;
-    this.outbound = (WebsocketOutbound) connection.outbound();
-
-    UnicastProcessor<ByteBuf> outboundProcessor = UnicastProcessor.create();
-    outboundSink = outboundProcessor.sink();
-
-    this.outbound
-        .options(SendOptions::flushOnEach)
-        .sendObject(outboundProcessor.onBackpressureBuffer().map(TextWebSocketFrame::new))
-        .then()
-        .subscribe(
-            null, th -> LOGGER.error("Exception on sending for session={}, cause: {}", id, th));
+    this.outbound = (WebsocketOutbound) connection.outbound().options(SendOptions::flushOnEach);
 
     WebsocketInbound inbound = (WebsocketInbound) connection.inbound();
     inbound
@@ -96,12 +83,16 @@ final class WebsocketSession {
   }
 
   public Mono<Void> send(ByteBuf byteBuf, long sid) {
-    return Mono.<Void>fromRunnable(() -> outboundSink.next(byteBuf))
-        .doOnSuccess(
-            avoid -> {
-              inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
-              LOGGER.debug("Put sid={}, session={}", sid, id);
-            });
+    return Mono.defer(
+        () ->
+            outbound
+                .sendObject(Mono.just(byteBuf).map(TextWebSocketFrame::new))
+                .then()
+                .doOnSuccess(
+                    avoid -> {
+                      inboundProcessors.computeIfAbsent(sid, key -> UnicastProcessor.create());
+                      LOGGER.debug("Put sid={}, session={}", sid, id);
+                    }));
   }
 
   public Flux<ClientMessage> receive(long sid) {
