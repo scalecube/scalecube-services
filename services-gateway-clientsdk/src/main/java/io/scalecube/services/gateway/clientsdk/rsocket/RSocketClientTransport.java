@@ -139,6 +139,7 @@ public final class RSocketClientTransport implements ClientTransport {
 
     HttpClient httpClient =
         HttpClient.newConnection()
+            .followRedirect(settings.followRedirect())
             .tcpConfiguration(
                 tcpClient ->
                     tcpClient.runOn(loopResources).host(settings.host()).port(settings.port()));
