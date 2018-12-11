@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.clientsdk;
 
 import java.net.InetSocketAddress;
 import reactor.netty.resources.LoopResources;
+import reactor.netty.tcp.SslProvider;
 
 public class ClientSettings {
 
@@ -13,6 +14,7 @@ public class ClientSettings {
   private final String contentType;
   private final LoopResources loopResources;
   private final boolean followRedirect;
+  private final SslProvider sslProvider;
 
   private ClientSettings(Builder builder) {
     this.host = builder.host;
@@ -20,6 +22,7 @@ public class ClientSettings {
     this.contentType = builder.contentType;
     this.loopResources = builder.loopResources;
     this.followRedirect = builder.followRedirect;
+    this.sslProvider = builder.sslProvider;
   }
 
   public String host() {
@@ -42,6 +45,10 @@ public class ClientSettings {
     return followRedirect;
   }
 
+  public SslProvider sslProvider() {
+    return sslProvider;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -54,6 +61,7 @@ public class ClientSettings {
     sb.append(", contentType='").append(contentType).append('\'');
     sb.append(", loopResources=").append(loopResources);
     sb.append(", followRedirect=").append(followRedirect);
+    sb.append(", sslProvider=").append(sslProvider);
     sb.append('}');
     return sb.toString();
   }
@@ -64,6 +72,7 @@ public class ClientSettings {
     private String contentType = DEFAULT_CONTENT_TYPE;
     private LoopResources loopResources;
     private boolean followRedirect = true;
+    private SslProvider sslProvider;
 
     private Builder() {}
 
@@ -99,6 +108,27 @@ public class ClientSettings {
      */
     public Builder followRedirect(boolean followRedirect) {
       this.followRedirect = followRedirect;
+      return this;
+    }
+
+    /**
+     * Use default SSL client provider.
+     *
+     * @return builder
+     */
+    public Builder secure() {
+      this.sslProvider = SslProvider.defaultClientProvider();
+      return this;
+    }
+
+    /**
+     * Use specified SSL provider.
+     *
+     * @param sslProvider SSL provider
+     * @return builder
+     */
+    public Builder secure(SslProvider sslProvider) {
+      this.sslProvider = sslProvider;
       return this;
     }
 

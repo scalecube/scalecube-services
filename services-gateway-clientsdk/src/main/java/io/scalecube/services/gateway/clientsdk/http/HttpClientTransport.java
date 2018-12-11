@@ -42,8 +42,12 @@ public final class HttpClientTransport implements ClientTransport {
         HttpClient.create(connectionProvider)
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
-                tcpClient ->
-                    tcpClient.runOn(loopResources).host(settings.host()).port(settings.port()));
+                tcpClient -> {
+                  if (settings.sslProvider() != null) {
+                    tcpClient = tcpClient.secure(settings.sslProvider());
+                  }
+                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                });
   }
 
   @Override

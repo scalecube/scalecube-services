@@ -141,8 +141,12 @@ public final class RSocketClientTransport implements ClientTransport {
         HttpClient.newConnection()
             .followRedirect(settings.followRedirect())
             .tcpConfiguration(
-                tcpClient ->
-                    tcpClient.runOn(loopResources).host(settings.host()).port(settings.port()));
+                tcpClient -> {
+                  if (settings.sslProvider() != null) {
+                    tcpClient = tcpClient.secure(settings.sslProvider());
+                  }
+                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                });
 
     return WebsocketClientTransport.create(httpClient, path);
   }
