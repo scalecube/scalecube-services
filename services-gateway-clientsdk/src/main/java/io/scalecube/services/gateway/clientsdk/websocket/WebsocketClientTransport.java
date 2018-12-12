@@ -49,9 +49,14 @@ public final class WebsocketClientTransport implements ClientTransport {
 
     httpClient =
         HttpClient.newConnection()
+            .followRedirect(settings.followRedirect())
             .tcpConfiguration(
-                tcpClient ->
-                    tcpClient.runOn(loopResources).host(settings.host()).port(settings.port()));
+                tcpClient -> {
+                  if (settings.sslProvider() != null) {
+                    tcpClient = tcpClient.secure(settings.sslProvider());
+                  }
+                  return tcpClient.runOn(loopResources).host(settings.host()).port(settings.port());
+                });
   }
 
   @Override
