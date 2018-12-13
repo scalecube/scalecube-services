@@ -1,7 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import requests
-from urllib.parse import urljoin
+import urlparse
 import json
 import time
 import sys
@@ -26,17 +26,17 @@ class TravisBuilds:
         data = {"request": {
             "branch": "master"
         }}
-        url = urljoin(self.travis_api_url,
+        url = urlparse.urljoin(self.travis_api_url,
                       'repo/{}/requests'.format(self.repo_name))
         response = requests.post(url=url, data=json.dumps(data), headers=self.headers)
         if response.status_code == 202:
             self.build_id = self.get_build_id(response.json()["request"]["id"])
-            print(self.build_id)
+            print self.build_id
         return True
 
     def get_build_id(self, request_id):
         time.sleep(10)
-        url = urljoin(self.travis_api_url,
+        url = urlparse.urljoin(self.travis_api_url,
                       'repo/{}/request/{}'.format(self.repo_name, request_id))
         response = requests.get(url=url, headers=self.headers)
         return response.json()["builds"][0]['id']
@@ -45,12 +45,12 @@ class TravisBuilds:
         attempts = 0
         tests_minutes = int(os.getenv('TESTS_MINUTES'))
         while attempts < tests_minutes:
-            url = urljoin(self.travis_api_url, 'build/{}'.format(self.build_id))
+            url = urlparse.urljoin(self.travis_api_url, 'build/{}'.format(self.build_id))
             response = requests.get(url=url, headers=self.headers)
             if response.json()['state'] == "passed":
                 return True
             else:
-                print("External build is running {} minutes".format(attempts))
+                print "External build is running {} minutes".format(attempts)
                 time.sleep(60)
                 attempts += 1
         return False
