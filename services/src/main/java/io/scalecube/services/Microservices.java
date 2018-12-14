@@ -173,7 +173,7 @@ public class Microservices {
                   .start(discoveryConfig)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
-                  .then(Mono.just(this));
+                  .thenReturn(this);
             })
         .onErrorResume(
             ex -> {

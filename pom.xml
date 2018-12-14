@@ -3,12 +3,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>scalecube-services-parent</artifactId>
-  <version>2.4.4-SNAPSHOT</version>
+  <version>2.4.7-SNAPSHOT</version>
 
   <parent>
     <groupId>io.scalecube</groupId>
     <artifactId>scalecube-parent-pom</artifactId>
-    <version>0.0.14</version>
+    <version>0.0.16</version>
   </parent>
   <packaging>pom</packaging>
 
@@ -23,7 +23,7 @@
 
   <properties>
     <jackson.version>2.9.6</jackson.version>
-    <scalecube-cluster.version>2.1.11</scalecube-cluster.version>
+    <scalecube-cluster.version>2.1.13</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.4</scalecube-config.version>
     <reactor.version>3.2.1.RELEASE</reactor.version>
@@ -32,9 +32,8 @@
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.8</rsocket.version>
     <scalecube-rsocket-aeron.version>0.1.2</scalecube-rsocket-aeron.version>
-    <reactor-netty.version>0.8.1.RELEASE</reactor-netty.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <netty.version>4.1.29.Final</netty.version>
+    <netty.version>4.1.31.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>2.11.0</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
@@ -80,12 +79,7 @@
         <version>${scalecube-config.version}</version>
       </dependency>
 
-      <!-- Reactor -->
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-core</artifactId>
-        <version>${reactor.version}</version>
-      </dependency>
+
 
       <!-- Reactive Streams -->
       <dependency>
@@ -133,13 +127,6 @@
         <groupId>io.scalecube</groupId>
         <artifactId>rsocket-transport-aeron</artifactId>
         <version>${scalecube-rsocket-aeron.version}</version>
-      </dependency>
-
-      <!-- Reactor Netty -->
-      <dependency>
-        <groupId>io.projectreactor.netty</groupId>
-        <artifactId>reactor-netty</artifactId>
-        <version>${reactor-netty.version}</version>
       </dependency>
 
       <!-- Jackson -->
@@ -280,19 +267,16 @@
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-all</artifactId>
-      <version>${hamcrest-all.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
       <artifactId>hamcrest-core</artifactId>
-      <version>${hamcrest-all.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-test</artifactId>
-      <version>${reactor.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
