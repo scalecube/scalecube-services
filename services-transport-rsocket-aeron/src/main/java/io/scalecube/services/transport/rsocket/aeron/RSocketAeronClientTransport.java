@@ -60,15 +60,12 @@ public class RSocketAeronClientTransport implements ClientTransport {
                       new ChannelUriStringBuilder()
                           .media("udp")
                           .reliable(TRUE)
-                          .endpoint(address.toString())
-                          .build());
+                          .endpoint(address.toString()));
                   options.clientChannel(
                       new ChannelUriStringBuilder()
                           .media("udp")
                           .reliable(TRUE)
-                          .endpoint(bindHost + ":" + bindPort)
-                          .build());
-                  options.heartbeatTimeoutMillis(1000);
+                          .endpoint(bindHost + ":" + bindPort));
                 });
 
     Mono<RSocket> rsocketMono =

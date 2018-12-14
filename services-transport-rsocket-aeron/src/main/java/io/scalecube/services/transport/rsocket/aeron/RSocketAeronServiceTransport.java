@@ -75,7 +75,8 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
 
     private void shutdown() {
       workerThreadPool.shutdown();
-      aeronResources.close();
+      aeronResources.dispose();
+      aeronResources.onDispose().block();
     }
   }
 }

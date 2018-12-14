@@ -48,15 +48,13 @@ public class RSocketAeronServerTransport implements ServerTransport {
           AeronServer aeronServer =
               AeronServer.create(aeronResources)
                   .options(
-                      options -> {
-                        options.serverChannel(
-                            new ChannelUriStringBuilder()
-                                .media("udp")
-                                .reliable(TRUE)
-                                .endpoint(bindAddress.getHostString() + ":" + bindAddress.getPort())
-                                .build());
-                        options.heartbeatTimeoutMillis(1000);
-                      });
+                      options ->
+                          options.serverChannel(
+                              new ChannelUriStringBuilder()
+                                  .media("udp")
+                                  .reliable(TRUE)
+                                  .endpoint(
+                                      bindAddress.getHostString() + ":" + bindAddress.getPort())));
           return RSocketFactory.receive()
               .frameDecoder(
                   frame ->
