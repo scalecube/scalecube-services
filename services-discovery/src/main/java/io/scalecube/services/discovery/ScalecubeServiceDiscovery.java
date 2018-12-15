@@ -122,8 +122,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private void onMemberEvent(MembershipEvent event) {
     Member member = event.member();
-    member
-        .metadata()
+    Map<String, String> metadata = cluster.metadata(member);
+    metadata
         .entrySet()
         .stream()
         .filter(entry -> SERVICE_METADATA.equals(entry.getValue()))
