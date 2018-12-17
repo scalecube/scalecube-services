@@ -1,6 +1,7 @@
 package io.scalecube.services.examples;
 
 import io.scalecube.services.Microservices;
+import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.annotations.Service;
 import io.scalecube.services.annotations.ServiceMethod;
 import io.scalecube.services.examples.gateway.HttpGatewayStub;
@@ -46,12 +47,17 @@ public class BootstrapExample {
         Microservices.builder()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
-                call ->
-                    Collections.singletonList(
-                        new HelloWorldServiceImpl(
-                            new BusinessLogicFacade(
-                                call.create().api(ServiceHello.class),
-                                call.create().api(ServiceWorld.class)))))
+                call -> {
+                  ServiceInfo serviceInfo =
+                      ServiceInfo.fromServiceInstance(
+                              new HelloWorldServiceImpl(
+                                  new BusinessLogicFacade(
+                                      call.create().api(ServiceHello.class),
+                                      call.create().api(ServiceWorld.class))))
+                          .build();
+
+                  return Collections.singleton(serviceInfo);
+                })
             .startAwait();
 
     System.out.println("Start ServiceHello");

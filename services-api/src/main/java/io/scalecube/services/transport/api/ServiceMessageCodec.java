@@ -7,7 +7,6 @@ import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.Unpooled;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.MessageCodecException;
 import java.util.function.BiFunction;
 import org.slf4j.Logger;
@@ -121,10 +120,6 @@ public final class ServiceMessageCodec {
     } catch (Throwable ex) {
       throw new MessageCodecException(
           "Failed to decode data on message q=" + message.qualifier(), ex);
-    }
-
-    if (targetType == ErrorData.class) {
-      throw ExceptionProcessor.toException(message.qualifier(), (ErrorData) data);
     }
 
     return ServiceMessage.from(message).data(data).build();
