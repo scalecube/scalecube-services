@@ -88,7 +88,7 @@ public class HttpGatewayAcceptor
               enrichResponse(httpResponse, response);
               return Mono.defer(
                   () ->
-                      ExceptionProcessor.isError(response) // check error
+                      response.isError() // check error
                           ? error(httpResponse, response)
                           : response.hasData() // check data
                               ? ok(httpResponse, response)

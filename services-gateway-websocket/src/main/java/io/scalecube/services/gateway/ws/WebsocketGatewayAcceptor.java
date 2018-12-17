@@ -203,7 +203,7 @@ public class WebsocketGatewayAcceptor
   private GatewayMessage prepareResponse(
       Long streamId, ServiceMessage message, AtomicBoolean receivedErrorMessage) {
     GatewayMessage.Builder response = GatewayMessage.from(message).streamId(streamId);
-    if (ExceptionProcessor.isError(message)) {
+    if (message.isError()) {
       receivedErrorMessage.set(true);
       response.signal(Signal.ERROR);
     }

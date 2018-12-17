@@ -152,6 +152,11 @@ public final class ServiceMessage {
     }
   }
 
+  public boolean isError() {
+    String qualifier = qualifier();
+    return qualifier != null && qualifier.contains(Qualifier.ERROR_NAMESPACE);
+  }
+
   @Override
   public String toString() {
     return "ServiceMessage {headers: " + headers + ", data: " + data + '}';

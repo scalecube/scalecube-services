@@ -112,7 +112,7 @@ public final class ServiceMessageCodec {
     }
 
     Object data;
-    Class<?> targetType = ExceptionProcessor.isError(message) ? ErrorData.class : dataType;
+    Class<?> targetType = message.isError() ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
     try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
