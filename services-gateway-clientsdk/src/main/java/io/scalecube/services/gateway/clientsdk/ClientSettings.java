@@ -2,6 +2,7 @@ package io.scalecube.services.gateway.clientsdk;
 
 import java.net.InetSocketAddress;
 import reactor.netty.resources.LoopResources;
+import reactor.netty.tcp.SslProvider;
 
 public class ClientSettings {
 
@@ -12,12 +13,16 @@ public class ClientSettings {
   private final int port;
   private final String contentType;
   private final LoopResources loopResources;
+  private final boolean followRedirect;
+  private final SslProvider sslProvider;
 
   private ClientSettings(Builder builder) {
     this.host = builder.host;
     this.port = builder.port;
     this.contentType = builder.contentType;
     this.loopResources = builder.loopResources;
+    this.followRedirect = builder.followRedirect;
+    this.sslProvider = builder.sslProvider;
   }
 
   public String host() {
@@ -36,22 +41,29 @@ public class ClientSettings {
     return loopResources;
   }
 
+  public boolean followRedirect() {
+    return followRedirect;
+  }
+
+  public SslProvider sslProvider() {
+    return sslProvider;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
 
   @Override
   public String toString() {
-    return "ClientSettings{"
-        + "host='"
-        + host
-        + '\''
-        + ", port="
-        + port
-        + ", contentType='"
-        + contentType
-        + '\''
-        + '}';
+    final StringBuilder sb = new StringBuilder("ClientSettings{");
+    sb.append("host='").append(host).append('\'');
+    sb.append(", port=").append(port);
+    sb.append(", contentType='").append(contentType).append('\'');
+    sb.append(", loopResources=").append(loopResources);
+    sb.append(", followRedirect=").append(followRedirect);
+    sb.append(", sslProvider=").append(sslProvider);
+    sb.append('}');
+    return sb.toString();
   }
 
   public static class Builder {
@@ -59,6 +71,8 @@ public class ClientSettings {
     private int port;
     private String contentType = DEFAULT_CONTENT_TYPE;
     private LoopResources loopResources;
+    private boolean followRedirect = true;
+    private SslProvider sslProvider;
 
     private Builder() {}
 
@@ -83,6 +97,38 @@ public class ClientSettings {
 
     public Builder loopResources(LoopResources loopResources) {
       this.loopResources = loopResources;
+      return this;
+    }
+
+    /**
+     * Specifies is auto-redirect enabled for HTTP 301/302 status codes. Enabled by default.
+     *
+     * @param followRedirect if <code>true</code> auto-redirect is enabled, otherwise disabled
+     * @return builder
+     */
+    public Builder followRedirect(boolean followRedirect) {
+      this.followRedirect = followRedirect;
+      return this;
+    }
+
+    /**
+     * Use default SSL client provider.
+     *
+     * @return builder
+     */
+    public Builder secure() {
+      this.sslProvider = SslProvider.defaultClientProvider();
+      return this;
+    }
+
+    /**
+     * Use specified SSL provider.
+     *
+     * @param sslProvider SSL provider
+     * @return builder
+     */
+    public Builder secure(SslProvider sslProvider) {
+      this.sslProvider = sslProvider;
       return this;
     }
 
