@@ -12,8 +12,9 @@ import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.registry.api.ServiceRegistry;
 import io.scalecube.services.transport.api.Address;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -28,8 +29,6 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceDiscovery.class);
 
-  public static final String SERVICE_METADATA = "service";
-
   private ServiceRegistry serviceRegistry;
   private Cluster cluster;
   private ServiceEndpoint endpoint;
@@ -39,8 +38,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   @Override
   public Address address() {
-    io.scalecube.transport.Address address = cluster.address();
-    return Address.create(address.host(), address.port());
+    return toServicesAddress(cluster.address());
   }
 
   @Override
@@ -71,8 +69,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     return serviceRegistry
         .listServiceEndpoints()
         .stream()
-        .collect(
-            Collectors.toMap(ClusterMetadataDecoder::encodeMetadata, service -> SERVICE_METADATA));
+        .collect(Collectors.toMap(ServiceEndpoint::id, ClusterMetadataDecoder::encodeMetadata));
   }
 
   private void listen(Cluster cluster) {
@@ -99,66 +96,90 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
 
   private ClusterConfig.Builder clusterConfigBuilder(ServiceDiscoveryConfig config) {
     Builder builder = ClusterConfig.builder();
-    if (config.seeds() != null) {
-      builder.seedMembers(
-          Arrays.stream(config.seeds())
-              .map(address -> io.scalecube.transport.Address.create(address.host(), address.port()))
-              .toArray(io.scalecube.transport.Address[]::new));
-    }
-    if (config.port() != null) {
-      builder.port(config.port());
-    }
-    if (config.tags() != null) {
-      builder.metadata(config.tags());
-    }
-    if (config.memberHost() != null) {
-      builder.memberHost(config.memberHost());
-    }
-    if (config.memberPort() != null) {
-      builder.memberPort(config.memberPort());
-    }
+
+    Optional.ofNullable(config.seeds())
+        .map(Arrays::stream)
+        .map(stream -> stream.map(this::toClusterAddress))
+        .map(stream -> stream.toArray(io.scalecube.transport.Address[]::new))
+        .ifPresent(builder::seedMembers);
+
+    Optional.ofNullable(config.port()).ifPresent(builder::port);
+    Optional.ofNullable(config.tags()).ifPresent(builder::metadata);
+    Optional.ofNullable(config.memberHost()).ifPresent(builder::memberHost);
+    Optional.ofNullable(config.memberPort()).ifPresent(builder::memberPort);
+
     return builder;
   }
 
+  private io.scalecube.transport.Address toClusterAddress(Address address) {
+    return io.scalecube.transport.Address.create(address.host(), address.port());
+  }
+
+  private Address toServicesAddress(io.scalecube.transport.Address address) {
+    return Address.create(address.host(), address.port());
+  }
+
   private void onMemberEvent(MembershipEvent event) {
-    Member member = event.member();
-    Map<String, String> metadata = cluster.metadata(member);
-    metadata
-        .entrySet()
-        .stream()
-        .filter(entry -> SERVICE_METADATA.equals(entry.getValue()))
-        .map(Entry::getKey)
-        .map(ClusterMetadataDecoder::decodeMetadata)
-        .filter(Objects::nonNull)
-        .forEach(
-            serviceEndpoint -> {
+    final Member member = event.member();
+
+    Map<String, String> metadata = Collections.emptyMap();
+    if (event.isAdded()) {
+      metadata = event.newMetadata();
+    }
+    if (event.isRemoved()) {
+      metadata = event.oldMetadata();
+    }
+
+    List<ServiceEndpoint> serviceEndpoints =
+        metadata
+            .values()
+            .stream()
+            .map(ClusterMetadataDecoder::decodeMetadata)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+
+    serviceEndpoints.forEach(
+        serviceEndpoint -> {
+          ServiceDiscoveryEvent discoveryEvent = null;
+
+          switch (event.type()) {
+            case ADDED:
               // Register services
-              if (event.isAdded() && serviceRegistry.registerService(serviceEndpoint)) {
+              if (serviceRegistry.registerService(serviceEndpoint)) {
                 LOGGER.info(
-                    "ServiceEndpoint was ADDED since new Member has joined the cluster {} : {}",
+                    "ServiceEndpoint ADDED, since member {} has joined the cluster: {}",
                     member,
                     serviceEndpoint);
-
-                ServiceDiscoveryEvent discoveryEvent =
-                    ServiceDiscoveryEvent.registered(serviceEndpoint);
-                LOGGER.info("Publish services registered: {}", discoveryEvent);
-
-                sink.next(discoveryEvent);
+                discoveryEvent = ServiceDiscoveryEvent.registered(serviceEndpoint);
               }
+              break;
+            case REMOVED:
               // Unregister services
-              if (event.isRemoved()
-                  && serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
+              if (serviceRegistry.unregisterService(serviceEndpoint.id()) != null) {
                 LOGGER.info(
-                    "ServiceEndpoint was REMOVED since Member have left the cluster {} : {}",
+                    "ServiceEndpoint REMOVED, since member {} have left the cluster: {}",
                     member,
                     serviceEndpoint);
-
-                ServiceDiscoveryEvent discoveryEvent =
-                    ServiceDiscoveryEvent.unregistered(serviceEndpoint);
-                LOGGER.info("Publish services unregistered: {}", discoveryEvent);
-
-                sink.next(discoveryEvent);
+                discoveryEvent = ServiceDiscoveryEvent.unregistered(serviceEndpoint);
               }
-            });
+              break;
+            default:
+              break;
+          }
+
+          if (discoveryEvent != null) {
+            switch (discoveryEvent.type()) {
+              case REGISTERED:
+                LOGGER.info("Publish services unregistered: {}", discoveryEvent);
+                break;
+              case UNREGISTERED:
+                LOGGER.info("Publish services registered: {}", discoveryEvent);
+                break;
+              default:
+                break;
+            }
+            sink.next(discoveryEvent);
+          }
+        });
   }
 }
