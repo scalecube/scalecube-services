@@ -1,39 +1,29 @@
-package io.scalecube.services.gateway.clientsdk.exceptions;
+package io.scalecube.services.gateway.clientsdk.exceptions.mappers;
 
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
+import io.scalecube.services.gateway.clientsdk.ClientMessage;
+import io.scalecube.services.gateway.clientsdk.ErrorData;
 
-public final class ExceptionProcessor {
+public class DefaultClientErrorMapper implements ClientErrorMapper {
 
-  private ExceptionProcessor() {
-    // Do not instantiate
+  public static final ClientErrorMapper INSTANCE = new DefaultClientErrorMapper();
+
+  private DefaultClientErrorMapper() {
+    // do not instantiate
   }
 
-  /**
-   * Boolean function telling is given qualifier string an error qualifier. See {@link
-   * Qualifier#ERROR_NAMESPACE}.
-   *
-   * @param qualifier qualifier string.
-   * @return true if qualifier given is error qualifier
-   */
-  public static boolean isError(String qualifier) {
-    return qualifier.contains(Qualifier.ERROR_NAMESPACE);
-  }
+  @Override
+  public Throwable toError(ClientMessage message) {
+    String qualifier = message.qualifier();
+    ErrorData errorData = message.data();
 
-  /**
-   * Exception converter to {@link ServiceException}.
-   *
-   * @param qualifier qualifier string.
-   * @param errorCode error code.
-   * @param errorMessage error message.
-   * @return service exception instance.
-   */
-  public static ServiceException toException(String qualifier, int errorCode, String errorMessage) {
     int errorType = Integer.parseInt(Qualifier.getQualifierAction(qualifier));
+    int errorCode = errorData.getErrorCode();
+    String errorMessage = errorData.getErrorMessage();
 
     switch (errorType) {
       case BadRequestException.ERROR_TYPE:

@@ -1,5 +1,7 @@
 package io.scalecube.services.gateway.clientsdk;
 
+import io.scalecube.services.gateway.clientsdk.exceptions.mappers.ClientErrorMapper;
+import io.scalecube.services.gateway.clientsdk.exceptions.mappers.DefaultClientErrorMapper;
 import java.net.InetSocketAddress;
 import reactor.netty.resources.LoopResources;
 import reactor.netty.tcp.SslProvider;
@@ -15,6 +17,7 @@ public class ClientSettings {
   private final LoopResources loopResources;
   private final boolean followRedirect;
   private final SslProvider sslProvider;
+  private final ClientErrorMapper errorMapper;
 
   private ClientSettings(Builder builder) {
     this.host = builder.host;
@@ -23,6 +26,7 @@ public class ClientSettings {
     this.loopResources = builder.loopResources;
     this.followRedirect = builder.followRedirect;
     this.sslProvider = builder.sslProvider;
+    this.errorMapper = builder.errorMapper;
   }
 
   public String host() {
@@ -49,6 +53,10 @@ public class ClientSettings {
     return sslProvider;
   }
 
+  public ClientErrorMapper errorMapper() {
+    return errorMapper;
+  }
+
   public static Builder builder() {
     return new Builder();
   }
@@ -73,6 +81,7 @@ public class ClientSettings {
     private LoopResources loopResources;
     private boolean followRedirect = true;
     private SslProvider sslProvider;
+    private ClientErrorMapper errorMapper = DefaultClientErrorMapper.INSTANCE;
 
     private Builder() {}
 
@@ -129,6 +138,11 @@ public class ClientSettings {
      */
     public Builder secure(SslProvider sslProvider) {
       this.sslProvider = sslProvider;
+      return this;
+    }
+
+    public Builder errorMapper(ClientErrorMapper errorMapper) {
+      this.errorMapper = errorMapper;
       return this;
     }
 

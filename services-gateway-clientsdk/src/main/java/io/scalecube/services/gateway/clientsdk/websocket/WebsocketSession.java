@@ -6,7 +6,7 @@ import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ErrorData;
 import io.scalecube.services.gateway.clientsdk.ReferenceCountUtil;
-import io.scalecube.services.gateway.clientsdk.exceptions.ExceptionProcessor;
+import io.scalecube.services.gateway.clientsdk.exceptions.mappers.DefaultClientErrorMapper;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -147,10 +147,8 @@ final class WebsocketSession {
         }
         if (signal == Signal.ERROR) {
           // decode error data to retrieve real error cause
-          ErrorData errorData = codec.decodeData(response, ErrorData.class).data();
-          Throwable e =
-              ExceptionProcessor.toException(
-                  response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
+          ClientMessage errorMessage = codec.decodeData(response, ErrorData.class);
+          Throwable e = DefaultClientErrorMapper.INSTANCE.toError(errorMessage);
           String sid = response.header(STREAM_ID);
           LOGGER.error("Received error response: sid={}, error={}", sid, e);
           onError.accept(e);

@@ -1,5 +1,6 @@
 package io.scalecube.services.gateway.clientsdk;
 
+import io.scalecube.services.gateway.clientsdk.exceptions.mappers.ClientErrorMapper;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientCodec;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientTransport;
 import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;
@@ -20,6 +21,7 @@ public final class Client {
 
   private final ClientTransport transport;
   private final ClientCodec codec;
+  private final ClientErrorMapper errorMapper;
 
   private final ConcurrentHashMap<Class<?>, ? super Object> proxyMap = new ConcurrentHashMap<>();
 
@@ -28,10 +30,12 @@ public final class Client {
    *
    * @param transport client transport
    * @param codec client message codec
+   * @param errorMapper error mapper
    */
-  public Client(ClientTransport transport, ClientCodec codec) {
+  private Client(ClientTransport transport, ClientCodec codec, ClientErrorMapper errorMapper) {
     this.transport = transport;
     this.codec = codec;
+    this.errorMapper = errorMapper;
   }
 
   /**
@@ -49,7 +53,7 @@ public final class Client {
     RSocketClientTransport clientTransport =
         new RSocketClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
 
-    return new Client(clientTransport, clientCodec);
+    return new Client(clientTransport, clientCodec, clientSettings.errorMapper());
   }
 
   /**
@@ -65,7 +69,7 @@ public final class Client {
     WebsocketClientTransport clientTransport =
         new WebsocketClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
 
-    return new Client(clientTransport, clientCodec);
+    return new Client(clientTransport, clientCodec, clientSettings.errorMapper());
   }
 
   /**
@@ -81,7 +85,7 @@ public final class Client {
     ClientTransport clientTransport =
         new HttpClientTransport(clientSettings, clientCodec, clientSettings.loopResources());
 
-    return new Client(clientTransport, clientCodec);
+    return new Client(clientTransport, clientCodec, clientSettings.errorMapper());
   }
 
   /**
@@ -110,6 +114,18 @@ public final class Client {
    * @return proxied service object.
    */
   public <T> T forService(Class<T> serviceClazz) {
+    return forService(serviceClazz, errorMapper);
+  }
+
+  /**
+   * Proxy creator function.
+   *
+   * @param serviceClazz service interface.
+   * @param errorMapper error mapper.
+   * @param <T> type of service interface.
+   * @return proxied service object.
+   */
+  public <T> T forService(Class<T> serviceClazz, ClientErrorMapper errorMapper) {
     // noinspection unchecked
     return (T)
         proxyMap.computeIfAbsent(
@@ -119,7 +135,7 @@ public final class Client {
               return Proxy.newProxyInstance(
                   serviceClazz.getClassLoader(),
                   new Class[] {serviceClazz},
-                  new RemoteInvocationHandler(transport, methods, codec));
+                  new RemoteInvocationHandler(transport, methods, codec, errorMapper));
             });
   }
 
