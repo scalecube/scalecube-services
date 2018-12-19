@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.mappers.DefaultErrorMapper;
@@ -36,10 +35,7 @@ public class ServiceCall {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
-      ServiceMessage.builder()
-          .qualifier(Qualifier.asError(503))
-          .data(new ErrorData(503, "Unexpected empty response"))
-          .build();
+      ServiceMessage.error(503).data(new ErrorData(503, "Unexpected empty response")).build();
 
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;

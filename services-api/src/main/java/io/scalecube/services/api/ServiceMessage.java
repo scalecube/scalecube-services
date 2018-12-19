@@ -52,6 +52,16 @@ public final class ServiceMessage {
   }
 
   /**
+   * Instantiates new message with error qualifier for given error type.
+   *
+   * @param errorType the error type to be used in message qualifier.
+   * @return builder.
+   */
+  public static Builder error(int errorType) {
+    return ServiceMessage.builder().qualifier(Qualifier.asError(errorType));
+  }
+
+  /**
    * Instantiates new empty message builder.
    *
    * @return new builder
