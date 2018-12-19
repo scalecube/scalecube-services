@@ -13,6 +13,12 @@ import reactor.core.Exceptions;
 
 public class ExceptionMapperExample {
 
+  /**
+   * Example runner.
+   *
+   * @param args program arguments.
+   * @throws InterruptedException exception.
+   */
   public static void main(String[] args) throws InterruptedException {
     Microservices ms1 =
         Microservices.builder()
