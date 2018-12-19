@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.clientsdk;
 
 import io.scalecube.services.gateway.clientsdk.exceptions.mappers.ClientErrorMapper;
+import io.scalecube.services.gateway.clientsdk.exceptions.mappers.DefaultClientErrorMapper;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientCodec;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientTransport;
 import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;
@@ -30,9 +31,19 @@ public final class Client {
    *
    * @param transport client transport
    * @param codec client message codec
+   */
+  public Client(ClientTransport transport, ClientCodec codec) {
+    this(transport, codec, DefaultClientErrorMapper.INSTANCE);
+  }
+
+  /**
+   * Constructor for client.
+   *
+   * @param transport client transport
+   * @param codec client message codec
    * @param errorMapper error mapper
    */
-  private Client(ClientTransport transport, ClientCodec codec, ClientErrorMapper errorMapper) {
+  public Client(ClientTransport transport, ClientCodec codec, ClientErrorMapper errorMapper) {
     this.transport = transport;
     this.codec = codec;
     this.errorMapper = errorMapper;
