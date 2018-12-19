@@ -31,7 +31,7 @@
     <reactivestreams.version>1.0.2</reactivestreams.version>
     <metrics.version>3.1.2</metrics.version>
     <rsocket.version>0.11.8</rsocket.version>
-    <scalecube-rsocket-aeron.version>0.1.3-SNAPSHOT</scalecube-rsocket-aeron.version>
+    <scalecube-rsocket-aeron.version>0.1.4</scalecube-rsocket-aeron.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.31.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
