@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+DIRNAME=$(dirname $0)
+BEFORE_DEPLOY_EXEC_FILES=$(find $DIRNAME -name 'before-deploy-*.sh')
+
 echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 
@@ -57,3 +60,8 @@ function deployment {
 }
 
 deployment
+
+# extends before-deploy.sh
+for script_file in $BEFORE_DEPLOY_EXEC_FILES; do
+    source $script_file
+done
