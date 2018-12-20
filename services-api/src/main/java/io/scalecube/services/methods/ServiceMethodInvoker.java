@@ -7,7 +7,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -51,12 +50,8 @@ public final class ServiceMethodInvoker {
    */
   public Mono<ServiceMessage> invokeOne(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    Supplier<Mono<ServiceMessage>> invoke =
-        () -> {
-          Object request = toRequest(message, dataDecoder);
-          return Mono.from(invoke(request)).map(this::toResponse);
-        };
-    return Mono.defer(invoke)
+    return Mono.defer(() -> Mono.from(invoke(toRequest(message, dataDecoder))))
+        .map(this::toResponse)
         .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
 
@@ -69,12 +64,8 @@ public final class ServiceMethodInvoker {
    */
   public Flux<ServiceMessage> invokeMany(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    Supplier<Publisher<ServiceMessage>> invoke =
-        () -> {
-          Object request = toRequest(message, dataDecoder);
-          return Flux.from(invoke(request)).map(this::toResponse);
-        };
-    return Flux.defer(invoke)
+    return Flux.defer(() -> Flux.from(invoke(toRequest(message, dataDecoder))))
+        .map(this::toResponse)
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
@@ -88,13 +79,10 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeBidirectional(
       Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    Supplier<Publisher<ServiceMessage>> invoke =
-        () -> {
-          Flux<?> requestPublisher =
-              Flux.from(publisher).map(message -> toRequest(message, dataDecoder));
-          return Flux.from(invoke(requestPublisher)).map(this::toResponse);
-        };
-    return Flux.defer(invoke)
+    return Flux.from(publisher)
+        .map(message -> toRequest(message, dataDecoder))
+        .transform(this::invoke)
+        .map(this::toResponse)
         .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
