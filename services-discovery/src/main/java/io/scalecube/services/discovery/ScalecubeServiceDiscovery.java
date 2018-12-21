@@ -122,7 +122,7 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
   private void onMemberEvent(MembershipEvent event) {
     final Member member = event.member();
 
-    Map<String, String> metadata = Collections.emptyMap();
+    Map<String, String> metadata = null;
     if (event.isAdded()) {
       metadata = event.newMetadata();
     }
@@ -131,7 +131,8 @@ public class ScalecubeServiceDiscovery implements ServiceDiscovery {
     }
 
     List<ServiceEndpoint> serviceEndpoints =
-        metadata
+        Optional.ofNullable(metadata)
+            .orElse(Collections.emptyMap())
             .values()
             .stream()
             .map(ClusterMetadataDecoder::decodeMetadata)
