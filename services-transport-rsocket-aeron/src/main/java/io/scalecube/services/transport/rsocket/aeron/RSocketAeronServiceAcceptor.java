@@ -9,7 +9,6 @@ import io.rsocket.util.ByteBufPayload;
 import io.scalecube.services.HeadAndTail;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.ExceptionProcessor;
 import io.scalecube.services.exceptions.ServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.ServiceMethodInvoker;
@@ -57,7 +56,6 @@ public class RSocketAeronServiceAcceptor implements SocketAcceptor {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
                 return methodInvoker.invokeOne(message, ServiceMessageCodec::decodeData);
               })
-          .onErrorResume(ex -> Mono.just(ExceptionProcessor.toMessage(ex)))
           .map(this::toPayload);
     }
 
@@ -70,7 +68,6 @@ public class RSocketAeronServiceAcceptor implements SocketAcceptor {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
                 return methodInvoker.invokeMany(message, ServiceMessageCodec::decodeData);
               })
-          .onErrorResume(this::toMessage)
           .map(this::toPayload);
     }
 
@@ -85,7 +82,6 @@ public class RSocketAeronServiceAcceptor implements SocketAcceptor {
                 ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
                 return methodInvoker.invokeBidirectional(messages, ServiceMessageCodec::decodeData);
               })
-          .onErrorResume(this::toMessage)
           .map(this::toPayload);
     }
 
@@ -95,10 +91,6 @@ public class RSocketAeronServiceAcceptor implements SocketAcceptor {
 
     private ServiceMessage toMessage(Payload payload) {
       return messageCodec.decode(payload.sliceData(), payload.sliceMetadata());
-    }
-
-    private Flux<ServiceMessage> toMessage(Throwable ex) {
-      return Flux.just(ExceptionProcessor.toMessage(ex));
     }
 
     /**
