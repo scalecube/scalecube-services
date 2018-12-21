@@ -17,7 +17,7 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
 
   @Override
   public ServiceTransport.Resources resources(int numOfWorkers) {
-    return null;
+    return new Resources(numOfWorkers);
   }
 
   @Override
