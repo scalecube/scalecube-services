@@ -360,12 +360,12 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(Executor workerThreadPool, Call call, Metrics metrics) {
+    private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig ->
                   Gateway.getGateway(gatewayConfig.gatewayClass())
-                      .start(gatewayConfig, workerThreadPool, call, metrics)
+                      .start(gatewayConfig, workerPool, call, metrics)
                       .doOnSuccess(gw -> gatewayInstances.put(gatewayConfig, gw)))
           .then(Mono.just(this));
     }

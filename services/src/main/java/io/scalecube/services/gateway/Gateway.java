@@ -26,11 +26,11 @@ public interface Gateway {
    * values will be used.
    *
    * @param config gateway configuration
-   * @param workerThreadPool worker service transport executor service
+   * @param workerPool worker service transport executor service
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
-  Mono<Gateway> start(GatewayConfig config, Executor workerThreadPool, Call call, Metrics metrics);
+  Mono<Gateway> start(GatewayConfig config, Executor workerPool, Call call, Metrics metrics);
 
   /**
    * Returns Gateway's address if it's started, {@code null} otherwise.
