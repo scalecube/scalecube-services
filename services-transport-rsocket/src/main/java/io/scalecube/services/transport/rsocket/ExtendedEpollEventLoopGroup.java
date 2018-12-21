@@ -72,9 +72,7 @@ public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
   @Override
   public ChannelFuture register(Channel channel) {
     EventLoop eventExecutor = eventLoopChooser.apply(channel, iterator());
-    return eventExecutor != null
-        ? eventExecutor.register(channel)
-        : super.register(channel);
+    return eventExecutor != null ? eventExecutor.register(channel) : super.register(channel);
   }
 
   @Override

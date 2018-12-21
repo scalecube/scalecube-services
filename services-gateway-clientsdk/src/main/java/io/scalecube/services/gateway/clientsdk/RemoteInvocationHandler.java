@@ -1,16 +1,18 @@
 package io.scalecube.services.gateway.clientsdk;
 
-import io.scalecube.services.gateway.clientsdk.exceptions.ExceptionProcessor;
+import io.scalecube.services.gateway.clientsdk.exceptions.ClientErrorMapper;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
+import reactor.core.Exceptions;
 
 public class RemoteInvocationHandler implements InvocationHandler {
 
   private final ClientTransport transport;
   private final Map<Method, MethodInfo> methods;
   private final ClientCodec codec;
+  private final ClientErrorMapper errorMapper;
 
   /**
    * Constructor for remote invocation handler.
@@ -20,10 +22,14 @@ public class RemoteInvocationHandler implements InvocationHandler {
    * @param codec client message codec
    */
   public RemoteInvocationHandler(
-      ClientTransport transport, Map<Method, MethodInfo> methods, ClientCodec codec) {
+      ClientTransport transport,
+      Map<Method, MethodInfo> methods,
+      ClientCodec codec,
+      ClientErrorMapper errorMapper) {
     this.transport = transport;
     this.methods = methods;
     this.codec = codec;
+    this.errorMapper = errorMapper;
   }
 
   @Override
@@ -57,11 +63,10 @@ public class RemoteInvocationHandler implements InvocationHandler {
   }
 
   private ClientMessage throwIfError(ClientMessage response) {
-    if (!response.hasData(ErrorData.class)) {
-      return response;
+    if (response.isError() && response.hasData(ErrorData.class)) {
+      throw Exceptions.propagate(errorMapper.toError(response));
     }
-    ErrorData errorData = response.data();
-    throw ExceptionProcessor.toException(
-        response.qualifier(), errorData.getErrorCode(), errorData.getErrorMessage());
+
+    return response;
   }
 }

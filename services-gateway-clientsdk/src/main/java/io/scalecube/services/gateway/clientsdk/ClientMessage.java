@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.clientsdk;
 
 import io.netty.buffer.ByteBuf;
+import io.scalecube.services.api.Qualifier;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,11 +68,13 @@ public final class ClientMessage {
     if (dataClass == null) {
       return false;
     }
-    if (dataClass.isPrimitive()) {
-      return hasData();
-    } else {
-      return dataClass.isInstance(data);
-    }
+
+    return dataClass.isPrimitive() ? hasData() : dataClass.isInstance(data);
+  }
+
+  public boolean isError() {
+    String qualifier = qualifier();
+    return qualifier != null && qualifier.contains(Qualifier.ERROR_NAMESPACE);
   }
 
   @Override
