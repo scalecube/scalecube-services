@@ -1,8 +1,17 @@
-#!/bin/sh
+#!/usr/bin/env sh
+
+DIRNAME=$(dirname $0)
+DEPLOY_EXEC_FILES=$(find $DIRNAME -name 'deploy-*.sh')
 
 echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
 
 mvn -P release deploy -DskipTests=true -B -V -s travis-settings.xml
-apt update && apt install -y python3-pip && pip3 install -r requirements.txt
+pip install --user -r requirements.txt
 $(dirname $0)/external_build.sh
+
+# extends deploy.sh
+for script_file in $DEPLOY_EXEC_FILES; do
+    source $script_file
+done
+
