@@ -6,7 +6,7 @@ import io.scalecube.services.gateway.clientsdk.ClientCodec;
 import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ErrorData;
 import io.scalecube.services.gateway.clientsdk.ReferenceCountUtil;
-import io.scalecube.services.gateway.clientsdk.exceptions.mappers.DefaultClientErrorMapper;
+import io.scalecube.services.gateway.clientsdk.exceptions.DefaultClientErrorMapper;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;

@@ -1,4 +1,4 @@
-package io.scalecube.services.gateway.clientsdk.exceptions.mappers;
+package io.scalecube.services.gateway.clientsdk.exceptions;
 
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.exceptions.BadRequestException;

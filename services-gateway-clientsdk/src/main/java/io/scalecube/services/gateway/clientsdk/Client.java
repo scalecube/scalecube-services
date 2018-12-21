@@ -1,7 +1,7 @@
 package io.scalecube.services.gateway.clientsdk;
 
-import io.scalecube.services.gateway.clientsdk.exceptions.mappers.ClientErrorMapper;
-import io.scalecube.services.gateway.clientsdk.exceptions.mappers.DefaultClientErrorMapper;
+import io.scalecube.services.gateway.clientsdk.exceptions.ClientErrorMapper;
+import io.scalecube.services.gateway.clientsdk.exceptions.DefaultClientErrorMapper;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientCodec;
 import io.scalecube.services.gateway.clientsdk.http.HttpClientTransport;
 import io.scalecube.services.gateway.clientsdk.rsocket.RSocketClientCodec;

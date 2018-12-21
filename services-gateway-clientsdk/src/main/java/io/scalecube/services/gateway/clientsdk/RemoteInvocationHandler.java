@@ -1,6 +1,6 @@
 package io.scalecube.services.gateway.clientsdk;
 
-import io.scalecube.services.gateway.clientsdk.exceptions.mappers.ClientErrorMapper;
+import io.scalecube.services.gateway.clientsdk.exceptions.ClientErrorMapper;
 import io.scalecube.services.methods.MethodInfo;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
