@@ -185,7 +185,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    return gatewayBootstrap.start(transportBootstrap.workerThreadPool(), call, metrics);
+    return gatewayBootstrap.start(transportBootstrap.workerPool(), call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -417,7 +417,7 @@ public class Microservices {
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
-    private Executor workerThreadPool; // calculated
+    private ServiceTransport.Resources transportResources; // calculated
     private InetSocketAddress serviceAddress; // calculated
     private int numOfThreads; // calculated
 
@@ -437,8 +437,8 @@ public class Microservices {
       return clientTransport;
     }
 
-    private Executor workerThreadPool() {
-      return workerThreadPool;
+    private Executor workerPool() {
+      return transportResources.workerPool().orElse(null);
     }
 
     private InetSocketAddress serviceAddress() {
@@ -451,9 +451,9 @@ public class Microservices {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.workerThreadPool = transport.getWorkerThreadPool(numOfThreads);
-            this.clientTransport = transport.getClientTransport(workerThreadPool);
-            this.serverTransport = transport.getServerTransport(workerThreadPool);
+            this.transportResources = transport.resources(numOfThreads);
+            this.clientTransport = transport.clientTransport(transportResources);
+            this.serverTransport = transport.serverTransport(transportResources);
 
             // bind service serverTransport transport
             return serverTransport
@@ -480,9 +480,7 @@ public class Microservices {
                   Optional.ofNullable(serverTransport)
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
-                  Optional.ofNullable(transport)
-                      .map(transport -> transport.shutdown(workerThreadPool))
-                      .orElse(Mono.empty())));
+                  transportResources.shutdown()));
     }
   }
 }
