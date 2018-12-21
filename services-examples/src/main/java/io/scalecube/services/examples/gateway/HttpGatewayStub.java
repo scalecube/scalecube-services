@@ -16,11 +16,7 @@ public class HttpGatewayStub implements Gateway {
 
   @Override
   public Mono<Gateway> start(
-      GatewayConfig config,
-      Executor workerThreadPool,
-      boolean preferNative,
-      Call call,
-      Metrics metrics) {
+      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
 
     this.address = new InetSocketAddress(config.port());
     return Mono.defer(

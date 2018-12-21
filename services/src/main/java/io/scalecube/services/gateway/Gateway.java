@@ -27,16 +27,10 @@ public interface Gateway {
    *
    * @param config gateway configuration
    * @param workerThreadPool worker service transport executor service
-   * @param preferNative flag telling should native provider be preferred
    * @param call service call definition
    * @param metrics @return IP socket address on which gateway is listening to requests
    */
-  Mono<Gateway> start(
-      GatewayConfig config,
-      Executor workerThreadPool,
-      boolean preferNative,
-      Call call,
-      Metrics metrics);
+  Mono<Gateway> start(GatewayConfig config, Executor workerThreadPool, Call call, Metrics metrics);
 
   /**
    * Returns Gateway's address if it's started, {@code null} otherwise.
