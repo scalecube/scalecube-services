@@ -2,7 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.mappers.ServiceProviderErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;

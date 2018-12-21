@@ -1,13 +1,8 @@
-package io.scalecube.services.exceptions.mappers;
+package io.scalecube.services.exceptions;
 
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.InternalServiceException;
-import io.scalecube.services.exceptions.ServiceException;
-import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.exceptions.UnauthorizedException;
 import java.util.Optional;
 
 public final class DefaultErrorMapper

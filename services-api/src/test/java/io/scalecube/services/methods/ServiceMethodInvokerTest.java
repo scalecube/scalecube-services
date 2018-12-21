@@ -2,7 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.CommunicationMode;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.mappers.DefaultErrorMapper;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
 import java.lang.reflect.Method;
 import java.util.function.BiFunction;
 import org.junit.jupiter.api.DisplayName;

@@ -1,6 +1,6 @@
 package io.scalecube.services.methods;
 
-import io.scalecube.services.exceptions.mappers.ServiceProviderErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 
 public interface ServiceMethodRegistry {
 

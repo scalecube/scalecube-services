@@ -4,9 +4,9 @@ import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
-import io.scalecube.services.exceptions.mappers.DefaultErrorMapper;
-import io.scalecube.services.exceptions.mappers.ServiceClientErrorMapper;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.registry.api.ServiceRegistry;

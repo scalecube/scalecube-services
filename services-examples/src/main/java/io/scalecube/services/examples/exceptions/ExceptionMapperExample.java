@@ -5,9 +5,9 @@ import io.scalecube.services.ServiceInfo;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.mappers.DefaultErrorMapper;
-import io.scalecube.services.exceptions.mappers.ServiceClientErrorMapper;
-import io.scalecube.services.exceptions.mappers.ServiceProviderErrorMapper;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceClientErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import java.util.Collections;
 import reactor.core.Exceptions;
 

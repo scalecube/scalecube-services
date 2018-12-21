@@ -1,4 +1,4 @@
-package io.scalecube.services.exceptions.mappers;
+package io.scalecube.services.exceptions;
 
 import io.scalecube.services.api.ServiceMessage;
 
