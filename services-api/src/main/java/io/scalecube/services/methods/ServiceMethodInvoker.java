@@ -2,6 +2,7 @@ package io.scalecube.services.methods;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -19,6 +20,7 @@ public final class ServiceMethodInvoker {
   private final Method method;
   private final Object service;
   private final MethodInfo methodInfo;
+  private final ServiceProviderErrorMapper errorMapper;
 
   /**
    * Constructs a service method invoker out of real service object instance and method info.
@@ -26,11 +28,17 @@ public final class ServiceMethodInvoker {
    * @param method service method
    * @param service service instance
    * @param methodInfo method information
+   * @param errorMapper error mapper
    */
-  public ServiceMethodInvoker(Method method, Object service, MethodInfo methodInfo) {
+  public ServiceMethodInvoker(
+      Method method,
+      Object service,
+      MethodInfo methodInfo,
+      ServiceProviderErrorMapper errorMapper) {
     this.method = method;
     this.service = service;
     this.methodInfo = methodInfo;
+    this.errorMapper = errorMapper;
   }
 
   /**
@@ -42,11 +50,9 @@ public final class ServiceMethodInvoker {
    */
   public Mono<ServiceMessage> invokeOne(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Mono.defer(
-        () -> {
-          Object request = toRequest(message, dataDecoder);
-          return Mono.from(invoke(request)).map(this::toResponse);
-        });
+    return Mono.defer(() -> Mono.from(invoke(toRequest(message, dataDecoder))))
+        .map(this::toResponse)
+        .onErrorResume(throwable -> Mono.just(errorMapper.toMessage(throwable)));
   }
 
   /**
@@ -58,11 +64,9 @@ public final class ServiceMethodInvoker {
    */
   public Flux<ServiceMessage> invokeMany(
       ServiceMessage message, BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.defer(
-        () -> {
-          Object request = toRequest(message, dataDecoder);
-          return Flux.from(invoke(request)).map(this::toResponse);
-        });
+    return Flux.defer(() -> Flux.from(invoke(toRequest(message, dataDecoder))))
+        .map(this::toResponse)
+        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
   /**
@@ -75,12 +79,11 @@ public final class ServiceMethodInvoker {
   public Flux<ServiceMessage> invokeBidirectional(
       Publisher<ServiceMessage> publisher,
       BiFunction<ServiceMessage, Class<?>, ServiceMessage> dataDecoder) {
-    return Flux.defer(
-        () -> {
-          Flux<?> requestPublsiher =
-              Flux.from(publisher).map(message -> toRequest(message, dataDecoder));
-          return Flux.from(invoke(requestPublsiher)).map(this::toResponse);
-        });
+    return Flux.from(publisher)
+        .map(message -> toRequest(message, dataDecoder))
+        .transform(this::invoke)
+        .map(this::toResponse)
+        .onErrorResume(throwable -> Flux.just(errorMapper.toMessage(throwable)));
   }
 
   private Publisher<?> invoke(Object arguments) {

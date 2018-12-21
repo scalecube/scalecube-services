@@ -52,6 +52,16 @@ public final class ServiceMessage {
   }
 
   /**
+   * Instantiates new message with error qualifier for given error type.
+   *
+   * @param errorType the error type to be used in message qualifier.
+   * @return builder.
+   */
+  public static Builder error(int errorType) {
+    return ServiceMessage.builder().qualifier(Qualifier.asError(errorType));
+  }
+
+  /**
    * Instantiates new empty message builder.
    *
    * @return new builder
@@ -150,6 +160,11 @@ public final class ServiceMessage {
     } else {
       return dataClass.isInstance(data);
     }
+  }
+
+  public boolean isError() {
+    String qualifier = qualifier();
+    return qualifier != null && qualifier.contains(Qualifier.ERROR_NAMESPACE);
   }
 
   @Override

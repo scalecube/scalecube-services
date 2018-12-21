@@ -3,9 +3,9 @@ package io.scalecube.services;
 import static java.util.Objects.requireNonNull;
 
 import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceClientErrorMapper;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.methods.MethodInfo;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -26,6 +26,7 @@ import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -34,21 +35,20 @@ public class ServiceCall {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
-      ServiceMessage.builder()
-          .qualifier(Qualifier.asError(503))
-          .data(new ErrorData(503, "Unexpected empty response"))
-          .build();
+      ServiceMessage.error(503).data(new ErrorData(503, "Unexpected empty response")).build();
 
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceRegistry serviceRegistry;
   private final Router router;
+  private final ServiceClientErrorMapper errorMapper;
 
   private ServiceCall(Call call) {
     this.transport = call.transport;
     this.methodRegistry = call.methodRegistry;
     this.serviceRegistry = call.serviceRegistry;
     this.router = call.router;
+    this.errorMapper = call.errorMapper;
   }
 
   /**
@@ -97,7 +97,7 @@ public class ServiceCall {
             return methodRegistry
                 .getInvoker(request.qualifier())
                 .invokeOne(request, ServiceMessageCodec::decodeData)
-                .onErrorMap(ExceptionProcessor::mapException);
+                .map(this::throwIfError);
           } else {
             return addressLookup(request)
                 .flatMap(address -> requestOne(request, responseType, address)); // remote service
@@ -117,11 +117,12 @@ public class ServiceCall {
       ServiceMessage request, Class<?> responseType, Address address) {
     return Mono.defer(
         () -> {
-          requireNonNull(address, "requestOne address paramter is required and must not be null");
+          requireNonNull(address, "requestOne address parameter is required and must not be null");
           return transport
               .create(address)
               .requestResponse(request)
-              .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+              .map(message -> ServiceMessageCodec.decodeData(message, responseType))
+              .map(this::throwIfError);
         });
   }
 
@@ -150,7 +151,7 @@ public class ServiceCall {
             return methodRegistry
                 .getInvoker(request.qualifier())
                 .invokeMany(request, ServiceMessageCodec::decodeData)
-                .onErrorMap(ExceptionProcessor::mapException);
+                .map(this::throwIfError);
           } else {
             return addressLookup(request)
                 .flatMapMany(
@@ -172,11 +173,12 @@ public class ServiceCall {
       ServiceMessage request, Class<?> responseType, Address address) {
     return Flux.defer(
         () -> {
-          requireNonNull(address, "requestMany address paramter is required and must not be null");
+          requireNonNull(address, "requestMany address parameter is required and must not be null");
           return transport
               .create(address)
               .requestStream(request)
-              .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+              .map(message -> ServiceMessageCodec.decodeData(message, responseType))
+              .map(this::throwIfError);
         });
   }
 
@@ -210,7 +212,7 @@ public class ServiceCall {
                 return methodRegistry
                     .getInvoker(qualifier)
                     .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
-                    .onErrorMap(ExceptionProcessor::mapException);
+                    .map(this::throwIfError);
               } else {
                 // remote service
                 return addressLookup(request)
@@ -233,11 +235,12 @@ public class ServiceCall {
     return Flux.defer(
         () -> {
           requireNonNull(
-              address, "requestBidirectional address paramter is required and must not be null");
+              address, "requestBidirectional address parameter is required and must not be null");
           return transport
               .create(address)
               .requestChannel(publisher)
-              .map(message -> ServiceMessageCodec.decodeData(message, responseType));
+              .map(message -> ServiceMessageCodec.decodeData(message, responseType))
+              .map(this::throwIfError);
         });
   }
 
@@ -374,6 +377,14 @@ public class ServiceCall {
     return sm -> sm.hasData() ? sm.data() : UNEXPECTED_EMPTY_RESPONSE;
   }
 
+  private ServiceMessage throwIfError(ServiceMessage message) {
+    if (message.isError() && message.hasData(ErrorData.class)) {
+      throw Exceptions.propagate(errorMapper.toError(message));
+    }
+
+    return message;
+  }
+
   /**
    * This class represents {@link ServiceCall}'s definition. All {@link ServiceCall} must be created
    * out of this definition.
@@ -384,6 +395,7 @@ public class ServiceCall {
     private final ServiceMethodRegistry methodRegistry;
     private final ServiceRegistry serviceRegistry;
     private Router router = Routers.getRouter(RoundRobinServiceRouter.class);
+    private ServiceClientErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
     /**
      * Creates new {@link ServiceCall}'s definition.
@@ -411,6 +423,11 @@ public class ServiceCall {
 
     public Call router(Router router) {
       this.router = router;
+      return this;
+    }
+
+    public Call errorMapper(ServiceClientErrorMapper errorMapper) {
+      this.errorMapper = errorMapper;
       return this;
     }
 

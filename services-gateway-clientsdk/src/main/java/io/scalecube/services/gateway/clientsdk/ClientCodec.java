@@ -2,7 +2,6 @@ package io.scalecube.services.gateway.clientsdk;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
-import io.scalecube.services.gateway.clientsdk.exceptions.ExceptionProcessor;
 import io.scalecube.services.gateway.clientsdk.exceptions.MessageCodecException;
 import io.scalecube.services.transport.api.DataCodec;
 import org.slf4j.Logger;
@@ -33,8 +32,7 @@ public interface ClientCodec<T> {
     }
 
     Object data;
-    Class<?> targetType =
-        ExceptionProcessor.isError(message.qualifier()) ? ErrorData.class : dataType;
+    Class<?> targetType = message.isError() ? ErrorData.class : dataType;
 
     ByteBuf dataBuffer = message.data();
     try (ByteBufInputStream inputStream = new ByteBufInputStream(dataBuffer, true)) {
