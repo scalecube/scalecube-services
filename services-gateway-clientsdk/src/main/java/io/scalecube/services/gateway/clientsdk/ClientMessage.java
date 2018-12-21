@@ -68,11 +68,8 @@ public final class ClientMessage {
     if (dataClass == null) {
       return false;
     }
-    if (dataClass.isPrimitive()) {
-      return hasData();
-    } else {
-      return dataClass.isInstance(data);
-    }
+
+    return dataClass.isPrimitive() ? hasData() : dataClass.isInstance(data);
   }
 
   public boolean isError() {
