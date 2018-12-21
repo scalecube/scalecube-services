@@ -286,7 +286,14 @@ public class Microservices {
       serviceProviders.add(
           call ->
               Arrays.stream(services)
-                  .map(serviceInstance -> ServiceInfo.fromServiceInstance(serviceInstance).build())
+                  .map(
+                      serviceInstance -> {
+                        if (serviceInstance instanceof ServiceInfo) {
+                          return (ServiceInfo) serviceInstance;
+                        }
+
+                        return ServiceInfo.fromServiceInstance(serviceInstance).build();
+                      })
                   .collect(Collectors.toList()));
       return this;
     }
