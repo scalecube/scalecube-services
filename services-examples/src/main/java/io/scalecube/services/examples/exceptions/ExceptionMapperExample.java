@@ -2,14 +2,7 @@ package io.scalecube.services.examples.exceptions;
 
 import io.scalecube.services.Microservices;
 import io.scalecube.services.ServiceInfo;
-import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.DefaultErrorMapper;
-import io.scalecube.services.exceptions.ServiceClientErrorMapper;
-import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import java.util.Collections;
-import reactor.core.Exceptions;
 
 public class ExceptionMapperExample {
 
@@ -64,38 +57,5 @@ public class ExceptionMapperExample {
             () -> System.out.println("Completed!"));
 
     Thread.currentThread().join();
-  }
-
-  private static class ServiceAProviderErrorMapper implements ServiceProviderErrorMapper {
-
-    @Override
-    public ServiceMessage toMessage(Throwable throwable) {
-      // implement service mapping logic
-      if (throwable instanceof ServiceAException) {
-        ServiceAException e = (ServiceAException) throwable;
-        return ServiceMessage.error(BadRequestException.ERROR_TYPE)
-            .data(new ErrorData(e.code(), e.getMessage()))
-            .build();
-      }
-
-      // or delegate it to default mapper
-      return DefaultErrorMapper.INSTANCE.toMessage(throwable);
-    }
-  }
-
-  private static class ServiceAClientErrorMapper implements ServiceClientErrorMapper {
-
-    @Override
-    public Throwable toError(ServiceMessage message) {
-      ErrorData data = message.data();
-
-      if (data.getErrorCode() == 42) {
-        // implement service mapping logic
-        throw Exceptions.propagate(new ServiceAException(data.getErrorMessage()));
-      } else {
-        // or delegate it to default mapper
-        throw Exceptions.propagate(DefaultErrorMapper.INSTANCE.toError(message));
-      }
-    }
   }
 }
