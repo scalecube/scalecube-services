@@ -47,17 +47,14 @@ public class BootstrapExample {
         Microservices.builder()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
-                call -> {
-                  ServiceInfo serviceInfo =
-                      ServiceInfo.fromServiceInstance(
-                              new HelloWorldServiceImpl(
-                                  new BusinessLogicFacade(
-                                      call.create().api(ServiceHello.class),
-                                      call.create().api(ServiceWorld.class))))
-                          .build();
-
-                  return Collections.singleton(serviceInfo);
-                })
+                call ->
+                    Collections.singleton(
+                        ServiceInfo.fromServiceInstance(
+                                new HelloWorldServiceImpl(
+                                    new BusinessLogicFacade(
+                                        call.create().api(ServiceHello.class),
+                                        call.create().api(ServiceWorld.class))))
+                            .build()))
             .startAwait();
 
     System.out.println("Start ServiceHello");
