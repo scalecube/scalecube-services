@@ -17,7 +17,9 @@
   <dependencies>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-rsocket</artifactId>
+      <!-- todo change it -->
+      <artifactId>scalecube-services-transport-rsocket-aeron</artifactId>
+      <!--<artifactId>scalecube-services-transport-rsocket</artifactId>-->
       <version>${project.version}</version>
     </dependency>
     <dependency>

@@ -41,7 +41,7 @@ public class WebsocketGateway extends GatewayTemplate {
           WebsocketGatewayAcceptor acceptor = new WebsocketGatewayAcceptor(call.create(), metrics1);
 
           LoopResources loopResources =
-              workerPool != null
+              (workerPool != null && workerPool instanceof EventLoopGroup)
                   ? prepareLoopResources(
                       preferNative, BOSS_THREAD_FACTORY, (EventLoopGroup) workerPool)
                   : null;

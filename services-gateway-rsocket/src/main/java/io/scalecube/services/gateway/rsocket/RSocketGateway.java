@@ -45,7 +45,7 @@ public class RSocketGateway extends GatewayTemplate {
           RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(call.create(), metrics1);
 
           LoopResources loopResources =
-              workerPool != null
+              (workerPool != null && workerPool instanceof EventLoopGroup)
                   ? prepareLoopResources(
                       preferNative, BOSS_THREAD_FACTORY, (EventLoopGroup) workerPool)
                   : null;
