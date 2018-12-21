@@ -202,10 +202,9 @@ public class Microservices {
     serviceInfos.add(serviceInfo);
 
     // register service
-    ServiceProviderErrorMapper errorMapper =
-        serviceInfo.errorMapper() != null ? serviceInfo.errorMapper() : this.errorMapper;
-
-    methodRegistry.registerService(serviceInfo.serviceInstance(), errorMapper);
+    methodRegistry.registerService(
+        serviceInfo.serviceInstance(),
+        Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper));
   }
 
   public Metrics metrics() {
@@ -287,13 +286,10 @@ public class Microservices {
           call ->
               Arrays.stream(services)
                   .map(
-                      serviceInstance -> {
-                        if (serviceInstance instanceof ServiceInfo) {
-                          return (ServiceInfo) serviceInstance;
-                        }
-
-                        return ServiceInfo.fromServiceInstance(serviceInstance).build();
-                      })
+                      s ->
+                          s instanceof ServiceInfo
+                              ? (ServiceInfo) s
+                              : ServiceInfo.fromServiceInstance(s).build())
                   .collect(Collectors.toList()));
       return this;
     }
