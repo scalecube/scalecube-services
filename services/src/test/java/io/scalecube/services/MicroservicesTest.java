@@ -8,8 +8,10 @@ import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
+import java.util.Optional;
+import java.util.concurrent.Executor;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -28,14 +30,17 @@ public class MicroservicesTest {
   @Mock private ServiceTransport serviceTransport;
   @Mock private ServerTransport serverTransport;
   @Mock private ClientTransport clientTransport;
-  @Mock private ExecutorService workerExecutor;
+  @Mock private ServiceTransport.Resources transportResources;
+  @Mock private Executor workerPool;
 
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    Mockito.when(serviceTransport.getWorkerThreadPool(anyInt())).thenReturn(workerExecutor);
-    Mockito.when(serviceTransport.getClientTransport(any())).thenReturn(clientTransport);
-    Mockito.when(serviceTransport.getServerTransport(any())).thenReturn(serverTransport);
+    Mockito.when(serviceTransport.resources(anyInt())).thenReturn(transportResources);
+    Mockito.when(transportResources.shutdown()).thenReturn(Mono.empty());
+    Mockito.when(transportResources.workerPool()).thenReturn(Optional.of(workerPool));
+    Mockito.when(serviceTransport.clientTransport(any())).thenReturn(clientTransport);
+    Mockito.when(serviceTransport.serverTransport(any())).thenReturn(serverTransport);
   }
 
   @Test
@@ -71,6 +76,6 @@ public class MicroservicesTest {
 
     Mockito.verify(serverTransport, Mockito.atLeastOnce()).stop();
     Mockito.verify(serviceDiscovery, Mockito.atLeastOnce()).shutdown();
-    Mockito.verify(serviceTransport, Mockito.atLeastOnce()).shutdown(Mockito.eq(workerExecutor));
+    Mockito.verify(transportResources, Mockito.atLeastOnce()).shutdown();
   }
 }

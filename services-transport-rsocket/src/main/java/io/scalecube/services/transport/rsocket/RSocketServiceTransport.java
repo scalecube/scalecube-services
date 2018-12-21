@@ -12,6 +12,7 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 import reactor.netty.FutureMono;
@@ -25,43 +26,56 @@ public class RSocketServiceTransport implements ServiceTransport {
   private static final String DEFAULT_HEADERS_FORMAT = "application/json";
 
   @Override
-  public ClientTransport getClientTransport(Executor workerThreadPool) {
+  public Resources resources(int numOfWorkers) {
+    return new Resources(numOfWorkers);
+  }
+
+  @Override
+  public ClientTransport clientTransport(ServiceTransport.Resources resources) {
     return new RSocketClientTransport(
         new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)),
-        DelegatedLoopResources.newClientLoopResources((EventLoopGroup) workerThreadPool));
+        DelegatedLoopResources.newClientLoopResources(((Resources) resources).workerPool));
   }
 
   @Override
-  public ServerTransport getServerTransport(Executor workerThreadPool) {
+  public ServerTransport serverTransport(ServiceTransport.Resources resources) {
     return new RSocketServerTransport(
         new ServiceMessageCodec(HeadersCodec.getInstance(DEFAULT_HEADERS_FORMAT)),
-        (EventLoopGroup) workerThreadPool);
+        ((Resources) resources).workerPool);
   }
 
-  @Override
-  public Executor getWorkerThreadPool(int numOfThreads) {
-    return Epoll.isAvailable()
-        ? new ExtendedEpollEventLoopGroup(numOfThreads, this::chooseEventLoop)
-        : new ExtendedNioEventLoopGroup(numOfThreads, this::chooseEventLoop);
-  }
+  /** RSocket service transport Resources implementation. Holds inside custom EventLoopGroup. */
+  private static class Resources implements ServiceTransport.Resources {
 
-  @Override
-  public Mono<Void> shutdown(Executor workerPool) {
-    //noinspection unchecked
-    return Mono.defer(
-        () ->
-            workerPool != null
-                ? FutureMono.from((Future) ((EventLoopGroup) workerPool).shutdownGracefully())
-                : Mono.empty());
-  }
+    private final EventLoopGroup workerPool;
 
-  private EventLoop chooseEventLoop(Channel channel, Iterator<EventExecutor> executors) {
-    while (executors.hasNext()) {
-      EventExecutor eventLoop = executors.next();
-      if (eventLoop.inEventLoop()) {
-        return (EventLoop) eventLoop;
-      }
+    public Resources(int numOfWorkers) {
+      workerPool =
+          Epoll.isAvailable()
+              ? new ExtendedEpollEventLoopGroup(numOfWorkers, this::chooseEventLoop)
+              : new ExtendedNioEventLoopGroup(numOfWorkers, this::chooseEventLoop);
     }
-    return null;
+
+    @Override
+    public Optional<Executor> workerPool() {
+      return Optional.of(workerPool);
+    }
+
+    @Override
+    public Mono<Void> shutdown() {
+      //noinspection unchecked
+      return Mono.defer(
+          () -> FutureMono.from((Future) ((EventLoopGroup) workerPool).shutdownGracefully()));
+    }
+
+    private EventLoop chooseEventLoop(Channel channel, Iterator<EventExecutor> executors) {
+      while (executors.hasNext()) {
+        EventExecutor eventLoop = executors.next();
+        if (eventLoop.inEventLoop()) {
+          return (EventLoop) eventLoop;
+        }
+      }
+      return null;
+    }
   }
 }
