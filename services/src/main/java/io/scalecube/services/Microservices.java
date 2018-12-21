@@ -185,9 +185,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    Executor workerThreadPool = transportBootstrap.workerThreadPool();
-    boolean preferNative = transportBootstrap.transport().isNativeSupported();
-    return gatewayBootstrap.start(workerThreadPool, preferNative, call, metrics);
+    return gatewayBootstrap.start(transportBootstrap.workerThreadPool(), call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -361,13 +359,12 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(
-        Executor workerThreadPool, boolean preferNative, Call call, Metrics metrics) {
+    private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig ->
                   Gateway.getGateway(gatewayConfig.gatewayClass())
-                      .start(gatewayConfig, workerThreadPool, preferNative, call, metrics)
+                      .start(gatewayConfig, workerPool, call, metrics)
                       .doOnSuccess(gw -> gatewayInstances.put(gatewayConfig, gw)))
           .then(Mono.just(this));
     }

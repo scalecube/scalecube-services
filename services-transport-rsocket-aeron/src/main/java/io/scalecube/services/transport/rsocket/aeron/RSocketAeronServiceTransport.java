@@ -22,11 +22,6 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
   private static final String DEFAULT_HEADERS_FORMAT = "application/json";
 
   @Override
-  public boolean isNativeSupported() {
-    return true;
-  }
-
-  @Override
   public ClientTransport getClientTransport(Executor aeronRecourcesHolder) {
     AeronResources aeronResources = ((AeronRecourcesHolder) aeronRecourcesHolder).aeronResources;
     return new RSocketAeronClientTransport(

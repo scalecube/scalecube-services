@@ -18,13 +18,6 @@ public interface ServiceTransport {
   }
 
   /**
-   * Boolean function telling is native mode (such as epoll) supported.
-   *
-   * @return is native mode supported for service transport
-   */
-  boolean isNativeSupported();
-
-  /**
    * Getting client transport.
    *
    * @param workerThreadPool service transport worker thread pool
