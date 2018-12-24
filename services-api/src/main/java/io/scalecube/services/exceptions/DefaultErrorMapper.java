@@ -1,7 +1,6 @@
 package io.scalecube.services.exceptions;
 
 import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import java.util.Optional;
 
@@ -18,10 +17,9 @@ public final class DefaultErrorMapper
 
   @Override
   public Throwable toError(ServiceMessage message) {
-    String qualifier = message.qualifier();
     ErrorData data = message.data();
 
-    int errorType = Integer.parseInt(Qualifier.getQualifierAction(qualifier));
+    int errorType = message.errorType();
     int errorCode = data.getErrorCode();
     String errorMessage = data.getErrorMessage();
 
