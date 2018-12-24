@@ -4,7 +4,6 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceClientErrorMapper;
-import reactor.core.Exceptions;
 
 public class ServiceAClientErrorMapper implements ServiceClientErrorMapper {
 
@@ -14,10 +13,10 @@ public class ServiceAClientErrorMapper implements ServiceClientErrorMapper {
 
     if (data.getErrorCode() == 42) {
       // implement service mapping logic
-      throw Exceptions.propagate(new ServiceAException(data.getErrorMessage()));
+      return new ServiceAException(data.getErrorMessage());
     } else {
       // or delegate it to default mapper
-      throw Exceptions.propagate(DefaultErrorMapper.INSTANCE.toError(message));
+      return DefaultErrorMapper.INSTANCE.toError(message);
     }
   }
 }
