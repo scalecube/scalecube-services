@@ -163,7 +163,7 @@ public final class ServiceMessage {
   }
 
   /**
-   * Describes whether the client message is an error.
+   * Describes whether the message is an error.
    *
    * @return <code>true</code> if error, otherwise <code>false</code>.
    */
