@@ -162,9 +162,31 @@ public final class ServiceMessage {
     }
   }
 
+  /**
+   * Describes whether the client message is an error.
+   *
+   * @return <code>true</code> if error, otherwise <code>false</code>.
+   */
   public boolean isError() {
     String qualifier = qualifier();
     return qualifier != null && qualifier.contains(Qualifier.ERROR_NAMESPACE);
+  }
+
+  /**
+   * Returns error type. Error type is an identifier of a group of errors.
+   *
+   * @return error type.
+   */
+  public int errorType() {
+    if (!isError()) {
+      throw new IllegalStateException("Message is not an error");
+    }
+
+    try {
+      return Integer.parseInt(Qualifier.getQualifierAction(qualifier()));
+    } catch (NumberFormatException e) {
+      throw new IllegalStateException("Error type must be a number");
+    }
   }
 
   @Override

@@ -101,7 +101,7 @@ public class HttpGatewayAcceptor
   }
 
   private Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
-    int code = Integer.parseInt(Qualifier.getQualifierAction(response.qualifier()));
+    int code = response.errorType();
     HttpResponseStatus status = HttpResponseStatus.valueOf(code);
 
     ByteBuf content =

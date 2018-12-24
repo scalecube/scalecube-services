@@ -1,6 +1,5 @@
 package io.scalecube.services.gateway.clientsdk.exceptions;
 
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.exceptions.BadRequestException;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
@@ -18,10 +17,9 @@ public class DefaultClientErrorMapper implements ClientErrorMapper {
 
   @Override
   public Throwable toError(ClientMessage message) {
-    String qualifier = message.qualifier();
     ErrorData errorData = message.data();
 
-    int errorType = Integer.parseInt(Qualifier.getQualifierAction(qualifier));
+    int errorType = message.errorType();
     int errorCode = errorData.getErrorCode();
     String errorMessage = errorData.getErrorMessage();
 
