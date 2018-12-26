@@ -58,8 +58,7 @@ public final class DefaultErrorMapper
 
     String errorMessage =
         Optional.ofNullable(throwable.getMessage()).orElseGet(throwable::toString);
-    ErrorData errorData = new ErrorData(errorCode, errorMessage);
 
-    return ServiceMessage.error(errorType).data(errorData).build();
+    return ServiceMessage.error(errorType, errorCode, errorMessage);
   }
 }
