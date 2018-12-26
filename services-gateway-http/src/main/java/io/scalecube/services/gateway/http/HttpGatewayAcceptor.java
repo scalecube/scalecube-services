@@ -17,7 +17,7 @@ import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
-import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.transport.api.DataCodec;
@@ -68,7 +68,7 @@ public class HttpGatewayAcceptor
         .doOnNext(content -> metrics.markRequest())
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
         .doOnSuccess(avoid -> metrics.markResponse())
-        .onErrorResume(t -> error(httpResponse, ExceptionProcessor.toMessage(t)));
+        .onErrorResume(t -> error(httpResponse, DefaultErrorMapper.INSTANCE.toMessage(t)));
   }
 
   private Mono<Void> handleRequest(
@@ -88,7 +88,7 @@ public class HttpGatewayAcceptor
               enrichResponse(httpResponse, response);
               return Mono.defer(
                   () ->
-                      ExceptionProcessor.isError(response) // check error
+                      response.isError() // check error
                           ? error(httpResponse, response)
                           : response.hasData() // check data
                               ? ok(httpResponse, response)
@@ -101,7 +101,7 @@ public class HttpGatewayAcceptor
   }
 
   private Mono<Void> error(HttpServerResponse httpResponse, ServiceMessage response) {
-    int code = Integer.parseInt(Qualifier.getQualifierAction(response.qualifier()));
+    int code = response.errorType();
     HttpResponseStatus status = HttpResponseStatus.valueOf(code);
 
     ByteBuf content =

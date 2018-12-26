@@ -1,6 +1,7 @@
 package io.scalecube.services.transport.api;
 
 import io.scalecube.services.ServiceLoaderUtil;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import reactor.core.publisher.Mono;
 
@@ -18,41 +19,44 @@ public interface ServiceTransport {
   }
 
   /**
-   * Boolean function telling is native mode (such as epoll) supported.
+   * Provider of service transport resources.
    *
-   * @return is native mode supported for service transport
+   * @param numOfWorkers num of worker threads
+   * @return service transport resources
    */
-  boolean isNativeSupported();
+  Resources resources(int numOfWorkers);
 
   /**
-   * Getting client transport.
+   * Provier of client transport.
    *
-   * @param workerThreadPool service transport worker thread pool
+   * @param resources service transport resources obtained at {@link #resources(int)}
    * @return client transport
    */
-  ClientTransport getClientTransport(Executor workerThreadPool);
+  ClientTransport clientTransport(Resources resources);
 
   /**
-   * Getting server transport.
+   * Provider of server transport.
    *
-   * @param workerThreadPool service transport worker thread pool
+   * @param resources service transport resources obtained at {@link #resources(int)}
    * @return server transport
    */
-  ServerTransport getServerTransport(Executor workerThreadPool);
+  ServerTransport serverTransport(Resources resources);
 
-  /**
-   * Getting new service transport worker thread pool.
-   *
-   * @param numOfThreads number of threads for worker thread pool
-   * @return executor
-   */
-  Executor getWorkerThreadPool(int numOfThreads);
+  /** Service transport resources interface. */
+  interface Resources {
 
-  /**
-   * Shutdowns service transport.
-   *
-   * @param workerThreadPool service transport worker thread pool
-   * @return shutdown signal
-   */
-  Mono shutdown(Executor workerThreadPool);
+    /**
+     * Returns optional service transport worker thread pool.
+     *
+     * @return worker pool; may be null
+     */
+    Optional<Executor> workerPool();
+
+    /**
+     * Shutdowns service transport resources created at {@link #resources(int)}.
+     *
+     * @return shutdown completion signal
+     */
+    Mono<Void> shutdown();
+  }
 }

@@ -7,6 +7,8 @@ import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
+import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
 import io.scalecube.services.methods.ServiceMethodRegistry;
@@ -22,7 +24,6 @@ import io.scalecube.services.transport.api.ServiceTransport;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,7 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -108,13 +108,14 @@ public class Microservices {
   private final Metrics metrics;
   private final Map<String, String> tags;
   private final List<ServiceInfo> serviceInfos = new ArrayList<>();
-  private final List<Function<Call, Collection<Object>>> serviceProviders;
+  private final List<ServiceProvider> serviceProviders;
   private final ServiceRegistry serviceRegistry;
   private final ServiceMethodRegistry methodRegistry;
   private final ServiceTransportBootstrap transportBootstrap;
   private final GatewayBootstrap gatewayBootstrap;
   private final ServiceDiscovery discovery;
   private final Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
+  private final ServiceProviderErrorMapper errorMapper;
 
   private Microservices(Builder builder) {
     this.id = UUID.randomUUID().toString();
@@ -129,6 +130,7 @@ public class Microservices {
     this.transportBootstrap =
         new ServiceTransportBootstrap(
             ServiceTransportConfig.builder(builder.transportOptions).build());
+    this.errorMapper = builder.errorMapper;
   }
 
   public static Builder builder() {
@@ -152,7 +154,7 @@ public class Microservices {
               // invoke service providers and register services
               serviceProviders
                   .stream()
-                  .flatMap(serviceProvider -> serviceProvider.apply(call).stream())
+                  .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
                   .forEach(this::collectAndRegister);
 
               // register services in service registry
@@ -184,9 +186,7 @@ public class Microservices {
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
-    Executor workerThreadPool = transportBootstrap.workerThreadPool();
-    boolean preferNative = transportBootstrap.transport().isNativeSupported();
-    return gatewayBootstrap.start(workerThreadPool, preferNative, call, metrics);
+    return gatewayBootstrap.start(transportBootstrap.workerPool(), call, metrics);
   }
 
   private Mono<Microservices> doInjection() {
@@ -195,15 +195,14 @@ public class Microservices {
     return Mono.just(Reflect.inject(this, serviceInstances));
   }
 
-  private void collectAndRegister(Object serviceInstance) {
+  private void collectAndRegister(ServiceInfo serviceInfo) {
     // collect
-    ServiceInfo serviceInfo =
-        serviceInstance instanceof ServiceInfo
-            ? ((ServiceInfo) serviceInstance)
-            : ServiceInfo.fromServiceInstance(serviceInstance).build();
     serviceInfos.add(serviceInfo);
-    // register service object
-    methodRegistry.registerService(serviceInfo.serviceInstance());
+
+    // register service
+    methodRegistry.registerService(
+        serviceInfo.serviceInstance(),
+        Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper));
   }
 
   public Metrics metrics() {
@@ -252,13 +251,14 @@ public class Microservices {
 
     private Metrics metrics;
     private Map<String, String> tags = new HashMap<>();
-    private List<Function<Call, Collection<Object>>> serviceProviders = new ArrayList<>();
+    private List<ServiceProvider> serviceProviders = new ArrayList<>();
     private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
     private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
     private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
     private Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
     private Consumer<ServiceTransportConfig.Builder> transportOptions;
     private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
+    private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
 
     public Mono<Microservices> start() {
       return Mono.defer(() -> new Microservices(this).start());
@@ -268,12 +268,31 @@ public class Microservices {
       return start().block();
     }
 
-    public Builder services(Object... services) {
+    public Builder services(ServiceInfo... services) {
       serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
       return this;
     }
 
-    public Builder services(Function<Call, Collection<Object>> serviceProvider) {
+    /**
+     * Adds service instance to microservice.
+     *
+     * @param services service instance.
+     * @return builder
+     */
+    public Builder services(Object... services) {
+      serviceProviders.add(
+          call ->
+              Arrays.stream(services)
+                  .map(
+                      s ->
+                          s instanceof ServiceInfo
+                              ? (ServiceInfo) s
+                              : ServiceInfo.fromServiceInstance(s).build())
+                  .collect(Collectors.toList()));
+      return this;
+    }
+
+    public Builder services(ServiceProvider serviceProvider) {
       serviceProviders.add(serviceProvider);
       return this;
     }
@@ -317,6 +336,11 @@ public class Microservices {
       gatewayBootstrap.addConfig(config);
       return this;
     }
+
+    public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
+      this.errorMapper = errorMapper;
+      return this;
+    }
   }
 
   private static class GatewayBootstrap {
@@ -336,13 +360,12 @@ public class Microservices {
       return this;
     }
 
-    private Mono<GatewayBootstrap> start(
-        Executor workerThreadPool, boolean preferNative, Call call, Metrics metrics) {
+    private Mono<GatewayBootstrap> start(Executor workerPool, Call call, Metrics metrics) {
       return Flux.fromIterable(gatewayConfigs)
           .flatMap(
               gatewayConfig ->
                   Gateway.getGateway(gatewayConfig.gatewayClass())
-                      .start(gatewayConfig, workerThreadPool, preferNative, call, metrics)
+                      .start(gatewayConfig, workerPool, call, metrics)
                       .doOnSuccess(gw -> gatewayInstances.put(gatewayConfig, gw)))
           .then(Mono.just(this));
     }
@@ -395,7 +418,7 @@ public class Microservices {
     private ServiceTransport transport; // config or calculated
     private ClientTransport clientTransport; // calculated
     private ServerTransport serverTransport; // calculated
-    private Executor workerThreadPool; // calculated
+    private ServiceTransport.Resources transportResources; // calculated
     private InetSocketAddress serviceAddress; // calculated
     private int numOfThreads; // calculated
 
@@ -415,8 +438,8 @@ public class Microservices {
       return clientTransport;
     }
 
-    private Executor workerThreadPool() {
-      return workerThreadPool;
+    private Executor workerPool() {
+      return transportResources.workerPool().orElse(null);
     }
 
     private InetSocketAddress serviceAddress() {
@@ -429,9 +452,9 @@ public class Microservices {
             this.transport =
                 Optional.ofNullable(this.transport).orElseGet(ServiceTransport::getTransport);
 
-            this.workerThreadPool = transport.getWorkerThreadPool(numOfThreads);
-            this.clientTransport = transport.getClientTransport(workerThreadPool);
-            this.serverTransport = transport.getServerTransport(workerThreadPool);
+            this.transportResources = transport.resources(numOfThreads);
+            this.clientTransport = transport.clientTransport(transportResources);
+            this.serverTransport = transport.serverTransport(transportResources);
 
             // bind service serverTransport transport
             return serverTransport
@@ -456,9 +479,7 @@ public class Microservices {
                   Optional.ofNullable(serverTransport)
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
-                  Optional.ofNullable(transport)
-                      .map(transport -> transport.shutdown(workerThreadPool))
-                      .orElse(Mono.empty())));
+                  transportResources.shutdown()));
     }
   }
 }

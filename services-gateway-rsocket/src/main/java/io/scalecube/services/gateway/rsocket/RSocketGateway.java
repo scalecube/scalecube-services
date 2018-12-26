@@ -1,14 +1,14 @@
 package io.scalecube.services.gateway.rsocket;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.util.concurrent.DefaultThreadFactory;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.WebsocketServerTransport;
 import io.rsocket.util.ByteBufPayload;
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.metrics.Metrics;
@@ -24,18 +24,12 @@ public class RSocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketGateway.class);
 
-  private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
-      new DefaultThreadFactory("rsws-boss", true);
-
   private CloseableChannel server;
+  private LoopResources loopResources;
 
   @Override
   public Mono<Gateway> start(
-      GatewayConfig config,
-      Executor workerPool,
-      boolean preferNative,
-      ServiceCall.Call call,
-      Metrics metrics) {
+      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
 
     return Mono.defer(
         () -> {
@@ -44,11 +38,9 @@ public class RSocketGateway extends GatewayTemplate {
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
           RSocketGatewayAcceptor acceptor = new RSocketGatewayAcceptor(call.create(), metrics1);
 
-          LoopResources loopResources =
-              workerPool != null
-                  ? prepareLoopResources(
-                      preferNative, BOSS_THREAD_FACTORY, (EventLoopGroup) workerPool)
-                  : null;
+          if (workerPool != null) {
+            loopResources = new GatewayLoopResources((EventLoopGroup) workerPool);
+          }
 
           WebsocketServerTransport rsocketTransport =
               WebsocketServerTransport.create(
@@ -78,7 +70,7 @@ public class RSocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Void> stop() {
-    return shutdownServer(server).then(shutdownBossGroup());
+    return shutdownServer(server).then(shutdownLoopResources(loopResources));
   }
 
   private Mono<Void> shutdownServer(CloseableChannel closeableChannel) {

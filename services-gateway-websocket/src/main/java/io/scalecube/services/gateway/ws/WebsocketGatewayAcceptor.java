@@ -2,7 +2,7 @@ package io.scalecube.services.gateway.ws;
 
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ServiceMessage;
-import io.scalecube.services.exceptions.ExceptionProcessor;
+import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.ReferenceCountUtil;
 import io.scalecube.services.gateway.ws.GatewayMessage.Builder;
@@ -126,7 +126,7 @@ public class WebsocketGatewayAcceptor
   private void handleError(WebsocketSession session, GatewayMessage req, Throwable th) {
     LOGGER.error("Exception occurred on request: {}, session={}", req, session.id(), th);
 
-    Builder builder = GatewayMessage.from(ExceptionProcessor.toMessage(th));
+    Builder builder = GatewayMessage.from(DefaultErrorMapper.INSTANCE.toMessage(th));
     Optional.ofNullable(req.streamId()).ifPresent(builder::streamId);
     GatewayMessage response = builder.signal(Signal.ERROR).build();
 
@@ -203,7 +203,7 @@ public class WebsocketGatewayAcceptor
   private GatewayMessage prepareResponse(
       Long streamId, ServiceMessage message, AtomicBoolean receivedErrorMessage) {
     GatewayMessage.Builder response = GatewayMessage.from(message).streamId(streamId);
-    if (ExceptionProcessor.isError(message)) {
+    if (message.isError()) {
       receivedErrorMessage.set(true);
       response.signal(Signal.ERROR);
     }

@@ -1,10 +1,6 @@
 package io.scalecube.services.transport.rsocket;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.util.concurrent.DefaultThreadFactory;
-import io.netty.util.concurrent.Future;
 import io.rsocket.RSocketFactory;
 import io.rsocket.transport.netty.server.CloseableChannel;
 import io.rsocket.transport.netty.server.TcpServerTransport;
@@ -21,7 +17,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.netty.Connection;
-import reactor.netty.FutureMono;
 import reactor.netty.tcp.TcpServer;
 
 /** RSocket server transport implementation. */
@@ -29,13 +24,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RSocketServerTransport.class);
 
-  private static final int BOSS_THREADS_NUM = 1;
-
-  private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
-      new DefaultThreadFactory("rsocket-boss", true);
-
   private final ServiceMessageCodec codec;
-  private final EventLoopGroup bossGroup;
   private final DelegatedLoopResources loopResources;
 
   private CloseableChannel server; // calculated
@@ -45,19 +34,11 @@ public class RSocketServerTransport implements ServerTransport {
    * Constructor for this server transport.
    *
    * @param codec message codec
-   * @param preferEpoll should epoll be preferred
-   * @param eventLoopGroup worker thread pool
+   * @param workerPool worker thread pool
    */
-  public RSocketServerTransport(
-      ServiceMessageCodec codec, boolean preferEpoll, EventLoopGroup eventLoopGroup) {
+  public RSocketServerTransport(ServiceMessageCodec codec, EventLoopGroup workerPool) {
     this.codec = codec;
-
-    this.bossGroup =
-        preferEpoll
-            ? new EpollEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY)
-            : new NioEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY);
-
-    this.loopResources = new DelegatedLoopResources(preferEpoll, bossGroup, eventLoopGroup);
+    this.loopResources = DelegatedLoopResources.newServerLoopResources(workerPool);
   }
 
   @Override
@@ -94,7 +75,7 @@ public class RSocketServerTransport implements ServerTransport {
 
   @Override
   public Mono<Void> stop() {
-    return shutdownServer(server).then(closeConnections()).then(shutdownBossGroup());
+    return shutdownServer().then(closeConnections()).then(shutdownLoopResources());
   }
 
   private Mono<Void> closeConnections() {
@@ -115,24 +96,25 @@ public class RSocketServerTransport implements ServerTransport {
                 .doOnTerminate(connections::clear));
   }
 
-  private Mono<Void> shutdownBossGroup() {
-    return Mono.defer(
-        () -> {
-          //noinspection unchecked
-          return Optional.ofNullable(bossGroup)
-              .map(
-                  bossGroup ->
-                      FutureMono.from((Future<Void>) bossGroup.shutdownGracefully())
-                          .doOnError(e -> LOGGER.warn("Failed to close bossGroup: " + e))
-                          .onErrorResume(e -> Mono.empty()))
-              .orElse(Mono.empty());
-        });
-  }
-
-  private Mono<Void> shutdownServer(CloseableChannel closeableChannel) {
+  private Mono<Void> shutdownLoopResources() {
     return Mono.defer(
         () ->
-            Optional.ofNullable(closeableChannel)
+            Optional.ofNullable(loopResources)
+                .map(
+                    lr ->
+                        lr.disposeLater()
+                            .doOnError(
+                                e ->
+                                    LOGGER.warn(
+                                        "Failed to close server transport loopResources: " + e))
+                            .onErrorResume(e -> Mono.empty()))
+                .orElse(Mono.empty()));
+  }
+
+  private Mono<Void> shutdownServer() {
+    return Mono.defer(
+        () ->
+            Optional.ofNullable(server)
                 .map(
                     server -> {
                       server.dispose();

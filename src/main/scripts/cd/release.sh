@@ -1,5 +1,7 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
+DIRNAME=$(dirname $0)
+RELEASE_EXEC_FILES=$(find $DIRNAME -name 'release-*.sh')
 
 echo       Running $0
 echo *-*-*-*-*-*-*-*-*-*-*-*-*-*
@@ -17,3 +19,8 @@ mvn -P release release:prepare release:perform -DautoVersionSubmodules=true -Dsc
 
 mvn clean
 commit_to_develop
+
+# extends release.sh
+for script_file in $RELEASE_EXEC_FILES; do
+    source $script_file
+done

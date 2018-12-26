@@ -9,6 +9,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultithreadEventLoopGroup;
 import io.netty.channel.SelectStrategy;
 import io.netty.channel.SelectStrategyFactory;
+import io.netty.util.concurrent.DefaultThreadFactory;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.RejectedExecutionHandler;
 import io.netty.util.concurrent.RejectedExecutionHandlers;
@@ -24,22 +25,22 @@ import java.util.function.BiFunction;
  */
 public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
 
+  private static final ThreadFactory WORKER_THREAD_FACTORY =
+      new DefaultThreadFactory("rsocket-worker", true);
+
   private final BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser;
 
   /**
    * Constructor for event loop.
    *
    * @param numOfThreads number of worker threads
-   * @param threadFactory thread factory
    * @param eventLoopChooser executor chooser
    */
   public ExtendedEpollEventLoopGroup(
-      int numOfThreads,
-      ThreadFactory threadFactory,
-      BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser) {
+      int numOfThreads, BiFunction<Channel, Iterator<EventExecutor>, EventLoop> eventLoopChooser) {
     super(
         numOfThreads,
-        threadFactory,
+        WORKER_THREAD_FACTORY,
         0,
         DefaultSelectStrategyFactory.INSTANCE,
         RejectedExecutionHandlers.reject());
@@ -72,9 +73,7 @@ public class ExtendedEpollEventLoopGroup extends MultithreadEventLoopGroup {
   @Override
   public ChannelFuture register(Channel channel) {
     EventLoop eventExecutor = eventLoopChooser.apply(channel, iterator());
-    return eventExecutor != null
-        ? eventExecutor.register(channel)
-        : super.register(channel);
+    return eventExecutor != null ? eventExecutor.register(channel) : super.register(channel);
   }
 
   @Override

@@ -1,6 +1,7 @@
 package io.scalecube.services.gateway.clientsdk;
 
 import io.netty.buffer.ByteBuf;
+import io.scalecube.services.api.Qualifier;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,10 +68,34 @@ public final class ClientMessage {
     if (dataClass == null) {
       return false;
     }
-    if (dataClass.isPrimitive()) {
-      return hasData();
-    } else {
-      return dataClass.isInstance(data);
+
+    return dataClass.isPrimitive() ? hasData() : dataClass.isInstance(data);
+  }
+
+  /**
+   * Describes whether the message is an error.
+   *
+   * @return <code>true</code> if error, otherwise <code>false</code>.
+   */
+  public boolean isError() {
+    String qualifier = qualifier();
+    return qualifier != null && qualifier.contains(Qualifier.ERROR_NAMESPACE);
+  }
+
+  /**
+   * Returns error type. Error type is an identifier of a group of errors.
+   *
+   * @return error type.
+   */
+  public int errorType() {
+    if (!isError()) {
+      throw new IllegalStateException("Message is not an error");
+    }
+
+    try {
+      return Integer.parseInt(Qualifier.getQualifierAction(qualifier()));
+    } catch (NumberFormatException e) {
+      throw new IllegalStateException("Error type must be a number");
     }
   }
 

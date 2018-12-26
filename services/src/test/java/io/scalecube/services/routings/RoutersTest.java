@@ -219,6 +219,6 @@ public class RoutersTest extends BaseTest {
     assertTrue(
         (serviceBCount.doubleValue() / n) > 0.5,
         "Service B's Weight=0.9; at least more than half "
-        + "of invocations have to be routed to Service B");
+            + "of invocations have to be routed to Service B");
   }
 }

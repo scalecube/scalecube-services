@@ -3,15 +3,20 @@ package io.scalecube.services.transport.rsocket;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
+import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollDatagramChannel;
+import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.DatagramChannel;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import java.util.concurrent.atomic.AtomicBoolean;
+import io.netty.util.concurrent.DefaultThreadFactory;
+import io.netty.util.concurrent.Future;
 import reactor.core.publisher.Mono;
+import reactor.netty.FutureMono;
 import reactor.netty.resources.LoopResources;
 
 /**
@@ -20,33 +25,41 @@ import reactor.netty.resources.LoopResources;
  */
 public class DelegatedLoopResources implements LoopResources {
 
-  private final boolean preferEpoll;
+  private static final int BOSS_THREADS_NUM = 1;
+
+  private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
+      new DefaultThreadFactory("boss-transport", true);
+
   private final EventLoopGroup bossGroup;
   private final EventLoopGroup workerGroup;
-  private final AtomicBoolean running = new AtomicBoolean(true);
 
-  /**
-   * Constructor for loop resources. Boss group will be null.
-   *
-   * @param preferEpoll should use epoll or nio
-   * @param workerGroup worker event loop group
-   */
-  public DelegatedLoopResources(boolean preferEpoll, EventLoopGroup workerGroup) {
-    this(preferEpoll, null, workerGroup);
+  private DelegatedLoopResources(EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
+    this.bossGroup = bossGroup;
+    this.workerGroup = workerGroup;
   }
 
   /**
-   * Constructor for loop resources.
+   * Creates loop resources for client side.
    *
-   * @param preferEpoll should use epoll or nio
-   * @param bossGroup selector event loop group
-   * @param workerGroup worker event loop group
+   * @param workerGroup worker pool
+   * @return loop resources
    */
-  public DelegatedLoopResources(
-      boolean preferEpoll, EventLoopGroup bossGroup, EventLoopGroup workerGroup) {
-    this.preferEpoll = preferEpoll;
-    this.bossGroup = bossGroup;
-    this.workerGroup = workerGroup;
+  public static DelegatedLoopResources newClientLoopResources(EventLoopGroup workerGroup) {
+    return new DelegatedLoopResources(null, workerGroup);
+  }
+
+  /**
+   * Creates new loop resources for server side.
+   *
+   * @param workerGroup worker pool
+   * @return loop resources
+   */
+  public static DelegatedLoopResources newServerLoopResources(EventLoopGroup workerGroup) {
+    EventLoopGroup bossGroup =
+        Epoll.isAvailable()
+            ? new EpollEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY)
+            : new NioEventLoopGroup(BOSS_THREADS_NUM, BOSS_THREAD_FACTORY);
+    return new DelegatedLoopResources(bossGroup, workerGroup);
   }
 
   @Override
@@ -66,22 +79,22 @@ public class DelegatedLoopResources implements LoopResources {
 
   @Override
   public Class<? extends Channel> onChannel(EventLoopGroup group) {
-    return preferEpoll ? EpollSocketChannel.class : NioSocketChannel.class;
+    return Epoll.isAvailable() ? EpollSocketChannel.class : NioSocketChannel.class;
   }
 
   @Override
   public Class<? extends DatagramChannel> onDatagramChannel(EventLoopGroup group) {
-    return preferEpoll ? EpollDatagramChannel.class : NioDatagramChannel.class;
+    return Epoll.isAvailable() ? EpollDatagramChannel.class : NioDatagramChannel.class;
   }
 
   @Override
   public Class<? extends ServerChannel> onServerChannel(EventLoopGroup group) {
-    return preferEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
+    return Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
   }
 
   @Override
   public boolean preferNative() {
-    return preferEpoll;
+    return Epoll.isAvailable();
   }
 
   @Override
@@ -90,21 +103,20 @@ public class DelegatedLoopResources implements LoopResources {
   }
 
   @Override
-  public void dispose() {
-    // no-op
-  }
-
-  @Override
   public boolean isDisposed() {
-    return !running.get();
+    return bossGroup != null && bossGroup.isShutdown();
   }
 
   @Override
   public Mono<Void> disposeLater() {
     return Mono.defer(
         () -> {
-          running.compareAndSet(true, false);
-          return Mono.empty();
+          if (bossGroup == null) {
+            return Mono.empty();
+          }
+          bossGroup.shutdownGracefully();
+          //noinspection unchecked
+          return FutureMono.from(((Future<Void>) bossGroup.terminationFuture()));
         });
   }
 }

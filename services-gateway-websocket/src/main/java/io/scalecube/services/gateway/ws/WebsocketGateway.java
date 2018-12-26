@@ -1,10 +1,10 @@
 package io.scalecube.services.gateway.ws;
 
 import io.netty.channel.EventLoopGroup;
-import io.netty.util.concurrent.DefaultThreadFactory;
-import io.scalecube.services.ServiceCall;
+import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.gateway.Gateway;
 import io.scalecube.services.gateway.GatewayConfig;
+import io.scalecube.services.gateway.GatewayLoopResources;
 import io.scalecube.services.gateway.GatewayMetrics;
 import io.scalecube.services.gateway.GatewayTemplate;
 import io.scalecube.services.metrics.Metrics;
@@ -20,18 +20,12 @@ public class WebsocketGateway extends GatewayTemplate {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebsocketGateway.class);
 
-  private static final DefaultThreadFactory BOSS_THREAD_FACTORY =
-      new DefaultThreadFactory("ws-boss", true);
-
   private DisposableServer server;
+  private LoopResources loopResources;
 
   @Override
   public Mono<Gateway> start(
-      GatewayConfig config,
-      Executor workerPool,
-      boolean preferNative,
-      ServiceCall.Call call,
-      Metrics metrics) {
+      GatewayConfig config, Executor workerPool, Call call, Metrics metrics) {
 
     return Mono.defer(
         () -> {
@@ -40,11 +34,9 @@ public class WebsocketGateway extends GatewayTemplate {
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
           WebsocketGatewayAcceptor acceptor = new WebsocketGatewayAcceptor(call.create(), metrics1);
 
-          LoopResources loopResources =
-              workerPool != null
-                  ? prepareLoopResources(
-                      preferNative, BOSS_THREAD_FACTORY, (EventLoopGroup) workerPool)
-                  : null;
+          if (workerPool != null) {
+            loopResources = new GatewayLoopResources((EventLoopGroup) workerPool);
+          }
 
           return prepareHttpServer(loopResources, config.port(), metrics1)
               .handle(acceptor)
@@ -66,6 +58,6 @@ public class WebsocketGateway extends GatewayTemplate {
 
   @Override
   public Mono<Void> stop() {
-    return shutdownServer(server).then(shutdownBossGroup());
+    return shutdownServer(server).then(shutdownLoopResources(loopResources));
   }
 }
