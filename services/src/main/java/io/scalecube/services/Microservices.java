@@ -21,7 +21,9 @@ import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
+import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,8 +38,14 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import javax.management.StandardMBean;
+import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -176,6 +184,7 @@ public class Microservices {
                   .start(discoveryConfig)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
+                  .then(Mono.fromRunnable(() -> JmxMBeanBootstrap.start(this, discoveryConfig)))
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -480,6 +489,153 @@ public class Microservices {
                       .map(ServerTransport::stop)
                       .orElse(Mono.empty()),
                   transportResources.shutdown()));
+    }
+
+    @Override
+    public String toString() {
+      return "ServiceTransportBootstrap{"
+          + "serviceHost="
+          + serviceHost
+          + ", servicePort="
+          + servicePort
+          + ", serviceAddress="
+          + serviceAddress
+          + ", numOfThreads="
+          + numOfThreads
+          + ", transport="
+          + transport.getClass()
+          + ", clientTransport="
+          + clientTransport.getClass()
+          + ", serverTransport="
+          + serverTransport.getClass()
+          + ", transportResources="
+          + transportResources.getClass()
+          + "}";
+    }
+  }
+
+  private static class JmxMBeanBootstrap implements MicroservicesMBean {
+
+    private final Microservices microservices;
+    private final ReplayProcessor<Object> processor;
+    private final ServiceDiscoveryConfig serviceDiscoveryConfig;
+
+    private static JmxMBeanBootstrap start(
+        Microservices instance, ServiceDiscoveryConfig serviceDiscoveryConfig) {
+      try {
+        MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+        JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance, serviceDiscoveryConfig);
+        ObjectName objectName =
+            new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
+        StandardMBean standardMBean = new StandardMBean(jmxMBean, MicroservicesMBean.class);
+        mbeanServer.registerMBean(standardMBean, objectName);
+        return jmxMBean;
+      } catch (Exception e) {
+        throw Exceptions.propagate(e);
+      }
+    }
+
+    private JmxMBeanBootstrap(
+        Microservices microservices, ServiceDiscoveryConfig serviceDiscoveryConfig) {
+      this.serviceDiscoveryConfig = serviceDiscoveryConfig;
+      this.microservices = microservices;
+      this.processor = ReplayProcessor.create(30);
+      microservices.discovery.listen().subscribe(processor);
+    }
+
+    // Attributes
+
+    @Override
+    public String getId() {
+      return microservices.id();
+    }
+
+    @Override
+    public InetSocketAddress getServiceAddress() {
+      return microservices.serviceAddress();
+    }
+
+    @Override
+    public String getDiscoveryAddress() {
+      return microservices.discovery().address().toString();
+    }
+
+    @Override
+    public List<String> getDiscoverySeeds() {
+      return Stream.of(serviceDiscoveryConfig.seeds())
+          .map(Address::toString)
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, String> getDiscoveryTags() {
+      return serviceDiscoveryConfig.tags();
+    }
+
+    @Override
+    public String getDiscoveryMemberHost() {
+      return serviceDiscoveryConfig.memberHost();
+    }
+
+    @Override
+    public Integer getDiscoveryMemberPort() {
+      return serviceDiscoveryConfig.memberPort();
+    }
+
+    // Operations
+
+    @Override
+    public Map<String, InetSocketAddress> gatewayAddresses() {
+      return microservices
+          .gatewayAddresses()
+          .entrySet()
+          .stream()
+          .collect(Collectors.toMap(entry -> entry.getKey().toString(), Entry::getValue));
+    }
+
+    @Override
+    public String serviceEndpoint() {
+      return String.valueOf(microservices.discovery().endpoint());
+    }
+
+    @Override
+    public List<String> last30ServiceDiscoveryEvents() {
+      return processor
+          .map(Object::toString)
+          .take(30)
+          .take(Duration.ofSeconds(2))
+          .collectList()
+          .block();
+    }
+
+    @Override
+    public List<String> serviceEndpoints() {
+      return microservices
+          .serviceRegistry
+          .listServiceEndpoints()
+          .stream()
+          .map(ServiceEndpoint::toString)
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String> serviceReferences() {
+      return microservices
+          .serviceRegistry
+          .listServiceReferences()
+          .stream()
+          .map(ServiceReference::toString)
+          .collect(Collectors.toList());
+    }
+
+    @Override
+    public String serviceTransport() {
+      return microservices.transportBootstrap.toString();
+    }
+
+    @Override
+    public String serviceDiscovery() {
+      return serviceDiscoveryConfig.toString();
     }
   }
 }
