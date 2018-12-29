@@ -590,7 +590,7 @@ public class Microservices {
           .gatewayAddresses()
           .entrySet()
           .stream()
-          .collect(Collectors.toMap(entry -> entry.getKey().toString(), Entry::getValue));
+          .collect(toMap(entry -> entry.getKey().toString(), Entry::getValue));
     }
 
     @Override
