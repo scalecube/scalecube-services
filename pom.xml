@@ -22,7 +22,7 @@
   </scm>
 
   <properties>
-    <jackson.version>2.9.6</jackson.version>
+    <jackson.version>2.9.8</jackson.version>
     <scalecube-cluster.version>2.2.2</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.4</scalecube-config.version>
