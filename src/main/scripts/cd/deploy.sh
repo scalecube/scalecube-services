@@ -12,6 +12,6 @@ $(dirname $0)/external_build.sh
 
 # extends deploy.sh
 for script_file in $DEPLOY_EXEC_FILES; do
-    source $script_file
+    . $script_file
 done
 
