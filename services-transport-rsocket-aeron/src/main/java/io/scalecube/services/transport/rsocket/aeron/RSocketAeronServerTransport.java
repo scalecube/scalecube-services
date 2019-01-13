@@ -1,8 +1,5 @@
 package io.scalecube.services.transport.rsocket.aeron;
 
-import static java.lang.Boolean.TRUE;
-
-import io.aeron.ChannelUriStringBuilder;
 import io.rsocket.Closeable;
 import io.rsocket.RSocketFactory;
 import io.rsocket.reactor.aeron.AeronServerTransport;
@@ -48,13 +45,9 @@ public class RSocketAeronServerTransport implements ServerTransport {
           AeronServer aeronServer =
               AeronServer.create(aeronResources)
                   .options(
-                      options ->
-                          options.serverChannel(
-                              new ChannelUriStringBuilder()
-                                  .media("udp")
-                                  .reliable(TRUE)
-                                  .endpoint(
-                                      bindAddress.getHostString() + ":" + bindAddress.getPort())));
+                      bindAddress.getHostString(),
+                      bindAddress.getPort(),
+                      bindAddress.getPort() + 1); // todo
           return RSocketFactory.receive()
               .frameDecoder(
                   frame ->
