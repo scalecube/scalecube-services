@@ -169,6 +169,10 @@ To add a dependency on ScaleCube Services using Maven, use the following:
 
 ```xml
 
+ <properties>
+		 <scalecube.version>2.x.x</scalecube.version>
+	</properties>
+
  <!-- -------------------------------------------
    scalecube core and api:   
  ------------------------------------------- -->
