@@ -28,6 +28,6 @@ curl "https://oss.sonatype.org/service/local/repositories/releases/content/com/c
 
 # extends before-install.sh
 for script_file in $BEFORE_INSTALL_EXEC_FILES; do
-    source $script_file
+    . $script_file
 done
 

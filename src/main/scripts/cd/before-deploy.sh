@@ -63,5 +63,5 @@ deployment
 
 # extends before-deploy.sh
 for script_file in $BEFORE_DEPLOY_EXEC_FILES; do
-    source $script_file
+    . $script_file
 done
