@@ -114,7 +114,7 @@ Basic API-Gateway example:
 ```java
 
     Microservices.builder()
-        .seeds(....) // OPTIONAL: seed address list (if any to connect to)
+        .discovery(options -> options.seeds(seed.discovery().address()))
         .services(...) // OPTIONAL: services (if any) as part of this node.
         
         // configure list of gateways plugins exposing the apis 
