@@ -163,15 +163,15 @@ Binaries and dependency information for Maven can be found at http://search.mave
 
 https://mvnrepository.com/artifact/io.scalecube
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
-
 To add a dependency on ScaleCube Services using Maven, use the following:
+
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.scalecube/scalecube-services-api)
 
 ```xml
 
  <properties>
-		 <scalecube.version>2.x.x</scalecube.version>
-	</properties>
+   <scalecube.version>2.x.x</scalecube.version>
+ </properties>
 
  <!-- -------------------------------------------
    scalecube core and api:   
