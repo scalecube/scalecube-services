@@ -17,7 +17,7 @@ class WebsocketGatewayExtension extends AbstractGatewayExtension {
 
   WebsocketGatewayExtension(Object serviceInstance) {
     super(
-        serviceInstance, GatewayConfig.builder(GATEWAY_ALIAS_NAME, WebsocketGateway.class).build());
+        GatewayConfig.builder(GATEWAY_ALIAS_NAME, WebsocketGateway.class).build());
   }
 
   @Override

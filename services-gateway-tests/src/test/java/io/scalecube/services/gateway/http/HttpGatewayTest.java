@@ -6,23 +6,28 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingService;
+import io.scalecube.services.examples.GreetingServiceCancelCallback;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class HttpGatewayTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(3);
 
-  @RegisterExtension
-  static HttpGatewayExtension extension = new HttpGatewayExtension(new GreetingServiceImpl());
+  @RegisterExtension static HttpGatewayExtension extension = new HttpGatewayExtension();
 
   private GreetingService service;
+  private long timeoutAwait = 10;
 
   @BeforeEach
   void initService() {
@@ -30,11 +35,24 @@ class HttpGatewayTest {
   }
 
   @Test
-  void shouldReturnSingleResponseWithSimpleRequest() {
-    StepVerifier.create(service.one("hello"))
-        .expectNext("Echo:hello")
-        .expectComplete()
-        .verify(TIMEOUT);
+  void testWithCancel() throws InterruptedException {
+    CountDownLatch cancelCalled = new CountDownLatch(1);
+
+    GreetingServiceCancelCallback serviceWithCancel =
+        new GreetingServiceCancelCallback(new GreetingServiceImpl(), cancelCalled::countDown);
+
+    extension.startServices(serviceWithCancel);
+
+    Disposable disposable = service.neverOne("hello").subscribe();
+
+    Mono
+        .delay(Duration.ofSeconds(1))
+        .subscribe(null, null, () -> {
+          System.out.println("Ok, compledted after 1 sec");
+          disposable.dispose();
+        });
+
+    boolean await = cancelCalled.await(timeoutAwait, TimeUnit.SECONDS);
   }
 
   @Test

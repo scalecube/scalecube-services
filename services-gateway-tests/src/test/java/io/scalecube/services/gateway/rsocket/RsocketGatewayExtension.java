@@ -16,7 +16,7 @@ class RsocketGatewayExtension extends AbstractGatewayExtension {
   private static final String GATEWAY_ALIAS_NAME = "rsws";
 
   RsocketGatewayExtension(Object serviceInstance) {
-    super(serviceInstance, GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketGateway.class).build());
+    super(GatewayConfig.builder(GATEWAY_ALIAS_NAME, RSocketGateway.class).build());
   }
 
   @Override

@@ -20,17 +20,14 @@ public abstract class AbstractGatewayExtension
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGatewayExtension.class);
 
   private final Microservices gateway;
-  private final Object serviceInstance;
   private final GatewayConfig gatewayConfig;
 
   private Client client;
   private InetSocketAddress gatewayAddress;
   private Microservices services;
 
-  protected AbstractGatewayExtension(Object serviceInstance, GatewayConfig gatewayConfig) {
+  protected AbstractGatewayExtension(GatewayConfig gatewayConfig) {
     this.gatewayConfig = gatewayConfig;
-    this.serviceInstance = serviceInstance;
-
     gateway = Microservices.builder().gateway(gatewayConfig).startAwait();
   }
 
@@ -50,15 +47,10 @@ public abstract class AbstractGatewayExtension
   @Override
   public final void beforeAll(ExtensionContext context) {
     gatewayAddress = gateway.gatewayAddress(gatewayAliasName(), gatewayConfig.gatewayClass());
-    startServices();
   }
 
   @Override
   public final void beforeEach(ExtensionContext context) {
-    // if services was shutdown in test need to start them again
-    if (services == null) {
-      startServices();
-    }
     client = new Client(transport(), clientMessageCodec());
   }
 
@@ -67,11 +59,11 @@ public abstract class AbstractGatewayExtension
   }
 
   /** Start services. */
-  public void startServices() {
+  public void startServices(Object... serviceInstances) {
     services =
         Microservices.builder()
             .discovery(options -> options.seeds(gateway.discovery().address()))
-            .services(serviceInstance)
+            .services(serviceInstances)
             .startAwait();
     LOGGER.info("Started services {} on {}", services, services.serviceAddress());
   }

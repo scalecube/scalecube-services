@@ -5,11 +5,12 @@ import reactor.core.publisher.Mono;
 
 public class GreetingServiceCancelCallback implements GreetingService {
 
-  private final GreetingService greetingService = new GreetingServiceImpl();
+  private final GreetingService greetingService;
   private final Runnable onCancel;
 
-  public GreetingServiceCancelCallback(Runnable onCancel) {
+  public GreetingServiceCancelCallback(GreetingService greetingService, Runnable onCancel) {
     this.onCancel = onCancel;
+    this.greetingService = greetingService;
   }
 
   @Override
