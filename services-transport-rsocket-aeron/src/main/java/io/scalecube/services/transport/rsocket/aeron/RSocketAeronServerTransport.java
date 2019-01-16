@@ -12,7 +12,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.aeron.AeronResources;
-import reactor.aeron.server.AeronServer;
+import reactor.aeron.AeronServer;
 import reactor.core.publisher.Mono;
 
 /** RSocket Aeron server transport implementation. */
