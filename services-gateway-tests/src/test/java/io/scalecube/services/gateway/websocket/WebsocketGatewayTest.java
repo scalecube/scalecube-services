@@ -1,18 +1,26 @@
 package io.scalecube.services.gateway.websocket;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import io.scalecube.services.examples.GreetingRequest;
 import io.scalecube.services.examples.GreetingResponse;
 import io.scalecube.services.examples.GreetingService;
+import io.scalecube.services.examples.GreetingServiceCancelCallback;
 import io.scalecube.services.examples.GreetingServiceImpl;
 import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
+import io.scalecube.services.gateway.clientsdk.Client;
+import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 class WebsocketGatewayTest {
@@ -110,5 +118,35 @@ class WebsocketGatewayTest {
                 "Expected service request data of type: class java.lang.String, but received: null"
                     .equals(throwable.getMessage()))
         .verify(TIMEOUT);
+  }
+
+  @Test
+  void shouldClientDisposeCancelServiceCall() throws InterruptedException {
+    // Prerequisites
+    CountDownLatch cancelCalled = new CountDownLatch(1);
+
+    GreetingServiceCancelCallback serviceWithCancel =
+        new GreetingServiceCancelCallback(new GreetingServiceImpl(), cancelCalled::countDown);
+
+    extension.startServices(serviceWithCancel);
+
+    // Call cancellable service
+    Client client = extension.client();
+
+    ClientMessage requestMessage =
+        ClientMessage.builder().qualifier("/greeting/never/one").data("theparameter").build();
+    Mono<ClientMessage> requestResponse = client.requestResponse(requestMessage);
+
+    requestResponse.subscribe(null, System.err::println);
+
+    // Close client and make assertions
+
+    Mono.delay(Duration.ofSeconds(1))
+        .subscribe(
+            null, System.err::println, () -> client.close().subscribe(null, System.err::println));
+
+    boolean await = cancelCalled.await(3, TimeUnit.SECONDS);
+
+    assertTrue(await);
   }
 }

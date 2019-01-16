@@ -10,9 +10,11 @@
   </Appenders>
 
   <Loggers>
-    <Logger name="io.netty.util.internal" level="error"/>
+    <Logger name="io.netty" level="warn"/>
+    <Logger name="io.scalecube.cluster" level="warn"/>
+    <Logger name="reactor.netty" level="warn"/>
 
-    <Root level="info">
+    <Root level="${env:logLevel:-info}">
       <AppenderRef ref="console"/>
     </Root>
   </Loggers>
