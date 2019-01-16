@@ -12,8 +12,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.aeron.AeronClient;
 import reactor.aeron.AeronResources;
-import reactor.aeron.client.AeronClient;
 import reactor.core.publisher.Mono;
 
 /** RSocket Aeron client transport implementation. */
