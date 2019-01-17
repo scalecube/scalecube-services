@@ -34,7 +34,7 @@ public class HttpGateway extends GatewayTemplate {
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
           HttpGatewayAcceptor acceptor = new HttpGatewayAcceptor(call.create(), metrics1);
 
-          if (workerPool != null && workerPool instanceof EventLoopGroup) {
+          if (workerPool != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) workerPool);
           }
 
