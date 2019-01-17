@@ -51,9 +51,13 @@
     </dependency>
     <dependency>
       <groupId>io.scalecube</groupId>
-      <!-- todo change it -->
-      <!--<artifactId>scalecube-services-transport-rsocket</artifactId>-->
       <artifactId>scalecube-services-transport-rsocket-aeron</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.scalecube</groupId>
+      <artifactId>scalecube-services-transport-rsocket</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
