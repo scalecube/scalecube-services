@@ -139,6 +139,7 @@ You can think about scalecube as slf4j for microservices - Currently supported S
 **Transport providers:**
 
 * scalecube-services-transport-rsocket: using rsocket to communicate with remote services.
+* scalecube-services-transport-rsocket-aeron: using rsocket-aeron to communicate with remote services.
 
 **Message codec providers:**
 
