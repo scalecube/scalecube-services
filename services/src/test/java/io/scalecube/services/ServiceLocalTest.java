@@ -8,12 +8,16 @@ import io.scalecube.services.sut.GreetingRequest;
 import io.scalecube.services.sut.GreetingResponse;
 import io.scalecube.services.sut.GreetingService;
 import io.scalecube.services.sut.GreetingServiceImpl;
+import io.scalecube.services.transport.api.ServiceTransport;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import java.util.stream.Stream;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -23,31 +27,10 @@ public class ServiceLocalTest extends BaseTest {
 
   private static final Duration timeout = Duration.ofSeconds(3);
 
-  private static AtomicInteger port = new AtomicInteger(7000);
-
-  private Microservices microservices;
-
-  /** Setup. */
-  @BeforeEach
-  public void setUp() {
-    microservices =
-        Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
-            .services(new GreetingServiceImpl())
-            .startAwait();
-  }
-
-  /** Cleanup. */
-  @AfterEach
-  public void cleanUp() {
-    if (microservices != null) {
-      microservices.shutdown().block(timeout);
-    }
-  }
-
-  @Test
-  public void test_local_greeting_request_completes_before_timeout() throws Exception {
-    GreetingService service = microservices.call().create().api(GreetingService.class);
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_greeting_request_completes_before_timeout(State state) throws Exception {
+    GreetingService service = state.microservices.call().create().api(GreetingService.class);
 
     // call the service.
     GreetingResponse result =
@@ -58,12 +41,14 @@ public class ServiceLocalTest extends BaseTest {
     // print the greeting.
     System.out.println("2. greeting_request_completes_before_timeout : " + result.getResult());
     assertEquals(" hello to: joe", result.getResult());
+    state.close();
   }
 
-  @Test
-  public void test_local_async_greeting() {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_async_greeting(State state) {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = state.createProxy();
 
     // call the service.
     Mono<String> future = Mono.from(service.greeting("joe"));
@@ -75,12 +60,15 @@ public class ServiceLocalTest extends BaseTest {
               System.out.println("3. local_async_greeting :" + onNext);
             })
         .block(Duration.ofSeconds(1000));
+
+    state.close();
   }
 
-  @Test
-  public void test_local_no_params() {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_no_params(State state) {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = state.createProxy();
 
     // call the service.
     Mono<String> future = Mono.from(service.greetingNoParams());
@@ -96,9 +84,10 @@ public class ServiceLocalTest extends BaseTest {
     assertEquals("hello unknown", greetingResponse.get());
   }
 
-  @Test
-  public void test_local_void_greeting() throws Exception {
-    GreetingService service = createProxy(microservices);
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_void_greeting(State state) throws Exception {
+    GreetingService service = state.createProxy();
 
     // call the service.
     service.greetingVoid(new GreetingRequest("joe")).block(timeout);
@@ -106,9 +95,10 @@ public class ServiceLocalTest extends BaseTest {
     System.out.println("test_local_void_greeting done.");
   }
 
-  @Test
-  public void test_local_failing_void_greeting() {
-    GreetingService service = createProxy(microservices);
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_failing_void_greeting(State state) {
+    GreetingService service = state.createProxy();
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -119,9 +109,10 @@ public class ServiceLocalTest extends BaseTest {
     System.out.println("test_local_failing_void_greeting done.");
   }
 
-  @Test
-  public void test_local_throwing_void_greeting() {
-    GreetingService service = createProxy(microservices);
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_throwing_void_greeting(State state) {
+    GreetingService service = state.createProxy();
 
     // call the service.
     GreetingRequest request = new GreetingRequest("joe");
@@ -132,10 +123,11 @@ public class ServiceLocalTest extends BaseTest {
     System.out.println("test_local_throwing_void_greeting done.");
   }
 
-  @Test
-  public void test_local_async_greeting_return_GreetingResponse() {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_async_greeting_return_GreetingResponse(State state) {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = state.createProxy();
 
     // call the service.
     Mono<GreetingResponse> future = Mono.from(service.greetingRequest(new GreetingRequest("joe")));
@@ -152,9 +144,10 @@ public class ServiceLocalTest extends BaseTest {
     assertTrue(result.get().getResult().equals(" hello to: joe"));
   }
 
-  @Test
-  public void test_local_greeting_request_timeout_expires() {
-    GreetingService service = createProxy(microservices);
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_greeting_request_timeout_expires(State state) {
+    GreetingService service = state.createProxy();
 
     // call the service.
     Throwable exception =
@@ -168,10 +161,11 @@ public class ServiceLocalTest extends BaseTest {
         exception.getCause().getMessage().contains("Did not observe any item or terminal signal"));
   }
 
-  @Test
-  public void test_local_async_greeting_return_Message() {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_async_greeting_return_Message(State state) {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = state.createProxy();
 
     // call the service.
     Mono<GreetingResponse> future = Mono.from(service.greetingRequest(new GreetingRequest("joe")));
@@ -187,10 +181,11 @@ public class ServiceLocalTest extends BaseTest {
         .block(Duration.ofSeconds(1));
   }
 
-  @Test
-  public void test_local_bidi_greeting_expect_IllegalArgumentException() {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_bidi_greeting_expect_IllegalArgumentException(State state) {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = state.createProxy();
 
     // call the service. bidiThrowingGreeting
     Flux<GreetingResponse> responses =
@@ -203,10 +198,11 @@ public class ServiceLocalTest extends BaseTest {
         .verify(Duration.ofSeconds(3));
   }
 
-  @Test
-  public void test_local_bidi_greeting_expect_NotAuthorized() {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_bidi_greeting_expect_NotAuthorized(State state) {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = state.createProxy();
 
     EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
     // call the service.
@@ -222,10 +218,11 @@ public class ServiceLocalTest extends BaseTest {
         .verify(Duration.ofSeconds(3));
   }
 
-  @Test
-  public void test_local_bidi_greeting_expect_GreetingResponse() {
+  @ParameterizedTest(name = "{0}")
+  @ArgumentsSource(StateProvider.class)
+  public void test_local_bidi_greeting_expect_GreetingResponse(State state) {
     // get a proxy to the service api.
-    GreetingService service = createProxy(microservices);
+    GreetingService service = state.createProxy();
 
     EmitterProcessor<GreetingRequest> requests = EmitterProcessor.create();
 
@@ -247,10 +244,46 @@ public class ServiceLocalTest extends BaseTest {
         .verify(Duration.ofSeconds(3));
   }
 
-  private GreetingService createProxy(Microservices gateway) {
-    return gateway
-        .call()
-        .create()
-        .api(GreetingService.class); // create proxy for GreetingService API
+  private static class StateProvider implements ArgumentsProvider {
+
+    @Override
+    public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+      return ServiceLoaderUtil.findAll(ServiceTransport.class)
+          .map(serviceTransport -> Arguments.of(new State(serviceTransport)));
+    }
+  }
+
+  private static class State {
+    private static AtomicInteger port = new AtomicInteger(7000);
+
+    private final Microservices microservices;
+
+    private final ServiceTransport serviceTransport;
+
+    public State(ServiceTransport serviceTransport) {
+      this.serviceTransport = serviceTransport;
+      microservices =
+          Microservices.builder()
+              .transport(options -> options.transport(serviceTransport))
+              .discovery(options -> options.port(port.incrementAndGet()))
+              .services(new GreetingServiceImpl())
+              .startAwait();
+    }
+
+    private void close() {
+      microservices.shutdown().block();
+    }
+
+    private GreetingService createProxy() {
+      return microservices
+          .call()
+          .create()
+          .api(GreetingService.class); // create proxy for GreetingService API
+    }
+
+    @Override
+    public String toString() {
+      return "State{serviceTransport=" + serviceTransport.getClass().getSimpleName() + '}';
+    }
   }
 }
