@@ -29,6 +29,11 @@ public class ServiceTransportTest {
   private Microservices gateway;
   private Microservices serviceNode;
 
+  static {
+    System.setProperty(
+        "aeron.image.liveness.timeout", String.valueOf(Duration.ofSeconds(1).toNanos()));
+  }
+
   /** Setup. */
   @BeforeEach
   public void setUp() {
@@ -111,7 +116,7 @@ public class ServiceTransportTest {
     serviceNode.shutdown().block(Duration.ofSeconds(6));
 
     latch1.await(20, TimeUnit.SECONDS);
-    TimeUnit.MILLISECONDS.sleep(100);
+    TimeUnit.MILLISECONDS.sleep(1000);
 
     assertEquals(0, latch1.getCount());
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
@@ -147,6 +152,7 @@ public class ServiceTransportTest {
     TimeUnit.MILLISECONDS.sleep(100);
 
     assertEquals(0, latch1.getCount());
+
     assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
     assertTrue(sub1.get().isDisposed());
   }
