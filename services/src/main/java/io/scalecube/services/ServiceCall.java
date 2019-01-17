@@ -35,7 +35,7 @@ public class ServiceCall {
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceCall.class);
 
   public static final ServiceMessage UNEXPECTED_EMPTY_RESPONSE =
-      ServiceMessage.error(503).data(new ErrorData(503, "Unexpected empty response")).build();
+      ServiceMessage.error(503, 503, "Unexpected empty response");
 
   private final ClientTransport transport;
   private final ServiceMethodRegistry methodRegistry;

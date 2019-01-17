@@ -22,5 +22,5 @@ commit_to_develop
 
 # extends release.sh
 for script_file in $RELEASE_EXEC_FILES; do
-    source $script_file
+    . $script_file
 done

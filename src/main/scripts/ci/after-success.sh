@@ -15,6 +15,6 @@ fi;
 
 # extends after-success.sh
 for script_file in $AFTER_SUCCESS_EXEC_FILES; do
-    source $script_file
+    . $script_file
 done
 
