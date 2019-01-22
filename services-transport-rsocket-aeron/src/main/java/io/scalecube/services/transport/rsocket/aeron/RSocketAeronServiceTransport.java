@@ -8,7 +8,6 @@ import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import reactor.aeron.AeronResources;
-import reactor.aeron.AeronResourcesConfig;
 import reactor.core.publisher.Mono;
 
 public class RSocketAeronServiceTransport implements ServiceTransport {
@@ -44,11 +43,12 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
 
     private Resources(int numOfWorkers) {
       aeronResources =
-          AeronResources.start(
-              AeronResourcesConfig //
-                  .builder()
-                  .numOfWorkers(numOfWorkers)
-                  .build());
+          new AeronResources()
+              .useTmpDir()
+              .numOfWorkers(numOfWorkers)
+              .singleWorker()
+              .start()
+              .block();
     }
 
     @Override

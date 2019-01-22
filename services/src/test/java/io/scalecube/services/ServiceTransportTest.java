@@ -25,7 +25,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import reactor.aeron.AeronResources;
-import reactor.aeron.AeronResourcesConfig;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
@@ -197,12 +196,7 @@ public class ServiceTransportTest {
 
       private Resources(int numOfWorkers) {
         aeronResources =
-            AeronResources.start(
-                AeronResourcesConfig //
-                    .builder()
-                    .imageLivenessTimeout(Duration.ofSeconds(1))
-                    .numOfWorkers(numOfWorkers)
-                    .build());
+            new AeronResources().useTmpDir().numOfWorkers(numOfWorkers).start().block();
       }
 
       @Override
