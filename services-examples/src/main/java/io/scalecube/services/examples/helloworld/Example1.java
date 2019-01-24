@@ -3,6 +3,7 @@ package io.scalecube.services.examples.helloworld;
 import io.scalecube.services.Microservices;
 import io.scalecube.services.examples.helloworld.service.GreetingServiceImpl;
 import io.scalecube.services.examples.helloworld.service.api.GreetingsService;
+import java.time.Duration;
 
 /**
  * The Hello World project is a time-honored tradition in computer programming. It is a simple
@@ -21,11 +22,11 @@ public class Example1 {
    */
   public static void main(String[] args) {
     // ScaleCube Node node with no members
-    Microservices seed = Microservices.builder().startAwait();
+    Microservices seed = new Microservices().startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(seed.discovery().address()))
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -36,13 +37,12 @@ public class Example1 {
     // Execute the services and subscribe to service events
     service
         .sayHello("joe")
-        .subscribe(
-            consumer -> {
-              System.out.println(consumer.message());
-            });
+        .doOnSuccess(consumer -> System.out.println(consumer.message()))
+        .doOnError(Throwable::printStackTrace)
+        .block(Duration.ofSeconds(2));
 
     // shut down the nodes
-    seed.shutdown().block();
-    microservices.shutdown().block();
+    seed.doShutdown().block();
+    microservices.doShutdown().block();
   }
 }

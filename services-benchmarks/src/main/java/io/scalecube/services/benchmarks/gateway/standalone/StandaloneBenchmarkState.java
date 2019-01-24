@@ -33,7 +33,7 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
     super.beforeAll();
 
     microservices =
-        Microservices.builder()
+        new Microservices()
             .services(new BenchmarkServiceImpl())
             .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
@@ -46,7 +46,7 @@ public class StandaloneBenchmarkState extends AbstractBenchmarkState<StandaloneB
   protected void afterAll() throws Exception {
     super.afterAll();
     if (microservices != null) {
-      microservices.shutdown().block();
+      microservices.doShutdown().block();
     }
   }
 

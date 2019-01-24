@@ -32,11 +32,12 @@ public class ServiceTransportTest {
   /** Setup. */
   @BeforeEach
   public void setUp() {
-    gateway = Microservices.builder().startAwait();
+    Microservices ms = new Microservices();
+
+    gateway = ms.startAwait();
 
     serviceNode =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new SimpleQuoteService())
             .startAwait();
   }
@@ -79,7 +80,7 @@ public class ServiceTransportTest {
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(Duration.ofSeconds(6));
+    serviceNode.doShutdown().block(Duration.ofSeconds(6));
 
     latch1.await(20, TimeUnit.SECONDS);
     TimeUnit.MILLISECONDS.sleep(100);
@@ -108,7 +109,7 @@ public class ServiceTransportTest {
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(Duration.ofSeconds(6));
+    serviceNode.doShutdown().block(Duration.ofSeconds(6));
 
     latch1.await(20, TimeUnit.SECONDS);
     TimeUnit.MILLISECONDS.sleep(100);
@@ -141,7 +142,7 @@ public class ServiceTransportTest {
 
     // service node goes down
     TimeUnit.SECONDS.sleep(3);
-    serviceNode.shutdown().block(Duration.ofSeconds(6));
+    serviceNode.doShutdown().block(Duration.ofSeconds(6));
 
     latch1.await(20, TimeUnit.SECONDS);
     TimeUnit.MILLISECONDS.sleep(100);

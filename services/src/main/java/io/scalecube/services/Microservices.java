@@ -36,8 +36,11 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoProcessor;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -104,85 +107,313 @@ import reactor.core.publisher.Mono;
  */
 public class Microservices {
 
-  private final String id;
-  private final Metrics metrics;
-  private final Map<String, String> tags;
-  private final List<ServiceInfo> serviceInfos = new ArrayList<>();
-  private final List<ServiceProvider> serviceProviders;
-  private final ServiceRegistry serviceRegistry;
-  private final ServiceMethodRegistry methodRegistry;
-  private final ServiceTransportBootstrap transportBootstrap;
-  private final GatewayBootstrap gatewayBootstrap;
-  private final ServiceDiscovery discovery;
-  private final Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
-  private final ServiceProviderErrorMapper errorMapper;
+  private static final Logger log = LoggerFactory.getLogger(Microservices.class);
 
-  private Microservices(Builder builder) {
-    this.id = UUID.randomUUID().toString();
-    this.metrics = builder.metrics;
-    this.tags = new HashMap<>(builder.tags);
-    this.serviceProviders = new ArrayList<>(builder.serviceProviders);
-    this.serviceRegistry = builder.serviceRegistry;
-    this.methodRegistry = builder.methodRegistry;
-    this.gatewayBootstrap = builder.gatewayBootstrap;
-    this.discovery = builder.discovery;
-    this.discoveryOptions = builder.discoveryOptions;
-    this.transportBootstrap =
-        new ServiceTransportBootstrap(
-            ServiceTransportConfig.builder(builder.transportOptions).build());
-    this.errorMapper = builder.errorMapper;
-  }
+  private final MonoProcessor<Void> start = MonoProcessor.create();
+  private final MonoProcessor<Void> onStart = MonoProcessor.create();
+  private final MonoProcessor<Void> shutdown = MonoProcessor.create();
+  private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
-  public static Builder builder() {
-    return new Builder();
-  }
+  private String id = UUID.randomUUID().toString();
+  private Metrics metrics;
+  private Map<String, String> tags = new HashMap<>();
+  private List<ServiceInfo> serviceInfos = new ArrayList<>();
+  private List<ServiceProvider> serviceProviders = new ArrayList<>();
+  private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
+  private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
+  private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
+  private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
+  private Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
+  private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
+  private Consumer<ServiceTransportConfig.Builder> transportOptions;
+  private ServiceTransportBootstrap transportBootstrap =
+      new ServiceTransportBootstrap(ServiceTransportConfig.builder(null).build());
 
-  public String id() {
-    return this.id;
-  }
+  /** Default constructor for Microservice creation. */
+  public Microservices() {
 
-  private Mono<Microservices> start() {
-    return transportBootstrap
-        .start(methodRegistry)
-        .flatMap(
-            input -> {
-              ClientTransport clientTransport = transportBootstrap.clientTransport();
-              InetSocketAddress serviceAddress = transportBootstrap.serviceAddress();
-
-              Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
-
-              // invoke service providers and register services
-              serviceProviders
-                  .stream()
-                  .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
-                  .forEach(this::collectAndRegister);
-
-              // register services in service registry
-              ServiceEndpoint endpoint = null;
-              if (!serviceInfos.isEmpty()) {
-                String serviceHost = serviceAddress.getHostString();
-                int servicePort = serviceAddress.getPort();
-                endpoint = ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
-                serviceRegistry.registerService(endpoint);
-              }
-
-              // configure discovery and publish to the cluster
-              ServiceDiscoveryConfig discoveryConfig =
-                  ServiceDiscoveryConfig.builder(discoveryOptions)
-                      .serviceRegistry(serviceRegistry)
-                      .endpoint(endpoint)
-                      .build();
-              return discovery
-                  .start(discoveryConfig)
-                  .then(Mono.defer(this::doInjection))
-                  .then(Mono.defer(() -> startGateway(call)))
-                  .thenReturn(this);
-            })
-        .onErrorResume(
-            ex -> {
-              // return original error then shutdown
-              return Mono.when(Mono.error(ex), shutdown()).cast(Microservices.class);
+    start
+        .then(doStart())
+        .doOnSuccess(avoid -> onStart.onComplete())
+        .doOnError(onStart::onError)
+        .subscribe(
+            null,
+            thread -> {
+              log.error("{} failed to start, cause: {}", this, thread.toString());
+              shutdown();
             });
+
+    shutdown
+        .then(doShutdown())
+        .doFinally(s -> onShutdown.onComplete())
+        .subscribe(
+            null,
+            thread -> log.warn("{} failed on doShutdown(): {}", this, thread.toString()),
+            () -> log.debug("Shutdown {}", this));
+  }
+
+  /**
+   * Constructor of {@code Microservices} object copying (copy constructor).
+   *
+   * @param msBase copied object
+   */
+  public Microservices(Microservices msBase) {
+    this();
+    this.tags = new HashMap<>(msBase.tags);
+    this.serviceInfos = new ArrayList<>(msBase.serviceInfos);
+    this.serviceProviders = new ArrayList<>(msBase.serviceProviders);
+    this.serviceRegistry = msBase.serviceRegistry;
+    this.methodRegistry = msBase.methodRegistry;
+    this.gatewayBootstrap = msBase.gatewayBootstrap;
+    this.discovery = msBase.discovery;
+    this.errorMapper = msBase.errorMapper;
+    this.transportBootstrap = msBase.transportBootstrap;
+    this.discoveryOptions = msBase.discoveryOptions;
+    this.metrics = msBase.metrics;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code metrics} property.
+   *
+   * @param metrics new property
+   * @return new Microservice
+   */
+  public Microservices metrics(Metrics metrics) {
+    Microservices msNew = new Microservices(this);
+    msNew.metrics = metrics;
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code metrics} property.
+   *
+   * @param metrics new property
+   * @return new {@code Microservices}
+   */
+  public Microservices metrics(MetricRegistry metrics) {
+    Microservices msNew = new Microservices(this);
+    msNew.metrics = new Metrics(metrics);
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code tags} property.
+   *
+   * @param tags new property
+   * @return new {@code Microservices}
+   */
+  public Microservices tags(Map<String, String> tags) {
+    Microservices msNew = new Microservices(this);
+    msNew.tags.putAll(tags);
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code serviceProvider}
+   * property.
+   *
+   * @param serviceProvider new property
+   * @return new {@code Microservices}
+   */
+  public Microservices services(ServiceProvider serviceProvider) {
+    Microservices msNew = new Microservices(this);
+    msNew.serviceProviders.add(serviceProvider);
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code services} property.
+   *
+   * @param services new property
+   * @return new {@code Microservices}
+   */
+  public Microservices services(Object... services) {
+    Microservices msNew = new Microservices(this);
+    msNew.serviceProviders.add(
+        call ->
+            Arrays.stream(services)
+                .map(
+                    s ->
+                        s instanceof ServiceInfo
+                            ? (ServiceInfo) s
+                            : ServiceInfo.fromServiceInstance(s).build())
+                .collect(Collectors.toList()));
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code services} property.
+   *
+   * @param services new property
+   * @return new {@code Microservices}
+   */
+  public Microservices services(ServiceInfo... services) {
+    Microservices msNew = new Microservices(this);
+    msNew.serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code serviceRegistry}
+   * property.
+   *
+   * @param serviceRegistry new property
+   * @return new {@code Microservices}
+   */
+  public Microservices serviceRegistry(ServiceRegistry serviceRegistry) {
+    Microservices msNew = new Microservices(this);
+    msNew.serviceRegistry = serviceRegistry;
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code methodRegistry}
+   * property.
+   *
+   * @param methodRegistry new property
+   * @return new {@code Microservices}
+   */
+  public Microservices methodRegistry(ServiceMethodRegistry methodRegistry) {
+    Microservices msNew = new Microservices(this);
+    msNew.methodRegistry = methodRegistry;
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code discovery} property.
+   *
+   * @param discovery new property
+   * @return new {@code Microservices}
+   */
+  public Microservices discovery(ServiceDiscovery discovery) {
+    Microservices msNew = new Microservices(this);
+    msNew.discovery = discovery;
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code discoveryOptions}
+   * property.
+   *
+   * @param discoveryOptions new property
+   * @return new {@code Microservices}
+   */
+  public Microservices discovery(Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions) {
+    Microservices msNew = new Microservices(this);
+    msNew.discoveryOptions = discoveryOptions;
+    return msNew;
+  }
+
+  public ServiceDiscovery discovery() {
+    return this.discovery;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code transportOptions}
+   * property.
+   *
+   * @param transportOptions new property
+   * @return new {@code Microservices}
+   */
+  public Microservices transport(Consumer<ServiceTransportConfig.Builder> transportOptions) {
+    Microservices msNew = new Microservices(this);
+    msNew.transportOptions = transportOptions;
+    msNew.transportBootstrap =
+        new ServiceTransportBootstrap(
+            ServiceTransportConfig.builder(msNew.transportOptions).build());
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code config} property.
+   *
+   * @param config new property
+   * @return new {@code Microservices}
+   */
+  public Microservices gateway(GatewayConfig config) {
+    Microservices msNew = new Microservices(this);
+    msNew.gatewayBootstrap.addConfig(config);
+    return msNew;
+  }
+
+  /**
+   * Build new {@code Microservices} based on current with different {@code errorMapper} property.
+   *
+   * @param errorMapper new property
+   * @return new {@code Microservices}
+   */
+  public Microservices errorMapper(ServiceProviderErrorMapper errorMapper) {
+    Microservices msNew = new Microservices(this);
+    msNew.errorMapper = errorMapper;
+    return msNew;
+  }
+
+  public Microservices startAwait() {
+    return start().block();
+  }
+
+  /**
+   * Start deferred {@code Microservices}.
+   *
+   * @return
+   */
+  public Mono<Microservices> start() {
+    return Mono.defer(
+        () -> {
+          start.onComplete();
+          return onStart.thenReturn(this);
+        });
+  }
+
+  /**
+   * Start deferred {@code Microservices} with {@code doStart()} method.
+   *
+   * @return
+   */
+  public Mono<Microservices> doStart() {
+    return Mono.defer(
+        () ->
+            this.transportBootstrap
+                .start(methodRegistry)
+                .flatMap(
+                    input -> {
+                      ClientTransport clientTransport = transportBootstrap.clientTransport();
+                      InetSocketAddress serviceAddress = transportBootstrap.serviceAddress();
+
+                      Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
+
+                      // invoke service providers and register services
+                      serviceProviders.stream()
+                          .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
+                          .forEach(this::collectAndRegister);
+
+                      // register services in service registry
+                      ServiceEndpoint endpoint = null;
+                      if (!serviceInfos.isEmpty()) {
+                        String serviceHost = serviceAddress.getHostString();
+                        int servicePort = serviceAddress.getPort();
+                        endpoint =
+                            ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
+                        serviceRegistry.registerService(endpoint);
+                      }
+
+                      // configure discovery and publish to the cluster
+                      ServiceDiscoveryConfig discoveryConfig =
+                          ServiceDiscoveryConfig.builder(discoveryOptions)
+                              .serviceRegistry(serviceRegistry)
+                              .endpoint(endpoint)
+                              .build();
+                      return discovery
+                          .start(discoveryConfig)
+                          .then(Mono.defer(this::doInjection))
+                          .then(Mono.defer(() -> startGateway(call)))
+                          .thenReturn(this);
+                    })
+                .onErrorResume(
+                    ex -> {
+                      // return original error then shutdown
+                      return Mono.when(Mono.error(ex), doShutdown()).cast(Microservices.class);
+                    }));
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
@@ -205,10 +436,6 @@ public class Microservices {
         Optional.ofNullable(serviceInfo.errorMapper()).orElse(errorMapper));
   }
 
-  public Metrics metrics() {
-    return this.metrics;
-  }
-
   public InetSocketAddress serviceAddress() {
     return transportBootstrap.serviceAddress();
   }
@@ -225,8 +452,8 @@ public class Microservices {
     return gatewayBootstrap.gatewayAddresses();
   }
 
-  public ServiceDiscovery discovery() {
-    return this.discovery;
+  public void shutdown() {
+    shutdown.onComplete();
   }
 
   /**
@@ -234,10 +461,10 @@ public class Microservices {
    *
    * @return result of shutdown
    */
-  public Mono<Void> shutdown() {
+  public Mono<Void> doShutdown() {
     return Mono.defer(
         () ->
-            Mono.when(
+            Mono.whenDelayError(
                 Optional.ofNullable(discovery).map(ServiceDiscovery::shutdown).orElse(Mono.empty()),
                 Optional.ofNullable(gatewayBootstrap)
                     .map(GatewayBootstrap::shutdown)
@@ -245,102 +472,6 @@ public class Microservices {
                 Optional.ofNullable(transportBootstrap)
                     .map(ServiceTransportBootstrap::shutdown)
                     .orElse(Mono.empty())));
-  }
-
-  public static final class Builder {
-
-    private Metrics metrics;
-    private Map<String, String> tags = new HashMap<>();
-    private List<ServiceProvider> serviceProviders = new ArrayList<>();
-    private ServiceRegistry serviceRegistry = new ServiceRegistryImpl();
-    private ServiceMethodRegistry methodRegistry = new ServiceMethodRegistryImpl();
-    private ServiceDiscovery discovery = ServiceDiscovery.getDiscovery();
-    private Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions;
-    private Consumer<ServiceTransportConfig.Builder> transportOptions;
-    private GatewayBootstrap gatewayBootstrap = new GatewayBootstrap();
-    private ServiceProviderErrorMapper errorMapper = DefaultErrorMapper.INSTANCE;
-
-    public Mono<Microservices> start() {
-      return Mono.defer(() -> new Microservices(this).start());
-    }
-
-    public Microservices startAwait() {
-      return start().block();
-    }
-
-    public Builder services(ServiceInfo... services) {
-      serviceProviders.add(call -> Arrays.stream(services).collect(Collectors.toList()));
-      return this;
-    }
-
-    /**
-     * Adds service instance to microservice.
-     *
-     * @param services service instance.
-     * @return builder
-     */
-    public Builder services(Object... services) {
-      serviceProviders.add(
-          call ->
-              Arrays.stream(services)
-                  .map(
-                      s ->
-                          s instanceof ServiceInfo
-                              ? (ServiceInfo) s
-                              : ServiceInfo.fromServiceInstance(s).build())
-                  .collect(Collectors.toList()));
-      return this;
-    }
-
-    public Builder services(ServiceProvider serviceProvider) {
-      serviceProviders.add(serviceProvider);
-      return this;
-    }
-
-    public Builder serviceRegistry(ServiceRegistry serviceRegistry) {
-      this.serviceRegistry = serviceRegistry;
-      return this;
-    }
-
-    public Builder methodRegistry(ServiceMethodRegistry methodRegistry) {
-      this.methodRegistry = methodRegistry;
-      return this;
-    }
-
-    public Builder discovery(ServiceDiscovery discovery) {
-      this.discovery = discovery;
-      return this;
-    }
-
-    public Builder discovery(Consumer<ServiceDiscoveryConfig.Builder> discoveryOptions) {
-      this.discoveryOptions = discoveryOptions;
-      return this;
-    }
-
-    public Builder transport(Consumer<ServiceTransportConfig.Builder> transportOptions) {
-      this.transportOptions = transportOptions;
-      return this;
-    }
-
-    public Builder metrics(MetricRegistry metrics) {
-      this.metrics = new Metrics(metrics);
-      return this;
-    }
-
-    public Builder tags(Map<String, String> tags) {
-      this.tags = tags;
-      return this;
-    }
-
-    public Builder gateway(GatewayConfig config) {
-      gatewayBootstrap.addConfig(config);
-      return this;
-    }
-
-    public Builder defaultErrorMapper(ServiceProviderErrorMapper errorMapper) {
-      this.errorMapper = errorMapper;
-      return this;
-    }
   }
 
   private static class GatewayBootstrap {
@@ -381,9 +512,7 @@ public class Microservices {
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
       Optional<GatewayConfig> result =
-          gatewayInstances
-              .keySet()
-              .stream()
+          gatewayInstances.keySet().stream()
               .filter(config -> config.name().equals(name))
               .filter(config -> config.gatewayClass() == gatewayClass)
               .findFirst();
@@ -402,9 +531,7 @@ public class Microservices {
 
     private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
       return Collections.unmodifiableMap(
-          gatewayInstances
-              .entrySet()
-              .stream()
+          gatewayInstances.entrySet().stream()
               .collect(toMap(Entry::getKey, e -> e.getValue().address())));
     }
   }

@@ -31,7 +31,7 @@ public abstract class AbstractGatewayExtension
     this.gatewayConfig = gatewayConfig;
     this.serviceInstance = serviceInstance;
 
-    gateway = Microservices.builder().gateway(gatewayConfig).startAwait();
+    gateway = new Microservices().gateway(gatewayConfig).startAwait();
   }
 
   @Override
@@ -69,7 +69,7 @@ public abstract class AbstractGatewayExtension
   /** Start services. */
   public void startServices() {
     services =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(serviceInstance)
             .startAwait();
@@ -80,7 +80,7 @@ public abstract class AbstractGatewayExtension
   public void shutdownServices() {
     if (services != null) {
       try {
-        services.shutdown().block();
+        services.doShutdown().block();
       } catch (Throwable ignore) {
         // ignore
       }
@@ -95,7 +95,7 @@ public abstract class AbstractGatewayExtension
   private void shutdownGateway() {
     if (gateway != null) {
       try {
-        gateway.shutdown().block();
+        gateway.doShutdown().block();
       } catch (Throwable ignore) {
         // ignore
       }

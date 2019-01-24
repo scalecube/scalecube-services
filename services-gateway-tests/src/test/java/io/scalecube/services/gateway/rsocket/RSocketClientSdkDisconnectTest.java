@@ -42,10 +42,7 @@ class RSocketClientSdkDisconnectTest {
   @BeforeEach
   void startClient() {
     seed =
-        Microservices.builder()
-            .services(new GreetingServiceImpl())
-            .gateway(gatewayConfig)
-            .startAwait();
+        new Microservices().services(new GreetingServiceImpl()).gateway(gatewayConfig).startAwait();
 
     clientLoopResources = LoopResources.create("eventLoop");
 
@@ -74,7 +71,7 @@ class RSocketClientSdkDisconnectTest {
     }
     if (seed != null) {
       try {
-        seed.shutdown().block(SHUTDOWN_TIMEOUT);
+        seed.doShutdown().block(SHUTDOWN_TIMEOUT);
       } catch (Exception ignore) {
         // no-op
       }
@@ -92,7 +89,7 @@ class RSocketClientSdkDisconnectTest {
                 .doOnSubscribe(
                     subscription ->
                         Mono.delay(shutdownAt)
-                            .doOnSuccess(ignore -> seed.shutdown().subscribe())
+                            .doOnSuccess(ignore -> seed.doShutdown().subscribe())
                             .subscribe()))
         .thenConsumeWhile(
             response -> {

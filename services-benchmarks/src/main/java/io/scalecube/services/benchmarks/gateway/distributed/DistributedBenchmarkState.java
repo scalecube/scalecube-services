@@ -33,17 +33,17 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
   protected void beforeAll() throws Exception {
     super.beforeAll();
 
+    Microservices ms = new Microservices();
+
     gateway =
-        Microservices.builder()
-            .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
+        ms.gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
             .metrics(registry())
             .startAwait();
 
     services =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .transport(options -> options.numOfThreads(Runtime.getRuntime().availableProcessors()))
             .services(new BenchmarkServiceImpl())
             .startAwait();
@@ -53,10 +53,10 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
   protected void afterAll() throws Exception {
     super.afterAll();
     if (services != null) {
-      services.shutdown().block();
+      services.doShutdown().block();
     }
     if (gateway != null) {
-      gateway.shutdown().block();
+      gateway.doShutdown().block();
     }
   }
 

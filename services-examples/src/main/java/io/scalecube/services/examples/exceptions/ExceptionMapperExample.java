@@ -14,8 +14,8 @@ public class ExceptionMapperExample {
    */
   public static void main(String[] args) throws InterruptedException {
     Microservices ms1 =
-        Microservices.builder()
-            .defaultErrorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
+        new Microservices()
+            .errorMapper(new ServiceAProviderErrorMapper()) // default mapper for whole node
             .services(
                 ServiceInfo.fromServiceInstance(new ServiceAImpl())
                     .errorMapper(new ServiceAProviderErrorMapper()) // mapper per service instance
@@ -25,7 +25,7 @@ public class ExceptionMapperExample {
     System.err.println("ms1 started: " + ms1.serviceAddress());
 
     Microservices ms2 =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(ms1.discovery().address()))
             .services(
                 call -> {

@@ -44,11 +44,12 @@ public class RoutersTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway = Microservices.builder().startAwait();
+    Microservices ms = new Microservices();
+
+    gateway = ms.startAwait();
     // Create microservices instance cluster.
     provider1 =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -61,8 +62,7 @@ public class RoutersTest extends BaseTest {
 
     // Create microservices instance cluster.
     provider2 =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")
@@ -147,8 +147,7 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(ref -> "2".equals(ref.tags().get("SENDER")))
                         .findFirst());
 
@@ -171,8 +170,7 @@ public class RoutersTest extends BaseTest {
             .call()
             .router(
                 (reg, msg) ->
-                    reg.listServiceReferences()
-                        .stream()
+                    reg.listServiceReferences().stream()
                         .filter(
                             ref ->
                                 ((GreetingRequest) msg.data())

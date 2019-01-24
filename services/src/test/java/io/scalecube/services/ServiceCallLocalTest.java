@@ -44,7 +44,7 @@ public class ServiceCallLocalTest extends BaseTest {
   /** Cleanup. */
   @AfterAll
   public static void tearDown() {
-    provider.shutdown().block();
+    provider.doShutdown().block();
   }
 
   @Test
@@ -62,7 +62,7 @@ public class ServiceCallLocalTest extends BaseTest {
   }
 
   private static Microservices serviceProvider() {
-    return Microservices.builder().services(new GreetingServiceImpl()).startAwait();
+    return new Microservices().services(new GreetingServiceImpl()).startAwait();
   }
 
   @Test

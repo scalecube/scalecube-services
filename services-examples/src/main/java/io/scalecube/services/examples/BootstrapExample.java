@@ -25,9 +25,11 @@ public class BootstrapExample {
    */
   public static void main(String[] args) throws Exception {
     System.out.println("Start gateway");
+
+    Microservices ms = new Microservices();
+
     Microservices gateway =
-        Microservices.builder()
-            .gateway(
+        ms.gateway(
                 GatewayConfig.builder("http", HttpGatewayStub.class)
                     .port(8181)
                     .build()) // override default port
@@ -44,8 +46,7 @@ public class BootstrapExample {
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     final Microservices node1 =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 call ->
                     Collections.singleton(
@@ -59,15 +60,13 @@ public class BootstrapExample {
 
     System.out.println("Start ServiceHello");
     final Microservices node2 =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new ServiceHelloImpl())
             .startAwait();
 
     System.out.println("Start ServiceWorld");
     final Microservices node3 =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new ServiceWorldImpl())
             .startAwait();
 
@@ -80,13 +79,14 @@ public class BootstrapExample {
     String helloWorld = helloWorldService.helloWorld().block(Duration.ofSeconds(6));
     System.out.println("Result of calling hello world business logic is ... => " + helloWorld);
 
-    Mono.when(gateway.shutdown(), node1.shutdown(), node2.shutdown(), node3.shutdown())
+    Mono.when(gateway.doShutdown(), node1.doShutdown(), node2.doShutdown(), node3.doShutdown())
         .block(Duration.ofSeconds(5));
   }
 
   /** Just a service. */
   @Service
   public interface ServiceHello {
+
     @ServiceMethod
     Mono<String> hello();
   }
@@ -94,6 +94,7 @@ public class BootstrapExample {
   /** Just a service. */
   @Service
   public interface ServiceWorld {
+
     @ServiceMethod
     Mono<String> world();
   }
@@ -101,11 +102,13 @@ public class BootstrapExample {
   /** Facade service for calling another services. */
   @Service
   public interface HelloWorldService {
+
     @ServiceMethod
     Mono<String> helloWorld();
   }
 
   public static class ServiceHelloImpl implements ServiceHello {
+
     @Override
     public Mono<String> hello() {
       return Mono.just("hello");
@@ -113,6 +116,7 @@ public class BootstrapExample {
   }
 
   public static class ServiceWorldImpl implements ServiceWorld {
+
     @Override
     public Mono<String> world() {
       return Mono.just("world");
@@ -120,6 +124,7 @@ public class BootstrapExample {
   }
 
   public static class HelloWorldServiceImpl implements HelloWorldService {
+
     private final BusinessLogicFacade businessLogicFacade;
 
     public HelloWorldServiceImpl(BusinessLogicFacade businessLogicFacade) {
@@ -136,6 +141,7 @@ public class BootstrapExample {
    * POJO facade for calling other services, aggregating their responses and doing business logic.
    */
   public static class BusinessLogicFacade {
+
     private final ServiceHello serviceHello;
     private final ServiceWorld serviceWorld;
 

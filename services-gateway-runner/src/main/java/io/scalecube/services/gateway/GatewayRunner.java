@@ -53,7 +53,7 @@ public class GatewayRunner {
 
     MetricRegistry metrics = initMetricRegistry();
 
-    Microservices.builder()
+    new Microservices()
         .discovery(
             options ->
                 options

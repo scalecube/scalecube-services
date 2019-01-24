@@ -47,7 +47,7 @@ public class ExamplesRunner {
             .orElse(Runtime.getRuntime().availableProcessors());
     LOGGER.info("Number of worker threads: " + numOfThreads);
 
-    Microservices.builder()
+    new Microservices()
         .discovery(
             options ->
                 options

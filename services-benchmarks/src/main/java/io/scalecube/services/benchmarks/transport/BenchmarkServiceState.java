@@ -27,11 +27,12 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
 
   @Override
   public void beforeAll() {
-    seed = Microservices.builder().metrics(registry()).startAwait();
+    Microservices ms = new Microservices();
+
+    seed = ms.metrics(registry()).startAwait();
 
     node =
-        Microservices.builder()
-            .metrics(registry())
+        ms.metrics(registry())
             .discovery(options -> options.seeds(seed.discovery().address()))
             .services(services)
             .startAwait();
@@ -46,7 +47,7 @@ public class BenchmarkServiceState extends BenchmarkState<BenchmarkServiceState>
   @Override
   public void afterAll() {
     try {
-      Mono.when(node.shutdown(), seed.shutdown()).block(SHUTDOWN_TIMEOUT);
+      Mono.when(node.doShutdown(), seed.doShutdown()).block(SHUTDOWN_TIMEOUT);
     } catch (Throwable ignore) {
       // ignore
     }

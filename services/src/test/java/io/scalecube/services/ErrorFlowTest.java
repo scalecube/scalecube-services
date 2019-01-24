@@ -26,14 +26,14 @@ public class ErrorFlowTest {
   /** Setup. */
   @BeforeAll
   public static void initNodes() {
+    Microservices ms = new Microservices();
+
     provider =
-        Microservices.builder()
-            .discovery(options -> options.port(port.incrementAndGet()))
+        ms.discovery(options -> options.port(port.incrementAndGet()))
             .services(new GreetingServiceImpl())
             .startAwait();
     consumer =
-        Microservices.builder()
-            .discovery(
+        ms.discovery(
                 options ->
                     options.seeds(provider.discovery().address()).port(port.incrementAndGet()))
             .startAwait();
@@ -41,8 +41,8 @@ public class ErrorFlowTest {
 
   @AfterAll
   public static void shutdownNodes() {
-    consumer.shutdown().block();
-    provider.shutdown().block();
+    consumer.doShutdown().block();
+    provider.doShutdown().block();
   }
 
   @Test

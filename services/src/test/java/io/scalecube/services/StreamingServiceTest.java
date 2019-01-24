@@ -24,11 +24,12 @@ public class StreamingServiceTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    gateway = Microservices.builder().startAwait();
+    Microservices ms = new Microservices();
+
+    gateway = ms.startAwait();
 
     node =
-        Microservices.builder()
-            .discovery(options -> options.seeds(gateway.discovery().address()))
+        ms.discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new SimpleQuoteService())
             .startAwait();
   }

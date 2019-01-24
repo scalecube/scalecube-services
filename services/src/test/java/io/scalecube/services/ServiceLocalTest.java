@@ -30,8 +30,9 @@ public class ServiceLocalTest extends BaseTest {
   /** Setup. */
   @BeforeEach
   public void setUp() {
+
     microservices =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.port(port.incrementAndGet()))
             .services(new GreetingServiceImpl())
             .startAwait();
@@ -41,7 +42,7 @@ public class ServiceLocalTest extends BaseTest {
   @AfterEach
   public void cleanUp() {
     if (microservices != null) {
-      microservices.shutdown().block(timeout);
+      microservices.doShutdown().block(timeout);
     }
   }
 

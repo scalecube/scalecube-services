@@ -50,20 +50,20 @@ public class ServiceCallRemoteTest extends BaseTest {
   @AfterAll
   public static void tearDown() {
     try {
-      gateway.shutdown().block();
+      gateway.doShutdown().block();
     } catch (Exception ignore) {
       // no-op
     }
 
     try {
-      provider.shutdown().block();
+      provider.doShutdown().block();
     } catch (Exception ignore) {
       // no-op
     }
   }
 
   private static Microservices serviceProvider(Object service) {
-    return Microservices.builder()
+    return new Microservices()
         .discovery(options -> options.seeds(gateway.discovery().address()))
         .services(service)
         .startAwait();
@@ -235,6 +235,6 @@ public class ServiceCallRemoteTest extends BaseTest {
   }
 
   private static Microservices gateway() {
-    return Microservices.builder().startAwait();
+    return new Microservices().startAwait();
   }
 }

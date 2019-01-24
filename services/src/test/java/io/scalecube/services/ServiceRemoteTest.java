@@ -42,24 +42,24 @@ public class ServiceRemoteTest extends BaseTest {
   @AfterAll
   public static void tearDown() {
     try {
-      gateway.shutdown().block();
+      gateway.doShutdown().block();
     } catch (Exception ignore) {
       // no-op
     }
 
     try {
-      provider.shutdown().block();
+      provider.doShutdown().block();
     } catch (Exception ignore) {
       // no-op
     }
   }
 
   private static Microservices gateway() {
-    return Microservices.builder().startAwait();
+    return new Microservices().startAwait();
   }
 
   private static Microservices serviceProvider() {
-    return Microservices.builder()
+    return new Microservices()
         .discovery(options -> options.seeds(gateway.discovery().address()))
         .services(new GreetingServiceImpl())
         .startAwait();
@@ -190,7 +190,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     // noinspection unused
     Microservices provider =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new CoarseGrainedServiceImpl()) // add service a and b
             .startAwait();
@@ -201,7 +201,7 @@ public class ServiceRemoteTest extends BaseTest {
     Publisher<String> future = service.callGreeting("joe");
 
     assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
-    provider.shutdown().block();
+    provider.doShutdown().block();
   }
 
   @Test
@@ -212,7 +212,7 @@ public class ServiceRemoteTest extends BaseTest {
     // Create microservices instance cluster.
     // noinspection unused
     Microservices provider =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another)
             .startAwait();
@@ -221,7 +221,7 @@ public class ServiceRemoteTest extends BaseTest {
     CoarseGrainedService service = gateway.call().create().api(CoarseGrainedService.class);
     Publisher<String> future = service.callGreeting("joe");
     assertTrue(" hello to: joe".equals(Mono.from(future).block(Duration.ofSeconds(1))));
-    provider.shutdown().block();
+    provider.doShutdown().block();
   }
 
   @Test
@@ -231,7 +231,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     Microservices ms =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
@@ -255,7 +255,7 @@ public class ServiceRemoteTest extends BaseTest {
 
     // Create microservices instance cluster.
     Microservices provider =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(another) // add service a and b
             .startAwait();
@@ -266,7 +266,7 @@ public class ServiceRemoteTest extends BaseTest {
     String response = service.callGreetingWithDispatcher("joe").block(Duration.ofSeconds(5));
     assertEquals(response, " hello to: joe");
 
-    provider.shutdown().block();
+    provider.doShutdown().block();
   }
 
   @Test
@@ -338,7 +338,7 @@ public class ServiceRemoteTest extends BaseTest {
     tags.put("HOSTNAME", "host1");
 
     Microservices ms =
-        Microservices.builder().tags(tags).services(new GreetingServiceImpl()).startAwait();
+        new Microservices().tags(tags).services(new GreetingServiceImpl()).startAwait();
 
     assertTrue(ms.discovery().endpoint().tags().containsKey("HOSTNAME"));
   }

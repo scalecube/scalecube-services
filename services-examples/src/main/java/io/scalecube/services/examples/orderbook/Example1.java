@@ -29,10 +29,10 @@ public class Example1 {
    */
   public static void main(String[] args) throws InterruptedException {
 
-    Microservices gateway = Microservices.builder().startAwait();
+    Microservices gateway = new Microservices().startAwait();
 
     Microservices ms =
-        Microservices.builder()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new DefaultMarketDataService())
             .startAwait();
