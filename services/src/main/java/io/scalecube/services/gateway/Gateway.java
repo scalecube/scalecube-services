@@ -42,7 +42,7 @@ public interface Gateway {
   /**
    * Stops the gateway.
    *
-   * @return stop signal
+   * @return record signal
    */
   Mono<Void> stop();
 }
