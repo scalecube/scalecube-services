@@ -201,24 +201,29 @@ public class ServiceCall {
    */
   public Flux<ServiceMessage> requestBidirectional(
       Publisher<ServiceMessage> publisher, Class<?> responseType) {
-    return Flux.from(HeadAndTail.createFrom(publisher))
-        .flatMap(
-            pair -> {
-              ServiceMessage request = pair.head();
-              String qualifier = request.qualifier();
-              Flux<ServiceMessage> messages = Flux.from(pair.tail()).startWith(request);
+    return Flux
+        .from(publisher)
+        .switchOnFirst((first, messages) -> {
+          if (first.hasValue()) {
+            ServiceMessage request = first.get();
+            String qualifier = request.qualifier();
 
-              if (methodRegistry.containsInvoker(qualifier)) { // local service.
-                return methodRegistry
-                    .getInvoker(qualifier)
-                    .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
-                    .map(this::throwIfError);
-              } else {
-                // remote service
-                return addressLookup(request)
-                    .flatMapMany(address -> requestBidirectional(messages, responseType, address));
-              }
-            });
+            if (methodRegistry.containsInvoker(qualifier)) { // local service.
+              return methodRegistry.getInvoker(qualifier)
+                                   .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
+                                   .map(this::throwIfError);
+            }
+            else {
+              // remote service
+              return addressLookup(request).flatMapMany(address -> requestBidirectional(
+                      messages,
+                      responseType,
+                      address));
+            }
+          }
+
+          return messages;
+        });
   }
 
   /**
