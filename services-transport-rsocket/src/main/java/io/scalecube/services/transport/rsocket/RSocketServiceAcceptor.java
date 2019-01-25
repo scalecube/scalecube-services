@@ -1,5 +1,9 @@
 package io.scalecube.services.transport.rsocket;
 
+import java.util.Optional;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.rsocket.AbstractRSocket;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
@@ -14,10 +18,6 @@ import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import java.util.Optional;
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -71,19 +71,21 @@ public class RSocketServiceAcceptor implements SocketAcceptor {
 
     @Override
     public Flux<Payload> requestChannel(Publisher<Payload> payloads) {
-      return Flux
-          .from(payloads)
+      return Flux.from(payloads)
           .map(this::toMessage)
-          .switchOnFirst((first, messages) -> {
-              if (first.hasValue()) {
+          .switchOnFirst(
+              (first, messages) -> {
+                if (first.hasValue()) {
                   ServiceMessage message = first.get();
                   validateRequest(message);
-                  ServiceMethodInvoker methodInvoker = methodRegistry.getInvoker(message.qualifier());
-                  return methodInvoker.invokeBidirectional(messages, ServiceMessageCodec::decodeData);
-              }
+                  ServiceMethodInvoker methodInvoker =
+                      methodRegistry.getInvoker(message.qualifier());
+                  return methodInvoker.invokeBidirectional(
+                      messages, ServiceMessageCodec::decodeData);
+                }
 
-              return messages;
-          })
+                return messages;
+              })
           .map(this::toPayload);
     }
 
