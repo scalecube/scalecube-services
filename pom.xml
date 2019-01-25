@@ -77,8 +77,6 @@
         <version>${scalecube-config.version}</version>
       </dependency>
 
-
-
       <!-- Reactive Streams -->
       <dependency>
         <groupId>org.reactivestreams</groupId>
@@ -236,6 +234,13 @@
         <version>${hamcrest-all.version}</version>
         <scope>test</scope>
       </dependency>
+
+      <!-- Reactor -->
+      <dependency>
+        <groupId>io.projectreactor</groupId>
+        <artifactId>reactor-core</artifactId>
+        <version>${reactor.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -269,6 +274,7 @@
     <dependency>
       <groupId>io.projectreactor</groupId>
       <artifactId>reactor-test</artifactId>
+      <version>${reactor-test.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
