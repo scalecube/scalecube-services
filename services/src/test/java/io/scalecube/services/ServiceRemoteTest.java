@@ -21,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -34,6 +35,7 @@ public class ServiceRemoteTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
+    Hooks.onOperatorDebug();
     gateway = gateway();
     provider = serviceProvider();
   }
@@ -283,7 +285,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     StepVerifier.create(responses)
         .expectErrorMessage("IllegalArgumentException")
-        .verify(Duration.ofSeconds(3));
+        .verify(Duration.ofSeconds(300));
   }
 
   @Test
