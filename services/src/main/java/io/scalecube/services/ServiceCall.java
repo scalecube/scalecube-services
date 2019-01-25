@@ -1,7 +1,15 @@
 package io.scalecube.services;
 
 import static java.util.Objects.requireNonNull;
-
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.scalecube.services.api.ErrorData;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -17,15 +25,6 @@ import io.scalecube.services.transport.api.Address;
 import io.scalecube.services.transport.api.ClientTransport;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.Callable;
-import java.util.function.Function;
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -201,29 +200,28 @@ public class ServiceCall {
    */
   public Flux<ServiceMessage> requestBidirectional(
       Publisher<ServiceMessage> publisher, Class<?> responseType) {
-    return Flux
-        .from(publisher)
-        .switchOnFirst((first, messages) -> {
-          if (first.hasValue()) {
-            ServiceMessage request = first.get();
-            String qualifier = request.qualifier();
+    return Flux.from(publisher)
+        .switchOnFirst(
+            (first, messages) -> {
+              if (first.hasValue()) {
+                ServiceMessage request = first.get();
+                String qualifier = request.qualifier();
 
-            if (methodRegistry.containsInvoker(qualifier)) { // local service.
-              return methodRegistry.getInvoker(qualifier)
-                                   .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
-                                   .map(this::throwIfError);
-            }
-            else {
-              // remote service
-              return addressLookup(request).flatMapMany(address -> requestBidirectional(
-                      messages,
-                      responseType,
-                      address));
-            }
-          }
+                if (methodRegistry.containsInvoker(qualifier)) { // local service.
+                  return methodRegistry
+                      .getInvoker(qualifier)
+                      .invokeBidirectional(messages, ServiceMessageCodec::decodeData)
+                      .map(this::throwIfError);
+                } else {
+                  // remote service
+                  return addressLookup(request)
+                      .flatMapMany(
+                          address -> requestBidirectional(messages, responseType, address));
+                }
+              }
 
-          return messages;
-        });
+              return messages;
+            });
   }
 
   /**
