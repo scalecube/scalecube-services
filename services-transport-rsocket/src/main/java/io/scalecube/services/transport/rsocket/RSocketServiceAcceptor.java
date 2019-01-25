@@ -1,9 +1,5 @@
 package io.scalecube.services.transport.rsocket;
 
-import java.util.Optional;
-import org.reactivestreams.Publisher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import io.rsocket.AbstractRSocket;
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.Payload;
@@ -18,6 +14,10 @@ import io.scalecube.services.methods.ServiceMethodInvoker;
 import io.scalecube.services.methods.ServiceMethodRegistry;
 import io.scalecube.services.transport.api.ReferenceCountUtil;
 import io.scalecube.services.transport.api.ServiceMessageCodec;
+import java.util.Optional;
+import org.reactivestreams.Publisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
