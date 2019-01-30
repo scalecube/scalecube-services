@@ -42,13 +42,7 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
     private final AeronResources aeronResources;
 
     private Resources(int numOfWorkers) {
-      aeronResources =
-          new AeronResources()
-              .useTmpDir()
-              .numOfWorkers(numOfWorkers)
-              .singleWorker()
-              .start()
-              .block();
+      aeronResources = new AeronResources().useTmpDir().numOfWorkers(numOfWorkers).start().block();
     }
 
     @Override

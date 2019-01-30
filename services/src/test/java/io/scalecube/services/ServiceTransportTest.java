@@ -196,7 +196,12 @@ public class ServiceTransportTest {
 
       private Resources(int numOfWorkers) {
         aeronResources =
-            new AeronResources().useTmpDir().numOfWorkers(numOfWorkers).start().block();
+            new AeronResources()
+                .useTmpDir()
+                .numOfWorkers(numOfWorkers)
+                .media(ctx -> ctx.imageLivenessTimeoutNs(Duration.ofSeconds(1).toNanos()))
+                .start()
+                .block();
       }
 
       @Override
