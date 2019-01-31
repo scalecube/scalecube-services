@@ -5,7 +5,6 @@ import static reactor.core.publisher.Mono.from;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
-import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.sut.GreetingResponse;
@@ -52,7 +51,7 @@ public class ErrorFlowTest {
             .call()
             .create()
             .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
-    assertThrows(InternalServiceException.class, () -> from(req).block());
+    assertThrows(BadRequestException.class, () -> from(req).block());
   }
 
   @Test

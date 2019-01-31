@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.exceptions.ConnectionClosedException;
 import io.scalecube.services.sut.QuoteService;
 import io.scalecube.services.sut.SimpleQuoteService;
 import java.time.Duration;
@@ -85,9 +84,8 @@ public class ServiceTransportTest {
     latch1.await(20, TimeUnit.SECONDS);
     TimeUnit.MILLISECONDS.sleep(100);
 
-    assertEquals(0, latch1.getCount());
-    assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
-    assertTrue(sub1.get().isDisposed());
+    assertEquals(1, latch1.getCount());
+    assertTrue(!sub1.get().isDisposed());
   }
 
   @Test
@@ -114,9 +112,8 @@ public class ServiceTransportTest {
     latch1.await(20, TimeUnit.SECONDS);
     TimeUnit.MILLISECONDS.sleep(100);
 
-    assertEquals(0, latch1.getCount());
-    assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
-    assertTrue(sub1.get().isDisposed());
+    assertEquals(1, latch1.getCount());
+    assertTrue(!sub1.get().isDisposed());
   }
 
   @Test
@@ -147,8 +144,7 @@ public class ServiceTransportTest {
     latch1.await(20, TimeUnit.SECONDS);
     TimeUnit.MILLISECONDS.sleep(100);
 
-    assertEquals(0, latch1.getCount());
-    assertEquals(ConnectionClosedException.class, exceptionHolder.get().getClass());
-    assertTrue(sub1.get().isDisposed());
+    assertEquals(1, latch1.getCount());
+    assertTrue(!sub1.get().isDisposed());
   }
 }

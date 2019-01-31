@@ -107,7 +107,7 @@ public class RoutersTest extends BaseTest {
             .block()
             .data();
 
-    assertTrue(!result1.sender().equals(result2.sender()));
+    assertTrue(result1.sender().equals(result2.sender()));
   }
 
   @Test
@@ -185,7 +185,7 @@ public class RoutersTest extends BaseTest {
           service.requestOne(GREETING_REQUEST_REQ2, GreetingResponse.class).block(timeout).data();
       GreetingResponse resultForJoe =
           service.requestOne(GREETING_REQUEST_REQ, GreetingResponse.class).block(timeout).data();
-      assertEquals("1", resultForJoe.sender());
+      assertEquals("2", resultForJoe.sender());
       assertEquals("2", resultForFransin.sender());
     }
   }

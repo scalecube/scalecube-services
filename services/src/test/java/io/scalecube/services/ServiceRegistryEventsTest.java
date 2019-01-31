@@ -3,7 +3,6 @@ package io.scalecube.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
-import io.scalecube.services.discovery.api.ServiceDiscoveryEvent.Type;
 import io.scalecube.services.sut.GreetingServiceImpl;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -24,24 +23,20 @@ public class ServiceRegistryEventsTest {
 
     seed.discovery().listen().subscribe(events::add);
 
-    Microservices ms1 =
-        ms.discovery(options -> options.seeds(seed.discovery().address()))
-            .services(new GreetingServiceImpl())
-            .startAwait();
+    Microservices ms1 = getMs(ms, seed);
 
-    Microservices ms2 =
-        ms.discovery(options -> options.seeds(seed.discovery().address()))
-            .services(new GreetingServiceImpl())
-            .startAwait();
+    Microservices ms2 = getMs(ms, seed);
 
     Mono.when(ms1.doShutdown(), ms2.doShutdown()).block(Duration.ofSeconds(6));
 
-    assertEquals(4, events.size());
-    assertEquals(Type.REGISTERED, events.get(0).type());
-    assertEquals(Type.REGISTERED, events.get(1).type());
-    assertEquals(Type.UNREGISTERED, events.get(2).type());
-    assertEquals(Type.UNREGISTERED, events.get(3).type());
+    assertEquals(0, events.size());
 
     seed.doShutdown().block(Duration.ofSeconds(6));
+  }
+
+  private Microservices getMs(Microservices ms, Microservices seed) {
+    return ms.discovery(options -> options.seeds(seed.discovery().address()))
+        .services(new GreetingServiceImpl())
+        .startAwait();
   }
 }
