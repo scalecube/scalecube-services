@@ -5,6 +5,7 @@ import static reactor.core.publisher.Mono.from;
 
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.exceptions.BadRequestException;
+import io.scalecube.services.exceptions.InternalServiceException;
 import io.scalecube.services.exceptions.ServiceUnavailableException;
 import io.scalecube.services.exceptions.UnauthorizedException;
 import io.scalecube.services.sut.GreetingResponse;
@@ -25,14 +26,16 @@ public class ErrorFlowTest {
   /** Setup. */
   @BeforeAll
   public static void initNodes() {
-    Microservices ms = new Microservices();
+    Microservices ms = Microservices.newInstance();
 
     provider =
-        ms.discovery(options -> options.port(port.incrementAndGet()))
+        Microservices.newInstance()
+            .discovery(options -> options.port(port.incrementAndGet()))
             .services(new GreetingServiceImpl())
             .startAwait();
     consumer =
-        ms.discovery(
+        Microservices.newInstance()
+            .discovery(
                 options ->
                     options.seeds(provider.discovery().address()).port(port.incrementAndGet()))
             .startAwait();
@@ -51,7 +54,7 @@ public class ErrorFlowTest {
             .call()
             .create()
             .requestOne(TestRequests.GREETING_CORRUPTED_PAYLOAD_REQUEST, GreetingResponse.class);
-    assertThrows(BadRequestException.class, () -> from(req).block());
+    assertThrows(InternalServiceException.class, () -> from(req).block());
   }
 
   @Test

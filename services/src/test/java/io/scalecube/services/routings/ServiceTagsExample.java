@@ -17,12 +17,12 @@ public class ServiceTagsExample {
    * @param args arguments
    */
   public static void main(String[] args) {
-    Microservices ms = new Microservices();
 
-    Microservices gateway = ms.startAwait();
+    Microservices gateway = new Microservices().startAwait();
 
     Microservices services1 =
-        ms.discovery(options -> options.seeds(gateway.discovery().address()))
+        gateway
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplA())
                     .tag("Weight", "0.3")
@@ -30,7 +30,8 @@ public class ServiceTagsExample {
             .startAwait();
 
     Microservices services2 =
-        ms.discovery(options -> options.seeds(gateway.discovery().address()))
+        gateway
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImplB())
                     .tag("Weight", "0.7")

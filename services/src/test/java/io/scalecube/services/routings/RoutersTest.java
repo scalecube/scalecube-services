@@ -44,12 +44,12 @@ public class RoutersTest extends BaseTest {
   /** Setup. */
   @BeforeAll
   public static void setup() {
-    Microservices ms = new Microservices();
 
-    gateway = ms.startAwait();
+    gateway = new Microservices().startAwait();
     // Create microservices instance cluster.
     provider1 =
-        ms.discovery(options -> options.seeds(gateway.discovery().address()))
+        gateway
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(1))
                     .tag("ONLYFOR", "joe")
@@ -62,7 +62,8 @@ public class RoutersTest extends BaseTest {
 
     // Create microservices instance cluster.
     provider2 =
-        ms.discovery(options -> options.seeds(gateway.discovery().address()))
+        gateway
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 ServiceInfo.fromServiceInstance(new GreetingServiceImpl(2))
                     .tag("ONLYFOR", "fransin")

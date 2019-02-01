@@ -28,13 +28,12 @@ public class Example2 {
    * @param args ignored
    */
   public static void main(String[] args) {
-    Microservices ms = new Microservices();
     // ScaleCube Node node with no members
-    Microservices seed = ms.startAwait();
+    Microservices seed = Microservices.newInstance().startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =
-        ms.discovery(options -> options.seeds(seed.discovery().address()))
+        seed.discovery(options -> options.seeds(seed.discovery().address()))
             .services(new GreetingServiceImpl())
             .startAwait();
 

@@ -107,7 +107,7 @@ import reactor.core.publisher.MonoProcessor;
  */
 public class Microservices {
 
-  private static final Logger log = LoggerFactory.getLogger(Microservices.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
   private final MonoProcessor<Void> start = MonoProcessor.create();
   private final MonoProcessor<Void> onStart = MonoProcessor.create();
@@ -139,7 +139,7 @@ public class Microservices {
         .subscribe(
             null,
             thread -> {
-              log.error("{} failed to start, cause: {}", this, thread.toString());
+              LOGGER.error("{} failed to start, cause: {}", this, thread.toString());
               shutdown();
             });
 
@@ -148,8 +148,8 @@ public class Microservices {
         .doFinally(s -> onShutdown.onComplete())
         .subscribe(
             null,
-            thread -> log.warn("{} failed on doShutdown(): {}", this, thread.toString()),
-            () -> log.debug("Shutdown {}", this));
+            thread -> LOGGER.warn("{} failed on doShutdown(): {}", this, thread.toString()),
+            () -> LOGGER.debug("Shutdown {}", this));
   }
 
   /**
@@ -170,6 +170,25 @@ public class Microservices {
     this.transportBootstrap = msBase.transportBootstrap;
     this.discoveryOptions = msBase.discoveryOptions;
     this.metrics = msBase.metrics;
+  }
+
+  /**
+   * Factory method for creation {@code Microservices} object.
+   *
+   * @return {@code new Microservices()}
+   */
+  public static Microservices newInstance() {
+    return new Microservices();
+  }
+
+  /**
+   * Factory method for creation {@code Microservices} object on base of other.
+   *
+   * @param msBase copied object
+   * @return {@code new Microservices(msBase)}
+   */
+  public static Microservices newInstance(Microservices msBase) {
+    return new Microservices(msBase);
   }
 
   /**
@@ -549,7 +568,7 @@ public class Microservices {
     private InetSocketAddress serviceAddress; // calculated
     private int numOfThreads; // calculated
 
-    public ServiceTransportBootstrap(ServiceTransportConfig options) {
+    ServiceTransportBootstrap(ServiceTransportConfig options) {
       this.serviceHost = options.host();
       this.servicePort = Optional.ofNullable(options.port()).orElse(0);
       this.numOfThreads =

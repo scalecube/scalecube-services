@@ -26,10 +26,9 @@ public class BootstrapExample {
   public static void main(String[] args) throws Exception {
     System.out.println("Start gateway");
 
-    Microservices ms = new Microservices();
-
     Microservices gateway =
-        ms.gateway(
+        Microservices.newInstance()
+            .gateway(
                 GatewayConfig.builder("http", HttpGatewayStub.class)
                     .port(8181)
                     .build()) // override default port
@@ -46,7 +45,8 @@ public class BootstrapExample {
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     final Microservices node1 =
-        ms.discovery(options -> options.seeds(gateway.discovery().address()))
+        Microservices.newInstance()
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 call ->
                     Collections.singleton(
@@ -60,13 +60,15 @@ public class BootstrapExample {
 
     System.out.println("Start ServiceHello");
     final Microservices node2 =
-        ms.discovery(options -> options.seeds(gateway.discovery().address()))
+        Microservices.newInstance()
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new ServiceHelloImpl())
             .startAwait();
 
     System.out.println("Start ServiceWorld");
     final Microservices node3 =
-        ms.discovery(options -> options.seeds(gateway.discovery().address()))
+        Microservices.newInstance()
+            .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new ServiceWorldImpl())
             .startAwait();
 
