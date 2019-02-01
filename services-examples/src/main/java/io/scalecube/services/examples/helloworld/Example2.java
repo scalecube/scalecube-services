@@ -29,7 +29,7 @@ public class Example2 {
    */
   public static void main(String[] args) {
     // ScaleCube Node node with no members
-    Microservices seed = Microservices.newInstance().startAwait();
+    Microservices seed = new Microservices().startAwait();
 
     // Construct a ScaleCube node which joins the cluster hosting the Greeting Service
     Microservices microservices =

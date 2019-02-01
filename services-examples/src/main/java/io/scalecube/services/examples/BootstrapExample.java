@@ -27,7 +27,7 @@ public class BootstrapExample {
     System.out.println("Start gateway");
 
     Microservices gateway =
-        Microservices.newInstance()
+        new Microservices()
             .gateway(
                 GatewayConfig.builder("http", HttpGatewayStub.class)
                     .port(8181)
@@ -45,7 +45,7 @@ public class BootstrapExample {
 
     System.out.println("Start HelloWorldService with BusinessLogicFacade");
     final Microservices node1 =
-        Microservices.newInstance()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(
                 call ->
@@ -60,14 +60,14 @@ public class BootstrapExample {
 
     System.out.println("Start ServiceHello");
     final Microservices node2 =
-        Microservices.newInstance()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new ServiceHelloImpl())
             .startAwait();
 
     System.out.println("Start ServiceWorld");
     final Microservices node3 =
-        Microservices.newInstance()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .services(new ServiceWorldImpl())
             .startAwait();

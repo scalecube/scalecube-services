@@ -34,7 +34,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
     super.beforeAll();
 
     gateway =
-        Microservices.newInstance()
+        new Microservices()
             .gateway(GatewayConfig.builder("rsws", RSocketGateway.class).build())
             .gateway(GatewayConfig.builder("ws", WebsocketGateway.class).build())
             .gateway(GatewayConfig.builder("http", HttpGateway.class).build())
@@ -42,7 +42,7 @@ public class DistributedBenchmarkState extends AbstractBenchmarkState<Distribute
             .startAwait();
 
     services =
-        Microservices.newInstance()
+        new Microservices()
             .discovery(options -> options.seeds(gateway.discovery().address()))
             .transport(options -> options.numOfThreads(Runtime.getRuntime().availableProcessors()))
             .services(new BenchmarkServiceImpl())

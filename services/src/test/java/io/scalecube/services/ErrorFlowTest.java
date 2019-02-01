@@ -26,15 +26,13 @@ public class ErrorFlowTest {
   /** Setup. */
   @BeforeAll
   public static void initNodes() {
-    Microservices ms = Microservices.newInstance();
-
     provider =
-        Microservices.newInstance()
+        new Microservices()
             .discovery(options -> options.port(port.incrementAndGet()))
             .services(new GreetingServiceImpl())
             .startAwait();
     consumer =
-        Microservices.newInstance()
+        new Microservices()
             .discovery(
                 options ->
                     options.seeds(provider.discovery().address()).port(port.incrementAndGet()))

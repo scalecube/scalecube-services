@@ -109,8 +109,6 @@ public class Microservices {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Microservices.class);
 
-  private final MonoProcessor<Void> start = MonoProcessor.create();
-  private final MonoProcessor<Void> onStart = MonoProcessor.create();
   private final MonoProcessor<Void> shutdown = MonoProcessor.create();
   private final MonoProcessor<Void> onShutdown = MonoProcessor.create();
 
@@ -130,34 +128,14 @@ public class Microservices {
       new ServiceTransportBootstrap(ServiceTransportConfig.builder(null).build());
 
   /** Default constructor for Microservice creation. */
-  public Microservices() {
-
-    start
-        .then(doStart())
-        .doOnSuccess(avoid -> onStart.onComplete())
-        .doOnError(onStart::onError)
-        .subscribe(
-            null,
-            thread -> {
-              LOGGER.error("{} failed to start, cause: {}", this, thread.toString());
-              shutdown();
-            });
-
-    shutdown
-        .then(doShutdown())
-        .doFinally(s -> onShutdown.onComplete())
-        .subscribe(
-            null,
-            thread -> LOGGER.warn("{} failed on doShutdown(): {}", this, thread.toString()),
-            () -> LOGGER.debug("Shutdown {}", this));
-  }
+  public Microservices() {}
 
   /**
    * Constructor of {@code Microservices} object copying (copy constructor).
    *
    * @param msBase copied object
    */
-  public Microservices(Microservices msBase) {
+  private Microservices(Microservices msBase) {
     this();
     this.tags = new HashMap<>(msBase.tags);
     this.serviceInfos = new ArrayList<>(msBase.serviceInfos);
@@ -170,25 +148,6 @@ public class Microservices {
     this.transportBootstrap = msBase.transportBootstrap;
     this.discoveryOptions = msBase.discoveryOptions;
     this.metrics = msBase.metrics;
-  }
-
-  /**
-   * Factory method for creation {@code Microservices} object.
-   *
-   * @return {@code new Microservices()}
-   */
-  public static Microservices newInstance() {
-    return new Microservices();
-  }
-
-  /**
-   * Factory method for creation {@code Microservices} object on base of other.
-   *
-   * @param msBase copied object
-   * @return {@code new Microservices(msBase)}
-   */
-  public static Microservices newInstance(Microservices msBase) {
-    return new Microservices(msBase);
   }
 
   /**
@@ -372,67 +331,69 @@ public class Microservices {
   }
 
   /**
-   * Start deferred {@code Microservices}.
+   * Start deferred {@code Microservices} method.
    *
-   * @return
+   * @return started {@code Microservices} instance
    */
   public Mono<Microservices> start() {
+
     return Mono.defer(
         () -> {
-          start.onComplete();
-          return onStart.thenReturn(this);
+          Microservices ms = new Microservices(this);
+          return ms.transportBootstrap
+              .start(ms.methodRegistry)
+              .flatMap(
+                  input -> {
+                    ClientTransport clientTransport = ms.transportBootstrap.clientTransport();
+                    InetSocketAddress serviceAddress = ms.transportBootstrap.serviceAddress();
+
+                    Call call = new Call(clientTransport, ms.methodRegistry, ms.serviceRegistry);
+
+                    // invoke service providers and register services
+                    ms.serviceProviders.stream()
+                        .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
+                        .forEach(ms::collectAndRegister);
+
+                    // register services in service registry
+                    ServiceEndpoint endpoint = null;
+                    if (!ms.serviceInfos.isEmpty()) {
+                      String serviceHost = serviceAddress.getHostString();
+                      int servicePort = serviceAddress.getPort();
+                      endpoint =
+                          ServiceScanner.scan(
+                              ms.serviceInfos, ms.id, serviceHost, servicePort, ms.tags);
+                      ms.serviceRegistry.registerService(endpoint);
+                    }
+
+                    // configure discovery and publish to the cluster
+                    ServiceDiscoveryConfig discoveryConfig =
+                        ServiceDiscoveryConfig.builder(ms.discoveryOptions)
+                            .serviceRegistry(ms.serviceRegistry)
+                            .endpoint(endpoint)
+                            .build();
+                    return ms.discovery
+                        .start(discoveryConfig)
+                        .then(Mono.defer(ms::doInjection))
+                        .then(Mono.defer(() -> startGateway(call)))
+                        .thenReturn(ms);
+                  })
+              .doOnSuccess(
+                  v -> {
+                    ms.shutdown
+                        .then(ms.doShutdown())
+                        .doFinally(s -> ms.onShutdown.onComplete())
+                        .subscribe(
+                            null,
+                            thread ->
+                                LOGGER.warn("{} failed on doShutdown(): {}", ms, thread.toString()),
+                            () -> LOGGER.debug("Shutdown {}", ms));
+                  })
+              .onErrorResume(
+                  ex -> {
+                    // return original error then shutdown
+                    return Mono.when(Mono.error(ex), ms.doShutdown()).cast(Microservices.class);
+                  });
         });
-  }
-
-  /**
-   * Start deferred {@code Microservices} with {@code doStart()} method.
-   *
-   * @return
-   */
-  public Mono<Microservices> doStart() {
-    return Mono.defer(
-        () ->
-            this.transportBootstrap
-                .start(methodRegistry)
-                .flatMap(
-                    input -> {
-                      ClientTransport clientTransport = transportBootstrap.clientTransport();
-                      InetSocketAddress serviceAddress = transportBootstrap.serviceAddress();
-
-                      Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
-
-                      // invoke service providers and register services
-                      serviceProviders.stream()
-                          .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
-                          .forEach(this::collectAndRegister);
-
-                      // register services in service registry
-                      ServiceEndpoint endpoint = null;
-                      if (!serviceInfos.isEmpty()) {
-                        String serviceHost = serviceAddress.getHostString();
-                        int servicePort = serviceAddress.getPort();
-                        endpoint =
-                            ServiceScanner.scan(serviceInfos, id, serviceHost, servicePort, tags);
-                        serviceRegistry.registerService(endpoint);
-                      }
-
-                      // configure discovery and publish to the cluster
-                      ServiceDiscoveryConfig discoveryConfig =
-                          ServiceDiscoveryConfig.builder(discoveryOptions)
-                              .serviceRegistry(serviceRegistry)
-                              .endpoint(endpoint)
-                              .build();
-                      return discovery
-                          .start(discoveryConfig)
-                          .then(Mono.defer(this::doInjection))
-                          .then(Mono.defer(() -> startGateway(call)))
-                          .thenReturn(this);
-                    })
-                .onErrorResume(
-                    ex -> {
-                      // return original error then shutdown
-                      return Mono.when(Mono.error(ex), doShutdown()).cast(Microservices.class);
-                    }));
   }
 
   private Mono<GatewayBootstrap> startGateway(Call call) {
