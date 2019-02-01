@@ -471,7 +471,7 @@ public class Microservices {
     return gatewayBootstrap.gatewayAddresses();
   }
 
-  public void shutdown() {
+  private void shutdown() {
     shutdown.onComplete();
   }
 

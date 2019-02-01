@@ -244,7 +244,7 @@ public class ServiceRemoteTest extends BaseTest {
             () -> Mono.from(service.callGreetingTimeout("joe")).block());
     assertTrue(exception.getMessage().contains("Did not observe any item or terminal signal"));
     System.out.println("done");
-    ms.shutdown();
+    ms.doShutdown();
   }
 
   @Test

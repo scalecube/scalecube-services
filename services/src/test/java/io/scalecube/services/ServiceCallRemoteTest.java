@@ -228,7 +228,7 @@ public class ServiceCallRemoteTest extends BaseTest {
     StepVerifier.create(quotes.take(1)).expectNextCount(1).expectComplete().verify(timeout);
 
     try {
-      quotesService.shutdown();
+      quotesService.doShutdown();
     } catch (Exception ignored) {
       // no-op
     }

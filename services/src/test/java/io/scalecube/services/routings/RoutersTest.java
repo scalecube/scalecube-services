@@ -78,9 +78,9 @@ public class RoutersTest extends BaseTest {
   /** Cleanup. */
   @AfterAll
   public static void tearDown() {
-    gateway.shutdown();
-    provider1.shutdown();
-    provider2.shutdown();
+    gateway.doShutdown();
+    provider1.doShutdown();
+    provider2.doShutdown();
   }
 
   @Test
