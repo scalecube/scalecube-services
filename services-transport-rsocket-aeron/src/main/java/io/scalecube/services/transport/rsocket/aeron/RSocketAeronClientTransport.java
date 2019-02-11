@@ -1,8 +1,5 @@
 package io.scalecube.services.transport.rsocket.aeron;
 
-import static java.lang.Boolean.TRUE;
-
-import io.aeron.ChannelUriStringBuilder;
 import io.rsocket.RSocket;
 import io.rsocket.RSocketFactory;
 import io.rsocket.reactor.aeron.AeronClientTransport;
@@ -15,8 +12,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.aeron.AeronClient;
 import reactor.aeron.AeronResources;
-import reactor.aeron.client.AeronClient;
 import reactor.core.publisher.Mono;
 
 /** RSocket Aeron client transport implementation. */
@@ -29,7 +26,6 @@ public class RSocketAeronClientTransport implements ClientTransport {
 
   private final ServiceMessageCodec codec;
   private final AeronResources aeronResources;
-  private final String bindHost = "0.0.0.0";
 
   /**
    * Constructor for this transport.
@@ -51,22 +47,9 @@ public class RSocketAeronClientTransport implements ClientTransport {
   }
 
   private Mono<RSocket> connect(Address address, Map<Address, Mono<RSocket>> monoMap) {
-    int bindPort = SocketUtils.findAvailableUdpPort(15000);
     AeronClient aeronClient =
         AeronClient.create(aeronResources)
-            .options(
-                options -> {
-                  options.serverChannel(
-                      new ChannelUriStringBuilder()
-                          .media("udp")
-                          .reliable(TRUE)
-                          .endpoint(address.toString()));
-                  options.clientChannel(
-                      new ChannelUriStringBuilder()
-                          .media("udp")
-                          .reliable(TRUE)
-                          .endpoint(bindHost + ":" + bindPort));
-                });
+            .options(address.host(), address.port(), address.port() + 1);
 
     Mono<RSocket> rsocketMono =
         RSocketFactory.connect()

@@ -7,8 +7,8 @@ import io.scalecube.services.transport.api.ServiceMessageCodec;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.util.Optional;
 import java.util.concurrent.Executor;
+import org.agrona.concurrent.BusySpinIdleStrategy;
 import reactor.aeron.AeronResources;
-import reactor.aeron.AeronResourcesConfig;
 import reactor.core.publisher.Mono;
 
 public class RSocketAeronServiceTransport implements ServiceTransport {
@@ -44,11 +44,14 @@ public class RSocketAeronServiceTransport implements ServiceTransport {
 
     private Resources(int numOfWorkers) {
       aeronResources =
-          AeronResources.start(
-              AeronResourcesConfig //
-                  .builder()
-                  .numOfWorkers(numOfWorkers)
-                  .build());
+          new AeronResources()
+              .useTmpDir()
+              .singleWorker()
+              .pollFragmentLimit(8)
+              .writeLimit(8)
+              .workerIdleStrategySupplier(BusySpinIdleStrategy::new)
+              .start()
+              .block();
     }
 
     @Override

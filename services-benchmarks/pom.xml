@@ -29,7 +29,7 @@
 
     <dependency>
       <groupId>io.scalecube</groupId>
-      <artifactId>scalecube-services-transport-rsocket</artifactId>
+      <artifactId>scalecube-services-transport-rsocket-aeron</artifactId>
       <version>${project.version}</version>
     </dependency>
 
