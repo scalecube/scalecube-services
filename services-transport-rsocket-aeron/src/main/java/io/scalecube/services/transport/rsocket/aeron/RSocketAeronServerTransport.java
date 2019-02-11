@@ -42,7 +42,11 @@ public class RSocketAeronServerTransport implements ServerTransport {
         () -> {
           InetSocketAddress bindAddress = new InetSocketAddress(port);
           AeronServer aeronServer =
-              AeronServer.create(aeronResources).options("0.0.0.0", port, port + 1);
+              AeronServer.create(aeronResources)
+                  .options(
+                      bindAddress.getHostString(),
+                      bindAddress.getPort(),
+                      bindAddress.getPort() + 1); // todo
           return RSocketFactory.receive()
               .frameDecoder(
                   frame ->

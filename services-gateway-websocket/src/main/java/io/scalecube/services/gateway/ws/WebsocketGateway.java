@@ -34,7 +34,7 @@ public class WebsocketGateway extends GatewayTemplate {
           GatewayMetrics metrics1 = new GatewayMetrics(config.name(), metrics);
           WebsocketGatewayAcceptor acceptor = new WebsocketGatewayAcceptor(call.create(), metrics1);
 
-          if (workerPool != null && workerPool instanceof EventLoopGroup) {
+          if (workerPool != null) {
             loopResources = new GatewayLoopResources((EventLoopGroup) workerPool);
           }
 
