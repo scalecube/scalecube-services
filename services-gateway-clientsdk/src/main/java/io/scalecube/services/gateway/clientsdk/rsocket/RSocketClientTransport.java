@@ -10,6 +10,7 @@ import io.scalecube.services.gateway.clientsdk.ClientMessage;
 import io.scalecube.services.gateway.clientsdk.ClientSettings;
 import io.scalecube.services.gateway.clientsdk.ClientTransport;
 import io.scalecube.services.gateway.clientsdk.exceptions.ConnectionClosedException;
+import java.nio.channels.ClosedChannelException;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,8 +58,10 @@ public final class RSocketClientTransport implements ClientTransport {
               .flatMap(
                   rsocket ->
                       rsocket
-                          .requestResponse(payload) //
-                          .takeUntilOther(listenConnectionClose(rsocket)))
+                          .requestResponse(payload)
+                          .onErrorMap(
+                              ClosedChannelException.class,
+                              e -> new ConnectionClosedException("Connection closed")))
               .map(this::toMessage);
         });
   }
@@ -72,8 +75,10 @@ public final class RSocketClientTransport implements ClientTransport {
               .flatMapMany(
                   rsocket ->
                       rsocket
-                          .requestStream(payload) //
-                          .takeUntilOther(listenConnectionClose(rsocket)))
+                          .requestStream(payload)
+                          .onErrorMap(
+                              ClosedChannelException.class,
+                              e -> new ConnectionClosedException("Connection closed")))
               .map(this::toMessage);
         });
   }
@@ -157,17 +162,5 @@ public final class RSocketClientTransport implements ClientTransport {
 
   private ClientMessage toMessage(Payload payload) {
     return codec.decode(payload);
-  }
-
-  private <T> Mono<T> listenConnectionClose(RSocket rsocket) {
-    //noinspection unchecked
-    return rsocket
-        .onClose()
-        .map(avoid -> (T) avoid)
-        .switchIfEmpty(Mono.defer(this::toConnectionClosedException));
-  }
-
-  private <T> Mono<T> toConnectionClosedException() {
-    return Mono.error(new ConnectionClosedException("Connection closed"));
   }
 }
