@@ -26,11 +26,9 @@
     <scalecube-cluster.version>2.2.3</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
     <scalecube-config.version>0.3.4</scalecube-config.version>
-    <reactor.version>3.2.5.RELEASE</reactor.version>
-    <reactor-test.version>3.2.5.RELEASE</reactor-test.version>
     <reactivestreams.version>1.0.2</reactivestreams.version>
     <metrics.version>3.1.2</metrics.version>
-    <rsocket.version>0.11.8</rsocket.version>
+    <rsocket.version>0.11.16</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
     <netty.version>4.1.31.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
