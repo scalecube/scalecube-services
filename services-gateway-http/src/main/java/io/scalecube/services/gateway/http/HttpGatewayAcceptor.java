@@ -14,7 +14,6 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.scalecube.services.ServiceCall;
 import io.scalecube.services.api.ErrorData;
-import io.scalecube.services.api.Qualifier;
 import io.scalecube.services.api.ServiceMessage;
 import io.scalecube.services.api.ServiceMessage.Builder;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
@@ -27,6 +26,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.netty.ByteBufMono;
 import reactor.netty.http.server.HttpServerRequest;
 import reactor.netty.http.server.HttpServerResponse;
 
@@ -64,6 +64,8 @@ public class HttpGatewayAcceptor
     return httpRequest
         .receive()
         .aggregate()
+        .switchIfEmpty(
+            Mono.defer(() -> ByteBufMono.just(ByteBufAllocator.DEFAULT.compositeBuffer())))
         .map(ByteBuf::retain)
         .doOnNext(content -> metrics.markRequest())
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
