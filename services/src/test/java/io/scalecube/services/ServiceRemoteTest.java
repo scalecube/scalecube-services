@@ -285,7 +285,7 @@ public class ServiceRemoteTest extends BaseTest {
     // call the service.
     StepVerifier.create(responses)
         .expectErrorMessage("IllegalArgumentException")
-        .verify(Duration.ofSeconds(300));
+        .verify(Duration.ofSeconds(3));
   }
 
   @Test
