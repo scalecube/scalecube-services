@@ -108,7 +108,7 @@ public class HttpGatewayAcceptor
     ByteBuf content =
         response.hasData(ErrorData.class)
             ? encodeData(response.data(), response.dataFormatOrDefault())
-            : response.data();
+            : ((ByteBuf) response.data()).retain();
 
     return httpResponse.status(status).sendObject(content).then();
   }
@@ -120,10 +120,10 @@ public class HttpGatewayAcceptor
   private Mono<Void> ok(HttpServerResponse httpResponse, ServiceMessage response) {
     ByteBuf content =
         response.hasData(ByteBuf.class)
-            ? response.data()
+            ? ((ByteBuf) response.data()).retain()
             : encodeData(response.data(), response.dataFormatOrDefault());
 
-    return httpResponse.status(OK).sendObject(content.retain()).then();
+    return httpResponse.status(OK).sendObject(content).then();
   }
 
   private ByteBuf encodeData(Object data, String dataFormat) {
