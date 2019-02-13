@@ -64,8 +64,7 @@ public class HttpGatewayAcceptor
     return httpRequest
         .receive()
         .aggregate()
-        .switchIfEmpty(
-            Mono.defer(() -> ByteBufMono.just(ByteBufAllocator.DEFAULT.compositeBuffer())))
+        .switchIfEmpty(Mono.defer(() -> ByteBufMono.just(Unpooled.EMPTY_BUFFER)))
         .map(ByteBuf::retain)
         .doOnNext(content -> metrics.markRequest())
         .flatMap(content -> handleRequest(content, httpRequest, httpResponse))
