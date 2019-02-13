@@ -106,7 +106,9 @@ public final class ServiceMessageCodec {
    */
   public static ServiceMessage decodeData(ServiceMessage message, Class<?> dataType)
       throws MessageCodecException {
-    if (!message.hasData(ByteBuf.class) || dataType == null) {
+    if (dataType == null
+        || !message.hasData(ByteBuf.class)
+        || ((ByteBuf) message.data()).readableBytes() == 0) {
       return message;
     }
 
