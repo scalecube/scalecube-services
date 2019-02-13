@@ -233,16 +233,17 @@
         <scope>test</scope>
       </dependency>
 
-      <!-- Reactor -->
-      <dependency>
-        <groupId>io.projectreactor</groupId>
-        <artifactId>reactor-core</artifactId>
-        <version>${reactor.version}</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 
   <dependencies>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-bom</artifactId>
+      <version>Californium-SR5</version>
+      <type>pom</type>
+      <scope>import</scope>
+    </dependency>
     <!-- Test scope -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -269,12 +270,7 @@
       <artifactId>hamcrest-core</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-test</artifactId>
-      <version>${reactor-test.version}</version>
-      <scope>test</scope>
-    </dependency>
+   
   </dependencies>
 
   <repositories>
