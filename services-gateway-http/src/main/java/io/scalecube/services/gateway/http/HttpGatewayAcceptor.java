@@ -123,7 +123,7 @@ public class HttpGatewayAcceptor
             ? response.data()
             : encodeData(response.data(), response.dataFormatOrDefault());
 
-    return httpResponse.status(OK).sendObject(content).then();
+    return httpResponse.status(OK).sendObject(content.retain()).then();
   }
 
   private ByteBuf encodeData(Object data, String dataFormat) {
