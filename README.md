@@ -107,7 +107,7 @@ public interface ExampleService {
 
 ## API-Gateway: 
 
-api gateway plugins are managed at: https://github.com/scalecube/scalecube-gateway
+Available api-gateways are [rsocket](/services-gateway-rsocket), [http](/services-gateway-http) and [websocket](/services-gateway-websocket)
 
 Basic API-Gateway example:
 
@@ -127,7 +127,6 @@ Basic API-Gateway example:
         // HINT: you can try connect using the api sandbox to these ports to try the api.
         // http://scalecube.io/api-sandbox/app/index.html
 ```
-
 
 ### Maven
 
@@ -152,11 +151,11 @@ You can think about scalecube as slf4j for microservices - Currently supported S
     
 **Service API-Gateway providers:**
 
-releases: https://github.com/scalecube/scalecube-gateway/releases
+releases: https://github.com/scalecube/scalecube-services/releases
 
-* HTTP-Gateway - scalecube-services-gateway-http
-* RSocket-Gateway - scalecube-services-gateway-rsocket
-* WebSocket - scalecube-services-gateway-websocket
+* HTTP-Gateway - [scalecube-services-gateway-http](/services-gateway-http)
+* RSocket-Gateway - [scalecube-services-gateway-rsocket](/services-gateway-rsocket)
+* WebSocket - [scalecube-services-gateway-websocket](services-gateway-websocket)
 
 
 Binaries and dependency information for Maven can be found at http://search.maven.org.
