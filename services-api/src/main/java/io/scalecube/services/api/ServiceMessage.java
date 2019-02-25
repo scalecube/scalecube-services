@@ -154,7 +154,7 @@ public final class ServiceMessage {
   /**
    * Verify that this message contains data.
    *
-   * @param dataClass the expected class of the dara
+   * @param dataClass the expected class of the data
    * @return true if the data is instance of the dataClass
    */
   public boolean hasData(Class<?> dataClass) {
