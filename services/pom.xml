@@ -12,7 +12,6 @@
   <packaging>jar</packaging>
 
   <dependencies>
-      
     <dependency>
       <groupId>io.scalecube</groupId>
       <artifactId>scalecube-services-api</artifactId>
