@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>scalecube-services-parent</artifactId>
@@ -23,14 +25,14 @@
 
   <properties>
     <jackson.version>2.9.8</jackson.version>
-    <scalecube-cluster.version>2.2.3</scalecube-cluster.version>
+    <scalecube-cluster.version>2.2.5</scalecube-cluster.version>
     <scalecube-benchmarks.version>1.2.2</scalecube-benchmarks.version>
-    <scalecube-config.version>0.3.4</scalecube-config.version>
-    <reactivestreams.version>1.0.2</reactivestreams.version>
+    <scalecube-config.version>0.3.6</scalecube-config.version>
+    <reactor.version>Californium-SR5</reactor.version>
+    <rsocket.version>0.11.17</rsocket.version>
     <metrics.version>3.1.2</metrics.version>
-    <rsocket.version>0.11.16</rsocket.version>
     <protostuff.version>1.6.0</protostuff.version>
-    <netty.version>4.1.31.Final</netty.version>
+    <netty.version>4.1.33.Final</netty.version>
     <slf4j.version>1.7.7</slf4j.version>
     <log4j.version>2.11.0</log4j.version>
     <disruptor.version>3.4.2</disruptor.version>
@@ -77,16 +79,9 @@
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
-        <version>Californium-SR5</version>
+        <version>${reactor.version}</version>
         <type>pom</type>
         <scope>import</scope>
-      </dependency>
-
-      <!-- Reactive Streams -->
-      <dependency>
-        <groupId>org.reactivestreams</groupId>
-        <artifactId>reactive-streams</artifactId>
-        <version>${reactivestreams.version}</version>
       </dependency>
 
       <!-- Logging -->
