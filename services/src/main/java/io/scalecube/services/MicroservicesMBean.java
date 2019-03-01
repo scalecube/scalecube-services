@@ -8,29 +8,19 @@ public interface MicroservicesMBean {
 
   String getId();
 
-  InetSocketAddress getServiceAddress();
-
   String getDiscoveryAddress();
 
-  List<String> getDiscoverySeeds();
+  Map<String, InetSocketAddress> getGatewayAddresses();
 
-  Map<String, String> getDiscoveryTags();
+  String getServiceEndpoint();
 
-  String getDiscoveryMemberHost();
+  List<String> getRecentServiceDiscoveryEvents();
 
-  Integer getDiscoveryMemberPort();
+  List<String> getServiceEndpoints();
 
-  Map<String, InetSocketAddress> gatewayAddresses();
+  List<String> getServiceReferences();
 
-  String serviceEndpoint();
+  String getServiceTransport();
 
-  List<String> last30ServiceDiscoveryEvents();
-
-  List<String> serviceEndpoints();
-
-  List<String> serviceReferences();
-
-  String serviceTransport();
-
-  String serviceDiscovery();
+  String getServiceDiscovery();
 }

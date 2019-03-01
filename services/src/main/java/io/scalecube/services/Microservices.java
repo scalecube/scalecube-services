@@ -23,7 +23,6 @@ import io.scalecube.services.transport.api.ServerTransport;
 import io.scalecube.services.transport.api.ServiceTransport;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,17 +34,17 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.ReplayProcessor;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -516,9 +515,11 @@ public class Microservices {
 
   private static class JmxMBeanBootstrap implements MicroservicesMBean {
 
+    public static final int MAX_CACHE_SIZE = 128;
+
     private final Microservices microservices;
-    private final ReplayProcessor<Object> processor;
     private final ServiceDiscoveryConfig serviceDiscoveryConfig;
+    private final List<String> recentServiceDiscoveryEvents = new CopyOnWriteArrayList<>();
 
     private static JmxMBeanBootstrap start(
         Microservices instance, ServiceDiscoveryConfig serviceDiscoveryConfig) {
@@ -539,20 +540,22 @@ public class Microservices {
         Microservices microservices, ServiceDiscoveryConfig serviceDiscoveryConfig) {
       this.serviceDiscoveryConfig = serviceDiscoveryConfig;
       this.microservices = microservices;
-      this.processor = ReplayProcessor.create(30);
-      microservices.discovery.listen().subscribe(processor);
+      microservices
+          .discovery
+          .listen()
+          .subscribeOn(Schedulers.single())
+          .subscribe(
+              event -> {
+                if (recentServiceDiscoveryEvents.size() == MAX_CACHE_SIZE) {
+                  recentServiceDiscoveryEvents.remove(0);
+                }
+                recentServiceDiscoveryEvents.add(event.toString());
+              });
     }
-
-    // Attributes
 
     @Override
     public String getId() {
       return microservices.id();
-    }
-
-    @Override
-    public InetSocketAddress getServiceAddress() {
-      return microservices.serviceAddress();
     }
 
     @Override
@@ -561,31 +564,7 @@ public class Microservices {
     }
 
     @Override
-    public List<String> getDiscoverySeeds() {
-      return Stream.of(serviceDiscoveryConfig.seeds())
-          .map(Address::toString)
-          .collect(Collectors.toList());
-    }
-
-    @Override
-    public Map<String, String> getDiscoveryTags() {
-      return serviceDiscoveryConfig.tags();
-    }
-
-    @Override
-    public String getDiscoveryMemberHost() {
-      return serviceDiscoveryConfig.memberHost();
-    }
-
-    @Override
-    public Integer getDiscoveryMemberPort() {
-      return serviceDiscoveryConfig.memberPort();
-    }
-
-    // Operations
-
-    @Override
-    public Map<String, InetSocketAddress> gatewayAddresses() {
+    public Map<String, InetSocketAddress> getGatewayAddresses() {
       return microservices
           .gatewayAddresses()
           .entrySet()
@@ -594,22 +573,17 @@ public class Microservices {
     }
 
     @Override
-    public String serviceEndpoint() {
+    public String getServiceEndpoint() {
       return String.valueOf(microservices.discovery().endpoint());
     }
 
     @Override
-    public List<String> last30ServiceDiscoveryEvents() {
-      return processor
-          .map(Object::toString)
-          .take(30)
-          .take(Duration.ofSeconds(2))
-          .collectList()
-          .block();
+    public List<String> getRecentServiceDiscoveryEvents() {
+      return recentServiceDiscoveryEvents;
     }
 
     @Override
-    public List<String> serviceEndpoints() {
+    public List<String> getServiceEndpoints() {
       return microservices
           .serviceRegistry
           .listServiceEndpoints()
@@ -619,7 +593,7 @@ public class Microservices {
     }
 
     @Override
-    public List<String> serviceReferences() {
+    public List<String> getServiceReferences() {
       return microservices
           .serviceRegistry
           .listServiceReferences()
@@ -629,12 +603,12 @@ public class Microservices {
     }
 
     @Override
-    public String serviceTransport() {
+    public String getServiceTransport() {
       return microservices.transportBootstrap.toString();
     }
 
     @Override
-    public String serviceDiscovery() {
+    public String getServiceDiscovery() {
       return serviceDiscoveryConfig.toString();
     }
   }
