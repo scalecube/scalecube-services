@@ -25,6 +25,7 @@ import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -554,62 +555,47 @@ public class Microservices {
     }
 
     @Override
-    public String getId() {
-      return microservices.id();
+    public Collection<String> getId() {
+      return Collections.singletonList(microservices.id());
     }
 
     @Override
-    public String getDiscoveryAddress() {
-      return microservices.discovery().address().toString();
+    public Collection<String> getDiscoveryAddress() {
+      return Collections.singletonList(microservices.discovery().address().toString());
     }
 
     @Override
-    public Map<String, InetSocketAddress> getGatewayAddresses() {
-      return microservices
-          .gatewayAddresses()
-          .entrySet()
-          .stream()
-          .collect(toMap(entry -> entry.getKey().toString(), Entry::getValue));
-    }
-
-    @Override
-    public String getServiceEndpoint() {
-      return String.valueOf(microservices.discovery().endpoint());
-    }
-
-    @Override
-    public List<String> getRecentServiceDiscoveryEvents() {
-      return recentServiceDiscoveryEvents;
-    }
-
-    @Override
-    public List<String> getServiceEndpoints() {
-      return microservices
-          .serviceRegistry
-          .listServiceEndpoints()
-          .stream()
-          .map(ServiceEndpoint::toString)
+    public Collection<String> getGatewayAddresses() {
+      return microservices.gatewayAddresses().entrySet().stream()
+          .map(entry -> entry.getKey() + " : " + entry.getValue())
           .collect(Collectors.toList());
     }
 
     @Override
-    public List<String> getServiceReferences() {
-      return microservices
-          .serviceRegistry
-          .listServiceReferences()
-          .stream()
+    public Collection<String> getServiceEndpoint() {
+      return Collections.singletonList(String.valueOf(microservices.discovery().endpoint()));
+    }
+
+    @Override
+    public Collection<String> getRecentServiceDiscoveryEvents() {
+      return recentServiceDiscoveryEvents;
+    }
+
+    @Override
+    public Collection<String> getServiceReferences() {
+      return microservices.serviceRegistry.listServiceReferences().stream()
           .map(ServiceReference::toString)
           .collect(Collectors.toList());
     }
 
     @Override
-    public String getServiceTransport() {
-      return microservices.transportBootstrap.toString();
+    public Collection<String> getServiceTransport() {
+      return Collections.singletonList(microservices.transportBootstrap.toString());
     }
 
     @Override
-    public String getServiceDiscovery() {
-      return serviceDiscoveryConfig.toString();
+    public Collection<String> getServiceDiscovery() {
+      return Collections.singletonList(serviceDiscoveryConfig.toString());
     }
   }
 }

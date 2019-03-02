@@ -1,26 +1,22 @@
 package io.scalecube.services;
 
-import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Map;
+import java.util.Collection;
 
 public interface MicroservicesMBean {
 
-  String getId();
+  Collection<String> getId();
 
-  String getDiscoveryAddress();
+  Collection<String> getDiscoveryAddress();
 
-  Map<String, InetSocketAddress> getGatewayAddresses();
+  Collection<String> getGatewayAddresses();
 
-  String getServiceEndpoint();
+  Collection<String> getServiceEndpoint();
 
-  List<String> getRecentServiceDiscoveryEvents();
+  Collection<String> getRecentServiceDiscoveryEvents();
 
-  List<String> getServiceEndpoints();
+  Collection<String> getServiceReferences();
 
-  List<String> getServiceReferences();
+  Collection<String> getServiceTransport();
 
-  String getServiceTransport();
-
-  String getServiceDiscovery();
+  Collection<String> getServiceDiscovery();
 }
