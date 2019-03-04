@@ -7,6 +7,7 @@ import io.scalecube.services.ServiceCall.Call;
 import io.scalecube.services.discovery.ServiceScanner;
 import io.scalecube.services.discovery.api.ServiceDiscovery;
 import io.scalecube.services.discovery.api.ServiceDiscoveryConfig;
+import io.scalecube.services.discovery.api.ServiceDiscoveryEvent;
 import io.scalecube.services.exceptions.DefaultErrorMapper;
 import io.scalecube.services.exceptions.ServiceProviderErrorMapper;
 import io.scalecube.services.gateway.Gateway;
@@ -35,17 +36,15 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
-import reactor.core.Exceptions;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
+import reactor.core.publisher.ReplayProcessor;
 
 /**
  * The ScaleCube-Services module enables to provision and consuming microservices in a cluster.
@@ -160,8 +159,7 @@ public class Microservices {
               Call call = new Call(clientTransport, methodRegistry, serviceRegistry);
 
               // invoke service providers and register services
-              serviceProviders
-                  .stream()
+              serviceProviders.stream()
                   .flatMap(serviceProvider -> serviceProvider.provide(call).stream())
                   .forEach(this::collectAndRegister);
 
@@ -184,7 +182,7 @@ public class Microservices {
                   .start(discoveryConfig)
                   .then(Mono.defer(this::doInjection))
                   .then(Mono.defer(() -> startGateway(call)))
-                  .then(Mono.fromRunnable(() -> JmxMBeanBootstrap.start(this, discoveryConfig)))
+                  .then(Mono.fromCallable(() -> JmxMBeanBootstrap.start(this, discoveryConfig)))
                   .thenReturn(this);
             })
         .onErrorResume(
@@ -390,9 +388,7 @@ public class Microservices {
 
     private InetSocketAddress gatewayAddress(String name, Class<? extends Gateway> gatewayClass) {
       Optional<GatewayConfig> result =
-          gatewayInstances
-              .keySet()
-              .stream()
+          gatewayInstances.keySet().stream()
               .filter(config -> config.name().equals(name))
               .filter(config -> config.gatewayClass() == gatewayClass)
               .findFirst();
@@ -411,9 +407,7 @@ public class Microservices {
 
     private Map<GatewayConfig, InetSocketAddress> gatewayAddresses() {
       return Collections.unmodifiableMap(
-          gatewayInstances
-              .entrySet()
-              .stream()
+          gatewayInstances.entrySet().stream()
               .collect(toMap(Entry::getKey, e -> e.getValue().address())));
     }
   }
@@ -520,38 +514,25 @@ public class Microservices {
 
     private final Microservices microservices;
     private final ServiceDiscoveryConfig serviceDiscoveryConfig;
-    private final List<String> recentServiceDiscoveryEvents = new CopyOnWriteArrayList<>();
+    private final ReplayProcessor<ServiceDiscoveryEvent> processor;
 
     private static JmxMBeanBootstrap start(
-        Microservices instance, ServiceDiscoveryConfig serviceDiscoveryConfig) {
-      try {
-        MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
-        JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance, serviceDiscoveryConfig);
-        ObjectName objectName =
-            new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
-        StandardMBean standardMBean = new StandardMBean(jmxMBean, MicroservicesMBean.class);
-        mbeanServer.registerMBean(standardMBean, objectName);
-        return jmxMBean;
-      } catch (Exception e) {
-        throw Exceptions.propagate(e);
-      }
+        Microservices instance, ServiceDiscoveryConfig serviceDiscoveryConfig) throws Exception {
+      MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
+      JmxMBeanBootstrap jmxMBean = new JmxMBeanBootstrap(instance, serviceDiscoveryConfig);
+      ObjectName objectName =
+          new ObjectName("io.scalecube.services:name=Microservices@" + instance.id);
+      StandardMBean standardMBean = new StandardMBean(jmxMBean, MicroservicesMBean.class);
+      mbeanServer.registerMBean(standardMBean, objectName);
+      return jmxMBean;
     }
 
     private JmxMBeanBootstrap(
         Microservices microservices, ServiceDiscoveryConfig serviceDiscoveryConfig) {
       this.serviceDiscoveryConfig = serviceDiscoveryConfig;
       this.microservices = microservices;
-      microservices
-          .discovery
-          .listen()
-          .subscribeOn(Schedulers.single())
-          .subscribe(
-              event -> {
-                if (recentServiceDiscoveryEvents.size() == MAX_CACHE_SIZE) {
-                  recentServiceDiscoveryEvents.remove(0);
-                }
-                recentServiceDiscoveryEvents.add(event.toString());
-              });
+      this.processor = ReplayProcessor.create(MAX_CACHE_SIZE);
+      microservices.discovery.listen().subscribe(processor);
     }
 
     @Override
@@ -578,13 +559,15 @@ public class Microservices {
 
     @Override
     public Collection<String> getRecentServiceDiscoveryEvents() {
-      return recentServiceDiscoveryEvents;
+      List<String> recentEvents = new ArrayList<>(MAX_CACHE_SIZE);
+      processor.map(ServiceDiscoveryEvent::toString).subscribe(recentEvents::add);
+      return recentEvents;
     }
 
     @Override
-    public Collection<String> getServiceReferences() {
-      return microservices.serviceRegistry.listServiceReferences().stream()
-          .map(ServiceReference::toString)
+    public Collection<String> getServiceEndpoints() {
+      return microservices.serviceRegistry.listServiceEndpoints().stream()
+          .map(ServiceEndpoint::toString)
           .collect(Collectors.toList());
     }
 

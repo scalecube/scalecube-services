@@ -12,9 +12,9 @@ public interface MicroservicesMBean {
 
   Collection<String> getServiceEndpoint();
 
-  Collection<String> getRecentServiceDiscoveryEvents();
+  Collection<String> getServiceEndpoints();
 
-  Collection<String> getServiceReferences();
+  Collection<String> getRecentServiceDiscoveryEvents();
 
   Collection<String> getServiceTransport();
 
